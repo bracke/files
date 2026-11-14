@@ -13,6 +13,11 @@ package Files.Protocol_Names is
    --  The lease file whose holder owns a transport folder.
    Transport_Lease : constant String := ".files-job-owner";
 
+   --  What every private copy stage's folder name starts with (then a
+   --  number): the folder a copy or move writes into beside its destination
+   --  before it is published under its own name.
+   Work_Stage_Prefix : constant String := ".files-work-";
+
    --  What every recovery stage's folder name starts with (then a number).
    Recovery_Stage_Prefix : constant String := ".files-recovery-";
 

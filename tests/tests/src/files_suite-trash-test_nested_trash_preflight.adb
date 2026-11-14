@@ -10,7 +10,7 @@ separate (Files_Suite.Trash)
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Ada.Directories.Create_Path (Nested_Trash_Source);
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Nested_Trash_Source, "xdg-data"));
-         Mutation := Files.File_System.Move_To_Trash (Nested_Trash_Source);
+         Mutation := Files.File_System.Trash.Move_To_Trash (Nested_Trash_Source);
          Assert (not Mutation.Success, "trash move into a source subdirectory fails");
          Files_Suite.Support.Assert_Equal
            (To_String (Mutation.Error_Key),

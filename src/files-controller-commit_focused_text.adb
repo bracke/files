@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Hostkit.Metadata;
 separate (Files.Controller)
    function Commit_Focused_Text
@@ -72,9 +73,9 @@ separate (Files.Controller)
                      Resolved := Typed.Id;
                   end;
                elsif Group then
-                  Resolved := Files.File_System.Group_Id_For_Name (Raw, Found);
+                  Resolved := Files.File_System.Permissions.Group_Id_For_Name (Raw, Found);
                else
-                  Resolved := Files.File_System.User_Id_For_Name (Raw, Found);
+                  Resolved := Files.File_System.Permissions.User_Id_For_Name (Raw, Found);
                end if;
 
                if not Found then

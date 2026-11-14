@@ -46,7 +46,7 @@ separate (Files_Suite.Settings)
             Available : Boolean := False;
          begin
             Assert
-              (Files.File_System.Permission_Bits_Of (Saved_Path, Available)
+              (Files.File_System.Permissions.Permission_Bits_Of (Saved_Path, Available)
                  mod 8#1000# = 8#600# and then Available,
                "saved settings containing private paths are owner-only");
          end;

@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Files.Items;
 with Files.Root_Labels;
 with Ada.Containers.Hashed_Maps;

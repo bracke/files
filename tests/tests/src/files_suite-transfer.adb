@@ -1,3 +1,7 @@
+with Files.Foreground_Jobs;
+with Files.File_System.Trash;
+with Files.File_System.Permissions;
+with Files.Protocol_Names;
 with Files.Items;
 with Files.Model.Testing;
 with Files.File_Identities;

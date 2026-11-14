@@ -5,7 +5,7 @@ function Empty_Trash
    return Operation_Result
 is
    Trash_Dir   : constant String :=
-     (if Files.Model.Background_Transfers (Model) then "" else Files.File_System.Trash_Files_Directory);
+     (if Files.Model.Background_Transfers (Model) then "" else Files.File_System.Trash.Trash_Files_Directory);
    Load        : Files.File_System.Directory_Load_Result;
    Total       : Natural := 0;
    Failed      : Natural := 0;
@@ -37,7 +37,7 @@ begin
          --  Its labels went into the trash with it.
          Labeled  : constant String := To_String (Item.Full_Path);
          Mutation : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Delete_Trashed_Item (To_String (Item.Full_Path));
+           Files.File_System.Trash.Delete_Trashed_Item (To_String (Item.Full_Path));
       begin
          if Mutation.Success then
             Files.Model.Note_Path_Removed (Model, Labeled);

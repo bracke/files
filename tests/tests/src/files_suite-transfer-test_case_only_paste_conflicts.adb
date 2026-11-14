@@ -1,3 +1,4 @@
+with Files.Foreground_Jobs;
 with Files.Model.Clipboard;
 separate (Files_Suite.Transfer)
    procedure Test_Case_Only_Paste_Conflicts (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -71,8 +72,8 @@ separate (Files_Suite.Transfer)
             end Expect;
          begin
             for Attempt in 1 .. 100 loop
-               exit when not Files.Model.Pasting.Execution_Is_Active (Model);
-               Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 8);
+               exit when not Files.Model.Foreground_Job_Is_Active (Model);
+               Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
             end loop;
             Expect ("SRC", Script & " replace");
             Step := Files.Operations.Undo_Last (Model, Settings);

@@ -11,7 +11,7 @@ separate (Files.Application.Windows)
             Open := Open + 1;
             Pending (Open) :=
               (Background_Paste =>
-                 Files.Model.Pasting.Execution_Is_Active (Runtime.Model)
+                 Files.Model.Foreground_Job_Is_Active (Runtime.Model)
                  and then Files.Model.Background_Transfers (Runtime.Model),
                Mouse_Ready      => Guikit.Input.Mouse_Buttons.Ready_At (Runtime.Handle.Pending_Mouse));
          end if;

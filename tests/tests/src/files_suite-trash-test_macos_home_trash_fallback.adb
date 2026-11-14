@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.File_System.Testing;
 separate (Files_Suite.Trash)
    procedure Test_Macos_Home_Trash_Fallback (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -13,7 +14,7 @@ separate (Files_Suite.Trash)
          Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
          Ada.Environment_Variables.Set ("HOME", Mac_Home);
          Write_File (Join (Root, "mac-trash.txt"));
-         Mutation := Files.File_System.Move_To_Trash (Join (Root, "mac-trash.txt"));
+         Mutation := Files.File_System.Trash.Move_To_Trash (Join (Root, "mac-trash.txt"));
          Assert (Mutation.Success, "macOS-style home trash fallback moves files");
          Assert
            (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Home,

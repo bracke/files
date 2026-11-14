@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Files.File_System.Thumbnails;
 with Files.Images;
 separate (Files_Suite.Thumbnails)
@@ -26,11 +27,11 @@ separate (Files_Suite.Thumbnails)
             Available : Boolean := False;
          begin
             Assert
-              (Files.File_System.Permission_Bits_Of (Thumbnail_Cache, Available)
+              (Files.File_System.Permissions.Permission_Bits_Of (Thumbnail_Cache, Available)
                  mod 8#1000# = 8#700# and then Available,
                "thumbnail cache is owner-only");
             Assert
-              (Files.File_System.Permission_Bits_Of
+              (Files.File_System.Permissions.Permission_Bits_Of
                  (To_String (Thumbnail.Thumbnail_Path), Available)
                  mod 8#1000# = 8#600# and then Available,
                "thumbnail artifact is owner-only");

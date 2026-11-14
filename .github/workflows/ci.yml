@@ -190,7 +190,7 @@ jobs:
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
           clone_at zlib e2a66961dc1ebb9d90433160a43f78f52f8db9e1
           clone_at guikit 9a57f5d46b237b1478a38fdad07a474fd57cfe00
-          clone_at hostkit b3943559fd6045659d4799488abd24d563b2b77a
+          clone_at hostkit ea4a9337a6f3e632e915390c0722c90b626bc6a3
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.

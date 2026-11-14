@@ -22,7 +22,7 @@ separate (Files_Suite.History)
          Previous : Natural;
          Previous_Access, Applied_Access, Identity : Files.Types.UString;
          Mutation : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Change_Access
+           Files.File_System.Permissions.Change_Access
              (Path, "", Mode_Of (Path), "", Previous, Previous_Access, Applied_Access, Identity);
       begin
          Assert (Mutation.Success, "the access of " & Path & " can be read");
@@ -37,7 +37,7 @@ separate (Files_Suite.History)
       function Is_Protected (Text : String) return Boolean is
         (Text'Length >= 3 and then Text (Text'First .. Text'First + 2) = "D:P");
    begin
-      if not Files.File_System.Supports_Permissions then
+      if not Files.File_System.Permissions.Supports_Permissions then
          Files_Suite.Support.Skip ("Test_Permission_Undo_Restores_Access", "this host has no POSIX permissions to set");
          return;
       end if;

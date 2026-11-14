@@ -23,7 +23,7 @@ separate (Files_Suite.Trash)
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
 
       Write_File (Source_Path, "payload");
-      Mutation := Files.File_System.Move_To_Trash (Source_Path);
+      Mutation := Files.File_System.Trash.Move_To_Trash (Source_Path);
       Assert (Mutation.Success, "restore setup moves source file to trash");
       Assert (not Ada.Directories.Exists (Source_Path), "restore setup removes source file");
       Assert (Ada.Directories.Exists (Join (Trash_File, "restore-me.txt")), "restore setup stores trashed payload");
@@ -31,7 +31,7 @@ separate (Files_Suite.Trash)
         (Ada.Directories.Exists (Join (Trash_Info, "restore-me.txt.trashinfo")),
          "restore setup writes trashinfo sidecar");
 
-      Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
+      Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Assert (Load.Success, "restore navigates into trash files directory");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Files.Operations.Settle_Current_Is_Trash (Model);
@@ -58,7 +58,7 @@ separate (Files_Suite.Trash)
          "restore removes the trashinfo sidecar");
 
       Write_File (Source_Path, "permanent payload");
-      Mutation := Files.File_System.Move_To_Trash (Source_Path);
+      Mutation := Files.File_System.Trash.Move_To_Trash (Source_Path);
       Assert (Mutation.Success, "permanent-delete setup moves source file to trash");
       Assert
         (Ada.Directories.Exists (Join (Trash_File, "restore-me.txt"))
@@ -66,7 +66,7 @@ separate (Files_Suite.Trash)
            (Join (Trash_Info, "restore-me.txt.trashinfo")),
          "permanent-delete setup creates a payload and sidecar");
       Load := Files.File_System.Load_Directory
-        (Files.File_System.Trash_Files_Directory, Settings);
+        (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Files.Operations.Settle_Current_Is_Trash (Model);
       Select_Name (Model, "restore-me.txt");

@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Fs_Primitives;
 with Ada.Strings.Fixed;
 with Ada.Strings.Wide_Wide_Fixed;
@@ -42,7 +43,7 @@ separate (Files_Suite.Trash)
          --  user's own trash, and named on every host (Windows sets no HOME).
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Root & "_xdg_data");
          Write_Long_Path_File (Original, "long");
-         Assert (Files.File_System.Move_To_Trash (Original, Trashed).Success,
+         Assert (Files.File_System.Trash.Move_To_Trash (Original, Trashed).Success,
                  "a file with a 245-byte name goes to the trash");
          Assert (not Present (Original), "it left its folder");
          Leaf := To_Unbounded_String (Files.Fs_Primitives.Leaf_Text (To_String (Trashed)));
@@ -52,7 +53,7 @@ separate (Files_Suite.Trash)
                  and then Ada.Directories.Extension (To_String (Leaf)) = "txt",
                  "the shortened name keeps its start and extension");
          Assert (Guikit.Utf8.Is_Valid (To_String (Leaf)), "the cut ends a whole character");
-         Assert (Files.File_System.Restore_From_Trash (To_String (Trashed)).Success,
+         Assert (Files.File_System.Trash.Restore_From_Trash (To_String (Trashed)).Success,
                  "it is restored");
          Assert (Present (Original), "under its own name");
 
@@ -63,10 +64,10 @@ separate (Files_Suite.Trash)
          Ada.Directories.Create_Path (Join (Mac_Home, ".Trash"));
          Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
          Ada.Environment_Variables.Set ("HOME", Mac_Home);
-         Assert (Files.File_System.Move_To_Trash (Original).Success, "the first goes to the home trash");
+         Assert (Files.File_System.Trash.Move_To_Trash (Original).Success, "the first goes to the home trash");
          Assert (Present (Join (Join (Mac_Home, ".Trash"), Long_Name)), "under its own name");
          Write_Long_Path_File (Original, "again");
-         Assert (Files.File_System.Move_To_Trash (Original).Success,
+         Assert (Files.File_System.Trash.Move_To_Trash (Original).Success,
                  "a second of the same long name goes too, cut to make room for its counter");
          Clear_Mac_Home;
       exception

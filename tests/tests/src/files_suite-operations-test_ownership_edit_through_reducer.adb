@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Files.Controller.Testing;
 with Hostkit.Metadata;
 separate (Files_Suite.Operations)
@@ -16,7 +17,7 @@ separate (Files_Suite.Operations)
       Owner_X      : Natural := 0;
       Owner_Y      : Natural := 0;
    begin
-      if not Files.File_System.Supports_Ownership then
+      if not Files.File_System.Permissions.Supports_Ownership then
          Files_Suite.Support.Skip
            ("Test_Ownership_Edit_Through_Reducer", "this host has no POSIX owner and group to change");
          return;

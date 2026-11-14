@@ -1,3 +1,4 @@
+with Files.Protocol_Names;
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -187,7 +188,7 @@ package body Test_Helpers is
          Directory, Identity : Ada.Strings.Unbounded.Unbounded_String;
          Parent : constant String :=
            Hostkit.Fs.Create_Temporary_Directory ("files-no-btime-stage-");
-         Fake_Stage : constant String := Hostkit.Fs.Join (Parent, ".files-work-777");
+         Fake_Stage : constant String := Hostkit.Fs.Join (Parent, Files.Protocol_Names.Work_Stage_Prefix & "777");
          Fake_Transport : constant String := Hostkit.Fs.Join
            (Parent, "files-job-0123456789abcdef0123456789abcdef");
          Fake_Recovery : constant String := Hostkit.Fs.Join (Parent, ".files-recovery-1");
@@ -265,7 +266,7 @@ package body Test_Helpers is
                when Ada.Directories.Use_Error => Rejected := True;
             end;
             if not Rejected
-              or else Ada.Directories.Exists (Hostkit.Fs.Join (Parent, ".files-work-1"))
+              or else Ada.Directories.Exists (Hostkit.Fs.Join (Parent, Files.Protocol_Names.Work_Stage_Prefix & "1"))
             then
                Hostkit.Process.End_Now (1);
             end if;
@@ -280,7 +281,7 @@ package body Test_Helpers is
          begin
             if Copied.Success or else Ada.Directories.Exists (Destination)
               or else not Ada.Directories.Exists (Source)
-              or else Ada.Directories.Exists (Hostkit.Fs.Join (Parent, ".files-work-1"))
+              or else Ada.Directories.Exists (Hostkit.Fs.Join (Parent, Files.Protocol_Names.Work_Stage_Prefix & "1"))
             then
                Hostkit.Process.End_Now (1);
             end if;

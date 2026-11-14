@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Hostkit.Metadata;
 separate (Files_Suite.Operations)
    procedure Test_Set_Ownership_Denied (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -11,7 +12,7 @@ separate (Files_Suite.Operations)
       Uid, Gid : Files.Types.Account_Id := 0;
       Avail    : Boolean := False;
    begin
-      if not Files.File_System.Supports_Ownership then
+      if not Files.File_System.Permissions.Supports_Ownership then
          Files_Suite.Support.Skip ("Test_Set_Ownership_Denied", "this host has no POSIX owner and group to change");
          return;
       end if;

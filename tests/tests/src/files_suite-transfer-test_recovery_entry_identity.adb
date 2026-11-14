@@ -11,7 +11,7 @@ separate (Files_Suite.Transfer)
       Load : Files.File_System.Directory_Load_Result;
       Finished, Cancelled : Boolean;
       Mutation : Files.File_System.Mutation_Result;
-      Destinations, Sources, Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
+      Entries : Files.Job_Context.Journal_Entry_Vectors.Vector;
       File : Ada.Streams.Stream_IO.File_Type;
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Environment_Guard;
@@ -90,9 +90,9 @@ separate (Files_Suite.Transfer)
             declare
                Recorded : constant String :=
                  (if Files.Model.History.Undo_Available (Model)
-                    and then not Files.Model.History.Undo_Entries (Model).Last_Element.Created_Identities.Is_Empty
+                    and then not Files.Model.History.Undo_Entries (Model).Last_Element.Items.Is_Empty
                   then To_String
-                    (Files.Model.History.Undo_Entries (Model).Last_Element.Created_Identities.First_Element)
+                    (Files.Model.History.Undo_Entries (Model).Last_Element.Items.First_Element.Identity)
                   else "<none>");
             begin
                Assert (Files.Model.History.Undo_Available (Model)
@@ -127,15 +127,12 @@ separate (Files_Suite.Transfer)
             Files.Job_Context.Initialize (Journal_Directory);
             Files.Job_Context.Record_Created (Source);
             Files.Job_Context.Initialize ("");
-            Files.Job_Context.Read_Created
-              (Journal_Directory, Destinations, Sources, Identities,
-               Tree_Revisions);
+            Entries := Files.Job_Context.Read_Created (Journal_Directory);
             Files_Suite.Support.Assert_Equal
               (Project_Tools.Files.Read_Raw_File (Victim),
                "protected recovery journal",
                "created journal I/O refuses a multiply-linked file: victim unchanged");
-            Assert (Destinations.Is_Empty, "created journal I/O refuses a multiply-linked file: no destinations");
-            Assert (Identities.Is_Empty, "created journal I/O refuses a multiply-linked file: no identities");
+            Assert (Entries.Is_Empty, "created journal I/O refuses a multiply-linked file");
          else
             Files_Suite.Support.Link_Not_Made ("Test_Recovery_Entry_Identity", Files_Suite.Support.Hard_Link);
          end if;
@@ -148,9 +145,8 @@ separate (Files_Suite.Transfer)
         (File, Ada.Streams.Stream_IO.Append_File, Join (Join (Root, "journal"), "created"));
       String'Output (Ada.Streams.Stream_IO.Stream (File), "truncated destination");
       Ada.Streams.Stream_IO.Close (File);
-      Files.Job_Context.Read_Created
-        (Join (Root, "journal"), Destinations, Sources, Identities, Tree_Revisions);
-      Assert (Natural (Destinations.Length) = 1 and then Natural (Identities.Length) = 1,
+      Entries := Files.Job_Context.Read_Created (Join (Root, "journal"));
+      Assert (Natural (Entries.Length) = 1 and then Length (Entries.First_Element.Identity) > 0,
               "a truncated journal ignores incomplete records without losing earlier snapshots");
       --  Leases are created hidden on Windows, and Windows refuses to create
       --  over a hidden file, so each rewrite removes the journal first.
@@ -161,18 +157,10 @@ separate (Files_Suite.Transfer)
         (File, Ada.Streams.Stream_IO.Count (64 * 1024 * 1024 + 1));
       Character'Write (Ada.Streams.Stream_IO.Stream (File), 'x');
       Ada.Streams.Stream_IO.Close (File);
-      Files.Job_Context.Read_Created
-        (Join (Root, "journal"), Destinations, Sources, Identities, Tree_Revisions);
+      Entries := Files.Job_Context.Read_Created (Join (Root, "journal"));
       Assert
-        (Destinations.Is_Empty,
-         "an oversized recovery journal is rejected before allocating records: no destinations");
-      Assert (Sources.Is_Empty, "an oversized recovery journal is rejected before allocating records: no sources");
-      Assert
-        (Identities.Is_Empty,
-         "an oversized recovery journal is rejected before allocating records: no identities");
-      Assert
-        (Tree_Revisions.Is_Empty,
-         "an oversized recovery journal is rejected before allocating records: no tree revisions");
+        (Entries.Is_Empty,
+         "an oversized recovery journal is rejected before allocating records");
       Ada.Directories.Delete_File (Join (Join (Root, "journal"), "created"));
       Ada.Streams.Stream_IO.Create
         (File, Ada.Streams.Stream_IO.Out_File,
@@ -183,13 +171,8 @@ separate (Files_Suite.Transfer)
       String'Output (Ada.Streams.Stream_IO.Stream (File), "identity");
       String'Output (Ada.Streams.Stream_IO.Stream (File), "revision");
       Ada.Streams.Stream_IO.Close (File);
-      Files.Job_Context.Read_Created
-        (Join (Root, "journal"), Destinations, Sources, Identities,
-         Tree_Revisions);
-      Assert (Destinations.Is_Empty, "created recovery records reject relative destination paths: no destinations");
-      Assert (Sources.Is_Empty, "created recovery records reject relative destination paths: no sources");
-      Assert (Identities.Is_Empty, "created recovery records reject relative destination paths: no identities");
-      Assert (Tree_Revisions.Is_Empty, "created recovery records reject relative destination paths: no tree revisions");
+      Entries := Files.Job_Context.Read_Created (Join (Root, "journal"));
+      Assert (Entries.Is_Empty, "created recovery records reject relative destination paths");
       Ada.Streams.Stream_IO.Create
         (File, Ada.Streams.Stream_IO.Out_File,
          Join (Join (Root, "journal"), "moved"));
@@ -198,29 +181,18 @@ separate (Files_Suite.Transfer)
       String'Output (Ada.Streams.Stream_IO.Stream (File), "relative-source");
       String'Output (Ada.Streams.Stream_IO.Stream (File), "identity");
       Ada.Streams.Stream_IO.Close (File);
-      Files.Job_Context.Read_Moved
-        (Join (Root, "journal"), Destinations, Sources, Identities);
-      Assert (Destinations.Is_Empty, "moved recovery records reject relative source paths: no destinations");
-      Assert (Sources.Is_Empty, "moved recovery records reject relative source paths: no sources");
-      Assert (Identities.Is_Empty, "moved recovery records reject relative source paths: no identities");
-      Files.Job_Context.Read_Created
-        ("relative-recovery-journal", Destinations, Sources, Identities,
-         Tree_Revisions);
-      Assert (Destinations.Is_Empty, "recovery journal readers reject relative transport directories: no destinations");
-      Assert (Sources.Is_Empty, "recovery journal readers reject relative transport directories: no sources");
-      Assert (Identities.Is_Empty, "recovery journal readers reject relative transport directories: no identities");
-      Assert
-        (Tree_Revisions.Is_Empty,
-         "recovery journal readers reject relative transport directories: no tree revisions");
+      Entries := Files.Job_Context.Read_Moved (Join (Root, "journal"));
+      Assert (Entries.Is_Empty, "moved recovery records reject relative source paths");
+      Entries := Files.Job_Context.Read_Created ("relative-recovery-journal");
+      Assert (Entries.Is_Empty, "recovery journal readers reject relative transport directories");
       Ada.Directories.Delete_File (Join (Join (Root, "journal"), "created"));
       Ada.Streams.Stream_IO.Create
         (File, Ada.Streams.Stream_IO.Out_File, Join (Join (Root, "journal"), "created"));
       String'Output (Ada.Streams.Stream_IO.Stream (File), Source);
       String'Output (Ada.Streams.Stream_IO.Stream (File), "old source");
       Ada.Streams.Stream_IO.Close (File);
-      Files.Job_Context.Read_Created
-        (Join (Root, "journal"), Destinations, Sources, Identities, Tree_Revisions);
-      Assert (Destinations.Is_Empty and then Identities.Is_Empty, "identity-free legacy journals fail closed");
+      Entries := Files.Job_Context.Read_Created (Join (Root, "journal"));
+      Assert (Entries.Is_Empty, "identity-free legacy journals fail closed");
    exception
       when others =>
          Files.Job_Context.Initialize ("");

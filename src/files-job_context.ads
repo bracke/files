@@ -1,3 +1,4 @@
+with Ada.Containers.Vectors;
 with Files.Types;
 with Files.Job_Transports;
 
@@ -54,17 +55,27 @@ package Files.Job_Context is
    --  @param Tree_Revision Recursive directory revision captured before publication.
    procedure Record_Created (Destination, Source, Identity, Tree_Revision : String);
 
+   --  One entry a helper's journal records: published (Record_Created) or
+   --  moved into place (Record_Moved).
+   type Journal_Entry is record
+      --  Where it is now, and where it came from (empty for an archive or an
+      --  extraction).
+      Destination   : Files.Types.UString;
+      Source        : Files.Types.UString;
+      --  Its identity captured at publication, never during recovery.
+      Identity      : Files.Types.UString;
+      --  A created directory's recursive revision at publication; empty for
+      --  a file, a link, and every move.
+      Tree_Revision : Files.Types.UString;
+   end record;
+
+   package Journal_Entry_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Journal_Entry);
+
    --  @param Directory Helper transport directory containing the publication journal.
-   --  @param Destinations Published complete output pathnames.
-   --  @param Sources Parallel source pathnames.
-   --  @param Identities Parallel identities captured at publication, never during recovery.
-   --  @param Tree_Revisions Parallel recursive directory revisions captured at publication.
-   procedure Read_Created
-     (Directory : String;
-      Destinations : out Files.Types.String_Vectors.Vector;
-      Sources : out Files.Types.String_Vectors.Vector;
-      Identities : out Files.Types.String_Vectors.Vector;
-      Tree_Revisions : out Files.Types.String_Vectors.Vector);
+   --  @return The published entries, in order; those before a damaged record
+   --    when one is.
+   function Read_Created (Directory : String) return Journal_Entry_Vectors.Vector;
 
    --  Record a move only after its source has been vacated.
    --  @param Destination Committed destination pathname.
@@ -73,12 +84,9 @@ package Files.Job_Context is
    procedure Record_Moved (Destination, Source, Identity : String);
 
    --  @param Directory Helper transport directory containing committed moves.
-   --  @param Destinations Committed destination pathnames.
-   --  @param Sources Parallel original source pathnames.
-   --  @param Identities Parallel destination identities retained at publication.
-   procedure Read_Moved
-     (Directory : String;
-      Destinations, Sources, Identities : out Files.Types.String_Vectors.Vector);
+   --  @return The committed moves, in order; those before a damaged record
+   --    when one is.
+   function Read_Moved (Directory : String) return Journal_Entry_Vectors.Vector;
 
    --  Remove a stage created by this process after checking the identity stored
    --  in its private owner marker. Foreground failures release their managed

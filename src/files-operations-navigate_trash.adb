@@ -4,7 +4,7 @@ function Navigate_Trash
    Settings : Files.Settings.Settings_Model)
    return Operation_Result
 is
-   Trash_Dir : constant String := Files.File_System.Trash_Files_Directory;
+   Trash_Dir : constant String := Files.File_System.Trash.Trash_Files_Directory;
 begin
    if Trash_Dir = "" then
       Files.Model.Set_Error (Model, "error.trash.unavailable");

@@ -1,3 +1,5 @@
+with Files.File_System.Trash;
+with Files.File_System.Permissions;
 with Files.File_System.Thumbnails;
 with Files.Items;
 with Files.Model.Testing;

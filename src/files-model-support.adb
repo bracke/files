@@ -657,6 +657,12 @@ package body Files.Model.Support is
       end if;
    end Toggle_Settings_Pane;
 
+   function Released_Transfer return Files.Transfer_Jobs.Session is
+      Idle : Files.Transfer_Jobs.Session;
+   begin
+      return Idle;
+   end Released_Transfer;
+
    function Released_Process return Files.Process_Jobs.Session is
       Idle : Files.Process_Jobs.Session;
    begin

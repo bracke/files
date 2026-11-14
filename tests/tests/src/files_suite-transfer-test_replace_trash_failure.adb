@@ -34,7 +34,7 @@ separate (Files_Suite.Transfer)
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
             Step := Files_Suite.Support.Finish_Paste (Model, Settings);
-            Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "a failed Replace finishes its execution");
+            Assert (not Files.Model.Foreground_Job_Is_Active (Model), "a failed Replace finishes its execution");
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operations.Operation_Failed,

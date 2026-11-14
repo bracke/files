@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Operations.Testing;
 with Project_Tools.Files;
 separate (Files_Suite.Model)
@@ -34,28 +35,30 @@ separate (Files_Suite.Model)
       --  The oldest entry references the payload; pushing past the depth cap
       --  through the model alone retires it.
       declare
-         From, Payloads : Files.Types.String_Vectors.Vector;
+         From : constant Files.Model.Undo_Item_Vectors.Vector :=
+           Files.Model.Undo_Item_Vectors.To_Vector
+             ((From => To_Unbounded_String (Entry_At), Identity => To_Unbounded_String ("1:entry"), others => <>), 1);
+         Payloads : Files.Model.Replaced_Original_Vectors.Vector;
       begin
-         From.Append (To_Unbounded_String (Entry_At));
-         Payloads.Append (Backup);
+         Payloads.Append (Files.Model.Replaced_Original'(Trash => Backup, others => <>));
          Recorded := Files.Model.History.Commit_Undo_Record
            (Model,
-            (Kind => Files.Model.Undo_Delete_Created, From => From, Redoable => False,
-             Restore_Trash => Payloads, others => <>));
+            (Kind => Files.Model.Undo_Delete_Created, Items => From, Redoable => False,
+             Replaced => Payloads, others => <>));
          Assert (Recorded, "the model records the payload-carrying entry");
          for Index in 1 .. 200 loop
             Recorded := Files.Model.History.Commit_Undo_Record
               (Model,
-               (Kind => Files.Model.Undo_Delete_Created, From => From, Redoable => False, others => <>));
+               (Kind => Files.Model.Undo_Delete_Created, Items => From, Redoable => False, others => <>));
             Assert (Recorded, "the model records entry" & Index'Image);
          end loop;
          --  An entry that records nothing still carried a preserved original.
          Payloads.Clear;
-         Payloads.Append (Rejected);
+         Payloads.Append (Files.Model.Replaced_Original'(Trash => Rejected, others => <>));
          Recorded := Files.Model.History.Commit_Undo_Record
            (Model,
             (Kind => Files.Model.Undo_Delete_Created, Redoable => False,
-             Restore_Trash => Payloads, others => <>));
+             Replaced => Payloads, others => <>));
          Assert (not Recorded, "an entry without paths is not recorded");
       end;
       Files_Suite.Support.Assert_Equal
@@ -76,7 +79,9 @@ separate (Files_Suite.Model)
          Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Found_Original, Found_Rejected : Boolean := False;
       begin
-         for Item of Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings).Items loop
+         for Item of
+           Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings).Items
+         loop
             Found_Original := Found_Original or else File_Has_Bytes (To_String (Item.Full_Path), "original");
             Found_Rejected := Found_Rejected or else File_Has_Bytes (To_String (Item.Full_Path), "rejected");
          end loop;

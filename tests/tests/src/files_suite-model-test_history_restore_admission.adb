@@ -10,10 +10,12 @@ separate (Files_Suite.Model)
          Result : Files.Model.Undo_Entry;
       begin
          Result.Kind := Files.Model.Undo_Rename;
-         Result.From.Append (To_Unbounded_String ("/missing/new-name"));
-         Result.To.Append (To_Unbounded_String ("/missing/old-name"));
-         Result.Created_Identities.Append (To_Unbounded_String ("persisted-identity"));
-         Result.Created_Tree_Revisions.Append (Null_Unbounded_String);
+         Result.Items.Append
+           (Files.Model.Undo_Item'
+              (From          => To_Unbounded_String ("/missing/new-name"),
+               To            => To_Unbounded_String ("/missing/old-name"),
+               Identity      => To_Unbounded_String ("persisted-identity"),
+               others        => <>));
          return Result;
       end Rename_Action;
 
@@ -39,52 +41,47 @@ separate (Files_Suite.Model)
       Relative_Copy_Record : Files.Model.Undo_Entry := Rename_Action;
       Undo_Only_Redo : Files.Model.Undo_Entry := Rename_Action;
    begin
-      Good_Undo.Reverse_Completed.Append (Good_Undo.From.First_Element);
+      Good_Undo.Reverse_Completed.Append (Good_Undo.Items.First_Element.From);
 
-      Short_Targets.To.Clear;
+      Short_Targets.Items (1).To := Null_Unbounded_String;
 
       Foreign_Marker.Reverse_Completed.Append
         (To_Unbounded_String ("/missing/not-in-action"));
 
       Bad_Metadata.Kind := Files.Model.Undo_Set_Permissions;
-      Bad_Metadata.To.Replace_Element
-        (Bad_Metadata.To.First_Index, To_Unbounded_String ("not-a-mode"));
-      Bad_Metadata.Forward.Append (To_Unbounded_String ("420"));
+      Bad_Metadata.Items (1).To := To_Unbounded_String ("not-a-mode");
+      Bad_Metadata.Items (1).Forward := To_Unbounded_String ("420");
 
       Bad_Restore.Redoable := False;
-      Bad_Restore.Restore_Trash.Append (To_Unbounded_String ("/missing/trash-entry"));
+      Bad_Restore.Replaced.Append
+        (Files.Model.Replaced_Original'(Trash => To_Unbounded_String ("/missing/trash-entry"), others => <>));
 
       Bad_Copy_Records.Kind := Files.Model.Undo_Delete_Created;
-      Bad_Copy_Records.To.Clear;
-      Bad_Copy_Records.Forward.Append (To_Unbounded_String ("/missing/source"));
+      Bad_Copy_Records.Items (1).To := Null_Unbounded_String;
+      Bad_Copy_Records.Items (1).Forward := To_Unbounded_String ("/missing/source");
       Bad_Copy_Records.Create_Kind := Files.Model.Create_Copy;
       Bad_Copy_Records.Copy_Records.Append (To_Unbounded_String ("incomplete-group"));
 
-      Relative_From.From.Replace_Element
-        (Relative_From.From.First_Index, To_Unbounded_String ("relative-new-name"));
+      Relative_From.Items (1).From := To_Unbounded_String ("relative-new-name");
 
-      Nul_Target.To.Replace_Element
-        (Nul_Target.To.First_Index,
-         To_Unbounded_String ("/missing/old" & Character'Val (0) & "name"));
+      Nul_Target.Items (1).To := To_Unbounded_String ("/missing/old" & Character'Val (0) & "name");
 
       Relative_Forward.Kind := Files.Model.Undo_Delete_Created;
-      Relative_Forward.To.Clear;
-      Relative_Forward.Forward.Append (To_Unbounded_String ("relative-source"));
+      Relative_Forward.Items (1).To := Null_Unbounded_String;
+      Relative_Forward.Items (1).Forward := To_Unbounded_String ("relative-source");
       Relative_Forward.Create_Kind := Files.Model.Create_Symbolic_Link;
 
       Relative_Restore.Redoable := False;
       Relative_Restore.Kind := Files.Model.Undo_Move;
-      Relative_Restore.Restore_Trash.Append
-        (To_Unbounded_String ("/missing/trash-entry"));
-      Relative_Restore.Restore_Identities.Append
-        (To_Unbounded_String ("persisted-trash-identity"));
-      Relative_Restore.Restore_Targets.Append
-        (To_Unbounded_String ("relative-restore-target"));
+      Relative_Restore.Replaced.Append
+        (Files.Model.Replaced_Original'
+           (Trash    => To_Unbounded_String ("/missing/trash-entry"),
+            Identity => To_Unbounded_String ("persisted-trash-identity"),
+            Target   => To_Unbounded_String ("relative-restore-target")));
 
       Relative_Copy_Record.Kind := Files.Model.Undo_Delete_Created;
-      Relative_Copy_Record.To.Clear;
-      Relative_Copy_Record.Forward.Append
-        (To_Unbounded_String ("/missing/source"));
+      Relative_Copy_Record.Items (1).To := Null_Unbounded_String;
+      Relative_Copy_Record.Items (1).Forward := To_Unbounded_String ("/missing/source");
       Relative_Copy_Record.Create_Kind := Files.Model.Create_Copy;
       Relative_Copy_Record.Copy_Records.Append
         (To_Unbounded_String ("source-identity"));
@@ -126,7 +123,7 @@ separate (Files_Suite.Model)
          and then Same_Action (Files.Model.History.Redo_Entries (Model).First_Element, Good_Redo),
          "Redo filters undo-only entries but retains a valid action with stale paths");
       Assert
-        (Files.Model.History.Undo_Entries (Model).First_Element.Created_Identities.First_Element =
+        (Files.Model.History.Undo_Entries (Model).First_Element.Items.First_Element.Identity =
            To_Unbounded_String ("persisted-identity"),
          "sanitizing restored history does not recapture or discard its identity snapshot");
    end Test_History_Restore_Admission;

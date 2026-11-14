@@ -4,8 +4,7 @@ function Move_Back
    Model : in out Files.Model.Window_Model;
    Forward : Boolean) return Boolean
 is
-   Sources : constant Files.Types.String_Vectors.Vector := (if Forward then Action.To else Action.From);
-   Targets : constant Files.Types.String_Vectors.Vector := (if Forward then Action.From else Action.To);
+   Count : constant Natural := Natural (Action.Items.Length);
    Succeeded : Boolean := True;
    Done : Path_Sets.Set := To_Set (if Forward then Action.Forward_Completed else Action.Reverse_Completed);
    --  Recognisable means a retry finds the step done by its recorded
@@ -23,19 +22,22 @@ is
       Files.History_Journal.Checkpoint (Model, Action, Forward, Force => not Recognisable);
    end Completed;
 begin
-   for Step in 0 .. Natural (Sources.Length) - 1 loop
+   for Step in 0 .. Count - 1 loop
       if Files.Job_Context.Cancelled then
          return False;
       end if;
       declare
          --  Undo replays a batch last move first: renaming b to c and then
          --  a to b undoes as b to a, then c to b.
-         Index  : constant Positive :=
-           (if Forward then Sources.First_Index + Step else Sources.Last_Index - Step);
-         Source : constant String := To_String (Sources.Element (Index));
-         Target : constant String := To_String (Targets.Element (Index));
-         Identity : constant String := Files.Model.Created_Identity (Action, Index);
-         Marked : constant Boolean := Done.Contains (To_String (Sources (Index)));
+         Index  : constant Positive := (if Forward then 1 + Step else Count - Step);
+         --  Forward re-does To -> From; reverse moves From back to To.
+         Source_Path : constant Files.Types.UString :=
+           (if Forward then Action.Items (Index).To else Action.Items (Index).From);
+         Source : constant String := To_String (Source_Path);
+         Target : constant String :=
+           To_String (if Forward then Action.Items (Index).From else Action.Items (Index).To);
+         Identity : constant String := To_String (Action.Items (Index).Identity);
+         Marked : constant Boolean := Done.Contains (Source);
          Matches : constant Boolean :=
            Identity /= "" and then Files.File_Identities.Token (Target) = Identity;
       begin
@@ -43,15 +45,15 @@ begin
             null;
          else
             if Marked then
-               Remove_Completion (Action, Sources (Index), Forward);
-               Done.Exclude (To_String (Sources (Index)));
+               Remove_Completion (Action, Source_Path, Forward);
+               Done.Exclude (Source);
                Files.History_Journal.Checkpoint (Model, Action, Forward);
             end if;
             if Identity = "" then
                Succeeded := False;
             elsif Matches then
                Files.Model.Note_Path_Move (Model, Source, Target);
-               Completed (Sources (Index));
+               Completed (Source_Path);
             elsif Exists_Safely (Source) then
                if Files.File_System.Rename_Item (Source, Target, Identity).Success then
                   Files.Model.Note_Path_Move (Model, Source, Target);
@@ -59,8 +61,8 @@ begin
                   declare
                      Now_Identity : constant String := Files.File_Identities.Token (Target);
                   begin
-                     Action.Created_Identities.Replace_Element (Index, To_Unbounded_String (Now_Identity));
-                     Completed (Sources (Index), Recognisable => Now_Identity = Identity);
+                     Action.Items (Index).Identity := To_Unbounded_String (Now_Identity);
+                     Completed (Source_Path, Recognisable => Now_Identity = Identity);
                   end;
                else
                   Succeeded := False;

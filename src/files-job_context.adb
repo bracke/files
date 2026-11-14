@@ -3,6 +3,7 @@ with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Files.Bounded_Streams;
 with Files.File_System;
@@ -363,7 +364,8 @@ package body Files.Job_Context is
       for N in 1 .. 9_999 loop
          declare
             Image : constant String := Natural'Image (N);
-            Candidate : constant String := Hostkit.Fs.Join (Parent, ".files-work-" & Image (2 .. Image'Last));
+            Candidate : constant String :=
+              Hostkit.Fs.Join (Parent, Files.Protocol_Names.Work_Stage_Prefix & Image (2 .. Image'Last));
             Identity : Files.Types.UString;
             Record_Directory : Files.Types.UString;
          begin
@@ -515,17 +517,14 @@ package body Files.Job_Context is
    procedure Read_Journal
      (Directory, Name, Header : String;
       With_Revisions          : Boolean;
-      Destinations, Sources, Identities, Revisions : out Files.Types.String_Vectors.Vector)
+      Entries                 : out Journal_Entry_Vectors.Vector)
    is
       Count : Natural := 0;
       Path : constant String := Hostkit.Fs.Join (Directory, Name);
       Input : aliased Files.Lease_Streams.Input_Stream;
       Size : Long_Long_Integer;
    begin
-      Destinations.Clear;
-      Sources.Clear;
-      Identities.Clear;
-      Revisions.Clear;
+      Entries.Clear;
       if not Valid_Absolute_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
         or else not Files.Fs_Primitives.Exists (Directory)
@@ -571,12 +570,12 @@ package body Files.Job_Context is
             then
                raise Ada.IO_Exceptions.Data_Error;
             end if;
-            Destinations.Append (To_Unbounded_String (Destination));
-            Sources.Append (To_Unbounded_String (Source));
-            Identities.Append (To_Unbounded_String (Identity));
-            if With_Revisions then
-               Revisions.Append (To_Unbounded_String (Revision));
-            end if;
+            Entries.Append
+              (Journal_Entry'
+                 (Destination   => To_Unbounded_String (Destination),
+                  Source        => To_Unbounded_String (Source),
+                  Identity      => To_Unbounded_String (Identity),
+                  Tree_Revision => To_Unbounded_String (Revision)));
             Count := Count + 1;
          end;
       end loop;
@@ -587,21 +586,18 @@ package body Files.Job_Context is
          Files.Lease_Streams.Release (Input);
    end Read_Journal;
 
-   procedure Read_Created
-     (Directory : String;
-      Destinations, Sources, Identities, Tree_Revisions : out Files.Types.String_Vectors.Vector) is
+   function Read_Created (Directory : String) return Journal_Entry_Vectors.Vector is
    begin
-      Read_Journal
-        (Directory, "created", Created_Record_Header, True, Destinations, Sources, Identities, Tree_Revisions);
+      return Entries : Journal_Entry_Vectors.Vector do
+         Read_Journal (Directory, "created", Created_Record_Header, True, Entries);
+      end return;
    end Read_Created;
 
-   procedure Read_Moved
-     (Directory : String;
-      Destinations, Sources, Identities : out Files.Types.String_Vectors.Vector)
-   is
-      Revisions : Files.Types.String_Vectors.Vector;
+   function Read_Moved (Directory : String) return Journal_Entry_Vectors.Vector is
    begin
-      Read_Journal (Directory, "moved", "files-moved-1", False, Destinations, Sources, Identities, Revisions);
+      return Entries : Journal_Entry_Vectors.Vector do
+         Read_Journal (Directory, "moved", "files-moved-1", False, Entries);
+      end return;
    end Read_Moved;
 
    procedure Register_Stage_Internal
@@ -754,6 +750,124 @@ package body Files.Job_Context is
          return False;
    end Discard_Stage;
 
+   --  What reading a stage record's data came to: the staged path and the
+   --  identity it was made with; a record to discard, as it can never become
+   --  valid; or one to keep, as what stopped it may pass.
+   type Record_Reading is (Record_Read, Record_Discarded, Record_Kept);
+
+   --  Read the stage record in Record_Directory.
+   --
+   --  @param Record_Directory The record's folder.
+   --  @param Discard_Unreadable Whether data that will not open now is
+   --    discarded rather than kept for a retry.
+   --  @param Path The staged path, when Record_Read.
+   --  @param Expected Its identity at creation (empty when the record was
+   --    written before it was known), when Record_Read.
+   --  @param Reading What the reading came to.
+   procedure Read_Stage_Record
+     (Record_Directory   : String;
+      Discard_Unreadable : Boolean;
+      Path, Expected     : out Files.Types.UString;
+      Reading            : out Record_Reading)
+   is
+      Input : aliased Files.Lease_Streams.Input_Stream;
+      Data : constant String := Hostkit.Fs.Join (Record_Directory, "data");
+      Open_Result : Hostkit.Lease_Files.Open_Outcome;
+   begin
+      Path := Null_Unbounded_String;
+      Expected := Null_Unbounded_String;
+      Reading := Record_Discarded;
+      --  No published data means creation stopped before the staging
+      --  pathname could be created, so this empty reservation is disposable.
+      if not Files.Fs_Primitives.Exists (Data) then
+         return;
+      end if;
+      --  A published record is always an ordinary file. Discard the record
+      --  without inspecting an injected object or trusting it as a pathname.
+      if Hostkit.Fs.Is_Link (Data)
+        or else Files.Fs_Primitives.Kind (Data) /= Ada.Directories.Ordinary_File
+      then
+         return;
+      end if;
+      Open_Result := Files.Lease_Streams.Open (Data, Input);
+      if Open_Result /= Hostkit.Lease_Files.Opened then
+         Files.Lease_Streams.Release (Input);
+         --  Refused objects (including links and multiply-linked files)
+         --  cannot become valid records. Other failures may be transient,
+         --  so the bounded worker retains them for retry.
+         if Open_Result /= Hostkit.Lease_Files.Refused and then not Discard_Unreadable then
+            Reading := Record_Kept;
+         end if;
+         return;
+      elsif Files.Lease_Streams.Size (Input) > Max_Stage_Metadata_Bytes then
+         Files.Lease_Streams.Release (Input);
+         return;
+      end if;
+      begin
+         if Files.Bounded_Streams.Input_String (Input'Access, Max_Record_Header_Length) /= Stage_Record_Header then
+            Files.Lease_Streams.Release (Input);
+            return;
+         end if;
+         Path := To_Unbounded_String (Files.Bounded_Streams.Input_String (Input'Access, Max_Record_Path_Length));
+         Expected := To_Unbounded_String (Files.Bounded_Streams.Input_String (Input'Access, Max_Record_Token_Length));
+         if not Files.Lease_Streams.End_Of_Stream (Input) then
+            raise Ada.IO_Exceptions.Data_Error;
+         end if;
+         Files.Lease_Streams.Release (Input);
+         Reading := Record_Read;
+      exception
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
+            Files.Lease_Streams.Release (Input);
+            --  Data is published by atomic replacement and is never
+            --  subsequently edited. Once it can be opened, a truncated or
+            --  undecodable stream cannot become valid on a later pass. Drop
+            --  only its private journal record; no decoded pathname is used
+            --  and no external entry is touched.
+            Path := Null_Unbounded_String;
+            Expected := Null_Unbounded_String;
+      end;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
+         Files.Lease_Streams.Release (Input);
+         Reading := Record_Kept;
+   end Read_Stage_Record;
+
+   --  The identity a stage at Path was created with, from its atomically
+   --  published owner marker, when Directory owns it; without trusting the
+   --  identity now found at the pathname.
+   --
+   --  @param Path A staged path.
+   --  @param Directory The transport that should own it.
+   --  @return Its creation identity, or empty.
+   function Owner_Identity (Path, Directory : String) return String is
+      Recorded_Directory, Identity : Files.Types.UString;
+      Valid : Boolean;
+   begin
+      Read_Owner (Path, Recorded_Directory, Identity, Valid);
+      return (if Valid and then To_String (Recorded_Directory) = Directory then To_String (Identity) else "");
+   end Owner_Identity;
+
+   --  Whether Path is a private copy stage Directory made, still the entry it
+   --  created: only such a stage is removed.
+   --
+   --  @param Path A staged path.
+   --  @param Expected Its creation identity.
+   --  @param Directory The transport that should own it.
+   --  @return True when it may be removed.
+   function Is_Own_Stage (Path, Expected, Directory : String) return Boolean is
+      Name : constant String := Files.Fs_Primitives.Leaf_Text (Path);
+   begin
+      return Name'Length > Files.Protocol_Names.Work_Stage_Prefix'Length
+        and then Ada.Strings.Fixed.Head (Name, Files.Protocol_Names.Work_Stage_Prefix'Length)
+          = Files.Protocol_Names.Work_Stage_Prefix
+        and then Expected /= ""
+        and then not Hostkit.Fs.Is_Link (Path)
+        and then Files.File_Identities.Token (Path) = Expected
+        and then Owner_Matches (Path, Directory, Expected);
+   end Is_Own_Stage;
+
    procedure Clean_Stages
      (Directory          : String;
       Owner              : Files.Job_Transports.Lease;
@@ -776,13 +890,8 @@ package body Files.Job_Context is
       end Collect;
 
       procedure Clean_Record (Record_Directory : String) is
-         Input : aliased Files.Lease_Streams.Input_Stream;
-         Data : constant String := Hostkit.Fs.Join (Record_Directory, "data");
-         Open_Result : Hostkit.Lease_Files.Open_Outcome;
          Path, Expected : Files.Types.UString;
-         Recorded_Directory, Owner_Identity : Files.Types.UString;
-         Owner_Valid : Boolean;
-         Removed : Boolean := False;
+         Reading        : Record_Reading;
       begin
          if Hostkit.Fs.Is_Link (Record_Directory)
            or else not Files.Fs_Primitives.Exists (Record_Directory)
@@ -790,111 +899,35 @@ package body Files.Job_Context is
          then
             return;
          end if;
-         --  No published data means creation stopped before the staging
-         --  pathname could be created, so this empty reservation is disposable.
-         if not Files.Fs_Primitives.Exists (Data) then
-            Remove_Record (Record_Directory);
-            return;
-         end if;
-         if Hostkit.Fs.Is_Link (Data)
-           or else Files.Fs_Primitives.Kind (Data) /= Ada.Directories.Ordinary_File
-         then
-            --  A published record is always an ordinary file.  Discard the
-            --  record without inspecting an injected object or trusting it
-            --  as a pathname.
-            Remove_Record (Record_Directory);
-            return;
-         end if;
-         Open_Result := Files.Lease_Streams.Open (Data, Input);
-         if Open_Result /= Hostkit.Lease_Files.Opened then
-            Files.Lease_Streams.Release (Input);
-            if Open_Result = Hostkit.Lease_Files.Refused
-              or else Discard_Unreadable
-            then
-               --  Refused objects (including links and multiply-linked
-               --  files) cannot become valid records. Other failures may be
-               --  transient, so the bounded worker retains them for retry.
-               Remove_Record (Record_Directory);
-            end if;
-            return;
-         elsif Files.Lease_Streams.Size (Input) > Max_Stage_Metadata_Bytes then
-            Files.Lease_Streams.Release (Input);
-            Remove_Record (Record_Directory);
-            return;
-         end if;
-         begin
-            if Files.Bounded_Streams.Input_String
-              (Input'Access, Max_Record_Header_Length) /=
-                Stage_Record_Header
-            then
-               Files.Lease_Streams.Release (Input);
+         Read_Stage_Record (Record_Directory, Discard_Unreadable, Path, Expected, Reading);
+         case Reading is
+            when Record_Kept =>
+               return;
+            when Record_Discarded =>
                Remove_Record (Record_Directory);
                return;
-            end if;
-            Path := To_Unbounded_String
-              (Files.Bounded_Streams.Input_String
-                 (Input'Access, Max_Record_Path_Length));
-            Expected := To_Unbounded_String
-              (Files.Bounded_Streams.Input_String
-                 (Input'Access, Max_Record_Token_Length));
-            if not Files.Lease_Streams.End_Of_Stream (Input) then
-               raise Ada.IO_Exceptions.Data_Error;
-            end if;
-            Files.Lease_Streams.Release (Input);
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
-               Files.Lease_Streams.Release (Input);
-               --  Data is published by atomic replacement and is never
-               --  subsequently edited.  Once it can be opened, a truncated
-               --  or undecodable stream cannot become valid on a later pass.
-               --  Drop only its private journal record; no decoded pathname
-               --  is used and no external entry is touched.
-               Remove_Record (Record_Directory);
-               return;
-         end;
+            when Record_Read =>
+               null;
+         end case;
          if not Valid_Absolute_Path (To_String (Path))
            or else not Nul_Free (To_String (Expected))
-         then
-            Remove_Record (Record_Directory);
-            return;
-         end if;
-         if not Files.Fs_Primitives.Entry_Exists (To_String (Path))
+           or else not Files.Fs_Primitives.Entry_Exists (To_String (Path))
          then
             Remove_Record (Record_Directory);
             return;
          end if;
          if Length (Expected) = 0 then
-            --  The write-ahead record may precede finalization. An atomically
-            --  published owner marker supplies the creation identity without
-            --  trusting the identity currently found at the pathname.
-            Read_Owner (To_String (Path), Recorded_Directory, Owner_Identity, Owner_Valid);
-            if Owner_Valid and then To_String (Recorded_Directory) = Directory then
-               Expected := Owner_Identity;
-            end if;
+            --  The write-ahead record may precede finalization.
+            Expected := To_Unbounded_String (Owner_Identity (To_String (Path), Directory));
          end if;
-         declare
-            Name : constant String := Files.Fs_Primitives.Leaf_Text (To_String (Path));
-            Valid : constant Boolean :=
-              Name'Length > 12
-              and then Name (Name'First .. Name'First + 11) = ".files-work-"
-              and then Length (Expected) > 0
-              and then not Hostkit.Fs.Is_Link (To_String (Path))
-              and then Files.File_Identities.Token (To_String (Path)) = To_String (Expected)
-              and then Owner_Matches (To_String (Path), Directory, To_String (Expected));
-         begin
-            if Valid then
-               Removed := Files.File_System.Delete_Staging_Entry
-                 (To_String (Path), To_String (Expected)).Success;
-            end if;
-         end;
-         if Removed then
+         if Is_Own_Stage (To_String (Path), To_String (Expected), Directory)
+           and then Files.File_System.Delete_Staging_Entry (To_String (Path), To_String (Expected)).Success
+         then
             Remove_Record (Record_Directory);
          end if;
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
-            Files.Lease_Streams.Release (Input);
             --  Keep only this record for retry; damage cannot hide later
             --  independent records as it could in the append-only journal.
       end Clean_Record;

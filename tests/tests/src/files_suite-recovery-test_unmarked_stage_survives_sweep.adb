@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Protocol_Names;
 separate (Files_Suite.Recovery)
    --  A registered stage with no payload and no restore or release marker may
@@ -32,7 +33,7 @@ separate (Files_Suite.Recovery)
          Ada.Directories.Rename (Dest, To_String (Backup));
          Assert (Files.File_System.Registered_Recovery_Payloads.Contains (Backup),
                  "the stage's record survived, so the payload is still found");
-         Assert (Files.File_System.Delete_Trashed_Item (To_String (Backup)).Success,
+         Assert (Files.File_System.Trash.Delete_Trashed_Item (To_String (Backup)).Success,
                  "and the payload is discarded normally");
       end;
    end Test_Unmarked_Stage_Survives_Sweep;

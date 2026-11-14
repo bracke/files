@@ -41,10 +41,14 @@ package body Files.History_Journal is
    function Valid_Directory (Directory : String) return Boolean is
      (Files.Path_Checks.Valid_Absolute_Path (Directory, Max_Field_Length));
 
+   --  The bytes the journal is reckoned to take, as written (Write_Entry)
+   --  and as estimated (Add_Cost): the one count both keep.
+   subtype Byte_Count is Long_Long_Integer;
+
    procedure Write_Vector
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value  : Files.Types.String_Vectors.Vector;
-      Total  : in out Natural;
+      Total  : in out Byte_Count;
       Fields : in out Natural)
    is
    begin
@@ -59,11 +63,11 @@ package body Files.History_Journal is
       Natural'Output (Stream, Natural (Value.Length));
       for Item of Value loop
          if Length (Item) > Max_Field_Length
-           or else Length (Item) + 16 > Max_Journal_Bytes - Total
+           or else Byte_Count (Length (Item)) + 16 > Max_Journal_Bytes - Total
          then
             raise Ada.Directories.Use_Error;
          end if;
-         Total := Total + Length (Item) + 16;
+         Total := Total + Byte_Count (Length (Item)) + 16;
          String'Output (Stream, To_String (Item));
       end loop;
    end Write_Vector;
@@ -90,10 +94,125 @@ package body Files.History_Journal is
       return Result;
    end Read_Vector;
 
+   --  The vector fields of a journal entry, in the order the journal holds
+   --  them: the one list Write_Entry, Read_Entry and Add_Cost go through.
+   --  Each is a column of the entry's records (Files.Model.Undo_Item and the
+   --  rest), written whole; the kept-copy columns came with version 2.
+   type Vector_Field is
+     (From_Field, To_Field, Forward_Field,
+      Restore_Trash_Field, Restore_Identities_Field, Restore_Targets_Field,
+      Reverse_Completed_Field, Restores_Completed_Field, Forward_Completed_Field, Copy_Records_Field,
+      Created_Identities_Field, Created_Tree_Revisions_Field,
+      Kept_Copies_Field, Kept_Copy_Identities_Field, Kept_Copy_Tree_Revisions_Field);
+
+   --  Before the create kind and the redoable flag; after them; and of those
+   --  after, the ones a version 1 journal has.
+   subtype Leading_Field is Vector_Field range From_Field .. Forward_Field;
+   subtype Trailing_Field is Vector_Field range Restore_Trash_Field .. Kept_Copy_Tree_Revisions_Field;
+   subtype Version_1_Field is Vector_Field range Restore_Trash_Field .. Created_Tree_Revisions_Field;
+
+   type Field_Columns is array (Vector_Field) of Files.Types.String_Vectors.Vector;
+
+   --  Value's column Which. A To or Forward no item carries is written
+   --  empty, as the action has none.
+   function Column (Value : Files.Model.Undo_Entry; Which : Vector_Field) return Files.Types.String_Vectors.Vector is
+      Result : Files.Types.String_Vectors.Vector;
+   begin
+      case Which is
+         when From_Field | To_Field | Forward_Field | Created_Identities_Field | Created_Tree_Revisions_Field =>
+            for Item of Value.Items loop
+               Result.Append
+                 ((case Which is
+                     when From_Field               => Item.From,
+                     when To_Field                 => Item.To,
+                     when Forward_Field            => Item.Forward,
+                     when Created_Identities_Field => Item.Identity,
+                     when others                   => Item.Tree_Revision));
+            end loop;
+            if Which in To_Field | Forward_Field and then (for all Item of Result => Length (Item) = 0) then
+               Result.Clear;
+            end if;
+         when Restore_Trash_Field | Restore_Identities_Field | Restore_Targets_Field =>
+            for Original of Value.Replaced loop
+               Result.Append
+                 ((case Which is
+                     when Restore_Trash_Field      => Original.Trash,
+                     when Restore_Identities_Field => Original.Identity,
+                     when others                   => Original.Target));
+            end loop;
+         when Kept_Copies_Field | Kept_Copy_Identities_Field | Kept_Copy_Tree_Revisions_Field =>
+            for Copy of Value.Kept loop
+               Result.Append
+                 ((case Which is
+                     when Kept_Copies_Field          => Copy.Path,
+                     when Kept_Copy_Identities_Field => Copy.Identity,
+                     when others                     => Copy.Tree_Revision));
+            end loop;
+         when Reverse_Completed_Field  => Result := Value.Reverse_Completed;
+         when Restores_Completed_Field => Result := Value.Restores_Completed;
+         when Forward_Completed_Field  => Result := Value.Forward_Completed;
+         when Copy_Records_Field       => Result := Value.Copy_Records;
+      end case;
+      return Result;
+   end Column;
+
+   --  Put an entry's records together from its columns. Each record is one
+   --  of its leading column's (From, Restore_Trash, Kept_Copies); a column
+   --  beside it must be as long, or empty where the action may have none (To
+   --  and Forward). One that is not was never written by Write_Entry, so the
+   --  entry is made unusable (Undo_None) and History_Entry_Usable drops it,
+   --  its replaced originals still named for release.
+   procedure Assemble (Value : in out Files.Model.Undo_Entry; Columns : Field_Columns) is
+      function Matches (Which, Leading : Vector_Field; Optional : Boolean := False) return Boolean is
+        (Columns (Which).Length = Columns (Leading).Length or else (Optional and then Columns (Which).Is_Empty));
+
+      function At_Index (Which : Vector_Field; Index : Positive) return Unbounded_String is
+        (if Index <= Columns (Which).Last_Index then Columns (Which) (Index) else Null_Unbounded_String);
+   begin
+      for Index in 1 .. Natural (Columns (From_Field).Length) loop
+         Value.Items.Append
+           (Files.Model.Undo_Item'
+              (From          => Columns (From_Field) (Index),
+               To            => At_Index (To_Field, Index),
+               Forward       => At_Index (Forward_Field, Index),
+               Identity      => At_Index (Created_Identities_Field, Index),
+               Tree_Revision => At_Index (Created_Tree_Revisions_Field, Index)));
+      end loop;
+      for Index in 1 .. Natural (Columns (Restore_Trash_Field).Length) loop
+         Value.Replaced.Append
+           (Files.Model.Replaced_Original'
+              (Trash    => Columns (Restore_Trash_Field) (Index),
+               Identity => At_Index (Restore_Identities_Field, Index),
+               Target   => At_Index (Restore_Targets_Field, Index)));
+      end loop;
+      for Index in 1 .. Natural (Columns (Kept_Copies_Field).Length) loop
+         Value.Kept.Append
+           (Files.Model.Kept_Copy'
+              (Path          => Columns (Kept_Copies_Field) (Index),
+               Identity      => At_Index (Kept_Copy_Identities_Field, Index),
+               Tree_Revision => At_Index (Kept_Copy_Tree_Revisions_Field, Index)));
+      end loop;
+      Value.Reverse_Completed := Columns (Reverse_Completed_Field);
+      Value.Restores_Completed := Columns (Restores_Completed_Field);
+      Value.Forward_Completed := Columns (Forward_Completed_Field);
+      Value.Copy_Records := Columns (Copy_Records_Field);
+      if not (Matches (To_Field, From_Field, Optional => True)
+              and then Matches (Forward_Field, From_Field, Optional => True)
+              and then Matches (Created_Identities_Field, From_Field)
+              and then Matches (Created_Tree_Revisions_Field, From_Field)
+              and then Matches (Restore_Identities_Field, Restore_Trash_Field)
+              and then Matches (Restore_Targets_Field, Restore_Trash_Field)
+              and then Matches (Kept_Copy_Identities_Field, Kept_Copies_Field)
+              and then Matches (Kept_Copy_Tree_Revisions_Field, Kept_Copies_Field))
+      then
+         Value.Kind := Files.Model.Undo_None;
+      end if;
+   end Assemble;
+
    procedure Write_Entry
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value  : Files.Model.Undo_Entry;
-      Total  : in out Natural;
+      Total  : in out Byte_Count;
       Fields : in out Natural)
    is
    begin
@@ -102,23 +221,14 @@ package body Files.History_Journal is
       end if;
       Total := Total + 32;
       Files.Model.Undo_Action_Kind'Output (Stream, Value.Kind);
-      Write_Vector (Stream, Value.From, Total, Fields);
-      Write_Vector (Stream, Value.To, Total, Fields);
-      Write_Vector (Stream, Value.Forward, Total, Fields);
+      for Which in Leading_Field loop
+         Write_Vector (Stream, Column (Value, Which), Total, Fields);
+      end loop;
       Files.Model.Undo_Create_Kind'Output (Stream, Value.Create_Kind);
       Boolean'Output (Stream, Value.Redoable);
-      Write_Vector (Stream, Value.Restore_Trash, Total, Fields);
-      Write_Vector (Stream, Value.Restore_Identities, Total, Fields);
-      Write_Vector (Stream, Value.Restore_Targets, Total, Fields);
-      Write_Vector (Stream, Value.Reverse_Completed, Total, Fields);
-      Write_Vector (Stream, Value.Restores_Completed, Total, Fields);
-      Write_Vector (Stream, Value.Forward_Completed, Total, Fields);
-      Write_Vector (Stream, Value.Copy_Records, Total, Fields);
-      Write_Vector (Stream, Value.Created_Identities, Total, Fields);
-      Write_Vector (Stream, Value.Created_Tree_Revisions, Total, Fields);
-      Write_Vector (Stream, Value.Kept_Copies, Total, Fields);
-      Write_Vector (Stream, Value.Kept_Copy_Identities, Total, Fields);
-      Write_Vector (Stream, Value.Kept_Copy_Tree_Revisions, Total, Fields);
+      for Which in Trailing_Field loop
+         Write_Vector (Stream, Column (Value, Which), Total, Fields);
+      end loop;
       Natural'Output (Stream, Value.Sequence);
    end Write_Entry;
 
@@ -128,36 +238,31 @@ package body Files.History_Journal is
       Version_1 : Boolean)
       return Files.Model.Undo_Entry
    is
-      Result : Files.Model.Undo_Entry;
+      Result  : Files.Model.Undo_Entry;
+      Columns : Field_Columns;
    begin
       Result.Kind := Files.Model.Undo_Action_Kind'Input (Stream);
-      Result.From := Read_Vector (Stream, Fields);
-      Result.To := Read_Vector (Stream, Fields);
-      Result.Forward := Read_Vector (Stream, Fields);
+      for Which in Leading_Field loop
+         Columns (Which) := Read_Vector (Stream, Fields);
+      end loop;
       Result.Create_Kind := Files.Model.Undo_Create_Kind'Input (Stream);
       Result.Redoable := Boolean'Input (Stream);
-      Result.Restore_Trash := Read_Vector (Stream, Fields);
-      Result.Restore_Identities := Read_Vector (Stream, Fields);
-      Result.Restore_Targets := Read_Vector (Stream, Fields);
-      Result.Reverse_Completed := Read_Vector (Stream, Fields);
-      Result.Restores_Completed := Read_Vector (Stream, Fields);
-      Result.Forward_Completed := Read_Vector (Stream, Fields);
-      Result.Copy_Records := Read_Vector (Stream, Fields);
-      Result.Created_Identities := Read_Vector (Stream, Fields);
-      Result.Created_Tree_Revisions := Read_Vector (Stream, Fields);
+      for Which in Trailing_Field loop
+         if Which in Version_1_Field or else not Version_1 then
+            Columns (Which) := Read_Vector (Stream, Fields);
+         end if;
+      end loop;
       if not Version_1 then
-         Result.Kept_Copies := Read_Vector (Stream, Fields);
-         Result.Kept_Copy_Identities := Read_Vector (Stream, Fields);
-         Result.Kept_Copy_Tree_Revisions := Read_Vector (Stream, Fields);
          Result.Sequence := Natural'Input (Stream);
       end if;
+      Assemble (Result, Columns);
       return Result;
    end Read_Entry;
 
    procedure Write_Stack
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value  : Files.Model.Undo_Entry_Vectors.Vector;
-      Total  : in out Natural;
+      Total  : in out Byte_Count;
       Fields : in out Natural)
    is
    begin
@@ -196,30 +301,18 @@ package body Files.History_Journal is
          Bytes := Bytes + 16;
          Fields := Fields + Long_Long_Integer (Vector.Length);
          for Item of Vector loop
-            Bytes := Bytes + Long_Long_Integer (Length (Item)) + 16;
+            Bytes := Bytes + Byte_Count (Length (Item)) + 16;
             --  A field Write_Vector refuses makes the whole entry unfit.
             if Length (Item) > Max_Field_Length then
-               Bytes := Bytes + Long_Long_Integer (Max_Journal_Bytes);
+               Bytes := Bytes + Byte_Count (Max_Journal_Bytes);
             end if;
          end loop;
       end Add;
    begin
       Bytes := Bytes + 32;
-      Add (Value.From);
-      Add (Value.To);
-      Add (Value.Forward);
-      Add (Value.Restore_Trash);
-      Add (Value.Restore_Identities);
-      Add (Value.Restore_Targets);
-      Add (Value.Reverse_Completed);
-      Add (Value.Restores_Completed);
-      Add (Value.Forward_Completed);
-      Add (Value.Copy_Records);
-      Add (Value.Created_Identities);
-      Add (Value.Created_Tree_Revisions);
-      Add (Value.Kept_Copies);
-      Add (Value.Kept_Copy_Identities);
-      Add (Value.Kept_Copy_Tree_Revisions);
+      for Which in Vector_Field loop
+         Add (Column (Value, Which));
+      end loop;
       Bytes := Bytes + 16;
    end Add_Cost;
 
@@ -235,13 +328,13 @@ package body Files.History_Journal is
    --  window merging a helper's journal keeps them (Files.Model.History.Merge).
    procedure Fit
      (Undo, Redo : in out Files.Model.Undo_Entry_Vectors.Vector;
-      Header     : Natural;
+      Header     : Byte_Count;
       Left_Out   : in out Files.Model.Sequence_Vectors.Vector)
    is
       Margin : constant Long_Long_Integer := 1024;
       function Over return Boolean is
          Bytes  : Long_Long_Integer :=
-           Long_Long_Integer (Header) + Margin + 16 * (Long_Long_Integer (Left_Out.Length) + 1);
+           Header + Margin + 16 * (Long_Long_Integer (Left_Out.Length) + 1);
          Fields : Long_Long_Integer := 0;
       begin
          for Item of Undo loop
@@ -276,7 +369,7 @@ package body Files.History_Journal is
 
       --  Whether Value does not fit the journal even alone.
       function Unfit (Value : Files.Model.Undo_Entry) return Boolean is
-         Bytes  : Long_Long_Integer := Long_Long_Integer (Header) + Margin;
+         Bytes  : Long_Long_Integer := Header + Margin;
          Fields : Long_Long_Integer := 0;
       begin
          Add_Cost (Value, Bytes, Fields);
@@ -438,7 +531,7 @@ package body Files.History_Journal is
       Kept_Undo : Files.Model.Undo_Entry_Vectors.Vector := Undo;
       Kept_Redo : Files.Model.Undo_Entry_Vectors.Vector := Redo;
       Published : Files.Durable_Writes.Publication_Result;
-      Total : Natural := Journal_Header'Length + 32;
+      Total : Byte_Count := Journal_Header'Length + 32;
       Fields : Natural := 0;
       Temporary : constant String := Hostkit.Fs.Join (Directory, "history.tmp");
       Target : constant String := Hostkit.Fs.Join (Directory, "history");
@@ -479,7 +572,7 @@ package body Files.History_Journal is
          for Sequence of Dropped loop
             Positive'Output (Output, Sequence);
          end loop;
-         Total := Total + 16 * (Natural (Left_Out.Length) + Natural (Dropped.Length) + 3);
+         Total := Total + 16 * Byte_Count (Natural (Left_Out.Length) + Natural (Dropped.Length) + 3);
          Write_Stack (Output, Kept_Undo, Total, Fields);
          Write_Stack (Output, Kept_Redo, Total, Fields);
       end Write_Journal;

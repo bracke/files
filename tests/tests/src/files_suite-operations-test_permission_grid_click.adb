@@ -14,14 +14,14 @@ separate (Files_Suite.Operations)
       Cell_X     : Natural := 0;
       Cell_Y     : Natural := 0;
    begin
-      if not Files.File_System.Supports_Permissions then
+      if not Files.File_System.Permissions.Supports_Permissions then
          Files_Suite.Support.Skip ("Test_Permission_Grid_Click", "this host has no POSIX permissions to set");
          return;
       end if;
 
       Reset_Root;
       Ada.Directories.Create_Path (Sub);
-      Assert (Files.File_System.Set_Permissions (Sub, 8#755#).Success, "baseline dir mode 0755");
+      Assert (Files.File_System.Permissions.Set_Permissions (Sub, 8#755#).Success, "baseline dir mode 0755");
 
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);

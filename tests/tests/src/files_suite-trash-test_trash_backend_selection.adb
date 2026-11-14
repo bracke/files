@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.File_System.Testing;
 separate (Files_Suite.Trash)
    procedure Test_Trash_Backend_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -14,14 +15,14 @@ separate (Files_Suite.Trash)
          Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
          Ada.Environment_Variables.Clear ("HOME");
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-         Assert (not Files.File_System.Trash_Is_Available, "trash availability detects missing trash base");
+         Assert (not Files.File_System.Trash.Trash_Is_Available, "trash availability detects missing trash base");
          Assert
            (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Unavailable,
             "trash backend reports unavailable when no trash base exists");
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", "relative-trash-data");
          Assert
            (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Unavailable
-            and then not Files.File_System.Trash_Is_Available,
+            and then not Files.File_System.Trash.Trash_Is_Available,
             "a relative XDG data home cannot redirect trash into the process directory");
          Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
 
@@ -33,7 +34,7 @@ separate (Files_Suite.Trash)
               (Files.File_System.Testing.Trash_Backend_Of_Current_Environment
                  = Files.File_System.Trash_Windows_Recycle_Bin,
                "Windows falls back to the Recycle Bin, which needs no trash base");
-            Assert (Files.File_System.Trash_Is_Available,
+            Assert (Files.File_System.Trash.Trash_Is_Available,
                     "the Recycle Bin is always available");
          else
             Assert
@@ -47,15 +48,15 @@ separate (Files_Suite.Trash)
          Write_File (Join (Root, "blocked-trash-parent"));
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Join (Root, "blocked-trash-parent"), "xdg"));
          Assert
-           (not Files.File_System.Trash_Is_Available,
+           (not Files.File_System.Trash.Trash_Is_Available,
             "trash availability rejects a regular file in the trash parent chain");
-         Mutation := Files.File_System.Move_To_Trash_Preflight (Join (Root, "missing-for-blocked-trash.txt"));
+         Mutation := Files.File_System.Trash.Move_To_Trash_Preflight (Join (Root, "missing-for-blocked-trash.txt"));
          Files_Suite.Support.Assert_Equal
            (To_String (Mutation.Error_Key),
             "error.trash.failed",
             "missing trash target still reports failed trash mutation");
          Mutation :=
-           Files.File_System.Move_To_Trash_Preflight
+           Files.File_System.Trash.Move_To_Trash_Preflight
              (Root & "/bad" & Character'Val (0) & "trash-target.txt");
          Assert (not Mutation.Success, "malformed trash target reports failed trash mutation");
          Files_Suite.Support.Assert_Equal
@@ -63,7 +64,7 @@ separate (Files_Suite.Trash)
             "error.trash.failed",
             "malformed trash target reports failed trash diagnostic");
          Write_File (Join (Root, "blocked-trash-target.txt"));
-         Mutation := Files.File_System.Move_To_Trash_Preflight (Join (Root, "blocked-trash-target.txt"));
+         Mutation := Files.File_System.Trash.Move_To_Trash_Preflight (Join (Root, "blocked-trash-target.txt"));
          Assert (not Mutation.Success, "trash preflight rejects blocked trash parent chain");
          Files_Suite.Support.Assert_Equal
            (To_String (Mutation.Error_Key),
@@ -73,7 +74,7 @@ separate (Files_Suite.Trash)
          Ada.Directories.Delete_File (Join (Root, "blocked-trash-target.txt"));
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-         Assert (Files.File_System.Trash_Is_Available, "trash availability detects XDG trash base");
+         Assert (Files.File_System.Trash.Trash_Is_Available, "trash availability detects XDG trash base");
          Assert
            (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Xdg_Data_Home,
             "trash backend reports XDG data home when configured");
@@ -84,7 +85,7 @@ separate (Files_Suite.Trash)
            (Files.File_System.Testing.Trash_Capabilities_Of_Current_Environment.Collision_Safe_Name,
             "XDG trash backend reports collision-safe naming");
          --  "/" is not a root on Windows; the drive is.
-         Mutation := Files.File_System.Move_To_Trash_Preflight (Filesystem_Root);
+         Mutation := Files.File_System.Trash.Move_To_Trash_Preflight (Filesystem_Root);
          Assert (not Mutation.Success, "trash preflight rejects filesystem root");
          Files_Suite.Support.Assert_Equal
            (To_String (Mutation.Error_Key),
@@ -97,7 +98,7 @@ separate (Files_Suite.Trash)
             Write_File (Prefix_Source);
             Ada.Environment_Variables.Set ("XDG_DATA_HOME", Prefix_Base);
             Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-            Mutation := Files.File_System.Move_To_Trash_Preflight (Prefix_Source);
+            Mutation := Files.File_System.Trash.Move_To_Trash_Preflight (Prefix_Source);
             Assert (Mutation.Success, "trash preflight accepts sibling paths sharing a prefix");
             Files_Suite.Support.Assert_Equal
               (To_String (Mutation.Error_Key),
@@ -117,7 +118,7 @@ separate (Files_Suite.Trash)
                Ada.Directories.Create_Path (Join (Backslash_Base, "info"));
                Write_File (Backslash_Source, "sibling");
                Ada.Environment_Variables.Set ("XDG_DATA_HOME", Backslash_Data);
-               Mutation := Files.File_System.Move_To_Trash_Preflight (Backslash_Source);
+               Mutation := Files.File_System.Trash.Move_To_Trash_Preflight (Backslash_Source);
                Assert
                  (Mutation.Success,
                   "a POSIX backslash sibling is not mistaken for a child of the trash directory");

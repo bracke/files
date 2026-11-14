@@ -761,7 +761,7 @@ package body Files.Job_Transports is
                Owner : Lease;
             begin
                if Claim_Lease (Witness_Name, Owner) = Claim_Acquired then
-                  if (not Files.Fs_Primitives.Exists (Directory) and then not Hostkit.Fs.Is_Link (Directory))
+                  if Files.Fs_Primitives.Entry_Is_Absent (Directory)
                     or else Recorded_Identity (Directory) /= ""
                   then
                      Forget_Witness (Directory, Owner);

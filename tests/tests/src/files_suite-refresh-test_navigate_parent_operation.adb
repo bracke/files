@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Items;
 with Files.Commands.Status;
 with Files.Model.Clipboard;
@@ -22,7 +23,7 @@ separate (Files_Suite.Refresh)
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-      Ada.Directories.Create_Path (Files.File_System.Trash_Files_Directory);
+      Ada.Directories.Create_Path (Files.File_System.Trash.Trash_Files_Directory);
       Ada.Directories.Create_Path (Child_Dir);
       Write_File (Join (Child_Dir, "leaf.txt"));
       Write_File (Join (Parent_Dir, "sibling.txt"));
@@ -90,9 +91,9 @@ separate (Files_Suite.Refresh)
 
       --  In the trash payload view the command is disabled like other
       --  directory-context commands.
-      if Files.File_System.Trash_Files_Directory /= "" then
+      if Files.File_System.Trash.Trash_Files_Directory /= "" then
          declare
-            Trash_Dir   : constant String := Files.File_System.Trash_Files_Directory;
+            Trash_Dir   : constant String := Files.File_System.Trash.Trash_Files_Directory;
             Trash_Load  : constant Files.File_System.Directory_Load_Result :=
               Files.File_System.Load_Directory (Trash_Dir, Settings);
             Trash_Model : Files.Model.Window_Model;
@@ -113,7 +114,7 @@ separate (Files_Suite.Refresh)
                  (not Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Parent_Command, Trash_Model),
                   "navigate-parent is disabled in the trash view");
                Assert
-                 (Files.File_System.Is_Trash_Files_Directory
+                 (Files.File_System.Trash.Is_Trash_Files_Directory
                     (Files.Model.Current_Path (Trash_Model)),
                   "the shared identity check recognizes the active trash payload directory");
                Trash_Result := Files.Operations.Navigate_Parent (Trash_Model, Settings);

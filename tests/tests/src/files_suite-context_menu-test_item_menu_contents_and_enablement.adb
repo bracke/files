@@ -124,6 +124,6 @@ separate (Files_Suite.Context_Menu)
          "context-menu Enter opens Copy to without immediately confirming it (tree panel open)");
       Assert
         (not Files.Model.Pasting.Conflict_Is_Active (Model)
-         and then not Files.Model.Pasting.Execution_Is_Active (Model),
+         and then not Files.Model.Foreground_Job_Is_Active (Model),
          "the newly opened picker does not start a transfer from the same Enter");
    end Test_Item_Menu_Contents_And_Enablement;

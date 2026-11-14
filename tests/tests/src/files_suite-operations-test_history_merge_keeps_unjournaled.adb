@@ -21,12 +21,15 @@ separate (Files_Suite.Operations)
       begin
          Result.Kind := Files.Model.Undo_Delete_Created;
          Result.Redoable := Redoable;
-         Result.From.Append (To_Unbounded_String (Join (Root, Name)));
-         Result.Created_Identities.Append (To_Unbounded_String ("1:" & Name));
-         Result.Created_Tree_Revisions.Append (To_Unbounded_String (if Large then Oversized else "rev"));
+         Result.Items.Append
+           (Files.Model.Undo_Item'
+              (From => To_Unbounded_String (Join (Root, Name)),
+               Identity => To_Unbounded_String ("1:" & Name),
+               Tree_Revision => To_Unbounded_String (if Large then Oversized else "rev"),
+               others => <>));
          if Redoable then
             Result.Create_Kind := Files.Model.Create_Copy;
-            Result.Forward.Append (To_Unbounded_String (Join (Root, Name & "-source")));
+            Result.Items (1).Forward := To_Unbounded_String (Join (Root, Name & "-source"));
          end if;
          return Result;
       end Item;
@@ -49,7 +52,7 @@ separate (Files_Suite.Operations)
             if Length (Result) > 0 then
                Append (Result, ",");
             end if;
-            Append (Result, Ada.Directories.Simple_Name (To_String (Action.From.First_Element)));
+            Append (Result, Ada.Directories.Simple_Name (To_String (Action.Items.First_Element.From)));
          end loop;
          return To_String (Result);
       end Names;
@@ -166,7 +169,7 @@ separate (Files_Suite.Operations)
          Step := Files.Operations.Duplicate_Selected (Job_Window, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operations.Operation_Success, "the background duplicate starts");
-         Assert (Files.Model.Pasting.Execution_Is_Active (Job_Window), "the duplicate runs as a background job");
+         Assert (Files.Model.Foreground_Job_Is_Active (Job_Window), "the duplicate runs as a background job");
          Step := Files_Suite.Support.Finish_Paste (Job_Window, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operations.Operation_Success, "the background duplicate completes");

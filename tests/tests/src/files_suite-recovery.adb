@@ -1,3 +1,7 @@
+with Files.Foreground_Jobs;
+with Files.File_System.Trash;
+with Files.File_System.Permissions;
+with Files.Protocol_Names;
 with Files.Items;
 with Files.Model.Testing;
 with Files.File_Identities;
@@ -43,6 +47,7 @@ with Files.File_System;
 with Files.History_Journal;
 with Files.Model;
 with Files.Model.History;
+with Files.Model.Pasting;
 with Files.Operation_Jobs.Testing;
 with Files.Operations;
 with Files.Operations.Testing;
@@ -56,7 +61,6 @@ with Files.Transfer_Jobs;
 with Files.Transfer_Jobs.Testing;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
-with Files.Model.Pasting;
 with Files.Job_Scavenger.Testing;
 
 package body Files_Suite.Recovery is
@@ -117,6 +121,7 @@ package body Files_Suite.Recovery is
    procedure Test_Transport_Cleanup_Retry (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Released_Job_Leaves_Registry_Alone (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Job_Cancellation_Latches (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Identity_Token_Round_Trips (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Helper_Lease_Survives_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Exclusive_Stream_Hardlink (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transport_Stream_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -231,6 +236,9 @@ package body Files_Suite.Recovery is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Job_Cancellation_Latches'Access,
          "a helper sees its cancellation within a check interval, and once seen it stays seen");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Identity_Token_Round_Trips'Access,
+         "An identity token parses back to what made it");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Helper_Lease_Survives_Parent'Access,
          "a helper keeps recovery out after parent exit and fails closed if recovery wins");
@@ -352,6 +360,7 @@ package body Files_Suite.Recovery is
    procedure Test_Transport_Cleanup_Retry (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Released_Job_Leaves_Registry_Alone (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Job_Cancellation_Latches (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Identity_Token_Round_Trips (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Helper_Lease_Survives_Parent (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

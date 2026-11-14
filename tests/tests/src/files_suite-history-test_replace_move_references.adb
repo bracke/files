@@ -1,3 +1,4 @@
+with Files.Foreground_Jobs;
 with Files.Interaction;
 separate (Files_Suite.History)
    --  A move that replaced an existing item left the replaced item's label,
@@ -87,7 +88,7 @@ separate (Files_Suite.History)
       Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
-      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 8);
+      Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operations.Operation_Success, "the move-replace paste succeeds");
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");

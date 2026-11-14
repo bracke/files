@@ -16,6 +16,9 @@ package body Files.Fs_Primitives is
    function Exists (Path : String) return Boolean is
      (Hostkit.Fs.Kind_Of (Path) /= Hostkit.Fs.Missing_Entry);
 
+   function Entry_Is_Absent (Path : String) return Boolean is
+     (not Exists (Path) and then not Hostkit.Fs.Is_Link (Path));
+
    function Entry_Exists (Path : String) return Boolean is
    begin
       return Path /= "" and then (Exists (Path) or else Hostkit.Fs.Is_Link (Path));

@@ -1,3 +1,5 @@
+with Files.Window_Polls;
+with Files.File_System.Permissions;
 with Files.Items;
 with Files.Folder_Size.Testing;
 with Files.Model.Testing;

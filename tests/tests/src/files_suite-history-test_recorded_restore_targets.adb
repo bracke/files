@@ -47,10 +47,10 @@ separate (Files_Suite.History)
                     (To_Unbounded_String (Join (Root, "inbox/entry")), To_Unbounded_String (Source), False, True));
                   Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy, False);
                   Step := Complete_Operation
-                    (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
+                    (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
                   Await_View (Model, Settings);
-                  Paths := Files.Model.History.Undo_Entries (Model).Last_Element.Restore_Trash;
-                  Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Restore_Targets.First_Element
+                  Paths := Files.Model.Replaced_Trash (Files.Model.History.Undo_Entries (Model).Last_Element);
+                  Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Replaced.First_Element.Target
                           = To_Unbounded_String (Source), "paste history retains the preserved original destination");
                end if;
                Assert (Step.Status = Files.Operations.Operation_Success and then not Paths.Is_Empty,

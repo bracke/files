@@ -1,3 +1,5 @@
+with Files.File_System.Trash;
+with Files.File_System.Permissions;
 with Files.File_System.Testing;
 
 separate (Files_Suite.Trash)
@@ -77,19 +79,19 @@ separate (Files_Suite.Trash)
                Available : Boolean := False;
             begin
                Assert
-                 (Files.File_System.Permission_Bits_Of (Join (Trash_Home, "Trash"), Available)
+                 (Files.File_System.Permissions.Permission_Bits_Of (Join (Trash_Home, "Trash"), Available)
                     mod 8#1000# = 8#700# and then Available,
                   "trash root is owner-only");
                Assert
-                 (Files.File_System.Permission_Bits_Of (Trash_File, Available)
+                 (Files.File_System.Permissions.Permission_Bits_Of (Trash_File, Available)
                     mod 8#1000# = 8#700# and then Available,
                   "trash payload directory is owner-only");
                Assert
-                 (Files.File_System.Permission_Bits_Of (Trash_Info, Available)
+                 (Files.File_System.Permissions.Permission_Bits_Of (Trash_Info, Available)
                     mod 8#1000# = 8#700# and then Available,
                   "trash metadata directory is owner-only");
                Assert
-                 (Files.File_System.Permission_Bits_Of
+                 (Files.File_System.Permissions.Permission_Bits_Of
                     (Join (Trash_Info, "doomed.txt.trashinfo"), Available)
                     mod 8#1000# = 8#600# and then Available,
                   "trash metadata sidecar is owner-only");
@@ -99,7 +101,7 @@ separate (Files_Suite.Trash)
            (Files.Model.Selection.Selected_Count (Model),
             0,
             "successful delete reconciles selection");
-         Mutation := Files.File_System.Move_To_Trash (Join (Trash_File, "doomed.txt"));
+         Mutation := Files.File_System.Trash.Move_To_Trash (Join (Trash_File, "doomed.txt"));
          Assert (not Mutation.Success, "trash preflight rejects items already inside trash");
          Files_Suite.Support.Assert_Equal
            (To_String (Mutation.Error_Key),

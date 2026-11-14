@@ -1,6 +1,5 @@
 with Files.Diagnostics;
 with Ada.Strings.Unbounded;
-with Hostkit.Metadata;
 
 package body Files.File_Identities is
    subtype U64 is Hostkit.Metadata.Identity_Field;
@@ -31,6 +30,55 @@ package body Files.File_Identities is
          return "";
    end Revision;
 
+   function Image (Item : Hostkit.Metadata.Entry_Identity) return String is
+     (if not Item.Available then ""
+      else U64'Image (Item.Volume) & U64'Image (Item.File_Number)
+        & U64'Image (Item.Generation_High) & U64'Image (Item.Generation_Low));
+
+   function Parse (Text : String; Item : out Hostkit.Metadata.Entry_Identity) return Boolean is
+      Position : Natural := Text'First;
+      Values   : array (1 .. 4) of U64 := [others => 0];
+
+      procedure Skip_Spaces is
+      begin
+         while Position <= Text'Last and then Text (Position) = ' ' loop
+            Position := Position + 1;
+         end loop;
+      end Skip_Spaces;
+   begin
+      Item := (others => <>);
+      for Index in Values'Range loop
+         Skip_Spaces;
+         if Position > Text'Last or else Text (Position) not in '0' .. '9' then
+            return False;
+         end if;
+         declare
+            First : constant Natural := Position;
+         begin
+            while Position <= Text'Last and then Text (Position) in '0' .. '9' loop
+               Position := Position + 1;
+            end loop;
+            Values (Index) := U64'Value (Text (First .. Position - 1));
+         end;
+      end loop;
+      Skip_Spaces;
+      if Position <= Text'Last then
+         return False;
+      end if;
+      Item :=
+        (Available       => True,
+         Volume          => Values (1),
+         File_Number     => Values (2),
+         Generation_High => Values (3),
+         Generation_Low  => Values (4));
+      return True;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_Identities");
+         Item := (others => <>);
+         return False;
+   end Parse;
+
    function Token (Path : String) return String is
       Value : Hostkit.Metadata.Entry_Identity;
    begin
@@ -38,11 +86,7 @@ package body Files.File_Identities is
          return "";
       end if;
       Value := Hostkit.Metadata.Entry_Identity_Of (Path);
-      if not Value.Available then
-         return "";
-      end if;
-      return U64'Image (Value.Volume) & U64'Image (Value.File_Number)
-        & U64'Image (Value.Generation_High) & U64'Image (Value.Generation_Low);
+      return Image (Value);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_Identities");

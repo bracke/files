@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files_Suite.Volumes;
 separate (Files_Suite.Trash)
    --  An item on another volume than the home trash goes to that volume's own
@@ -47,7 +48,7 @@ separate (Files_Suite.Trash)
       begin
          --  The home trash first, so its files/ folder exists for the view.
          Write_File (Home_Item, "home");
-         Result := Files.File_System.Move_To_Trash (Home_Item, Home_Trashed);
+         Result := Files.File_System.Trash.Move_To_Trash (Home_Item, Home_Trashed);
          Assert (Result.Success, "an item beside the home trash goes to the home trash");
 
          Write_File (Volume_Item, "volume");
@@ -63,16 +64,16 @@ separate (Files_Suite.Trash)
 
          --  A volume whose top takes no trash (the root filesystem, a read-only
          --  mount) falls back to the home trash's copy.
-         Result := Files.File_System.Move_To_Trash (Volume_Item, Trashed);
+         Result := Files.File_System.Trash.Move_To_Trash (Volume_Item, Trashed);
          Assert (Result.Success, "an item on another volume is trashed");
          if not Ada.Directories.Exists (To_String (Volume_Base)) then
             Files_Suite.Support.Assert_Equal
               (Ada.Directories.Containing_Directory (To_String (Trashed)),
-               Files.File_System.Trash_Files_Directory,
+               Files.File_System.Trash.Trash_Files_Directory,
                "where the volume takes no trash, the item is copied to the home trash");
-            Assert (Files.File_System.Restore_From_Trash (To_String (Trashed)).Success,
+            Assert (Files.File_System.Trash.Restore_From_Trash (To_String (Trashed)).Success,
                     "and restores from there");
-            Assert (Files.File_System.Delete_Trashed_Item (To_String (Home_Trashed)).Success,
+            Assert (Files.File_System.Trash.Delete_Trashed_Item (To_String (Home_Trashed)).Success,
                     "the home trash's item is deleted");
             Files_Suite.Support.Skip ("Test_Volume_Trash", "the second volume's top takes no trash folder");
             Clean;
@@ -81,17 +82,17 @@ separate (Files_Suite.Trash)
          Assert
            ((Hostkit.Metadata.Entry_Revision_Of (To_String (Volume_Base)).Mode and 8#077#) = 0,
             "the trash the application made on the volume is its owner's only");
-         Assert (Files.File_System.Restore_From_Trash (To_String (Trashed)).Success,
+         Assert (Files.File_System.Trash.Restore_From_Trash (To_String (Trashed)).Success,
                  "put back, to trash it again below");
          declare
             Before : constant String := Files.File_Identities.Token (Volume_Item);
          begin
-            Result := Files.File_System.Move_To_Trash (Volume_Item, Trashed);
+            Result := Files.File_System.Trash.Move_To_Trash (Volume_Item, Trashed);
             Assert (Result.Success, "an item on another volume is trashed");
             Files_Suite.Support.Assert_Equal
               (Files.File_Identities.Token (To_String (Trashed)), Before,
                "it was renamed into its volume's trash, not copied");
-            Assert (Files.File_System.Is_Volume_Trash_Item (To_String (Trashed)),
+            Assert (Files.File_System.Trash.Is_Volume_Trash_Item (To_String (Trashed)),
                     "trash-view actions know it for a trash item (Delete removes its info file too)");
          end;
          Files_Suite.Support.Assert_Equal
@@ -104,7 +105,7 @@ separate (Files_Suite.Trash)
                      Ada.Directories.Simple_Name (To_String (Trashed)) & ".trashinfo")),
             "the volume trash records where the item came from");
          Files_Suite.Support.Assert_Equal
-           (Files.File_System.Trash_Original_Path (To_String (Trashed)),
+           (Files.File_System.Trash.Trash_Original_Path (To_String (Trashed)),
             Volume_Item,
             "the recorded original path is the item's");
          Assert
@@ -128,27 +129,27 @@ separate (Files_Suite.Trash)
                "[Trash Info]" & ASCII.LF & "Path=some%20folder/foreign.txt" & ASCII.LF
                & "DeletionDate=2026-01-01T00:00:00" & ASCII.LF);
             Files_Suite.Support.Assert_Equal
-              (Files.File_System.Trash_Original_Path (Foreign),
+              (Files.File_System.Trash.Trash_Original_Path (Foreign),
                Join (Join (Top, "some folder"), "foreign.txt"),
                "a relative recorded path resolves against the volume's top");
             Write_File
               (Join (Info, "foreign.txt.trashinfo"),
                "[Trash Info]" & ASCII.LF & "Path=/home/someone/.config/autostart/x.desktop" & ASCII.LF);
             Files_Suite.Support.Assert_Equal
-              (Files.File_System.Trash_Original_Path (Foreign), "",
+              (Files.File_System.Trash.Trash_Original_Path (Foreign), "",
                "a recorded path off the volume is not where a restore may land");
             Write_File
               (Join (Info, "foreign.txt.trashinfo"),
                "[Trash Info]" & ASCII.LF & "Path=../../escape.txt" & ASCII.LF);
             Files_Suite.Support.Assert_Equal
-              (Files.File_System.Trash_Original_Path (Foreign), "",
+              (Files.File_System.Trash.Trash_Original_Path (Foreign), "",
                "a recorded path may not climb out of the volume");
-            Assert (Files.File_System.Delete_Trashed_Item (Foreign).Success, "remove the foreign item");
+            Assert (Files.File_System.Trash.Delete_Trashed_Item (Foreign).Success, "remove the foreign item");
          end;
 
          declare
             Load  : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
+              Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
             Found_Home, Found_Volume : Boolean := False;
          begin
             Assert (Load.Success, "the trash view lists");
@@ -160,17 +161,17 @@ separate (Files_Suite.Trash)
             Assert (Found_Volume, "the trash view lists the volume trash's items too");
          end;
 
-         Result := Files.File_System.Restore_From_Trash (To_String (Trashed));
+         Result := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
          Assert (Result.Success, "an item restores from its volume's trash");
          Assert (File_Has_Bytes (Volume_Item, "volume"), "it is back where it was");
 
-         Result := Files.File_System.Move_To_Trash (Volume_Item, Trashed);
+         Result := Files.File_System.Trash.Move_To_Trash (Volume_Item, Trashed);
          Assert (Result.Success, "trashed again");
-         Result := Files.File_System.Delete_Trashed_Item (To_String (Trashed));
+         Result := Files.File_System.Trash.Delete_Trashed_Item (To_String (Trashed));
          Assert (Result.Success, "an item is deleted from its volume's trash");
          Assert (not Ada.Directories.Exists (To_String (Trashed)), "the payload is gone");
 
-         Result := Files.File_System.Delete_Trashed_Item (To_String (Home_Trashed));
+         Result := Files.File_System.Trash.Delete_Trashed_Item (To_String (Home_Trashed));
          Assert (Result.Success, "the home trash's item is deleted too");
       end;
 
@@ -185,9 +186,9 @@ separate (Files_Suite.Trash)
          Write_File (Kept, "kept");
          Project_Tools.Files.Delete_Tree (Files_Dir);
          if Files_Suite.Support.Create_Symlink (Target, Files_Dir) then
-            Assert (not Files.File_System.Is_Volume_Trash_Item (Join (Files_Dir, "kept.txt")),
+            Assert (not Files.File_System.Trash.Is_Volume_Trash_Item (Join (Files_Dir, "kept.txt")),
                     "an item reached through a linked files/ is not a trash item");
-            Assert (not Files.File_System.Delete_Trashed_Item (Join (Files_Dir, "kept.txt")).Success,
+            Assert (not Files.File_System.Trash.Delete_Trashed_Item (Join (Files_Dir, "kept.txt")).Success,
                     "and is not deleted as one");
             Assert (File_Has_Bytes (Kept, "kept"), "what the link points at is untouched");
             Ada.Directories.Delete_File (Files_Dir);

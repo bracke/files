@@ -1,6 +1,6 @@
-with Files.Extra_Info;
+with Files.File_System.Trash;
+with Files.File_System.Permissions;
 with Files.File_System.Thumbnails;
-with Files.Images;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Calendar.Formatting;
@@ -8,12 +8,9 @@ with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
 
-with Files.Folder_Size;
 with Files.Fs_Primitives;
 with Files.Undo_Payloads;
-with Guikit.Shared_Bytes;
 with Files.Transfer_Jobs;
-with Files.Process_Jobs;
 with Files.Operation_Jobs;
 with Files.Job_Context;
 with Hostkit.Metadata;
@@ -36,7 +33,6 @@ with Ada.Unchecked_Deallocation;
 with Files.File_Identities;
 with Files.History_Journal;
 with Files.Archive_Writing;
-with Files.Model.Quick_Look;
 with Files.Model.Pasting;
 with Files.Model.Folder_Sizes;
 with Files.Model.History;
@@ -219,7 +215,7 @@ package body Files.Operations is
    --  Keep the shorter local name at the mutation sites while using the shared
    --  filesystem-identity check for every trash-directory decision.
    function Is_Trash_Directory (Path : String) return Boolean
-     renames Files.File_System.Is_Trash_Files_Directory;
+     renames Files.File_System.Trash.Is_Trash_Files_Directory;
 
    function Is_Trash_Child (Path : String) return Boolean is separate;
 
@@ -398,69 +394,7 @@ package body Files.Operations is
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-   is
-      Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
-      First_Path : Unbounded_String;
-      First_Name : Unbounded_String;
-      Unsupported_Key  : Unbounded_String;
-      Unsupported_Path : Unbounded_String;
-
-      function Cache_Directory return String is
-      begin
-         return Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Files.Model.Current_Path (Model));
-      end Cache_Directory;
-   begin
-      if Files.Model.Selection.Selected_Count (Model) = 0
-        or else Files.Model.Selection.Includes_Temporary (Model)
-      then
-         return Disabled (Model, "error.selection.empty");
-      end if;
-
-      for Item of Items loop
-         declare
-            Thumbnail : constant Files.File_System.Thumbnails.Thumbnail_Result :=
-              Files.File_System.Thumbnails.Generate_Thumbnail (To_String (Item.Full_Path), Cache_Directory);
-         begin
-            if Thumbnail.Status = Files.File_System.Thumbnails.Thumbnail_Unsupported then
-               --  A folder or non-image in a mixed selection is not a failure;
-               --  stopping here skipped every image after it.
-               Unsupported_Key := Thumbnail.Error_Key;
-               Unsupported_Path := Item.Full_Path;
-            elsif Thumbnail.Status /= Files.File_System.Thumbnails.Thumbnail_Generated then
-               --  Refresh so thumbnails already generated for earlier items in
-               --  the batch are shown, then restore the failure diagnostic.
-               Files.Model.Set_Error (Model, To_String (Thumbnail.Error_Key));
-               declare
-                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
-                  pragma Unreferenced (Reload);
-               begin
-                  Files.Model.Set_Error (Model, To_String (Thumbnail.Error_Key));
-               end;
-               return Make_Result
-                 (Operation_Failed, To_String (Thumbnail.Error_Key), To_String (Item.Full_Path));
-            elsif Length (First_Path) = 0 then
-               First_Path := Thumbnail.Thumbnail_Path;
-               First_Name := Item.Name;
-            end if;
-         end;
-      end loop;
-
-      if Length (First_Path) = 0 and then Length (Unsupported_Key) > 0 then
-         --  Nothing in the selection could have a thumbnail.
-         Files.Model.Set_Error (Model, To_String (Unsupported_Key));
-         return Make_Result (Operation_Failed, To_String (Unsupported_Key), To_String (Unsupported_Path));
-      end if;
-
-      Files.Model.Set_Error (Model, "");
-      declare
-         Reload : constant Operation_Result :=
-           Reload_Current_Directory (Model, Settings, Select_Name => To_String (First_Name));
-         pragma Unreferenced (Reload);
-      begin
-         null;
-      end;
-      return Make_Result (Operation_Success, Path => To_String (First_Path));
-   end Generate_Selected_Thumbnails;
+   is separate;
 
    function Ownership_Text
      (User_Id, Group_Id : Files.Types.Account_Id; User_Name, Group_Name : String)
@@ -573,172 +507,6 @@ package body Files.Operations is
       end if;
    end Ensure_Selected_Item_Extra;
 
-   procedure Poll_Selected_Item_Extra
-     (Model       : in out Files.Model.Window_Model;
-      Owner       : Files.Extra_Info_Reader.Requester;
-      Show_Hidden : Boolean := True) is
-   begin
-      if Files.Model.Selected_Item_Needs_Extra (Model) then
-         declare
-            Item  : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
-            Extra : Files.Extra_Info.Info;
-            Ready : Boolean;
-            Asked : Boolean;
-         begin
-            --  Taken only when read for the item as listed now: a read of
-            --  the file before a refresh relisted it is asked for again.
-            Files.Extra_Info_Reader.Take (Owner, Item, Show_Hidden, Extra, Ready, Asked);
-            if not Asked then
-               Files.Extra_Info_Reader.Request (Owner, Item, Show_Hidden);
-            elsif Ready then
-               Files.Model.Set_Selected_Item_Extra (Model, Extra);
-            end if;
-         end;
-      end if;
-   end Poll_Selected_Item_Extra;
-
-   procedure Focus_Ownership_Input
-     (Model         : in out Files.Model.Window_Model;
-      Editing_Group : Boolean) is
-   begin
-      if not Files.File_System.Supports_Ownership or else Files.Model.Selection.Selected_Count (Model) /= 1 then
-         return;
-      end if;
-      declare
-         Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
-      begin
-         Files.Model.Focus_Ownership_Input
-           (Model,
-            Editing_Group,
-            (if Editing_Group
-             then Files.File_System.Group_Name_For_Id (Item.Group_Id)
-             else Files.File_System.User_Name_For_Id (Item.Owner_Id)));
-      end;
-   end Focus_Ownership_Input;
-
-   --  A size result changes the render revision, and a listing read in
-   --  flight (or a paste) must see the revision it was started at. While one
-   --  runs, measurements carry on but their results wait in the scan.
-   function Folder_Sizes_Paused (Model : Files.Model.Window_Model) return Boolean is
-     (Files.Model.Pasting.Execution_Is_Active (Model)
-      or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)));
-
-   procedure Poll_Folder_Sizes (Model : in out Files.Model.Window_Model) is
-      Paused : constant Boolean := Folder_Sizes_Paused (Model);
-      Taken  : Files.Folder_Size.Measurement_Vectors.Vector;
-
-      procedure Poll (Scan : in out Files.Folder_Size.Session) is
-      begin
-         Files.Folder_Size.Step (Scan);
-         --  Handed over a few times a second, not one by one: each hand-over
-         --  gives the window a snapshot to patch.
-         if not Paused then
-            Files.Folder_Size.Take_Due (Scan, Ada.Real_Time.Clock, Taken);
-         end if;
-      end Poll;
-   begin
-      Files.Model.Folder_Sizes.Update_Scan (Model, Poll'Access);
-      declare
-         Stale : Files.Folder_Size.Measurement_Vectors.Vector;
-
-         procedure Measure_Again (Scan : in out Files.Folder_Size.Session) is
-         begin
-            for Folder of Stale loop
-               Files.Folder_Size.Measure_Again (Scan, To_String (Folder.Path), Folder.Listed);
-            end loop;
-         end Measure_Again;
-      begin
-         Files.Model.Folder_Sizes.Note (Model, Taken, Stale);
-         if not Stale.Is_Empty then
-            Files.Model.Folder_Sizes.Update_Scan (Model, Measure_Again'Access);
-         end if;
-      end;
-   end Poll_Folder_Sizes;
-
-   procedure Cancel_Folder_Scan (Model : in out Files.Model.Window_Model) is
-      procedure Cancel (Scan : in out Files.Folder_Size.Session) is
-         Discarded : Files.Folder_Size.Measurement_Vectors.Vector;
-      begin
-         Files.Folder_Size.Cancel (Scan);
-         Files.Folder_Size.Take_All (Scan, Discarded);
-      end Cancel;
-   begin
-      Files.Model.Folder_Sizes.Update_Scan (Model, Cancel'Access);
-   end Cancel_Folder_Scan;
-
-   procedure Update_Folder_Size
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-   is
-      pragma Unreferenced (Settings);
-   begin
-      --  Retargeted once the read or paste is done: the watch poll's read
-      --  comes every few seconds, and cancelling here restarted any folder
-      --  slower than that from scratch every time, so it never finished.
-      if Folder_Sizes_Paused (Model) then
-         return;
-      end if;
-      declare
-         Rows      : constant Natural := Files.Model.Rows_Revision (Model);
-         Selection : constant Natural := Files.Model.Selection_Revision (Model);
-         Current   : Boolean := False;
-
-         procedure Check (Scan : in out Files.Folder_Size.Session) is
-         begin
-            Current := Files.Folder_Size.Targets_Set_For (Scan, Rows, Selection);
-         end Check;
-      begin
-         Files.Model.Folder_Sizes.Update_Scan (Model, Check'Access);
-         if Current then
-            return;
-         end if;
-      end;
-      --  The helper process performs the recursive subtree walk. Here we only
-      --  request selected directories; the frame loop polls for completed totals.
-      --  Every selected directory is measured -- for any selection, not only when
-      --  the info pane is open -- so both the info pane and the bottom bar's
-      --  combined total can count folder contents.
-      if Files.Model.Selection.Selected_Count (Model) >= 1
-        and then not Files.Model.Selection.Includes_Temporary (Model)
-      then
-         declare
-            Targets : Files.Folder_Size.Path_Vectors.Vector;
-            --  When each was listed, so a size measured before it changed
-            --  is told apart (Files.Model.Folder_Sizes.Note).
-            Listed  : Files.Folder_Size.Time_Vectors.Vector;
-
-            --  Read in place: a copy of a large selection, on every change.
-            procedure Add (Item : Files.Items.Directory_Item) is
-            begin
-               if Item.Kind = Files.Types.Directory_Item
-                 and then not Files.Model.Folder_Sizes.Cached_For (Model, To_String (Item.Full_Path))
-               then
-                  Targets.Append (Item.Full_Path);
-                  Listed.Append (Item.Modified_Time);
-               end if;
-            end Add;
-         begin
-            Files.Model.Folder_Sizes.Prune_To_Selection (Model);
-            Files.Model.Selection.For_Each_Selected_Item (Model, Add'Access);
-            declare
-               Rows      : constant Natural := Files.Model.Rows_Revision (Model);
-               Selection : constant Natural := Files.Model.Selection_Revision (Model);
-
-               procedure Retarget (Scan : in out Files.Folder_Size.Session) is
-               begin
-                  Files.Folder_Size.Set_Targets (Scan, Targets, Listed);
-                  Files.Folder_Size.Note_Targets_Set_For (Scan, Rows, Selection);
-               end Retarget;
-            begin
-               Files.Model.Folder_Sizes.Update_Scan (Model, Retarget'Access);
-            end;
-         end;
-      else
-         Cancel_Folder_Scan (Model);
-         Files.Model.Folder_Sizes.Clear (Model);
-      end if;
-   end Update_Folder_Size;
-
    use type Files.Model.Undo_Create_Kind;
 
    function Hard_Link_Snapshot (Source : String) return String is separate;
@@ -777,20 +545,27 @@ package body Files.Operations is
      (Action : Files.Model.Undo_Entry; Index : Positive; Mode : Natural; Access_Text : String := "") return Boolean
    is separate;
 
+   --  Apply Owner to Action's entry Index, verified by its recorded identity.
    function Change_Recorded_Ownership
-     (Action : Files.Model.Undo_Entry; Index : Positive;
-      User_Id, Group_Id : Files.Types.Account_Id;
-      Owner_Name, Group_Name : String) return Boolean
+     (Action : Files.Model.Undo_Entry; Index : Positive; Owner : Files.Undo_Payloads.Ownership) return Boolean
    is separate;
 
-   function Parse_Ownership_Text
-     (Text : String; User_Id, Group_Id : out Files.Types.Account_Id;
-      User_Name, Group_Name : out Files.Types.UString) return Boolean
+   --  Which recorded value a permission or ownership replay applies: the
+   --  one the change replaced (undo) or the one it set (redo).
+   type Metadata_Side is (Before_Change, After_Change);
+
+   --  How a metadata replay ended: every item put back, at least one that
+   --  could not be, or cancelled before the end.
+   type Replay_Outcome is (Replayed, Item_Failed, Stopped);
+
+   --  Put back each entry of a permission or ownership change as Side
+   --  recorded it, verified by its identity: the one replay undo and redo
+   --  share. A malformed record fails its item, not the rest.
+   function Replay_Metadata (Action : Files.Model.Undo_Entry; Side : Metadata_Side) return Replay_Outcome
    is separate;
 
-   function Restore_Recorded_Trash
-     (Path : Files.Types.UString; Identities, Targets : Files.Types.String_Vectors.Vector;
-      Index : Positive) return Boolean is separate;
+   --  Put Original back from the trash, verified by its identity.
+   function Restore_Recorded_Trash (Original : Files.Model.Replaced_Original) return Boolean is separate;
 
    function Apply_Reverse
      (Action : in out Files.Model.Undo_Entry; Model : in out Files.Model.Window_Model)
@@ -923,37 +698,6 @@ package body Files.Operations is
          & (if Item.Modified_Available
             then " " & Ada.Calendar.Formatting.Image (Item.Modified_Time, Include_Time_Fraction => True)
             else "")));
-
-   procedure Poll_Quick_Look
-     (Model : in out Files.Model.Window_Model;
-      Owner : Files.Preview_Decoder.Requester) is
-      use type Files.Quick_Look.Content_Kind;
-   begin
-      if Files.Model.Quick_Look.Is_Open (Model) then
-         declare
-            Content : Files.Quick_Look.Quick_Look_Content renames Files.Model.Quick_Look.Content_Of (Model);
-         begin
-            if Content.Kind = Files.Quick_Look.Image_Content
-              and then Guikit.Shared_Bytes.Is_Empty (Content.Image_Pixels)
-            then
-               declare
-                  Path  : constant String := To_String (Content.Image_Path);
-                  Image : Files.Images.Decoded_Image;
-                  Ready : Boolean;
-                  Asked : Boolean;
-               begin
-                  Files.Preview_Decoder.Take (Owner, Path, Image, Ready, Asked);
-                  if not Asked then
-                     Files.Preview_Decoder.Request (Owner, Path, Files.Quick_Look.Preview_Side);
-                  elsif Ready and then Image.Available then
-                     Files.Model.Quick_Look.Set_Image
-                       (Model, Path, Guikit.Shared_Bytes.To_Shared (Image.Pixels), Image.Width, Image.Height);
-                  end if;
-               end;
-            end if;
-         end;
-      end if;
-   end Poll_Quick_Look;
 
    procedure Begin_Paste_Execution
      (Model           : in out Files.Model.Window_Model;

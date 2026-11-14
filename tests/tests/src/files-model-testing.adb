@@ -91,7 +91,11 @@ package body Files.Model.Testing is
          return Files.Types.String_Vectors.Empty_Vector;
       end if;
 
-      return Model.History.Undo_Stack.Last_Element.To;
+      return Paths : Files.Types.String_Vectors.Vector do
+         for Item of Model.History.Undo_Stack.Last_Element.Items loop
+            Paths.Append (Item.To);
+         end loop;
+      end return;
    end Undo_To_Paths;
 
    function Item_At (Model : Window_Model; Index : Positive) return Files.Items.Directory_Item is

@@ -52,7 +52,7 @@ separate (Files_Suite.Transfer)
                  "deep copies preserve their source");
          Load := Files.File_System.Load_Directory (Root, Settings);
          for Item of Load.Items loop
-            Assert (Ada.Strings.Fixed.Index (To_String (Item.Name), ".files-work-") /= 1,
+            Assert (Ada.Strings.Fixed.Index (To_String (Item.Name), Files.Protocol_Names.Work_Stage_Prefix) /= 1,
                     "deep copy success or refusal leaves no private staging tree");
          end loop;
       end loop;

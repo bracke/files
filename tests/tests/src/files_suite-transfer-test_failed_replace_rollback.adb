@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Files.Items;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
@@ -19,8 +20,8 @@ separate (Files_Suite.Transfer)
       procedure Cleanup is
       begin
          Files_Suite.Support.Release (Paste);
-         Result := Files.File_System.Set_Permissions (Root, 8#755#);
-         Result := Files.File_System.Set_Permissions (Locked, 8#755#);
+         Result := Files.File_System.Permissions.Set_Permissions (Root, 8#755#);
+         Result := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
       end Cleanup;
    begin
       Reset_Root;
@@ -37,17 +38,17 @@ separate (Files_Suite.Transfer)
          Ada.Directories.Create_Path (Locked);
          Write_Binary_File (Join (Locked, "keep"), "complete");
          Write_Binary_File (Dest, "original");
-         Result := Files.File_System.Set_Permissions (Locked, 8#555#);
+         Result := Files.File_System.Permissions.Set_Permissions (Locked, 8#555#);
          Assert (Result.Success, "preserve a readonly nested directory in the copied destination");
-         Result := Files.File_System.Set_Permissions (Root, 8#555#);
+         Result := Files.File_System.Permissions.Set_Permissions (Root, 8#555#);
          Assert (Result.Success, "the fixture permits copying but refuses atomic source removal");
          Files.Model.Initialize (Model, Remote.Path, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
          Step := Files_Suite.Support.Finish_Paste (Model, Settings);
-         Result := Files.File_System.Set_Permissions (Root, 8#755#);
-         Assert (not Files.Model.Pasting.Execution_Is_Active (Model)
+         Result := Files.File_System.Permissions.Set_Permissions (Root, 8#755#);
+         Assert (not Files.Model.Foreground_Job_Is_Active (Model)
                  and then Step.Status = Files.Operations.Operation_Failed,
                  "refused source removal completes as a failed replacement");
          Assert (not Files.Model.History.Undo_Available (Model),
@@ -57,7 +58,7 @@ separate (Files_Suite.Transfer)
          Assert (File_Has_Bytes (Join (Locked, "keep"), "complete"),
                  "rollback restores the original, preserves the source and leaves no unusable history: source");
          Await_View (Model, Settings);
-         Result := Files.File_System.Set_Permissions (Locked, 8#755#);
+         Result := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
          Project_Tools.Files.Delete_Tree (Tree);
          Ada.Directories.Delete_File (Dest);
       end loop;

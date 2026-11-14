@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Protocol_Names;
 with Files.Diagnostics;
 with Ada.Command_Line;
@@ -36,7 +37,7 @@ package body Files.Recovery_CLI is
          then
             declare
                Payload  : constant String := Hostkit.Fs.Join (Stage, "payload");
-               Original : constant String := Files.File_System.Trash_Original_Path (Payload);
+               Original : constant String := Files.File_System.Trash.Trash_Original_Path (Payload);
             begin
                if Files.File_System.Is_Recovery_Payload (Payload) and then Original /= "" then
                   Ada.Text_IO.Put_Line (Payload & ASCII.HT & Original);
@@ -69,7 +70,7 @@ package body Files.Recovery_CLI is
             Path : constant String := To_String (Payload);
          begin
             Ada.Text_IO.Put_Line
-              (Path & ASCII.HT & Files.File_System.Trash_Original_Path (Path));
+              (Path & ASCII.HT & Files.File_System.Trash.Trash_Original_Path (Path));
          end;
       end loop;
    exception
@@ -86,8 +87,8 @@ package body Files.Recovery_CLI is
       end if;
       declare
          Result : constant Files.File_System.Mutation_Result :=
-           (if Restore then Files.File_System.Restore_From_Trash (Path)
-            else Files.File_System.Delete_Trashed_Item (Path));
+           (if Restore then Files.File_System.Trash.Restore_From_Trash (Path)
+            else Files.File_System.Trash.Delete_Trashed_Item (Path));
       begin
          if not Result.Success then
             Fail (Files.Localization.Text (To_String (Result.Error_Key)) & ": " & Path);

@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Protocol_Names;
 separate (Files_Suite.Recovery)
    --  A release still running holds its stage's marker as a lease: the
@@ -48,7 +49,7 @@ separate (Files_Suite.Recovery)
          Assert (not Ada.Directories.Exists (Holder), "the release folder is gone again");
          Assert (Files.File_System.Registered_Recovery_Payloads.Contains (Backup),
                  "the payload is registered and recoverable again");
-         Assert (Files.File_System.Delete_Trashed_Item (To_String (Backup)).Success,
+         Assert (Files.File_System.Trash.Delete_Trashed_Item (To_String (Backup)).Success,
                  "and it is discarded normally");
       end;
    exception

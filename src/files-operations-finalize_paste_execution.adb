@@ -29,9 +29,11 @@ is
    --  original returns to its path; so does a paste that kept one, being
    --  undo-only too (its redo would meet the source still in place).
    Has_Kept   : constant Boolean := Length (Kept.Dest_Path) > 0;
-   Kept_Paths : constant Files.Types.String_Vectors.Vector :=
-     (if Has_Kept then Files.Types.String_Vectors.To_Vector (Kept.Dest_Path, 1)
-      else Files.Types.String_Vectors.Empty_Vector);
+   Kept_Copies : constant Files.Model.Kept_Copy_Vectors.Vector :=
+     (if Has_Kept
+      then Files.Model.Kept_Copy_Vectors.To_Vector
+        ((Path => Kept.Dest_Path, Identity => Kept.Identity, Tree_Revision => Kept.Tree_Revision), 1)
+      else Files.Model.Kept_Copy_Vectors.Empty_Vector);
    Redoable   : constant Boolean := Replaced_Trash.Is_Empty and then not Has_Kept;
    First_Dest : constant String := To_String (Exec.First_Dest);
    --  A kept copy no longer verifiable on a path an original goes back to
@@ -59,15 +61,6 @@ is
          Files.Model.Set_Error_Notice (Model, Notice_Key);
       end if;
    end Report;
-   Kept_Provenance : constant Undo_Provenance :=
-     (Kept_Copies              => Kept_Paths,
-      Kept_Copy_Identities     =>
-        (if Has_Kept then Files.Types.String_Vectors.To_Vector (Kept.Identity, 1)
-         else Files.Types.String_Vectors.Empty_Vector),
-      Kept_Copy_Tree_Revisions =>
-        (if Has_Kept then Files.Types.String_Vectors.To_Vector (Kept.Tree_Revision, 1)
-         else Files.Types.String_Vectors.Empty_Vector),
-      others                   => <>);
 begin
    --  Each item a Replace overwrote went to its recovery stage before the
    --  pasted item took its path: its labels, favorite and recent entry go
@@ -95,9 +88,7 @@ begin
                Tree_Revisions => Exec.Tree_Revisions,
                Retain_Verified_Main => Exec.Verified_Created_Count,
                Retain_Verified_Restores => Exec.Verified_Replaced_Count,
-               Kept_Copies => Kept_Provenance.Kept_Copies,
-               Kept_Copy_Identities => Kept_Provenance.Kept_Copy_Identities,
-               Kept_Copy_Tree_Revisions => Kept_Provenance.Kept_Copy_Tree_Revisions));
+               Kept => Kept_Copies));
       else
          --  A copy is reversed by deleting the created copies (Undo_From) and
          --  redone by copying each source (Undo_To) back to its destination.
@@ -139,7 +130,7 @@ begin
             Retain_Verified_Main => Exec.Verified_Replaced_Count,
             others => <>));
    end if;
-   Files.Model.Pasting.Clear_Execution (Model);
+   Files.Model.End_Foreground_Job (Model);
 
    if Files.Model.Background_Transfers (Model) then
       --  Preserve mutation errors while a nonmodal helper refreshes the view.

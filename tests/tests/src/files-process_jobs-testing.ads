@@ -11,6 +11,10 @@ package Files.Process_Jobs.Testing is
    --  Make the next Launch fail as a refused spawn does (a process limit).
    procedure Refuse_Next_Launch;
 
+   --  @return How many times the orphan reaper has tried to remove a
+   --    released transport itself, so a test can wait for that attempt.
+   function Removal_Attempts return Natural;
+
    --  Disarm a refusal that no Launch consumed, so it cannot leak into the
    --  next test.
    procedure Clear_Refusal;

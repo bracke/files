@@ -15,12 +15,10 @@ with Files.Job_Records;
 with Files.Lease_Streams;
 with Files.Fs_Primitives;
 with Hostkit.Fs;
-with Hostkit.Lease_Files;
 with Hostkit.Watch;
 with Files.Path_Checks;
 with Files.Model.Command_Palette;
 with Files.Model.Quick_Look;
-with Files.Model.Pasting;
 with Files.Model.Rename;
 with Files.Model.Selection;
 
@@ -28,10 +26,10 @@ package body Files.Refresh_Jobs is
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
    use type Files.Operations.Operation_Status;
-   use type Hostkit.Lease_Files.Open_Outcome;
 
    Max_Watch_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
    Request_Header : constant String := "files-refresh-request-1";
+   Watch_Request_Header : constant String := "files-watch-request-1";
    Result_Header : constant String := "files-refresh-result-1";
 
    type Request is record
@@ -99,84 +97,52 @@ package body Files.Refresh_Jobs is
         (Stream, To_String (Work.Error_Key), Files.Job_Records.Max_Error_Length);
    end Write_Request;
 
-   function Open_Transport
-     (Path : String;
-      Input : in out Files.Lease_Streams.Input_Stream) return Boolean is
-     (Files.Lease_Streams.Open (Path, Input) = Hostkit.Lease_Files.Opened
-      and then Files.Lease_Streams.Size (Input) <=
-        Long_Long_Integer (Files.Job_Records.Max_Transport_Bytes));
-
-   function Read_Request (Path : String) return Request
-   is
-      Input : aliased Files.Lease_Streams.Input_Stream;
-      Work : Request;
+   procedure Read_Request_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Work   : out Request) is
    begin
-      if not Open_Transport (Path, Input) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      if Files.Job_Records.Read_String
-        (Input'Access, Request_Header'Length) /= Request_Header
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Work.Root := To_Unbounded_String
-        (Files.Job_Records.Read_String
-           (Input'Access, Files.Job_Records.Max_Path_Length));
-      Work.Context_Revision := Natural'Input (Input'Access);
-      Work.Settings := Files.Job_Records.Read_Settings (Input'Access);
-      Work.Previous := Files.Job_Records.Read_Signature (Input'Access);
-      Work.Recent := Boolean'Input (Input'Access);
-      Work.Force := Boolean'Input (Input'Access);
-      Work.Selection := To_Unbounded_String
-        (Files.Job_Records.Read_String
-           (Input'Access, Files.Job_Records.Max_Path_Length));
-      Work.Error_Key := To_Unbounded_String
-        (Files.Job_Records.Read_String
-           (Input'Access, Files.Job_Records.Max_Error_Length));
-      if not Files.Lease_Streams.End_Of_Stream (Input) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      if not Request_Paths_Are_Consistent
-        (To_String (Work.Root), To_String (Work.Previous.Path), Work.Recent)
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Files.Lease_Streams.Release (Input);
-      return Work;
-   exception
-      when others =>
-         Files.Lease_Streams.Release (Input);
-         raise;
-   end Read_Request;
+      Work.Root := To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Path_Length));
+      Work.Context_Revision := Natural'Input (Stream);
+      Work.Settings := Files.Job_Records.Read_Settings (Stream);
+      Work.Previous := Files.Job_Records.Read_Signature (Stream);
+      Work.Recent := Boolean'Input (Stream);
+      Work.Force := Boolean'Input (Stream);
+      Work.Selection := To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Path_Length));
+      Work.Error_Key :=
+        To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Error_Length));
+   end Read_Request_Body;
 
-   procedure Read_Request_Identity
-     (Path : String;
-      Root : out Files.Types.UString;
-      Context_Revision : out Natural)
-   is
-      Input : aliased Files.Lease_Streams.Input_Stream;
+   function Request_Is_Consistent (Work : Request) return Boolean is
+     (Request_Paths_Are_Consistent (To_String (Work.Root), To_String (Work.Previous.Path), Work.Recent));
+
+   function Read_Request_Record is new Files.Lease_Streams.Read_Record
+     (Request, Read_Request_Body, Request_Is_Consistent);
+
+   function Read_Request (Path : String) return Request is
+     (Read_Request_Record (Path, Request_Header, Long_Long_Integer (Files.Job_Records.Max_Transport_Bytes)));
+
+   --  A request's leading fields: what a poll compares with the window.
+   type Request_Identity is record
+      Root             : Files.Types.UString;
+      Context_Revision : Natural := 0;
+   end record;
+
+   procedure Read_Identity_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Ident  : out Request_Identity) is
    begin
-      if not Open_Transport (Path, Input)
-        or else Files.Job_Records.Read_String
-          (Input'Access, Request_Header'Length) /= Request_Header
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Root := To_Unbounded_String
-        (Files.Job_Records.Read_String
-           (Input'Access, Files.Job_Records.Max_Path_Length));
-      Context_Revision := Natural'Input (Input'Access);
-      if Length (Root) > 0
-        and then not Valid_Absolute_Path (To_String (Root))
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Files.Lease_Streams.Release (Input);
-   exception
-      when others =>
-         Files.Lease_Streams.Release (Input);
-         raise;
-   end Read_Request_Identity;
+      Ident.Root := To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Path_Length));
+      Ident.Context_Revision := Natural'Input (Stream);
+   end Read_Identity_Body;
+
+   function Identity_Is_Consistent (Ident : Request_Identity) return Boolean is
+     (Length (Ident.Root) = 0 or else Valid_Absolute_Path (To_String (Ident.Root)));
+
+   function Read_Identity_Record is new Files.Lease_Streams.Read_Record
+     (Request_Identity, Read_Identity_Body, Identity_Is_Consistent, Whole => False);
+
+   function Read_Request_Identity (Path : String) return Request_Identity is
+     (Read_Identity_Record (Path, Request_Header, Long_Long_Integer (Files.Job_Records.Max_Transport_Bytes)));
 
    procedure Write_Outcome
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
@@ -195,44 +161,23 @@ package body Files.Refresh_Jobs is
         (Stream, To_String (Done.Error_Key), Files.Job_Records.Max_Error_Length);
    end Write_Outcome;
 
-   function Read_Outcome (Path : String) return Outcome
-   is
-      Input : aliased Files.Lease_Streams.Input_Stream;
-      Done : Outcome;
+   procedure Read_Outcome_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Done   : out Outcome) is
    begin
-      if not Open_Transport (Path, Input) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      if Files.Job_Records.Read_String
-        (Input'Access, Result_Header'Length) /= Result_Header
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Done.Success := Boolean'Input (Input'Access);
-      Done.Reloaded := Boolean'Input (Input'Access);
-      Done.Items := Files.Job_Records.Read_Items (Input'Access);
-      Done.Signature := Files.Job_Records.Read_Signature (Input'Access);
-      Done.Error_Key := To_Unbounded_String
-        (Files.Job_Records.Read_String
-           (Input'Access, Files.Job_Records.Max_Error_Length));
-      if not Files.Lease_Streams.End_Of_Stream (Input) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      if not Is_Consistent (Done) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Files.Lease_Streams.Release (Input);
-      return Done;
-   exception
-      when others =>
-         Files.Lease_Streams.Release (Input);
-         raise;
-   end Read_Outcome;
+      Done.Success := Boolean'Input (Stream);
+      Done.Reloaded := Boolean'Input (Stream);
+      Done.Items := Files.Job_Records.Read_Items (Stream);
+      Done.Signature := Files.Job_Records.Read_Signature (Stream);
+      Done.Error_Key :=
+        To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Error_Length));
+   end Read_Outcome_Body;
 
-   procedure Close (File : in out Files.Exclusive_Streams.Output_Stream) is
-   begin
-      Files.Exclusive_Streams.Close_Safely (File);
-   end Close;
+   function Read_Outcome_Record is new Files.Lease_Streams.Read_Record
+     (Outcome, Read_Outcome_Body, Is_Consistent);
+
+   function Read_Outcome (Path : String) return Outcome is
+     (Read_Outcome_Record (Path, Result_Header, Long_Long_Integer (Files.Job_Records.Max_Transport_Bytes)));
 
    procedure Cancel (Model : in out Files.Model.Window_Model) is
       Empty : Files.Process_Jobs.Session;
@@ -247,7 +192,6 @@ package body Files.Refresh_Jobs is
       Select_Name : String := "") return Files.Operations.Operation_Result
    is
       Job : Files.Process_Jobs.Session;
-      File : aliased Files.Exclusive_Streams.Output_Stream;
       Previous_Error : constant String := Files.Model.Last_Error_Key (Model);
       Work : constant Request :=
         (Root => To_Unbounded_String (Files.Model.Current_Path (Model)),
@@ -263,7 +207,7 @@ package body Files.Refresh_Jobs is
          Error_Key => (if Previous_Error = "error.directory.load" then Null_Unbounded_String
                        else To_Unbounded_String (Previous_Error)));
    begin
-      if Files.Model.Pasting.Execution_Is_Active (Model)
+      if Files.Model.Foreground_Job_Is_Active (Model)
         or else (not Force and then (Work.Recent or else Files.Model.Search_Results_Are_Active (Model)))
       then
          return (Status => Files.Operations.Operation_Success, others => <>);
@@ -281,12 +225,14 @@ package body Files.Refresh_Jobs is
       end if;
       Cancel (Model);
       Files.Process_Jobs.Reserve (Job);
-      Files.Exclusive_Streams.Create
-        (File, Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
-      Write_Request (File'Access, Work);
-      Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
-      Files.Exclusive_Streams.Close (File);
-      Files.Process_Jobs.Launch (Job, Files.Helper_Modes.Flag (Files.Helper_Modes.Refresh));
+      declare
+         procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
+         begin
+            Write_Request (Stream, Work);
+         end Write;
+      begin
+         Files.Process_Jobs.Launch_With_Request (Job, Files.Helper_Modes.Refresh, Write'Access);
+      end;
       Files.Model.Set_Background_Refresh (Model, Job);
       --  This read covers the current view, so any reload owed to it is paid.
       Files.Model.Clear_Owed_Refresh (Model);
@@ -294,7 +240,6 @@ package body Files.Refresh_Jobs is
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
-         Close (File);
          if Length (Work.Error_Key) = 0 then
             Files.Model.Set_Error (Model, "error.directory.load");
          end if;
@@ -308,7 +253,7 @@ package body Files.Refresh_Jobs is
    begin
       if not Files.Model.Refresh_Is_Owed (Model)
         or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
-        or else Files.Model.Pasting.Execution_Is_Active (Model)
+        or else Files.Model.Foreground_Job_Is_Active (Model)
       then
          return;
       end if;
@@ -327,6 +272,85 @@ package body Files.Refresh_Jobs is
       end;
    end Resume_Owed;
 
+   --  A read of the directory still on screen went stale because something
+   --  listing-visible changed (an error, an edit, Settings). Its answer must
+   --  not be applied, but the reload it stood for is still owed; Resume_Owed
+   --  reissues it against the current state on a later poll.
+   procedure Owe_Reload (Model : in out Files.Model.Window_Model; Job : Files.Process_Jobs.Session) is
+   begin
+      declare
+         Stale : constant Request := Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
+      begin
+         Files.Model.Note_Owed_Refresh (Model, Stale.Force, To_String (Stale.Selection));
+      end;
+   exception
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.Refresh_Jobs");
+         Files.Model.Note_Owed_Refresh (Model, False, "");
+   end Owe_Reload;
+
+   --  The re-read items replace the shown ones, keeping where the user was:
+   --  the selection (or the name the read was asked to select), the scroll,
+   --  the info pane and a Quick Look whose item is still there.
+   procedure Apply_Reloaded_Items
+     (Model : in out Files.Model.Window_Model;
+      Work  : Request;
+      Items : Files.Items.Item_Vectors.Vector)
+   is
+      Previous_Selection : constant Files.Items.Item_Vectors.Vector :=
+        Files.Model.Selection.Selected_Items (Model);
+      --  The primary item as the info pane shows it, details and all.
+      Previous_Item    : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
+      Previous_Primary : constant Files.Types.UString := Previous_Item.Full_Path;
+      Previous_Info    : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
+      --  A refresh of the folder in view keeps where the user was: its
+      --  scroll, and a Quick Look whose item is still there.
+      Previous_Scroll  : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
+      Previewing       : constant Boolean := Files.Model.Quick_Look.Is_Open (Model);
+      Previewed        : constant String := Files.Model.Quick_Look.Path (Model);
+      Previous_Preview : constant Files.Quick_Look.Quick_Look_Content :=
+        Files.Model.Quick_Look.Content_Of (Model);
+   begin
+      if Work.Recent then
+         Files.Model.Navigate_Recent (Model, Items);
+      else
+         Files.Model.Replace_Items (Model, Items);
+         Files.Model.Clear_Search_Results (Model);
+      end if;
+      if Length (Work.Selection) > 0 then
+         declare
+            Selected : constant Boolean :=
+              Files.Model.Selection.Select_By_Name (Model, To_String (Work.Selection));
+            pragma Unreferenced (Selected);
+         begin
+            null;
+         end;
+      else
+         Files.Model.Selection.Restore
+           (Model, Previous_Selection, To_String (Previous_Primary));
+      end if;
+      if not Work.Recent then
+         Files.Model.Set_Main_View_Scroll_Lines (Model, Previous_Scroll);
+      end if;
+      --  So does the info pane, on the same item: its scroll, and the
+      --  details read for it unless a forced reload (a settings change,
+      --  an explicit refresh) may have changed what they depend on.
+      Files.Model.Keep_Info_Pane (Model, Previous_Item, Previous_Info, Keep_Extra => not Work.Force);
+      if Previewing
+        and then Previewed /= ""
+        and then To_String (Files.Model.Selection.Selected_Item (Model).Full_Path) = Previewed
+      then
+         --  Prepared afresh when the change being picked up is to it;
+         --  otherwise the preview it had, image and all, comes back.
+         Files.Model.Quick_Look.Open
+           (Model,
+            (if Files.Operations.Quick_Look_Stamp (Files.Model.Selection.Selected_Item (Model))
+                = Previous_Preview.Source_Stamp
+             then Previous_Preview
+             else Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model))));
+      end if;
+   end Apply_Reloaded_Items;
+
    function Advance
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model) return Boolean
@@ -336,45 +360,24 @@ package body Files.Refresh_Jobs is
       Done : Outcome;
       Finished, Cancelled : Boolean;
       Matching : Boolean := False;
-      Requested_Root : Files.Types.UString;
-      Requested_Context_Revision : Natural;
+      Requested : Request_Identity;
 
-      --  A read of the directory still on screen went stale because something
-      --  listing-visible changed (an error, an edit, Settings). Its answer must
-      --  not be applied, but the reload it stood for is still owed; Resume_Owed
-      --  reissues it against the current state on a later poll.
-      procedure Owe_Reload is
-      begin
-         declare
-            Stale : constant Request :=
-              Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
-         begin
-            Files.Model.Note_Owed_Refresh
-              (Model, Stale.Force, To_String (Stale.Selection));
-         end;
-      exception
-         when Failure : others =>
-            Files.Diagnostics.Note (Failure, "Files.Refresh_Jobs");
-            Files.Model.Note_Owed_Refresh (Model, False, "");
-      end Owe_Reload;
    begin
       if not Files.Process_Jobs.Active (Job) then
          return False;
       end if;
-      if Files.Model.Pasting.Execution_Is_Active (Model) then
+      if Files.Model.Foreground_Job_Is_Active (Model) then
          Cancel (Model);
          return False;
       end if;
       --  Read only the request header from local transport. A navigation or edit
       --  must discard even a helper still blocked on the previous directory.
-      Read_Request_Identity
-        (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File),
-         Requested_Root, Requested_Context_Revision);
-      if Requested_Root /= Files.Model.Current_Path (Model) then
+      Requested := Read_Request_Identity (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
+      if Requested.Root /= Files.Model.Current_Path (Model) then
          Cancel (Model);
          return False;
-      elsif Requested_Context_Revision /= Files.Model.Listing_Revision (Model) then
-         Owe_Reload;
+      elsif Requested.Context_Revision /= Files.Model.Listing_Revision (Model) then
+         Owe_Reload (Model, Job);
          Cancel (Model);
          return False;
       elsif Files.Model.Command_Palette.Is_Open (Model)
@@ -398,7 +401,7 @@ package body Files.Refresh_Jobs is
       if not Matching and then not Cancelled
         and then Work.Root = Files.Model.Current_Path (Model)
       then
-         Owe_Reload;
+         Owe_Reload (Model, Job);
       end if;
       if not Matching or else Cancelled then
          return False;
@@ -411,60 +414,7 @@ package body Files.Refresh_Jobs is
          return False;
       end if;
       if Done.Reloaded then
-         declare
-            Previous_Selection : constant Files.Items.Item_Vectors.Vector :=
-              Files.Model.Selection.Selected_Items (Model);
-            --  The primary item as the info pane shows it, details and all.
-            Previous_Item    : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
-            Previous_Primary : constant Files.Types.UString := Previous_Item.Full_Path;
-            Previous_Info    : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
-            --  A refresh of the folder in view keeps where the user was: its
-            --  scroll, and a Quick Look whose item is still there.
-            Previous_Scroll  : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
-            Previewing       : constant Boolean := Files.Model.Quick_Look.Is_Open (Model);
-            Previewed        : constant String := Files.Model.Quick_Look.Path (Model);
-            Previous_Preview : constant Files.Quick_Look.Quick_Look_Content :=
-              Files.Model.Quick_Look.Content_Of (Model);
-         begin
-            if Work.Recent then
-               Files.Model.Navigate_Recent (Model, Done.Items);
-            else
-               Files.Model.Replace_Items (Model, Done.Items);
-               Files.Model.Clear_Search_Results (Model);
-            end if;
-            if Length (Work.Selection) > 0 then
-               declare
-                  Selected : constant Boolean :=
-                    Files.Model.Selection.Select_By_Name (Model, To_String (Work.Selection));
-                  pragma Unreferenced (Selected);
-               begin
-                  null;
-               end;
-            else
-               Files.Model.Selection.Restore
-                 (Model, Previous_Selection, To_String (Previous_Primary));
-            end if;
-            if not Work.Recent then
-               Files.Model.Set_Main_View_Scroll_Lines (Model, Previous_Scroll);
-            end if;
-            --  So does the info pane, on the same item: its scroll, and the
-            --  details read for it unless a forced reload (a settings change,
-            --  an explicit refresh) may have changed what they depend on.
-            Files.Model.Keep_Info_Pane (Model, Previous_Item, Previous_Info, Keep_Extra => not Work.Force);
-            if Previewing
-              and then Previewed /= ""
-              and then To_String (Files.Model.Selection.Selected_Item (Model).Full_Path) = Previewed
-            then
-               --  Prepared afresh when the change being picked up is to it;
-               --  otherwise the preview it had, image and all, comes back.
-               Files.Model.Quick_Look.Open
-                 (Model,
-                  (if Files.Operations.Quick_Look_Stamp (Files.Model.Selection.Selected_Item (Model))
-                      = Previous_Preview.Source_Stamp
-                   then Previous_Preview
-                   else Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model))));
-            end if;
-         end;
+         Apply_Reloaded_Items (Model, Work, Done.Items);
       end if;
       if Files.Model.Last_Error_Key (Model) /= To_String (Work.Error_Key) then
          Files.Model.Set_Error (Model, To_String (Work.Error_Key));
@@ -626,7 +576,12 @@ package body Files.Refresh_Jobs is
 
    procedure Watch_Path (Job : in out Watch_Session; Path : String) is
       use type Ada.Real_Time.Time;
-      File : aliased Files.Exclusive_Streams.Output_Stream;
+
+      procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
+      begin
+         String'Output (Stream, Watch_Request_Header);
+         Files.Job_Records.Write_String (Stream, Path, Max_Watch_Path_Length);
+      end Write;
 
       procedure Note_Failure is
       begin
@@ -654,17 +609,11 @@ package body Files.Refresh_Jobs is
          return;
       end if;
       Files.Process_Jobs.Reserve (Job.Process);
-      Files.Exclusive_Streams.Create
-        (File, Files.Process_Jobs.Path (Job.Process, Files.Process_Jobs.Request_File));
-      Files.Job_Records.Write_String
-        (File'Access, Path, Max_Watch_Path_Length);
-      Files.Exclusive_Streams.Close (File);
-      Files.Process_Jobs.Launch (Job.Process, Files.Helper_Modes.Flag (Files.Helper_Modes.Watch));
+      Files.Process_Jobs.Launch_With_Request (Job.Process, Files.Helper_Modes.Watch, Write'Access);
       Job.Path := To_Unbounded_String (Path);
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.Refresh_Jobs");
-         Close (File);
          Release_Watch (Job);
          Note_Failure;
    end Watch_Path;
@@ -696,7 +645,7 @@ package body Files.Refresh_Jobs is
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
-         Close (File);
+         Files.Exclusive_Streams.Close_Safely (File);
          --  Made meanwhile by nobody else, but answer by what is there.
          return Posted;
    end Post_Watch_Notification;
@@ -756,12 +705,27 @@ package body Files.Refresh_Jobs is
          return False;
    end Poll_Watch;
 
+   procedure Read_Watch_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Path   : out Unbounded_String) is
+   begin
+      Path := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Watch_Path_Length));
+   end Read_Watch_Body;
+
+   function Watch_Request_Is_Consistent (Path : Unbounded_String) return Boolean is
+     (Watch_Path_Is_Consistent (To_String (Path)));
+
+   function Read_Watch_Record is new Files.Lease_Streams.Read_Record
+     (Unbounded_String, Read_Watch_Body, Watch_Request_Is_Consistent);
+
+   function Read_Watch_Request (Path : String) return Unbounded_String is
+     (Read_Watch_Record (Path, Watch_Request_Header, Long_Long_Integer (Files.Job_Records.Max_Transport_Bytes)));
+
    procedure Run_Watch_Helper (Directory : String) is
       use type Ada.Real_Time.Time;
       use type Ada.Real_Time.Time_Span;
       Watch : Hostkit.Watch.Watch_State;
       Pending : Boolean := False;
-      Input : aliased Files.Lease_Streams.Input_Stream;
       Watched : Unbounded_String;
       --  Where the watch does not hear a file being written (macOS, Windows,
       --  a filesystem with no notifications), this helper re-reads the
@@ -776,24 +740,8 @@ package body Files.Refresh_Jobs is
       function Scan_Gap (Entries : Natural) return Ada.Real_Time.Time_Span is
         (Ada.Real_Time.Seconds (1) + Ada.Real_Time.Milliseconds (Natural'Min (Entries, 1_000_000) / 20));
    begin
-      if not Open_Transport
-        (Hostkit.Fs.Join (Directory, Files.Process_Jobs.Request_File), Input)
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      declare
-         Path : constant String := Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Watch_Path_Length);
-      begin
-         if not Files.Lease_Streams.End_Of_Stream (Input)
-           or else not Watch_Path_Is_Consistent (Path)
-         then
-            raise Ada.IO_Exceptions.Data_Error;
-         end if;
-         Files.Lease_Streams.Release (Input);
-         Hostkit.Watch.Watch_Path (Watch, Path);
-         Watched := To_Unbounded_String (Path);
-      end;
+      Watched := Read_Watch_Request (Hostkit.Fs.Join (Directory, Files.Process_Jobs.Request_File));
+      Hostkit.Watch.Watch_Path (Watch, To_String (Watched));
       Polls_Itself := not (Hostkit.Watch.Is_Active (Watch) and then Hostkit.Watch.Sees_File_Writes);
       if Polls_Itself then
          Last_State := Files.File_System.Directory_State (To_String (Watched));
@@ -809,7 +757,7 @@ package body Files.Refresh_Jobs is
          Files.Exclusive_Streams.Close (Marker);
       exception
          when Swallowed : others =>
-            Close (Marker);
+            Files.Exclusive_Streams.Close_Safely (Marker);
             Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
       end;
       loop
@@ -842,7 +790,6 @@ package body Files.Refresh_Jobs is
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
-         Files.Lease_Streams.Release (Input);
          Hostkit.Watch.Release (Watch);
    end Run_Watch_Helper;
 end Files.Refresh_Jobs;

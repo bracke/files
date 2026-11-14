@@ -38,8 +38,7 @@ separate (Files_Suite.Recovery)
          Marker := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
          Files.Process_Jobs.Launch (Job, "--files-test-blocked");
          Await_Started (To_String (Marker));
-         Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-         Files.Model.Set_Background_Operation (Model, Job, "command.file.duplicate");
+         Files.Model.Begin_Operation_Job (Model, Job, "command.file.duplicate");
          Files.Process_Jobs.Reset (Job); --  The window is now its helper's only owner.
       end Attach_Operation;
    begin
@@ -63,9 +62,9 @@ separate (Files_Suite.Recovery)
             when Operation_Job => Attach_Operation (Closing, Started);
             when Transfer_Job =>
                Files.Operations.Begin_Paste_Execution (Closing, Actions, Files.File_System.Drop_Copy);
-               Step := Files.Operations.Advance_Paste_Execution (Closing, Settings, 1);
+               Step := Files.Foreground_Jobs.Advance (Closing, Settings, 1);
                Assert (Step.Status = Files.Operations.Operation_Success
-                       and then Files.Model.Pasting.Execution_Is_Active (Closing), "start the stalled transfer");
+                       and then Files.Model.Foreground_Job_Is_Active (Closing), "start the stalled transfer");
                Await_Started (Join (Root, "transfer-started"));
                declare
                   Marker : Ada.Text_IO.File_Type;
@@ -90,7 +89,7 @@ separate (Files_Suite.Recovery)
          Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);
          Assert_Within (Before, Prompt_Limit, "repeated window closure never joins stalled helpers");
          Assert
-           (not Files.Model.Pasting.Execution_Is_Active (Closing),
+           (not Files.Model.Foreground_Job_Is_Active (Closing),
             "repeated window closure releases all of the window's jobs: paste released");
          Assert
            (not Files.Process_Jobs.Active (Files.Model.Background_Operation (Closing)),
@@ -107,7 +106,7 @@ separate (Files_Suite.Recovery)
               (not Cancelled,
                "closing one window leaves the surviving window and its helper active: not cancelled");
             Assert
-              (Files.Model.Pasting.Execution_Is_Active (Remaining),
+              (Files.Model.Foreground_Job_Is_Active (Remaining),
                "closing one window leaves the surviving window and its helper active: surviving paste active");
             Assert
               (Ada.Directories.Exists (To_String (Other_Started)),

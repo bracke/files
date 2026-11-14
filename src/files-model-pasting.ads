@@ -142,7 +142,7 @@ package Files.Model.Pasting is
    --  Whether a resumable paste execution is currently in flight.
    --
    --  @param Model Model to inspect.
-   --  @return True between Begin_Execution and Clear_Execution.
+   --  @return True between Begin_Execution and Files.Model.End_Foreground_Job.
    function Execution_Is_Active
      (Model : Window_Model)
       return Boolean;
@@ -283,11 +283,5 @@ package Files.Model.Pasting is
    procedure Set_Cancelled
      (Model     : in out Window_Model;
       Requested : Boolean);
-
-   --  Clear the resumable paste execution, discarding its state.
-   --
-   --  @param Model Model to update.
-   procedure Clear_Execution
-     (Model : in out Window_Model);
 
 end Files.Model.Pasting;

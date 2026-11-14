@@ -13,7 +13,6 @@ separate (Files_Suite.Info)
       Earlier  : constant Ada.Calendar.Time := Ada.Calendar.Formatting.Time_Of (2001, 1, 1, Time_Zone => 0);
       Later    : constant Ada.Calendar.Time := Ada.Calendar.Formatting.Time_Of (2002, 1, 1, Time_Zone => 0);
       Scan     : Files.Folder_Size.Session;
-      Paths    : Files.Folder_Size.Path_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
       Measured : Files.Folder_Size.Measurement_Vectors.Vector;
@@ -22,8 +21,8 @@ separate (Files_Suite.Info)
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Environment_Guard;
 
-      function Listed (Time : Ada.Calendar.Time) return Files.Folder_Size.Time_Vectors.Vector is
-        (Files.Folder_Size.Time_Vectors.To_Vector (Time, 1));
+      function Listed (Time : Ada.Calendar.Time) return Files.Folder_Size.Target_Vectors.Vector is
+        (Files.Folder_Size.Target_Vectors.To_Vector ((Path => To_Unbounded_String (Folder), Listed => Time), 1));
 
       procedure Await_Marker (Message : String) is
       begin
@@ -38,20 +37,19 @@ separate (Files_Suite.Info)
       Reset_Root;
       Ada.Directories.Create_Path (Folder);
       Write_Binary_File (Join (Folder, "data"), "one");
-      Paths.Append (To_Unbounded_String (Folder));
 
       --  A helper measuring the folder as listed then is kept while the
       --  same listing is asked for, and restarted for a newer one.
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Marker);
-      Files.Folder_Size.Set_Targets (Scan, Paths, Listed (Earlier));
+      Files.Folder_Size.Set_Targets (Scan, Listed (Earlier));
       Await_Marker ("the measurement is under way");
       declare
          Started : constant Natural := Files.Folder_Size.Testing.Helper_Starts;
       begin
-         Files.Folder_Size.Set_Targets (Scan, Paths, Listed (Earlier));
+         Files.Folder_Size.Set_Targets (Scan, Listed (Earlier));
          Files_Suite.Support.Assert_Equal
            (Files.Folder_Size.Testing.Helper_Starts, Started, "the same listing keeps the running measurement");
-         Files.Folder_Size.Set_Targets (Scan, Paths, Listed (Later));
+         Files.Folder_Size.Set_Targets (Scan, Listed (Later));
          Files_Suite.Support.Assert_Equal
            (Files.Folder_Size.Testing.Helper_Starts, Started + 1, "a newer listing of the folder restarts it");
       end;
@@ -85,7 +83,7 @@ separate (Files_Suite.Info)
       Assert
         (not Files.Model.Folder_Sizes.Cached_For (Model, Folder), "a size of an older listing is dropped");
       for Attempt in Files_Suite.Support.Polling loop
-         Files.Operations.Poll_Folder_Sizes (Model);
+         Files.Window_Polls.Poll_Folder_Sizes (Model);
          exit when Files.Model.Folder_Sizes.Cached_For (Model, Folder);
       end loop;
       Assert (Files.Model.Folder_Sizes.Cached_For (Model, Folder), "the folder is measured again");
@@ -102,10 +100,10 @@ separate (Files_Suite.Info)
       Files_Suite.Support.Assert_Equal
         (Files.Model.Folder_Sizes.Value (Model, Folder).Total_Bytes, 999,
          "a size of the listing in view is kept");
-      Files.Operations.Cancel_Folder_Scan (Model);
+      Files.Window_Polls.Cancel_Folder_Scan (Model);
    exception
       when others =>
          Files.Folder_Size.Cancel (Scan);
-         Files.Operations.Cancel_Folder_Scan (Model);
+         Files.Window_Polls.Cancel_Folder_Scan (Model);
          raise;
    end Test_Stale_Folder_Size_Dropped;

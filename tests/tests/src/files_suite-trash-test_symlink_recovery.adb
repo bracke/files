@@ -24,18 +24,18 @@ separate (Files_Suite.Trash)
            ((case Kind is
                 when 1 => Target,
                 when 2 => Join (Root, "missing-target"),
-                when 3 => Files.File_System.Trash_Files_Directory,
+                when 3 => Files.File_System.Trash.Trash_Files_Directory,
                 when others => Root), Link)
          then
             Files_Suite.Support.Link_Not_Made ("Test_Symlink_Recovery");
             return;
          end if;
-         Result := Files.File_System.Move_To_Trash (Link, Trashed);
+         Result := Files.File_System.Trash.Move_To_Trash (Link, Trashed);
          Assert (Result.Success and then Hostkit.Fs.Is_Link (To_String (Trashed)), "trash preserves the link itself");
          Assert (not Hostkit.Fs.Is_Link (Link), "trash removes the original link pathname");
-         Assert (not Files.File_System.Move_To_Trash_Preflight (To_String (Trashed)).Success,
+         Assert (not Files.File_System.Trash.Move_To_Trash_Preflight (To_String (Trashed)).Success,
                  "an already-trashed link is identified by its own location");
-         Result := Files.File_System.Restore_From_Trash (To_String (Trashed));
+         Result := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
          Assert (Result.Success and then Hostkit.Fs.Is_Link (Link),
                  "restore uses the link pathname, including dangling links");
          Result := Files.File_System.Delete_Permanently (Link);

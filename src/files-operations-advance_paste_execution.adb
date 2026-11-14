@@ -59,9 +59,6 @@ is
    end Advance_Background_Paste;
 
 begin
-   if Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)) then
-      return Files.Operation_Jobs.Advance (Model, Settings);
-   end if;
    if not Files.Model.Pasting.Execution_Is_Active (Model) then
       return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
    end if;

@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Files.Model.Status_Samples;
 separate (Files_Suite.Model)
    --  Owner and group names reach the info pane through the model: the window
@@ -49,18 +50,18 @@ separate (Files_Suite.Model)
       begin
          Files_Suite.Support.Assert_Equal
            (To_String (Info.Owner_Name),
-            Files.File_System.User_Name_For_Id (0),
+            Files.File_System.Permissions.User_Name_For_Id (0),
             "the pane shows the owner name the window layer sampled");
          Files_Suite.Support.Assert_Equal
            (To_String (Info.Group_Name),
-            Files.File_System.Group_Name_For_Id (0),
+            Files.File_System.Permissions.Group_Name_For_Id (0),
             "the pane shows the group name the window layer sampled");
       end;
 
       --  An unchanged name is not a change; a new one is, and is shown.
       Revision := Files.Model.Revision (Model);
       Files.Model.Status_Samples.Set_Account_Name
-        (Model, Files.Model.User_Account, 0, Files.File_System.User_Name_For_Id (0));
+        (Model, Files.Model.User_Account, 0, Files.File_System.Permissions.User_Name_For_Id (0));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Revision (Model), Revision, "recording the same name leaves the revision alone");
       Files.Model.Status_Samples.Set_Account_Name (Model, Files.Model.User_Account, 0, "renamed_owner");

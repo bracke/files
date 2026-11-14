@@ -43,7 +43,7 @@ separate (Files_Suite.Transfer)
       Actions.Append (Action);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Step := Files_Suite.Support.Finish_Paste (Model, Settings);
-      Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "the UI collects a completed background action");
+      Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the UI collects a completed background action");
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operations.Operation_Success,
@@ -54,9 +54,9 @@ separate (Files_Suite.Transfer)
       Assert (not Ada.Directories.Exists (Dest), "undo removes a background copy");
 
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-      Files.Operations.Cancel_Paste_Execution (Model);
-      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-      Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "cancellation before launch finalizes immediately");
+      Files.Foreground_Jobs.Cancel (Model);
+      Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
+      Assert (not Files.Model.Foreground_Job_Is_Active (Model), "cancellation before launch finalizes immediately");
       Assert (not Ada.Directories.Exists (Dest), "a cancelled background action writes nothing");
 
       --  Cancellation of an already-started worker must never publish a partial

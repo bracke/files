@@ -14,7 +14,7 @@ separate (Files_Suite.Transfer)
       function Dest (N : Positive) return String is (Numbered_File (Dest_Dir, N));
    begin
       Arm_Numbered_Paste (Model, Settings, Src_Dir, Dest_Dir, Count);
-      Assert (Files.Model.Pasting.Execution_Is_Active (Model), "arming a paste execution activates it");
+      Assert (Files.Model.Foreground_Job_Is_Active (Model), "arming a paste execution activates it");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Pasting.Execution_Total (Model),
          Count,
@@ -25,34 +25,34 @@ separate (Files_Suite.Transfer)
          "nothing is done before the first advance");
 
       --  Max_Items = 2 over 5 actions => completes after ceil(5 / 2) = 3 calls.
-      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operations.Operation_Success,
          "the first batch reports success");
-      Assert (Files.Model.Pasting.Execution_Is_Active (Model), "the execution is still in progress after one batch");
+      Assert (Files.Model.Foreground_Job_Is_Active (Model), "the execution is still in progress after one batch");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Pasting.Execution_Done (Model),
          2,
          "the first batch completes two writes");
 
-      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operations.Operation_Success,
          "the second batch reports success");
-      Assert (Files.Model.Pasting.Execution_Is_Active (Model), "the execution is still in progress after two batches");
+      Assert (Files.Model.Foreground_Job_Is_Active (Model), "the execution is still in progress after two batches");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Pasting.Execution_Done (Model),
          4,
          "progress advances to four writes");
 
-      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operations.Operation_Success,
          "the third batch reports success");
-      Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "the third batch finalizes the execution");
+      Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the third batch finalizes the execution");
 
       for N in 1 .. Count loop
          Assert (Ada.Directories.Exists (Dest (N)), "every source is copied to the destination");

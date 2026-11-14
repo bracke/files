@@ -23,13 +23,18 @@ separate (Files_Suite.History)
       begin
          Result.Kind := Files.Model.Undo_Delete_Created;
          Result.Redoable := False;
-         Result.From.Append (To_Unbounded_String (Join (Root, Name)));
-         Result.Created_Identities.Append (To_Unbounded_String ("1:" & Name));
-         Result.Created_Tree_Revisions.Append (To_Unbounded_String (if Large then Oversized else "rev"));
+         Result.Items.Append
+           (Files.Model.Undo_Item'
+              (From => To_Unbounded_String (Join (Root, Name)),
+               Identity => To_Unbounded_String ("1:" & Name),
+               Tree_Revision => To_Unbounded_String (if Large then Oversized else "rev"),
+               others => <>));
          if Preserving then
-            Result.Restore_Trash.Append (To_Unbounded_String (Join (Root, "stage-" & Name)));
-            Result.Restore_Identities.Append (To_Unbounded_String ("2:" & Name));
-            Result.Restore_Targets.Append (To_Unbounded_String (Join (Root, Name & "-original")));
+            Result.Replaced.Append
+              (Files.Model.Replaced_Original'
+                 (Trash => To_Unbounded_String (Join (Root, "stage-" & Name)),
+                  Identity => To_Unbounded_String ("2:" & Name),
+                  Target => To_Unbounded_String (Join (Root, Name & "-original"))));
          end if;
          Result.Sequence := Sequence;
          return Result;
@@ -43,7 +48,7 @@ separate (Files_Suite.History)
             if Length (Result) > 0 then
                Append (Result, ",");
             end if;
-            Append (Result, Ada.Directories.Simple_Name (To_String (Action.From.First_Element)));
+            Append (Result, Ada.Directories.Simple_Name (To_String (Action.Items.First_Element.From)));
          end loop;
          return To_String (Result);
       end Names;

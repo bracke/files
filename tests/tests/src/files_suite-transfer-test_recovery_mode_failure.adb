@@ -1,3 +1,6 @@
+with Files.Foreground_Jobs;
+with Files.File_System.Trash;
+with Files.File_System.Permissions;
 with Files.File_System.Testing;
 separate (Files_Suite.Transfer)
    procedure Test_Recovery_Mode_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -10,7 +13,7 @@ separate (Files_Suite.Transfer)
       procedure Cleanup is
       begin
          Files.File_System.Testing.Stop_Failing_Directory_Restore;
-         Mutation := Files.File_System.Set_Permissions (Source, 8#755#);
+         Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#755#);
       end Cleanup;
    begin
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
@@ -29,7 +32,9 @@ separate (Files_Suite.Transfer)
          Reset_Root;
          Ada.Directories.Create_Directory (Source);
          Write_Binary_File (Join (Source, "child"), "original bytes");
-         Assert (Files.File_System.Set_Permissions (Source, 8#555#).Success, "prepare a read-only original");
+         Assert
+           (Files.File_System.Permissions.Set_Permissions (Source, 8#555#).Success,
+            "prepare a read-only original");
          --  Giving the staged original its mode back fails; with a block,
          --  something new appears at its name meanwhile.
          Files.File_System.Testing.Fail_Directory_Restore
@@ -63,7 +68,7 @@ separate (Files_Suite.Transfer)
                Mode_Alias : constant String := Join (Root, "recovery-mode-hardlink");
             begin
                if Hostkit.Fs.Create_Hard_Link (Mode_Path, Mode_Alias) then
-                  Mutation := Files.File_System.Restore_From_Trash
+                  Mutation := Files.File_System.Trash.Restore_From_Trash
                     (To_String (Backup),
                      Files.File_Identities.Token (To_String (Backup)), Source);
                   Assert (not Mutation.Success, "recovery refuses a multiply-linked mode record: refused");
@@ -78,7 +83,7 @@ separate (Files_Suite.Transfer)
                   Files_Suite.Support.Link_Not_Made ("Test_Recovery_Mode_Failure", Files_Suite.Support.Hard_Link);
                end if;
             end;
-            Mutation := Files.File_System.Restore_From_Trash
+            Mutation := Files.File_System.Trash.Restore_From_Trash
               (To_String (Backup), Files.File_Identities.Token (To_String (Backup)), Source);
             Assert (Mutation.Success, "retry restores the original bytes and mode: restored");
             Assert
@@ -86,7 +91,7 @@ separate (Files_Suite.Transfer)
                "retry restores the original bytes and mode: bytes restored");
             Assert (Metadata_Mode_Of (Source) = 8#555#, "retry restores the original bytes and mode: mode restored");
          end if;
-         Mutation := Files.File_System.Set_Permissions (Source, 8#755#);
+         Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#755#);
       end loop;
       for Background in Boolean loop
          declare
@@ -103,7 +108,9 @@ separate (Files_Suite.Transfer)
             Ada.Directories.Create_Directory (Copy_Source);
             Write_Binary_File (Join (Source, "child"), "original bytes");
             Write_Binary_File (Join (Copy_Source, "child"), "replacement copy");
-            Assert (Files.File_System.Set_Permissions (Source, 8#555#).Success, "prepare paste replacement");
+            Assert
+              (Files.File_System.Permissions.Set_Permissions (Source, 8#555#).Success,
+               "prepare paste replacement");
             --  Here, and in the environment for a background transfer's helper.
             Files.File_System.Testing.Fail_Directory_Restore (Join (Root, ".files-recovery-1/payload"), Source);
             Ada.Environment_Variables.Set
@@ -115,7 +122,7 @@ separate (Files_Suite.Transfer)
               (To_Unbounded_String (Copy_Source), To_Unbounded_String (Source), False, True));
             Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
             Step := Complete_Operation
-              (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
+              (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
             Await_View (Model, Settings);
             Assert (Step.Status = Files.Operations.Operation_Failed and then Files.Model.History.Undo_Available (Model),
                     "failed replacement retains guarded recovery history in foreground and background");
@@ -133,7 +140,7 @@ separate (Files_Suite.Transfer)
               (File_Has_Bytes (Join (Source, "child"), "original bytes"),
                "Undo recovers the retained original and mode: bytes restored");
             Assert (Metadata_Mode_Of (Source) = 8#555#, "Undo recovers the retained original and mode: mode restored");
-            Mutation := Files.File_System.Set_Permissions (Source, 8#755#);
+            Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#755#);
          end;
       end loop;
       Cleanup;

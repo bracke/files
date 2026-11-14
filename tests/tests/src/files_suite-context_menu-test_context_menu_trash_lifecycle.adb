@@ -58,13 +58,13 @@ separate (Files_Suite.Context_Menu)
          Load     : Files.File_System.Directory_Load_Result;
       begin
          Files_Suite.Support.Write_File (Restore_Src, "payload");
-         Mutation := Files.File_System.Move_To_Trash (Restore_Src);
+         Mutation := Files.File_System.Trash.Move_To_Trash (Restore_Src);
          Assert (Mutation.Success, "the restore setup moves a file into the trash");
          Assert
            (Ada.Directories.Exists (Files_Suite.Support.Join (Trash_File, "restore-me.txt")),
             "the restore setup stores the trashed payload");
 
-         Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
+         Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
          Files.Model.Initialize
            (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Root);
          Files.Operations.Settle_Current_Is_Trash (Model);

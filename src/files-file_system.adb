@@ -3,7 +3,6 @@ with Guikit.Shared_Bytes;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Characters.Handling;
-with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -26,6 +25,7 @@ with Files.File_System.Thumbnails;
 with Files.Images;
 with Files.File_System.Recovery;
 with Files.File_Identities;
+with Files.File_System.Account_Names;
 with Files.Private_Directories;
 with Ada.Characters;
 with Files.Io_Errors;
@@ -605,57 +605,7 @@ package body Files.File_System is
    function Is_Recovery_Payload (Path : String) return Boolean
      renames Recovery.Recognizes;
 
-   function Release_Recovery_Payload (Path : String) return Mutation_Result is
-      --  The Recycle Bin and the macOS Trash record where an item was when
-      --  it was trashed, and put it back there: from the hidden stage that
-      --  would be a hidden folder. So it goes back beside its original
-      --  first, under that name or a free "name N" one, and is trashed from
-      --  there. If the trash then refuses it and it cannot go back to the
-      --  stage, it stays there -- in its own folder, not lost.
-      function Natively (Entry_Path, Original : String) return Mutation_Result is
-         Ignored   : Files.Types.UString;
-         Directory : constant String := Files.Fs_Primitives.Parent_Directory (Original);
-         Leaf      : constant String := Files.Fs_Primitives.Leaf_Text (Original);
-         Stem      : constant String := Files.Types.Stem_Of (Leaf);
-         Extension : constant String :=
-           (if Files.Types.Extension_Of (Leaf) = "" then "" else "." & Files.Types.Extension_Of (Leaf));
-      begin
-         for Attempt in 1 .. 99 loop
-            declare
-               Beside : constant String :=
-                 Hostkit.Fs.Join
-                   (Directory,
-                    (if Attempt = 1 then Leaf
-                     else Stem & " " & Files.Types.Natural_Text (Attempt) & Extension));
-            begin
-               if Support.Move_No_Replace (Entry_Path, Beside) then
-                  declare
-                     Trashed : constant Mutation_Result := Move_To_Trash (Beside, Ignored);
-                  begin
-                     if Trashed.Success or else not Support.Move_No_Replace (Beside, Entry_Path) then
-                        return (Success => True, Error_Key => Null_Unbounded_String);
-                     end if;
-                     return Trashed;
-                  end;
-               end if;
-            end;
-         end loop;
-         return Move_To_Trash (Entry_Path, Ignored);
-      end Natively;
-
-      function To_Trash (Entry_Path, Original : String) return Mutation_Result is
-         Ignored : Files.Types.UString;
-      begin
-         if Original /= ""
-           and then Trash_Backend_Of_Current_Environment in Trash_Windows_Recycle_Bin | Trash_Macos_Native
-         then
-            return Natively (Entry_Path, Original);
-         end if;
-         return Move_To_Trash (Entry_Path, Ignored, Recorded_Path => Original);
-      end To_Trash;
-   begin
-      return Recovery.Release (Path, To_Trash'Access);
-   end Release_Recovery_Payload;
+   function Release_Recovery_Payload (Path : String) return Mutation_Result is separate;
 
    function Registered_Recovery_Payloads return Files.Types.String_Vectors.Vector
      renames Recovery.Registered_Payloads;
@@ -675,52 +625,7 @@ package body Files.File_System is
 
    function Preserve_For_Replace
      (Path : String; Recovery_Path : out Files.Types.UString) return Mutation_Result
-   is
-      Result : Mutation_Result;
-   begin
-      Recovery_Path := Null_Unbounded_String;
-      --  Replacement must remain reversible.  Refuse before moving the
-      --  original when this host cannot identify it, rather than publishing a
-      --  new destination whose retained original cannot be safely restored.
-      if Files.File_Identities.Token (Path) = "" then
-         return
-           (Success   => False,
-            Error_Key => To_Unbounded_String ("error.trash.failed"));
-      end if;
-      if Trash_Backend_Of_Current_Environment in Trash_Xdg_Data_Home | Trash_Home_Data then
-         Result := Move_To_Trash (Path, Recovery_Path);
-      else
-         Result := Recovery.Preserve (Path, Recovery_Path);
-      end if;
-
-      if Result.Success
-        and then
-          (Length (Recovery_Path) = 0
-           or else Files.File_Identities.Token (To_String (Recovery_Path)) = "")
-      then
-         if Length (Recovery_Path) > 0 then
-            declare
-               Restored : constant Mutation_Result :=
-                 Restore_From_Trash
-                   (To_String (Recovery_Path), Expected_Original => Path);
-            begin
-               if Restored.Success then
-                  Recovery_Path := Null_Unbounded_String;
-               end if;
-            end;
-         end if;
-         return
-           (Success   => False,
-            Error_Key => To_Unbounded_String ("error.trash.failed"));
-      end if;
-      return Result;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System");
-         return
-           (Success   => False,
-            Error_Key => To_Unbounded_String ("error.trash.failed"));
-   end Preserve_For_Replace;
+   is separate;
 
    function Delete_Trashed_Item
      (Trashed_Path : String)
@@ -906,17 +811,6 @@ package body Files.File_System is
       Link_Path   : String)
       return Mutation_Result is (Create_Link_Of_Kind (Source_Path, Link_Path, Hard => True));
 
-   package Id_Name_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Files.Types.Account_Id,
-      Element_Type => Unbounded_String,
-      "<"          => Hostkit.Metadata."<");
-
-   --  Which account database an id is resolved against.
-   type Name_Account is (User_Names, Group_Names);
-
-   --  One session memo per account database.
-   Account_Name_Caches : array (Name_Account) of Id_Name_Maps.Map;
-
    function Supports_Permissions return Boolean is separate;
 
    function Permission_Bits_Of
@@ -942,18 +836,9 @@ package body Files.File_System is
       Found : out Boolean)
       return Files.Types.Account_Id is separate;
 
-   --  The one memoized id-to-name lookup behind User_Name_For_Id and
-   --  Group_Name_For_Id; Kind picks the database and its memo.
-   function Account_Name_For_Id
-     (Kind : Name_Account;
-      Id   : Files.Types.Account_Id)
-      return String is separate;
+   function User_Name_For_Id (Id : Files.Types.Account_Id) return String renames Account_Names.User_Name;
 
-   function User_Name_For_Id (Id : Files.Types.Account_Id) return String is
-     (Account_Name_For_Id (User_Names, Id));
-
-   function Group_Name_For_Id (Id : Files.Types.Account_Id) return String is
-     (Account_Name_For_Id (Group_Names, Id));
+   function Group_Name_For_Id (Id : Files.Types.Account_Id) return String renames Account_Names.Group_Name;
 
    subtype Update_Field is Hostkit.Metadata.Identity_Field;
 
@@ -969,130 +854,13 @@ package body Files.File_System is
       Value, Group, Max_Previous : Update_Field; Owner_Name, Group_Name, Access_Text : String;
       Previous, Previous_Group : out Update_Field;
       Previous_Access, Applied_Access, Identity : out Files.Types.UString) return Boolean
-   is
-      subtype U64 is Update_Field;
-      use type U64;
-      Expected : Hostkit.Metadata.Entry_Identity;
-      Updated  : Hostkit.Metadata.Metadata_Update_Result;
-
-      function Parse_Identity
-        (Text : String; Item : out Hostkit.Metadata.Entry_Identity) return Boolean
-      is
-         Position : Natural := Text'First;
-         Values   : array (1 .. 4) of U64 := [others => 0];
-      begin
-         Item := (others => <>);
-         for Index in Values'Range loop
-            while Position <= Text'Last and then Text (Position) = ' ' loop
-               Position := Position + 1;
-            end loop;
-            if Position > Text'Last or else Text (Position) not in '0' .. '9' then
-               return False;
-            end if;
-            declare
-               First : constant Natural := Position;
-            begin
-               while Position <= Text'Last and then Text (Position) in '0' .. '9' loop
-                  Position := Position + 1;
-               end loop;
-               Values (Index) := U64'Value (Text (First .. Position - 1));
-            end;
-         end loop;
-         while Position <= Text'Last and then Text (Position) = ' ' loop
-            Position := Position + 1;
-         end loop;
-         if Position <= Text'Last then
-            return False;
-         end if;
-         Item :=
-           (Available       => True,
-            Volume          => Values (1),
-            File_Number     => Values (2),
-            Generation_High => Values (3),
-            Generation_Low  => Values (4));
-         return True;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.File_System");
-            Item := (others => <>);
-            return False;
-      end Parse_Identity;
-   begin
-      Previous := 0;
-      Previous_Group := 0;
-      Previous_Access := Null_Unbounded_String;
-      Applied_Access := Null_Unbounded_String;
-      Identity := Null_Unbounded_String;
-      if Expected_Identity /= ""
-        and then not Parse_Identity (Expected_Identity, Expected)
-      then
-         return False;
-      end if;
-      Updated := Hostkit.Metadata.Update_Entry_Metadata
-        (Path           => Path,
-         Expected       => Expected,
-         Check_Expected => Expected_Identity /= "",
-         Kind           => Kind,
-         Value          => Value,
-         Group          => Group,
-         Max_Previous   => Max_Previous,
-         Owner_Name     => Owner_Name,
-         Group_Name     => Group_Name,
-         Access_Text    => Access_Text);
-      if not Updated.Success
-        or else Updated.Previous > Max_Previous
-        or else Updated.Previous_Group > Max_Previous
-      then
-         return False;
-      end if;
-      Previous := Updated.Previous;
-      Previous_Group := Updated.Previous_Group;
-      Previous_Access := Updated.Previous_Access;
-      Applied_Access := Updated.Applied_Access;
-      Identity := To_Unbounded_String
-        (U64'Image (Updated.Identity.Volume)
-         & U64'Image (Updated.Identity.File_Number)
-         & U64'Image (Updated.Identity.Generation_High)
-         & U64'Image (Updated.Identity.Generation_Low));
-      return True;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System");
-         return False;
-   end Update_Verified_Entry;
+   is separate;
 
    function Change_Access
      (Path, Expected_Identity : String; Mode : Natural; Access_Text : String;
       Previous : out Natural; Previous_Access, Applied_Access, Identity : out Files.Types.UString)
       return Mutation_Result
-   is
-      Failed : constant Mutation_Result :=
-        (Success => False, Error_Key => To_Unbounded_String ("error.permissions.failed"));
-      Old_Mode, Unused_Group : Update_Field;
-   begin
-      Previous := 0;
-      Previous_Access := Null_Unbounded_String;
-      Applied_Access := Null_Unbounded_String;
-      Identity := Null_Unbounded_String;
-      if Mode > 8#7777# then
-         return Failed;
-      end if;
-      if not Update_Verified_Entry
-        (Path, Expected_Identity, Hostkit.Metadata.Update_Permissions,
-         Value => Update_Field (Mode), Group => 0, Max_Previous => Update_Field (Natural'Last),
-         Owner_Name => "", Group_Name => "", Access_Text => Access_Text,
-         Previous => Old_Mode, Previous_Group => Unused_Group,
-         Previous_Access => Previous_Access, Applied_Access => Applied_Access, Identity => Identity)
-      then
-         return Failed;
-      end if;
-      Previous := Natural (Old_Mode);
-      return (Success => True, Error_Key => Null_Unbounded_String);
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System");
-         return Failed;
-   end Change_Access;
+   is separate;
 
    function Change_Mode
      (Path, Expected_Identity : String; Mode : Natural;
@@ -1108,55 +876,7 @@ package body Files.File_System is
      (Path, Expected_Identity : String; User_Id, Group_Id : Files.Types.Account_Id;
       Previous_User, Previous_Group : out Files.Types.Account_Id; Identity : out Files.Types.UString;
       Owner_Name : String := ""; Group_Name : String := "") return Mutation_Result
-   is
-      Failed : constant Mutation_Result :=
-        (Success => False, Error_Key => To_Unbounded_String ("error.ownership.denied"));
-      use type Files.Types.Account_Id;
-      Old_User, Old_Group : Update_Field;
-      Unused_Previous_Access, Unused_Applied_Access : Files.Types.UString;
-   begin
-      declare
-         Watch : constant Ownership_Hook := Before_Ownership_Change;
-      begin
-         if Watch /= null then
-            Watch (Path, User_Id, Group_Id);
-         end if;
-      end;
-      Previous_User := 0;
-      Previous_Group := 0;
-      Identity := Null_Unbounded_String;
-      if not Update_Verified_Entry
-        (Path, Expected_Identity, Hostkit.Metadata.Update_Ownership,
-         --  Keep_Id becomes Keep_Id_Field: that id is left as it is.
-         Value =>
-           (if User_Id = Hostkit.Metadata.Keep_Id then Hostkit.Metadata.Keep_Id_Field else Update_Field (User_Id)),
-         Group =>
-           (if Group_Id = Hostkit.Metadata.Keep_Id then Hostkit.Metadata.Keep_Id_Field else Update_Field (Group_Id)),
-         Max_Previous => Update_Field (Files.Types.Account_Id'Last),
-         --  A kept id (Hostkit.Metadata.Keep_Id) names no account.
-         Owner_Name =>
-           (if Owner_Name /= "" then Owner_Name
-            elsif User_Id = Hostkit.Metadata.Keep_Id then ""
-            else User_Name_For_Id (User_Id)),
-         Group_Name =>
-           (if Group_Name /= "" then Group_Name
-            elsif Group_Id = Hostkit.Metadata.Keep_Id then ""
-            else Group_Name_For_Id (Group_Id)),
-         Access_Text => "",
-         Previous => Old_User, Previous_Group => Old_Group,
-         Previous_Access => Unused_Previous_Access, Applied_Access => Unused_Applied_Access,
-         Identity => Identity)
-      then
-         return Failed;
-      end if;
-      Previous_User := Files.Types.Account_Id (Old_User);
-      Previous_Group := Files.Types.Account_Id (Old_Group);
-      return (Success => True, Error_Key => Null_Unbounded_String);
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System");
-         return Failed;
-   end Change_Ownership;
+   is separate;
 
    function Copy_Tree
      (Source_Path      : String;
@@ -1236,78 +956,7 @@ package body Files.File_System is
      (Path : String;
       Expected_Identity, Expected_Tree_Revision : String;
       Verify_Tree : Boolean) return Mutation_Result
-   is
-      Backup : UString;
-      Failed : constant Mutation_Result :=
-        (Success => False, Error_Key => To_Unbounded_String ("error.undo.failed"));
-   begin
-      if Expected_Identity = "" or else Files.File_Identities.Token (Path) /= Expected_Identity then
-         return Failed;
-      end if;
-      if Verify_Tree and then not Hostkit.Fs.Is_Link (Path)
-        and then (Expected_Tree_Revision = "" or else Tree_Revision (Path) /= Expected_Tree_Revision)
-      then
-         return Failed;
-      end if;
-      if not Recovery.Preserve (Path, Backup).Success then
-         return Failed;
-      end if;
-      --  Verify after the atomic rename as well: an entry substituted between
-      --  the first check and quarantine must never have its contents deleted.
-      if Files.File_Identities.Token (To_String (Backup)) /= Expected_Identity then
-         declare
-            Restored : constant Mutation_Result := Recovery.Restore (To_String (Backup));
-            pragma Unreferenced (Restored);
-         begin
-            return Failed;
-         end;
-      end if;
-      if Verify_Tree and then not Hostkit.Fs.Is_Link (To_String (Backup))
-        and then Tree_Revision (To_String (Backup)) /= Expected_Tree_Revision
-      then
-         declare
-            Restored : constant Mutation_Result := Recovery.Restore (To_String (Backup));
-            pragma Unreferenced (Restored);
-         begin
-            return Failed;
-         end;
-      end if;
-      declare
-         Removed : Boolean := False;
-      begin
-         begin
-            Support.Delete_Owned_Tree (To_String (Backup));
-            Removed := True;
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.File_System");
-         end;
-         if not Removed then
-            declare
-               Restored : constant Mutation_Result := Recovery.Restore (To_String (Backup));
-               pragma Unreferenced (Restored);
-            begin
-               return Failed;
-            end;
-         end if;
-      end;
-      declare
-         Stage : constant String := Files.Fs_Primitives.Parent_Directory (To_String (Backup));
-         Removed : constant Mutation_Result := Delete_Permanently (Stage);
-         pragma Unreferenced (Removed);
-      begin
-         --  Preserve registered the backup; once its stage is gone the record
-         --  would otherwise leak and slowly exhaust the registry.
-         if not Files.Fs_Primitives.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage) then
-            Recovery.Unregister (To_String (Backup));
-         end if;
-         return (Success => True, Error_Key => Null_Unbounded_String);
-      end;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System");
-         return Failed;
-   end Delete_Verified_Entry;
+   is separate;
 
    function Delete_Created_Entry
      (Path : String; Expected_Identity, Expected_Tree_Revision : String) return Mutation_Result is
@@ -1325,26 +974,7 @@ package body Files.File_System is
 
    function Delete_Transport_Entry
      (Path : String; Expected_Identity : String) return Mutation_Result
-   is
-      Failed : constant Mutation_Result :=
-        (Success => False, Error_Key => To_Unbounded_String ("error.undo.failed"));
-   begin
-      if Expected_Identity = ""
-        or else Hostkit.Fs.Is_Link (Path)
-        or else Files.File_Identities.Token (Path) /= Expected_Identity
-      then
-         return Failed;
-      end if;
-      Support.Delete_Owned_Tree (Path);
-      if Files.Fs_Primitives.Entry_Exists (Path) then
-         return Failed;
-      end if;
-      return (Success => True, Error_Key => Null_Unbounded_String);
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System");
-         return Failed;
-   end Delete_Transport_Entry;
+   is separate;
 
    function Tree_Revision (Path : String) return String is
    begin

@@ -21,12 +21,18 @@ separate (Check_All)
          "Files.File_System",
          [To_Unbounded_String ("Directory_Item"),
           To_Unbounded_String ("Item_Vectors"),
-          To_Unbounded_String ("Supports_Permissions"),
-          To_Unbounded_String ("Supports_Ownership"),
+          To_Unbounded_String ("Permissions"),
           To_Unbounded_String ("Drop_Move"),
           To_Unbounded_String ("Drop_Import_Mode"),
           To_Unbounded_String ("Directory_Size_Result")],
          "rendering must not list, write or validate files");
+      --  Of permissions and ownership, only whether the host supports them.
+      Require_Only_Names_From
+        ("files-rendering",
+         "Files.File_System.Permissions",
+         [To_Unbounded_String ("Supports_Permissions"),
+          To_Unbounded_String ("Supports_Ownership")],
+         "rendering must not change permissions or ownership");
       Check_Rendering_Unit (Rendering_Spec, "rendering spec");
       Check_Rendering_Unit (Rendering_Body, "rendering body");
       Check_Rendering_Unit (Hit_Spec, "hit-testing spec");
@@ -83,6 +89,7 @@ separate (Check_All)
             To_Unbounded_String ("Files.Extension_Labels"),
             To_Unbounded_String ("Files.Extra_Info"),
             To_Unbounded_String ("Files.File_System"),
+            To_Unbounded_String ("Files.File_System.Permissions"),
             To_Unbounded_String ("Files.File_Types"),
             To_Unbounded_String ("Files.Folder_Tree"),
             To_Unbounded_String ("Files.Icon_Themes"),

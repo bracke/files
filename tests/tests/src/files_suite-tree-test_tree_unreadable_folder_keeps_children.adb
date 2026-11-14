@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Hostkit.Host;
 with Hostkit.Metadata;
 with Files.Model.Tree_Panel;
@@ -37,9 +38,13 @@ separate (Files_Suite.Tree)
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.Tree_Panel.Visible_Rows (Model).Length), 1, "collapsing hides them");
 
-      Assert (Files.File_System.Set_Permissions (Tree_Dir, 8#000#).Success, "the folder is made unreadable");
+      Assert
+        (Files.File_System.Permissions.Set_Permissions (Tree_Dir, 8#000#).Success,
+         "the folder is made unreadable");
       Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
-      Assert (Files.File_System.Set_Permissions (Tree_Dir, 8#755#).Success, "the folder is made readable again");
+      Assert
+        (Files.File_System.Permissions.Set_Permissions (Tree_Dir, 8#755#).Success,
+         "the folder is made readable again");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.Tree_Panel.Visible_Rows (Model).Length), 3,
          "re-expanding an unreadable folder keeps the children it had");

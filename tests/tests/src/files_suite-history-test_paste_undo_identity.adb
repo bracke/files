@@ -31,7 +31,7 @@ separate (Files_Suite.History)
                  (To_Unbounded_String (Join (Join (Root, "inbox"), "b.txt")), To_Unbounded_String (B), False, False));
                Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, False);
                for Attempt in Files_Suite.Support.Polling loop
-                  Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+                  Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
                   exit when Files.Model.Pasting.Execution_Done (Model) = 1;
                end loop;
                Files_Suite.Support.Assert_Equal

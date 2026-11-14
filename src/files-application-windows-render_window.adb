@@ -51,10 +51,10 @@ separate (Files.Application.Windows)
       --  Drive a long copy/move a few actions at a time so the UI stays
       --  responsive and the progress overlay animates. Small pastes have already
       --  finished (in Begin_Paste / Resolve_Paste_Conflict) and never get here.
-      if Files.Model.Pasting.Execution_Is_Active (Runtime.Model) then
+      if Files.Model.Foreground_Job_Is_Active (Runtime.Model) then
          declare
             Progress : constant Files.Operations.Operation_Result :=
-              Files.Operations.Advance_Paste_Execution (Runtime.Model, Runtime.Settings, 8);
+              Files.Foreground_Jobs.Advance (Runtime.Model, Runtime.Settings, 8);
             pragma Unreferenced (Progress);
             --  A finished background move carries its labels along.
             Followed : constant Boolean :=

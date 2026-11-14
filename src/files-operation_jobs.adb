@@ -14,9 +14,7 @@ with Files.Lease_Streams;
 with Files.History_Journal;
 with Files.Refresh_Jobs;
 with Files.File_System;
-with Files.Exclusive_Streams;
 with Files.Types;
-with Files.Paste;
 with Files.Process_Jobs;
 with Hostkit.Fs;
 with Files.Path_Checks;
@@ -185,16 +183,14 @@ package body Files.Operation_Jobs is
       Kind : Operation_Kind) return Files.Operations.Operation_Result
    is
       Job  : Files.Process_Jobs.Session;
-      File : aliased Files.Exclusive_Streams.Output_Stream;
       Work : Request :=
         (Kind => Kind, Root => To_Unbounded_String (Files.Model.Current_Path (Model)),
          Recent => Files.Model.In_Recent_View (Model), Query => To_Unbounded_String (Files.Model.Filter_Text (Model)),
          Selected => Files.Model.Selection.Selected_Items (Model), Settings => Settings,
          Context_Revision => 0,
          View_Incarnation => Files.Model.View_Incarnation (Model));
-      Actions : Files.Paste.Resolved_Action_Vectors.Vector;
    begin
-      if Files.Model.Pasting.Execution_Is_Active (Model) or else Files.Model.Pasting.Conflict_Is_Active (Model) then
+      if Files.Model.Foreground_Job_Is_Active (Model) or else Files.Model.Pasting.Conflict_Is_Active (Model) then
          return (Status => Files.Operations.Operation_Disabled, others => <>);
       end if;
       if Kind in Search_Names | Search_Contents and then Length (Work.Query) = 0 then
@@ -232,17 +228,15 @@ package body Files.Operation_Jobs is
       Work.Context_Revision := Files.Model.Listing_Revision (Model);
       Files.Process_Jobs.Reserve (Job);
       Files.History_Journal.Save_To (Files.Process_Jobs.Path (Job, ""), Model, Required => True);
-      Files.Exclusive_Streams.Create
-        (File, Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
-      Write_Request (File'Access, Work);
-      Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
-      Files.Exclusive_Streams.Close (File);
-      Files.Process_Jobs.Launch (Job, Files.Helper_Modes.Flag (Files.Helper_Modes.Operation));
-      Actions.Append
-        (Files.Paste.Resolved_Action'
-           (Source_Path => Work.Root, Dest_Path => Work.Root, Skip => False, Replaced => False));
-      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy, Clear_Clipboard => False);
-      Files.Model.Set_Background_Operation
+      declare
+         procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
+         begin
+            Write_Request (Stream, Work);
+         end Write;
+      begin
+         Files.Process_Jobs.Launch_With_Request (Job, Files.Helper_Modes.Operation, Write'Access);
+      end;
+      Files.Model.Begin_Operation_Job
         (Model, Job,
          (case Kind is
              when Duplicate => "command.file.duplicate",
@@ -261,12 +255,119 @@ package body Files.Operation_Jobs is
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
-         Files.Exclusive_Streams.Close_Safely (File);
          Files.Process_Jobs.Reset (Job);
          Files.Model.Set_Error (Model, "error.drop.failed");
          return (Status => Files.Operations.Operation_Failed,
                  Error_Key => To_Unbounded_String ("error.drop.failed"), others => <>);
    end Start;
+
+   --  A redo the helper did not finish: each entry it published joins the
+   --  top redo entry's progress (its identity, tree revision and completion
+   --  marker), so a retry skips it instead of meeting it as a collision.
+   procedure Recover_Redo_Progress
+     (Model   : in out Files.Model.Window_Model;
+      Created : Files.Job_Context.Journal_Entry_Vectors.Vector)
+   is
+      Undo_Stack : constant Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Undo_Entries (Model);
+      Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Redo_Entries (Model);
+   begin
+      if Redo_Stack.Is_Empty then
+         return;
+      end if;
+      declare
+         Action : Files.Model.Undo_Entry := Redo_Stack.Last_Element;
+         --  Each destination's place in the entry, and what is completed:
+         --  looked up per created entry, not scanned for.
+         Places    : Index_Maps.Map;
+         Completed : Files.Settings.Path_Sets.Set;
+      begin
+         for Index in Action.Items.First_Index .. Action.Items.Last_Index loop
+            if not Places.Contains (To_String (Action.Items (Index).From)) then
+               Places.Insert (To_String (Action.Items (Index).From), Index);
+            end if;
+         end loop;
+         for Path of Action.Forward_Completed loop
+            Completed.Include (To_String (Path));
+         end loop;
+         for Published of Created loop
+            declare
+               Dest : constant String := To_String (Published.Destination);
+            begin
+               if Places.Contains (Dest) and then not Completed.Contains (Dest) then
+                  Action.Items (Places.Element (Dest)).Identity := Published.Identity;
+                  Action.Items (Places.Element (Dest)).Tree_Revision := Published.Tree_Revision;
+                  Action.Forward_Completed.Append (Published.Destination);
+                  Completed.Include (Dest);
+               end if;
+            end;
+         end loop;
+         Redo_Stack.Replace_Element (Redo_Stack.Last_Index, Action);
+         Files.Model.History.Restore (Model, Undo_Stack, Redo_Stack);
+      end;
+   end Recover_Redo_Progress;
+
+   --  What a creating helper published that no undo entry records becomes
+   --  one undo-only entry, verified as published, so it can still be undone.
+   procedure Record_Untracked_Creations
+     (Model   : in out Files.Model.Window_Model;
+      Created : Files.Job_Context.Journal_Entry_Vectors.Vector)
+   is
+      Untracked, Untracked_Identities, Untracked_Tree_Revisions : Files.Types.String_Vectors.Vector;
+      --  Every path the undo history already records as created.
+      Recorded : Files.Settings.Path_Sets.Set;
+   begin
+      for Action of Files.Model.History.Undo_Entries (Model) loop
+         for Item of Action.Items loop
+            Recorded.Include (To_String (Item.From));
+         end loop;
+      end loop;
+      for Published of Created loop
+         if not Recorded.Contains (To_String (Published.Destination)) then
+            Untracked.Append (Published.Destination);
+            Untracked_Identities.Append (Published.Identity);
+            Untracked_Tree_Revisions.Append (Published.Tree_Revision);
+         end if;
+      end loop;
+      if not Untracked.Is_Empty then
+         Files.Operations.Record_Undo
+           (Model, Files.Model.Undo_Delete_Created, Untracked,
+            Files.Types.String_Vectors.Empty_Vector, Redoable => False,
+            Provenance =>
+              (Identities => Untracked_Identities,
+               Tree_Revisions => Untracked_Tree_Revisions,
+               Retain_Verified_Main => Natural (Untracked.Length),
+               others => <>));
+      end if;
+   end Record_Untracked_Creations;
+
+   --  A helper that ended without success may still have published entries:
+   --  read from its journal, they join the history.
+   procedure Recover_Undo (Model : in out Files.Model.Window_Model; Job : Files.Process_Jobs.Session) is
+      Kind : constant Operation_Kind :=
+        Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File)).Kind;
+   begin
+      if Kind = Redo then
+         Recover_Redo_Progress (Model, Files.Job_Context.Read_Created (Files.Process_Jobs.Path (Job, "")));
+      elsif Kind in Duplicate | Compress_Zip | Compress_Seven_Zip | Extract then
+         Record_Untracked_Creations (Model, Files.Job_Context.Read_Created (Files.Process_Jobs.Path (Job, "")));
+      end if;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
+   end Recover_Undo;
+
+   --  What a finished operation does to the window's view:
+   --    * Discard: a search for a view or query no longer shown is dropped.
+   --    * Reload_View: a destructive operation, or a creating one that failed
+   --      or was cancelled, has the view it started from read again.
+   --    * Apply_Snapshot: its listing, of the view as it still is, replaces
+   --      the items.
+   --    * Owe_Reload: same view, but a later listing change: read again once
+   --      its diagnostic is final.
+   --    * Report: same view, nothing to show but its diagnostic.
+   --    * Leave_View: another view is shown now; its result is returned and
+   --      the view left be.
+   type Disposition is (Discard, Reload_View, Apply_Snapshot, Owe_Reload, Report, Leave_View);
 
    function Advance
      (Model : in out Files.Model.Window_Model;
@@ -278,8 +379,6 @@ package body Files.Operation_Jobs is
       Done      : Outcome;
       Work      : Request;
       Same_View       : Boolean := False;
-      Context_Matches : Boolean := False;
-      Reload_Owed     : Boolean := False;
       --  Whether the failure handler could read which operation this was.
       Known_Kind      : Boolean := False;
 
@@ -314,80 +413,70 @@ package body Files.Operation_Jobs is
          null;
       end Reload_Current_View;
 
-      procedure Recover_Undo is
-         Destinations, Sources, Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
-         Untracked, Untracked_Identities, Untracked_Tree_Revisions : Files.Types.String_Vectors.Vector;
-         Undo_Stack : constant Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Undo_Entries (Model);
-         Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Redo_Entries (Model);
-         --  Every path the undo history already records as created.
-         Recorded : Files.Settings.Path_Sets.Set;
+      --  What the operation reports: nothing, when it was cancelled.
+      function Reported return Files.Operations.Operation_Result is
+        (if Cancelled then (Status => Files.Operations.Operation_Success, others => <>) else Done.Result);
+
+      function Choose return Disposition is
+         Succeeded : constant Boolean :=
+           not Cancelled and then Done.Result.Status = Files.Operations.Operation_Success;
       begin
-         Work := Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
-         Files.Job_Context.Read_Created
-           (Files.Process_Jobs.Path (Job, ""), Destinations, Sources, Identities, Tree_Revisions);
-         if Work.Kind = Redo and then not Redo_Stack.Is_Empty then
-            declare
-               Action : Files.Model.Undo_Entry := Redo_Stack.Last_Element;
-               --  Each destination's place in From, and what is completed:
-               --  looked up per created entry, not scanned for.
-               Places    : Index_Maps.Map;
-               Completed : Files.Settings.Path_Sets.Set;
-            begin
-               for Index in Action.From.First_Index .. Action.From.Last_Index loop
-                  if not Places.Contains (To_String (Action.From (Index))) then
-                     Places.Insert (To_String (Action.From (Index)), Index);
-                  end if;
-               end loop;
-               for Path of Action.Forward_Completed loop
-                  Completed.Include (To_String (Path));
-               end loop;
-               for Created_Index in Destinations.First_Index .. Destinations.Last_Index loop
-                  declare
-                     Dest : constant String := To_String (Destinations (Created_Index));
-                  begin
-                     if Places.Contains (Dest) and then not Completed.Contains (Dest) then
-                        declare
-                           Index : constant Positive := Places.Element (Dest);
-                        begin
-                           Files.Model.Set_Created
-                             (Action, Index, Identities (Created_Index), Tree_Revisions (Created_Index));
-                        end;
-                        Action.Forward_Completed.Append (Destinations (Created_Index));
-                        Completed.Include (Dest);
-                     end if;
-                  end;
-               end loop;
-               Redo_Stack.Replace_Element (Redo_Stack.Last_Index, Action);
-               Files.Model.History.Restore (Model, Undo_Stack, Redo_Stack);
-            end;
-         elsif Work.Kind in Duplicate | Compress_Zip | Compress_Seven_Zip | Extract then
-            for Action of Undo_Stack loop
-               for Path of Action.From loop
-                  Recorded.Include (To_String (Path));
-               end loop;
-            end loop;
-            for Index in Destinations.First_Index .. Destinations.Last_Index loop
-               if not Recorded.Contains (To_String (Destinations (Index))) then
-                  Untracked.Append (Destinations (Index));
-                  Untracked_Identities.Append (Identities (Index));
-                  Untracked_Tree_Revisions.Append (Tree_Revisions (Index));
-               end if;
-            end loop;
-            if not Untracked.Is_Empty then
-               Files.Operations.Record_Undo
-                 (Model, Files.Model.Undo_Delete_Created, Untracked,
-                  Files.Types.String_Vectors.Empty_Vector, Redoable => False,
-                  Provenance =>
-                    (Identities => Untracked_Identities,
-                     Tree_Revisions => Untracked_Tree_Revisions,
-                     Retain_Verified_Main => Natural (Untracked.Length),
-                     others => <>));
+         if Done.Kind in Search_Names | Search_Contents
+           and then (not Matches_Current_Context (Work) or else Work.Query /= Files.Model.Filter_Text (Model))
+         then
+            return Discard;
+         elsif Done.Kind in Trash | Delete_Permanently | Restore | Empty_Trash | Undo | Redo
+           or else (Done.Kind in Duplicate | Compress_Zip | Compress_Seven_Zip | Extract and then not Succeeded)
+         then
+            return Reload_View;
+         elsif Succeeded and then Matches_Current_Context (Work) then
+            return Apply_Snapshot;
+         elsif not Same_View then
+            return Leave_View;
+         elsif Succeeded and then Done.Kind not in Search_Names | Search_Contents then
+            return Owe_Reload;
+         else
+            return Report;
+         end if;
+      end Choose;
+
+      procedure Apply_Snapshot is
+      begin
+         if Done.Recent then
+            Files.Model.Navigate_Recent (Model, Done.Items);
+         else
+            Files.Model.Replace_Items (Model, Done.Items);
+         end if;
+         Files.Model.Set_Directory_Signature (Model, Done.Signature);
+         if Done.Kind in Search_Names | Search_Contents then
+            Files.Model.Note_Search_Results
+              (Model, (if Done.Kind = Search_Names then Files.Types.Search_Names else Files.Types.Search_Contents));
+         else
+            Files.Model.Clear_Search_Results (Model);
+            if Length (Done.Selection) > 0 then
+               declare
+                  Selected : constant Boolean :=
+                    Files.Model.Selection.Select_By_Name (Model, To_String (Done.Selection));
+                  pragma Unreferenced (Selected);
+               begin
+                  null;
+               end;
             end if;
          end if;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
-      end Recover_Undo;
+      end Apply_Snapshot;
+
+      --  The operation's diagnostic in the view it ran in; a cancelled one
+      --  clears it.
+      function Report_In_View return Files.Operations.Operation_Result is
+      begin
+         if Cancelled then
+            Files.Model.Set_Error (Model, "");
+            return Reported;
+         end if;
+         Files.Model.Set_Error (Model, To_String (Done.Visible_Error));
+         Files.Operations.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
+         return Done.Result;
+      end Report_In_View;
    begin
       Files.Process_Jobs.Poll (Job, Finished, Cancelled);
       if not Finished then
@@ -417,86 +506,49 @@ package body Files.Operation_Jobs is
       end if;
       Files.Operations.Settle_History (Model);
       Same_View := Matches_Current_View (Work);
-      Context_Matches := Matches_Current_Context (Work);
-      if Done.Kind in Search_Names | Search_Contents then
-         if not Context_Matches
-           or else Work.Query /= Files.Model.Filter_Text (Model)
-         then
-            Files.Model.Pasting.Clear_Execution (Model);
+      declare
+         Choice : constant Disposition := Choose;
+      begin
+         Files.Model.End_Foreground_Job (Model);
+         if Choice = Discard then
             return (Status => Files.Operations.Operation_Success, others => <>);
          end if;
-      end if;
-      Files.Model.Pasting.Clear_Execution (Model);
-      if Done.Result.Status /= Files.Operations.Operation_Success then
-         Recover_Undo;
-      end if;
-      if Done.Kind in Trash | Delete_Permanently | Restore | Empty_Trash | Undo | Redo
-        or else (Done.Kind in Duplicate | Compress_Zip | Compress_Seven_Zip | Extract
-                 and then (Cancelled or else Done.Result.Status /= Files.Operations.Operation_Success))
-      then
-         if Same_View then
-            --  Finalize error/history before the refresh captures this
-            --  revision. A result from an older view must not refresh or alter
-            --  the diagnostic of the view now displayed, but an edit within the
-            --  same view must not cost it the reload either.
-            Files.Model.Set_Error
-              (Model, (if Cancelled then "" else To_String (Done.Visible_Error)));
-            Reload_Current_View;
+         if Done.Result.Status /= Files.Operations.Operation_Success then
+            Recover_Undo (Model, Job);
          end if;
-         return (if Cancelled then (Status => Files.Operations.Operation_Success, others => <>) else Done.Result);
-      end if;
-      if not Cancelled
-        and then Done.Result.Status = Files.Operations.Operation_Success
-        and then Context_Matches
-      then
-         if Done.Recent then
-            Files.Model.Navigate_Recent (Model, Done.Items);
-         else
-            Files.Model.Replace_Items (Model, Done.Items);
-         end if;
-         Files.Model.Set_Directory_Signature (Model, Done.Signature);
-         if Done.Kind in Search_Names | Search_Contents then
-            Files.Model.Note_Search_Results
-              (Model, (if Done.Kind = Search_Names then Files.Types.Search_Names else Files.Types.Search_Contents));
-         else
-            Files.Model.Clear_Search_Results (Model);
-            if Length (Done.Selection) > 0 then
-               declare
-                  Selected : constant Boolean :=
-                    Files.Model.Selection.Select_By_Name (Model, To_String (Done.Selection));
-                  pragma Unreferenced (Selected);
-               begin
-                  null;
-               end;
-            end if;
-         end if;
-      elsif not Cancelled
-        and then Done.Result.Status = Files.Operations.Operation_Success
-        and then Same_View
-        and then Done.Kind not in Search_Names | Search_Contents
-      then
-         --  Same view, but its snapshot predates a later listing change:
-         --  reread it rather than leave the operation's new entries unlisted.
-         --  Started below, once the diagnostic it must preserve is final.
-         Reload_Owed := True;
-      end if;
-      if not Same_View then
-         --  The filesystem work and restored history remain valid, but its
-         --  directory snapshot and diagnostic belong to the view it started
-         --  from, not the one now displayed -- even when it was cancelled.
-         return (if Cancelled then (Status => Files.Operations.Operation_Success, others => <>)
-                 else Done.Result);
-      end if;
-      if Cancelled then
-         Files.Model.Set_Error (Model, "");
-         return (Status => Files.Operations.Operation_Success, others => <>);
-      end if;
-      Files.Model.Set_Error (Model, To_String (Done.Visible_Error));
-      if Reload_Owed then
-         Reload_Current_View (To_String (Done.Selection));
-      end if;
-      Files.Operations.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
-      return Done.Result;
+         case Choice is
+            when Discard =>
+               return (Status => Files.Operations.Operation_Success, others => <>);
+            when Reload_View =>
+               if Same_View then
+                  --  Finalize error/history before the refresh captures this
+                  --  revision. A result from an older view must not refresh or
+                  --  alter the diagnostic of the view now displayed, but an
+                  --  edit within the same view must not cost it the reload.
+                  Files.Model.Set_Error (Model, (if Cancelled then "" else To_String (Done.Visible_Error)));
+                  Reload_Current_View;
+               end if;
+               return Reported;
+            when Leave_View =>
+               --  The filesystem work and restored history remain valid, but
+               --  its directory snapshot and diagnostic belong to the view it
+               --  started from, not the one now displayed.
+               return Reported;
+            when Apply_Snapshot =>
+               Apply_Snapshot;
+               return Report_In_View;
+            when Owe_Reload =>
+               --  Its snapshot predates a later listing change: reread it
+               --  rather than leave the operation's new entries unlisted,
+               --  once the diagnostic it must preserve is final.
+               Files.Model.Set_Error (Model, To_String (Done.Visible_Error));
+               Reload_Current_View (To_String (Done.Selection));
+               Files.Operations.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
+               return Done.Result;
+            when Report =>
+               return Report_In_View;
+         end case;
+      end;
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
@@ -512,7 +564,7 @@ package body Files.Operation_Jobs is
                Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
                Same_View := False;
          end;
-         Files.Model.Pasting.Clear_Execution (Model);
+         Files.Model.End_Foreground_Job (Model);
          declare
             Restored : constant Boolean :=
               Files.History_Journal.Merge (Files.Process_Jobs.Path (Job, ""), Model);
@@ -520,7 +572,7 @@ package body Files.Operation_Jobs is
          begin
             Files.Operations.Settle_History (Model);
          end;
-         Recover_Undo;
+         Recover_Undo (Model, Job);
          --  Even an interrupted destructive operation may have changed its
          --  original view, but it must not refresh a different current view.
          if Same_View then

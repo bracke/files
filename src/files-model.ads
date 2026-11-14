@@ -183,7 +183,7 @@ package Files.Model is
       Quick_Look_Overlay,
       Tree_Pick_Overlay,
       Paste_Conflict_Overlay,
-      Paste_Execution_Overlay);
+      Foreground_Job_Overlay);
 
    --  The overlays with their own text-entry surface.
    subtype Text_Input_Overlay is Input_Overlay range Settings_Pane_Overlay .. Command_Palette_Overlay;
@@ -1016,9 +1016,9 @@ package Files.Model is
    type Clipboard_Mode is (Clipboard_None, Clipboard_Copy, Clipboard_Cut);
 
    --  Multi-level undo/redo history. Each entry stores enough to BOTH reverse
-   --  (undo) and re-apply (redo) one action. Paths are parallel From/To
-   --  vectors; Forward carries the redo payload and Create_Kind names the kind
-   --  of creation to re-run for Undo_Delete_Created entries.
+   --  (undo) and re-apply (redo) one action: its items, each a path with what
+   --  the action recorded for it; Create_Kind names the kind of creation to
+   --  re-run for Undo_Delete_Created entries.
    type Undo_Action_Kind is
      (Undo_None,
       Undo_Rename,
@@ -1035,61 +1035,90 @@ package Files.Model is
       Create_Symbolic_Link,
       Create_Hard_Link);
 
-   --  A single reversible/re-applicable action.
+   --  One path an action changed, and what the action recorded for it.
    --
    --  Undo runs the reverse direction, redo the forward direction:
    --    * Rename/Move: reverse moves From back to To, redo re-does the original
-   --      To -> From transition.
-   --    * Restore_Trash: reverse restores the trashed From paths; it is
+   --      To -> From transition. Forward is empty.
+   --    * Restore_Trash: reverse restores the trashed From to To; it is
    --      undo-only (Redoable is False), so redo never re-runs it.
-   --    * Delete_Created: reverse deletes From; redo re-creates each From path
-   --      from the parallel source path in Forward using Create_Kind.
-   --    * Set_Permissions: To holds the old value (reverse) and Forward holds
-   --      the new value (redo), both parallel to From.
-   --    * Set_Ownership uses the same vectors, with each value encoded as
+   --    * Delete_Created: reverse deletes From; redo re-creates it from the
+   --      source path in Forward using Create_Kind. To is empty.
+   --    * Set_Permissions: To holds the old value (reverse) and Forward the new
+   --      value (redo).
+   --    * Set_Ownership likewise, with each value encoded as
    --      "uid gid<NUL>user-name<NUL>group-name".  The names let a helper
    --      process reconstruct platform identities whose numeric token is only
    --      meaningful inside the process that obtained it.
+   --  A value an action does not use is empty.
+   type Undo_Item is record
+      From          : UString;
+      To            : UString;
+      Forward       : UString;
+      --  The entry at From as the action left it: for creations, moves, trash
+      --  and metadata changes the current entry at either end, including a
+      --  new identity after a copy-based move. An empty token never
+      --  authorizes deletion, a history move, a trash restoration or a
+      --  metadata change.
+      Identity      : UString;
+      --  A created directory's recursive revision at publication (empty for
+      --  files and links): Undo refuses a directory whose complete tree no
+      --  longer matches it.
+      Tree_Revision : UString;
+   end record;
+
+   package Undo_Item_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Undo_Item);
+
+   --  An original a paste-replace overwrote, preserved in the trash: on undo,
+   --  once the main reverse has vacated its path, it is put back from there.
+   type Replaced_Original is record
+      --  Where it is preserved, and its identity there.
+      Trash    : UString;
+      Identity : UString;
+      --  Where Undo puts it back.
+      Target   : UString;
+   end record;
+
+   package Replaced_Original_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Replaced_Original);
+
+   --  A copy a failed move left beside its still present source: reverse
+   --  deletes it, verified by its identity and tree revision, before it moves
+   --  anything back or restores an original a replace preserved, so one paste
+   --  is one Undo.
+   type Kept_Copy is record
+      Path          : UString;
+      Identity      : UString;
+      Tree_Revision : UString;
+   end record;
+
+   package Kept_Copy_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Kept_Copy);
+
+   --  A single reversible/re-applicable action.
    type Undo_Entry is record
       Kind        : Undo_Action_Kind := Undo_None;
-      From        : Files.Types.String_Vectors.Vector;
-      To          : Files.Types.String_Vectors.Vector;
-      Forward     : Files.Types.String_Vectors.Vector;
+      Items       : Undo_Item_Vectors.Vector;
       Create_Kind : Undo_Create_Kind := Create_None;
       Redoable    : Boolean := True;
-      --  Trash locations of destinations a paste-replace overwrote. On undo, once
-      --  the main reverse has vacated the destination, these are restored from the
-      --  trash so the overwritten original comes back. Empty for every other
-      --  action. Undo-only (a paste that replaced anything is not redoable).
-      Restore_Trash : Files.Types.String_Vectors.Vector;
-      --  Parallel snapshots of replacement originals, retained for retryable Undo.
-      Restore_Identities : Files.Types.String_Vectors.Vector;
-      Restore_Targets : Files.Types.String_Vectors.Vector;
-      --  Successful reverse steps retained after a partial Undo. A retry must
-      --  never delete or move an original that an earlier pass restored.
+      --  Originals a paste-replace overwrote. Empty for every other action.
+      --  Undo-only (a paste that replaced anything is not redoable).
+      Replaced : Replaced_Original_Vectors.Vector;
+      --  Successful reverse steps retained after a partial Undo (a From path
+      --  or a kept copy's). A retry must never delete or move an original
+      --  that an earlier pass restored.
       Reverse_Completed : Files.Types.String_Vectors.Vector;
+      --  The Trash paths of originals already put back.
       Restores_Completed : Files.Types.String_Vectors.Vector;
       --  Successful creation/move steps retained after a partial Redo, so a
       --  retry skips committed items instead of treating them as collisions.
       Forward_Completed : Files.Types.String_Vectors.Vector;
       --  Verified hard-link families retained across partial copy Redo retries.
       Copy_Records : Files.Types.String_Vectors.Vector;
-      --  Parallel to From for creations, moves, trash and metadata changes. Tracks the current entry at
-      --  either end of a move, including a new identity after a copy-based move.
-      --  Empty tokens never authorize deletion, history moves, trash restoration or metadata changes.
-      Created_Identities : Files.Types.String_Vectors.Vector;
-      --  Parallel recursive revision snapshots for created directories. Files
-      --  and links use an empty value. Undo refuses a directory whose complete
-      --  tree no longer matches the snapshot captured at publication.
-      Created_Tree_Revisions : Files.Types.String_Vectors.Vector;
-      --  Copies a failed move left beside their still present sources, set
-      --  only on a non-redoable Undo_Move: reverse deletes each (verified by
-      --  the parallel identity and tree revision) before it moves anything
-      --  back or restores an original a replace preserved, so one paste is
-      --  one Undo. Their completion markers join Reverse_Completed.
-      Kept_Copies              : Files.Types.String_Vectors.Vector;
-      Kept_Copy_Identities     : Files.Types.String_Vectors.Vector;
-      Kept_Copy_Tree_Revisions : Files.Types.String_Vectors.Vector;
+      --  Set only on a non-redoable Undo_Move. Their completion markers join
+      --  Reverse_Completed.
+      Kept : Kept_Copy_Vectors.Vector;
       --  Who the entry is across processes: a background helper's history
       --  journal names entries by it, so the window can tell an entry the
       --  helper left out of its journal from one it retired. Given by
@@ -1097,62 +1126,13 @@ package Files.Model is
       Sequence : Natural := 0;
    end record;
 
-   --  An Undo_Entry's parallel fields can be shorter than the vector they
-   --  parallel: an entry recorded before a field existed, or one that never
-   --  filled it. These read a field at an index as "" past its end, so no
-   --  caller guards the index itself.
-
-   --  @param Values A parallel field.
-   --  @param Index Position in the vector Values parallels.
-   --  @return Values (Index), or "" when Values is shorter.
-   function Value_At (Values : Files.Types.String_Vectors.Vector; Index : Positive) return String is
-     (if Index <= Values.Last_Index then Ada.Strings.Unbounded.To_String (Values (Index)) else "");
+   --  @param Action Entry to read.
+   --  @return Each item's From path, in order.
+   function From_Paths (Action : Undo_Entry) return Files.Types.String_Vectors.Vector;
 
    --  @param Action Entry to read.
-   --  @param Index Position in From.
-   --  @return The identity the entry recorded at Index, or "".
-   function Created_Identity (Action : Undo_Entry; Index : Positive) return String is
-     (Value_At (Action.Created_Identities, Index));
-
-   --  @param Action Entry to read.
-   --  @param Index Position in From.
-   --  @return The tree revision the entry recorded at Index, or "".
-   function Created_Tree_Revision (Action : Undo_Entry; Index : Positive) return String is
-     (Value_At (Action.Created_Tree_Revisions, Index));
-
-   --  @param Action Entry to read.
-   --  @param Index Position in Kept_Copies.
-   --  @return The identity of the kept copy at Index, or "".
-   function Kept_Copy_Identity (Action : Undo_Entry; Index : Positive) return String is
-     (Value_At (Action.Kept_Copy_Identities, Index));
-
-   --  @param Action Entry to read.
-   --  @param Index Position in Kept_Copies.
-   --  @return The tree revision of the kept copy at Index, or "".
-   function Kept_Copy_Tree_Revision (Action : Undo_Entry; Index : Positive) return String is
-     (Value_At (Action.Kept_Copy_Tree_Revisions, Index));
-
-   --  @param Action Entry to read.
-   --  @param Index Position in From.
-   --  @return Forward (Index), or "".
-   function Forward_Value (Action : Undo_Entry; Index : Positive) return String is
-     (Value_At (Action.Forward, Index));
-
-   --  @param Action Entry to read.
-   --  @param Index Position in From.
-   --  @return To (Index), or "".
-   function To_Value (Action : Undo_Entry; Index : Positive) return String is
-     (Value_At (Action.To, Index));
-
-   --  Record what a creation at From (Index) published, growing the
-   --  parallel fields with empty values up to Index first.
-   --
-   --  @param Action Entry to update.
-   --  @param Index Position in From.
-   --  @param Identity The created entry's identity.
-   --  @param Tree_Revision Its tree revision, or "".
-   procedure Set_Created
-     (Action : in out Undo_Entry; Index : Positive; Identity, Tree_Revision : UString);
+   --  @return Where each replaced original is preserved, in order.
+   function Replaced_Trash (Action : Undo_Entry) return Files.Types.String_Vectors.Vector;
 
    --  Stack of undo/redo entries; the last element is the top of the stack.
    package Undo_Entry_Vectors is new Ada.Containers.Vectors
@@ -1234,18 +1214,55 @@ package Files.Model is
    --  @return True when background transfers are enabled.
    function Background_Transfers (Model : Window_Model) return Boolean;
 
-   --  @param Model Window owning a general background operation.
-   --  @param Job Helper session to attach while the progress overlay is open.
+   --  The one modal job a window runs at a time: shown with its progress,
+   --  owning the input, cancellable. A paste (Files.Model.Pasting's
+   --  execution) or an operation on a helper (Files.Operation_Jobs: trash,
+   --  search, undo and the rest).
+   type Foreground_Job_Kind is (No_Foreground_Job, Paste_Job, Operation_Job);
+
+   --  @param Model Window to inspect.
+   --  @return The modal job it runs, if any.
+   function Foreground_Job (Model : Window_Model) return Foreground_Job_Kind;
+
+   --  @param Model Window to inspect.
+   --  @return True while a paste or an operation runs modally.
+   function Foreground_Job_Is_Active (Model : Window_Model) return Boolean;
+
+   --  What the progress overlay shows of the modal job.
+   type Foreground_Progress is record
+      --  Writes finished and to do: an operation is one step.
+      Done      : Natural := 0;
+      Total     : Natural := 0;
+      --  The item being written, or the folder an operation runs in.
+      Name      : UString;
+      --  A paste that moves rather than copies.
+      Moving    : Boolean := False;
+      --  An operation's command caption key; empty for a paste.
+      Label_Key : UString;
+   end record;
+
+   --  @param Model Window to inspect.
+   --  @return Its modal job's progress (all zero with no job).
+   function Foreground_Progress_Of (Model : Window_Model) return Foreground_Progress;
+
+   --  Run Job as the window's modal operation: it owns the input and shows
+   --  progress under Label_Key until End_Foreground_Job.
+   --
+   --  @param Model Window to update; it runs no other modal job.
+   --  @param Job The operation's started helper session.
    --  @param Label_Key Localized command caption for the progress overlay.
-   procedure Set_Background_Operation
+   procedure Begin_Operation_Job
      (Model : in out Window_Model; Job : Files.Process_Jobs.Session; Label_Key : String);
 
-   --  @param Model Window to inspect.
-   --  @return Progress caption key, or empty for a copy/move paste.
-   function Background_Operation_Label (Model : Window_Model) return String;
+   --  End the modal job, whichever it is: its helper handles are released
+   --  (a helper still running is stopped and reaped by Files.Process_Jobs)
+   --  and its state forgotten.
+   --
+   --  @param Model Window to update.
+   procedure End_Foreground_Job (Model : in out Window_Model);
 
    --  @param Model Window to inspect.
-   --  @return Shared helper session, inactive during ordinary paste execution.
+   --  @return The modal operation's helper session; inactive for a paste.
    function Background_Operation (Model : Window_Model) return Files.Process_Jobs.Session;
 
    --  @param Model Window whose nonmodal directory-read session to replace.
@@ -1635,7 +1652,10 @@ private
       Paste_Conflict                : Paste_Conflict_State;
       Background_Transfers_Value    : Boolean := False;
       Paste_Exec_Job                 : Files.Transfer_Jobs.Session;
+      Foreground_Kind               : Foreground_Job_Kind := No_Foreground_Job;
       Operation_Job                 : Files.Process_Jobs.Session;
+      --  The folder the modal operation runs in, for its progress.
+      Operation_Name                : UString;
       Refresh_Job                   : Files.Process_Jobs.Session;
       Operation_Label_Key           : UString;
       Paste_Exec                    : Paste_Execution_State;

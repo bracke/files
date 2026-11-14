@@ -19,8 +19,8 @@ with Files.Types;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 with Hostkit.Process;
-with Hostkit.Signals;
 with Hostkit.Spawn;
+with Hostkit.Spawn.Supervision;
 
 package body Files.Job_Scavenger is
    use Files.Helper_Modes;
@@ -28,7 +28,6 @@ package body Files.Job_Scavenger is
    use type Files.Job_Cleanup.Cleanup_Outcome;
    use type Files.Job_Transports.Claim_Outcome;
    use type Hostkit.Lease_Files.Open_Outcome;
-   use type Hostkit.Spawn.Spawn_Outcome;
    use type Hostkit.Spawn.Wait_State;
    use type Ada.Real_Time.Time;
    use type Ada.Streams.Stream_Element_Array;
@@ -315,15 +314,19 @@ package body Files.Job_Scavenger is
          end if;
       end Scan_After_Launch_Failure;
 
-      procedure Start_Coordinator (Program : Files.Types.UString) is
+      --  Start Program as the scavenging coordinator.
+      function Launch (Program : Files.Types.UString) return Boolean is
          Arguments : Hostkit.String_Vectors.Vector;
       begin
-         Retry_Pending := False;
          Arguments.Append (To_Unbounded_String (Flag (Scavenge)));
-         Active := Length (Program) > 0
-           and then Hostkit.Spawn.Start
-             (To_String (Program), Arguments, (others => <>),
-              Monitored_Child) = Hostkit.Spawn.Spawn_Ok;
+         return Length (Program) > 0
+           and then Files.Helper_Modes.Start_Helper (Arguments, Monitored_Child, To_String (Program));
+      end Launch;
+
+      procedure Start_Coordinator (Program : Files.Types.UString) is
+      begin
+         Retry_Pending := False;
+         Active := Launch (Program);
          if Active then
             Monitored_Program := Program;
             Attempts := 1;
@@ -343,31 +346,83 @@ package body Files.Job_Scavenger is
       procedure Stop_And_Reap is
          Reap_Poll_Interval : constant Duration := 0.05;
          Reap_Poll_Limit    : constant := 100;
-         Status : Hostkit.Spawn.Status;
-         Found  : Boolean;
-         Sent   : Boolean;
       begin
          for Poll in 1 .. Reap_Poll_Limit loop
             exit when not Active;
-            Found := Hostkit.Spawn.Wait (Monitored_Child, Hostkit.Spawn.Wait_Poll, Status);
-            if not Found
-              or else Status.State in Hostkit.Spawn.Wait_Exited
-                | Hostkit.Spawn.Wait_Signalled | Hostkit.Spawn.Wait_Lost
-            then
+            if Hostkit.Spawn.Supervision.Has_Ended (Monitored_Child) then
                Hostkit.Spawn.Release (Monitored_Child);
                Active := False;
             else
-               Sent := Hostkit.Signals.Send_To_Process
-                 (Hostkit.Spawn.Process_Id (Monitored_Child), Hostkit.Signals.Signal_Kill);
-               if not Sent then
-                  Sent := Hostkit.Process.Request_Stop
-                    (Hostkit.Spawn.Process_Id (Monitored_Child));
-               end if;
-               delay Reap_Poll_Interval;
+               declare
+                  --  A refused stop is asked again on the next poll.
+                  Sent : constant Boolean := Hostkit.Spawn.Supervision.Stop_Now (Monitored_Child);
+                  pragma Unreferenced (Sent);
+               begin
+                  delay Reap_Poll_Interval;
+               end;
             end if;
          end loop;
          Active := False;
       end Stop_And_Reap;
+
+      --  The coordinator ended as Status says: a failed one is started once
+      --  more, then retried with a back-off.
+      procedure Settle_Ended (Status : Hostkit.Spawn.Status) is
+         Success : constant Boolean :=
+           Status.State = Hostkit.Spawn.Wait_Exited and then Status.Exit_Code = 0;
+      begin
+         Last_End := To_Unbounded_String
+           ((case Status.State is
+               when Hostkit.Spawn.Wait_Exited => "last-coordinator-exit=" & Status.Exit_Code'Image,
+               when Hostkit.Spawn.Wait_Signalled => "last-coordinator-signalled",
+               when others => "last-coordinator-lost"));
+         Hostkit.Spawn.Release (Monitored_Child);
+         Active := False;
+         if not Success and then Attempts < 2 then
+            Attempts := Attempts + 1;
+            Active := Launch (Monitored_Program);
+            if not Active then
+               Scan_After_Launch_Failure (Monitored_Program);
+            end if;
+         elsif not Success then
+            Schedule_Retry (Monitored_Program);
+         else
+            Retry_Pending := False;
+            Retry_Seconds := 1;
+         end if;
+      end Settle_Ended;
+
+      --  Whether the running coordinator has ended, and if so what follows.
+      procedure Poll_Coordinator is
+         Status : Hostkit.Spawn.Status;
+      begin
+         if not Hostkit.Spawn.Is_Valid (Monitored_Child) then
+            --  The host will not answer for this handle, and it will not
+            --  start to. Staying Active would poll it forever and never take
+            --  another scan request, so drop it as Stop_And_Reap does and go
+            --  back to accepting requests. Whether the scan finished is
+            --  unknown, so count it as failed: a scan is safe to repeat, and
+            --  the retry backs off.
+            Last_End := To_Unbounded_String ("last-coordinator-unanswered");
+            Hostkit.Spawn.Release (Monitored_Child);
+            Active := False;
+            Schedule_Retry (Monitored_Program);
+         elsif Hostkit.Spawn.Supervision.Has_Ended (Monitored_Child, Status) then
+            Settle_Ended (Status);
+         end if;
+      end Poll_Coordinator;
+
+      --  With no coordinator running: start one for a queued request, or for
+      --  a retry that is due.
+      procedure Start_Next is
+      begin
+         Scan_Requests.Take (Requested, Requested_Program);
+         if Requested then
+            Start_Coordinator (Requested_Program);
+         elsif Retry_Pending and then Ada.Real_Time.Clock >= Retry_At then
+            Start_Coordinator (Monitored_Program);
+         end if;
+      end Start_Next;
    begin
       Main_Loop : loop
          select
@@ -382,69 +437,10 @@ package body Files.Job_Scavenger is
             exit Main_Loop;
          end if;
          if Active then
-            declare
-               Status : Hostkit.Spawn.Status;
-               Found  : constant Boolean :=
-                 Hostkit.Spawn.Wait (Monitored_Child, Hostkit.Spawn.Wait_Poll, Status);
-            begin
-               if Found and then Status.State in Hostkit.Spawn.Wait_Exited
-                 | Hostkit.Spawn.Wait_Signalled | Hostkit.Spawn.Wait_Lost
-               then
-                  declare
-                     Success : constant Boolean :=
-                       Status.State = Hostkit.Spawn.Wait_Exited
-                       and then Status.Exit_Code = 0;
-                  begin
-                     Last_End := To_Unbounded_String
-                       ((case Status.State is
-                           when Hostkit.Spawn.Wait_Exited => "last-coordinator-exit=" & Status.Exit_Code'Image,
-                           when Hostkit.Spawn.Wait_Signalled => "last-coordinator-signalled",
-                           when others => "last-coordinator-lost"));
-                     Hostkit.Spawn.Release (Monitored_Child);
-                     Active := False;
-                     if not Success and then Attempts < 2 then
-                        declare
-                           Arguments : Hostkit.String_Vectors.Vector;
-                        begin
-                           Arguments.Append (To_Unbounded_String (Flag (Scavenge)));
-                           Attempts := Attempts + 1;
-                           Active := Hostkit.Spawn.Start
-                             (To_String (Monitored_Program), Arguments, (others => <>),
-                              Monitored_Child) =
-                               Hostkit.Spawn.Spawn_Ok;
-                           if not Active then
-                              Scan_After_Launch_Failure (Monitored_Program);
-                           end if;
-                        end;
-                     elsif not Success then
-                        Schedule_Retry (Monitored_Program);
-                     else
-                        Retry_Pending := False;
-                        Retry_Seconds := 1;
-                     end if;
-                  end;
-               elsif not Found then
-                  --  The handle is invalid or the host refused the question,
-                  --  and it will not start answering. Staying Active would
-                  --  poll it forever and never take another scan request, so
-                  --  drop the handle as Stop_And_Reap does and go back to
-                  --  accepting requests. Whether the scan finished is
-                  --  unknown, so count it as failed: a scan is safe to
-                  --  repeat, and the retry backs off.
-                  Last_End := To_Unbounded_String ("last-coordinator-unanswered");
-                  Hostkit.Spawn.Release (Monitored_Child);
-                  Active := False;
-                  Schedule_Retry (Monitored_Program);
-               end if;
-            end;
+            Poll_Coordinator;
          end if;
          if not Active then
-            Scan_Requests.Take (Requested, Requested_Program);
-            if Requested then
-               Start_Coordinator (Requested_Program);
-            elsif Retry_Pending and then Ada.Real_Time.Clock >= Retry_At then
-               Start_Coordinator (Monitored_Program);
-            end if;
+            Start_Next;
          end if;
          Scan_Requests.Settle (Active or else Retry_Pending, Why);
       end loop Main_Loop;

@@ -1,3 +1,5 @@
+with Files.File_System.Trash;
+with Files.File_System.Permissions;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
    procedure Test_Cross_Device_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -13,7 +15,8 @@ separate (Files_Suite.Transfer)
       Trashed  : Unbounded_String;
 
       procedure Unlock (Path : String) is
-         Result : constant Files.File_System.Mutation_Result := Files.File_System.Set_Permissions (Path, 8#755#);
+         Result : constant Files.File_System.Mutation_Result :=
+           Files.File_System.Permissions.Set_Permissions (Path, 8#755#);
          pragma Unreferenced (Result);
       begin
          null;
@@ -44,7 +47,9 @@ separate (Files_Suite.Transfer)
       Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Prepare_Tree;
-      Assert (Files.File_System.Set_Permissions (Locked, 8#555#).Success, "lock source deletion but permit copying");
+      Assert
+        (Files.File_System.Permissions.Set_Permissions (Locked, 8#555#).Success,
+         "lock source deletion but permit copying");
       Paths.Append (To_Unbounded_String (Tree));
       Plans := Files.File_System.Plan_Drop_Import (Paths, Remote.Path, Files.File_System.Drop_Move);
       Result := Files.File_System.Execute_Drop_Import (Plans.Plans);
@@ -63,8 +68,8 @@ separate (Files_Suite.Transfer)
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Remote.Path, "data"));
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Prepare_Tree;
-      Assert (Files.File_System.Set_Permissions (Locked, 8#555#).Success, "lock the trash source deletion");
-      Result := Files.File_System.Move_To_Trash (Tree, Trashed);
+      Assert (Files.File_System.Permissions.Set_Permissions (Locked, 8#555#).Success, "lock the trash source deletion");
+      Result := Files.File_System.Trash.Move_To_Trash (Tree, Trashed);
       Assert (Result.Success and then not Ada.Directories.Exists (Tree),
               "read-only descendants do not cause partial source deletion during trash (success="
               & Result.Success'Image & ", error=" & To_String (Result.Error_Key)
@@ -80,21 +85,21 @@ separate (Files_Suite.Transfer)
       Unlock (Locked);
       Unlock (Join (To_String (Trashed), "locked"));
       Project_Tools.Files.Delete_Tree (Tree);
-      Result := Files.File_System.Restore_From_Trash (To_String (Trashed));
+      Result := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
       Assert (Result.Success, "cross-device trash remains recoverable");
       Unlock (Locked);
       Project_Tools.Files.Delete_Tree (Tree);
 
       Prepare_Tree;
-      Result := Files.File_System.Move_To_Trash (Tree, Trashed);
+      Result := Files.File_System.Trash.Move_To_Trash (Tree, Trashed);
       Assert (Result.Success, "prepare a cross-device restore");
       Assert
-        (Files.File_System.Set_Permissions (Join (To_String (Trashed), "locked"), 8#000#).Success,
+        (Files.File_System.Permissions.Set_Permissions (Join (To_String (Trashed), "locked"), 8#000#).Success,
          "make the restore fail after it begins copying");
-      Result := Files.File_System.Restore_From_Trash (To_String (Trashed));
+      Result := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
       Assert (not Result.Success, "a partial restore reports failure");
       Assert (not Ada.Directories.Exists (Tree), "a partial restore never publishes the original path");
-      Assert (not Ada.Directories.Exists (Join (Root, ".files-work-1")),
+      Assert (not Ada.Directories.Exists (Join (Root, Files.Protocol_Names.Work_Stage_Prefix & "1")),
               "failed restore staging is removed through guarded job staging");
       Unlock (Join (To_String (Trashed), "locked"));
       Ada.Directories.Create_Directory (Join (Root, "cancelled-recovery"));
@@ -103,7 +108,7 @@ separate (Files_Suite.Transfer)
          "cancel" & ASCII.LF);
       Files.Job_Context.Initialize (Join (Root, "cancelled-recovery"));
       Assert (Files.Job_Context.Cancelled, "the restore retry runs after helper cancellation");
-      Result := Files.File_System.Restore_From_Trash (To_String (Trashed));
+      Result := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
       Files.Job_Context.Initialize ("");
       Assert (Result.Success, "restoring can retry after a partial copy failure and cancellation: "
               & To_String (Result.Error_Key)

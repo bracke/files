@@ -27,8 +27,7 @@ package body Files.Job_Cleanup is
 
       function Directory_Gone return Boolean is
       begin
-         return not Files.Fs_Primitives.Exists (Directory)
-           and then not Hostkit.Fs.Is_Link (Directory);
+         return Files.Fs_Primitives.Entry_Is_Absent (Directory);
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Job_Cleanup");

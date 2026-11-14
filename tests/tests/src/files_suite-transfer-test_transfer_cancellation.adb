@@ -11,7 +11,8 @@ separate (Files_Suite.Transfer)
       begin
          Checks := Checks + 1;
          if Checks = 4 then
-            Assert (Ada.Directories.Size (Join (Join (Root, ".files-work-1"), "payload")) = 65_536,
+            Assert (Ada.Directories.Size
+                      (Join (Join (Root, Files.Protocol_Names.Work_Stage_Prefix & "1"), "payload")) = 65_536,
                     "cancellation occurs after the first chunk has been written");
          end if;
          return Checks >= 4;

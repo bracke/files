@@ -21,7 +21,7 @@ separate (Files_Suite.Trash)
          Write_File (Join (Root, "doomed.txt"));
          declare
             Trashed : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Move_To_Trash (Join (Root, "doomed.txt"));
+              Files.File_System.Trash.Move_To_Trash (Join (Root, "doomed.txt"));
             pragma Unreferenced (Trashed);
          begin
             null;
@@ -47,7 +47,7 @@ separate (Files_Suite.Trash)
 
          Write_File (Join (Trash_Info, "sidecar-only.txt.trashinfo"));
          Write_File (Join (Root, "sidecar-only.txt"));
-         Mutation := Files.File_System.Move_To_Trash (Join (Root, "sidecar-only.txt"));
+         Mutation := Files.File_System.Trash.Move_To_Trash (Join (Root, "sidecar-only.txt"));
          Assert (Mutation.Success, "trash sidecar-only collision succeeds with suffix");
          Assert
            (Ada.Directories.Exists (Join (Trash_File, "sidecar-only.txt.2")),

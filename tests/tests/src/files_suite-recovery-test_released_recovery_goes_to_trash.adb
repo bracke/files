@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.File_System.Testing;
 separate (Files_Suite.Recovery)
    procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -56,7 +57,7 @@ separate (Files_Suite.Recovery)
       Assert (not Ada.Directories.Exists (Ada.Directories.Containing_Directory (To_String (Backup))),
               "the hidden recovery folder is gone");
       Files_Suite.Support.Assert_Equal
-        (Files.File_System.Trash_Original_Path (Trashed),
+        (Files.File_System.Trash.Trash_Original_Path (Trashed),
          Dest,
          "the trash records where the original lived, not the hidden folder it was kept in");
 

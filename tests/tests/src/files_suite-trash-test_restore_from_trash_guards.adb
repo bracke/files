@@ -23,10 +23,10 @@ separate (Files_Suite.Trash)
          Trashed_Path : constant String := Join (Trash_File, "guard-exists.txt");
       begin
          Write_File (Source_Path, "trashed payload");
-         Mutation := Files.File_System.Move_To_Trash (Source_Path);
+         Mutation := Files.File_System.Trash.Move_To_Trash (Source_Path);
          Assert (Mutation.Success, "guard setup trashes the file");
          Write_File (Source_Path, "a different file now lives here");
-         Mutation := Files.File_System.Restore_From_Trash (Trashed_Path);
+         Mutation := Files.File_System.Trash.Restore_From_Trash (Trashed_Path);
          Assert (not Mutation.Success, "restore refuses when the original path is occupied");
          Files_Suite.Support.Assert_Equal
            (To_String (Mutation.Error_Key),
@@ -49,10 +49,10 @@ separate (Files_Suite.Trash)
       begin
          Ada.Directories.Create_Path (Sub_Dir);
          Write_File (Source_Path, "payload");
-         Mutation := Files.File_System.Move_To_Trash (Source_Path);
+         Mutation := Files.File_System.Trash.Move_To_Trash (Source_Path);
          Assert (Mutation.Success, "parent-guard setup trashes the file");
          Project_Tools.Files.Delete_Tree (Sub_Dir);
-         Mutation := Files.File_System.Restore_From_Trash (Trashed_Path);
+         Mutation := Files.File_System.Trash.Restore_From_Trash (Trashed_Path);
          Assert (not Mutation.Success, "restore refuses when the original parent is gone");
          Files_Suite.Support.Assert_Equal
            (To_String (Mutation.Error_Key),
@@ -77,7 +77,7 @@ separate (Files_Suite.Trash)
          Character'Write (Ada.Streams.Stream_IO.Stream (File), 'x');
          Ada.Streams.Stream_IO.Close (File);
          Files_Suite.Support.Assert_Equal
-           (Files.File_System.Trash_Original_Path (Trashed_Path),
+           (Files.File_System.Trash.Trash_Original_Path (Trashed_Path),
             "",
             "oversized trash metadata is rejected before parsing");
       end;
@@ -92,10 +92,10 @@ separate (Files_Suite.Trash)
             "[Trash Info]" & ASCII.LF
             & "Path=relative-restore-target.txt" & ASCII.LF);
          Files_Suite.Support.Assert_Equal
-           (Files.File_System.Trash_Original_Path (Trashed_Path),
+           (Files.File_System.Trash.Trash_Original_Path (Trashed_Path),
             "",
             "trash metadata refuses a relative original path");
-         Mutation := Files.File_System.Restore_From_Trash (Trashed_Path);
+         Mutation := Files.File_System.Trash.Restore_From_Trash (Trashed_Path);
          Assert
            (not Mutation.Success and then Ada.Directories.Exists (Trashed_Path),
             "a relative original path cannot move a trash payload into the process directory");
@@ -111,7 +111,7 @@ separate (Files_Suite.Trash)
             "[Trash Info]" & ASCII.LF
             & "Path=/tmp/files-invalid%00path" & ASCII.LF);
          Files_Suite.Support.Assert_Equal
-           (Files.File_System.Trash_Original_Path (Trashed_Path),
+           (Files.File_System.Trash.Trash_Original_Path (Trashed_Path),
             "",
             "trash metadata refuses a decoded NUL in the original path");
       end;
@@ -121,7 +121,7 @@ separate (Files_Suite.Trash)
          Target  : constant String := Join (Root, "outside-restore-target.txt");
       begin
          Write_File (Outside, "unrelated payload");
-         Mutation := Files.File_System.Restore_From_Trash
+         Mutation := Files.File_System.Trash.Restore_From_Trash
            (Outside, Expected_Original => Target);
          Assert (not Mutation.Success, "restore refuses an entry outside the active trash payload directory: refused");
          Assert
@@ -130,7 +130,7 @@ separate (Files_Suite.Trash)
          Assert
            (not Ada.Directories.Exists (Target),
             "restore refuses an entry outside the active trash payload directory: target not created");
-         Mutation := Files.File_System.Delete_Trashed_Item (Outside);
+         Mutation := Files.File_System.Trash.Delete_Trashed_Item (Outside);
          Assert
            (not Mutation.Success
             and then Project_Tools.Files.File_Contains (Outside, "unrelated payload"),

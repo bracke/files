@@ -108,10 +108,10 @@ separate (Files_Suite.Refresh)
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
               "starting paste immediately releases an outstanding read");
-      Files.Operations.Cancel_Paste_Execution (Model);
-      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+      Files.Foreground_Jobs.Cancel (Model);
+      Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
       Assert_Within (Before, Prompt_Limit, "paste cancellation finalizes without waiting for a directory reload");
-      Assert (not Files.Model.Pasting.Execution_Is_Active (Model)
+      Assert (not Files.Model.Foreground_Job_Is_Active (Model)
               and then not Ada.Directories.Exists (Join (Root, "dest")),
               "paste cancellation finalizes without copying");
       Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),

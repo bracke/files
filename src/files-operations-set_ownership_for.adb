@@ -19,13 +19,13 @@ begin
       Keep_User : constant Boolean := User_Id = Hostkit.Metadata.Keep_Id;
       Keep_Group : constant Boolean := Group_Id = Hostkit.Metadata.Keep_Id;
       New_User_Name : constant String :=
-        (if Keep_User then "" else Files.File_System.User_Name_For_Id (User_Id));
+        (if Keep_User then "" else Files.File_System.Permissions.User_Name_For_Id (User_Id));
       New_Group_Name : constant String :=
-        (if Keep_Group then "" else Files.File_System.Group_Name_For_Id (Group_Id));
+        (if Keep_Group then "" else Files.File_System.Permissions.Group_Name_For_Id (Group_Id));
       Old_Uid, Old_Gid : Files.Types.Account_Id;
       Identity : Files.Types.UString;
       Mutation  : constant Files.File_System.Mutation_Result :=
-        Files.File_System.Change_Ownership
+        Files.File_System.Permissions.Change_Ownership
           (Path, "", User_Id, Group_Id, Old_Uid, Old_Gid,
            Identity, New_User_Name, New_Group_Name);
    begin
@@ -44,12 +44,15 @@ begin
             Old_Text =>
               Ownership_Text
                 (Old_Uid, Old_Gid,
-                 Files.File_System.User_Name_For_Id (Old_Uid), Files.File_System.Group_Name_For_Id (Old_Gid)),
+                 Files.File_System.Permissions.User_Name_For_Id (Old_Uid),
+                 Files.File_System.Permissions.Group_Name_For_Id (Old_Gid)),
             New_Text =>
               Ownership_Text
                 (Applied_User, Applied_Group,
-                 (if Keep_User then Files.File_System.User_Name_For_Id (Applied_User) else New_User_Name),
-                 (if Keep_Group then Files.File_System.Group_Name_For_Id (Applied_Group) else New_Group_Name)));
+                 (if Keep_User then Files.File_System.Permissions.User_Name_For_Id (Applied_User)
+                  else New_User_Name),
+                 (if Keep_Group then Files.File_System.Permissions.Group_Name_For_Id (Applied_Group)
+                  else New_Group_Name)));
       end;
    end;
 end Set_Ownership_For;

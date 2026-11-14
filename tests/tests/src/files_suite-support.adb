@@ -1,3 +1,5 @@
+with Files.Foreground_Jobs;
+with Files.Window_Polls;
 with Files.File_System;
 with Files.Model.Testing;
 with Files.Refresh_Jobs;
@@ -25,7 +27,6 @@ with Hostkit.Fs;
 with Hostkit.Host;
 with Hostkit.Metadata;
 with Hostkit.Process;
-with Files.Model.Pasting;
 with Files.Paste;
 with Files.Model.Selection;
 
@@ -757,7 +758,7 @@ package body Files_Suite.Support is
 
    procedure Release (Guard : in out Paste_Guard) is
    begin
-      Files.Model.Pasting.Clear_Execution (Guard.Model.all);
+      Files.Model.End_Foreground_Job (Guard.Model.all);
       Files.Refresh_Jobs.Cancel (Guard.Model.all);
    end Release;
 
@@ -808,11 +809,11 @@ package body Files_Suite.Support is
       Result : Files.Operations.Operation_Result;
    begin
       for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
-         Result := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-         exit when not Files.Model.Pasting.Execution_Is_Active (Model);
+         Result := Files.Foreground_Jobs.Advance (Model, Settings, 1);
+         exit when not Files.Model.Foreground_Job_Is_Active (Model);
       end loop;
       AUnit.Assertions.Assert
-        (not Files.Model.Pasting.Execution_Is_Active (Model), "the paste execution finishes");
+        (not Files.Model.Foreground_Job_Is_Active (Model), "the paste execution finishes");
       return Result;
    end Finish_Paste;
 
@@ -839,7 +840,7 @@ package body Files_Suite.Support is
    procedure Drain_Folder_Sizes (Model : in out Files.Model.Window_Model) is
    begin
       for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
-         Files.Operations.Poll_Folder_Sizes (Model);
+         Files.Window_Polls.Poll_Folder_Sizes (Model);
          exit when not Files.Model.Testing.Folder_Scan_Is_Active (Model);
       end loop;
       Assert (not Files.Model.Testing.Folder_Scan_Is_Active (Model), "the background folder-size walks finish");

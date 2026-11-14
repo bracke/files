@@ -20,9 +20,9 @@ separate (Files_Suite.Trash)
             Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
             Write_Binary_File (Join (Root, ".hidden"), "hidden bytes");
             Write_Binary_File (Join (Root, "visible"), "visible bytes");
-            Mutation := Files.File_System.Move_To_Trash (Join (Root, ".hidden"), Hidden);
+            Mutation := Files.File_System.Trash.Move_To_Trash (Join (Root, ".hidden"), Hidden);
             Assert (Mutation.Success, "trash hidden payload");
-            Mutation := Files.File_System.Move_To_Trash (Join (Root, "visible"), Visible);
+            Mutation := Files.File_System.Trash.Move_To_Trash (Join (Root, "visible"), Visible);
             Assert (Mutation.Success, "trash visible payload");
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Files.Model.Set_Background_Transfers (Model, Background);

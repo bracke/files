@@ -15,7 +15,7 @@ separate (Files_Suite.Transfer)
    begin
       Arm_Numbered_Paste (Model, Settings, Src_Dir, Dest_Dir, Count);
 
-      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operations.Operation_Success,
@@ -25,13 +25,13 @@ separate (Files_Suite.Transfer)
          2,
          "two writes complete before cancelling");
 
-      Files.Operations.Cancel_Paste_Execution (Model);
-      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Files.Foreground_Jobs.Cancel (Model);
+      Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operations.Operation_Success,
          "a cancelled paste finalizes without an error");
-      Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "a cancelled paste finalizes on the next advance");
+      Assert (not Files.Model.Foreground_Job_Is_Active (Model), "a cancelled paste finalizes on the next advance");
 
       Assert (Ada.Directories.Exists (Dest (1)), "the first completed copy is kept");
       Assert (Ada.Directories.Exists (Dest (2)), "the second completed copy is kept");

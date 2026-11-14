@@ -1,3 +1,4 @@
+with Files.Protocol_Names;
 with Files.Items;
 with Files.File_Identities.Testing;
 with Ada.Directories;

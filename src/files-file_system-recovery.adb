@@ -508,7 +508,7 @@ package body Files.File_System.Recovery is
          Stage : constant String :=
            Files.Fs_Primitives.Parent_Directory (To_String (Payload));
       begin
-         return not Files.Fs_Primitives.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage);
+         return Files.Fs_Primitives.Entry_Is_Absent (Stage);
       end;
    exception
       when Swallowed : others =>

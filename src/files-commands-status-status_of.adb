@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Model.Clipboard;
 with Files.Model.Quick_Look;
 with Files.Model.Root_Selector;
@@ -195,7 +196,7 @@ separate (Files.Commands.Status)
                  Require
                    (Files.Model.Selection.Selected_Count (Model) > 0 or else Files.Model.Current_Path (Model) /= ""));
          when Navigate_Trash_Command =>
-            return Require (Files.File_System.Trash_Files_Directory /= "", Trash_Unavailable_Reason);
+            return Require (Files.File_System.Trash.Trash_Files_Directory /= "", Trash_Unavailable_Reason);
          when Restore_From_Trash_Command =>
             --  Offered only in the trash view, where it acts on the selection.
             return All_Of (Require (In_Trash_View (Model)), Real_Selection);

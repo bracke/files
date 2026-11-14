@@ -116,7 +116,7 @@ separate (Files_Suite.Operations)
                Files.Operations.Operation_Success,
                "Recent Duplicate reports success and records all created paths for Undo: status");
             Assert
-              (not Files.Model.Pasting.Execution_Is_Active (Model),
+              (not Files.Model.Foreground_Job_Is_Active (Model),
                "Recent Duplicate reports success and records all created paths for Undo: paste finished");
             Files_Suite.Support.Assert_Equal
               (Files.Model.Last_Error_Key (Model),

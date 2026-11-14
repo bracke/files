@@ -7,7 +7,7 @@ separate (Files_Suite.History)
       Model    : Files.Model.Window_Model;
       Result   : Files.Operations.Operation_Result;
    begin
-      if not Files.File_System.Supports_Permissions then
+      if not Files.File_System.Permissions.Supports_Permissions then
          Files_Suite.Support.Skip ("Test_Set_Permissions_And_Undo", "this host has no POSIX permissions to set");
          return;
       end if;
@@ -15,7 +15,7 @@ separate (Files_Suite.History)
       Reset_Root;
       Write_File (Target, "mode me");
       Assert
-        (Files.File_System.Set_Permissions (Target, 8#644#).Success,
+        (Files.File_System.Permissions.Set_Permissions (Target, 8#644#).Success,
          "baseline chmod to 0644 succeeds");
 
       Load := Files.File_System.Load_Directory (Root, Settings);
@@ -24,7 +24,7 @@ separate (Files_Suite.History)
       Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#644#, "baseline permission bits are 0644");
 
       Assert
-        (not Files.File_System.Set_Permissions (Target, 8#10_000#).Success,
+        (not Files.File_System.Permissions.Set_Permissions (Target, 8#10_000#).Success,
          "the filesystem API rejects permission bits outside 07777");
       Result := Files.Operations.Testing.Set_Permissions_For
         (Model, 8#10_000#, Settings);

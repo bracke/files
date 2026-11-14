@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Trash)
@@ -14,10 +15,10 @@ separate (Files_Suite.Trash)
       begin
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Write_File (Join (Root, "path-input-trash.txt"));
-         Assert (Files.File_System.Move_To_Trash (Join (Root, "path-input-trash.txt"), Trashed).Success,
+         Assert (Files.File_System.Trash.Move_To_Trash (Join (Root, "path-input-trash.txt"), Trashed).Success,
                  "something is in the trash");
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-         Files.Model.Set_Path_Input_Text (Model, Files.File_System.Trash_Files_Directory);
+         Files.Model.Set_Path_Input_Text (Model, Files.File_System.Trash.Trash_Files_Directory);
          Result := Files.Operations.Commit_Path_Input (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Status, Files.Operations.Operation_Navigated, "the typed path is opened");

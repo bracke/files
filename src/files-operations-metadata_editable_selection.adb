@@ -11,9 +11,9 @@ begin
      and then
        (case What is
            when Ownership_Metadata   =>
-              Files.File_System.Supports_Ownership and then Item.Ownership_Available,
+              Files.File_System.Permissions.Supports_Ownership and then Item.Ownership_Available,
            when Permissions_Metadata =>
-              Files.File_System.Supports_Permissions and then Item.Mode_Available)
-     and then not Files.File_System.Is_Trash_Files_Directory
+              Files.File_System.Permissions.Supports_Permissions and then Item.Mode_Available)
+     and then not Files.File_System.Trash.Is_Trash_Files_Directory
                     (Files.Model.Current_Path (Model));
 end Metadata_Editable_Selection;

@@ -40,8 +40,9 @@ package Files.Lease_Streams is
    --  Read one transport record whole, the one way every job reads its
    --  records: open Path under its lease, refuse it past Max_Bytes, check its
    --  Header (String'Output; none when ""), read the body, require the end of
-   --  the stream and a consistent value, and release the lease on every path.
-   --  Raises Ada.IO_Exceptions.Data_Error for a record that fails any of it.
+   --  the stream (unless Whole is False) and a consistent value, and release
+   --  the lease on every path. Raises Ada.IO_Exceptions.Data_Error for a
+   --  record that fails any of it.
    generic
       type Item is private;
       --  Read the body's fields from Stream into Value.
@@ -50,6 +51,9 @@ package Files.Lease_Streams is
          Value  : out Item);
       --  Whether Value is one a writer could have produced.
       with function Is_Consistent (Value : Item) return Boolean;
+      --  False reads only the record's leading fields: a poll that needs its
+      --  first few, not the rest.
+      Whole : Boolean := True;
    --  @param Path The record's file.
    --  @param Header Its leading String'Output header, or "" for none.
    --  @param Max_Bytes The largest record accepted.

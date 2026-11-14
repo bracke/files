@@ -8,28 +8,30 @@ is
    Succeeded : Boolean := True;
    Reversed  : Path_Sets.Set := To_Set (Action.Reverse_Completed);
 
-   --  Whether the item restored to Targets (Index) is the trashed one itself
-   --  (a rename keeps its identity), so a retry recognises it there.
-   function Restored_In_Place
-     (Targets, Identities : Files.Types.String_Vectors.Vector; Index : Positive) return Boolean is
-     (Files.Model.Value_At (Targets, Index) /= ""
-      and then Files.Model.Value_At (Identities, Index) /= ""
-      and then Files.File_Identities.Token (Files.Model.Value_At (Targets, Index))
-        = Files.Model.Value_At (Identities, Index));
+   --  Whether the item restored to Original.Target is the trashed one
+   --  itself (a rename keeps its identity), so a retry recognises it there.
+   function Restored_In_Place (Original : Files.Model.Replaced_Original) return Boolean is
+     (Length (Original.Target) > 0
+      and then Length (Original.Identity) > 0
+      and then Files.File_Identities.Token (To_String (Original.Target)) = To_String (Original.Identity));
+
+   --  A trashed main item as the original it restores.
+   function Trashed (Item : Files.Model.Undo_Item) return Files.Model.Replaced_Original is
+     ((Trash => Item.From, Identity => Item.Identity, Target => Item.To));
    Restored  : Path_Sets.Set := To_Set (Action.Restores_Completed);
 begin
    --  Copies a failed move kept beside their sources leave first: before
    --  anything moves back, and before an original a replace preserved is
    --  restored to the path one of them holds. Each step is marked, so a
    --  retry never deletes what a restore has since put there.
-   for Index in Action.Kept_Copies.First_Index .. Action.Kept_Copies.Last_Index loop
+   for Copy of Action.Kept loop
       if Files.Job_Context.Cancelled then
          return False;
       end if;
       declare
-         Target : constant String := To_String (Action.Kept_Copies (Index));
-         Identity : constant String := Files.Model.Kept_Copy_Identity (Action, Index);
-         Tree_Revision : constant String := Files.Model.Kept_Copy_Tree_Revision (Action, Index);
+         Target : constant String := To_String (Copy.Path);
+         Identity : constant String := To_String (Copy.Identity);
+         Tree_Revision : constant String := To_String (Copy.Tree_Revision);
       begin
          if Reversed.Contains (Target) then
             null;
@@ -40,7 +42,7 @@ begin
          then
             Succeeded := False;
          else
-            Action.Reverse_Completed.Append (Action.Kept_Copies (Index));
+            Action.Reverse_Completed.Append (Copy.Path);
             Reversed.Include (Target);
             Files.History_Journal.Checkpoint (Model, Action, False);
          end if;
@@ -56,45 +58,42 @@ begin
          Succeeded := Move_Back (Action, Model, False);
 
       when Files.Model.Undo_Restore_Trash =>
-         for Index in Action.From.First_Index .. Action.From.Last_Index loop
+         for Item of Action.Items loop
             if Files.Job_Context.Cancelled then
                return False;
             end if;
-            if Reversed.Contains (To_String (Action.From.Element (Index))) then
+            if Reversed.Contains (To_String (Item.From)) then
                null;
-            elsif not Restore_Recorded_Trash (Action.From (Index), Action.Created_Identities, Action.To, Index)
-            then
+            elsif not Restore_Recorded_Trash (Trashed (Item)) then
                Succeeded := False;
             else
                --  Its labels come back out of the trash with it.
-               if Files.Model.To_Value (Action, Index) /= "" then
-                  Files.Model.Note_Path_Move
-                    (Model, To_String (Action.From (Index)), Files.Model.To_Value (Action, Index));
+               if Length (Item.To) > 0 then
+                  Files.Model.Note_Path_Move (Model, To_String (Item.From), To_String (Item.To));
                end if;
-               Action.Reverse_Completed.Append (Action.From.Element (Index));
-               Reversed.Include (To_String (Action.From.Element (Index)));
+               Action.Reverse_Completed.Append (Item.From);
+               Reversed.Include (To_String (Item.From));
                --  A retry finds a finished restore by its identity at the
                --  original path (Restore_Recorded_Trash) -- unless it was a
                --  copy across devices, which has a new one: written now.
                Files.History_Journal.Checkpoint
-                 (Model, Action, False,
-                  Force => not Restored_In_Place (Action.To, Action.Created_Identities, Index));
+                 (Model, Action, False, Force => not Restored_In_Place (Trashed (Item)));
             end if;
          end loop;
 
       when Files.Model.Undo_Delete_Created =>
          --  Undo a created path by removing it again. Missing paths are
          --  treated as already undone.
-         for Index in Action.From.First_Index .. Action.From.Last_Index loop
+         for Index in Action.Items.First_Index .. Action.Items.Last_Index loop
             if Files.Job_Context.Cancelled then
                return False;
             end if;
             declare
-               Target : constant String := To_String (Action.From.Element (Index));
-               Expected_Identity : constant String := Files.Model.Created_Identity (Action, Index);
-               Expected_Tree_Revision : constant String := Files.Model.Created_Tree_Revision (Action, Index);
+               Target : constant String := To_String (Action.Items (Index).From);
+               Expected_Identity : constant String := To_String (Action.Items (Index).Identity);
+               Expected_Tree_Revision : constant String := To_String (Action.Items (Index).Tree_Revision);
             begin
-               if Reversed.Contains (To_String (Action.From.Element (Index))) then
+               if Reversed.Contains (To_String (Action.Items (Index).From)) then
                   null;
                elsif Exists_Safely (Target)
                  and then (Expected_Identity = ""
@@ -107,69 +106,21 @@ begin
                then
                   Succeeded := False;
                else
-                  Action.Reverse_Completed.Append (Action.From.Element (Index));
-                  Reversed.Include (To_String (Action.From.Element (Index)));
+                  Action.Reverse_Completed.Append (Action.Items (Index).From);
+                  Reversed.Include (To_String (Action.Items (Index).From));
                   --  A retry treats a path already gone as removed.
                   Files.History_Journal.Checkpoint (Model, Action, False, Force => False);
                end if;
             end;
          end loop;
 
-      when Files.Model.Undo_Set_Permissions =>
-         --  Restore the previous mode recorded before the chmod. From holds
-         --  the path and To holds the decimal image of the old mode bits.
-         for Index in Action.From.First_Index .. Action.From.Last_Index loop
-            if Files.Job_Context.Cancelled then
-               return False;
-            end if;
-            declare
-               --  A malformed entry (To shorter than From) reads "", which
-               --  does not parse: that item fails.
-               Old_Text : constant String :=
-                 Ada.Strings.Fixed.Trim (Files.Model.To_Value (Action, Index), Ada.Strings.Both);
-               Old_Mode : Natural := 0;
-            begin
-               --  The access record, where one was kept, is put back
-               --  whole: on Windows the DACL the change replaced.
-               if not Files.Undo_Payloads.Parse_Mode (Old_Text, Old_Mode)
-                 or else not Change_Recorded_Mode
-                   (Action, Index, Old_Mode, Files.Undo_Payloads.Mode_Access (Old_Text))
-               then
-                  Succeeded := False;
-               end if;
-            end;
-         end loop;
-
-      when Files.Model.Undo_Set_Ownership =>
-         --  Restore the previous owner/group recorded before the chown.
-         --  From holds the path and To holds "uid gid" decimal images.
-         for Index in Action.From.First_Index .. Action.From.Last_Index loop
-            if Files.Job_Context.Cancelled then
-               return False;
-            end if;
-            declare
-               Old_Text : constant String :=
-                 Ada.Strings.Fixed.Trim (Files.Model.To_Value (Action, Index), Ada.Strings.Both);
-               Old_Uid  : Files.Types.Account_Id := 0;
-               Old_Gid  : Files.Types.Account_Id := 0;
-               Old_User_Name, Old_Group_Name : Files.Types.UString;
-            begin
-               if Parse_Ownership_Text
-                 (Old_Text, Old_Uid, Old_Gid,
-                  Old_User_Name, Old_Group_Name)
-               then
-                  if not Change_Recorded_Ownership
-                    (Action, Index, Old_Uid, Old_Gid,
-                     To_String (Old_User_Name),
-                     To_String (Old_Group_Name))
-                  then
-                     Succeeded := False;
-                  end if;
-               else
-                  Succeeded := False;
-               end if;
-            end;
-         end loop;
+      when Files.Model.Undo_Set_Permissions | Files.Model.Undo_Set_Ownership =>
+         --  Put back the mode or owner the change replaced (To).
+         case Replay_Metadata (Action, Before_Change) is
+            when Stopped     => return False;
+            when Item_Failed => Succeeded := False;
+            when Replayed    => null;
+         end case;
 
       when Files.Model.Undo_None =>
          Succeeded := False;
@@ -178,27 +129,20 @@ begin
    --  Paste-replace: after the main reverse has vacated each destination
    --  (deleted the pasted copy / moved the source back), restore the original
    --  that the Replace moved to the trash, so undo returns the pre-paste state.
-   for Index in Action.Restore_Trash.First_Index .. Action.Restore_Trash.Last_Index loop
+   for Original of Action.Replaced loop
       if Files.Job_Context.Cancelled then
          return False;
       end if;
-      if Restored.Contains (To_String (Action.Restore_Trash.Element (Index))) then
+      if Restored.Contains (To_String (Original.Trash)) then
          null;
-      elsif not Restore_Recorded_Trash
-                 (Action.Restore_Trash (Index), Action.Restore_Identities, Action.Restore_Targets, Index)
-      then
+      elsif not Restore_Recorded_Trash (Original) then
          Succeeded := False;
       else
          --  Its labels, favorite and recent entry come back with it.
-         if Index <= Action.Restore_Targets.Last_Index then
-            Files.Model.Note_Path_Move
-              (Model, To_String (Action.Restore_Trash (Index)), To_String (Action.Restore_Targets (Index)));
-         end if;
-         Action.Restores_Completed.Append (Action.Restore_Trash.Element (Index));
-         Restored.Include (To_String (Action.Restore_Trash.Element (Index)));
-         Files.History_Journal.Checkpoint
-           (Model, Action, False,
-            Force => not Restored_In_Place (Action.Restore_Targets, Action.Restore_Identities, Index));
+         Files.Model.Note_Path_Move (Model, To_String (Original.Trash), To_String (Original.Target));
+         Action.Restores_Completed.Append (Original.Trash);
+         Restored.Include (To_String (Original.Trash));
+         Files.History_Journal.Checkpoint (Model, Action, False, Force => not Restored_In_Place (Original));
       end if;
    end loop;
 

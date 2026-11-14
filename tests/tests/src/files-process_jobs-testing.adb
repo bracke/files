@@ -4,9 +4,9 @@ package body Files.Process_Jobs.Testing is
    procedure Simulate_Failed_Stop (Job : Session) is
    begin
       if Job.Shared /= null then
-         Job.Shared.Stop_Requested := True;
-         Job.Shared.Terminated := False;
-         Job.Shared.Stop_Retry_At := Ada.Real_Time.Clock;
+         Job.Shared.Helper.Stop_Requested := True;
+         Job.Shared.Helper.Terminated := False;
+         Job.Shared.Helper.Stop_Retry_At := Ada.Real_Time.Clock;
       end if;
    end Simulate_Failed_Stop;
 
@@ -21,6 +21,8 @@ package body Files.Process_Jobs.Testing is
    begin
       Test_Refuse_Next_Launch := True;
    end Refuse_Next_Launch;
+
+   function Removal_Attempts return Natural is (Test_Removal_Attempts);
 
    procedure Clear_Refusal is
    begin

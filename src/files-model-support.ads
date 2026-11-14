@@ -263,6 +263,12 @@ private package Files.Model.Support is
    --  @return A session holding no job.
    function Released_Process return Files.Process_Jobs.Session;
 
+   --  An idle transfer session, to release a held one by assignment: the
+   --  model only holds the job handles; Files.Operations drives them.
+   --
+   --  @return A session holding no job.
+   function Released_Transfer return Files.Transfer_Jobs.Session;
+
    --  Clear the pending grid type-ahead prefix.
    --
    --  @param Model Model to update.

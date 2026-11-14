@@ -39,7 +39,7 @@ is
       return Result;
    end Probed_Destinations;
 begin
-   if Files.Model.Pasting.Execution_Is_Active (Model) or else Files.Model.Pasting.Conflict_Is_Active (Model) then
+   if Files.Model.Foreground_Job_Is_Active (Model) or else Files.Model.Pasting.Conflict_Is_Active (Model) then
       return Make_Result (Operation_Disabled, Path => Directory);
    end if;
    if Source_Paths.Is_Empty then

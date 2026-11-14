@@ -30,7 +30,7 @@ package Files.Undo_Payloads is
    --  @param Mode Permission bits.
    --  @param Access_Text The entry's whole access record where the bits
    --    cannot hold it all (a Windows DACL as SDDL,
-   --    Files.File_System.Change_Access), or "" where they are all of it.
+   --    Files.File_System.Permissions.Change_Access), or "" where they are all of it.
    --  @return Them as recorded: the bits, then the record after a NUL when
    --    there is one.
    function Mode_Text (Mode : Natural; Access_Text : String := "") return String;

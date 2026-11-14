@@ -21,7 +21,8 @@ begin
       --  put back exactly what was there rather than re-derive it.
       Old_Access, New_Access : Files.Types.UString;
       Mutation  : constant Files.File_System.Mutation_Result :=
-        Files.File_System.Change_Access (Path, "", New_Mode, "", Old_Mode, Old_Access, New_Access, Identity);
+        Files.File_System.Permissions.Change_Access
+          (Path, "", New_Mode, "", Old_Mode, Old_Access, New_Access, Identity);
    begin
       if not Mutation.Success then
          Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));

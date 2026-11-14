@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Commands.Status;
 separate (Files_Suite.Trash)
    procedure Test_Empty_Trash_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -36,8 +37,8 @@ separate (Files_Suite.Trash)
 
       --  Trash two files so both a payload and its .trashinfo sidecar exist.
       declare
-         Trash_A : constant Files.File_System.Mutation_Result := Files.File_System.Move_To_Trash (Source_A);
-         Trash_B : constant Files.File_System.Mutation_Result := Files.File_System.Move_To_Trash (Source_B);
+         Trash_A : constant Files.File_System.Mutation_Result := Files.File_System.Trash.Move_To_Trash (Source_A);
+         Trash_B : constant Files.File_System.Mutation_Result := Files.File_System.Trash.Move_To_Trash (Source_B);
       begin
          Assert (Trash_A.Success, "empty-trash setup trashes both files: a");
          Assert (Trash_B.Success, "empty-trash setup trashes both files: b");
@@ -48,7 +49,7 @@ separate (Files_Suite.Trash)
       Assert (Ada.Directories.Exists (Join (Trash_Info, "empty-b.txt.trashinfo")), "sidecar b is written");
 
       --  Enablement: the non-empty trash view offers Empty Trash.
-      Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
+      Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Assert (Load.Success, "empty-trash setup loads the trash view");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Files.Operations.Settle_Current_Is_Trash (Model);

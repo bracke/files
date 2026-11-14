@@ -1,3 +1,5 @@
+with Files.File_System.Permissions;
+with Files.Foreground_Jobs;
 with Hostkit.Process;
 with Files.Fs_Primitives;
 with Files.Diagnostics;
@@ -637,6 +639,34 @@ package body Files.Controller is
       return Controller_Result
  is separate;
 
+   --  Open the info-pane ownership editor for the single selected item,
+   --  prefilled with the owner's (or group's) resolved account name. Does
+   --  nothing on a platform without chown support, or when the model refuses
+   --  (see Files.Model.Focus_Ownership_Input).
+   --
+   --  @param Model Window model to update.
+   --  @param Editing_Group True to edit the group, False to edit the owner.
+   procedure Focus_Ownership_Input
+     (Model         : in out Files.Model.Window_Model;
+      Editing_Group : Boolean) is
+   begin
+      if not Files.File_System.Permissions.Supports_Ownership
+        or else Files.Model.Selection.Selected_Count (Model) /= 1
+      then
+         return;
+      end if;
+      declare
+         Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
+      begin
+         Files.Model.Focus_Ownership_Input
+           (Model,
+            Editing_Group,
+            (if Editing_Group
+             then Files.File_System.Permissions.Group_Name_For_Id (Item.Group_Id)
+             else Files.File_System.Permissions.User_Name_For_Id (Item.Owner_Id)));
+      end;
+   end Focus_Ownership_Input;
+
    function Handle_Permission_Toggle
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
@@ -664,7 +694,7 @@ package body Files.Controller is
       then
          return Make_Result (Controller_Ignored);
       end if;
-      Files.Operations.Focus_Ownership_Input (Model, Editing_Group => Group);
+      Focus_Ownership_Input (Model, Editing_Group => Group);
       return Make_Result (Controller_Text_Updated);
    end Handle_Ownership_Edit;
 
@@ -703,12 +733,12 @@ package body Files.Controller is
       Settings : Files.Settings.Settings_Model)
       return Controller_Result is
    begin
-      if not Files.Model.Pasting.Execution_Is_Active (Model) then
+      if not Files.Model.Foreground_Job_Is_Active (Model) then
          return Make_Result (Controller_Ignored);
       end if;
-      Files.Operations.Cancel_Paste_Execution (Model);
+      Files.Foreground_Jobs.Cancel (Model);
       return Make_Result
-        (Controller_Command_Executed, Operation => Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
+        (Controller_Command_Executed, Operation => Files.Foreground_Jobs.Advance (Model, Settings, 1));
    end Handle_Paste_Cancel;
 
    function Select_Root

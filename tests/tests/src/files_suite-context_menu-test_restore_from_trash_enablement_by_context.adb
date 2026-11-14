@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Commands.Status;
 separate (Files_Suite.Context_Menu)
    procedure Test_Restore_From_Trash_Enablement_By_Context (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -35,9 +36,9 @@ separate (Files_Suite.Context_Menu)
 
       --  After trashing and navigating into the trash files directory, a selected
       --  trashed item enables Restore From Trash.
-      Mutation := Files.File_System.Move_To_Trash (Doomed);
+      Mutation := Files.File_System.Trash.Move_To_Trash (Doomed);
       Assert (Mutation.Success, "the setup moves the file into the trash");
-      Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
+      Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Files.Model.Initialize
         (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Root);
       Files.Operations.Settle_Current_Is_Trash (Model);

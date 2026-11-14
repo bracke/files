@@ -5,16 +5,6 @@ package body Files.Model.Pasting is
    use Ada.Strings.Unbounded;
    use Files.Model.Support;
 
-   --  An idle transfer session, to release a held one by assignment: the
-   --  model only holds the job handles; Files.Operations drives them.
-   --
-   --  @return A session holding no job.
-   function Released_Transfer return Files.Transfer_Jobs.Session is
-      Idle : Files.Transfer_Jobs.Session;
-   begin
-      return Idle;
-   end Released_Transfer;
-
    procedure Begin_Conflict
      (Model           : in out Window_Model;
       Items           : Files.Paste.Work_Item_Vectors.Vector;
@@ -116,11 +106,10 @@ package body Files.Model.Pasting is
    is
       Writes : Natural := 0;
    begin
-      --  The previous helpers' handles are released (see Clear_Execution).
-      Model.Paste_Exec_Job := Released_Transfer;
-      Model.Operation_Job := Released_Process;
+      --  The previous helpers' handles are released (End_Foreground_Job).
+      End_Foreground_Job (Model);
       Model.Refresh_Job := Released_Process;
-      Model.Operation_Label_Key := Null_Unbounded_String;
+      Model.Foreground_Kind := Paste_Job;
       Touch (Model);
       Claim_Overlay_Input (Model);
       for Action of Actions loop
@@ -281,17 +270,5 @@ package body Files.Model.Pasting is
       Support.Touch (Model);
       Model.Paste_Exec.Cancelled := Requested;
    end Set_Cancelled;
-
-   procedure Clear_Execution
-     (Model : in out Window_Model) is
-   begin
-      --  Released, not driven: a helper still running is stopped and reaped
-      --  by its last handle going (Files.Process_Jobs).
-      Model.Paste_Exec_Job := Released_Transfer;
-      Model.Operation_Job := Released_Process;
-      Model.Operation_Label_Key := Null_Unbounded_String;
-      Touch (Model);
-      Model.Paste_Exec := (others => <>);
-   end Clear_Execution;
 
 end Files.Model.Pasting;

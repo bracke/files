@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Hostkit.Metadata;
 separate (Files_Suite.Operations)
    procedure Test_Ownership_Name_Resolution (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -6,7 +7,7 @@ separate (Files_Suite.Operations)
       Found : Boolean := False;
       Id    : Files.Types.Account_Id := 0;
    begin
-      if not Files.File_System.Supports_Ownership then
+      if not Files.File_System.Permissions.Supports_Ownership then
          Files_Suite.Support.Skip
            ("Test_Ownership_Name_Resolution", "this host has no POSIX owner and group to change");
          return;
@@ -30,19 +31,19 @@ separate (Files_Suite.Operations)
             Assert (Avail, "a file we just created has an owner");
 
             declare
-               Name : constant String := Files.File_System.User_Name_For_Id (Uid);
+               Name : constant String := Files.File_System.Permissions.User_Name_For_Id (Uid);
             begin
                Assert (Name /= "", "the owning identity resolves to a name");
-               Round := Files.File_System.User_Id_For_Name (Name, Found);
+               Round := Files.File_System.Permissions.User_Id_For_Name (Name, Found);
                Assert (Found and then Round = Uid,
                        "that name resolves back to the same identity");
             end;
          end;
       else
-         Id := Files.File_System.User_Id_For_Name ("root", Found);
+         Id := Files.File_System.Permissions.User_Id_For_Name ("root", Found);
          Assert (Found and then Id = 0, "user name root resolves to uid 0");
 
-         Id := Files.File_System.Group_Id_For_Name ("root", Found);
+         Id := Files.File_System.Permissions.Group_Id_For_Name ("root", Found);
          --  The root group is gid 0 on Linux; on some systems it is named
          --  "wheel", so accept a successful resolution to 0 or a not-found result
          --  rather than asserting a fixed gid that may vary by distribution.
@@ -51,10 +52,10 @@ separate (Files_Suite.Operations)
          end if;
       end if;
 
-      Id := Files.File_System.User_Id_For_Name ("no_such_user_xyzzy_42", Found);
+      Id := Files.File_System.Permissions.User_Id_For_Name ("no_such_user_xyzzy_42", Found);
       Assert (not Found and then Id = 0, "a bogus user name reports Found => False");
 
-      Id := Files.File_System.Group_Id_For_Name ("no_such_group_xyzzy_42", Found);
+      Id := Files.File_System.Permissions.Group_Id_For_Name ("no_such_group_xyzzy_42", Found);
       Assert (not Found and then Id = 0, "a bogus group name reports Found => False");
 
       --  Reverse resolution: uid 0 is root on any normal Linux system; gid 0 is
@@ -62,15 +63,17 @@ separate (Files_Suite.Operations)
       --  Neither number means anything on Windows.
       if Hostkit.Host.Current /= Hostkit.Host.Windows
       then
-         Files_Suite.Support.Assert_Equal (Files.File_System.User_Name_For_Id (0), "root", "uid 0 resolves to root");
-         Assert (Files.File_System.Group_Name_For_Id (0) /= "", "gid 0 resolves to a group name");
+         Files_Suite.Support.Assert_Equal
+           (Files.File_System.Permissions.User_Name_For_Id (0), "root",
+            "uid 0 resolves to root");
+         Assert (Files.File_System.Permissions.Group_Name_For_Id (0) /= "", "gid 0 resolves to a group name");
       end if;
       Files_Suite.Support.Assert_Equal
-        (Files.File_System.User_Name_For_Id (2_000_000_000),
+        (Files.File_System.Permissions.User_Name_For_Id (2_000_000_000),
          "",
          "an unassigned uid resolves to the empty string");
       Files_Suite.Support.Assert_Equal
-        (Files.File_System.Group_Name_For_Id (2_000_000_000),
+        (Files.File_System.Permissions.Group_Name_For_Id (2_000_000_000),
          "",
          "an unassigned gid resolves to the empty string");
    end Test_Ownership_Name_Resolution;

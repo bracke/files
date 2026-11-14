@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Hostkit.Metadata;
 separate (Files_Suite.History)
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -21,7 +22,7 @@ separate (Files_Suite.History)
             "retain the metadata history inode"
             & (if Retained then "" else Files_Suite.Support.Access_Report (Source)));
          Write_Binary_File (Source, "unrelated replacement");
-         Mutation := Files.File_System.Set_Permissions (Source, 8#640#);
+         Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#640#);
          Assert (Mutation.Success, "give the replacement independent permissions");
          Step := Complete_Operation (Model, Settings,
            (if Forward then Files.Operations.Redo_Last (Model, Settings)
@@ -45,16 +46,16 @@ separate (Files_Suite.History)
                  "restore the owned metadata entry");
       end Replace_And_Refuse;
    begin
-      if not Files.File_System.Supports_Permissions then
+      if not Files.File_System.Permissions.Supports_Permissions then
          Files_Suite.Support.Skip ("Test_Metadata_History_Identity", "this host has no POSIX permissions to set");
          return;
       end if;
       for Background in Boolean loop
          for Kind in 1 .. 3 loop
-            if Kind < 3 or else Files.File_System.Supports_Ownership then
+            if Kind < 3 or else Files.File_System.Permissions.Supports_Ownership then
                Reset_Root;
                Write_Binary_File (Source, "owned bytes");
-               Mutation := Files.File_System.Set_Permissions (Source, 8#644#);
+               Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#644#);
                Assert (Mutation.Success, "prepare metadata source");
                Load := Files.File_System.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);

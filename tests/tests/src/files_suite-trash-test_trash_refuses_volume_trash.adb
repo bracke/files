@@ -29,14 +29,14 @@ separate (Files_Suite.Trash)
 
          procedure Refused (Path : String) is
          begin
-            Assert (not Files.File_System.Move_To_Trash_Preflight (Path).Success,
+            Assert (not Files.File_System.Trash.Move_To_Trash_Preflight (Path).Success,
                     "a volume trash part is not trashed: " & Path);
          end Refused;
       begin
          --  A volume's top only its owner writes to (the umask may have
          --  left the test root group-writable).
          Ada.Directories.Create_Path (Top);
-         Assert (Files.File_System.Set_Permissions (Top, 8#755#).Success, "the top is its owner's");
+         Assert (Files.File_System.Permissions.Set_Permissions (Top, 8#755#).Success, "the top is its owner's");
          Ada.Directories.Create_Path (Join (Base, "files"));
          Ada.Directories.Create_Path (Join (Base, "info"));
          Ada.Directories.Create_Path (Plain);
@@ -45,30 +45,32 @@ separate (Files_Suite.Trash)
          Refused (Join (Base, "files"));
          Refused (Join (Base, "info"));
          Refused (Item);
-         Assert (Files.File_System.Move_To_Trash_Preflight (Plain).Success,
+         Assert (Files.File_System.Trash.Move_To_Trash_Preflight (Plain).Success,
                  "a folder that only looks like one is trashed as usual");
 
          --  A trash made earlier under a top its group can write to (a
          --  user-private group) stays one; under one anyone can write to, not.
-         Assert (Files.File_System.Is_Volume_Trash_Item (Item), "the volume trash holds the item");
-         Assert (Files.File_System.Set_Permissions (Top, 8#775#).Success, "the top becomes group-writable");
+         Assert (Files.File_System.Trash.Is_Volume_Trash_Item (Item), "the volume trash holds the item");
+         Assert (Files.File_System.Permissions.Set_Permissions (Top, 8#775#).Success, "the top becomes group-writable");
          --  Only where that group is the user's own (named as the user):
          --  a group others share could swap the trash for a folder of the
          --  user's and have Empty Trash delete its contents.
          declare
             Top_Revision : constant Hostkit.Metadata.Entry_Revision := Hostkit.Metadata.Entry_Revision_Of (Top);
             Private_Group : constant Boolean :=
-              Files.File_System.Group_Name_For_Id (Files.Types.Account_Id (Top_Revision.Group_Id))
-              = Files.File_System.User_Name_For_Id (Files.Types.Account_Id (Uid));
+              Files.File_System.Permissions.Group_Name_For_Id (Files.Types.Account_Id (Top_Revision.Group_Id))
+              = Files.File_System.Permissions.User_Name_For_Id (Files.Types.Account_Id (Uid));
          begin
-            Assert (Files.File_System.Is_Volume_Trash_Item (Item) = Private_Group,
+            Assert (Files.File_System.Trash.Is_Volume_Trash_Item (Item) = Private_Group,
                     "an existing trash under a group-writable top stays when the group is the user's own"
                     & (if Private_Group then "" else " (it is shared here, so the trash is not trusted)"));
          end;
-         Assert (Files.File_System.Set_Permissions (Top, 8#777#).Success, "the top becomes writable by all");
-         Assert (not Files.File_System.Is_Volume_Trash_Item (Item),
+         Assert
+           (Files.File_System.Permissions.Set_Permissions (Top, 8#777#).Success,
+            "the top becomes writable by all");
+         Assert (not Files.File_System.Trash.Is_Volume_Trash_Item (Item),
                  "a trash under a top anyone can write to is not trusted");
-         Assert (Files.File_System.Set_Permissions (Top, 8#755#).Success, "the top is its owner's again");
+         Assert (Files.File_System.Permissions.Set_Permissions (Top, 8#755#).Success, "the top is its owner's again");
       end;
       Reset_Root;
    end Test_Trash_Refuses_Volume_Trash;

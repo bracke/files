@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
    --  A move across devices keeps setgid (and setuid) like a same-device
@@ -24,9 +25,9 @@ separate (Files_Suite.Transfer)
       end if;
       Ada.Directories.Create_Directory (Source);
       Write_Binary_File (Join (Source, "notes.txt"), "shared");
-      Mutation := Files.File_System.Set_Permissions (Source, 8#2775#);
+      Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#2775#);
       Assert (Mutation.Success, "prepare a setgid folder");
-      Mode := Files.File_System.Permission_Bits_Of (Source, Available);
+      Mode := Files.File_System.Permissions.Permission_Bits_Of (Source, Available);
       Assert (Available, "the source mode is readable");
       Files_Suite.Support.Assert_Equal (Mode, 8#2775#, "the source folder is setgid");
       Paths.Append (Files.File_System.Drop_Import_Plan'
@@ -34,7 +35,7 @@ separate (Files_Suite.Transfer)
          Files.File_System.Drop_Move, True, Null_Unbounded_String));
       Mutation := Files.File_System.Execute_Drop_Import (Paths);
       Assert (Mutation.Success, "the folder moves to the other volume");
-      Mode := Files.File_System.Permission_Bits_Of (Join (Remote.Path, "shared-project"), Available);
+      Mode := Files.File_System.Permissions.Permission_Bits_Of (Join (Remote.Path, "shared-project"), Available);
       Assert (Available, "the moved folder's mode is readable");
       Files_Suite.Support.Assert_Equal (Mode, 8#2775#, "the moved folder keeps setgid");
       Assert (File_Has_Bytes (Join (Join (Remote.Path, "shared-project"), "notes.txt"), "shared"),

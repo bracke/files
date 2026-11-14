@@ -61,7 +61,7 @@ separate (Files_Suite.Rendering)
                when Files.Model.Quick_Look_Overlay      => One.Quick_Look.Open := True;
                when Files.Model.Tree_Pick_Overlay       => One.Tree_Pick_Active := True;
                when Files.Model.Paste_Conflict_Overlay  => One.Paste_Conflict_Open := True;
-               when Files.Model.Paste_Execution_Overlay => One.Paste_Progress.Open := True;
+               when Files.Model.Foreground_Job_Overlay => One.Paste_Progress.Open := True;
             end case;
             Assert
               (Files.Rendering.Testing.Any_Overlay_Open (One),

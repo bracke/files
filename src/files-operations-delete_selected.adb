@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Items;
 
 separate (Files.Operations)
@@ -24,7 +25,7 @@ begin
      or else Files.Model.Selection.Includes_Temporary (Model)
    then
       return Disabled (Model, "error.selection.empty");
-   elsif not Files.File_System.Trash_Is_Available then
+   elsif not Files.File_System.Trash.Trash_Is_Available then
       Files.Model.Set_Error (Model, "error.trash.unavailable");
       return Make_Result (Operation_Failed, "error.trash.unavailable");
    end if;
@@ -33,7 +34,7 @@ begin
       exit when Files.Job_Context.Cancelled;
       declare
          Preflight : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Move_To_Trash_Preflight (To_String (Item.Full_Path));
+           Files.File_System.Trash.Move_To_Trash_Preflight (To_String (Item.Full_Path));
       begin
          if Preflight.Success then
             null;
@@ -64,7 +65,7 @@ begin
       declare
          Trashed  : Files.Types.UString;
          Mutation : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Move_To_Trash (To_String (Item.Full_Path), Trashed);
+           Files.File_System.Trash.Move_To_Trash (To_String (Item.Full_Path), Trashed);
       begin
          if not Mutation.Success then
             Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));

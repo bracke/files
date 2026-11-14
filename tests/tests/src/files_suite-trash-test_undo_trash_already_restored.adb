@@ -22,8 +22,8 @@ separate (Files_Suite.Trash)
       Select_Name (Model, "kept.txt");
       Result := Files.Operations.Delete_Selected (Model, Settings);
       Assert (not Ada.Directories.Exists (Item), "the item is trashed");
-      Assert (Files.File_System.Restore_From_Trash
-                (Join (Files.File_System.Trash_Files_Directory, "kept.txt")).Success,
+      Assert (Files.File_System.Trash.Restore_From_Trash
+                (Join (Files.File_System.Trash.Trash_Files_Directory, "kept.txt")).Success,
               "and put back by hand");
       Result := Files.Operations.Undo_Last (Model, Settings);
       Files_Suite.Support.Assert_Equal

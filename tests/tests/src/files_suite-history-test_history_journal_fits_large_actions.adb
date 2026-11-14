@@ -15,9 +15,12 @@ separate (Files_Suite.History)
          Result.Kind := Files.Model.Undo_Delete_Created;
          Result.Redoable := False;
          for Index in 1 .. 20_000 loop
-            Result.From.Append (To_Unbounded_String ("/" & Tag & Long_Name & Index'Image));
-            Result.Created_Identities.Append (To_Unbounded_String ("1:" & Index'Image));
-            Result.Created_Tree_Revisions.Append (To_Unbounded_String ("rev"));
+            Result.Items.Append
+              (Files.Model.Undo_Item'
+                 (From => To_Unbounded_String ("/" & Tag & Long_Name & Index'Image),
+                  Identity => To_Unbounded_String ("1:" & Index'Image),
+                  Tree_Revision => To_Unbounded_String ("rev"),
+                  others => <>));
          end loop;
          return Result;
       end Large;
@@ -34,7 +37,8 @@ separate (Files_Suite.History)
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "with the newest action, the older left out");
       Assert (Ada.Strings.Fixed.Index
-                (To_String (Files.Model.History.Undo_Entries (Model).First_Element.From.First_Element), "/newer") = 1,
+                (To_String (Files.Model.History.Undo_Entries (Model).First_Element.Items.First_Element.From),
+                 "/newer") = 1,
               "the one kept is the newest");
       Reset_Root;
    end Test_History_Journal_Fits_Large_Actions;

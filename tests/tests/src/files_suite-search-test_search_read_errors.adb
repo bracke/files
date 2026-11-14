@@ -27,12 +27,12 @@ separate (Files_Suite.Search)
                Denied := To_Unbounded_String
                  ((case Case_Id is when 1 => Root, when 2 => Join (Root, "sub"),
                    when others => Join (Root, "needle.txt")));
-               Mutation := Files.File_System.Set_Permissions (To_String (Denied), 0);
+               Mutation := Files.File_System.Permissions.Set_Permissions (To_String (Denied), 0);
                Assert (Mutation.Success, "make the search input unreadable");
                Step := (if Contents then Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents)
                         else Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names));
                Step := Complete_Operation (Model, Settings, Step);
-               Mutation := Files.File_System.Set_Permissions (To_String (Denied), 8#755#);
+               Mutation := Files.File_System.Permissions.Set_Permissions (To_String (Denied), 8#755#);
                if Case_Id = 1 then
                   --  Nothing can be searched: the search fails and keeps the listing.
                   Files_Suite.Support.Assert_Equal
@@ -119,7 +119,7 @@ separate (Files_Suite.Search)
    exception
       when others =>
          if Length (Denied) > 0 then
-            Mutation := Files.File_System.Set_Permissions (To_String (Denied), 8#755#);
+            Mutation := Files.File_System.Permissions.Set_Permissions (To_String (Denied), 8#755#);
          end if;
          raise;
    end Test_Search_Read_Errors;

@@ -135,7 +135,7 @@ package body Files.Lease_Streams is
          raise Ada.IO_Exceptions.Data_Error;
       end if;
       Read_Body (Input'Access, Value);
-      if not End_Of_Stream (Input) or else not Is_Consistent (Value) then
+      if (Whole and then not End_Of_Stream (Input)) or else not Is_Consistent (Value) then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
       Release (Input);

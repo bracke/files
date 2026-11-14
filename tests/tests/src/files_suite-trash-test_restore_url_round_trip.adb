@@ -22,12 +22,12 @@ separate (Files_Suite.Trash)
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
 
       Write_File (Source_Path, "round trip payload");
-      Mutation := Files.File_System.Move_To_Trash (Source_Path);
+      Mutation := Files.File_System.Trash.Move_To_Trash (Source_Path);
       Assert (Mutation.Success, "a name with a space and percent trashes");
       Assert (not Ada.Directories.Exists (Source_Path), "trashing removes the source");
       Assert (Ada.Directories.Exists (Trashed_Path), "the trashed payload keeps its literal name");
 
-      Mutation := Files.File_System.Restore_From_Trash (Trashed_Path);
+      Mutation := Files.File_System.Trash.Restore_From_Trash (Trashed_Path);
       Assert (Mutation.Success, "restoring the percent/space name succeeds");
       Assert
         (Ada.Directories.Exists (Source_Path)

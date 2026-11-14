@@ -13,7 +13,8 @@ begin
    declare
       Item     : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
       Available : Boolean;
-      Mode : constant Natural := Files.File_System.Permission_Bits_Of (To_String (Item.Full_Path), Available);
+      Mode : constant Natural :=
+        Files.File_System.Permissions.Permission_Bits_Of (To_String (Item.Full_Path), Available);
       Mask     : constant Natural := 2 ** (8 - Bit);
       New_Mode : constant Natural :=
         (if (Mode / Mask) mod 2 = 1

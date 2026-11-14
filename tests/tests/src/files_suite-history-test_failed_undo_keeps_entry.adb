@@ -7,7 +7,7 @@ separate (Files_Suite.History)
       Model    : Files.Model.Window_Model;
       Result   : Files.Operations.Operation_Result;
    begin
-      if not Files.File_System.Supports_Permissions then
+      if not Files.File_System.Permissions.Supports_Permissions then
          Files_Suite.Support.Skip ("Test_Failed_Undo_Keeps_Entry", "this host has no POSIX permissions to set");
          return;
       end if;
@@ -15,7 +15,7 @@ separate (Files_Suite.History)
       Reset_Root;
       Write_File (Target, "mode me");
       Assert
-        (Files.File_System.Set_Permissions (Target, 8#644#).Success,
+        (Files.File_System.Permissions.Set_Permissions (Target, 8#644#).Success,
          "baseline chmod to 0644 succeeds");
 
       Load := Files.File_System.Load_Directory (Root, Settings);

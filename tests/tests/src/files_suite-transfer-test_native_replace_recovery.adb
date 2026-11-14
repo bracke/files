@@ -141,17 +141,17 @@ separate (Files_Suite.Transfer)
          Ada.Directories.Delete_File
            (Join (Ada.Directories.Containing_Directory (To_String (Backup)), "original"));
          Files_Suite.Support.Assert_Equal
-           (Files.File_System.Trash_Original_Path (To_String (Backup)),
+           (Files.File_System.Trash.Trash_Original_Path (To_String (Backup)),
             Dest,
             "the ownership record retains the original path when the legacy sidecar is lost");
          Write_Binary_File (Intruder, "must survive");
-         Result := Files.File_System.Delete_Trashed_Item (To_String (Backup));
+         Result := Files.File_System.Trash.Delete_Trashed_Item (To_String (Backup));
          Assert
            (not Result.Success and then Ada.Directories.Exists (Intruder),
             "discard refuses a recovery directory containing unknown data");
          Ada.Directories.Delete_File (Intruder);
       end;
-      Result := Files.File_System.Restore_From_Trash
+      Result := Files.File_System.Trash.Restore_From_Trash
         (To_String (Backup), Expected_Original => Relative_Target);
       Assert (not Result.Success, "recovery refuses a relative caller-supplied restore path: refused");
       Assert
@@ -160,14 +160,14 @@ separate (Files_Suite.Transfer)
       Assert
         (not Ada.Directories.Exists (Relative_Target),
          "recovery refuses a relative caller-supplied restore path: relative target not created");
-      Result := Files.File_System.Restore_From_Trash
+      Result := Files.File_System.Trash.Restore_From_Trash
         (To_String (Backup),
          Expected_Original => Dest & Character'Val (0) & "suffix");
       Assert
         (not Result.Success and then Ada.Directories.Exists (To_String (Backup)),
          "recovery refuses a caller-supplied restore path containing NUL");
       Write_Binary_File (Dest, "unrelated");
-      Result := Files.File_System.Restore_From_Trash (To_String (Backup));
+      Result := Files.File_System.Trash.Restore_From_Trash (To_String (Backup));
       Assert (not Result.Success and then Ada.Directories.Exists (To_String (Backup)),
               "a failed rollback preserves its backup for retry");
       Files_Suite.Support.Assert_Equal

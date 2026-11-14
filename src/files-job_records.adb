@@ -9,7 +9,6 @@ with Interfaces;
 
 with Files.Durable_Writes;
 with Files.Exclusive_Streams;
-with Files.Process_Jobs;
 with Files.Fs_Primitives;
 with Hostkit.Fs;
 with Guikit.Shared_Bytes;
@@ -91,10 +90,11 @@ package body Files.Job_Records is
 
    procedure Publish_Result
      (Directory : String;
-      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class))
+      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
+      Name      : String := Files.Process_Jobs.Result_File)
    is
-      Staged : constant String := Hostkit.Fs.Join (Directory, Files.Process_Jobs.Staged_Result_File);
-      Result : constant String := Hostkit.Fs.Join (Directory, Files.Process_Jobs.Result_File);
+      Staged : constant String := Hostkit.Fs.Join (Directory, Files.Process_Jobs.Staged_Name (Name));
+      Result : constant String := Hostkit.Fs.Join (Directory, Name);
       File   : aliased Files.Exclusive_Streams.Output_Stream;
    begin
       Files.Exclusive_Streams.Create (File, Staged);

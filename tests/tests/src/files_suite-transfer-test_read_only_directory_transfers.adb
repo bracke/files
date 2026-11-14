@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
    procedure Test_Read_Only_Directory_Transfers (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -37,7 +38,7 @@ separate (Files_Suite.Transfer)
       procedure Protect (Path : String; Mode : Natural) is
       begin
          if Hostkit.Metadata.Mode_Bits_Are_Native then
-            Assert (Files.File_System.Set_Permissions (Path, Mode).Success, "protect " & Path);
+            Assert (Files.File_System.Permissions.Set_Permissions (Path, Mode).Success, "protect " & Path);
          else
             declare
                use type GNAT.OS_Lib.String_Access;

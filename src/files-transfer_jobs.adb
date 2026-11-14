@@ -3,7 +3,6 @@ with Files.Job_Records;
 with Files.Helper_Modes;
 with Files.Diagnostics;
 with Ada.Directories;
-with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
 
 with Files.Fs_Primitives;
@@ -14,12 +13,10 @@ with Files.Durable_Writes;
 with Files.Job_Context;
 with Files.File_Identities;
 with Files.Lease_Streams;
-with Hostkit.Lease_Files;
 with Files.Path_Checks;
 
 package body Files.Transfer_Jobs is
    use Ada.Strings.Unbounded;
-   use type Hostkit.Lease_Files.Open_Outcome;
 
    Max_Transport_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
    Max_Transport_Token_Length : constant := Files.Bounded_Streams.Max_Token_Length;
@@ -117,40 +114,39 @@ package body Files.Transfer_Jobs is
         (Stream, Batch_Directory, Max_Transport_Path_Length);
    end Write_Request;
 
+   type Transfer_Request is record
+      Action          : Files.Paste.Resolved_Action;
+      Mode            : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      Batch_Directory : Files.Types.UString;
+   end record;
+
+   procedure Read_Request_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Work   : out Transfer_Request) is
+   begin
+      Work.Action := Read_Action (Stream);
+      Work.Mode := Files.File_System.Drop_Import_Mode'Input (Stream);
+      Work.Batch_Directory :=
+        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Transport_Path_Length));
+   end Read_Request_Body;
+
+   function Transfer_Request_Is_Consistent (Work : Transfer_Request) return Boolean is
+     (Request_Is_Consistent (Work.Action, To_String (Work.Batch_Directory)));
+
+   function Read_Request_Record is new Files.Lease_Streams.Read_Record
+     (Transfer_Request, Read_Request_Body, Transfer_Request_Is_Consistent);
+
    procedure Read_Transport_Request
      (Path : String;
       Action : out Files.Paste.Resolved_Action;
       Mode : out Files.File_System.Drop_Import_Mode;
       Batch_Directory : out Files.Types.UString)
    is
-      Input : aliased Files.Lease_Streams.Input_Stream;
+      Work : constant Transfer_Request := Read_Request_Record (Path, Request_Header);
    begin
-      if Files.Lease_Streams.Open (Path, Input) /=
-        Hostkit.Lease_Files.Opened
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      if Files.Bounded_Streams.Input_String
-        (Input'Access, Request_Header'Length) /= Request_Header
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Action := Read_Action (Input'Access);
-      Mode := Files.File_System.Drop_Import_Mode'Input (Input'Access);
-      Batch_Directory := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Transport_Path_Length));
-      if not Files.Lease_Streams.End_Of_Stream (Input)
-        or else not Request_Is_Consistent
-          (Action, To_String (Batch_Directory))
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Files.Lease_Streams.Release (Input);
-   exception
-      when others =>
-         Files.Lease_Streams.Release (Input);
-         raise;
+      Action := Work.Action;
+      Mode := Work.Mode;
+      Batch_Directory := Work.Batch_Directory;
    end Read_Transport_Request;
 
    procedure Write_Result
@@ -213,42 +209,43 @@ package body Files.Transfer_Jobs is
       String'Output (Stream, Backup_Identity);
    end Write_Replacement_Checkpoint;
 
+   --  Where a replaced destination was set aside, and its identity.
+   type Replacement_Checkpoint is record
+      Backup          : Files.Types.UString;
+      Backup_Identity : Files.Types.UString;
+   end record;
+
+   procedure Read_Checkpoint_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Saved  : out Replacement_Checkpoint) is
+   begin
+      Saved.Backup := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Transport_Path_Length));
+      Saved.Backup_Identity :=
+        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Transport_Token_Length));
+   end Read_Checkpoint_Body;
+
+   function Checkpoint_Is_Consistent (Saved : Replacement_Checkpoint) return Boolean is
+     (Valid_Absolute_Path (To_String (Saved.Backup))
+      and then Length (Saved.Backup_Identity) > 0
+      and then Files.File_Identities.Token (To_String (Saved.Backup)) = To_String (Saved.Backup_Identity));
+
+   --  A checkpoint has no header: it is two strings.
+   function Read_Checkpoint_Record is new Files.Lease_Streams.Read_Record
+     (Replacement_Checkpoint, Read_Checkpoint_Body, Checkpoint_Is_Consistent);
+
    procedure Read_Replacement_Checkpoint
      (Path : String;
       Backup, Backup_Identity : out Files.Types.UString)
    is
-      Input : aliased Files.Lease_Streams.Input_Stream;
    begin
       Backup := Null_Unbounded_String;
       Backup_Identity := Null_Unbounded_String;
-      if Files.Lease_Streams.Open (Path, Input) /=
-        Hostkit.Lease_Files.Opened
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
       declare
-         Decoded_Backup : constant String := Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Transport_Path_Length);
-         Decoded_Identity : constant String := Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Transport_Token_Length);
+         Saved : constant Replacement_Checkpoint := Read_Checkpoint_Record (Path, Header => "");
       begin
-         if not Files.Lease_Streams.End_Of_Stream (Input)
-           or else not Valid_Absolute_Path (Decoded_Backup)
-           or else Decoded_Identity = ""
-           or else Files.File_Identities.Token (Decoded_Backup) /= Decoded_Identity
-         then
-            raise Ada.IO_Exceptions.Data_Error;
-         end if;
-         Backup := To_Unbounded_String (Decoded_Backup);
-         Backup_Identity := To_Unbounded_String (Decoded_Identity);
+         Backup := Saved.Backup;
+         Backup_Identity := Saved.Backup_Identity;
       end;
-      Files.Lease_Streams.Release (Input);
-   exception
-      when others =>
-         Backup := Null_Unbounded_String;
-         Backup_Identity := Null_Unbounded_String;
-         Files.Lease_Streams.Release (Input);
-         raise;
    end Read_Replacement_Checkpoint;
 
    procedure Apply_Replacement_Checkpoint
@@ -275,18 +272,15 @@ package body Files.Transfer_Jobs is
       Mode   : Files.File_System.Drop_Import_Mode;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
    is
-      File : aliased Files.Exclusive_Streams.Output_Stream;
+      procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
+      begin
+         Write_Request (Stream, Action, Mode, Files.Copy_Context.Directory (Batch));
+      end Write;
    begin
       Files.Process_Jobs.Reserve (Job.Process);
-      Files.Exclusive_Streams.Create
-        (File, Files.Process_Jobs.Path (Job.Process, Files.Process_Jobs.Request_File));
-      Write_Request
-        (File'Access, Action, Mode, Files.Copy_Context.Directory (Batch));
-      Files.Exclusive_Streams.Close (File);
-      Files.Process_Jobs.Launch (Job.Process, Files.Helper_Modes.Flag (Files.Helper_Modes.Transfer));
+      Files.Process_Jobs.Launch_With_Request (Job.Process, Files.Helper_Modes.Transfer, Write'Access);
    exception
       when others =>
-         Files.Exclusive_Streams.Close_Safely (File);
          Reset (Job);
          raise;
    end Start;
@@ -297,7 +291,6 @@ package body Files.Transfer_Jobs is
       procedure Recover is
          Action : Files.Paste.Resolved_Action;
          Mode : Files.File_System.Drop_Import_Mode;
-         Destinations, Sources, Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
          Batch_Directory : Files.Types.UString;
          use type Files.File_System.Drop_Import_Mode;
       begin
@@ -316,25 +309,22 @@ package body Files.Transfer_Jobs is
             Action, Mode, Batch_Directory);
          Apply_Replacement_Checkpoint
            (Files.Process_Jobs.Path (Job.Process, Files.Protocol_Names.Replaced_File), Result);
-         if Mode = Files.File_System.Drop_Move then
-            Files.Job_Context.Read_Moved
-              (Files.Process_Jobs.Path (Job.Process, ""), Destinations, Sources, Identities);
-         else
-            Files.Job_Context.Read_Created
-              (Files.Process_Jobs.Path (Job.Process, ""), Destinations, Sources, Identities, Tree_Revisions);
-         end if;
-         for Index in Destinations.First_Index .. Destinations.Last_Index loop
-            if Destinations (Index) = Action.Dest_Path and then Sources (Index) = Action.Source_Path
-            then
-               Result.Mutation := (Success => True, Error_Key => Null_Unbounded_String);
-               Result.Created_Identity := Identities (Index);
-               if Index <= Tree_Revisions.Last_Index then
-                  Result.Created_Tree_Revision := Tree_Revisions (Index);
+         declare
+            Journal : constant Files.Job_Context.Journal_Entry_Vectors.Vector :=
+              (if Mode = Files.File_System.Drop_Move
+               then Files.Job_Context.Read_Moved (Files.Process_Jobs.Path (Job.Process, ""))
+               else Files.Job_Context.Read_Created (Files.Process_Jobs.Path (Job.Process, "")));
+         begin
+            for Done of Journal loop
+               if Done.Destination = Action.Dest_Path and then Done.Source = Action.Source_Path then
+                  Result.Mutation := (Success => True, Error_Key => Null_Unbounded_String);
+                  Result.Created_Identity := Done.Identity;
+                  Result.Created_Tree_Revision := Done.Tree_Revision;
+                  Result.Recovered := True;
+                  Result.Cancelled := False;
                end if;
-               Result.Recovered := True;
-               Result.Cancelled := False;
-            end if;
-         end loop;
+            end loop;
+         end;
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");

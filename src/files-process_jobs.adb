@@ -1,19 +1,18 @@
 with Files.Protocol_Names;
-with Files.Helper_Modes;
 with Files.Diagnostics;
 with Files.Timing;
 with Ada.Directories;
-with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
+with Files.Exclusive_Streams;
 with Files.File_System;
-with Files.Job_Context;
 with Files.Fs_Primitives;
+with Files.Job_Context;
+with Files.Job_Records;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
-with Hostkit.Process;
-with Hostkit.Signals;
+with Hostkit.Spawn.Supervision;
 
 package body Files.Process_Jobs is
    use Ada.Strings.Unbounded;
@@ -21,7 +20,6 @@ package body Files.Process_Jobs is
    use type Ada.Real_Time.Time_Span;
    use type Ada.Streams.Stream_Element_Array;
    use type Hostkit.Lease_Files.Open_Outcome;
-   use type Hostkit.Spawn.Spawn_Outcome;
    use type Hostkit.Spawn.Wait_State;
 
    --  Each worker already performs its own bounded retry sequence. One
@@ -81,52 +79,89 @@ package body Files.Process_Jobs is
 
    procedure Free is new Ada.Unchecked_Deallocation (State, State_Access);
 
-   procedure Stop (Item : State_Access) is
-      Sent : Boolean;
+   --  Start this program as the helper for Mode, on Arguments after the flag.
+   function Start_Helper
+     (Mode      : Files.Helper_Modes.Helper_Mode;
+      Arguments : Hostkit.String_Vectors.Vector;
+      Process   : in out Supervised_Process) return Boolean
+   is
+      Flag_First : Hostkit.String_Vectors.Vector;
    begin
-      if Item.Started and then not Item.Finished then
-         Item.Stop_Requested := True;
-         Sent := Hostkit.Signals.Send_To_Process
-           (Hostkit.Spawn.Process_Id (Item.Process), Hostkit.Signals.Signal_Kill);
-         if not Sent then
-            Sent := Hostkit.Process.Request_Stop (Hostkit.Spawn.Process_Id (Item.Process));
-         end if;
-         Item.Terminated := Item.Terminated or else Sent;
-         if not Item.Terminated then
-            Item.Stop_Retry_At := Ada.Real_Time.Clock + Stop_Retry_Interval;
+      Flag_First.Append (To_Unbounded_String (Files.Helper_Modes.Flag (Mode)));
+      Flag_First.Append (Arguments);
+      return Files.Helper_Modes.Start_Helper (Flag_First, Process.Handle);
+   end Start_Helper;
+
+   --  Mark Process as running from now on.
+   procedure Note_Started (Process : in out Supervised_Process) is
+   begin
+      Process := (Handle => Process.Handle, Started => True, Started_At => Ada.Real_Time.Clock, others => <>);
+   end Note_Started;
+
+   --  Ask a running Process to end now. A refused request is retried by
+   --  Inspect once Stop_Retry_Interval has passed.
+   procedure Stop (Process : in out Supervised_Process) is
+   begin
+      if Process.Started and then not Process.Finished then
+         Process.Stop_Requested := True;
+         Process.Terminated := Process.Terminated or else Hostkit.Spawn.Supervision.Stop_Now (Process.Handle);
+         if not Process.Terminated then
+            Process.Stop_Retry_At := Ada.Real_Time.Clock + Stop_Retry_Interval;
          end if;
       end if;
    end Stop;
 
+   --  Whether a started Process has ended; an ended one is released and
+   --  marked Finished, with what the host said in Status.
+   function Collect (Process : in out Supervised_Process; Status : out Hostkit.Spawn.Status) return Boolean is
+   begin
+      if Hostkit.Spawn.Supervision.Has_Ended (Process.Handle, Status) then
+         Hostkit.Spawn.Release (Process.Handle);
+         Process.Finished := True;
+         return True;
+      end if;
+      return False;
+   end Collect;
+
+   procedure Stop (Item : State_Access) is
+   begin
+      Stop (Item.Helper);
+   end Stop;
+
    procedure Inspect (Item : State_Access) is
       Status : Hostkit.Spawn.Status;
-      Found  : Boolean;
    begin
-      if Item.Started and then not Item.Finished then
-         Found := Hostkit.Spawn.Wait (Item.Process, Hostkit.Spawn.Wait_Poll, Status);
-         if Found and then Status.State in Hostkit.Spawn.Wait_Exited
-           | Hostkit.Spawn.Wait_Signalled | Hostkit.Spawn.Wait_Lost
-         then
-            Item.Finished := True;
-            Hostkit.Spawn.Release (Item.Process);
-         elsif Item.Stop_Requested and then not Item.Terminated
-           and then Ada.Real_Time.Clock >= Item.Stop_Retry_At
+      if Item.Helper.Started and then not Item.Helper.Finished then
+         if Collect (Item.Helper, Status) then
+            null;
+         elsif Item.Helper.Stop_Requested and then not Item.Helper.Terminated
+           and then Ada.Real_Time.Clock >= Item.Helper.Stop_Retry_At
          then
             Stop (Item);
             if Item.Cancelled then
-               Item.Detached := Item.Terminated;
+               Item.Detached := Item.Helper.Terminated;
             end if;
-         elsif Item.Cancelled and then not Item.Stop_Requested
+         elsif Item.Cancelled and then not Item.Helper.Stop_Requested
            and then Files.Timing.Elapsed (Ada.Real_Time.Clock, Item.Cancel_At, Cancel_Grace_Period)
          then
             Stop (Item);
             --  A process stuck in kernel I/O may not become reapable immediately.
             --  Its pending termination prevents further user-code publication;
             --  detach the UI while retaining its handle and staging journal.
-            Item.Detached := Item.Terminated;
+            Item.Detached := Item.Helper.Terminated;
          end if;
       end if;
    end Inspect;
+
+   --  Neither the transport nor a link in its place is there any more.
+   function Transport_Gone (Item : State_Access) return Boolean is
+   begin
+      return Files.Fs_Primitives.Entry_Is_Absent (To_String (Item.Directory));
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs");
+         return False;
+   end Transport_Gone;
 
    protected Orphan_Queue is
       procedure Register (Accepted : out Boolean);
@@ -238,7 +273,6 @@ package body Files.Process_Jobs is
 
    procedure Submit_Or_Abandon (Item : in out State_Access) is
       Accepted : Boolean;
-      Sent : Boolean;
    begin
       --  Add raises only before it links Item, which the caller then still owns.
       Orphan_Queue.Add (Item, Accepted);
@@ -252,17 +286,8 @@ package body Files.Process_Jobs is
       --  or release the lease must not keep the state alive (or propagate
       --  into a caller that would retry with it): note it and carry on.
       begin
-         if Item.Started and then not Item.Finished then
-            Stop (Item);
-         end if;
-         if Item.Cleanup_Started then
-            Sent := Hostkit.Signals.Send_To_Process
-              (Hostkit.Spawn.Process_Id (Item.Cleanup_Process), Hostkit.Signals.Signal_Kill);
-            if not Sent then
-               Sent := Hostkit.Process.Request_Stop
-                 (Hostkit.Spawn.Process_Id (Item.Cleanup_Process));
-            end if;
-         end if;
+         Stop (Item.Helper);
+         Stop (Item.Cleanup);
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs.Submit_Or_Abandon");
@@ -277,44 +302,27 @@ package body Files.Process_Jobs is
    end Submit_Or_Abandon;
 
    procedure Dispose (Item : in out State_Access) is
-      Arguments : Hostkit.String_Vectors.Vector;
       Stages : constant String := Hostkit.Fs.Join (To_String (Item.Directory), Files.Protocol_Names.Stages_Directory);
 
-      function Transport_Gone return Boolean is
-      begin
-         return not Files.Fs_Primitives.Exists (To_String (Item.Directory))
-           and then not Hostkit.Fs.Is_Link (To_String (Item.Directory));
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs");
-            return False;
-      end Transport_Gone;
-
       function Launch_Cleanup return Boolean is
+         Arguments : Hostkit.String_Vectors.Vector;
       begin
-         Arguments.Append (To_Unbounded_String (Files.Helper_Modes.Flag (Files.Helper_Modes.Cleanup)));
          Arguments.Append (Item.Directory);
          Arguments.Append (Item.Identity);
-         if Hostkit.Spawn.Start
-           (Hostkit.Fs.Own_Executable, Arguments, (others => <>), Item.Cleanup_Process) /=
-             Hostkit.Spawn.Spawn_Ok
-         then
+         Item.Cleanup := (others => <>);
+         if not Start_Helper (Files.Helper_Modes.Cleanup, Arguments, Item.Cleanup) then
             return False;
          end if;
-         Item.Cleanup_Started := True;
-         Item.Cleanup_Started_At := Ada.Real_Time.Clock;
+         Note_Started (Item.Cleanup);
          return True;
       end Launch_Cleanup;
 
       procedure Retain_For_Cleanup (Delay_Retry : Boolean) is
       begin
-         Item.Started := False;
-         Item.Finished := False;
+         --  The helper is gone; only the cleanup worker is watched from here.
+         Item.Helper := (others => <>);
          Item.Cancelled := False;
          Item.Detached := False;
-         Item.Terminated := False;
-         Item.Stop_Requested := False;
-         Item.Stop_Retry_At := Ada.Real_Time.Clock;
          if Delay_Retry then
             Item.Cleanup_Retry_At := Ada.Real_Time.Clock + Cleanup_Retry_Delay;
          end if;
@@ -343,39 +351,19 @@ package body Files.Process_Jobs is
          Destroy (Item);
          return;
       end if;
-      if Item.Cleanup_Started then
+      if Item.Cleanup.Started and then not Item.Cleanup.Finished then
          declare
             Status : Hostkit.Spawn.Status;
-            Found  : constant Boolean :=
-              Hostkit.Spawn.Wait (Item.Cleanup_Process, Hostkit.Spawn.Wait_Poll, Status);
          begin
-            if Found and then Status.State in Hostkit.Spawn.Wait_Running
-              | Hostkit.Spawn.Wait_Stopped | Hostkit.Spawn.Wait_Continued
-            then
-               if Files.Timing.Elapsed (Ada.Real_Time.Clock, Item.Cleanup_Started_At, Cleanup_Timeout) then
-                  declare
-                     Sent : constant Boolean := Hostkit.Signals.Send_To_Process
-                       (Hostkit.Spawn.Process_Id (Item.Cleanup_Process), Hostkit.Signals.Signal_Kill);
-                  begin
-                     if not Sent then
-                        declare
-                           Requested : constant Boolean := Hostkit.Process.Request_Stop
-                             (Hostkit.Spawn.Process_Id (Item.Cleanup_Process));
-                           pragma Unreferenced (Requested);
-                        begin
-                           null;
-                        end;
-                     end if;
-                  end;
+            if not Collect (Item.Cleanup, Status) then
+               if Files.Timing.Elapsed (Ada.Real_Time.Clock, Item.Cleanup.Started_At, Cleanup_Timeout) then
+                  Stop (Item.Cleanup);
                end if;
                Retain_For_Cleanup (Delay_Retry => False);
                return;
             end if;
-
-            Hostkit.Spawn.Release (Item.Cleanup_Process);
-            Item.Cleanup_Started := False;
-            if Found and then Status.State = Hostkit.Spawn.Wait_Exited
-              and then Status.Exit_Code = 0 and then Transport_Gone
+            if Status.State = Hostkit.Spawn.Wait_Exited
+              and then Status.Exit_Code = 0 and then Transport_Gone (Item)
             then
                --  A successful exit is only authoritative once the transport
                --  has actually disappeared.
@@ -399,6 +387,8 @@ package body Files.Process_Jobs is
          return;
       end if;
       begin
+         Test_Removal_Attempts :=
+           (if Test_Removal_Attempts = Natural'Last then 0 else Test_Removal_Attempts + 1);
          if Files.Job_Transports.Matches
            (To_String (Item.Directory), To_String (Item.Identity))
            and then Files.File_System.Delete_Transport_Entry
@@ -417,9 +407,7 @@ package body Files.Process_Jobs is
       --  error is enough.  Hand it to the same independent cleanup worker so
       --  the failure is retried during application idleness instead of being
       --  forgotten when this state is freed.
-      if not Files.Fs_Primitives.Exists (To_String (Item.Directory))
-        and then not Hostkit.Fs.Is_Link (To_String (Item.Directory))
-      then
+      if Transport_Gone (Item) then
          Destroy (Item);
       elsif Launch_Cleanup then
          Retain_For_Cleanup (Delay_Retry => False);
@@ -458,7 +446,7 @@ package body Files.Process_Jobs is
             Next := Current.Next;
             begin
                Inspect (Current);
-               if Current.Finished or else not Current.Started then
+               if Current.Helper.Finished or else not Current.Helper.Started then
                   Dispose (Current);
                else
                   Submit_Or_Abandon (Current);
@@ -531,9 +519,7 @@ package body Files.Process_Jobs is
             --  The reaper stops a running helper and removes the transport:
             --  releasing a session does no filesystem work on this task.
             Inspect (Job.Shared);
-            if Job.Shared.Started and then not Job.Shared.Finished then
-               Stop (Job.Shared);
-            end if;
+            Stop (Job.Shared);
             Ensure_Reaper;
             Submit_Or_Abandon (Job.Shared);
          end if;
@@ -547,9 +533,7 @@ package body Files.Process_Jobs is
          --  orphan reaper retry whenever possible.
          if Job.Shared /= null then
             begin
-               if Job.Shared.Started and then not Job.Shared.Finished then
-                  Stop (Job.Shared);
-               end if;
+               Stop (Job.Shared);
                Ensure_Reaper;
                Submit_Or_Abandon (Job.Shared);
             exception
@@ -607,7 +591,7 @@ package body Files.Process_Jobs is
    procedure Launch (Job : in out Session; Mode : String) is
       Arguments : Hostkit.String_Vectors.Vector;
    begin
-      if Job.Shared = null or else Job.Shared.Started then
+      if Job.Shared = null or else Job.Shared.Helper.Started then
          raise Ada.Directories.Use_Error;
       end if;
       Arguments.Append (To_Unbounded_String (Mode));
@@ -616,13 +600,29 @@ package body Files.Process_Jobs is
          Test_Refuse_Next_Launch := False;
          raise Ada.Directories.Use_Error;
       end if;
-      if Hostkit.Spawn.Start
-        (Hostkit.Fs.Own_Executable, Arguments, (others => <>), Job.Shared.Process) /= Hostkit.Spawn.Spawn_Ok
-      then
+      if not Files.Helper_Modes.Start_Helper (Arguments, Job.Shared.Helper.Handle) then
          raise Ada.Directories.Use_Error;
       end if;
-      Job.Shared.Started := True;
+      Note_Started (Job.Shared.Helper);
    end Launch;
+
+   procedure Launch_With_Request
+     (Job   : in out Session;
+      Mode  : Files.Helper_Modes.Helper_Mode;
+      Write : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class))
+   is
+      File : aliased Files.Exclusive_Streams.Output_Stream;
+   begin
+      Files.Exclusive_Streams.Create (File, Path (Job, Request_File));
+      Write (File'Access);
+      Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
+      Files.Exclusive_Streams.Close (File);
+      Launch (Job, Files.Helper_Modes.Flag (Mode));
+   exception
+      when others =>
+         Files.Exclusive_Streams.Close_Safely (File);
+         raise;
+   end Launch_With_Request;
 
    procedure Poll (Job : Session; Finished : out Boolean; Cancelled : out Boolean) is
    begin
@@ -630,7 +630,7 @@ package body Files.Process_Jobs is
       Cancelled := False;
       if Job.Shared /= null then
          Inspect (Job.Shared);
-         Finished := Job.Shared.Finished or else Job.Shared.Detached;
+         Finished := Job.Shared.Helper.Finished or else Job.Shared.Detached;
          Cancelled := Job.Shared.Cancelled;
       end if;
    end Poll;
@@ -695,12 +695,6 @@ package body Files.Process_Jobs is
       when Tasking_Error =>
          Stopped := Reaper = null or else
            (Reaper.all'Terminated and then Reaper_Result.Complete);
-   end Shutdown;
-
-   procedure Shutdown is
-      Stopped : Boolean;
-   begin
-      Shutdown (Stopped);
    end Shutdown;
 
    function Cancellation_Requested (Directory : String) return Boolean is

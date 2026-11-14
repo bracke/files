@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Files.Controller.Testing;
 with Files.File_System.Testing;
 separate (Files_Suite.Operations)
@@ -32,7 +33,7 @@ separate (Files_Suite.Operations)
          Routed := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       end Commit;
    begin
-      if not Files.File_System.Supports_Ownership then
+      if not Files.File_System.Permissions.Supports_Ownership then
          Files_Suite.Support.Skip
            ("Test_Ownership_Enter_Asks_Only_Changes", "this host has no POSIX owner and group to change");
          return;

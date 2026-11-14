@@ -18,7 +18,7 @@ separate (Files_Suite.Trash)
       --  Re-open the locked payload so the fixture tree can be removed.
       procedure Unlock_Payload is
          Unlocked : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Set_Permissions (Trashed_Lock, 8#755#);
+           Files.File_System.Permissions.Set_Permissions (Trashed_Lock, 8#755#);
          pragma Unreferenced (Unlocked);
       begin
          null;
@@ -39,8 +39,8 @@ separate (Files_Suite.Trash)
       Ada.Directories.Create_Path (Locked_Dir);
       Write_File (Locked_Child, "child");
       declare
-         Trash_Keep : constant Files.File_System.Mutation_Result := Files.File_System.Move_To_Trash (Keep_File);
-         Trash_Lock : constant Files.File_System.Mutation_Result := Files.File_System.Move_To_Trash (Locked_Dir);
+         Trash_Keep : constant Files.File_System.Mutation_Result := Files.File_System.Trash.Move_To_Trash (Keep_File);
+         Trash_Lock : constant Files.File_System.Mutation_Result := Files.File_System.Trash.Move_To_Trash (Locked_Dir);
       begin
          Assert (Trash_Keep.Success, "partial-empty setup trashes both entries: the file");
          Assert (Trash_Lock.Success, "partial-empty setup trashes both entries: the directory");
@@ -49,10 +49,10 @@ separate (Files_Suite.Trash)
       --  Strip all permissions from the trashed directory so its child cannot be
       --  removed, forcing that one entry's purge to fail while the file succeeds.
       Assert
-        (Files.File_System.Set_Permissions (Trashed_Lock, 8#000#).Success,
+        (Files.File_System.Permissions.Set_Permissions (Trashed_Lock, 8#000#).Success,
          "partial-empty setup locks the trashed directory");
 
-      Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
+      Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Assert (Load.Success, "partial-empty setup loads the trash view");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Files.Operations.Settle_Current_Is_Trash (Model);

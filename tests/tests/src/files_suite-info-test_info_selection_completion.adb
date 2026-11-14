@@ -35,7 +35,7 @@ separate (Files_Suite.Info)
               and then Files_Suite.Support.Describe (Files.Model.Selection.Selected_Item (Model).Filetype_Extra) /= "",
               "completed refresh repopulates the selected item's details");
       Revision := Files.Model.Revision (Model);
-      Files.Operations.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));
+      Files.Window_Polls.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));
       Files_Suite.Support.Assert_Equal (Revision, Files.Model.Revision (Model), "completed details remain cached");
    exception
       when others => Files.Refresh_Jobs.Cancel (Model); raise;

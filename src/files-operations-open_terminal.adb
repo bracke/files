@@ -10,7 +10,7 @@ is
 begin
    if Directory = ""
      or else Files.Model.In_Recent_View (Model)
-     or else Files.File_System.Is_Trash_Files_Directory (Directory)
+     or else Files.File_System.Trash.Is_Trash_Files_Directory (Directory)
    then
       return Disabled (Model, "error.terminal.unavailable");
    elsif Terminal = "" then

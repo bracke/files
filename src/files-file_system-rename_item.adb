@@ -224,7 +224,7 @@ is
          Removed : constant Mutation_Result := Delete_Permanently (Stage);
          pragma Unreferenced (Removed);
       begin
-         if not Files.Fs_Primitives.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage) then
+         if Files.Fs_Primitives.Entry_Is_Absent (Stage) then
             Recovery.Unregister (To_String (Backup));
          end if;
       end;

@@ -29,7 +29,7 @@ separate (Files_Suite.Operations)
         (Item, Join (Locked, "renamed.txt"), Files.File_Identities.Token (Item));
       Assert_Equal
         (To_String (Mutation.Error_Key), "error.io.denied", "the refused recorded rename says permission was denied");
-      Mutation := Files.File_System.Move_To_Trash (Item);
+      Mutation := Files.File_System.Trash.Move_To_Trash (Item);
       Assert (not Mutation.Success, "a read-only folder refuses to give up an item to the trash");
       Assert_Equal (To_String (Mutation.Error_Key), "error.io.denied", "the refused trash says permission was denied");
       Mutation := Files.File_System.Delete_Permanently (Item);

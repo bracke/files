@@ -33,14 +33,14 @@ separate (Files_Suite.Recovery)
          Before : Instant;
       begin
          if Restricted then
-            Result := Files.File_System.Set_Permissions (Marker, 0);
+            Result := Files.File_System.Permissions.Set_Permissions (Marker, 0);
             Assert (Result.Success, "make the fallback scan wait for marker access");
          end if;
          Before := Now;
          Files.Job_Scavenger.Scavenge (Join (Root, "missing-scavenge-coordinator"));
          Assert_Within (Before, Prompt_Limit, "startup returns promptly even when the coordinator cannot launch");
          if Restricted then
-            Result := Files.File_System.Set_Permissions (Marker, 8#600#);
+            Result := Files.File_System.Permissions.Set_Permissions (Marker, 8#600#);
             Assert (Result.Success, "restore fallback marker access");
          end if;
          for Attempt in Files_Suite.Support.Polling loop
@@ -55,7 +55,7 @@ separate (Files_Suite.Recovery)
       exception
          when others =>
             if Restricted then
-               Result := Files.File_System.Set_Permissions (Marker, 8#600#);
+               Result := Files.File_System.Permissions.Set_Permissions (Marker, 8#600#);
             end if;
             raise;
       end;

@@ -77,7 +77,7 @@ separate (Files_Suite.Info)
       begin
          Ada.Directories.Create_Directory (Locked);
          Write_Binary_File (Join (Locked, "hidden"), "not empty");
-         Mutation := Files.File_System.Set_Permissions (Locked, 0);
+         Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 0);
          if Mutation.Success then
             begin
                Ada.Directories.Start_Search (Search, Locked, "");
@@ -101,7 +101,7 @@ separate (Files_Suite.Info)
             end;
 
             Guarded := Files.File_System.Directory_Size (Locked);
-            Mutation := Files.File_System.Set_Permissions (Locked, 8#755#);
+            Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
             Assert (Mutation.Success, "restore the folder-size test root mode");
             if Denied then
                Assert
@@ -134,7 +134,7 @@ separate (Files_Suite.Info)
                   when others => null;
                end;
             end if;
-            Mutation := Files.File_System.Set_Permissions (Locked, 8#755#);
+            Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
             Project_Tools.Files.Delete_Tree (Locked);
             raise;
       end;
@@ -143,8 +143,8 @@ separate (Files_Suite.Info)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "tree");
       Files.Model.Toggle_Info_Pane (Model);
-      Files.Operations.Cancel_Folder_Scan (Model);
-      Files.Operations.Update_Folder_Size (Model, Settings);
+      Files.Window_Polls.Cancel_Folder_Scan (Model);
+      Files.Window_Polls.Update_Folder_Size (Model);
 
       --  The measurement now runs in a helper off the UI path; drive it to
       --  completion and publish it, as the frame loop would, before snapshotting.

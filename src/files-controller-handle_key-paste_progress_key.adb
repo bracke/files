@@ -5,12 +5,12 @@ separate (Files.Controller.Handle_Key)
 procedure Paste_Progress_Key (Handled : out Boolean; Result : out Controller_Result) is
 begin
    Handled := True;
-   if Files.Model.Pasting.Execution_Is_Active (Model) then
+   if Files.Model.Foreground_Job_Is_Active (Model) then
       if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
-         Files.Operations.Cancel_Paste_Execution (Model);
+         Files.Foreground_Jobs.Cancel (Model);
          declare
             Finalized : constant Files.Operations.Operation_Result :=
-              Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+              Files.Foreground_Jobs.Advance (Model, Settings, 1);
          begin
             Result := Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Finalized);
             return;

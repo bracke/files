@@ -1,3 +1,4 @@
+with Files.Foreground_Jobs;
 with Files.Process_Jobs.Testing;
 separate (Files_Suite.Transfer)
    --  A background paste whose helper cannot start (a process limit, a full
@@ -26,9 +27,9 @@ separate (Files_Suite.Transfer)
       Files.Model.Set_Background_Transfers (Model, True);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Files.Process_Jobs.Testing.Refuse_Next_Launch;
-      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+      Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
       Files.Process_Jobs.Testing.Clear_Refusal;
-      Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "the paste ends instead of staying armed");
+      Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the paste ends instead of staying armed");
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operations.Operation_Failed, "and reports the failure");
       Files_Suite.Support.Assert_Equal

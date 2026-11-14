@@ -22,13 +22,13 @@ separate (Files_Suite.Archives)
       Routed          : Files.Controller.Controller_Result;
       Catalogue       : Zlib.Archive_Entry_Array (1 .. 2);
 
-      --  Whether Dir holds no ".files-work-" staging folder.
+      --  Whether Dir holds no private copy stage (Files.Protocol_Names.Work_Stage_Prefix).
       function No_Stage_Left return Boolean is
          Search : Ada.Directories.Search_Type;
          Found  : Ada.Directories.Directory_Entry_Type;
          Clean  : Boolean := True;
       begin
-         Ada.Directories.Start_Search (Search, Dir, ".files-work-*");
+         Ada.Directories.Start_Search (Search, Dir, Files.Protocol_Names.Work_Stage_Prefix & "*");
          while Ada.Directories.More_Entries (Search) loop
             Ada.Directories.Get_Next_Entry (Search, Found);
             Clean := False;

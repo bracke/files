@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Hostkit.Metadata;
 separate (Files_Suite.History)
    procedure Test_Live_Metadata_History (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -14,7 +15,7 @@ separate (Files_Suite.History)
       Uid, Gid : Files.Types.Account_Id;
       Available : Boolean;
    begin
-      if not Files.File_System.Supports_Permissions then
+      if not Files.File_System.Permissions.Supports_Permissions then
          Files_Suite.Support.Skip ("Test_Live_Metadata_History", "this host has no POSIX permissions to set");
          return;
       end if;
@@ -22,14 +23,14 @@ separate (Files_Suite.History)
          for Toggle in Boolean loop
             Reset_Root;
             Write_Binary_File (Source, "owned bytes");
-            Mutation := Files.File_System.Set_Permissions (Source, 8#644#);
+            Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#644#);
             Assert (Mutation.Success, "prepare cached permissions");
             Load := Files.File_System.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Select_Name (Model, "live-source");
-            Mutation := Files.File_System.Set_Permissions (Source, 8#600#);
+            Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#600#);
             Assert (Mutation.Success, "simulate a permission change after the directory listing");
             Step := (if Toggle then Files.Operations.Toggle_Permission_Bit (Model, 8, Settings)
                      else Files.Operations.Testing.Set_Permissions_For (Model, 8#750#, Settings));
@@ -44,7 +45,7 @@ separate (Files_Suite.History)
             Assert (Step.Status = Files.Operations.Operation_Success and then Metadata_Mode_Of (Source) = 8#600#,
                     "Undo restores the live previous mode instead of stale directory metadata");
          end loop;
-         if Files.File_System.Supports_Ownership then
+         if Files.File_System.Permissions.Supports_Ownership then
             Reset_Root;
             Write_Binary_File (Source, "owned bytes");
             Hostkit.Metadata.File_Ownership (Source, Uid, Gid, Available);

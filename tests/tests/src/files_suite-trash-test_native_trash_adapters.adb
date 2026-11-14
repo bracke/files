@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.File_System.Testing;
 
 separate (Files_Suite.Trash)
@@ -93,7 +94,7 @@ separate (Files_Suite.Trash)
             Victim : constant String := Join (Root, "for-native-trash.txt");
          begin
             Write_File (Victim, "bin me");
-            Mutation := Files.File_System.Move_To_Trash (Victim);
+            Mutation := Files.File_System.Trash.Move_To_Trash (Victim);
 
             if Hostkit.Host.Current = Hostkit.Host.Windows
             then
@@ -132,7 +133,7 @@ separate (Files_Suite.Trash)
             begin
                Write_File (Victim, "keep me");
                Assert (Path_Exists (Shared), "the file is reachable through \\localhost\" & Root (Root'First) & "$");
-               Mutation := Files.File_System.Move_To_Trash_Preflight (Shared);
+               Mutation := Files.File_System.Trash.Move_To_Trash_Preflight (Shared);
                Assert (not Mutation.Success, "recycling from a network share is refused");
                Files_Suite.Support.Assert_Equal
                  (To_String (Mutation.Error_Key), "error.trash.volume_unavailable",

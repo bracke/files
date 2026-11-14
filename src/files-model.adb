@@ -7,18 +7,23 @@ package body Files.Model is
 
    use Ada.Strings.Unbounded;
 
-   procedure Set_Created
-     (Action : in out Undo_Entry; Index : Positive; Identity, Tree_Revision : UString) is
+   function From_Paths (Action : Undo_Entry) return Files.Types.String_Vectors.Vector is
    begin
-      while Action.Created_Identities.Last_Index < Index loop
-         Action.Created_Identities.Append (Null_Unbounded_String);
-      end loop;
-      while Action.Created_Tree_Revisions.Last_Index < Index loop
-         Action.Created_Tree_Revisions.Append (Null_Unbounded_String);
-      end loop;
-      Action.Created_Identities.Replace_Element (Index, Identity);
-      Action.Created_Tree_Revisions.Replace_Element (Index, Tree_Revision);
-   end Set_Created;
+      return Paths : Files.Types.String_Vectors.Vector do
+         for Item of Action.Items loop
+            Paths.Append (Item.From);
+         end loop;
+      end return;
+   end From_Paths;
+
+   function Replaced_Trash (Action : Undo_Entry) return Files.Types.String_Vectors.Vector is
+   begin
+      return Paths : Files.Types.String_Vectors.Vector do
+         for Original of Action.Replaced loop
+            Paths.Append (Original.Trash);
+         end loop;
+      end return;
+   end Replaced_Trash;
 
    procedure Set_Background_Transfers (Model : in out Window_Model; Enabled : Boolean) is
    begin
@@ -27,16 +32,51 @@ package body Files.Model is
 
    function Background_Transfers (Model : Window_Model) return Boolean is (Model.Background_Transfers_Value);
 
-   procedure Set_Background_Operation
+   function Foreground_Job (Model : Window_Model) return Foreground_Job_Kind is (Model.Foreground_Kind);
+
+   function Foreground_Job_Is_Active (Model : Window_Model) return Boolean is
+     (Model.Foreground_Kind /= No_Foreground_Job);
+
+   function Foreground_Progress_Of (Model : Window_Model) return Foreground_Progress is
+     (case Model.Foreground_Kind is
+         when No_Foreground_Job => (others => <>),
+         when Paste_Job =>
+           (Done      => Model.Paste_Exec.Done,
+            Total     => Model.Paste_Exec.Total,
+            Name      => Model.Paste_Exec.Current,
+            Moving    => Files.File_System."=" (Model.Paste_Exec.Mode, Files.File_System.Drop_Move),
+            Label_Key => Null_Unbounded_String),
+         when Operation_Job =>
+           (Done      => 0,
+            Total     => 1,
+            Name      => Model.Operation_Name,
+            Moving    => False,
+            Label_Key => Model.Operation_Label_Key));
+
+   procedure Begin_Operation_Job
      (Model : in out Window_Model; Job : Files.Process_Jobs.Session; Label_Key : String) is
    begin
+      End_Foreground_Job (Model);
+      Support.Claim_Overlay_Input (Model);
+      Model.Foreground_Kind := Operation_Job;
       Model.Operation_Job := Job;
       Model.Operation_Label_Key := To_Unbounded_String (Label_Key);
-      Model.Paste_Exec.Current := To_Unbounded_String (Current_Path (Model));
+      Model.Operation_Name := To_Unbounded_String (Current_Path (Model));
       Support.Touch (Model);
-   end Set_Background_Operation;
+   end Begin_Operation_Job;
 
-   function Background_Operation_Label (Model : Window_Model) return String is (To_String (Model.Operation_Label_Key));
+   procedure End_Foreground_Job (Model : in out Window_Model) is
+   begin
+      --  Released, not driven: a helper still running is stopped and reaped
+      --  by its last handle going (Files.Process_Jobs).
+      Model.Paste_Exec_Job := Support.Released_Transfer;
+      Model.Operation_Job := Support.Released_Process;
+      Model.Operation_Label_Key := Null_Unbounded_String;
+      Model.Operation_Name := Null_Unbounded_String;
+      Model.Paste_Exec := (others => <>);
+      Model.Foreground_Kind := No_Foreground_Job;
+      Support.Touch (Model);
+   end End_Foreground_Job;
 
    function Background_Operation (Model : Window_Model) return Files.Process_Jobs.Session is (Model.Operation_Job);
 
@@ -167,7 +207,7 @@ package body Files.Model is
          when Quick_Look_Overlay      => return Model.Quick_Look.Open;
          when Tree_Pick_Overlay       => return Model.Tree_Pick.Mode /= Pick_None;
          when Paste_Conflict_Overlay  => return Model.Paste_Conflict.Active;
-         when Paste_Execution_Overlay => return Model.Paste_Exec.Active;
+         when Foreground_Job_Overlay => return Model.Foreground_Kind /= No_Foreground_Job;
       end case;
    end Overlay_Is_Open;
 
@@ -194,14 +234,14 @@ package body Files.Model is
    function Topmost_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean is
      (First_Open
         (Model,
-         [Paste_Execution_Overlay, Paste_Conflict_Overlay, Command_Palette_Overlay, Settings_Pane_Overlay,
+         [Foreground_Job_Overlay, Paste_Conflict_Overlay, Command_Palette_Overlay, Settings_Pane_Overlay,
           Context_Menu_Overlay, Root_Selector_Overlay, Sort_Menu_Overlay, Label_Picker_Overlay,
           Quick_Look_Overlay, Tree_Pick_Overlay],
          Overlay));
 
    function Window_Overlay_Shown (Model : Window_Model; Overlay : Text_Input_Overlay) return Boolean is
      (Overlay_Is_Open (Model, Overlay)
-      and then not Model.Paste_Exec.Active
+      and then Model.Foreground_Kind = No_Foreground_Job
       and then not Model.Paste_Conflict.Active
       and then (Overlay = Command_Palette_Overlay or else not Model.Command_Palette.Open));
 

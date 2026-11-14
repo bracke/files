@@ -21,9 +21,12 @@ separate (Files_Suite.History)
          Result.Kind := Files.Model.Undo_Delete_Created;
          --  Undo-only: a redoable entry would need its forward paths too.
          Result.Redoable := False;
-         Result.From.Append (To_Unbounded_String (Join (Root, "held")));
-         Result.Created_Identities.Append (To_Unbounded_String ("1:held"));
-         Result.Created_Tree_Revisions.Append (To_Unbounded_String ("rev"));
+         Result.Items.Append
+           (Files.Model.Undo_Item'
+              (From => To_Unbounded_String (Join (Root, "held")),
+               Identity => To_Unbounded_String ("1:held"),
+               Tree_Revision => To_Unbounded_String ("rev"),
+               others => <>));
          Result.Sequence := Sequence;
          return Files.Model.Undo_Entry_Vectors.To_Vector (Result, 1);
       end Held_Entry;

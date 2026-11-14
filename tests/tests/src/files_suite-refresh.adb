@@ -1,3 +1,4 @@
+with Files.Foreground_Jobs;
 with Files.Items;
 with Files.Model.Testing;
 with Files.Process_Jobs;
@@ -28,7 +29,6 @@ with Guikit.Input;
 with Files.Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
-with Files.Model.Pasting;
 
 package body Files_Suite.Refresh is
 

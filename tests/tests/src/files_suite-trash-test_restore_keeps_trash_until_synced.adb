@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Durability.Testing;
 with Files_Suite.Volumes;
 separate (Files_Suite.Trash)
@@ -23,7 +24,7 @@ separate (Files_Suite.Trash)
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Remote.Path, "data"));
       Write_Binary_File (Original, "kept");
-      Result := Files.File_System.Move_To_Trash (Original, Trashed);
+      Result := Files.File_System.Trash.Move_To_Trash (Original, Trashed);
       Assert (Result.Success and then not Ada.Directories.Exists (Original),
               "the item goes to a trash on another device");
       declare
@@ -33,7 +34,7 @@ separate (Files_Suite.Trash)
       begin
          --  The restored file is flushed as it is written, staged as "payload".
          Files.Durability.Testing.Fail_Syncs_Ending_With ("/payload");
-         Result := Files.File_System.Restore_From_Trash (To_String (Trashed));
+         Result := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
          Files.Durability.Testing.Clear;
          --  The copy is flushed as it is written, so a flush that fails
          --  fails the restore before anything is published.

@@ -24,10 +24,6 @@ package body Files.Model.History is
 
    function Redo_Entries (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.History.Redo_Stack);
 
-   function Same_Length
-     (Left, Right : Files.Types.String_Vectors.Vector) return Boolean is
-     (Natural (Left.Length) = Natural (Right.Length));
-
    function Nonempty_Values
      (Values : Files.Types.String_Vectors.Vector) return Boolean is
    begin
@@ -97,16 +93,36 @@ package body Files.Model.History is
    function History_Entry_Usable
      (Action : Undo_Entry; For_Redo : Boolean) return Boolean
    is
-      Main_Count : constant Natural := Natural (Action.From.Length);
-      Restore_Count : constant Natural := Natural (Action.Restore_Trash.Length);
+      Main_Count : constant Natural := Natural (Action.Items.Length);
+      Restore_Count : constant Natural := Natural (Action.Replaced.Length);
+
+      --  Each item's To, or Forward.
+      function Tos return Files.Types.String_Vectors.Vector is
+      begin
+         return Values : Files.Types.String_Vectors.Vector do
+            for Item of Action.Items loop
+               Values.Append (Item.To);
+            end loop;
+         end return;
+      end Tos;
+
+      function Forwards return Files.Types.String_Vectors.Vector is
+      begin
+         return Values : Files.Types.String_Vectors.Vector do
+            for Item of Action.Items loop
+               Values.Append (Item.Forward);
+            end loop;
+         end return;
+      end Forwards;
+
+      --  No item carries a To, or a Forward.
+      function No_To return Boolean is (for all Item of Action.Items => Length (Item.To) = 0);
+      function No_Forward return Boolean is (for all Item of Action.Items => Length (Item.Forward) = 0);
 
       function Payload_Images_Valid
         (Values : Files.Types.String_Vectors.Vector;
          Ownership : Boolean) return Boolean is
       begin
-         if Natural (Values.Length) /= Main_Count then
-            return False;
-         end if;
          for Value of Values loop
             if (if Ownership then not Files.Undo_Payloads.Is_Ownership_Text (To_String (Value))
                 else not Files.Undo_Payloads.Is_Mode_Text (To_String (Value)))
@@ -117,69 +133,65 @@ package body Files.Model.History is
          return True;
       end Payload_Images_Valid;
 
+      Kept_Paths, Kept_Identities, Restore_Identities, Restore_Targets : Files.Types.String_Vectors.Vector;
+      Restore_Trash : constant Files.Types.String_Vectors.Vector := Replaced_Trash (Action);
       Forward_Markers_Valid : Boolean := False;
       --  Reverse markers name a From path or a kept copy.
-      Reverse_Allowed : Files.Types.String_Vectors.Vector := Action.From;
+      Reverse_Allowed : Files.Types.String_Vectors.Vector := From_Paths (Action);
    begin
-      Reverse_Allowed.Append_Vector (Action.Kept_Copies);
+      for Copy of Action.Kept loop
+         Kept_Paths.Append (Copy.Path);
+         Kept_Identities.Append (Copy.Identity);
+      end loop;
+      for Original of Action.Replaced loop
+         Restore_Identities.Append (Original.Identity);
+         Restore_Targets.Append (Original.Target);
+      end loop;
+      Reverse_Allowed.Append_Vector (Kept_Paths);
       if Action.Kind = Undo_None
         or else Main_Count = 0
-        or else not Unique_Absolute_Paths (Action.From)
-        or else (not Action.Kept_Copies.Is_Empty
+        or else not Unique_Absolute_Paths (From_Paths (Action))
+        or else (not Action.Kept.Is_Empty
           and then (Action.Kind /= Undo_Move
             or else Action.Redoable
-            or else not Unique_Absolute_Paths (Action.Kept_Copies)
-            or else not Same_Length (Action.Kept_Copies, Action.Kept_Copy_Identities)
-            or else not Same_Length (Action.Kept_Copies, Action.Kept_Copy_Tree_Revisions)
-            or else not Nonempty_Values (Action.Kept_Copy_Identities)
+            or else not Unique_Absolute_Paths (Kept_Paths)
+            or else not Nonempty_Values (Kept_Identities)
             or else not Unique_Nonempty_Values (Reverse_Allowed)))
-        or else (Action.Kept_Copies.Is_Empty
-          and then not (Action.Kept_Copy_Identities.Is_Empty and then Action.Kept_Copy_Tree_Revisions.Is_Empty))
-        or else not Same_Length (Action.From, Action.Created_Identities)
-        or else not Same_Length (Action.From, Action.Created_Tree_Revisions)
-        or else not Nonempty_Values (Action.Created_Identities)
+        or else (for some Item of Action.Items => Length (Item.Identity) = 0)
         or else (For_Redo and then not Action.Redoable)
       then
          return False;
       end if;
 
       if Restore_Count = 0 then
-         if not Action.Restore_Identities.Is_Empty
-           or else not Action.Restore_Targets.Is_Empty
-           or else not Action.Restores_Completed.Is_Empty
-         then
+         if not Action.Restores_Completed.Is_Empty then
             return False;
          end if;
       elsif Action.Redoable
         or else Action.Kind not in Undo_Move | Undo_Delete_Created
-        or else not Unique_Absolute_Paths (Action.Restore_Trash)
-        or else not Same_Length (Action.Restore_Trash, Action.Restore_Identities)
-        or else not Same_Length (Action.Restore_Trash, Action.Restore_Targets)
-        or else not Nonempty_Values (Action.Restore_Identities)
-        or else not Unique_Absolute_Paths (Action.Restore_Targets)
-        or else not Completion_Markers_Valid
-          (Action.Restores_Completed, Action.Restore_Trash)
+        or else not Unique_Absolute_Paths (Restore_Trash)
+        or else not Nonempty_Values (Restore_Identities)
+        or else not Unique_Absolute_Paths (Restore_Targets)
+        or else not Completion_Markers_Valid (Action.Restores_Completed, Restore_Trash)
       then
          return False;
       end if;
 
       case Action.Kind is
          when Undo_Rename | Undo_Move =>
-            if not Same_Length (Action.From, Action.To)
-              or else not Unique_Absolute_Paths (Action.To)
-              or else not Action.Forward.Is_Empty
+            if not Unique_Absolute_Paths (Tos)
+              or else not No_Forward
               or else Action.Create_Kind /= Create_None
             then
                return False;
             end if;
             Forward_Markers_Valid :=
-              Completion_Markers_Valid (Action.Forward_Completed, Action.To);
+              Completion_Markers_Valid (Action.Forward_Completed, Tos);
 
          when Undo_Restore_Trash =>
             if Action.Redoable
-              or else not Same_Length (Action.From, Action.To)
-              or else not Unique_Absolute_Paths (Action.To)
-              or else not Action.Forward.Is_Empty
+              or else not Unique_Absolute_Paths (Tos)
+              or else not No_Forward
               or else Action.Create_Kind /= Create_None
               or else Restore_Count /= 0
               or else not Action.Forward_Completed.Is_Empty
@@ -189,37 +201,24 @@ package body Files.Model.History is
             Forward_Markers_Valid := True;
 
          when Undo_Delete_Created =>
-            if not Action.To.Is_Empty
+            if not No_To
               or else (Action.Redoable
                 and then (Action.Create_Kind = Create_None
-                  or else not Same_Length (Action.From, Action.Forward)
-                  or else not Absolute_Paths (Action.Forward)))
-              or else (not Action.Redoable and then not Action.Forward.Is_Empty)
+                  or else not Absolute_Paths (Forwards)))
+              or else (not Action.Redoable and then not No_Forward)
             then
                return False;
             end if;
             Forward_Markers_Valid :=
-              Completion_Markers_Valid (Action.Forward_Completed, Action.From);
+              Completion_Markers_Valid (Action.Forward_Completed, From_Paths (Action));
 
-         when Undo_Set_Permissions =>
+         when Undo_Set_Permissions | Undo_Set_Ownership =>
             if Action.Create_Kind /= Create_None
               or else Restore_Count /= 0
-              or else not Payload_Images_Valid (Action.To, False)
-              or else (Action.Redoable and then not Payload_Images_Valid (Action.Forward, False))
-              or else (not Action.Redoable and then not Action.Forward.Is_Empty)
-              or else not Action.Reverse_Completed.Is_Empty
-              or else not Action.Forward_Completed.Is_Empty
-            then
-               return False;
-            end if;
-            Forward_Markers_Valid := True;
-
-         when Undo_Set_Ownership =>
-            if Action.Create_Kind /= Create_None
-              or else Restore_Count /= 0
-              or else not Payload_Images_Valid (Action.To, True)
-              or else (Action.Redoable and then not Payload_Images_Valid (Action.Forward, True))
-              or else (not Action.Redoable and then not Action.Forward.Is_Empty)
+              or else not Payload_Images_Valid (Tos, Action.Kind = Undo_Set_Ownership)
+              or else (Action.Redoable
+                and then not Payload_Images_Valid (Forwards, Action.Kind = Undo_Set_Ownership))
+              or else (not Action.Redoable and then not No_Forward)
               or else not Action.Reverse_Completed.Is_Empty
               or else not Action.Forward_Completed.Is_Empty
             then
@@ -390,14 +389,14 @@ package body Files.Model.History is
                then
                   --  The helper's new record retired the redo stack, and this
                   --  entry, which it never held, with it.
-                  for Payload of Action.Restore_Trash loop
+                  for Payload of Replaced_Trash (Action) loop
                      Model.History.Retired_Discards.Append (Payload);
                   end loop;
                elsif Cap_Dropped (Action) then
                   --  Still undoable (or redoable) when the journal had to
                   --  forget it: as an entry past the depth cap, its
                   --  originals go to the system trash, not to deletion.
-                  for Payload of Action.Restore_Trash loop
+                  for Payload of Replaced_Trash (Action) loop
                      Model.History.Retired_Releases.Append (Payload);
                   end loop;
                end if;
@@ -433,7 +432,7 @@ package body Files.Model.History is
       while Natural (Merged_Undo.Length) > Max_Undo_Depth loop
          --  As Commit_Undo_Record: a dropped entry could still have been
          --  undone, so its originals go to the system trash.
-         for Payload of Merged_Undo.First_Element.Restore_Trash loop
+         for Payload of Replaced_Trash (Merged_Undo.First_Element) loop
             Model.History.Retired_Releases.Append (Payload);
          end loop;
          Merged_Undo.Delete_First;
@@ -459,7 +458,7 @@ package body Files.Model.History is
       Entries : Undo_Entry_Vectors.Vector) is
    begin
       for Action of Entries loop
-         for Payload of Action.Restore_Trash loop
+         for Payload of Replaced_Trash (Action) loop
             Pending.Append (Payload);
          end loop;
       end loop;
@@ -500,10 +499,10 @@ package body Files.Model.History is
       --  Undo and Redo availability is drawn and enables commands.
       Touch (Model);
       Model.History.Journal_Dirty := True;
-      if Action.From.Is_Empty then
+      if Action.Items.Is_Empty then
          --  Nothing to record, but originals a replace preserved must not stay
          --  in hidden stages with no way back: they go to the system trash.
-         for Payload of Action.Restore_Trash loop
+         for Payload of Replaced_Trash (Action) loop
             Model.History.Retired_Releases.Append (Payload);
          end loop;
          return False;
@@ -515,7 +514,7 @@ package body Files.Model.History is
       while Natural (Model.History.Undo_Stack.Length) > Max_Undo_Depth loop
          --  The dropped entry could still have been undone, so the originals it
          --  holds go to the system trash, as on window close, not to deletion.
-         for Payload of Model.History.Undo_Stack.First_Element.Restore_Trash loop
+         for Payload of Replaced_Trash (Model.History.Undo_Stack.First_Element) loop
             Model.History.Retired_Releases.Append (Payload);
          end loop;
          Model.History.Undo_Stack.Delete_First;
@@ -630,7 +629,7 @@ package body Files.Model.History is
          return Files.Types.String_Vectors.Empty_Vector;
       end if;
 
-      return Model.History.Undo_Stack.Last_Element.From;
+      return From_Paths (Model.History.Undo_Stack.Last_Element);
    end Undo_From_Paths;
 
 end Files.Model.History;

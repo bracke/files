@@ -29,6 +29,14 @@ package Files.Fs_Primitives is
    --    for an empty or unreadable path.
    function Entry_Exists (Path : String) return Boolean;
 
+   --  Whether nothing at all is at Path: no entry, and no link (dangling or
+   --  not) in its place. Unlike not Entry_Exists, a failure to look
+   --  propagates, so it is never taken for absence.
+   --
+   --  @param Path Filesystem path to test.
+   --  @return True when Path names nothing.
+   function Entry_Is_Absent (Path : String) return Boolean;
+
    --  Return the parent directory of Path, read from its text (Parent_Text)
    --  as Ada.Directories.Containing_Directory would give it, without its
    --  limits: a name alone lies in ".".

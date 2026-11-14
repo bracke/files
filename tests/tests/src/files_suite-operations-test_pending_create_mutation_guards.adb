@@ -102,7 +102,7 @@ separate (Files_Suite.Operations)
             Files_Suite.Support.Assert_Equal
               (To_String (Step.Error_Key), "error.create.pending", Context & ": error key");
             Assert (Files.Model.Temporary_Item_Is_Active (Model), Context & ": the inline creation stays active");
-            Assert (not Files.Model.Pasting.Execution_Is_Active (Model), Context & ": no paste execution");
+            Assert (not Files.Model.Foreground_Job_Is_Active (Model), Context & ": no paste execution");
             Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), Context & ": no paste conflict");
             Assert (not Ada.Directories.Exists (Join (Join (Root, "view"), "incoming.txt")),
                     Context & ": nothing written");

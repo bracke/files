@@ -1,3 +1,5 @@
+with Files.Window_Polls;
+with Files.Foreground_Jobs;
 with Files.Preview_Decoder;
 with Files.Extra_Info_Reader;
 with Files.Controller;
@@ -26,7 +28,6 @@ with Files.UI;
 with Guikit.Utf8;
 with Files.Model.Clipboard;
 with Files.Model.Tree_Panel;
-with Files.Model.Pasting;
 with Files.Model.Selection;
 
 package body Files.Application.Windows is
@@ -470,13 +471,7 @@ package body Files.Application.Windows is
 
    procedure Release_Window_Jobs
      (Model : in out Files.Model.Window_Model;
-      Watch : in out Files.Refresh_Jobs.Watch_Session) is
-   begin
-      Files.Operations.Cancel_Folder_Scan (Model);
-      Files.Model.Pasting.Clear_Execution (Model);
-      Files.Refresh_Jobs.Cancel (Model);
-      Files.Refresh_Jobs.Release_Watch (Watch);
-   end Release_Window_Jobs;
+      Watch : in out Files.Refresh_Jobs.Watch_Session) is separate;
 
    function Drain_Native_Watch
      (Runtime : in out Runtime_Window)
@@ -508,7 +503,7 @@ package body Files.Application.Windows is
          return;
       end if;
 
-      if Files.Model.Pasting.Execution_Is_Active (Runtime.Model) then
+      if Files.Model.Foreground_Job_Is_Active (Runtime.Model) then
          Files.Refresh_Jobs.Cancel (Runtime.Model);
          return;
       end if;
@@ -517,7 +512,7 @@ package body Files.Application.Windows is
       Files.Refresh_Jobs.Resume_Owed (Runtime.Model, Runtime.Settings);
       --  The selected item's type details, read off the UI thread; this also
       --  serves selections deferred by a cancelled or failed refresh.
-      Files.Operations.Poll_Selected_Item_Extra
+      Files.Window_Polls.Poll_Selected_Item_Extra
         (Runtime.Model, Files.Extra_Info_Reader.Requester (Runtime.A11y_Key), Runtime.Settings.Show_Hidden_Files);
 
       declare
@@ -572,7 +567,7 @@ package body Files.Application.Windows is
          if Runtime.Handle /= null then
             declare
                Busy : constant Boolean :=
-                 Files.Model.Pasting.Execution_Is_Active (Runtime.Model)
+                 Files.Model.Foreground_Job_Is_Active (Runtime.Model)
                  or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Runtime.Model));
             begin
                --  Only the items and the selection decide what is measured: a
@@ -581,14 +576,14 @@ package body Files.Application.Windows is
                  or else Files.Model.Selection_Revision (Runtime.Model) /= Runtime.Folder_Size_Selection
                  or else Busy /= Runtime.Folder_Size_Busy
                then
-                  Files.Operations.Update_Folder_Size (Runtime.Model, Runtime.Settings);
+                  Files.Window_Polls.Update_Folder_Size (Runtime.Model);
                   Runtime.Folder_Size_Rows := Files.Model.Rows_Revision (Runtime.Model);
                   Runtime.Folder_Size_Selection := Files.Model.Selection_Revision (Runtime.Model);
                   Runtime.Folder_Size_Busy := Busy;
                end if;
             end;
-            Files.Operations.Poll_Folder_Sizes (Runtime.Model);
-            Files.Operations.Poll_Quick_Look
+            Files.Window_Polls.Poll_Folder_Sizes (Runtime.Model);
+            Files.Window_Polls.Poll_Quick_Look
               (Runtime.Model, Files.Preview_Decoder.Requester (Runtime.A11y_Key));
          end if;
       end Poll;

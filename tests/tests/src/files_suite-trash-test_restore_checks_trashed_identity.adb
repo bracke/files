@@ -20,17 +20,17 @@ separate (Files_Suite.Trash)
       declare
          Identity : constant String := Files.File_Identities.Token (Source);
       begin
-         Result := Files.File_System.Move_To_Trash (Source, Trashed);
+         Result := Files.File_System.Trash.Move_To_Trash (Source, Trashed);
          Assert (Result.Success, "the item is trashed");
          --  Another file now holds the trash name.
          Ada.Directories.Delete_File (To_String (Trashed));
          Write_File (To_String (Trashed), "someone else");
-         Result := Files.File_System.Restore_From_Trash (To_String (Trashed), Expected_Identity => Identity);
+         Result := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed), Expected_Identity => Identity);
          Assert (not Result.Success, "a different item under the trash name is not restored for undo");
          Assert (not Ada.Directories.Exists (Source), "nothing lands at the original path");
          Assert (File_Has_Bytes (To_String (Trashed), "someone else"), "the other item stays in the trash");
       end;
-      Result := Files.File_System.Restore_From_Trash
+      Result := Files.File_System.Trash.Restore_From_Trash
         (To_String (Trashed), Expected_Identity => Files.File_Identities.Token (To_String (Trashed)));
       Assert (Result.Success, "the item undo names is restored");
       Assert (File_Has_Bytes (Source, "someone else"), "it is back at the original path");

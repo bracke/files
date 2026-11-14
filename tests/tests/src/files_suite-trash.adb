@@ -1,3 +1,6 @@
+with Files.File_System.Trash;
+with Files.File_System.Permissions;
+with Files.Protocol_Names;
 with Files.Items;
 with Files.File_Identities;
 with Files.Process_Jobs;

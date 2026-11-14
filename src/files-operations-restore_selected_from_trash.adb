@@ -23,9 +23,9 @@ begin
       end if;
 
       declare
-         Original : constant String := Files.File_System.Trash_Original_Path (To_String (Item.Full_Path));
+         Original : constant String := Files.File_System.Trash.Trash_Original_Path (To_String (Item.Full_Path));
          Mutation : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Restore_From_Trash (To_String (Item.Full_Path));
+           Files.File_System.Trash.Restore_From_Trash (To_String (Item.Full_Path));
       begin
          if Mutation.Success then
             Files.Model.Note_Path_Move (Model, To_String (Item.Full_Path), Original);

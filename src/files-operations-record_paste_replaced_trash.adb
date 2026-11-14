@@ -7,7 +7,7 @@ procedure Record_Paste_Replaced_Trash
 is
    Original : constant String :=
      (if Original_Path /= "" then Original_Path
-      else Files.File_System.Trash_Original_Path (To_String (Trash_Path)));
+      else Files.File_System.Trash.Trash_Original_Path (To_String (Trash_Path)));
    --  The live entry is checked only while every earlier original verified.
    Verified : constant Boolean :=
      Files.Model.Pasting.Replaced_Extends_Verified (Model)

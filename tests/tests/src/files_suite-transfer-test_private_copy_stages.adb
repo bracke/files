@@ -3,7 +3,7 @@ separate (Files_Suite.Transfer)
       pragma Unreferenced (T);
       Source : constant String := Join (Root, "source");
       Parent : constant String := Join (Root, "destination");
-      Stage : constant String := Join (Parent, ".files-work-1");
+      Stage : constant String := Join (Parent, Files.Protocol_Names.Work_Stage_Prefix & "1");
       Seen : Boolean := False;
       Plans : Files.File_System.Drop_Import_Plan_Vectors.Vector;
       Mutation : Files.File_System.Mutation_Result;
@@ -19,7 +19,7 @@ separate (Files_Suite.Transfer)
       end Observe;
    begin
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
-      if not Files.File_System.Supports_Permissions then
+      if not Files.File_System.Permissions.Supports_Permissions then
          Files_Suite.Support.Skip ("Test_Private_Copy_Stages", "this host has no POSIX permissions to set");
          return;
       end if;
@@ -27,9 +27,9 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Create_Directory (Source);
       Ada.Directories.Create_Directory (Parent);
       Write_Binary_File (Join (Source, "secret"), "private content");
-      Mutation := Files.File_System.Set_Permissions (Source, 8#700#);
+      Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#700#);
       Assert (Mutation.Success, "make the source directory private");
-      Mutation := Files.File_System.Set_Permissions (Join (Source, "secret"), 8#644#);
+      Mutation := Files.File_System.Permissions.Set_Permissions (Join (Source, "secret"), 8#644#);
       Assert (Mutation.Success, "its child relies on the private ancestor");
       --  An existing stage belongs to another operation and must be skipped.
       Ada.Directories.Create_Directory (Stage);
@@ -70,7 +70,7 @@ separate (Files_Suite.Transfer)
          Assert (Mutation.Success and then Is_Owner_Only
                  (Ada.Directories.Containing_Directory (To_String (Backup))),
                  "replacement recovery directories are private too");
-         Mutation := Files.File_System.Restore_From_Trash (To_String (Backup));
+         Mutation := Files.File_System.Trash.Restore_From_Trash (To_String (Backup));
          Assert (Mutation.Success, "restore the private replacement fixture");
       end;
    end Test_Private_Copy_Stages;

@@ -38,7 +38,7 @@ begin
          Labeled  : constant String := To_String (Item.Full_Path);
          Mutation : constant Files.File_System.Mutation_Result :=
            (if In_Trash
-            then Files.File_System.Delete_Trashed_Item
+            then Files.File_System.Trash.Delete_Trashed_Item
                    (To_String (Item.Full_Path))
             else Files.File_System.Delete_Permanently
                    (To_String (Item.Full_Path)));

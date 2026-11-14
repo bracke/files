@@ -12,7 +12,7 @@ separate (Files_Suite.Search)
       Mutation : Files.File_System.Mutation_Result;
       Search   : Files.File_System.Recursive_Search_Result;
    begin
-      if not Files.File_System.Supports_Permissions then
+      if not Files.File_System.Permissions.Supports_Permissions then
          Files_Suite.Support.Skip ("Test_Search_Skips_Unreadable_Folder", "this host has no POSIX permissions to set");
          return;
       end if;
@@ -22,10 +22,10 @@ separate (Files_Suite.Search)
       Write_Binary_File (Join (Root, "needle-top.txt"), "needle");
       Write_Binary_File (Join (Locked, "needle-hidden.txt"), "needle");
       Write_Binary_File (Join (Later, "needle-later.txt"), "needle");
-      Mutation := Files.File_System.Set_Permissions (Locked, 0);
+      Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 0);
       Assert (Mutation.Success, "make the folder unreadable");
       if Files.File_System.Load_Directory (Locked, Settings).Success then
-         Mutation := Files.File_System.Set_Permissions (Locked, 8#755#);
+         Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
          Files_Suite.Support.Skip ("Test_Search_Skips_Unreadable_Folder", "root reads an unreadable folder");
          return;
       end if;
@@ -51,9 +51,9 @@ separate (Files_Suite.Search)
            (Files.Model.Last_Error_Key (Model), "search.incomplete",
             "with the incomplete notice, contents " & Contents'Image);
       end loop;
-      Mutation := Files.File_System.Set_Permissions (Locked, 8#755#);
+      Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
    exception
       when others =>
-         Mutation := Files.File_System.Set_Permissions (Locked, 8#755#);
+         Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
          raise;
    end Test_Search_Skips_Unreadable_Folder;

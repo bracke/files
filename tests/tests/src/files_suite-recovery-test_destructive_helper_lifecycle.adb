@@ -41,8 +41,11 @@ separate (Files_Suite.Recovery)
             Sources := Paths;
             Paths.Clear;
             Paths.Append (To_Unbounded_String (Join (Root, "new-copy.txt")));
-            Action := (Kind => Files.Model.Undo_Delete_Created, From => Paths, Forward => Sources,
-                       Create_Kind => Files.Model.Create_Copy, others => <>);
+            Action := (Kind => Files.Model.Undo_Delete_Created, Create_Kind => Files.Model.Create_Copy, others => <>);
+            for Index in Paths.First_Index .. Paths.Last_Index loop
+               Action.Items.Append
+                 (Files.Model.Undo_Item'(From => Paths (Index), Forward => Sources (Index), others => <>));
+            end loop;
             Files.Model.History.Push_Redo (Model, Action);
             Files.Operations.Testing.Settle_History (Model);
          end if;
@@ -68,7 +71,7 @@ separate (Files_Suite.Recovery)
                & Files.Operations.Operation_Status'Image (Step.Status)
                & " " & To_String (Step.Error_Key));
             Assert_Within (Taken, Prompt_Limit, Kind'Image (Job_Kind) & " command returns before its helper finishes");
-            Assert (Files.Model.Pasting.Execution_Is_Active (Model),
+            Assert (Files.Model.Foreground_Job_Is_Active (Model),
                     Kind'Image (Job_Kind) & " command left no background job running");
          end;
          declare
@@ -81,7 +84,7 @@ separate (Files_Suite.Recovery)
          end loop;
          Assert (Ada.Directories.Exists (To_String (Started)), "the destructive helper reaches stalled work");
          if Job_Kind = Undo_Job then
-            Files.Operations.Cancel_Paste_Execution (Model);
+            Files.Foreground_Jobs.Cancel (Model);
             Step := Complete_Operation (Model, Settings, Step);
             Await_View (Model, Settings);
          else
@@ -140,8 +143,8 @@ separate (Files_Suite.Recovery)
       Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected (Model, Settings));
       Await_View (Model, Settings);
       Paths := Files.Model.History.Undo_From_Paths (Model);
-      Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
-      Files.Model.Navigate_To (Model, Files.File_System.Trash_Files_Directory, Load.Items);
+      Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
+      Files.Model.Navigate_To (Model, Files.File_System.Trash.Trash_Files_Directory, Load.Items);
       Files.Operations.Settle_Current_Is_Trash (Model);
       Select_Name (Model, Ada.Directories.Simple_Name (To_String (Paths.First_Element)));
       Step := Complete_Operation (Model, Settings, Files.Operations.Restore_Selected_From_Trash (Model, Settings));

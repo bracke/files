@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Files.Items;
 with Files.Environment;
 with Ada.Calendar;
@@ -398,11 +399,13 @@ package body Files.Application is
          end if;
          if not Files.Model.Status_Samples.Account_Name_Known (Model, Files.Model.User_Account, Item.Owner_Id) then
             Files.Model.Status_Samples.Set_Account_Name
-              (Model, Files.Model.User_Account, Item.Owner_Id, Files.File_System.User_Name_For_Id (Item.Owner_Id));
+              (Model, Files.Model.User_Account, Item.Owner_Id,
+               Files.File_System.Permissions.User_Name_For_Id (Item.Owner_Id));
          end if;
          if not Files.Model.Status_Samples.Account_Name_Known (Model, Files.Model.Group_Account, Item.Group_Id) then
             Files.Model.Status_Samples.Set_Account_Name
-              (Model, Files.Model.Group_Account, Item.Group_Id, Files.File_System.Group_Name_For_Id (Item.Group_Id));
+              (Model, Files.Model.Group_Account, Item.Group_Id,
+               Files.File_System.Permissions.Group_Name_For_Id (Item.Group_Id));
          end if;
       end Sample;
    begin

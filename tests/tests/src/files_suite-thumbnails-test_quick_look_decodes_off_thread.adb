@@ -1,3 +1,4 @@
+with Files.Window_Polls;
 with Files.Images;
 with Files.Preview_Decoder;
 with Files.Quick_Look;
@@ -112,7 +113,7 @@ separate (Files_Suite.Thumbnails)
         (Guikit.Shared_Bytes.Is_Empty (Files.Model.Quick_Look.Content_Of (Model).Image_Pixels),
          "without its decoded image: the decode is not done on the UI thread");
       for Attempt in Files_Suite.Support.Polling loop
-         Files.Operations.Poll_Quick_Look (Model, 103);
+         Files.Window_Polls.Poll_Quick_Look (Model, 103);
          exit when not Guikit.Shared_Bytes.Is_Empty (Files.Model.Quick_Look.Content_Of (Model).Image_Pixels);
       end loop;
       Assert

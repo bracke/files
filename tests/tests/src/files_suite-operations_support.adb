@@ -1,3 +1,5 @@
+with Files.Window_Polls;
+with Files.File_System.Permissions;
 with Files.Process_Jobs;
 with Files.Refresh_Jobs;
 with Files.Extra_Info_Reader;
@@ -20,7 +22,6 @@ with Hostkit.Fs;
 with Hostkit.Metadata;
 with Guikit.Input;
 with Files_Suite.Support;
-with Files.Model.Pasting;
 
 package body Files_Suite.Operations_Support is
 
@@ -34,12 +35,12 @@ package body Files_Suite.Operations_Support is
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
       Started : Files.Operations.Operation_Result) return Files.Operations.Operation_Result is
-     (if Files.Model.Pasting.Execution_Is_Active (Model) then Finish_Paste (Model, Settings) else Started);
+     (if Files.Model.Foreground_Job_Is_Active (Model) then Finish_Paste (Model, Settings) else Started);
 
    procedure Await_Item_Details (Model : in out Files.Model.Window_Model) is
    begin
       for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
-         Files.Operations.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));
+         Files.Window_Polls.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));
          exit when not Files.Model.Selected_Item_Needs_Extra (Model);
       end loop;
       Assert (not Files.Model.Selected_Item_Needs_Extra (Model), "the window's poll brings the details in");
@@ -47,7 +48,7 @@ package body Files_Suite.Operations_Support is
 
    procedure Unlock_Directory (Directory : String) is
       Unlocked : constant Files.File_System.Mutation_Result :=
-        Files.File_System.Set_Permissions (Directory, 8#755#);
+        Files.File_System.Permissions.Set_Permissions (Directory, 8#755#);
       pragma Unreferenced (Unlocked);
    begin
       null;
@@ -62,7 +63,7 @@ package body Files_Suite.Operations_Support is
       --  stop a write (Windows), and the refusal's mapping is host code
       --  worth proving on macOS too.
       if (Hostkit.Metadata.Mode_Bits_Are_Native and then Hostkit.Host.Is_Elevated)
-        or else not Files.File_System.Set_Permissions (Directory, 8#555#).Success
+        or else not Files.File_System.Permissions.Set_Permissions (Directory, 8#555#).Success
       then
          return False;
       end if;
@@ -155,7 +156,7 @@ package body Files_Suite.Operations_Support is
 
    function Metadata_Mode_Of (Path : String) return Natural is
       Available : Boolean;
-      Mode : constant Natural := Files.File_System.Permission_Bits_Of (Path, Available);
+      Mode : constant Natural := Files.File_System.Permissions.Permission_Bits_Of (Path, Available);
    begin
       Assert (Available, "metadata mode is available");
       return Mode;
@@ -173,7 +174,7 @@ package body Files_Suite.Operations_Support is
 
    function Mode_Of (Path : String) return Natural is
       Available : Boolean := False;
-      Bits      : constant Natural := Files.File_System.Permission_Bits_Of (Path, Available);
+      Bits      : constant Natural := Files.File_System.Permissions.Permission_Bits_Of (Path, Available);
    begin
       Assert (Available, "permission bits are readable for " & Path);
       return Bits mod 8#1000#;
@@ -199,10 +200,10 @@ package body Files_Suite.Operations_Support is
       Settings : Files.Settings.Settings_Model;
       Step     : in out Files.Operations.Operation_Result) is
    begin
-      Assert (Files.Model.Pasting.Execution_Is_Active (Model),
+      Assert (Files.Model.Foreground_Job_Is_Active (Model),
               "a long operation returns with its progress overlay open");
       Step := Files_Suite.Support.Finish_Paste (Model, Settings);
-      Assert (not Files.Model.Pasting.Execution_Is_Active (Model),
+      Assert (not Files.Model.Foreground_Job_Is_Active (Model),
               "the UI collects the helper result without blocking");
       Files_Suite.Support.Assert_Equal
         (Step.Status,

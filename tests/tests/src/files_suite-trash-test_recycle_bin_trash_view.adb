@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Ada.Characters.Handling;
 with Hostkit.Fs;
 with Hostkit.Trash;
@@ -62,7 +63,7 @@ separate (Files_Suite.Trash)
       --  The trash view's item listed as Item_Name, or "".
       function Listed (Item_Name : String) return String is
          Trash : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
+           Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       begin
          for Item of Trash.Items loop
             if To_String (Item.Name) = Item_Name then
@@ -92,16 +93,16 @@ separate (Files_Suite.Trash)
       Assert (Files.Model.History.Undo_Available (Model), "moving to the Recycle Bin records an Undo");
 
       --  "Go to Trash" shows the Recycle Bin, the item under its own name.
-      Assert (Files.File_System.Trash_Files_Directory /= "", "the Recycle Bin is the trash view");
+      Assert (Files.File_System.Trash.Trash_Files_Directory /= "", "the Recycle Bin is the trash view");
       declare
          Recycled : constant String := Listed (Name);
       begin
          Assert (Recycled /= "", "the trash view lists the item under its original name");
          Assert (Hostkit.Trash.Is_Recycled_Item (Recycled), "as the $R item the shell made; was " & Recycled);
          Assert
-           (Same_Path (Files.File_System.Trash_Original_Path (Recycled), Source),
-            "whose $I record names where it came from; was " & Files.File_System.Trash_Original_Path (Recycled));
-         Assert (Files.File_System.Is_Volume_Trash_Item (Recycled), "and counts as an item of the trash");
+           (Same_Path (Files.File_System.Trash.Trash_Original_Path (Recycled), Source),
+            "whose $I record names where it came from; was " & Files.File_System.Trash.Trash_Original_Path (Recycled));
+         Assert (Files.File_System.Trash.Is_Volume_Trash_Item (Recycled), "and counts as an item of the trash");
 
          --  Undo puts it back from there.
          Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
@@ -112,7 +113,7 @@ separate (Files_Suite.Trash)
       end;
 
       --  Restore from the trash view.
-      Mutation := Files.File_System.Move_To_Trash (Source, Trashed);
+      Mutation := Files.File_System.Trash.Move_To_Trash (Source, Trashed);
       Assert (Mutation.Success, "the item goes to the Recycle Bin again; error was " & To_String (Mutation.Error_Key));
       Assert (Path_Exists (To_String (Trashed)), "and the trashed path names it there");
       Step := Files.Operations.Navigate_Trash (Model, Settings);
@@ -127,10 +128,10 @@ separate (Files_Suite.Trash)
       Assert (not Path_Exists (To_String (Trashed)), "and gone from the bin");
 
       --  Restore never replaces what took the item's place.
-      Mutation := Files.File_System.Move_To_Trash (Source, Trashed);
+      Mutation := Files.File_System.Trash.Move_To_Trash (Source, Trashed);
       Assert (Mutation.Success, "the item goes to the Recycle Bin a third time");
       Write_File (Source, "newcomer");
-      Mutation := Files.File_System.Restore_From_Trash (To_String (Trashed));
+      Mutation := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
       Assert (not Mutation.Success, "a restore onto a taken name is refused");
       Files_Suite.Support.Assert_Equal
         (To_String (Mutation.Error_Key), "error.trash.restore_exists", "and says the name is taken");
@@ -139,7 +140,7 @@ separate (Files_Suite.Trash)
 
       --  Deleting from the bin -- what Empty Trash does to each item, which
       --  this does not run: it would empty the user's whole Recycle Bin.
-      Mutation := Files.File_System.Delete_Trashed_Item (To_String (Trashed));
+      Mutation := Files.File_System.Trash.Delete_Trashed_Item (To_String (Trashed));
       Assert (Mutation.Success, "an item is deleted from the bin; error was " & To_String (Mutation.Error_Key));
       Assert (not Path_Exists (To_String (Trashed)), "the item is gone");
       Assert (Listed (Name) = "", "and the trash view no longer lists it");
@@ -148,11 +149,11 @@ separate (Files_Suite.Trash)
       --  A folder goes in whole and is deleted from the bin whole.
       Ada.Directories.Create_Directory (Join (Root, Folder));
       Write_File (Join (Join (Root, Folder), "inside.txt"), "inside");
-      Mutation := Files.File_System.Move_To_Trash (Join (Root, Folder), Trashed);
+      Mutation := Files.File_System.Trash.Move_To_Trash (Join (Root, Folder), Trashed);
       Assert (Mutation.Success, "a folder goes to the Recycle Bin");
       Assert (Same_Path (Listed (Folder), To_String (Trashed)), "and is listed under its own name");
       Assert (Path_Exists (Join (To_String (Trashed), "inside.txt")), "with what it holds");
-      Mutation := Files.File_System.Delete_Trashed_Item (To_String (Trashed));
+      Mutation := Files.File_System.Trash.Delete_Trashed_Item (To_String (Trashed));
       Assert
         (Mutation.Success and then not Path_Exists (To_String (Trashed)), "a folder is deleted from the bin whole");
    end Test_Recycle_Bin_Trash_View;

@@ -6,7 +6,7 @@ is
    Idx : constant Natural := Model.Selected_Item_Index;
 begin
    if not Model.Info_Pane_Open
-     or else Model.Paste_Exec.Active
+     or else Model.Foreground_Kind /= No_Foreground_Job
      or else Files.Process_Jobs.Active (Model.Refresh_Job)
      or else Idx = 0
      or else Idx > Natural (Model.Items.Length)

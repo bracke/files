@@ -1,8 +1,11 @@
+with Hostkit;
+with Hostkit.Spawn;
+
 --  The helper processes files starts from its own program, and the flag that
 --  says which one a process is. Launch sites and the dispatcher
 --  (Files.Job_Helpers) both spell a mode through Flag, so the two cannot
---  drift apart by a typo.
-package Files.Helper_Modes with Pure is
+--  drift apart by a typo; every launch goes through Start_Helper.
+package Files.Helper_Modes is
 
    type Helper_Mode is (Transfer, Operation, Refresh, Watch, Folder_Size, Scavenge, Cleanup);
 
@@ -24,5 +27,18 @@ package Files.Helper_Modes with Pure is
    --  @param Found Set True when Argument is a helper flag.
    --  @return Its mode, when Found.
    function Mode_Of (Argument : String; Found : out Boolean) return Helper_Mode;
+
+   --  Start a helper process: Program (this program when "") with Arguments,
+   --  whose first is the helper's flag, and nothing inherited beyond the
+   --  defaults.
+   --
+   --  @param Arguments The helper flag, then its own arguments.
+   --  @param Child The started process, when this returns True.
+   --  @param Program The program to start; "" for this one.
+   --  @return True when the process started.
+   function Start_Helper
+     (Arguments : Hostkit.String_Vectors.Vector;
+      Child     : out Hostkit.Spawn.Process_Handle;
+      Program   : String := "") return Boolean;
 
 end Files.Helper_Modes;

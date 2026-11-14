@@ -1,3 +1,4 @@
+with Files.Window_Polls;
 with Files.Items;
 with Files.Commands.Status;
 with Ada.Strings.Unbounded;
@@ -35,7 +36,7 @@ package body Files.Interaction is
          return True;
       end if;
       case Overlay is
-         when Files.Model.Paste_Execution_Overlay | Files.Model.Paste_Conflict_Overlay =>
+         when Files.Model.Foreground_Job_Overlay | Files.Model.Paste_Conflict_Overlay =>
             return False;
          when Files.Model.Quick_Look_Overlay =>
             return Command = Files.Commands.Toggle_Quick_Look_Command;
@@ -395,7 +396,7 @@ package body Files.Interaction is
       Result                : in out Interaction_Result) is
    begin
       Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
-      Files.Operations.Update_Folder_Size (Model, Settings);
+      Files.Window_Polls.Update_Folder_Size (Model);
       Files.Operations.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
    end Finish_Dispatch;
 

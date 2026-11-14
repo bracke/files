@@ -4,6 +4,7 @@ with Files.Bounded_Streams;
 
 with Files.File_System;
 with Files.Operations;
+with Files.Process_Jobs;
 with Files.Settings;
 with Files.Types;
 
@@ -20,15 +21,18 @@ package Files.Job_Records is
 
    --  Publish a helper's result in its job directory: Write fills the staged
    --  file, which is size-checked, closed and published whole and durably
-   --  under the result name, where the window reads it. A failure raises
-   --  Use_Error saying which step failed and what was left on disk.
+   --  under Name, where the window reads it. A failure raises Use_Error
+   --  saying which step failed and what was left on disk.
    --
    --  @param Directory The job's private directory.
    --  @param Write Writes the result's records.
    --  @param Stream Where Write writes.
+   --  @param Name The result's published name, for a helper that publishes
+   --    several.
    procedure Publish_Result
      (Directory : String;
-      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class));
+      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
+      Name      : String := Files.Process_Jobs.Result_File);
 
    --  Reject an oversized transport before decoding any heap-owning fields.
    --  @param Size Encoded transport size to validate.

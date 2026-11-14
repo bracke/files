@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Fs_Primitives;
 separate (Files_Suite.Operations)
    --  Every operation reaches a folder deeper than Windows' 260-character
@@ -220,10 +221,10 @@ separate (Files_Suite.Operations)
                        "the extracted tree holds its deepest file");
 
          --  To the trash and back.
-         Mutation := Files.File_System.Move_To_Trash (Note, Trashed);
+         Mutation := Files.File_System.Trash.Move_To_Trash (Note, Trashed);
          Assert (Mutation.Success and then not Files.Fs_Primitives.Entry_Exists (Note),
                  "the deep file goes to the trash");
-         Mutation := Files.File_System.Restore_From_Trash (To_String (Trashed));
+         Mutation := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
          Assert (Mutation.Success, "the deep file is restored");
          Assert_Equal (Got (Note), "long path note", "the restored file is back with its bytes");
 

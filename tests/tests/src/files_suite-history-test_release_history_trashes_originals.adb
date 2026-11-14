@@ -36,13 +36,13 @@ separate (Files_Suite.History)
       Files.Model.Initialize
         (Model, Dest_Dir, Files.File_System.Load_Directory (Dest_Dir, Settings).Items, Root);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 8);
+      Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "the replacing paste runs");
       Assert (Files.Model.History.Undo_Available (Model), "and can be undone");
 
       Files.Operations.Release_History (Model);
       Assert (not Files.Model.History.Undo_Available (Model), "the history ends");
-      for Item of Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings).Items loop
+      for Item of Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings).Items loop
          In_Trash := In_Trash
            or else (Ada.Strings.Fixed.Index (To_String (Item.Name), "report") > 0
                     and then File_Has_Bytes (To_String (Item.Full_Path), "old"));

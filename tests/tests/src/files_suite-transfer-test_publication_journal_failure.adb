@@ -56,13 +56,13 @@ separate (Files_Suite.Transfer)
                      Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
                      Actions.Append (Action);
                      Files.Operations.Begin_Paste_Execution (Model, Actions, Mode);
-                     Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+                     Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
                      Files_Suite.Support.Assert_Equal
                        (Step.Status,
                         Files.Operations.Operation_Success,
                         "paste completion reports the committed mutation accurately: status");
                      Assert
-                       (not Files.Model.Pasting.Execution_Is_Active (Model),
+                       (not Files.Model.Foreground_Job_Is_Active (Model),
                         "paste completion reports the committed mutation accurately: paste finished");
                      Files_Suite.Support.Assert_Equal
                        (Files.Model.Last_Error_Key (Model),
@@ -77,7 +77,7 @@ separate (Files_Suite.Transfer)
                      (Mode = Files.File_System.Drop_Copy),
                      "a committed move removes its source while a copy preserves it");
                   if Mode = Files.File_System.Drop_Copy then
-                     Assert (not Ada.Directories.Exists (Join (Root, ".files-work-1")),
+                     Assert (not Ada.Directories.Exists (Join (Root, Files.Protocol_Names.Work_Stage_Prefix & "1")),
                              "a journal failure does not retain copy staging or remove the published output");
                   end if;
                   Files.Job_Context.Initialize ("");

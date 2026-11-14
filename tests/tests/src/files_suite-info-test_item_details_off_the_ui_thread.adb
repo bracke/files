@@ -1,3 +1,4 @@
+with Files.Window_Polls;
 with Files.Extra_Info_Reader;
 separate (Files_Suite.Info)
    procedure Test_Item_Details_Off_The_UI_Thread (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -21,7 +22,7 @@ separate (Files_Suite.Info)
 
       --  ...but asked of the reader and taken once read.
       for Attempt in Files_Suite.Support.Polling loop
-         Files.Operations.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (401));
+         Files.Window_Polls.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (401));
          exit when not Files.Model.Selected_Item_Needs_Extra (Model);
       end loop;
       Assert (not Files.Model.Selected_Item_Needs_Extra (Model), "the window's poll brings the details in");

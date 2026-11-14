@@ -1,3 +1,4 @@
+with Files.Foreground_Jobs;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
    procedure Test_Move_Commit_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -55,7 +56,7 @@ separate (Files_Suite.Transfer)
                      Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS", "source-replacement");
                      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
                      Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
+                       (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
                      Await_View (Model, Settings);
                   end;
                   declare

@@ -1,3 +1,6 @@
+with Files.Foreground_Jobs;
+with Files.File_System.Trash;
+with Files.File_System.Permissions;
 with Files.Items;
 with Files.Model.Testing;
 with Files.File_Identities;
@@ -69,6 +72,7 @@ package body Files_Suite.History is
    procedure Test_Undo_Redo_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Save_Replaces_Leftover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Journal_Fits_Large_Actions (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_History_Journal_Keeps_Records (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Unjournaled_List_Pruned (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Journal_Cap_Retires_Dropped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Replace_Move_References (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -111,6 +115,9 @@ package body Files_Suite.History is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_History_Journal_Fits_Large_Actions'Access,
          "The history journal leaves out the oldest entries to fit");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_History_Journal_Keeps_Records'Access,
+         "The history journal reads back every record it writes");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Unjournaled_List_Pruned'Access,
          "a history's left-out list is pruned when restored and truncated, not refused, past its cap");
@@ -227,6 +234,7 @@ package body Files_Suite.History is
    procedure Test_History_Save_Replaces_Leftover (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_History_Journal_Fits_Large_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_History_Journal_Keeps_Records (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Unjournaled_List_Pruned (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

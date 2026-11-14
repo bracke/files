@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Files.Job_Helpers.Testing;
 separate (Files_Suite.Recovery)
    procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -6,8 +7,8 @@ separate (Files_Suite.Recovery)
       Transport_Path : Files.Types.UString;
       function Transport return String is (To_String (Transport_Path));
       Unrelated : constant String := Join (Root, "unrelated");
-      Unowned   : constant String := Join (Root, ".files-work-9001");
-      Link      : constant String := Join (Root, ".files-work-9002");
+      Unowned   : constant String := Join (Root, Files.Protocol_Names.Work_Stage_Prefix & "9001");
+      Link      : constant String := Join (Root, Files.Protocol_Names.Work_Stage_Prefix & "9002");
       Saved     : constant String := Join (Root, "saved-stage");
       Stage     : Files.Types.UString;
       Identity  : Files.Types.UString;
@@ -97,8 +98,8 @@ separate (Files_Suite.Recovery)
          Files_Suite.Support.Link_Not_Made ("Test_Stage_Record_Cleanup", Files_Suite.Support.Hard_Link);
       end if;
       Add_Stage_Record ("stage-unowned", Unowned, Files.File_Identities.Token (Unowned));
-      Add_Stage_Record ("stage-absent", Join (Root, ".files-work-8000"), "");
-      Add_Stage_Record ("stage-relative", ".files-work-relative", "");
+      Add_Stage_Record ("stage-absent", Join (Root, Files.Protocol_Names.Work_Stage_Prefix & "8000"), "");
+      Add_Stage_Record ("stage-relative", Files.Protocol_Names.Work_Stage_Prefix & "relative", "");
       if Linked then
          Add_Stage_Record ("stage-link", Link, Files.File_Identities.Token (Link));
       else
@@ -162,8 +163,8 @@ separate (Files_Suite.Recovery)
             use type Files.Job_Cleanup.Cleanup_Outcome;
          begin
             Add_Stage_Record
-              ("stage-unreadable", Join (Root, ".files-work-missing"), "");
-            Result := Files.File_System.Set_Permissions (Data, 0);
+              ("stage-unreadable", Join (Root, Files.Protocol_Names.Work_Stage_Prefix & "missing"), "");
+            Result := Files.File_System.Permissions.Set_Permissions (Data, 0);
             Assert (Result.Success, "make a stage record temporarily unreadable");
             Outcome := Files.Job_Cleanup.Run
               (Transport, To_String (Transport_Identity),
@@ -173,7 +174,7 @@ separate (Files_Suite.Recovery)
                and then Ada.Directories.Exists
                  (Join (Join (Transport, "stages"), "stage-unreadable")),
                "one fallback pass keeps an unreadable stage record for later retry");
-            Result := Files.File_System.Set_Permissions (Data, 8#600#);
+            Result := Files.File_System.Permissions.Set_Permissions (Data, 8#600#);
             Assert (Result.Success, "restore stage record access for cleanup");
          end;
       end if;

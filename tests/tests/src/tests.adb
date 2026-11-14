@@ -262,7 +262,13 @@ exception
    when others =>
       Files.Job_Scavenger.Shutdown;
       Files.Job_Context.Shutdown;
-      Files.Process_Jobs.Shutdown;
+      declare
+         --  Exiting anyway: the reaper's outcome changes nothing here.
+         Stopped : Boolean;
+         pragma Warnings (Off, Stopped);
+      begin
+         Files.Process_Jobs.Shutdown (Stopped);
+      end;
       --  The scratch area this run made is not left behind by a crash.
       if Ada.Strings.Unbounded.Length (Owned_Temp) > 0 then
          declare

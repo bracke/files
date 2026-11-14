@@ -27,7 +27,7 @@ separate (Files_Suite.Drags)
       Assert (not Files.Controller.Accepts_Drop_Import (Model), "an open palette does not accept a drop now");
       Files.Controller.Import_Pending_Drops (Model, Settings, Queue);
       Assert (Files.Drop_Events.Has_Pending (Queue), "the drop stays queued while the palette is open");
-      Assert (not Files.Model.Pasting.Execution_Is_Active (Model)
+      Assert (not Files.Model.Foreground_Job_Is_Active (Model)
               and then not Files.Model.Pasting.Conflict_Is_Active (Model),
               "nothing is imported behind the palette");
 
@@ -37,7 +37,7 @@ separate (Files_Suite.Drags)
       Assert (not Files.Drop_Events.Has_Pending (Queue), "the queued drop is taken once the palette closes");
       --  A small drop finishes in the same step; a larger one is still going.
       Assert (Ada.Directories.Exists (Files_Suite.Support.Join (Destination, "dropped.txt"))
-              or else Files.Model.Pasting.Execution_Is_Active (Model),
+              or else Files.Model.Foreground_Job_Is_Active (Model),
               "and imported through the paste engine");
       Files_Suite.Support.Release (Paste);
       Files_Suite.Support.Reset_Root;

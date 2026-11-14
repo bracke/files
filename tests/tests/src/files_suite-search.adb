@@ -1,3 +1,4 @@
+with Files.File_System.Permissions;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;

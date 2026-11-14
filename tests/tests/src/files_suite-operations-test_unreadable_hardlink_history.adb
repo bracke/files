@@ -32,7 +32,7 @@ separate (Files_Suite.Operations)
         (Step.Status,
          Files.Operations.Operation_Success,
          "hard link is removed before Redo");
-      Assert (Files.File_System.Set_Permissions (Source, 0).Success,
+      Assert (Files.File_System.Permissions.Set_Permissions (Source, 0).Success,
               "source permissions can be removed");
 
       Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
@@ -42,7 +42,7 @@ separate (Files_Suite.Operations)
          "Redo refuses an unreadable hard link before publication");
       Assert (not Ada.Directories.Exists (Link_Path),
               "failed Redo leaves no hard link behind");
-      Assert (Files.File_System.Set_Permissions (Source, 8#644#).Success,
+      Assert (Files.File_System.Permissions.Set_Permissions (Source, 8#644#).Success,
               "source permissions can be restored");
       Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
@@ -55,7 +55,7 @@ separate (Files_Suite.Operations)
       Reset_Root;
       Ada.Directories.Create_Path (Dir);
       Write_File (Source, "hard link contents");
-      Assert (Files.File_System.Set_Permissions (Source, 0).Success,
+      Assert (Files.File_System.Permissions.Set_Permissions (Source, 0).Success,
               "new source permissions can be removed");
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
@@ -80,6 +80,6 @@ separate (Files_Suite.Operations)
       end if;
       Assert (not Files.Model.History.Undo_Available (Model),
               "unsafe deletion is not recorded as Undo");
-      Assert (Files.File_System.Set_Permissions (Source, 8#644#).Success,
+      Assert (Files.File_System.Permissions.Set_Permissions (Source, 8#644#).Success,
               "new source permissions can be restored");
    end Test_Unreadable_Hardlink_History;

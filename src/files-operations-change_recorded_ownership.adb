@@ -1,17 +1,15 @@
 separate (Files.Operations)
 function Change_Recorded_Ownership
-  (Action : Files.Model.Undo_Entry; Index : Positive;
-   User_Id, Group_Id : Files.Types.Account_Id;
-   Owner_Name, Group_Name : String) return Boolean
+  (Action : Files.Model.Undo_Entry; Index : Positive; Owner : Files.Undo_Payloads.Ownership) return Boolean
 is
    Previous_User, Previous_Group : Files.Types.Account_Id;
    Identity : Files.Types.UString;
 begin
-   if Files.Model.Created_Identity (Action, Index) = "" then
+   if To_String (Action.Items (Index).Identity) = "" then
       return False;
    end if;
-   return Files.File_System.Change_Ownership
-     (To_String (Action.From (Index)), Files.Model.Created_Identity (Action, Index),
-      User_Id, Group_Id, Previous_User, Previous_Group, Identity,
-      Owner_Name, Group_Name).Success;
+   return Files.File_System.Permissions.Change_Ownership
+     (To_String (Action.Items (Index).From), To_String (Action.Items (Index).Identity),
+      Owner.User_Id, Owner.Group_Id, Previous_User, Previous_Group, Identity,
+      To_String (Owner.User_Name), To_String (Owner.Group_Name)).Success;
 end Change_Recorded_Ownership;

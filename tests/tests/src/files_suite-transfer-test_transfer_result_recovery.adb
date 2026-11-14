@@ -36,7 +36,7 @@ separate (Files_Suite.Transfer)
                   when others => "replacement"));
                Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, False);
                Step := Complete_Operation
-                 (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
+                 (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
                Await_View (Model, Settings);
                Assert
                  (Step.Status = Files.Operations.Operation_Failed and then Files.Model.History.Undo_Available (Model),
@@ -50,7 +50,7 @@ separate (Files_Suite.Transfer)
                   (Mode = Files.File_System.Drop_Copy),
                   "recovery recognizes whether the source move committed");
                if Fault = 4 then
-                  Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Created_Identities.First_Element
+                  Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Items.First_Element.Identity
                           = Files.File_Identities.Token (Dest & "-saved"),
                           "recovery retains the published identity without recapturing a replacement");
                   Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));

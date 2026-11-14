@@ -30,7 +30,7 @@ separate (Files_Suite.Recovery)
          Step := Files_Suite.Support.Finish_Paste (Model, Settings);
       end;
       Assert
-        (not Files.Model.Pasting.Execution_Is_Active (Model),
+        (not Files.Model.Foreground_Job_Is_Active (Model),
          "a helper result whose operation kind differs from its request is rejected: the execution ends");
       Files_Suite.Support.Assert_Equal
         (Step.Status,
@@ -66,7 +66,7 @@ separate (Files_Suite.Recovery)
          Step := Files_Suite.Support.Finish_Paste (Model, Settings);
       end;
       Assert
-        (not Files.Model.Pasting.Execution_Is_Active (Model),
+        (not Files.Model.Foreground_Job_Is_Active (Model),
          "a helper result whose Recent-view flag differs from its request is rejected: the execution ends");
       Files_Suite.Support.Assert_Equal
         (Step.Status,

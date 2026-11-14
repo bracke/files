@@ -10,7 +10,7 @@ is
    Forwarded  : Path_Sets.Set := To_Set (Action.Forward_Completed);
 begin
    if Action.Kind = Files.Model.Undo_Delete_Created and then Action.Create_Kind = Files.Model.Create_Copy
-     and then Natural (Action.From.Length) > 1
+     and then Natural (Action.Items.Length) > 1
    then
       Copy_Batch := Files.Copy_Context.Create;
       Files.Copy_Context.Save (Copy_Batch, Action.Copy_Records);
@@ -24,15 +24,15 @@ begin
       when Files.Model.Undo_Delete_Created =>
          --  Re-create each destination from its recorded source, retaining
          --  successful publications across retries of a partial Redo.
-         for Index in Action.From.First_Index .. Action.From.Last_Index loop
+         for Index in Action.Items.First_Index .. Action.Items.Last_Index loop
             if Files.Job_Context.Cancelled then
                return False;
             end if;
             declare
-               Dest   : constant String := To_String (Action.From.Element (Index));
-               Source : constant String := Files.Model.Forward_Value (Action, Index);
+               Dest   : constant String := To_String (Action.Items (Index).From);
+               Source : constant String := To_String (Action.Items (Index).Forward);
                Marked : constant Boolean :=
-                 Forwarded.Contains (To_String (Action.From.Element (Index)));
+                 Forwarded.Contains (To_String (Action.Items (Index).From));
                Matches : constant Boolean :=
                  Completed_Creation_Matches (Action, Index, Dest);
             begin
@@ -40,8 +40,8 @@ begin
                   --  A helper may have published the entry before its
                   --  completion marker reached the history journal.
                   if not Marked then
-                     Action.Forward_Completed.Append (Action.From.Element (Index));
-                     Forwarded.Include (To_String (Action.From.Element (Index)));
+                     Action.Forward_Completed.Append (Action.Items (Index).From);
+                     Forwarded.Include (To_String (Action.Items (Index).From));
                      --  Recognised again by a retry (Completed_Creation_Matches).
                      Files.History_Journal.Checkpoint (Model, Action, True, Force => False);
                   end if;
@@ -50,8 +50,8 @@ begin
                      --  Persist the invalidation before attempting to
                      --  recreate a missing publication. A crash must not
                      --  revive a marker that no longer describes Path.
-                     Remove_Completion (Action, Action.From.Element (Index), True);
-                     Forwarded.Exclude (To_String (Action.From.Element (Index)));
+                     Remove_Completion (Action, Action.Items (Index).From, True);
+                     Forwarded.Exclude (To_String (Action.Items (Index).From));
                      Files.History_Journal.Checkpoint (Model, Action, True);
                   end if;
                   if Source = "" or else not Exists_Safely (Source)
@@ -91,9 +91,10 @@ begin
                                  then ""
                                  else Files.File_System.Tree_Revision (Dest));
                            end if;
-                           Files.Model.Set_Created (Action, Index, Identity, Revision);
-                           Action.Forward_Completed.Append (Action.From.Element (Index));
-                           Forwarded.Include (To_String (Action.From.Element (Index)));
+                           Action.Items (Index).Identity := Identity;
+                           Action.Items (Index).Tree_Revision := Revision;
+                           Action.Forward_Completed.Append (Action.Items (Index).From);
+                           Forwarded.Include (To_String (Action.Items (Index).From));
                            Action.Copy_Records := Files.Copy_Context.Records (Copy_Batch);
                            --  Written now: only the journal knows this entry's
                            --  identity, which is what tells a retry it is ours.
@@ -107,63 +108,13 @@ begin
             end;
          end loop;
 
-      when Files.Model.Undo_Set_Permissions =>
-         --  Re-apply the new mode stored in Forward.
-         for Index in Action.From.First_Index .. Action.From.Last_Index loop
-            if Files.Job_Context.Cancelled then
-               return False;
-            end if;
-            declare
-
-               New_Text : constant String :=
-                 Ada.Strings.Fixed.Trim (Files.Model.Forward_Value (Action, Index), Ada.Strings.Both);
-               New_Mode : Natural := 0;
-            begin
-               if New_Text = "" then
-                  Succeeded := False;
-               else
-                  --  As the change left it: the access record whole, where
-                  --  one was kept.
-                  if not Files.Undo_Payloads.Parse_Mode (New_Text, New_Mode)
-                    or else not Change_Recorded_Mode
-                      (Action, Index, New_Mode, Files.Undo_Payloads.Mode_Access (New_Text))
-                  then
-                     Succeeded := False;
-                  end if;
-               end if;
-            end;
-         end loop;
-
-      when Files.Model.Undo_Set_Ownership =>
-         --  Re-apply the new owner/group stored in Forward.
-         for Index in Action.From.First_Index .. Action.From.Last_Index loop
-            if Files.Job_Context.Cancelled then
-               return False;
-            end if;
-            declare
-
-               New_Text : constant String :=
-                 Ada.Strings.Fixed.Trim (Files.Model.Forward_Value (Action, Index), Ada.Strings.Both);
-               New_Uid  : Files.Types.Account_Id := 0;
-               New_Gid  : Files.Types.Account_Id := 0;
-               New_User_Name, New_Group_Name : Files.Types.UString;
-            begin
-               if Parse_Ownership_Text
-                 (New_Text, New_Uid, New_Gid,
-                  New_User_Name, New_Group_Name)
-               then
-                  if not Change_Recorded_Ownership
-                    (Action, Index, New_Uid, New_Gid,
-                     To_String (New_User_Name),
-                     To_String (New_Group_Name))
-                  then
-                     Succeeded := False;
-                  end if;
-               else
-                  Succeeded := False;
-               end if;
-            end;
-         end loop;
+      when Files.Model.Undo_Set_Permissions | Files.Model.Undo_Set_Ownership =>
+         --  Re-apply the mode or owner the change set (Forward).
+         case Replay_Metadata (Action, After_Change) is
+            when Stopped     => return False;
+            when Item_Failed => Succeeded := False;
+            when Replayed    => null;
+         end case;
 
       when Files.Model.Undo_Restore_Trash | Files.Model.Undo_None =>
          Succeeded := False;

@@ -8,7 +8,7 @@ separate (Files_Suite.Recovery)
       procedure Restore is
       begin
          if Length (Transport) > 0 and then Ada.Directories.Exists (To_String (Transport)) then
-            Result := Files.File_System.Set_Permissions (To_String (Transport), 8#700#);
+            Result := Files.File_System.Permissions.Set_Permissions (To_String (Transport), 8#700#);
             Project_Tools.Files.Delete_Tree (To_String (Transport));
          end if;
       end Restore;
@@ -26,13 +26,25 @@ separate (Files_Suite.Recovery)
       Files.Process_Jobs.Reserve (Job);
       Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
       Write_Binary_File (Files.Process_Jobs.Path (Job, "ordinary-result"), "result");
-      Result := Files.File_System.Set_Permissions (To_String (Transport), 0);
+      Result := Files.File_System.Permissions.Set_Permissions (To_String (Transport), 0);
       Assert (Result.Success, "prepare an unreadable ordinary transport");
 
-      Files.Process_Jobs.Reset (Job);
-      Assert (Ada.Directories.Exists (To_String (Transport)),
-              "the initial ordinary transport removal is forced to fail");
-      Result := Files.File_System.Set_Permissions (To_String (Transport), 8#700#);
+      declare
+         Attempts_Before : constant Natural := Files.Process_Jobs.Testing.Removal_Attempts;
+      begin
+         --  Releasing the job hands the transport to the reaper, which tries
+         --  the removal itself. Wait for that attempt: it must fail on the
+         --  unreadable transport, so the retry below is a real one.
+         Files.Process_Jobs.Reset (Job);
+         for Attempt in Files_Suite.Support.Polling loop
+            exit when Files.Process_Jobs.Testing.Removal_Attempts /= Attempts_Before;
+         end loop;
+         Assert (Files.Process_Jobs.Testing.Removal_Attempts /= Attempts_Before,
+                 "the reaper tries the released transport's removal");
+         Assert (Ada.Directories.Exists (To_String (Transport)),
+                 "the initial ordinary transport removal is forced to fail");
+      end;
+      Result := Files.File_System.Permissions.Set_Permissions (To_String (Transport), 8#700#);
       Assert (Result.Success, "restore access for the cleanup retry");
 
       for Attempt in Files_Suite.Support.Polling loop
@@ -66,7 +78,7 @@ separate (Files_Suite.Recovery)
          else
             Files_Suite.Support.Link_Not_Made ("Test_Transport_Cleanup_Retry", Files_Suite.Support.Hard_Link);
          end if;
-         Result := Files.File_System.Set_Permissions (Marker, 0);
+         Result := Files.File_System.Permissions.Set_Permissions (Marker, 0);
          Assert (Result.Success, "prepare a temporarily unreadable transport marker");
          Files.Job_Transports.Inspect_Marker (To_String (Transport), Identity, Read_Error);
          Assert (Read_Error and then Length (Identity) = 0,
@@ -74,7 +86,7 @@ separate (Files_Suite.Recovery)
          Complete := Files.Job_Scavenger.Run (Wait_For_Grace => False);
          Assert (not Complete and then Ada.Directories.Exists (To_String (Transport)),
                  "scavenging retries an unreadable marker instead of skipping it");
-         Result := Files.File_System.Set_Permissions (Marker, 8#600#);
+         Result := Files.File_System.Permissions.Set_Permissions (Marker, 8#600#);
          Assert (Result.Success, "restore transport marker access");
          Complete := Files.Job_Scavenger.Run (Wait_For_Grace => False);
          Assert (Complete and then not Ada.Directories.Exists (To_String (Transport)),
@@ -89,12 +101,12 @@ separate (Files_Suite.Recovery)
          Lease_Path : constant String := Join (To_String (Transport), ".files-job-owner");
          Complete : Boolean;
       begin
-         Result := Files.File_System.Set_Permissions (Lease_Path, 0);
+         Result := Files.File_System.Permissions.Set_Permissions (Lease_Path, 0);
          Assert (Result.Success, "prepare a temporarily inaccessible transport lease");
          Complete := Files.Job_Scavenger.Run (Wait_For_Grace => False);
          Assert (not Complete and then Ada.Directories.Exists (To_String (Transport)),
                  "scavenging retries a lease access failure");
-         Result := Files.File_System.Set_Permissions (Lease_Path, 8#600#);
+         Result := Files.File_System.Permissions.Set_Permissions (Lease_Path, 8#600#);
          Assert (Result.Success, "restore transport lease access");
          Complete := Files.Job_Scavenger.Run (Wait_For_Grace => False);
          Assert (Complete and then not Ada.Directories.Exists (To_String (Transport)),

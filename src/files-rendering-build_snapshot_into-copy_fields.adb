@@ -75,15 +75,15 @@ separate (Files.Rendering.Build_Snapshot_Into)
       Snapshot.Paste_Conflict_Name := To_Unbounded_String (Files.Model.Pasting.Conflict_Name (Model));
       Snapshot.Paste_Conflict_Apply_All := Files.Model.Pasting.Conflict_Apply_All (Model);
       declare
-         use type Files.File_System.Drop_Import_Mode;
+         Progress : constant Files.Model.Foreground_Progress := Files.Model.Foreground_Progress_Of (Model);
       begin
          Snapshot.Paste_Progress :=
-           (Open            => Files.Model.Pasting.Execution_Is_Active (Model),
-            Done            => Files.Model.Pasting.Execution_Done (Model),
-            Total           => Files.Model.Pasting.Execution_Total (Model),
-            Name            => To_Unbounded_String (Files.Model.Pasting.Execution_Current_Name (Model)),
-            Moving          => Files.Model.Pasting.Execution_Mode (Model) = Files.File_System.Drop_Move,
-            Operation_Label => To_Unbounded_String (Files.Model.Background_Operation_Label (Model)));
+           (Open            => Files.Model.Foreground_Job_Is_Active (Model),
+            Done            => Progress.Done,
+            Total           => Progress.Total,
+            Name            => Progress.Name,
+            Moving          => Progress.Moving,
+            Operation_Label => Progress.Label_Key);
       end;
       Snapshot.Theme_Palette :=
         (case Settings.Theme is

@@ -7,7 +7,8 @@ separate (Files_Suite.Trash)
       Source : constant String := Join (Root, "changing");
       Remote : Files_Suite.Volumes.Remote_Directory;
       --  The start of the trash's private copy of the item.
-      function Trigger return String is (Join (Remote.Path, "data/Trash/files/.files-work-"));
+      function Trigger return String is
+        (Join (Remote.Path, "data/Trash/files/" & Files.Protocol_Names.Work_Stage_Prefix));
       Model : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;

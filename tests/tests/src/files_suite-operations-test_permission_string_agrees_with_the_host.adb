@@ -29,7 +29,7 @@ separate (Files_Suite.Operations)
         (Execute_Bit (Sub_Dir) = (if Hostkit.Fs.Is_Executable (Sub_Dir) then 'x' else '-'),
          "a directory's execute bit matches the host");
 
-      if Files.File_System.Set_Permissions (Runnable, 8#755#).Success then
+      if Files.File_System.Permissions.Set_Permissions (Runnable, 8#755#).Success then
          Assert
            (Execute_Bit (Runnable) = (if Hostkit.Fs.Is_Executable (Runnable) then 'x' else '-'),
             "a file the host will run matches the host");
@@ -47,7 +47,7 @@ separate (Files_Suite.Operations)
          end if;
       else
          Assert
-           (not Files.File_System.Supports_Permissions,
+           (not Files.File_System.Permissions.Supports_Permissions,
             "a host that supports permissions can make a file runnable");
       end if;
 
@@ -64,7 +64,7 @@ separate (Files_Suite.Operations)
 
          procedure Check_At (Mode : Natural) is
             Applied : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Set_Permissions (Probe, Mode);
+              Files.File_System.Permissions.Set_Permissions (Probe, Mode);
          begin
             if not Applied.Success then
                return;
@@ -105,13 +105,13 @@ separate (Files_Suite.Operations)
          Check_At (8#444#);
          Check_At (8#000#);
          Assert
-           (Checked > 0 or else not Files.File_System.Supports_Permissions,
+           (Checked > 0 or else not Files.File_System.Permissions.Supports_Permissions,
             "a host that supports permissions takes at least one of the probe's modes");
 
          --  Leave it removable for Reset_Root.
          declare
             Restored : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Set_Permissions (Probe, 8#644#);
+              Files.File_System.Permissions.Set_Permissions (Probe, 8#644#);
             pragma Unreferenced (Restored);
          begin
             null;
