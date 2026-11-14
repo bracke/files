@@ -22,7 +22,7 @@ separate (Files_Suite.Tree)
            (Path => To_Unbounded_String (Tree_Dir), Name => To_Unbounded_String ("tree")));
       Files.Model.Tree_Panel.Seed (Model, Seeds);
       Files.Model.Tree_Panel.Open (Model);
-      CResult := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      CResult := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Files.Model.Tree_Panel.Give_Keyboard (Model);
       Files.Model.Tree_Panel.Set_Cursor (Model, Alpha);
 

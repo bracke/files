@@ -355,7 +355,6 @@ private
       --  its settings since (see Sync_Settings_Across_Windows).
       Synced_Settings_Revision : Natural := 0;
       Settings_Path   : Ada.Strings.Unbounded.Unbounded_String;
-      Left_Mouse_Down : Boolean := False;
       Drag_Source_Index : Natural := 0;
       Scrollbar_Drag_Target : Files.Events.Scroll_Target := Files.Events.Scroll_Auto;
       Scrollbar_Drag_Anchor : Integer := 0;
@@ -394,6 +393,7 @@ private
       Shown_Title : Ada.Strings.Unbounded.Unbounded_String;
       Vulkan          : Guikit.Vulkan.Vulkan_Renderer;
       Shown           : Boolean := False;
+      --  Frames Vulkan did not present (FILES_DIAGNOSTICS traces them).
       Fallback_Frames : Natural := 0;
       --  Frame command caching: when none of the rendering inputs change
       --  between two Render_Window calls, skip the expensive layout and
@@ -420,6 +420,7 @@ private
       --  it shows is its snapshot's (View_Snapshot.Now).
       Cached_Inputs        : Frame_Inputs;
       Last_Glyph_Count : Natural := 0;
+      --  Glyphs of the last frame no font drew (FILES_DIAGNOSTICS traces it).
       Last_Missing_Glyph_Count : Natural := 0;
       Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
         Guikit.Vulkan.Vulkan_Not_Initialized;

@@ -24,10 +24,15 @@ separate (Files_Suite.Operations)
       Assert (Saved.Success, "an unchanged change writes nothing, so nothing fails");
 
       Outcome :=
-        Files.Controller.Execute_Command (Files.Commands.Toggle_Column_Size_Command, Model, Settings, Unwritable);
+        Files.Controller.Complete_Settings_Command
+          (Files.Controller.Execute_Non_Settings_Command (Files.Commands.Toggle_Column_Size_Command, Model, Settings),
+           Model, Settings, Unwritable);
       Assert (Outcome.Operation.Status = Files.Operation_Results.Operation_Failed,
               "a column toggle whose save fails says so");
-      Outcome := Files.Controller.Execute_Command (Files.Commands.Cycle_Group_By_Command, Model, Settings, Unwritable);
+      Outcome :=
+        Files.Controller.Complete_Settings_Command
+          (Files.Controller.Execute_Non_Settings_Command (Files.Commands.Cycle_Group_By_Command, Model, Settings),
+           Model, Settings, Unwritable);
       Assert (Outcome.Operation.Status = Files.Operation_Results.Operation_Failed, "so does cycling the grouping");
       Assert (Settings.Group_By /= Files.Settings.Default_Settings.Group_By,
               "and the change is kept for the session");

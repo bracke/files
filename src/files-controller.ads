@@ -85,24 +85,6 @@ package Files.Controller is
       Settings_Path : String)
       return Controller_Result;
 
-   --  Execute a command, applying and persisting the ones that change settings
-   --  (Files.Commands.Requires_Settings_Path) instead of only reporting them.
-   --  A disabled command is refused, with its reason on the error line.
-   --
-   --  @param Id Command identifier.
-   --  @param Model Window model to update.
-   --  @param Settings Live settings model, replaced by a settings command.
-   --  @param Settings_Path Central settings file path (empty disables persistence).
-   --  @param Modifiers Active modifier keys.
-   --  @return Controller result with any operation details.
-   function Execute_Command
-     (Id            : Files.Commands.Command_Id;
-      Model         : in out Files.Model.Window_Model;
-      Settings      : in out Files.Settings.Settings_Model;
-      Settings_Path : String;
-      Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
-      return Controller_Result;
-
    --  Favorites are folder tree roots: a tree already seeded is seeded again
    --  when the favorites list differs between Before and Settings. Every
    --  settings commit does this; a caller that replaces the settings another
@@ -295,23 +277,32 @@ package Files.Controller is
       Settings : Files.Settings.Settings_Model)
       return Controller_Result;
 
-   --  Toggle a folder-tree node's expansion or navigate to it.
-   --
-   --  When Toggle is true the node's children are loaded on first expand and its
-   --  expanded flag is flipped. When Toggle is false the node's directory is
-   --  loaded and made current and the node is expanded. A zero or out-of-range
-   --  index is ignored.
+   --  Expand or collapse a folder-tree node, loading its children on first
+   --  expand. It reports no command: the tree's own open/close command is
+   --  Toggle_Folder_Tree_Command. A zero or out-of-range index is ignored.
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used for directory classification.
    --  @param Node_Index One-based tree node index, or zero.
-   --  @param Toggle True to expand/collapse, false to navigate.
-   --  @return Controller result describing the tree change or navigation.
-   function Handle_Tree_Click
+   --  @return Controller result describing the tree change.
+   function Toggle_Tree_Node
      (Model      : in out Files.Model.Window_Model;
       Settings   : Files.Settings.Settings_Model;
-      Node_Index : Natural;
-      Toggle     : Boolean)
+      Node_Index : Natural)
+      return Controller_Result;
+
+   --  Activate a folder-tree node: in a Copy to/Move to pick it becomes the
+   --  destination; otherwise its folder is opened and the node expanded. A
+   --  zero or out-of-range index is ignored.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used for directory classification.
+   --  @param Node_Index One-based tree node index, or zero.
+   --  @return Controller result describing the pick or the navigation.
+   function Activate_Tree_Node
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Node_Index : Natural)
       return Controller_Result;
 
    --  Act on the command palette's highlighted command (from Command_Palette.Selected_Id),
@@ -442,26 +433,6 @@ package Files.Controller is
       Settings  : Files.Settings.Settings_Model;
       Key       : Guikit.Input.Key_Code;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Tree_Page_Rows : Natural := 0)
-      return Controller_Result;
-
-   --  Handle one key press, applying and persisting a settings command it
-   --  resolves to (a shortcut such as Ctrl+H, Enter in the palette).
-   --
-   --  @param Model Window model to update.
-   --  @param Settings Live settings model, replaced by a settings command.
-   --  @param Settings_Path Central settings file path (empty disables persistence).
-   --  @param Key Key code.
-   --  @param Modifiers Active modifier keys.
-   --  @param Tree_Page_Rows Folder-tree rows visible in the live viewport, or
-   --    zero when geometry is unavailable.
-   --  @return Controller result with any operation details.
-   function Handle_Key
-     (Model          : in out Files.Model.Window_Model;
-      Settings       : in out Files.Settings.Settings_Model;
-      Settings_Path  : String;
-      Key            : Guikit.Input.Key_Code;
-      Modifiers      : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Tree_Page_Rows : Natural := 0)
       return Controller_Result;
 

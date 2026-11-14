@@ -8,6 +8,8 @@ separate (Files.Controller)
    is
       Old_Focus  : constant Files.Types.Focus_Target := Files.Model.Focus (Model);
       Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
+      Top        : Files.Model.Input_Overlay;
+      use type Files.Types.Input_Overlay;
    begin
       if Target = Files.Types.Focus_Command_Palette
         and then not Files.Model.Command_Palette.Is_Open (Model)
@@ -23,15 +25,12 @@ separate (Files.Controller)
          return Make_Result (Controller_Ignored);
       end if;
 
-      if Files.Model.Command_Palette.Is_Open (Model) then
-         if Target /= Files.Types.Focus_Command_Palette then
-            return Make_Result (Controller_Ignored);
-         end if;
-      elsif Files.Model.Settings_Pane.Is_Open (Model) then
-         if Target /= Files.Types.Focus_Settings_Input then
-            return Make_Result (Controller_Ignored);
-         end if;
-      elsif Files.Model.Input_Owning_Overlay_Is_Open (Model) then
+      --  The overlay on top (Files.Types.Overlay_Stack) takes the click: only
+      --  the palette's and the pane's own fields are text it owns.
+      if Files.Model.Topmost_Overlay (Model, Top)
+        and then not (Top = Files.Types.Command_Palette_Overlay and then Target = Files.Types.Focus_Command_Palette)
+        and then not (Top = Files.Types.Settings_Pane_Overlay and then Target = Files.Types.Focus_Settings_Input)
+      then
          return Make_Result (Controller_Ignored);
       end if;
 

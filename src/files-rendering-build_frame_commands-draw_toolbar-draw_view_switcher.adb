@@ -4,10 +4,10 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
    begin
       --  The view-mode switcher is a segmented control over the view-mode region.
       declare
-         --  Labels come from Files.UI.View_Mode_Segments so the widths drawn
+         --  Labels come from Files.Rendering.Layouts.View_Mode_Segments so the widths drawn
          --  here match the widths the click hit-test measures; the renderer only
          --  adds the per-cell tooltip and enabled state.
-         View_Segments : Guikit.Segmented.Segment_Vectors.Vector := Files.UI.View_Mode_Segments;
+         View_Segments : Guikit.Segmented.Segment_Vectors.Vector := Files.Rendering.Layouts.View_Mode_Segments;
          Seg_Rects     : Guikit.Draw.Rectangle_Command_Vectors.Vector;
          Seg_Text      : Guikit.Draw.Text_Command_Vectors.Vector;
          Seg_Tips      : Guikit.Draw.Tooltip_Command_Vectors.Vector;

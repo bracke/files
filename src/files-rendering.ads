@@ -316,27 +316,30 @@ package Files.Rendering is
    --  the selection reducer.
    package Visible_Index_Vectors renames Guikit.Item_Grid.Visible_Index_Vectors;
 
-   --  Clickable controls of the paste-conflict dialog.
-   type Conflict_Hit_Kind is
-     (Conflict_Hit_None,
-      Conflict_Hit_Replace,
-      Conflict_Hit_Skip,
-      Conflict_Hit_Rename,
-      Conflict_Hit_Cancel,
-      Conflict_Hit_Apply_All,
-      Conflict_Hit_Progress_Cancel);
+   --  Clickable controls of the paste dialogs, recorded by the frame as it
+   --  draws them: the conflict dialog's buttons, its apply-to-all toggle and
+   --  its close button, and the progress panel's Cancel.
+   type Dialog_Hit_Kind is
+     (Dialog_Hit_None,
+      Dialog_Hit_Replace,
+      Dialog_Hit_Skip,
+      Dialog_Hit_Rename,
+      Dialog_Hit_Cancel,
+      Dialog_Hit_Apply_All,
+      Dialog_Hit_Conflict_Close,
+      Dialog_Hit_Progress_Cancel);
 
-   type Conflict_Hit_Region is record
-      Kind   : Conflict_Hit_Kind := Conflict_Hit_None;
+   type Dialog_Hit_Region is record
+      Kind   : Dialog_Hit_Kind := Dialog_Hit_None;
       X      : Natural := 0;
       Y      : Natural := 0;
       Width  : Natural := 0;
       Height : Natural := 0;
    end record;
 
-   package Conflict_Hit_Region_Vectors is new Ada.Containers.Vectors
+   package Dialog_Hit_Region_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
-      Element_Type => Conflict_Hit_Region);
+      Element_Type => Dialog_Hit_Region);
 
    --  A clickable info-pane permission cell. Bit is the 0 .. 8 grid cell index
    --  in row-major order (rows user/group/other, columns read/write/execute),
@@ -382,7 +385,7 @@ package Files.Rendering is
       Accessibility : Guikit.Draw.Accessibility_Node_Vectors.Vector;
       Permission_Hits : Permission_Hit_Region_Vectors.Vector;
       Ownership_Hits : Ownership_Hit_Region_Vectors.Vector;
-      Conflict_Hits : Conflict_Hit_Region_Vectors.Vector;
+      Dialog_Hits : Dialog_Hit_Region_Vectors.Vector;
    end record;
 
    --  Whether Snapshot shows Overlay open: the snapshot's own flag for each
@@ -419,15 +422,6 @@ package Files.Rendering is
    --  How many selected items the info pane lists in detail. Past a hundred
    --  the list is unreadable anyway; the selection count shows the extent.
    Max_Info_Items : constant := 100;
-
-   --  Build an immutable snapshot from the mutable model, as of the clock
-   --  now.
-   --
-   --  @param Model Window model to snapshot.
-   --  @return View snapshot for rendering.
-   function Build_Snapshot
-     (Model : Files.Model.Window_Model)
-      return View_Snapshot;
 
    --  Build an immutable view snapshot with loaded settings summary data, as
    --  of the clock now.
@@ -475,20 +469,18 @@ package Files.Rendering is
 
    --  Where the pointer is and what it is doing, as a frame draws it: the
    --  hover highlight and tooltips, the pressed control, a dragged item's
-   --  preview, the marquee rectangle. All in framebuffer pixels; each Has_ or
-   --  Active flag says whether its coordinates mean anything.
+   --  preview -- all at the one pointer position -- and the marquee
+   --  rectangle. In framebuffer pixels; Has_Hover says whether the position
+   --  means anything, Marquee_Active whether the rectangle does.
    type Pointer_State is record
       Hover_X         : Natural := 0;
       Hover_Y         : Natural := 0;
       Has_Hover       : Boolean := False;
-      Pressed_X       : Natural := 0;
-      Pressed_Y       : Natural := 0;
-      Has_Press       : Boolean := False;
-      --  The visible index of the item being dragged.
+      --  A button is held down at the pointer.
+      Pressed         : Boolean := False;
+      --  An item is being dragged with the pointer: its visible index.
+      Dragging        : Boolean := False;
       Drag_Item_Index : Natural := 0;
-      Drag_X          : Natural := 0;
-      Drag_Y          : Natural := 0;
-      Has_Drag        : Boolean := False;
       Marquee_Active  : Boolean := False;
       Marquee_X       : Natural := 0;
       Marquee_Y       : Natural := 0;

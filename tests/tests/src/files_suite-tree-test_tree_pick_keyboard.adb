@@ -27,7 +27,7 @@ separate (Files_Suite.Tree)
       Files.Model.Tree_Panel.Seed (Model, Seeds);
       Files.Model.Tree_Panel.Open (Model);
       --  Expand the root so alpha and beta are visible rows.
-      CResult := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      CResult := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Files_Suite.Support.Assert_Equal
         (CResult.Status,
          Files.Controller.Controller_Command_Executed,
@@ -93,8 +93,7 @@ separate (Files_Suite.Tree)
             end loop;
             Assert (Alpha_Node /= 0, "the expanded picker still exposes alpha");
             CResult :=
-              Files.Controller.Handle_Tree_Click
-                (Model, Settings, Alpha_Node, Toggle => True);
+              Files.Controller.Toggle_Tree_Node (Model, Settings, Alpha_Node);
          end;
          Files_Suite.Support.Assert_Equal
            (CResult.Status, Files.Controller.Controller_Command_Executed,

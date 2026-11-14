@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 with Files.Operation_Results;
 with Files.Rendering.Layouts;
 separate (Files_Suite.Refresh)
@@ -29,7 +30,7 @@ separate (Files_Suite.Refresh)
       Selected := Files.Model.Selection.Select_By_Name (Model, "f 55");
       Assert (Selected and then Files.Model.Reveal_Is_Pending (Model), "a selection by name waits to be revealed");
       declare
-         Snapshot : Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Snapshot : Files.Rendering.View_Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Layout   : constant Files.Rendering.Layout_Metrics :=
            Files.Rendering.Layouts.Calculate_Layout (Snapshot, Width => 1000, Height => 600, Line_Height => 20);
          Lines    : constant Natural :=

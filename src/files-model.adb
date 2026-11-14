@@ -224,10 +224,19 @@ package body Files.Model is
    end Topmost_Overlay;
 
    function Window_Overlay_Shown (Model : Window_Model; Overlay : Text_Input_Overlay) return Boolean is
-     (Overlay_Is_Open (Model, Overlay)
-      and then Model.Foreground_Kind = No_Foreground_Job
-      and then not Model.Paste_Conflict.Active
-      and then (Overlay = Command_Palette_Overlay or else not Model.Command_Palette.Open));
+   begin
+      if not Overlay_Is_Open (Model, Overlay) then
+         return False;
+      end if;
+      --  Nothing above it in Overlay_Stack is open.
+      for Candidate of Files.Types.Overlay_Stack loop
+         exit when Candidate = Overlay;
+         if Overlay_Is_Open (Model, Candidate) then
+            return False;
+         end if;
+      end loop;
+      return True;
+   end Window_Overlay_Shown;
 
    function Escape_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean is
      (Topmost_Overlay (Model, Overlay) and then Overlay in Escape_Closable_Overlay);

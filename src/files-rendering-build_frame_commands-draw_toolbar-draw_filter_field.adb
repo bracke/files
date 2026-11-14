@@ -5,7 +5,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
       declare
          --  The chip is sized to its localized label so it never abbreviates;
          --  the filter field is narrowed to end before it (when it fits).
-         Scope_Chip_W : constant Natural := Files.UI.Filter_Scope_Chip_Width (Line_Height);
+         Scope_Chip_W : constant Natural := Files.Rendering.Layouts.Filter_Scope_Chip_Width (Line_Height);
          Scope_Chip : constant Guikit.Layout.Scope_Chip_Region :=
            Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Scope_Chip_W, Line_Height);
          Text_Region   : constant Field_Text_Region := Filter_Field_Text_Region (Toolbar, Line_Height);
@@ -93,10 +93,10 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
                Add_Border
                  (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height, Border_Color);
                Add_Text
-                 (Guikit.Layout.Saturating_Add (Scope_Chip.X, Files.UI.Field_Padding (Line_Height)),
+                 (Guikit.Layout.Saturating_Add (Scope_Chip.X, Files.Rendering.Layouts.Field_Padding (Line_Height)),
                   Toolbar_Input_Text_Y,
-                  (if Scope_Chip.Width > 2 * Files.UI.Field_Padding (Line_Height)
-                   then Scope_Chip.Width - 2 * Files.UI.Field_Padding (Line_Height)
+                  (if Scope_Chip.Width > 2 * Files.Rendering.Layouts.Field_Padding (Line_Height)
+                   then Scope_Chip.Width - 2 * Files.Rendering.Layouts.Field_Padding (Line_Height)
                    else 0),
                   Toolbar_Input_Text_H,
                   Localized (Scope_Key),

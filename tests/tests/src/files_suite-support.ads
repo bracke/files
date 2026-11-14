@@ -112,8 +112,8 @@ package Files_Suite.Support is
    --  @param Message What the check is about.
    procedure Assert_Between (Value, Low, High : Float; Message : String);
 
-   --  Run a command the way the application does, through the one dispatch
-   --  path (Files.Controller.Execute_Command) with default settings, for a
+   --  Run a command through the controller's command entry
+   --  (Files.Controller.Execute_Non_Settings_Command) with default settings, for a
    --  test that checks the command's effect on the model and not its result.
    --
    --  @param Id Command to run.

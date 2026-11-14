@@ -77,5 +77,12 @@ separate (Files.Rendering.Layouts)
          Scrollbar_Thumb_Y => (if Visible then Thumb_Y else 0),
          Scrollbar_Width   => (if Visible then Bar_W else 0),
          Scrollbar_Height  => (if Visible then Natural'Min (Thumb_H, Layout.Main_Height) else 0),
-         Scrollbar_Track_Height => (if Visible then Layout.Main_Height else 0));
+         Scrollbar_Track_Height => (if Visible then Layout.Main_Height else 0),
+         --  Clear of the scrollbar column on the right.
+         Close_Button      =>
+           Panel_Close_Button
+             (Pane_X, Layout.Main_Y,
+              (if Visible and then Layout.Info_Pane_Width > Bar_W then Layout.Info_Pane_Width - Bar_W
+               else Layout.Info_Pane_Width),
+              Layout.Main_Height, Line_Height));
    end Calculate_Info_Pane_Layout;

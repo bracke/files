@@ -1,3 +1,4 @@
+with Ada.Containers.Vectors;
 with Ada.Unchecked_Deallocation;
 with Files.Diagnostics;
 with GNAT.CRC32;
@@ -387,25 +388,23 @@ package body Files.Images.Png is
      (Row      : Ada.Streams.Stream_Element_Array;
       Found    : Layout;
       Channels : Positive;
-      Pixels   : in out Pixel_Vectors.Vector)
+      Pixels   : in out Files.Types.Byte_Vectors.Vector)
    is
-      function Sample (Column, Channel : Natural) return Channel_Value is
-        (Channel_Value (Row (Row'First + Offset (Column * Channels + Channel))));
+      function Sample (Column, Channel : Natural) return Interfaces.Unsigned_8 is
+        (Interfaces.Unsigned_8 (Row (Row'First + Offset (Column * Channels + Channel))));
    begin
       for Column in 0 .. Found.Width - 1 loop
+         Pixels.Append (Sample (Column, 0));
+         Pixels.Append (Sample (Column, 1));
+         Pixels.Append (Sample (Column, 2));
          Pixels.Append
-           (Rgba_Pixel'
-              (Red   => Sample (Column, 0),
-               Green => Sample (Column, 1),
-               Blue  => Sample (Column, 2),
-               Alpha =>
-                 (if Channels = 4 then Sample (Column, 3)
-                  elsif Found.Transparent
-                    and then Natural (Sample (Column, 0)) = Found.Transparent_Red
-                    and then Natural (Sample (Column, 1)) = Found.Transparent_Green
-                    and then Natural (Sample (Column, 2)) = Found.Transparent_Blue
-                  then 0
-                  else 255)));
+           (if Channels = 4 then Sample (Column, 3)
+            elsif Found.Transparent
+              and then Natural (Sample (Column, 0)) = Found.Transparent_Red
+              and then Natural (Sample (Column, 1)) = Found.Transparent_Green
+              and then Natural (Sample (Column, 2)) = Found.Transparent_Blue
+            then 0
+            else 255);
       end loop;
    end Append_Row;
 
@@ -438,7 +437,7 @@ package body Files.Images.Png is
          end if;
          Free (Compressed);
 
-         Image.Pixels.Reserve_Capacity (Ada.Containers.Count_Type (Found.Width * Found.Height));
+         Image.Pixels.Reserve_Capacity (Ada.Containers.Count_Type (Found.Width * Found.Height * 4));
          for Row in 0 .. Found.Height - 1 loop
             declare
                --  Each row is its filter type byte, then its samples.

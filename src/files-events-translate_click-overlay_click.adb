@@ -9,9 +9,9 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
    --  The paste-progress overlay is a modal-lite top-most panel: while a long
    --  copy/move runs, a click either hits its Cancel button or is swallowed.
    function Progress_Click return Input_Action is
-      use type Files.Rendering.Conflict_Hit_Kind;
+      use type Files.Rendering.Dialog_Hit_Kind;
    begin
-      if Files.Rendering.Hit.Conflict_Hit_At (Frame, X, Y).Kind = Files.Rendering.Conflict_Hit_Progress_Cancel then
+      if Files.Rendering.Hit.Dialog_Hit_At (Frame, X, Y).Kind = Files.Rendering.Dialog_Hit_Progress_Cancel then
          return Paste_Cancel_Action;
       end if;
       return No_Action;
@@ -20,25 +20,20 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
    --  The paste-conflict dialog consumes every click, either resolving to one
    --  of its controls or being swallowed.
    function Conflict_Click return Input_Action is
-      Dialog : constant Files.Rendering.Layouts.Conflict_Dialog_Layout :=
-        Files.Rendering.Layouts.Calculate_Conflict_Dialog_Layout (Layout, Line_Height);
    begin
-      case Files.Rendering.Hit.Conflict_Hit_At (Frame, X, Y).Kind is
-         when Files.Rendering.Conflict_Hit_Replace =>
+      case Files.Rendering.Hit.Dialog_Hit_At (Frame, X, Y).Kind is
+         when Files.Rendering.Dialog_Hit_Replace =>
             return Conflict_Action (Conflict_Button_Replace);
-         when Files.Rendering.Conflict_Hit_Skip =>
+         when Files.Rendering.Dialog_Hit_Skip =>
             return Conflict_Action (Conflict_Button_Skip);
-         when Files.Rendering.Conflict_Hit_Rename =>
+         when Files.Rendering.Dialog_Hit_Rename =>
             return Conflict_Action (Conflict_Button_Rename);
-         when Files.Rendering.Conflict_Hit_Cancel =>
+         when Files.Rendering.Dialog_Hit_Cancel | Files.Rendering.Dialog_Hit_Conflict_Close =>
             return Conflict_Action (Conflict_Button_Cancel);
-         when Files.Rendering.Conflict_Hit_Apply_All =>
+         when Files.Rendering.Dialog_Hit_Apply_All =>
             return Conflict_Action (Conflict_Button_Apply_All);
-         when Files.Rendering.Conflict_Hit_None
-            | Files.Rendering.Conflict_Hit_Progress_Cancel =>
-            if Close_Button_Hit (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height) then
-               return Conflict_Action (Conflict_Button_Cancel);
-            end if;
+         when Files.Rendering.Dialog_Hit_None
+            | Files.Rendering.Dialog_Hit_Progress_Cancel =>
             return No_Action;
       end case;
    end Conflict_Click;
@@ -49,7 +44,7 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
       QL : constant Files.Rendering.Layouts.Quick_Look_Layout :=
         Files.Rendering.Layouts.Calculate_Quick_Look_Layout (Layout, Line_Height);
    begin
-      if Close_Button_Hit (QL.X, QL.Y, QL.Width, QL.Height)
+      if Close_Button_Hit (QL.Close_Button)
         or else not (Within (X, QL.X, QL.Width) and then Within (Y, QL.Y, QL.Height))
       then
          return Command_Action (Files.Commands.Toggle_Quick_Look_Command);
@@ -73,7 +68,7 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
             end if;
          end;
       end loop;
-      if Close_Button_Hit (Picker.X, Picker.Y, Picker.Width, Picker.Height)
+      if Close_Button_Hit (Picker.Close_Button)
         or else not (Within (X, Picker.X, Picker.Width) and then Within (Y, Picker.Y, Picker.Height))
       then
          return Command_Action (Files.Commands.Close_Overlay_Command);
@@ -117,7 +112,7 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
         Files.Rendering.Hit.Root_Path_At
           (Files.Rendering.Layouts.Calculate_Root_Path_Layout (Snapshot, Root_Layout), X, Y);
    begin
-      if Close_Button_Hit (Root_Layout.X, Root_Layout.Y, Root_Layout.Width, Root_Layout.Height) then
+      if Close_Button_Hit (Root_Layout.Close_Button) then
          return Command_Action (Files.Commands.Close_Overlay_Command);
       elsif Root_Index /= 0 then
          return (Kind => Root_Click_Input_Action, Root_Index => Root_Index);

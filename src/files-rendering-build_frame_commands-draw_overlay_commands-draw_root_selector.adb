@@ -38,7 +38,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                then Row_H - Saturating_Multiply (Root_Selector_Padding (Line_Height), 2)
                else Row_H);
             Toolbar_Icon_Size : constant Natural :=
-              Guikit.Layout.Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2));
+              Guikit.Layout.Saturating_Add
+                (Line_Height, Saturating_Multiply (Files.Rendering.Layouts.Field_Padding (Line_Height), 2));
             --  Uniform across rows (they share Row_Height), so compute once.
             Glyph_Size : constant Natural := Natural'Min (Toolbar_Icon_Size, Inner_H);
             List_Rows  : Guikit.List_Panel.List_Panel_Row_Vectors.Vector;
@@ -146,7 +147,5 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
             end loop;
          end;
       end if;
-      Draw_Close_Button
-        (Root_Selector.X, Root_Selector.Y, Root_Selector.Width, Root_Selector.Height,
-         Overlay => True);
+      Draw_Close_Button (Root_Selector.Close_Button, Overlay => True);
    end Draw_Root_Selector;

@@ -70,9 +70,9 @@ separate (Files_Suite.Rendering)
                           (Node.X, Node.Y, Node.Width, Node.Height, Width, Height,
                            "overlay accessibility stays inside the compact framebuffer");
                      end loop;
-                     for Hit of Frame.Conflict_Hits loop
+                     for Hit of Frame.Dialog_Hits loop
                         Assert
-                          (Hit.Kind /= Conflict_Hit_None,
+                          (Hit.Kind /= Dialog_Hit_None,
                            "dialog hit regions stay inside the compact framebuffer (hit kind)");
                         Files_Suite.Support.Assert_Fits
                           (Hit.X, Hit.Y, Hit.Width, Hit.Height, Width, Height,

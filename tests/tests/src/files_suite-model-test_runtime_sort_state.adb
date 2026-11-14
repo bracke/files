@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 with Files.Model.Sort_Menu;
 separate (Files_Suite.Model)
    procedure Test_Runtime_Sort_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -28,7 +29,7 @@ separate (Files_Suite.Model)
       end Item;
 
       function Snapshot_Name (Index : Positive) return String is
-         Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       begin
          return To_String (Snapshot.Items.Element (Index).Name);
       end Snapshot_Name;

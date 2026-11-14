@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 with Files.Rendering.Testing;
 separate (Files_Suite.Rendering)
    --  Paste-progress overlay: exposes a Cancel affordance and a proportional
@@ -21,12 +22,12 @@ separate (Files_Suite.Rendering)
       Snap.Paste_Progress.Total := 10;
       Snap.Paste_Progress.Name := To_Unbounded_String ("bigfile.bin");
       Layout := Calculate_Layout (Snap, Width, Height, LH);
-      Panel  := Files.Rendering.Testing.Calculate_Paste_Progress_Layout (Layout, LH);
+      Panel  := Files.Rendering.Layouts.Calculate_Paste_Progress_Layout (Layout, LH);
       Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
       Expected_Fill := (Panel.Bar_Width * Snap.Paste_Progress.Done) / Snap.Paste_Progress.Total;
       Assert
-        (Files.Rendering.Hit.Conflict_Hit_At (Frame, Panel.Cancel_X + Panel.Cancel_Width / 2,
-           Panel.Cancel_Y + Panel.Cancel_Height / 2).Kind = Conflict_Hit_Progress_Cancel,
+        (Files.Rendering.Hit.Dialog_Hit_At (Frame, Panel.Cancel_X + Panel.Cancel_Width / 2,
+           Panel.Cancel_Y + Panel.Cancel_Height / 2).Kind = Dialog_Hit_Progress_Cancel,
          "the paste-progress overlay exposes a hit-testable Cancel button");
       Assert (Expected_Fill > 0, "a partial progress produces a non-empty filled bar");
       Assert

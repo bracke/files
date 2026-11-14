@@ -3,35 +3,33 @@ separate (Files.Controller)
      (Model  : in out Files.Model.Window_Model;
       Target : Files.Events.Scroll_Target;
       Lines  : Integer)
-      return Controller_Result is
+      return Controller_Result
+   is
+      Top     : Files.Model.Input_Overlay;
+      Has_Top : constant Boolean := Files.Model.Topmost_Overlay (Model, Top);
    begin
       if Lines = 0 then
          return Make_Result (Controller_Ignored);
       end if;
 
-      if Files.Model.Command_Palette.Is_Open (Model)
+      --  The overlay on top takes the wheel (Files.Types.Overlay_Stack): a
+      --  target that is not its own region is contained, as it contains
+      --  clicks and character input. The folder-pick's own region is the tree.
+      if Has_Top
         and then Target /= Files.Events.Scroll_Auto
-        and then Target /= Files.Events.Scroll_Command_Palette
+        and then Target /=
+          (case Top is
+              when Files.Types.Command_Palette_Overlay => Files.Events.Scroll_Command_Palette,
+              when Files.Types.Settings_Pane_Overlay   => Files.Events.Scroll_Settings_Pane,
+              when Files.Types.Tree_Pick_Overlay       => Files.Events.Scroll_Tree_Panel,
+              when Files.Types.Foreground_Job_Overlay
+                 | Files.Types.Paste_Conflict_Overlay
+                 | Files.Types.Root_Selector_Overlay
+                 | Files.Types.Sort_Menu_Overlay
+                 | Files.Types.Context_Menu_Overlay
+                 | Files.Types.Label_Picker_Overlay
+                 | Files.Types.Quick_Look_Overlay        => Files.Events.Scroll_Auto)
       then
-         return Make_Result (Controller_Ignored);
-      elsif Files.Model.Root_Selector.Is_Open (Model)
-        and then not Files.Model.Command_Palette.Is_Open (Model)
-      then
-         return Make_Result (Controller_Ignored);
-      elsif Files.Model.Settings_Pane.Is_Open (Model)
-        and then not Files.Model.Command_Palette.Is_Open (Model)
-        and then Target /= Files.Events.Scroll_Auto
-        and then Target /= Files.Events.Scroll_Settings_Pane
-      then
-         return Make_Result (Controller_Ignored);
-      elsif Non_Text_Overlay_Owns_Input (Model)
-        and then not
-          (Files.Model.Tree_Panel.Pick_Is_Active (Model)
-           and then Target = Files.Events.Scroll_Tree_Panel)
-      then
-         --  Targeted calls can legitimately identify the destination tree,
-         --  but every other non-text overlay contains scrolling just as it
-         --  contains clicks and native character input.
          return Make_Result (Controller_Ignored);
       end if;
 

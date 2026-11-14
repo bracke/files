@@ -1,4 +1,4 @@
-separate (Files.Rendering.Geometry)
+separate (Files.Rendering.Labels)
    function Build_Coalesced_Info_Sections
      (Snapshot : View_Snapshot)
       return Coalesced_Section_Vectors.Vector

@@ -342,9 +342,6 @@ package body Files.Commands is
 
    function Persists_Global_Ui_State (Id : Command_Id) return Boolean is (Traits (Id).Persists_UI_State);
 
-   function Routes_Through_Settings (Id : Command_Id) return Boolean is
-     (Requires_Settings_Path (Id) or else Persists_Global_Ui_State (Id));
-
    function Contains
      (Identifier_Text : String)
       return Boolean is

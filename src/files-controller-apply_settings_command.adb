@@ -14,10 +14,7 @@ begin
          return Save_Settings (Model, Settings, Settings_Path);
       when Files.Commands.Reset_Settings_Command =>
          --  The pane's Reset button: back to defaults, shortcuts included,
-         --  and saved.
-         if not Files.Model.Settings_Pane.Is_Open (Model) then
-            return Settings_Closed_Result (Id, Model, Settings_Path);
-         end if;
+         --  and saved. Status_Of disables it while the pane is closed.
          Files.Settings_Form.Reset_To_Defaults (Model);
          declare
             Saved : Controller_Result := Save_Settings (Model, Settings, Settings_Path);

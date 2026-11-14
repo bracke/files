@@ -8,6 +8,8 @@ separate (Check_All)
       Layouts_Body   : constant String := Root & "/src/files-rendering-layouts.adb";
       Geometry_Spec  : constant String := Root & "/src/files-rendering-geometry.ads";
       Geometry_Body  : constant String := Root & "/src/files-rendering-geometry.adb";
+      Labels_Spec    : constant String := Root & "/src/files-rendering-labels.ads";
+      Labels_Body    : constant String := Root & "/src/files-rendering-labels.adb";
       Text_Spec      : constant String := Root & "/src/files-rendering-text.ads";
       Text_Body      : constant String := Root & "/src/files-rendering-text.adb";
       Fonts_Body     : constant String := Root & "/src/files-fonts.adb";
@@ -57,6 +59,8 @@ separate (Check_All)
       Check_Rendering_Unit (Layouts_Body, "layouts body");
       Check_Rendering_Unit (Geometry_Spec, "rendering geometry spec");
       Check_Rendering_Unit (Geometry_Body, "rendering geometry body");
+      Check_Rendering_Unit (Labels_Spec, "rendering labels spec");
+      Check_Rendering_Unit (Labels_Body, "rendering labels body");
       Check_Rendering_Unit (Text_Spec, "text rendering spec");
       Check_Rendering_Unit (Text_Body, "text rendering body");
 
@@ -87,17 +91,15 @@ separate (Check_All)
           To_Unbounded_String ("Files.Fonts"),
           To_Unbounded_String ("Files.Localization"),
           To_Unbounded_String ("Files.Rendering.Geometry"),
-          To_Unbounded_String ("Files.Rendering.Layouts"),
-          To_Unbounded_String ("Files.UI")]);
-      --  Hit-testing stays pure geometry: it may import only the domain UI
-      --  layout it maps pixels through and the rendering layer's own
-      --  geometry (the body is also covered above as a files-rendering-*
-      --  source).
+          To_Unbounded_String ("Files.Rendering.Labels"),
+          To_Unbounded_String ("Files.Rendering.Layouts")]);
+      --  Hit-testing stays pure geometry: it may import only the rendering
+      --  layer's own geometry (the body is also covered above as a
+      --  files-rendering-* source).
       Require_Only_Allowed_With_Clauses
         (Hit_Body,
          "Files.",
-         [To_Unbounded_String ("Files.Rendering.Geometry"),
-          To_Unbounded_String ("Files.UI")]);
+         [To_Unbounded_String ("Files.Rendering.Geometry")]);
       --  The layouts and the text read no model and no files: snapshots in,
       --  geometry or glyphs out.
       Require_Only_Allowed_With_Clauses
@@ -150,13 +152,13 @@ separate (Check_All)
             To_Unbounded_String ("Files.Model.Tree_Panel"),
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Rendering.Geometry"),
+            To_Unbounded_String ("Files.Rendering.Labels"),
             To_Unbounded_String ("Files.Rendering.Layouts"),
             To_Unbounded_String ("Files.Root_Labels"),
             To_Unbounded_String ("Files.Settings"),
             To_Unbounded_String ("Files.Settings.Path_References"),
             To_Unbounded_String ("Files.Timing"),
-            To_Unbounded_String ("Files.Types"),
-            To_Unbounded_String ("Files.UI")];
+            To_Unbounded_String ("Files.Types")];
       begin
          for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-rendering-*.adb", Generated_Directories) loop
             Require_Only_Allowed_With_Clauses (To_String (Item), "Files.", Family_Allowed);

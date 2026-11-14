@@ -4,6 +4,7 @@ with Files.Commands;
 with Files.Types;
 with Guikit.Item_Grid;
 with Guikit.Layout;
+with Guikit.Segmented;
 
 --  Where everything a frame draws lies: the window's regions, the items, the
 --  panels and overlays, the rows of lists and menus -- worked out from a view
@@ -11,6 +12,28 @@ with Guikit.Layout;
 --  (Files.Rendering.Hit), the input translation (Files.Events) and the
 --  window layer alike, so what is drawn and what is hit agree.
 package Files.Rendering.Layouts is
+
+   --  A panel's top-right close (X) button: Guikit's, which every panel --
+   --  files' and guikit's own -- draws and hit-tests by.
+   subtype Close_Button_Layout is Guikit.Layout.Close_Button_Layout;
+
+   --  Calculate the top-right close (X) button rectangle for an overlay panel
+   --  (Guikit.Layout.Panel_Close_Button): Visible is False when the panel is
+   --  too small to host the button, which is then neither drawn nor hit.
+   --
+   --  @param Panel_X Panel left edge in pixels.
+   --  @param Panel_Y Panel top edge in pixels.
+   --  @param Panel_Width Panel width in pixels.
+   --  @param Panel_Height Panel height in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Close-button rectangle; Visible is False when it does not fit.
+   function Panel_Close_Button
+     (Panel_X      : Natural;
+      Panel_Y      : Natural;
+      Panel_Width  : Natural;
+      Panel_Height : Natural;
+      Line_Height  : Positive)
+      return Close_Button_Layout renames Guikit.Layout.Panel_Close_Button;
 
    --  The laid-out context menu. Its rows are Files.Commands' own (selectable
    --  commands and the non-selectable dividers that group them), so the
@@ -45,8 +68,8 @@ package Files.Rendering.Layouts is
       Line_Height : Positive)
       return Context_Menu_Layout;
 
-   --  Per-item geometry lives in Guikit.Item_Grid now; these aliases keep the
-   --  existing Files.Rendering.Item_Layout / *_Vectors references compiling.
+   --  Per-item geometry is Guikit.Item_Grid's; the layout code here and its
+   --  clients name it by these short names.
    subtype Item_Layout is Guikit.Item_Grid.Item_Layout;
    package Item_Layout_Vectors renames Guikit.Item_Grid.Item_Layout_Vectors;
 
@@ -90,6 +113,8 @@ package Files.Rendering.Layouts is
       Content_Y  : Natural := 0;
       Content_Width  : Natural := 0;
       Content_Height : Natural := 0;
+      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
+      Close_Button : Close_Button_Layout;
    end record;
 
    type Label_Swatch_Bounds is record
@@ -117,6 +142,8 @@ package Files.Rendering.Layouts is
       Swatch_Size : Natural := 0;
       Swatches    : Label_Swatch_Array;
       Visible     : Boolean := False;
+      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
+      Close_Button : Close_Button_Layout;
    end record;
 
    --  Return the color label a picker swatch index selects. Indices 1 .. 7 map
@@ -136,6 +163,8 @@ package Files.Rendering.Layouts is
       Row_Height : Natural := 0;
       --  The selector's inner padding at the line height it was laid out for.
       Padding    : Natural := 8;
+      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
+      Close_Button : Close_Button_Layout;
    end record;
 
    --  Geometry of the centered paste-conflict dialog: the outer panel, its four
@@ -160,6 +189,8 @@ package Files.Rendering.Layouts is
       Rename_X     : Natural := 0;
       Cancel_X     : Natural := 0;
       Button_Width : Natural := 0;
+      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
+      Close_Button : Close_Button_Layout;
    end record;
 
    --  Geometry of the centered paste-progress overlay: the outer panel, the
@@ -233,6 +264,8 @@ package Files.Rendering.Layouts is
       Scrollbar_Width   : Natural := 0;
       Scrollbar_Height  : Natural := 0;
       Scrollbar_Track_Height : Natural := 0;
+      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
+      Close_Button : Close_Button_Layout;
    end record;
 
    type Tree_Row_Layout is record
@@ -283,7 +316,19 @@ package Files.Rendering.Layouts is
       Scrollbar_Width   : Natural := 0;
       Scrollbar_Height  : Natural := 0;
       Scrollbar_Track_Height : Natural := 0;
+      --  Its close (X) button (Panel_Close_Button), drawn and hit alike.
+      Close_Button : Close_Button_Layout;
    end record;
+
+   --  Compute the centered paste-progress overlay geometry for a window.
+   --
+   --  @param Layout Overall layout metrics for the window.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Panel, progress-bar, and Cancel-button rectangles for the overlay.
+   function Calculate_Paste_Progress_Layout
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Paste_Progress_Layout;
 
    --  Compute the centered paste-conflict dialog geometry for a window.
    --
@@ -735,26 +780,195 @@ package Files.Rendering.Layouts is
       Line_Height : Positive)
       return Info_Pane_Layout;
 
-   --  A panel's top-right close (X) button: Guikit's, which every panel --
-   --  files' and guikit's own -- draws and hit-tests by.
-   subtype Close_Button_Layout is Guikit.Layout.Close_Button_Layout;
+   --  The window chrome around the layouts below -- input-field and dialog
+   --  paddings, the default window size, the toolbar and bottom bar, the sort
+   --  dropdown, the view-mode switcher, the status-line split -- measured
+   --  with the localized labels it shows, over Guikit.Layout's geometry.
 
-   --  Calculate the top-right close (X) button rectangle for an overlay panel
-   --  (Guikit.Layout.Panel_Close_Button): Visible is False when the panel is
-   --  too small to host the button, which is then neither drawn nor hit.
+   --  An input field's inner padding at a line height: Guikit's, scaled with
+   --  the text past Guikit.Layout.Reference_Line_Height.
    --
-   --  @param Panel_X Panel left edge in pixels.
-   --  @param Panel_Y Panel top edge in pixels.
-   --  @param Panel_Width Panel width in pixels.
-   --  @param Panel_Height Panel height in pixels.
+   --  @param Line_Height The line height in use.
+   --  @return The padding in pixels.
+   function Field_Padding (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Scaled (Guikit.Layout.Input_Field_Padding, Line_Height));
+
+   --  The inset of the bottom bar's status fields (the counts and the free
+   --  space) from their edges, which the splitter and the renderer share:
+   --  4 px at Guikit.Layout.Reference_Line_Height, scaled with the text.
+   --
+   --  @param Line_Height The line height in use.
+   --  @return The inset in pixels.
+   function Status_Field_Padding (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Scaled (4, Line_Height));
+
+   --  The inset of a modal dialog's content from its frame: 12 px at
+   --  Guikit.Layout.Reference_Line_Height, scaled with the text.
+   --
+   --  @param Line_Height The line height in use.
+   --  @return The inset in pixels.
+   function Dialog_Padding (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Scaled (12, Line_Height));
+
+   --  A window's size when the settings name none, and the size the smoke
+   --  runs render at.
+   Default_Window_Width  : constant := 1024;
+   Default_Window_Height : constant := 768;
+
+   --  Calculate bottom-bar section and button rectangles, sizing the view-mode,
+   --  sort, and info controls to their localized labels.
+   --
+   --  @param Width Window width in pixels.
    --  @param Line_Height Text line height in pixels.
-   --  @return Close-button rectangle; Visible is False when it does not fit.
-   function Panel_Close_Button
-     (Panel_X      : Natural;
-      Panel_Y      : Natural;
-      Panel_Width  : Natural;
-      Panel_Height : Natural;
-      Line_Height  : Positive)
-      return Close_Button_Layout renames Guikit.Layout.Panel_Close_Button;
+   --  @return Three-section bottom-bar layout.
+   --  @param Sort_Field The active sort field; the sort button is sized to fit
+   --    only this field's label (plus the direction indicator), not the widest.
+   function Calculate_Bottom_Bar_Layout
+     (Width       : Natural;
+      Sort_Field  : Files.Types.Sort_Field;
+      Line_Height : Positive)
+      return Guikit.Layout.Bottom_Bar_Layout;
+
+   --  Width of the sort dropdown menu: sized to the widest sort-field label (plus
+   --  the direction indicator and padding), so every row fits even though the sort
+   --  button itself is only as wide as the active field's label.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Sort-menu width in pixels.
+   function Sort_Menu_Width
+     (Line_Height : Positive)
+      return Natural;
+
+   --  Height of the toolbar at Line_Height, as the layout and every hit-test
+   --  use it.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Toolbar height in pixels.
+   function Toolbar_Height (Line_Height : Positive) return Natural;
+
+   --  Height of the bottom bar (and of each sort-menu row) at Line_Height.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Bottom bar height in pixels.
+   function Bottom_Bar_Height (Line_Height : Positive) return Natural;
+
+   --  The bottom bar's top edge in a window Height tall, 0 when the window
+   --  is no taller than the bar.
+   --
+   --  @param Height Window height in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The bar's top Y in pixels.
+   function Bottom_Bar_Y (Height : Natural; Line_Height : Positive) return Natural;
+
+   --  Geometry of the open sort dropdown: the menu rectangle (it opens upward
+   --  from the bottom bar, left-aligned with the sort button), the top of its
+   --  first row, the row height, and the row count (one row per sort field).
+   type Sort_Menu_Layout is record
+      X          : Natural := 0;
+      Y          : Natural := 0;
+      Width      : Natural := 0;
+      Height     : Natural := 0;
+      Rows_Y     : Natural := 0;
+      Row_Height : Natural := 0;
+      Row_Count  : Natural := 0;
+   end record;
+
+   --  Calculate the sort dropdown geometry at a window size. The renderer and
+   --  the dropdown's click hit-tests share it so the drawn rows and the rows a
+   --  click resolves to cannot drift apart.
+   --
+   --  @param Width Framebuffer width in pixels.
+   --  @param Height Framebuffer height in pixels.
+   --  @param Sort_Field Currently selected sort field.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The dropdown rectangle and row geometry.
+   function Calculate_Sort_Menu_Layout
+     (Width       : Natural;
+      Height      : Natural;
+      Sort_Field  : Files.Types.Sort_Field;
+      Line_Height : Positive)
+      return Sort_Menu_Layout;
+
+   --  The top of dropdown row Row: the one row geometry the renderer draws
+   --  and the click hit-test resolves by.
+   --
+   --  @param Menu The dropdown's layout (Calculate_Sort_Menu_Layout).
+   --  @param Row One-based row index.
+   --  @return Window Y of the row's top edge.
+   function Sort_Menu_Row_Top
+     (Menu : Sort_Menu_Layout;
+      Row  : Positive)
+      return Natural;
+
+   --  The dropdown row under a point, by Sort_Menu_Row_Top's rows; 0 when the
+   --  point is on none, or the menu is not shown (Width 0).
+   --
+   --  @param Menu The dropdown's layout (Calculate_Sort_Menu_Layout).
+   --  @param X Window X.
+   --  @param Y Window Y.
+   --  @return One-based row index, or 0.
+   function Sort_Menu_Row_At
+     (Menu : Sort_Menu_Layout;
+      X    : Natural;
+      Y    : Natural)
+      return Natural;
+
+   --  The sort field a dropdown row shows: rows follow Sort_Field's
+   --  declaration order, top to bottom.
+   --
+   --  @param Row One-based row index, at most the layout's Row_Count.
+   --  @return The sort field of that row.
+   function Sort_Menu_Row_Field
+     (Row : Positive)
+      return Files.Types.Sort_Field
+     with Pre => Row <= Files.Types.Sort_Field'Pos (Files.Types.Sort_Field'Last) + 1;
+
+   --  The bottom-bar view-mode switcher cells (Small / Large / Details), left to
+   --  right, labelled with their short localized names. The renderer and the
+   --  click hit-test share this single definition so the variable-width cells
+   --  they compute agree; the renderer enriches each cell with a tooltip and
+   --  enabled state.
+   --
+   --  @return The three view-mode segments.
+   function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector;
+
+   --  Width the filter scope chip needs so its label is never abbreviated:
+   --  the widest of the localized scope words (here/names/contents) plus the
+   --  input-field padding on both sides.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Scope chip width in pixels that fits the longest scope label.
+   function Filter_Scope_Chip_Width
+     (Line_Height : Positive)
+      return Natural;
+
+   --  Partition the bottom-bar status region into the interactive hidden-files
+   --  toggle area on the left and, when a free-space field is present and there
+   --  is room, a separate free-space field on the right divided by a one-pixel
+   --  rule. When Free_Label_Width is zero (no free field) the toggle spans the
+   --  whole region. The renderer and the click hit-test both call this so the
+   --  toggle's hover/click area and the free-space field agree.
+   --
+   --  @param Info_X Left edge of the status region.
+   --  @param Info_Width Width of the status region.
+   --  @param Free_Label_Width Rendered pixel width of the free-space text, or
+   --    zero when there is no free-space field.
+   --  @param Toggle_Width Width of the interactive toggle area from Info_X.
+   --  @param Divider_X X of the dividing rule, or zero when there is no field.
+   --  @param Free_Field_X Left edge of the free-space text box, or zero.
+   --  @param Free_Field_Width Width of the free-space text box, or zero.
+   --  @param Free_Region_Width Width of the free-space field's interactive
+   --    region, from the divider to the region's right edge, or zero.
+   --  @param Line_Height Text line height used to reserve a legible count field.
+   procedure Split_Status_Region
+     (Info_X           : Natural;
+      Info_Width       : Natural;
+      Free_Label_Width : Natural;
+      Toggle_Width     : out Natural;
+      Divider_X        : out Natural;
+      Free_Field_X     : out Natural;
+      Free_Field_Width : out Natural;
+      Free_Region_Width : out Natural;
+      Line_Height      : Positive);
 
 end Files.Rendering.Layouts;

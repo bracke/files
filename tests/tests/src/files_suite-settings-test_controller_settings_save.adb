@@ -22,7 +22,6 @@ separate (Files_Suite.Settings)
          --  replace it atomically, so only its presence matters here.
          Ada.Directories.Create_Path (Join (Root, "draft-config"));
          Write_File (Draft_Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
-         Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files.Model.Settings_Pane.Begin_Edit (Draft_Model, Files.Settings.Make_Draft (Draft_Settings));
          --  Parse no longer injects the built-in mappings (the file is now
          --  authoritative), so seed this draft-editing test's mapping set from

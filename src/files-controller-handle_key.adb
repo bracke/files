@@ -66,8 +66,7 @@ separate (Files.Controller)
                end if;
             when Guikit.Input.Key_Right =>
                if Rows (Current).Has_Children and then not Rows (Current).Expanded then
-                  return Handle_Tree_Click
-                    (Model, Settings, Rows (Current).Node_Index, Toggle => True);
+                  return Toggle_Tree_Node (Model, Settings, Rows (Current).Node_Index);
                elsif Rows (Current).Expanded
                  and then Rows (Current).Has_Children
                  and then Current < Rows.Last_Index
@@ -80,8 +79,7 @@ separate (Files.Controller)
                end if;
             when Guikit.Input.Key_Left =>
                if Rows (Current).Expanded then
-                  return Handle_Tree_Click
-                    (Model, Settings, Rows (Current).Node_Index, Toggle => True);
+                  return Toggle_Tree_Node (Model, Settings, Rows (Current).Node_Index);
                else
                   for Up_Idx in reverse Rows.First_Index .. Current - 1 loop
                      if Rows (Up_Idx).Depth < Rows (Current).Depth then
@@ -117,8 +115,9 @@ separate (Files.Controller)
 
       --  The key, offered to the overlay on top (Files.Model.Topmost_Overlay):
       --  only it owns the keyboard, in the order the pointer and the drawing
-      --  follow too. Escape closes any overlay Escape closes, in one place;
-      --  a shortcut being captured in the settings pane takes it first.
+      --  follow too. The key bound to Close_Overlay_Command (Escape unless
+      --  rebound) closes any overlay Escape closes, as the command does; a
+      --  shortcut being captured in the settings pane takes it first.
       procedure Top_Overlay_Key (Handled : out Boolean; Result : out Controller_Result) is
          use type Files.Types.Input_Overlay;
          Top : Files.Model.Input_Overlay;
@@ -127,18 +126,14 @@ separate (Files.Controller)
          Result := Make_Result (Controller_Ignored);
          if not Files.Model.Topmost_Overlay (Model, Top) then
             return;
-         elsif Key = Guikit.Input.Key_Escape
-           and then Modifiers = Guikit.Input.No_Modifiers
+         elsif Action.Kind = Files.Events.Command_Input_Action
+           and then Action.Command = Files.Commands.Close_Overlay_Command
            and then Top in Files.Model.Escape_Closable_Overlay
            and then not (Top = Files.Types.Settings_Pane_Overlay
                          and then Files.Model.Settings_Pane.Is_Capturing (Model))
          then
-            Files.Model.Close_Overlay (Model, Top);
             Handled := True;
-            Result :=
-              (if Top = Files.Types.Command_Palette_Overlay
-               then Make_Result (Controller_Palette_Updated, Files.Commands.Close_Overlay_Command)
-               else Successful_Command_Result (Files.Commands.Close_Overlay_Command));
+            Result := Close_Top_Or_Cancel (Model);
             return;
          end if;
          case Top is

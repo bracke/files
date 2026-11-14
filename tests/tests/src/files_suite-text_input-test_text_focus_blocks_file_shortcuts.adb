@@ -54,15 +54,12 @@ separate (Files_Suite.Text_Input)
       Assert (Result.Settings_Changed and then Result.Clear_Pending_Text,
               "a settings shortcut reports the change and drops its character event");
 
-      --  The controller applies the shortcut itself when given the settings.
-      declare
-         Outcome : constant Files.Controller.Controller_Result :=
-           Files.Controller.Handle_Key (Model, Settings, "", Guikit.Input.Key_B, Ctrl);
-      begin
-         Assert (Outcome.Command = Files.Commands.Toggle_Favorite_Command
-                 and then not Files.Settings.Path_References.Is_Favorite (Settings, Ada.Directories.Full_Name (Victim)),
-                 "the settings-aware controller applies Ctrl+B once");
-      end;
+      --  A second Ctrl+B through the same seam applies the shortcut once more.
+      Files.Interaction.Handle_Key
+        (Model, Settings, "", Guikit.Input.Key_B, Ctrl, Result);
+      Assert (Result.Command = Files.Commands.Toggle_Favorite_Command
+              and then not Files.Settings.Path_References.Is_Favorite (Settings, Ada.Directories.Full_Name (Victim)),
+              "the keyboard path applies Ctrl+B once per press");
 
       --  Enter on a settings command in the palette applies it too.
       declare

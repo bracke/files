@@ -1,6 +1,5 @@
 with Ada.Containers.Vectors;
 with Files.Rendering.Geometry;
-with Files.UI;
 with Guikit.Segmented;
 
 package body Files.Rendering.Hit is
@@ -30,22 +29,22 @@ package body Files.Rendering.Hit is
       return None;
    end Topmost_Hit_At;
 
-   function Contains (Item : Conflict_Hit_Region; X, Y : Natural) return Boolean is
+   function Contains (Item : Dialog_Hit_Region; X, Y : Natural) return Boolean is
      (Contains_Rectangle_Point (Item.X, Item.Y, Item.Width, Item.Height, X, Y));
    function Contains (Item : Permission_Hit_Region; X, Y : Natural) return Boolean is
      (Contains_Rectangle_Point (Item.X, Item.Y, Item.Width, Item.Height, X, Y));
    function Contains (Item : Ownership_Hit_Region; X, Y : Natural) return Boolean is
      (Contains_Rectangle_Point (Item.X, Item.Y, Item.Width, Item.Height, X, Y));
 
-   function Conflict_At is new Topmost_Hit_At
-     (Conflict_Hit_Region, Conflict_Hit_Region_Vectors, Contains, (others => <>));
+   function Dialog_At is new Topmost_Hit_At
+     (Dialog_Hit_Region, Dialog_Hit_Region_Vectors, Contains, (others => <>));
    function Permission_At is new Topmost_Hit_At
      (Permission_Hit_Region, Permission_Hit_Region_Vectors, Contains, (others => <>));
    function Ownership_At is new Topmost_Hit_At
      (Ownership_Hit_Region, Ownership_Hit_Region_Vectors, Contains, (others => <>));
 
-   function Conflict_Hit_At (Frame : Frame_Commands; X, Y : Natural) return Conflict_Hit_Region is
-     (Conflict_At (Frame.Conflict_Hits, X, Y));
+   function Dialog_Hit_At (Frame : Frame_Commands; X, Y : Natural) return Dialog_Hit_Region is
+     (Dialog_At (Frame.Dialog_Hits, X, Y));
 
    function Permission_Hit_At (Frame : Frame_Commands; X, Y : Natural) return Permission_Hit_Region is
      (Permission_At (Frame.Permission_Hits, X, Y));
@@ -334,7 +333,7 @@ package body Files.Rendering.Hit is
       Toolbar  : constant Toolbar_Layout := Calculate_Toolbar_Layout (Width, Line_Height);
       Input_Y  : constant Natural := Toolbar_Input_Y (Line_Height);
       Input_H  : constant Natural := Toolbar_Input_Height (Line_Height);
-      Toolbar_H : constant Natural := Files.UI.Toolbar_Height (Line_Height);
+      Toolbar_H : constant Natural := Layouts.Toolbar_Height (Line_Height);
    begin
       if Width = 0 or else Y >= Toolbar_H then
          return Files.Commands.No_Command;
@@ -372,14 +371,14 @@ package body Files.Rendering.Hit is
       Line_Height      : Positive)
       return Files.Commands.Command_Id
    is
-      Bottom   : constant Bottom_Bar_Layout := Files.UI.Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
-      Bottom_Y : constant Natural := Files.UI.Bottom_Bar_Y (Height, Line_Height);
+      Bottom   : constant Bottom_Bar_Layout := Layouts.Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
+      Bottom_Y : constant Natural := Layouts.Bottom_Bar_Y (Height, Line_Height);
       --  The hidden-files toggle occupies only the counts area; when a free-space
       --  field is split off, the toggle stops at the divider and the free field
       --  is its own, non-interactive region.
       Toggle_Width, Divider_X, Free_Field_X, Free_Field_Width, Free_Region_Width : Natural;
    begin
-      Files.UI.Split_Status_Region
+      Layouts.Split_Status_Region
         (Bottom.Info_X, Bottom.Info_Width, Free_Label_Width,
          Toggle_Width, Divider_X, Free_Field_X, Free_Field_Width, Free_Region_Width, Line_Height);
       if Width = 0
@@ -391,7 +390,7 @@ package body Files.Rendering.Hit is
          return Files.Commands.No_Command;
       elsif Within (X, Bottom.View_Mode_X, Bottom.View_Mode_Width) then
          case Guikit.Segmented.Cell_At
-                (Files.UI.View_Mode_Segments, Bottom.View_Mode_X, Bottom.View_Mode_Width, Line_Height, X)
+                (Layouts.View_Mode_Segments, Bottom.View_Mode_X, Bottom.View_Mode_Width, Line_Height, X)
          is
             when 1      => return Files.Commands.Select_Small_Icons_Command;
             when 2      => return Files.Commands.Select_Large_Icons_Command;
@@ -425,22 +424,14 @@ package body Files.Rendering.Hit is
       return Files.Commands.Command_Id
    is
       --  No sort button, no menu: its width is then 0.
-      Menu   : constant Files.UI.Sort_Menu_Layout :=
-        Files.UI.Calculate_Sort_Menu_Layout (Width, Height, Sort_Field, Line_Height);
+      Menu   : constant Layouts.Sort_Menu_Layout :=
+        Layouts.Calculate_Sort_Menu_Layout (Width, Height, Sort_Field, Line_Height);
+      Row    : constant Natural := Layouts.Sort_Menu_Row_At (Menu, X, Y);
    begin
-      if Menu.Width = 0
-        or else X >= Width
-        or else Y >= Height
-        or else X < Menu.X
-        or else X >= Saturating_Add (Menu.X, Menu.Width)
-        or else Y < Menu.Rows_Y
-        or else Y >= Saturating_Add (Menu.Rows_Y, Guikit.Layout.Saturating_Multiply (Menu.Row_Height, Menu.Row_Count))
-        or else Menu.Row_Height = 0
-      then
+      if Row = 0 then
          return Files.Commands.No_Command;
       end if;
-
-      return Files.Commands.Sort_Command (Files.UI.Sort_Menu_Row_Field ((Y - Menu.Rows_Y) / Menu.Row_Height + 1));
+      return Files.Commands.Sort_Command (Layouts.Sort_Menu_Row_Field (Row));
    end Bottom_Bar_Sort_Menu_Command_At;
 
    function Bottom_Bar_Sort_Menu_Contains
@@ -452,8 +443,8 @@ package body Files.Rendering.Hit is
       Line_Height : Positive)
       return Boolean
    is
-      Menu        : constant Files.UI.Sort_Menu_Layout :=
-        Files.UI.Calculate_Sort_Menu_Layout (Width, Height, Sort_Field, Line_Height);
+      Menu        : constant Layouts.Sort_Menu_Layout :=
+        Layouts.Calculate_Sort_Menu_Layout (Width, Height, Sort_Field, Line_Height);
       Menu_Bottom : constant Natural :=
         Natural'Min (Height, Saturating_Add (Menu.Y, Menu.Height));
    begin

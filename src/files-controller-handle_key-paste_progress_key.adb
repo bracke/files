@@ -7,9 +7,7 @@ begin
    Handled := True;
    Result := Make_Result (Controller_Ignored);
    if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
-      Files.Foreground_Jobs.Cancel (Model);
-      Result :=
-        Make_Result
-          (Controller_Command_Executed, Files.Commands.No_Command, Files.Foreground_Jobs.Advance (Model, Settings, 1));
+      --  As the panel's Cancel button does.
+      Result := Handle_Paste_Cancel (Model, Settings);
    end if;
 end Paste_Progress_Key;

@@ -39,7 +39,7 @@ separate (Files_Suite.Tree)
               "with the tree closed, Tab from the filter returns to the grid");
 
       Files.Model.Tree_Panel.Open (Model);
-      CResult := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      CResult := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
 
       --  Open, the filter hands on to the tree, and the tree back to the grid.
       Tab;

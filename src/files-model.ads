@@ -191,8 +191,8 @@ package Files.Model is
 
    --  Whether the window layer draws Overlay (the command palette or the
    --  settings pane, which it merges over the frame): it is open and nothing
-   --  is above it in Topmost_Overlay's order. A paste dialog, drawn in the
-   --  frame, is above both; the palette is above the pane.
+   --  is open above it in Files.Types.Overlay_Stack. A paste dialog, drawn in
+   --  the frame, is above both; the palette is above the pane.
    --
    --  @param Model Model to inspect.
    --  @param Overlay The palette or the pane.

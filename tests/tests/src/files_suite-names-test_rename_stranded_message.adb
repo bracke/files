@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Names)
    --  A case-only rename whose second hop and way back both fail leaves the
    --  entry at its scratch name; the error then says where, in every locale,
@@ -33,7 +34,7 @@ separate (Files_Suite.Names)
       Files_Suite.Support.Assert_Equal (Files.Model.Last_Error_Key (Model), Key, "the window holds the error");
       Files_Suite.Support.Assert_Equal (Files.Model.Last_Error_Path (Model), Left_At, "and the path it names");
       declare
-         Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       begin
          Files_Suite.Support.Assert_Equal
            (To_String (Snapshot.Last_Error_Text),
@@ -44,7 +45,7 @@ separate (Files_Suite.Names)
       Files.Model.Set_Error (Model, "error.rename.failed");
       Files_Suite.Support.Assert_Equal (Files.Model.Last_Error_Path (Model), "", "a later error names no path");
       declare
-         Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       begin
          Files_Suite.Support.Assert_Equal
            (To_String (Snapshot.Last_Error_Text),

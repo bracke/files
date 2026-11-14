@@ -25,7 +25,6 @@ with Files.Model;
 with Files.Model.Selection;
 with Files.Model.Rename;
 with Files.Model.Folder_Sizes;
-with Files.UI;
 with Files.Timing;
 with Guikit.Utf8;
 with Files.Quick_Look;

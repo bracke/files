@@ -1,13 +1,8 @@
 separate (Files.Rendering.Build_Frame_Commands)
    procedure Draw_Close_Button
-     (Panel_X : Natural;
-      Panel_Y : Natural;
-      Panel_W : Natural;
-      Panel_H : Natural;
+     (Btn     : Close_Button_Layout;
       Overlay : Boolean)
    is
-      Btn : constant Close_Button_Layout :=
-        Panel_Close_Button (Panel_X, Panel_Y, Panel_W, Panel_H, Line_Height);
    begin
       if not Btn.Visible then
          return;

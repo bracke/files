@@ -32,7 +32,7 @@ separate (Files_Suite.Transfer)
 
       --  A label click (Toggle => False) while picking sets the target and must
       --  not navigate the main view away from the source directory.
-      Routed := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => False);
+      Routed := Files.Controller.Activate_Tree_Node (Model, Settings, 1);
       Files_Suite.Support.Assert_Equal
         (Routed.Status,
          Files.Controller.Controller_Command_Executed,

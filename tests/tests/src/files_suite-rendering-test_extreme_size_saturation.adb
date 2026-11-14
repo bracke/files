@@ -74,17 +74,17 @@ separate (Files_Suite.Rendering)
          Boundary_Frame : Frame_Commands;
          Boundary_Menu  : Context_Menu_Layout;
       begin
-         Boundary_Frame.Conflict_Hits.Append
-           (Conflict_Hit_Region'
-              (Kind   => Conflict_Hit_Replace,
+         Boundary_Frame.Dialog_Hits.Append
+           (Dialog_Hit_Region'
+              (Kind   => Dialog_Hit_Replace,
              X      => Natural'Last,
              Y      => Natural'Last,
              Width  => 1,
              Height => 1));
          Assert
-           (Files.Rendering.Hit.Conflict_Hit_At
+           (Files.Rendering.Hit.Dialog_Hit_At
               (Boundary_Frame, Natural'Last, Natural'Last).Kind =
-                Conflict_Hit_Replace,
+                Dialog_Hit_Replace,
             "hit testing accepts a one-pixel region at the coordinate limit");
 
          Boundary_Menu.Visible := True;

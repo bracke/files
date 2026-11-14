@@ -11,7 +11,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       Raw    : constant String := To_String (Text);
       Raw_X  : constant Natural :=
         Guikit.Layout.Saturating_Add
-          (Guikit.Layout.Saturating_Add (X, Files.UI.Field_Padding (Line_Height)),
+          (Guikit.Layout.Saturating_Add (X, Files.Rendering.Layouts.Field_Padding (Line_Height)),
            Saturating_Multiply
              (Guikit.Utf8.Display_Units_Before (Raw, Cursor), Char_W));
       Max_X  : constant Natural := (if Field_W > 2 then Guikit.Layout.Saturating_Add (X, Field_W - 2) else X);

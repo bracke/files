@@ -37,11 +37,14 @@ separate (Files_Suite.Settings)
          Draft      : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Loaded.Settings);
          Draft_Load : Files.Settings.Settings_Parse_Result;
          Draft_Model : Files.Model.Window_Model := Sample_Model;
-         Draft_Settings : Files.Settings.Settings_Model := Loaded.Settings;
+         Draft_Settings : constant Files.Settings.Settings_Model := Loaded.Settings;
          Controller_Result : Files.Controller.Controller_Result;
          Lookup : Files.Settings.Open_Actions.Action_Lookup_Result;
       begin
-         Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
+         --  With the pane closed, Save is disabled at the command entry.
+         Controller_Result :=
+           Files.Controller.Execute_Non_Settings_Command
+             (Files.Commands.Save_Settings_Command, Draft_Model, Draft_Settings);
          Files_Suite.Support.Assert_Equal
            (Controller_Result.Operation.Status,
             Files.Operation_Results.Operation_Disabled,
@@ -50,10 +53,6 @@ separate (Files_Suite.Settings)
            (To_String (Controller_Result.Operation.Error_Key),
             "error.settings.closed",
             "closed settings save reports a localized disabled error");
-         Files_Suite.Support.Assert_Equal
-           (To_String (Controller_Result.Operation.Path),
-            Draft_Path,
-            "closed settings save reports settings path");
          Draft.Scalars (Files.Settings.Default_View_Mode_Setting) := To_Unbounded_String ("details");
          Draft.Scalars (Files.Settings.Show_Hidden_Files_Setting) := To_Unbounded_String ("true");
          Draft.Scalars (Files.Settings.Sort_Field_Setting) := To_Unbounded_String ("size");

@@ -6,14 +6,14 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
    --  hover/press/tooltip affordances stop at the divider rather than
    --  spanning the whole region.
    procedure Draw_Status_Counts is
-      Pad       : constant Natural := Files.UI.Status_Field_Padding (Line_Height);
+      Pad       : constant Natural := Files.Rendering.Layouts.Status_Field_Padding (Line_Height);
       Cell_W    : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
       Free_W    : constant Natural := Free_Space_Label_Width (Snapshot, Line_Height);
       --  The counts/free split, shared with the click hit-test so the toggle's
       --  hover/press/tooltip area and the separate free-space field agree.
       Toggle_W, Divider_X, Free_X, Free_Field_W, Free_Region_W : Natural;
    begin
-      Files.UI.Split_Status_Region
+      Files.Rendering.Layouts.Split_Status_Region
         (Bottom.Info_X, Bottom.Info_Width, Free_W,
          Toggle_W, Divider_X, Free_X, Free_Field_W, Free_Region_W, Line_Height);
       declare

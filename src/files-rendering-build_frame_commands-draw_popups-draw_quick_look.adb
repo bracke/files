@@ -10,7 +10,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
       --  the previewed item's name, which also serves as the content marker
       --  tests assert on for every kind.
       Draw_Titled_Panel
-        (QL.X, QL.Y, QL.Width, QL.Height, QL.Title_X, QL.Title_Y, QL.Title_W,
+        (QL.X, QL.Y, QL.Width, QL.Height, QL.Title_X, QL.Title_Y, QL.Title_W, QL.Close_Button,
          Title       => Look.Name,
          Name        => Localized ("accessibility.quick_look"),
          Description => Look.Name);

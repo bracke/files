@@ -11,7 +11,7 @@ separate (Files_Suite.Rendering)
       declare
          Frame : constant Frame_Commands := Build_Frame_Commands (Snap, 1000, 800, 20);
          Bar   : constant Guikit.Layout.Bottom_Bar_Layout :=
-           Files.UI.Calculate_Bottom_Bar_Layout (1000, Snap.Sort_Field, 20);
+           Files.Rendering.Layouts.Calculate_Bottom_Bar_Layout (1000, Snap.Sort_Field, 20);
          Found : Boolean := False;
       begin
          Assert (Tip_Txt'Length > 0, "the free-space tooltip text is localized");

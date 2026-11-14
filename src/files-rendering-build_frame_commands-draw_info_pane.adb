@@ -30,14 +30,6 @@ separate (Files.Rendering.Build_Frame_Commands)
                Info_Pane.Scrollbar_Thumb_Y,
                Info_Pane.Scrollbar_Height);
          end if;
-         --  Keep the close button clear of the scrollbar column on the right.
-         Draw_Close_Button
-           (Info_Pane.X,
-            Info_Pane.Y,
-            (if Info_Pane.Scrollbar_Visible and then Info_Pane.Width > Info_Pane.Scrollbar_Width
-             then Info_Pane.Width - Info_Pane.Scrollbar_Width
-             else Info_Pane.Width),
-            Info_Pane.Height,
-            Overlay => False);
+         Draw_Close_Button (Info_Pane.Close_Button, Overlay => False);
       end if;
    end Draw_Info_Pane;

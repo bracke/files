@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 with Files.Model.Root_Selector;
 with Files.Model.Settings_Pane;
 separate (Files_Suite.Model)
@@ -36,7 +37,7 @@ separate (Files_Suite.Model)
          "",
          "invalid root selector index returns empty path");
 
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Assert (Snapshot.Root_Selector_Open, "snapshot captures root selector visibility");
       Assert (not Snapshot.Settings_Pane_Open, "snapshot exposes root selector as exclusive settings modal");
       Files_Suite.Support.Assert_Equal
@@ -66,7 +67,7 @@ separate (Files_Suite.Model)
             Ready => Files.File_System.Root_Ready,
             Removable => True));
       Files.Model.Root_Selector.Open (Model, Entries);
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Assert
         (To_String (Snapshot.Roots (1).Label) =
          Files.Localization.Text ("root.mount", "name", "example-mount"),
@@ -83,7 +84,7 @@ separate (Files_Suite.Model)
             Ready => Files.File_System.Root_Ready,
             Removable => True));
       Files.Model.Root_Selector.Open (Model, Entries);
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Assert
         (To_String (Snapshot.Roots (1).Label) = Mount_With_Detail ("example-mount"),
          "root selector renders localized platform detail suffix");
@@ -102,7 +103,7 @@ separate (Files_Suite.Model)
             Ready => Files.File_System.Root_Ready,
             Removable => True));
       Files.Model.Root_Selector.Open (Model, Entries);
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Files_Suite.Support.Assert_Equal
         (To_String (Snapshot.Roots (1).Label), Mount_With_Detail ("a|b"),
          "a mount whose name holds '|' keeps its whole name and its detail");

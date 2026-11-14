@@ -87,8 +87,9 @@ separate (Files.Interaction)
          when Files.Events.Tree_Click_Input_Action =>
             Asked := True;
             Outcome :=
-              Files.Controller.Handle_Tree_Click
-                (Model, Settings, Action.Tree_Node, Action.Expander);
+              (if Action.Expander
+               then Files.Controller.Toggle_Tree_Node (Model, Settings, Action.Tree_Node)
+               else Files.Controller.Activate_Tree_Node (Model, Settings, Action.Tree_Node));
          when Files.Events.Tree_Pick_Confirm_Input_Action =>
             --  As Enter in the picker does: a paste that does not start leaves
             --  its error on the error line and the picker open for correction.

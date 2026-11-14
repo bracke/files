@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 with Files.File_Types;
 with Files.Rendering.Testing;
 with Guikit.Item_Grid;
@@ -40,7 +41,7 @@ separate (Files_Suite.Rendering)
          "the toolbar's input fields keep their proportions");
       --  Paddings and gaps too, here and in guikit's components.
       Files_Suite.Support.Assert_Equal
-        (Files.UI.Field_Padding (2 * Reference), 2 * Files.UI.Field_Padding (Reference), "input field padding");
+        (Field_Padding (2 * Reference), 2 * Field_Padding (Reference), "input field padding");
       Files_Suite.Support.Assert_Equal
         (Guikit.Item_Grid.Grid_Gap (2 * Reference), 2 * Guikit.Item_Grid.Main_Grid_Gap, "the item grid's gap");
       Files_Suite.Support.Assert_Equal
@@ -101,7 +102,7 @@ separate (Files_Suite.Rendering)
          --  to the pointer hovering the button's centre.
          procedure Tooltip_Offset (LH : Positive; DX, DY : out Natural) is
             Plain   : constant Frame_Commands := Build_Frame_Commands (Snap, 2_000, 1_600, LH);
-            Toolbar : constant Natural := Files.UI.Toolbar_Height (LH);
+            Toolbar : constant Natural := Files.Rendering.Layouts.Toolbar_Height (LH);
             HX, HY  : Natural := 0;
          begin
             DX := 0;
@@ -141,16 +142,16 @@ separate (Files_Suite.Rendering)
       end;
 
       --  Dialog and status-field padding.
-      Files_Suite.Support.Assert_Equal (Files.UI.Dialog_Padding (Reference), 12, "a dialog's padding at the reference");
+      Files_Suite.Support.Assert_Equal (Dialog_Padding (Reference), 12, "a dialog's padding at the reference");
       Files_Suite.Support.Assert_Equal
-        (Files.UI.Dialog_Padding (2 * Reference), 24, "a dialog's padding doubles with the line height");
+        (Files.Rendering.Layouts.Dialog_Padding (2 * Reference), 24, "a dialog's padding doubles with the line height");
       Files_Suite.Support.Assert_Equal
-        (Files.UI.Status_Field_Padding (Reference), 4, "a status field's inset at the reference");
+        (Files.Rendering.Layouts.Status_Field_Padding (Reference), 4, "a status field's inset at the reference");
       Files_Suite.Support.Assert_Equal
-        (Files.UI.Status_Field_Padding (2 * Reference), 8, "a status field's inset doubles with the line height");
+        (Status_Field_Padding (2 * Reference), 8, "a status field's inset doubles with the line height");
       Files_Suite.Support.Assert_Equal
-        (Files.UI.Bottom_Bar_Height (2 * Reference),
-         2 * Files.UI.Bottom_Bar_Height (Reference),
+        (Files.Rendering.Layouts.Bottom_Bar_Height (2 * Reference),
+         2 * Files.Rendering.Layouts.Bottom_Bar_Height (Reference),
          "the bottom bar's padding scales with its text");
       declare
          Snap : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
@@ -164,7 +165,7 @@ separate (Files_Suite.Rendering)
 
          function Progress_Inset (LH : Positive) return Natural is
             Dialog : constant Paste_Progress_Layout :=
-              Files.Rendering.Testing.Calculate_Paste_Progress_Layout (Calculate_Layout (Snap, 2_000, 1_600, LH), LH);
+              Files.Rendering.Layouts.Calculate_Paste_Progress_Layout (Calculate_Layout (Snap, 2_000, 1_600, LH), LH);
          begin
             return Dialog.Message_X - Dialog.X;
          end Progress_Inset;
@@ -182,8 +183,8 @@ separate (Files_Suite.Rendering)
          function Toggle_Inset (LH : Positive) return Natural is
             Frame    : constant Frame_Commands := Build_Frame_Commands (Snap, 2_000, 1_600, LH);
             Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
-              Files.UI.Calculate_Bottom_Bar_Layout (2_000, Snap.Sort_Field, LH);
-            Bottom_Y : constant Natural := 1_600 - Files.UI.Bottom_Bar_Height (LH);
+              Files.Rendering.Layouts.Calculate_Bottom_Bar_Layout (2_000, Snap.Sort_Field, LH);
+            Bottom_Y : constant Natural := 1_600 - Files.Rendering.Layouts.Bottom_Bar_Height (LH);
          begin
             for C of Frame.Text loop
                if C.Y >= Bottom_Y
@@ -234,7 +235,7 @@ separate (Files_Suite.Rendering)
               Build_Frame_Commands
                 (Snap, 2_000, 1_600, LH,
                  Pointer =>
-                   (Has_Drag => True, Drag_Item_Index => 1, Drag_X => 300, Drag_Y => 300, others => <>));
+                   (Dragging => True, Drag_Item_Index => 1, Hover_X => 300, Hover_Y => 300, others => <>));
          begin
             DX := Natural'Last;
             DY := Natural'Last;

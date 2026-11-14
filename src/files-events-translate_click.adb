@@ -124,23 +124,21 @@ separate (Files.Events)
             Click_Y => Y);
       end Settings_Click_Hit;
 
-      --  A click on an overlay panel's top-right close (X) button. The button
-      --  geometry comes from Files.Rendering.Layouts.Panel_Close_Button so it matches
-      --  what Build_Frame_Commands drew exactly (rule: coordinates from layout).
+      --  A click on a panel's top-right close (X) button: the Close_Button of
+      --  the panel's layout, which Build_Frame_Commands drew.
+      function Close_Button_Hit (Btn : Files.Rendering.Layouts.Close_Button_Layout) return Boolean is
+        (Btn.Visible and then Within (X, Btn.X, Btn.Width) and then Within (Y, Btn.Y, Btn.Height));
+
+      --  The close button of a panel guikit draws (the palette, the settings
+      --  pane), from the same Panel_Close_Button guikit draws it by.
       function Close_Button_Hit
         (Panel_X : Natural;
          Panel_Y : Natural;
          Panel_W : Natural;
          Panel_H : Natural)
-         return Boolean
-      is
-         Btn : constant Files.Rendering.Layouts.Close_Button_Layout :=
-           Files.Rendering.Layouts.Panel_Close_Button (Panel_X, Panel_Y, Panel_W, Panel_H, Line_Height);
-      begin
-         return Btn.Visible
-           and then Within (X, Btn.X, Btn.Width)
-           and then Within (Y, Btn.Y, Btn.Height);
-      end Close_Button_Hit;
+         return Boolean is
+        (Close_Button_Hit
+           (Files.Rendering.Layouts.Panel_Close_Button (Panel_X, Panel_Y, Panel_W, Panel_H, Line_Height)));
 
       --  Build a folder-tree click action carrying the node index; Toggle marks
       --  an expander-triangle click (expand/collapse) versus a label click.

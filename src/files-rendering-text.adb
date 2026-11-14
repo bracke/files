@@ -39,11 +39,6 @@ package body Files.Rendering.Text is
       Pool (Slot).Used := Pool_Clock;
    end Touch;
 
-   function Default_Font_Path return String is
-   begin
-      return Files.Fonts.Default_Font_Path;
-   end Default_Font_Path;
-
    function Initialize_Text
      (Renderer     : in out Text_Renderer;
       Font_Path    : String;

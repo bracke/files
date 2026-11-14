@@ -588,8 +588,8 @@ package body Files.Application is
 
    function Runtime_Smoke_Report
      (Result : Startup_Result;
-      Width  : Natural := Files.UI.Default_Window_Width;
-      Height : Natural := Files.UI.Default_Window_Height;
+      Width  : Natural := Files.Rendering.Layouts.Default_Window_Width;
+      Height : Natural := Files.Rendering.Layouts.Default_Window_Height;
       Locale : String := "en")
       return String
    is

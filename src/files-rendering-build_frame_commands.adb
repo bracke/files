@@ -17,13 +17,9 @@ separate (Files.Rendering)
       Hover_X         : Natural renames Pointer.Hover_X;
       Hover_Y         : Natural renames Pointer.Hover_Y;
       Has_Hover       : Boolean renames Pointer.Has_Hover;
-      Pressed_X       : Natural renames Pointer.Pressed_X;
-      Pressed_Y       : Natural renames Pointer.Pressed_Y;
-      Has_Press       : Boolean renames Pointer.Has_Press;
+      Has_Press       : Boolean renames Pointer.Pressed;
       Drag_Item_Index : Natural renames Pointer.Drag_Item_Index;
-      Drag_X          : Natural renames Pointer.Drag_X;
-      Drag_Y          : Natural renames Pointer.Drag_Y;
-      Has_Drag        : Boolean renames Pointer.Has_Drag;
+      Has_Drag        : Boolean renames Pointer.Dragging;
       Marquee_Active  : Boolean renames Pointer.Marquee_Active;
       Marquee_X       : Natural renames Pointer.Marquee_X;
       Marquee_Y       : Natural renames Pointer.Marquee_Y;
@@ -38,7 +34,7 @@ separate (Files.Rendering)
       Toolbar       : constant Guikit.Layout.Toolbar_Layout :=
         Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
       Bottom        : constant Guikit.Layout.Bottom_Bar_Layout :=
-        Files.UI.Calculate_Bottom_Bar_Layout (Width, Snapshot.Sort_Field, Line_Height);
+        Files.Rendering.Layouts.Calculate_Bottom_Bar_Layout (Width, Snapshot.Sort_Field, Line_Height);
       Palette       : constant Command_Palette_Layout := Calculate_Command_Palette_Layout (Layout, Line_Height);
       Toolbar_Input_Y : constant Natural := Guikit.Layout.Toolbar_Input_Y (Line_Height);
       Toolbar_Input_H : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
@@ -68,7 +64,7 @@ separate (Files.Rendering)
       Info_Pane     : constant Info_Pane_Layout := Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
       Settings_Pane : constant Guikit.Layout.Settings_Pane_Layout :=
         Settings_Pane_Region (Layout, Line_Height);
-      Bottom_Y      : constant Natural := Files.UI.Bottom_Bar_Y (Height, Line_Height);
+      Bottom_Y      : constant Natural := Files.Rendering.Layouts.Bottom_Bar_Y (Height, Line_Height);
       Bottom_Pad    : constant Natural := Guikit.Layout.Scaled (Guikit.Layout.Bottom_Bar_Padding, Line_Height);
       Bottom_Content_Y : constant Natural :=
         Guikit.Layout.Saturating_Add (Bottom_Y, Optically_Raised (Bottom_Pad, Line_Height));
@@ -421,8 +417,8 @@ separate (Files.Rendering)
          Focused     : Boolean := False)
  is separate;
 
-      procedure Add_Conflict_Hit
-        (Kind   : Conflict_Hit_Kind;
+      procedure Add_Dialog_Hit
+        (Kind   : Dialog_Hit_Kind;
          X      : Natural;
          Y      : Natural;
          Hit_W  : Natural;
@@ -432,15 +428,15 @@ separate (Files.Rendering)
          Draw_H : constant Natural := Clipped_Size (Y, Hit_H, Layout.Height);
       begin
          if Draw_W > 0 and then Draw_H > 0 then
-            Result.Conflict_Hits.Append
-              (Conflict_Hit_Region'
+            Result.Dialog_Hits.Append
+              (Dialog_Hit_Region'
                  (Kind   => Kind,
                   X      => X,
                   Y      => Y,
                   Width  => Draw_W,
                   Height => Draw_H));
          end if;
-      end Add_Conflict_Hit;
+      end Add_Dialog_Hit;
 
       function Localized (Key : String) return UString is
       begin
@@ -489,7 +485,7 @@ separate (Files.Rendering)
          Box_H : Natural)
          return Boolean is
       begin
-         return Has_Press and then Contains_Point (X, Y, Box_W, Box_H, Pressed_X, Pressed_Y);
+         return Has_Press and then Contains_Point (X, Y, Box_W, Box_H, Hover_X, Hover_Y);
       end Is_Pressed;
 
       procedure Add_Border
@@ -588,15 +584,13 @@ separate (Files.Rendering)
          Thumb_H  : Natural) is separate;
 
       --  Draw a panel's top-right close (X) button plus its Role_Button
-      --  accessibility node. Overlay panels (the root selector) render into the
-      --  overlay layer so the button sits above the overlay body; the other
-      --  panels render into the base layer. The button geometry comes from
-      --  Panel_Close_Button so it matches the click hit-test exactly.
+      --  accessibility node. A panel drawn over the view (Overlay: the root
+      --  selector, Quick Look, the label picker, the paste dialogs, the tree
+      --  as a folder pick) draws it in the overlay layer, above its body; a
+      --  docked panel in the base layer. Btn is the panel layout's own
+      --  Close_Button, which the click hit-test reads too.
       procedure Draw_Close_Button
-        (Panel_X : Natural;
-         Panel_Y : Natural;
-         Panel_W : Natural;
-         Panel_H : Natural;
+        (Btn     : Close_Button_Layout;
          Overlay : Boolean)
  is separate;
 

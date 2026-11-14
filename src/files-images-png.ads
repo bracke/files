@@ -1,3 +1,5 @@
+with Files.Types;
+
 --  The pure-Ada PNG reader the thumbnails use before gdk-pixbuf: 8-bit,
 --  non-interlaced truecolour, as RGB (with at most one fully transparent
 --  colour, tRNS) or RGBA. Anything else -- a palette, grey, another depth,
@@ -6,11 +8,12 @@
 --  file to a full decoder instead.
 package Files.Images.Png is
 
-   --  A decoded PNG: Width x Height pixels.
+   --  A decoded PNG: Width x Height pixels as RGBA bytes, row-major, four
+   --  per pixel (Decoded_Image's layout).
    type Raster is record
       Width  : Natural := 0;
       Height : Natural := 0;
-      Pixels : Pixel_Vectors.Vector;
+      Pixels : Files.Types.Byte_Vectors.Vector;
    end record;
 
    --  Decode a whole PNG file held in memory. Its sides are bounded by

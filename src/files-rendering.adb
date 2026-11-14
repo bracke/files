@@ -12,14 +12,15 @@ with Ada.Strings.Unbounded.Hash;
 with Guikit.Segmented;
 with Guikit.Widgets;
 with Files.Localization;
-with Files.UI;
 with Guikit.Utf8;
 with Files.Rendering.Geometry;
+with Files.Rendering.Labels;
 with Files.Rendering.Layouts;
 
 package body Files.Rendering is
 
    use Files.Rendering.Geometry;
+   use Files.Rendering.Labels;
    use Files.Rendering.Layouts;
    use Ada.Strings.Unbounded;
    use type Ada.Containers.Count_Type;
@@ -76,14 +77,6 @@ package body Files.Rendering is
          return Asset;
       end;
    end Parsed_Icon_Asset;
-
-   function Build_Snapshot
-     (Model : Files.Model.Window_Model)
-      return View_Snapshot
-   is
-   begin
-      return Build_Snapshot (Model, Files.Settings.Default_Settings);
-   end Build_Snapshot;
 
    procedure Build_Snapshot_Into
      (Snapshot  : in out View_Snapshot;

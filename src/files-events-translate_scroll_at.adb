@@ -65,67 +65,60 @@ separate (Files.Events)
                     Files.Rendering.Layouts.Tree_Max_Scroll (Snapshot, Tree)));
       end Tree_Scroll;
 
-      --  These overlays own pointer input but do not currently expose a
-      --  scrollable region.  Swallow the wheel event while one is open so it
-      --  cannot move the main view or info pane behind the overlay.
-      function Non_Scrolling_Overlay_Is_Open return Boolean is
-        (Snapshot.Sort_Menu_Open
-         or else Snapshot.Context_Menu_Open
-         or else Snapshot.Tree_Pick_Active
-         or else Snapshot.Paste_Conflict_Open
-         or else Snapshot.Paste_Progress.Open
-         or else Snapshot.Quick_Look.Open
-         or else Snapshot.Label_Picker_Open);
+      Position : constant Natural := Files.Rendering.Topmost_Overlay_Position (Snapshot);
    begin
       if Action.Kind /= Scroll_Input_Action then
          return Action;
       end if;
 
-      if Snapshot.Command_Palette_Open then
-         declare
-            Palette : constant Files.Rendering.Layouts.Command_Palette_Layout :=
-              Files.Rendering.Layouts.Calculate_Command_Palette_Layout (Layout, Line_Height);
-         begin
-            if Within (X, Palette.Results_X, Palette.Results_Width)
-              and then Within (Y, Palette.Results_Y, Palette.Results_Height)
-            then
-               Action.Scroll_Area := Scroll_Command_Palette;
-               return Action;
-            end if;
-         end;
-
-         return No_Action;
-      end if;
-
-      if Snapshot.Root_Selector_Open then
-         return No_Action;
-      end if;
-
-      if Snapshot.Settings_Pane_Open then
-         declare
-            Settings_Pane : constant Guikit.Layout.Settings_Pane_Layout :=
-              Files.Rendering.Layouts.Settings_Pane_Region (Layout, Line_Height);
-         begin
-            if Within (X, Settings_Pane.X, Settings_Pane.Width)
-              and then Within (Y, Settings_Pane.Y, Settings_Pane.Height)
-            then
-               Action.Scroll_Area := Scroll_Settings_Pane;
-               return Action;
-            end if;
-         end;
-         return No_Action;
-      end if;
-
-      --  Picking a folder in the tree: only the tree scrolls (the pick is
-      --  among the overlays below that swallow the wheel elsewhere).
-      if Snapshot.Tree_Pick_Active and then Snapshot.Tree_Panel_Open then
-         Tree_Scroll (Over_Tree, Tree_Action);
-         if Over_Tree then
-            return Tree_Action;
-         end if;
-      end if;
-
-      if Non_Scrolling_Overlay_Is_Open then
+      --  The overlay on top (Files.Types.Overlay_Stack, as clicks, keys and
+      --  the drawing follow) takes the wheel: over its scrollable region it
+      --  scrolls that, anywhere else the wheel is swallowed so nothing behind
+      --  it moves.
+      if Position /= 0 then
+         case Files.Types.Overlay_Stack (Position) is
+            when Files.Types.Command_Palette_Overlay =>
+               declare
+                  Palette : constant Files.Rendering.Layouts.Command_Palette_Layout :=
+                    Files.Rendering.Layouts.Calculate_Command_Palette_Layout (Layout, Line_Height);
+               begin
+                  if Within (X, Palette.Results_X, Palette.Results_Width)
+                    and then Within (Y, Palette.Results_Y, Palette.Results_Height)
+                  then
+                     Action.Scroll_Area := Scroll_Command_Palette;
+                     return Action;
+                  end if;
+               end;
+            when Files.Types.Settings_Pane_Overlay =>
+               declare
+                  Settings_Pane : constant Guikit.Layout.Settings_Pane_Layout :=
+                    Files.Rendering.Layouts.Settings_Pane_Region (Layout, Line_Height);
+               begin
+                  if Within (X, Settings_Pane.X, Settings_Pane.Width)
+                    and then Within (Y, Settings_Pane.Y, Settings_Pane.Height)
+                  then
+                     Action.Scroll_Area := Scroll_Settings_Pane;
+                     return Action;
+                  end if;
+               end;
+            when Files.Types.Tree_Pick_Overlay =>
+               --  Picking a folder in the tree: only the tree scrolls.
+               if Snapshot.Tree_Panel_Open then
+                  Tree_Scroll (Over_Tree, Tree_Action);
+                  if Over_Tree then
+                     return Tree_Action;
+                  end if;
+               end if;
+            --  No scrollable region of their own.
+            when Files.Types.Foreground_Job_Overlay
+               | Files.Types.Paste_Conflict_Overlay
+               | Files.Types.Root_Selector_Overlay
+               | Files.Types.Sort_Menu_Overlay
+               | Files.Types.Context_Menu_Overlay
+               | Files.Types.Label_Picker_Overlay
+               | Files.Types.Quick_Look_Overlay =>
+               null;
+         end case;
          return No_Action;
       end if;
 

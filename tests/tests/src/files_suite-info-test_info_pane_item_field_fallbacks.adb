@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Item_Field_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -25,7 +26,7 @@ separate (Files_Suite.Info)
          Files.Model.Initialize (Model, Root, Items, Root);
          Files.Model.Selection.Select_Visible (Model, 1);
          Files.Model.Toggle_Info_Pane (Model);
-         Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 2000, Height => 800, Line_Height => 20);
 
          for Text of Frame.Text loop
@@ -57,7 +58,7 @@ separate (Files_Suite.Info)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "blob.bin");
       Files.Model.Toggle_Info_Pane (Model);
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Assert
         (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =
          Files.Localization.Text ("info.extra.extension", "extension", "bin"),
@@ -80,7 +81,7 @@ separate (Files_Suite.Info)
          Files.Model.Initialize (Model, Root, Items, Root);
          Files.Model.Selection.Select_Visible (Model, 1);
          Files.Model.Toggle_Info_Pane (Model);
-         Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Files_Suite.Support.Assert_Equal
            (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra),
             Files.Localization.Text
@@ -100,7 +101,7 @@ separate (Files_Suite.Info)
          Files.Model.Initialize (Model, Root, Items, Root);
          Files.Model.Selection.Select_Visible (Model, 1);
          Files.Model.Toggle_Info_Pane (Model);
-         Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Assert
            (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =
             Files.Localization.Text ("info.extra.extension", "extension", "bin"),

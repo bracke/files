@@ -8,7 +8,7 @@ procedure Toolbar_Click (Handled : out Boolean; Result : out Input_Action) is
    Toolbar_Input_H  : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
    Scope_Chip       : constant Guikit.Layout.Scope_Chip_Region :=
      Guikit.Layout.Filter_Scope_Chip_Region_Of
-       (Toolbar, Files.UI.Filter_Scope_Chip_Width (Line_Height), Line_Height);
+       (Toolbar, Files.Rendering.Layouts.Filter_Scope_Chip_Width (Line_Height), Line_Height);
    Path_Star        : constant Files.Rendering.Layouts.Path_Favorite_Star_Bounds :=
      Files.Rendering.Layouts.Path_Favorite_Star_Region (Width, Line_Height);
    Breadcrumb_Index : constant Natural :=

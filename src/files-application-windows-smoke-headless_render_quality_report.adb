@@ -1,3 +1,5 @@
+with Ada.Real_Time;
+with Files.Fonts;
 with Files.File_Types;
 with Guikit.Shared_Bytes;
 
@@ -5,8 +7,8 @@ with Files.Diagnostics;
 separate (Files.Application.Windows.Smoke)
    function Headless_Render_Quality_Report
      (Startup : Startup_Result;
-      Width   : Natural := Files.UI.Default_Window_Width;
-      Height  : Natural := Files.UI.Default_Window_Height)
+      Width   : Natural := Files.Rendering.Layouts.Default_Window_Width;
+      Height  : Natural := Files.Rendering.Layouts.Default_Window_Height)
       return Headless_Render_Quality_Result
    is
       Result : Headless_Render_Quality_Result :=
@@ -49,12 +51,8 @@ separate (Files.Application.Windows.Smoke)
                     Height      => Height,
                     Line_Height => Guikit.Layout.Reference_Line_Height);
                Drag_Snapshot : Files.Rendering.View_Snapshot := Snapshot;
-               Text     : Files.Rendering.Text.Text_Renderer;
-               Text_Status : constant Files.Rendering.Text.Text_Render_Status :=
-                 Files.Rendering.Text.Initialize_Text
-                   (Renderer    => Text,
-                    Font_Path   => Files.Rendering.Text.Default_Font_Path,
-                    Pixel_Size  => Files.Settings.Default_Font_Pixel_Size);
+               --  The window's own text path, as a window draws its frames.
+               Text     : Files.Rendering.Text.Window_Text;
                Glyphs : Files.Rendering.Text.Text_Render_Result;
             begin
                if Frame.Layout.Width = Width
@@ -119,9 +117,7 @@ separate (Files.Application.Windows.Smoke)
                           Hover_Y => Natural'Min (Height, 96),
                           Has_Hover => Width > 0 and then Height > 0,
                           Drag_Item_Index => Drag_Snapshot.Items.First_Element.Visible_Index,
-                          Drag_X => Natural'Min (Width, 96),
-                          Drag_Y => Natural'Min (Height, 96),
-                          Has_Drag => Width > 0 and then Height > 0,
+                          Dragging => Width > 0 and then Height > 0,
                           others => <>));
                begin
                   if Natural (Drag_Frame.Icons.Length) > Natural (Frame.Icons.Length)
@@ -132,15 +128,13 @@ separate (Files.Application.Windows.Smoke)
                   end if;
                end;
 
-               if Text_Status = Files.Rendering.Text.Text_Render_Success then
-                  Glyphs := Files.Rendering.Text.Build_Text_Glyphs (Text, Frame);
-                  Result.Missing_Glyph_Count :=
-                    Result.Missing_Glyph_Count + Glyphs.Missing_Glyph_Count;
-                  if Glyphs.Status = Files.Rendering.Text.Text_Render_Success and then not Glyphs.Glyphs.Is_Empty then
-                     Result.Text_Glyph_Frames := Result.Text_Glyph_Frames + 1;
-                  else
-                     Result.Failed_Frames := Result.Failed_Frames + 1;
-                  end if;
+               Files.Rendering.Text.Ensure_Loaded
+                 (Text, Files.Fonts.Default_Font_Path, Files.Settings.Default_Font_Pixel_Size, Ada.Real_Time.Clock);
+               Glyphs := Files.Rendering.Text.Glyphs_For (Text, Frame, Ada.Real_Time.Clock);
+               Result.Missing_Glyph_Count :=
+                 Result.Missing_Glyph_Count + Glyphs.Missing_Glyph_Count;
+               if Glyphs.Status = Files.Rendering.Text.Text_Render_Success and then not Glyphs.Glyphs.Is_Empty then
+                  Result.Text_Glyph_Frames := Result.Text_Glyph_Frames + 1;
                else
                   Result.Failed_Frames := Result.Failed_Frames + 1;
                end if;

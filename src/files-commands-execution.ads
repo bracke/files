@@ -4,8 +4,8 @@ with Files.Model;
 package Files.Commands.Execution is
 
    --  Run a pure model command: one whose whole effect is window-model state.
-   --  Only Files.Controller.Execute_Command calls this, after its modal and
-   --  Is_Enabled checks; every other command is executed there.
+   --  Only the controller's Run_Command calls this, after the command entry
+   --  has checked Is_Enabled; every other command is executed there.
    --
    --  @param Id Pure command identifier.
    --  @param Model Window model to mutate.

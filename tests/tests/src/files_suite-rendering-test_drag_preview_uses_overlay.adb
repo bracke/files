@@ -8,7 +8,7 @@ separate (Files_Suite.Rendering)
       Drag : constant Frame_Commands :=
         Build_Frame_Commands
           (Snap, 640, 480, 20,
-           Pointer => (Drag_Item_Index => 1, Drag_X => 620, Drag_Y => 460, Has_Drag => True, others => <>));
+           Pointer => (Drag_Item_Index => 1, Hover_X => 620, Hover_Y => 460, Dragging => True, others => <>));
       Found_Icon : Boolean := False;
       Found_Name : Boolean := False;
       Widths  : constant array (Positive range <>) of Natural := [1, 7, 40, 120, 640];
@@ -38,9 +38,9 @@ separate (Files_Suite.Rendering)
                    (Snap, Width, Height, 20,
                     Pointer =>
                       (Drag_Item_Index => 1,
-                       Drag_X => Width - 1,
-                       Drag_Y => Height - 1,
-                       Has_Drag => True,
+                       Hover_X => Width - 1,
+                       Hover_Y => Height - 1,
+                       Dragging => True,
                        others => <>));
             begin
                for Rect of Frame.Overlay_Rectangles loop

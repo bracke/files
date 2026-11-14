@@ -20,10 +20,7 @@ procedure Tree_Panel_Click (Handled : out Boolean; Result : out Input_Action) is
 begin
    Handled := True;
    if Snapshot.Tree_Panel_Open then
-      if Close_Button_Hit
-           (Tree_Panel_L.X, Tree_Panel_L.Y,
-            Tree_Panel_L.Width, Tree_Panel_L.Height)
-      then
+      if Close_Button_Hit (Tree_Panel_L.Close_Button) then
          Result := Command_Action (Files.Commands.Toggle_Folder_Tree_Command);
          return;
       end if;

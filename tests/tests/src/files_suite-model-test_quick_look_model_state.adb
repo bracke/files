@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 with Files.Model.Quick_Look;
 separate (Files_Suite.Model)
    procedure Test_Quick_Look_Model_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -27,7 +28,7 @@ separate (Files_Suite.Model)
          Snapshot : Files.Rendering.View_Snapshot;
       begin
          Files.Model.Quick_Look.Open (Model, Content);
-         Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Assert
            (Snapshot.Quick_Look.Image_Width = 0
               and then Snapshot.Quick_Look.Image_Height = 0,

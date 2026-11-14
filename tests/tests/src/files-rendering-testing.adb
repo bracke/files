@@ -1,11 +1,17 @@
 with Files.Rendering.Geometry;
+with Files.Rendering.Labels;
 
 package body Files.Rendering.Testing is
+
+   function Build_Snapshot
+     (Model : Files.Model.Window_Model)
+      return View_Snapshot is
+     (Build_Snapshot (Model, Files.Settings.Default_Settings));
 
    function Label_Render_Color
      (Label : Files.Types.Color_Label)
       return Guikit.Draw.Render_Color
-     renames Files.Rendering.Geometry.Label_Render_Color;
+     renames Files.Rendering.Labels.Label_Render_Color;
 
    function Any_Overlay_Open (Snapshot : View_Snapshot) return Boolean
      renames Files.Rendering.Geometry.Any_Overlay_Open;
@@ -27,12 +33,6 @@ package body Files.Rendering.Testing is
       Row  : Positive)
       return Natural
      renames Files.Rendering.Geometry.Context_Menu_Row_Width;
-
-   function Calculate_Paste_Progress_Layout
-     (Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Paste_Progress_Layout
-     renames Files.Rendering.Geometry.Calculate_Paste_Progress_Layout;
 
    function Build_Snapshot_At
      (Model    : Files.Model.Window_Model;

@@ -29,18 +29,18 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
                        Natural'Max (1, Width));
                   Offset    : constant Natural := Guikit.Layout.Scaled (14, Line_Height);
                   Panel_X   : constant Natural :=
-                    (if Drag_X <= Natural'Last - Offset
-                       and then Drag_X + Offset <= Width
+                    (if Hover_X <= Natural'Last - Offset
+                       and then Hover_X + Offset <= Width
                        and then Width > Panel_W
-                     then Natural'Min (Drag_X + Offset, Width - Panel_W)
+                     then Natural'Min (Hover_X + Offset, Width - Panel_W)
                      elsif Width > Panel_W
                      then Width - Panel_W
                      else 0);
                   Panel_Y   : constant Natural :=
-                    (if Drag_Y <= Natural'Last - Offset
-                       and then Drag_Y + Offset <= Height
+                    (if Hover_Y <= Natural'Last - Offset
+                       and then Hover_Y + Offset <= Height
                        and then Height > Panel_H
-                     then Natural'Min (Drag_Y + Offset, Height - Panel_H)
+                     then Natural'Min (Hover_Y + Offset, Height - Panel_H)
                      elsif Height > Panel_H
                      then Height - Panel_H
                      else 0);

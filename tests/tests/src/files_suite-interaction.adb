@@ -65,6 +65,7 @@ package body Files_Suite.Interaction is
    procedure Test_Scroll_Targets_Pane_Under_Cursor (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Scroll_Contained_By_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Overlays_Contain_Wheel_Input (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Wheel_Follows_Overlay_Stack (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Sort_Persists (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -140,6 +141,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Overlays_Contain_Wheel_Input'Access,
          "non-scrolling overlays swallow wheel input; the folder tree scrolls within itself");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Wheel_Follows_Overlay_Stack'Access,
+         "the wheel goes to the overlay on top of the overlay stack");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Hidden_Toggle'Access,
          "bottom-bar hidden-count click flips Show_Hidden_Files, persists, and reloads");
@@ -225,6 +229,7 @@ package body Files_Suite.Interaction is
    procedure Test_Controller_Scroll_Contained_By_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Overlays_Contain_Wheel_Input (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Wheel_Follows_Overlay_Stack (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Bottom_Bar_Hidden_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

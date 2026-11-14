@@ -5,7 +5,7 @@ separate (Files.Rendering.Layouts)
       Line_Height : Positive)
       return Field_Text_Region
    is
-      Padding      : constant Natural := Files.UI.Field_Padding (Line_Height);
+      Padding      : constant Natural := Field_Padding (Line_Height);
       Field_X      : constant Natural := Guikit.Layout.Saturating_Add (Toolbar.Middle_X, Toolbar_Field_Margin);
       Field_W      : constant Natural :=
         (if Toolbar.Middle_Width > Saturating_Multiply (Toolbar_Field_Margin, 2)

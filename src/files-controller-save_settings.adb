@@ -12,9 +12,8 @@ separate (Files.Controller)
       Saved     : Files.Settings.Settings_Write_Result;
       Operation : Files.Operation_Results.Operation_Result := Empty_Operation;
    begin
-      if not Files.Model.Settings_Pane.Is_Open (Model) then
-         return Settings_Closed_Result (Files.Commands.Save_Settings_Command, Model, Settings_Path);
-      elsif not Applied.Success then
+      --  Reached only with the pane open: Status_Of disables Save otherwise.
+      if not Applied.Success then
          declare
             Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
          begin

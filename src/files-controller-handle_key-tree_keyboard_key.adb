@@ -12,7 +12,10 @@ begin
       then
          Result := Move_Tree_Highlight (Pick => False);
          return;
-      elsif Key = Guikit.Input.Key_Escape then
+      elsif Action.Kind = Files.Events.Command_Input_Action
+        and then Files.Commands."=" (Action.Command, Files.Commands.Close_Overlay_Command)
+      then
+         --  The close key (Escape unless rebound) hands the keyboard back.
          Files.Model.Tree_Panel.Take_Keyboard (Model);
          Result := Make_Result (Controller_Text_Updated);
          return;
@@ -22,7 +25,7 @@ begin
          begin
             for Row of Files.Model.Tree_Panel.Visible_Rows (Model) loop
                if To_String (Row.Path) = Cursor then
-                  Result := Handle_Tree_Click (Model, Settings, Row.Node_Index, Toggle => False);
+                  Result := Activate_Tree_Node (Model, Settings, Row.Node_Index);
                   return;
                end if;
             end loop;

@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Filesize_Files_Only (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -38,7 +39,7 @@ separate (Files_Suite.Info)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Toggle_Info_Pane (Model);
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
       Files_Suite.Support.Assert_Equal (Size_Label_Rows, 0, "a single selected folder shows no Filesize field");
 
@@ -50,7 +51,7 @@ separate (Files_Suite.Info)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Selection.Select_All_Visible (Model);
       Files.Model.Toggle_Info_Pane (Model);
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Count (Model), 2, "two folders are selected");
       Files_Suite.Support.Assert_Equal (Size_Label_Rows, 0, "an all-folder selection shows no Filesize section");
@@ -63,7 +64,7 @@ separate (Files_Suite.Info)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Selection.Select_All_Visible (Model);
       Files.Model.Toggle_Info_Pane (Model);
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
       Files_Suite.Support.Assert_Equal
         (Size_Label_Rows,

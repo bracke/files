@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Total_In_Contents (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -16,7 +17,7 @@ separate (Files_Suite.Info)
       Files.Model.Toggle_Info_Pane (Model);
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Count (Model), 2, "two folders are selected");
 
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
 
       declare

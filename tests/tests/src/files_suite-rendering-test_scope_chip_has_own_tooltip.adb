@@ -8,7 +8,7 @@ separate (Files_Suite.Rendering)
       Frame : constant Frame_Commands := Build_Frame_Commands (Snap, 1400, 800, 20);
       Toolbar : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (1400);
       Chip  : constant Guikit.Layout.Scope_Chip_Region :=
-        Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Files.UI.Filter_Scope_Chip_Width (20), 20);
+        Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Files.Rendering.Layouts.Filter_Scope_Chip_Width (20), 20);
       Found : Boolean := False;
    begin
       Assert (Chip.Visible, "the search-scope chip is visible in a wide window");

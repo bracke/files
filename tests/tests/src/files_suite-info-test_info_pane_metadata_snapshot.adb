@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -35,7 +36,7 @@ separate (Files_Suite.Info)
       --  Extra info is computed lazily for the selected item when the info pane
       --  is open (the interaction reducer does this after each input).
       Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Files_Suite.Support.Assert_Equal
         (Natural (Snapshot.Selected_Info.Length),
          1,

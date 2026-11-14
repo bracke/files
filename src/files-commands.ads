@@ -88,8 +88,8 @@ package Files.Commands is
    subtype Sort_Command_Id is Command_Id range
      Sort_By_Name_Command .. Sort_By_Changed_Command;
 
-   --  How each command is executed. Files.Controller.Execute_Command owns the
-   --  dispatch and switches over these two subtypes and the remaining ids with
+   --  How each command is executed. The controller's private Run_Command owns
+   --  the dispatch and switches over these two subtypes and the remaining ids with
    --  no others choice, so the compiler checks that every id is handled once.
    --
    --  Commands whose whole effect is window-model state, run by Execute below.
@@ -130,6 +130,10 @@ package Files.Commands is
          | Cycle_Group_By_Command
          | Toggle_Favorite_Command
          | Clear_Recent_Command;
+
+   --  Every other command: what the controller runs without the settings path.
+   subtype Non_Settings_Command_Id is Command_Id
+     with Static_Predicate => Non_Settings_Command_Id not in Settings_Command_Id;
 
    type Shortcut is record
       Present   : Boolean := False;
@@ -278,17 +282,6 @@ package Files.Commands is
    --  @param Id Command identifier.
    --  @return True when the command's effect is persisted as global UI state.
    function Persists_Global_Ui_State
-     (Id : Command_Id)
-      return Boolean;
-
-   --  Whether a command changes the settings, either directly
-   --  (Requires_Settings_Path) or through the UI state they mirror
-   --  (Persists_Global_Ui_State): the interaction layer runs those through
-   --  its Execute_Command, which writes them back and refreshes an open pane.
-   --
-   --  @param Id Command identifier.
-   --  @return True when the command's effect reaches the settings.
-   function Routes_Through_Settings
      (Id : Command_Id)
       return Boolean;
 

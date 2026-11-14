@@ -161,11 +161,6 @@ package body Files.Model.Pasting is
       return Natural is
      (Model.Paste_Exec.Total);
 
-   function Execution_Current_Name
-     (Model : Window_Model)
-      return String is
-     (To_String (Model.Paste_Exec.Current));
-
    function Execution_Mode
      (Model : Window_Model)
       return Files.File_System.Drop_Import_Mode is

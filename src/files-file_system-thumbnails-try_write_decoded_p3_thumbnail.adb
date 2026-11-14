@@ -6,7 +6,6 @@ separate (Files.File_System.Thumbnails)
       Target_Path : String)
       return Boolean
    is
-      Pixels         : Pixel_Vectors.Vector;
       Rgba           : Files.Types.Byte_Vectors.Vector;
       Source_Width   : Natural;
       Source_Height  : Natural;
@@ -23,19 +22,7 @@ separate (Files.File_System.Thumbnails)
          return False;
       end if;
 
-      for Pixel in 0 .. Source_Width * Source_Height - 1 loop
-         declare
-            At_Red : constant Natural := Rgba.First_Index + 4 * Pixel;
-         begin
-            Pixels.Append
-              (Rgba_Pixel'
-                 (Red   => Files.Images.Channel_Value (Rgba.Element (At_Red)),
-                  Green => Files.Images.Channel_Value (Rgba.Element (At_Red + 1)),
-                  Blue  => Files.Images.Channel_Value (Rgba.Element (At_Red + 2)),
-                  Alpha => 255));
-         end;
-      end loop;
-      Write_Pixels_As_Ppm (Target_Path, Size, Pixels, Source_Width, Source_Height);
+      Write_Pixels_As_Ppm (Target_Path, Size, Rgba, Source_Width, Source_Height);
       return True;
    exception
       when Swallowed : others =>

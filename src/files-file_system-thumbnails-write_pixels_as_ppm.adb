@@ -1,3 +1,4 @@
+with Interfaces;
 with Files.Images.Netpbm;
 separate (Files.File_System.Thumbnails)
 --  Binary P6, not the ASCII P3 this used to write.
@@ -15,7 +16,7 @@ separate (Files.File_System.Thumbnails)
 procedure Write_Pixels_As_Ppm
   (Target_Path   : String;
    Size          : Positive;
-   Pixels        : Pixel_Vectors.Vector;
+   Pixels        : Files.Types.Byte_Vectors.Vector;
    Source_Width  : Natural;
    Source_Height : Natural)
 is
@@ -34,7 +35,7 @@ is
    Row_Bytes : Stream_Element_Array (1 .. Stream_Element_Offset (Out_W) * 3);
 
    function Against_White
-     (Channel, Alpha : Files.Images.Channel_Value) return Stream_Element is
+     (Channel, Alpha : Interfaces.Unsigned_8) return Stream_Element is
      (Stream_Element
         ((Natural (Channel) * Natural (Alpha) + 255 * (255 - Natural (Alpha)) + 127) / 255));
 begin
@@ -46,16 +47,17 @@ begin
          declare
             Source_Row    : constant Natural := Row * Source_Height / Out_H;
             Source_Column : constant Natural := Column * Source_Width / Out_W;
-            Source_Index  : constant Natural := Source_Row * Source_Width + Source_Column;
-            Pixel         : constant Rgba_Pixel := Pixels.Element (Source_Index);
+            At_Red        : constant Positive :=
+              Pixels.First_Index + (Source_Row * Source_Width + Source_Column) * 4;
+            Alpha         : constant Interfaces.Unsigned_8 := Pixels.Element (At_Red + 3);
             At_Byte       : constant Stream_Element_Offset :=
               Stream_Element_Offset (Column) * 3 + 1;
          begin
             --  PPM has no alpha channel. Composite rather than exposing
             --  arbitrary RGB values hidden beneath transparent pixels.
-            Row_Bytes (At_Byte)     := Against_White (Pixel.Red, Pixel.Alpha);
-            Row_Bytes (At_Byte + 1) := Against_White (Pixel.Green, Pixel.Alpha);
-            Row_Bytes (At_Byte + 2) := Against_White (Pixel.Blue, Pixel.Alpha);
+            Row_Bytes (At_Byte)     := Against_White (Pixels.Element (At_Red), Alpha);
+            Row_Bytes (At_Byte + 1) := Against_White (Pixels.Element (At_Red + 1), Alpha);
+            Row_Bytes (At_Byte + 2) := Against_White (Pixels.Element (At_Red + 2), Alpha);
          end;
       end loop;
 

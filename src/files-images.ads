@@ -1,4 +1,3 @@
-with Ada.Containers.Vectors;
 with Ada.Streams;
 with Interfaces;
 with Files.Types;
@@ -60,24 +59,9 @@ package Files.Images is
       Height : out Natural)
       return Boolean;
 
-   --  One channel of a pixel, 0 .. 255.
-   subtype Channel_Value is Interfaces.Unsigned_8;
-
-   --  One pixel of a raster a thumbnail is made from: four bytes, so a
-   --  Max_Source_Pixels raster holds 16 MiB.
-   type Rgba_Pixel is record
-      Red   : Channel_Value := 0;
-      Green : Channel_Value := 0;
-      Blue  : Channel_Value := 0;
-      Alpha : Channel_Value := 255;
-   end record;
-
-   --  A raster's pixels, row-major from index 0.
-   package Pixel_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Rgba_Pixel);
-
-   --  A decoded raster image: RGBA bytes (row-major, 4 bytes/pixel) scaled to
+   --  A decoded raster image: RGBA bytes (row-major, 4 bytes/pixel, from
+   --  Pixels.First_Index) -- the one raster layout the decoders produce and
+   --  the thumbnail writer reads -- scaled to
    --  fit within a target box while preserving aspect ratio. Available is False
    --  when the image could not be decoded; Extent_Refused says it was not
    --  even handed to a decoder, its header declaring more pixels than a

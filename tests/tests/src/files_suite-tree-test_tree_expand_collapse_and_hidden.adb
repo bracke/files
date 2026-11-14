@@ -39,7 +39,7 @@ separate (Files_Suite.Tree)
       Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
       Files_Suite.Support.Assert_Equal (Natural (Rows.Length), 1, "an unexpanded tree shows only its root node");
 
-      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
       Files_Suite.Support.Assert_Equal (Natural (Rows.Length), 3, "expanding the root reveals its two subdirectories");
       Files_Suite.Support.Assert_Equal (Rows.Element (1).Depth, 0, "the root sits at depth zero");
@@ -86,7 +86,7 @@ separate (Files_Suite.Tree)
          Alpha_Index : constant Natural := Row_Named (Rows, "alpha");
       begin
          Assert (Alpha_Index /= 0, "the alpha subdirectory is present");
-         Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, Alpha_Index, Toggle => True);
+         Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, Alpha_Index);
       end;
       Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
       declare
@@ -105,7 +105,7 @@ separate (Files_Suite.Tree)
         (Files.Model.Tree_Panel.Scroll_Rows (Model),
          3,
          "the expanded tree can scroll to its final visible row");
-      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
       Files_Suite.Support.Assert_Equal (Natural (Rows.Length), 1, "collapsing the root hides all its descendants");
       Files_Suite.Support.Assert_Equal
@@ -113,12 +113,12 @@ separate (Files_Suite.Tree)
          0,
          "collapsing a branch clamps its now-hidden tree scroll offset");
 
-      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Tree_Panel.Scroll_Rows (Model),
          0,
          "re-expanding a branch does not resurrect its obsolete scroll offset");
-      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
 
       declare
          Hidden_On : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -132,7 +132,7 @@ separate (Files_Suite.Tree)
               (Path => To_Unbounded_String (Tree_Dir), Name => To_Unbounded_String ("tree")));
          Files.Model.Tree_Panel.Seed (Model2, Seeds2);
          Files.Model.Tree_Panel.Open (Model2);
-         Ignored := Files.Controller.Handle_Tree_Click (Model2, Hidden_On, 1, Toggle => True);
+         Ignored := Files.Controller.Toggle_Tree_Node (Model2, Hidden_On, 1);
          Rows2 := Files.Model.Tree_Panel.Visible_Rows (Model2);
          Assert (Row_Named (Rows2, ".secret") /= 0, "hidden directories appear when Show_Hidden_Files is on");
       end;

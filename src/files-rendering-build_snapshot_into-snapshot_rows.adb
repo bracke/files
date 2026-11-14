@@ -131,7 +131,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
             --  order even when the clock has passed midnight since.
             Today    : constant Ada.Calendar.Time :=
               (if Files.Model.Grouping_Day (Model) = Files.Types.Unknown_Time
-               then Files.Grouping.Day_Start (Ada.Calendar.Clock)
+               then Files.Grouping.Day_Start (Snapshot.Now)
                else Files.Model.Grouping_Day (Model));
             Grouped  : Item_Snapshot_Vectors.Vector;
             Previous : Natural := 0;

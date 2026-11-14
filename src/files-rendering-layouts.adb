@@ -3,13 +3,14 @@ with Ada.Strings;
 with Ada.Strings.Unbounded;
 
 with Files.Localization;
-with Files.UI;
 with Guikit.Utf8;
 with Files.Rendering.Geometry;
+with Files.Rendering.Labels;
 
 package body Files.Rendering.Layouts is
 
    use Files.Rendering.Geometry;
+   use Files.Rendering.Labels;
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
    use type Files.Types.Focus_Target;
@@ -85,6 +86,12 @@ package body Files.Rendering.Layouts is
       return Positive
  is separate;
 
+   function Calculate_Paste_Progress_Layout
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Paste_Progress_Layout
+   is separate;
+
    function Calculate_Conflict_Dialog_Layout
      (Layout      : Layout_Metrics;
       Line_Height : Positive)
@@ -117,30 +124,7 @@ package body Files.Rendering.Layouts is
       Line_Height   : Positive;
       Max_Step      : Positive := 4)
       return Integer
-   is
-      subtype Wide_Integer is Long_Long_Integer;
-
-      Cursor      : constant Wide_Integer := Wide_Integer (Cursor_Y);
-      Top_Edge    : constant Wide_Integer :=
-        Wide_Integer (Region_Top) + Wide_Integer (Line_Height);
-      Bottom_Edge : constant Wide_Integer :=
-        Wide_Integer (Region_Bottom) - Wide_Integer (Line_Height);
-      Line        : constant Wide_Integer := Wide_Integer (Line_Height);
-      Limit       : constant Wide_Integer := Wide_Integer (Max_Step);
-      Step        : Wide_Integer;
-   begin
-      if Cursor < Top_Edge then
-         Step := Wide_Integer'Min
-           (Limit, 1 + (Top_Edge - Cursor) / Line);
-         return -Integer (Step);
-      elsif Cursor > Bottom_Edge then
-         Step := Wide_Integer'Min
-           (Limit, 1 + (Cursor - Bottom_Edge) / Line);
-         return Integer (Step);
-      else
-         return 0;
-      end if;
-   end Marquee_Auto_Scroll_Step;
+   is separate;
 
    procedure Rename_Field_Extent
      (Item        : Item_Layout;
@@ -190,44 +174,7 @@ package body Files.Rendering.Layouts is
      (Layout      : Layout_Metrics;
       Line_Height : Positive)
       return Quick_Look_Layout
-   is
-      Padding   : constant Natural := Titled_Panel_Padding (Line_Height);
-      --  A large centered panel: roughly three quarters of the window, with a
-      --  sensible floor so it stays usable in tiny windows.
-      Panel_W   : constant Natural :=
-        Natural'Min (Layout.Width, Natural'Max (Saturating_Multiply (Line_Height, 16),
-                                                Bounded_Product_Divide (Layout.Width, 3, 4)));
-      Panel_H   : constant Natural :=
-        Natural'Min (Layout.Height, Natural'Max (Saturating_Multiply (Line_Height, 12),
-                                                 Bounded_Product_Divide (Layout.Height, 3, 4)));
-      Panel_X   : constant Natural :=
-        Centered (Layout.Width, Panel_W);
-      Panel_Y   : constant Natural :=
-        Centered (Layout.Height, Panel_H);
-      --  The title band reserves one line height plus padding at the top.
-      Desired_Title_H : constant Natural := Guikit.Layout.Saturating_Add (Line_Height, Padding);
-      Title_H   : constant Natural := Natural'Min (Desired_Title_H, Panel_H);
-      Horizontal_Padding : constant Natural := Natural'Min (Padding, Panel_W / 2);
-      Remaining_H : constant Natural := Panel_H - Title_H;
-      Bottom_Padding : constant Natural := Natural'Min (Padding, Remaining_H);
-      Content_X : constant Natural := Guikit.Layout.Saturating_Add (Panel_X, Horizontal_Padding);
-      Content_Y : constant Natural := Guikit.Layout.Saturating_Add (Panel_Y, Title_H);
-      Used_W    : constant Natural := Saturating_Multiply (Horizontal_Padding, 2);
-   begin
-      return Result : Quick_Look_Layout :=
-        (X              => Panel_X,
-         Y              => Panel_Y,
-         Width          => Panel_W,
-         Height         => Panel_H,
-         Content_X      => Content_X,
-         Content_Y      => Content_Y,
-         Content_Width  => Panel_W - Used_W,
-         Content_Height => Remaining_H - Bottom_Padding,
-         others         => 0)
-      do
-         Titled_Panel_Title (Panel_X, Panel_Y, Panel_W, Line_Height, Result.Title_X, Result.Title_Y, Result.Title_W);
-      end return;
-   end Calculate_Quick_Look_Layout;
+   is separate;
 
    function Calculate_Label_Picker_Layout
      (Layout      : Layout_Metrics;
@@ -240,31 +187,7 @@ package body Files.Rendering.Layouts is
       Layout      : Layout_Metrics;
       Line_Height : Positive)
       return Root_Selector_Layout
-   is
-      Preferred_Width : constant Natural := Natural'Max (Layout.Width / 3, Saturating_Multiply (Line_Height, 18));
-      Dropdown_Width  : constant Natural := Natural'Min (Layout.Width, Preferred_Width);
-      Row_Height      : constant Natural :=
-        Guikit.Layout.Saturating_Add
-          (Guikit.Layout.Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2)),
-           Saturating_Multiply (Root_Selector_Padding (Line_Height), 2));
-      Wanted_Height   : constant Natural :=
-        Guikit.Layout.Saturating_Add
-          (Saturating_Multiply (Natural (Snapshot.Roots.Length), Row_Height),
-           Saturating_Multiply (Root_Selector_Padding (Line_Height), 2));
-      Dropdown_Height : constant Natural := Natural'Min (Layout.Main_Height, Wanted_Height);
-   begin
-      if not Snapshot.Root_Selector_Open then
-         return (others => <>);
-      end if;
-
-      return
-        (X          => 0,
-         Y          => Layout.Toolbar_Height,
-         Width      => Dropdown_Width,
-         Height     => Dropdown_Height,
-         Row_Height => Row_Height,
-         Padding    => Root_Selector_Padding (Line_Height));
-   end Calculate_Root_Selector_Layout;
+   is separate;
 
    function Calculate_Root_Path_Layout
      (Snapshot : View_Snapshot;
@@ -281,7 +204,7 @@ package body Files.Rendering.Layouts is
         Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
       Field_Margin : constant Natural := Toolbar_Field_Margin;
       Path_X       : constant Natural := Guikit.Layout.Saturating_Add (Toolbar.Middle_X, Field_Margin);
-      Pad          : constant Natural := Files.UI.Field_Padding (Line_Height);
+      Pad          : constant Natural := Field_Padding (Line_Height);
       --  Box for the drawn favourite star (a filled/outline vector shape); a
       --  near-line-height square so the star reads clearly at the input height.
       Star_W       : constant Positive := Line_Height;
@@ -403,5 +326,74 @@ package body Files.Rendering.Layouts is
       Line_Height : Positive)
       return Info_Pane_Layout
  is separate;
+
+   function Calculate_Bottom_Bar_Layout
+     (Width       : Natural;
+      Sort_Field  : Files.Types.Sort_Field;
+      Line_Height : Positive)
+      return Guikit.Layout.Bottom_Bar_Layout
+   is separate;
+
+   function Sort_Menu_Width
+     (Line_Height : Positive)
+      return Natural
+   is separate;
+
+   function Toolbar_Height (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Saturating_Multiply (Line_Height, 2));
+
+   function Bottom_Bar_Y (Height : Natural; Line_Height : Positive) return Natural is
+     (if Height > Bottom_Bar_Height (Line_Height) then Height - Bottom_Bar_Height (Line_Height) else 0);
+
+   function Bottom_Bar_Height (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Saturating_Add
+        (Line_Height,
+         Guikit.Layout.Saturating_Multiply
+           (Guikit.Layout.Scaled (Guikit.Layout.Bottom_Bar_Padding, Line_Height), 2)));
+
+   function Sort_Menu_Row_Top
+     (Menu : Sort_Menu_Layout;
+      Row  : Positive)
+      return Natural is
+     (Guikit.Layout.Saturating_Add (Menu.Rows_Y, Guikit.Layout.Saturating_Multiply (Row - 1, Menu.Row_Height)));
+
+   function Sort_Menu_Row_At
+     (Menu : Sort_Menu_Layout;
+      X    : Natural;
+      Y    : Natural)
+      return Natural
+   is separate;
+
+   function Calculate_Sort_Menu_Layout
+     (Width       : Natural;
+      Height      : Natural;
+      Sort_Field  : Files.Types.Sort_Field;
+      Line_Height : Positive)
+      return Sort_Menu_Layout
+   is separate;
+
+   function Sort_Menu_Row_Field
+     (Row : Positive)
+      return Files.Types.Sort_Field is (Files.Types.Sort_Field'Val (Row - 1));
+
+   function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector
+   is separate;
+
+   function Filter_Scope_Chip_Width
+     (Line_Height : Positive)
+      return Natural
+   is separate;
+
+   procedure Split_Status_Region
+     (Info_X           : Natural;
+      Info_Width       : Natural;
+      Free_Label_Width : Natural;
+      Toggle_Width     : out Natural;
+      Divider_X        : out Natural;
+      Free_Field_X     : out Natural;
+      Free_Field_Width : out Natural;
+      Free_Region_Width : out Natural;
+      Line_Height      : Positive)
+   is separate;
 
 end Files.Rendering.Layouts;

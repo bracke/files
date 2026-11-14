@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 with Files.Controller.Testing;
 with Files.Model.Command_Palette;
 with Files.Model.Root_Selector;
@@ -83,7 +84,7 @@ separate (Files_Suite.Model)
          "root selector allows palette shortcut");
       Assert (Files.Model.Command_Palette.Is_Open (Model), "palette opens over root selector from shortcut");
       Assert (Files.Model.Root_Selector.Is_Open (Model), "palette shortcut keeps root selector available");
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Assert (Snapshot.Command_Palette_Open, "snapshot exposes the active palette overlay");
       Assert
         (not Snapshot.Root_Selector_Open,

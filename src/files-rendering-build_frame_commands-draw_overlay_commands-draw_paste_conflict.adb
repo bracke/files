@@ -6,7 +6,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
          Dialog : constant Conflict_Dialog_Layout :=
            Calculate_Conflict_Dialog_Layout (Layout, Line_Height);
 
-         procedure Draw_Button (Kind : Conflict_Hit_Kind; Button_X : Natural; Label_Key : String) is
+         procedure Draw_Button (Kind : Dialog_Hit_Kind; Button_X : Natural; Label_Key : String) is
             Hovered : constant Boolean :=
               Has_Hover
               and then Contains_Point
@@ -27,7 +27,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                Fill_Color      =>
                  (if Pressed then Pressed_Color elsif Hovered then Hover_Color else Overlay_Color),
                Border_Color    => Border_Color,
-               Padding         => Files.UI.Field_Padding (Line_Height),
+               Padding         => Files.Rendering.Layouts.Field_Padding (Line_Height),
                Label_Text      => Localized (Label_Key),
                Label_Truncated => False,
                Label_Height    => Line_Height,
@@ -35,7 +35,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
             Add_Accessibility_Node
               (Role_Button, Button_X, Dialog.Button_Y, Dialog.Button_Width, Dialog.Button_Height,
                Localized (Label_Key));
-            Add_Conflict_Hit
+            Add_Dialog_Hit
               (Kind, Button_X, Dialog.Button_Y,
                Dialog.Button_Width, Dialog.Button_Height);
          end Draw_Button;
@@ -74,7 +74,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
          declare
             Box_Size : constant Natural := Natural'Min (Line_Height, Dialog.Apply_Height);
             Text_Offset : constant Natural :=
-              Guikit.Layout.Saturating_Add (Box_Size, Files.UI.Field_Padding (Line_Height));
+              Guikit.Layout.Saturating_Add (Box_Size, Files.Rendering.Layouts.Field_Padding (Line_Height));
             Hovered  : constant Boolean :=
               Has_Hover
               and then Contains_Point
@@ -111,19 +111,26 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                   Dialog.Apply_Width, Dialog.Apply_Height,
                   Localized ("dialog.paste_conflict.apply_to_all"),
                   Selected => Snapshot.Paste_Conflict_Apply_All);
-               Add_Conflict_Hit
-                 (Conflict_Hit_Apply_All,
+               Add_Dialog_Hit
+                 (Dialog_Hit_Apply_All,
                   Dialog.Apply_X, Dialog.Apply_Y,
                   Dialog.Apply_Width, Dialog.Apply_Height);
             end if;
          end;
 
-         Draw_Button (Conflict_Hit_Replace, Dialog.Replace_X, "dialog.paste_conflict.button.replace");
-         Draw_Button (Conflict_Hit_Skip, Dialog.Skip_X, "dialog.paste_conflict.button.skip");
-         Draw_Button (Conflict_Hit_Rename, Dialog.Rename_X, "dialog.paste_conflict.button.rename");
-         Draw_Button (Conflict_Hit_Cancel, Dialog.Cancel_X, "dialog.paste_conflict.button.cancel");
+         Draw_Button (Dialog_Hit_Replace, Dialog.Replace_X, "dialog.paste_conflict.button.replace");
+         Draw_Button (Dialog_Hit_Skip, Dialog.Skip_X, "dialog.paste_conflict.button.skip");
+         Draw_Button (Dialog_Hit_Rename, Dialog.Rename_X, "dialog.paste_conflict.button.rename");
+         Draw_Button (Dialog_Hit_Cancel, Dialog.Cancel_X, "dialog.paste_conflict.button.cancel");
 
-         --  Close button in the panel corner cancels the whole paste.
-         Draw_Close_Button (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, Overlay => True);
+         --  Close button in the panel corner cancels the whole paste; it is
+         --  recorded with the other controls, so one mechanism hit-tests them.
+         Draw_Close_Button (Dialog.Close_Button, Overlay => True);
+         if Dialog.Close_Button.Visible then
+            Add_Dialog_Hit
+              (Dialog_Hit_Conflict_Close,
+               Dialog.Close_Button.X, Dialog.Close_Button.Y,
+               Dialog.Close_Button.Width, Dialog.Close_Button.Height);
+         end if;
       end;
    end Draw_Paste_Conflict;

@@ -62,6 +62,7 @@ begin
    Titled_Panel_Title (Panel_X, Panel_Y, Panel_W, Line_Height, Result.Title_X, Result.Title_Y, Result.Title_W);
    Result.Swatch_Size := Swatch;
    Result.Visible     := Panel_W > 0 and then Panel_H > 0;
+   Result.Close_Button := Panel_Close_Button (Panel_X, Panel_Y, Panel_W, Panel_H, Line_Height);
    for Index in Result.Swatches'Range loop
       Result.Swatches (Index) :=
         (X      => Guikit.Layout.Saturating_Add

@@ -11,7 +11,7 @@ separate (Files_Suite.Rendering)
       declare
          Free_W   : constant Natural := Files.Rendering.Layouts.Free_Space_Label_Width (Snap, 20);
          Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
-           Files.UI.Calculate_Bottom_Bar_Layout (1000, Snap.Sort_Field, 20);
+           Files.Rendering.Layouts.Calculate_Bottom_Bar_Layout (1000, Snap.Sort_Field, 20);
          BBP      : constant Natural := Guikit.Layout.Bottom_Bar_Padding;
          Bottom_Y : constant Natural := 800 - (20 + 2 * BBP);
          Y        : constant Natural := Bottom_Y + BBP + 5;

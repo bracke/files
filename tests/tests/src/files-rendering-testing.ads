@@ -7,6 +7,14 @@ package Files.Rendering.Testing is
 
    use Files.Rendering.Layouts;
 
+   --  Build a snapshot of Model with the default settings, as of the clock now.
+   --
+   --  @param Model Window model to snapshot.
+   --  @return View snapshot for rendering.
+   function Build_Snapshot
+     (Model : Files.Model.Window_Model)
+      return View_Snapshot;
+
    --  Return the palette color role that renders a color label's swatch/dot.
    --  No_Label resolves to Muted_Text_Color; it is never drawn, so the value
    --  only keeps the mapping total.
@@ -56,17 +64,6 @@ package Files.Rendering.Testing is
      (Menu : Context_Menu_Layout;
       Row  : Positive)
       return Natural;
-
-   --  Compute the centered paste-progress overlay geometry for a window.
-   --
-   --  @param Snapshot View snapshot (used only for consistent sizing).
-   --  @param Layout Overall layout metrics for the window.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Panel, progress-bar, and Cancel-button rectangles for the overlay.
-   function Calculate_Paste_Progress_Layout
-     (Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Paste_Progress_Layout;
 
    --  Build_Snapshot at a given time.
    --

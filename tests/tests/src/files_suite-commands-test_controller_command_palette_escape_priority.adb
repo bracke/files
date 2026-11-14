@@ -26,8 +26,8 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Controller.Controller_Palette_Updated,
-         "Escape first updates palette state");
+         Files.Controller.Controller_Command_Executed,
+         "Escape closes the palette as the close command does");
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Close_Overlay_Command,

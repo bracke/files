@@ -80,7 +80,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
               (if Cancel_Pressed then Pressed_Color
                elsif Cancel_Hovered then Hover_Color else Overlay_Color),
             Border_Color    => Border_Color,
-            Padding         => Files.UI.Field_Padding (Line_Height),
+            Padding         => Files.Rendering.Layouts.Field_Padding (Line_Height),
             Label_Text      => Localized ("dialog.paste_progress.button.cancel"),
             Label_Truncated => False,
             Label_Height    => Line_Height,
@@ -88,8 +88,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
          Add_Accessibility_Node
            (Role_Button, Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height,
             Localized ("dialog.paste_progress.button.cancel"));
-         Add_Conflict_Hit
-           (Conflict_Hit_Progress_Cancel,
+         Add_Dialog_Hit
+           (Dialog_Hit_Progress_Cancel,
             Panel.Cancel_X, Panel.Cancel_Y,
             Panel.Cancel_Width, Panel.Cancel_Height);
       end;

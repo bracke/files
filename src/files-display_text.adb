@@ -141,8 +141,6 @@ package body Files.Display_Text is
       end case;
    end Weekday_Key;
 
-   function Day_Start (Value : Ada.Calendar.Time) return Ada.Calendar.Time renames Files.Grouping.Day_Start;
-
    --  A time the calendar cannot handle around Now (a modification time
    --  centuries away: "-" overflows Duration past about 292 years, a split
    --  past the year range) is shown as its full date, or not at all: one
@@ -155,7 +153,8 @@ package body Files.Display_Text is
       --  Whole days between the two local midnights, rounded: across a
       --  daylight-saving change a day is 23 or 25 hours, and counting
       --  86,400-second steps missed "yesterday" and the weekdays.
-      Ada.Calendar.Arithmetic.Difference (Day_Start (Now), Day_Start (Value), Whole_Days, Seconds, Leap);
+      Ada.Calendar.Arithmetic.Difference
+        (Files.Grouping.Day_Start (Now), Files.Grouping.Day_Start (Value), Whole_Days, Seconds, Leap);
       return Integer (Whole_Days) + (if Seconds >= 43_200.0 then 1 elsif Seconds <= -43_200.0 then -1 else 0);
    end Calendar_Days_Ago;
 

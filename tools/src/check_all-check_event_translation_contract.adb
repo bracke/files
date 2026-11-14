@@ -3,14 +3,13 @@ separate (Check_All)
       Events_Spec : constant String := Root & "/src/files-events.ads";
       Events_Body : constant String := Root & "/src/files-events.adb";
 
-      --  Of files' own units, translation may only import Files.UI and the
-      --  pure Files.Rendering.Hit and Files.Rendering.Layouts geometry, which
+      --  Of files' own units, translation may only import the pure
+      --  Files.Rendering.Hit and Files.Rendering.Layouts geometry, which
       --  forbids the mutable model, filesystem-operation, and
       --  filesystem-inspection units.
       Body_Allowed : constant String_List :=
         [To_Unbounded_String ("Files.Rendering.Hit"),
-         To_Unbounded_String ("Files.Rendering.Layouts"),
-         To_Unbounded_String ("Files.UI")];
+         To_Unbounded_String ("Files.Rendering.Layouts")];
 
       --  Nor does it bind to foreign code itself: no import, export or
       --  machine-level representation.
@@ -69,8 +68,8 @@ separate (Check_All)
       --  The spec names the types translation reads and produces: a
       --  Command_Id in an Input_Action (Files.Commands), the View_Snapshot and
       --  Frame_Commands that Translate_Click hit-tests (Files.Rendering), and
-      --  the shared value types (Files.Types), and the base line height its
-      --  defaults name (Files.UI). Those four are allowed there and nothing
+      --  and the shared value types (Files.Types). Those three are allowed
+      --  there and nothing
       --  else -- the body checks below still forbid any call into them beyond
       --  reading those values.
       Require_Only_Allowed_With_Clauses
@@ -78,8 +77,7 @@ separate (Check_All)
          "Files.",
          [To_Unbounded_String ("Files.Commands"),
           To_Unbounded_String ("Files.Rendering"),
-          To_Unbounded_String ("Files.Types"),
-          To_Unbounded_String ("Files.UI")]);
+          To_Unbounded_String ("Files.Types")]);
       Require_Not_Contains
         (Events_Spec,
          "Files.Model.",

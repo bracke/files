@@ -1,3 +1,4 @@
+with Files.Fonts;
 separate (Files.Application.Windows.Render_Window.Present_Frame)
    procedure Present (Frame : Files.Rendering.Frame_Commands) is
    begin
@@ -27,7 +28,7 @@ separate (Files.Application.Windows.Render_Window.Present_Frame)
          --  cheap when another window already has the size); a failure
          --  is retried after a pause, not every frame.
          Files.Rendering.Text.Ensure_Loaded
-           (Runtime.Text, Files.Rendering.Text.Default_Font_Path, Runtime.Font_Pixel_Size, Ada.Real_Time.Clock);
+           (Runtime.Text, Files.Fonts.Default_Font_Path, Runtime.Font_Pixel_Size, Ada.Real_Time.Clock);
 
          declare
             --  Without text (no font yet, a failed load) the frame is
@@ -58,12 +59,19 @@ separate (Files.Application.Windows.Render_Window.Present_Frame)
                     Width    => Natural (Width),
                     Height   => Natural (Height));
 
+               --  Surfaced in the FILES_DIAGNOSTICS trace: a frame Vulkan did not
+               --  present, and glyphs the fonts could not draw.
                if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Presented then
                   Runtime.Fallback_Frames := Runtime.Fallback_Frames + 1;
+                  Files.Diagnostics.Trace
+                    ("Files.Application.Windows",
+                     "fallback_frames=" & Natural'Image (Runtime.Fallback_Frames)
+                     & ",status=" & Guikit.Vulkan.Vulkan_Status'Image (Runtime.Last_Present_Status));
                else
                   Files.Diagnostics.Trace
                     ("Files.Application.Windows",
-                     "presented=" & Natural'Image (Guikit.Vulkan.Diagnostics (Runtime.Vulkan).Submitted_Frames));
+                     "presented=" & Natural'Image (Guikit.Vulkan.Diagnostics (Runtime.Vulkan).Submitted_Frames)
+                     & ",missing_glyphs=" & Natural'Image (Runtime.Last_Missing_Glyph_Count));
                end if;
             end;
          end;

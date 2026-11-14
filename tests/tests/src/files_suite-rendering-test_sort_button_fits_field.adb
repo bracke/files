@@ -8,11 +8,11 @@ separate (Files_Suite.Rendering)
          for Width in 1 .. 1_000 loop
             declare
                Bar : constant Guikit.Layout.Bottom_Bar_Layout :=
-                 Files.UI.Calculate_Bottom_Bar_Layout
+                 Files.Rendering.Layouts.Calculate_Bottom_Bar_Layout
                    (Width, Files.Types.Sort_Name, 20);
             begin
                if Bar.Sort_Button_Width > 0
-                 and then Bar.Sort_Button_X + Files.UI.Sort_Menu_Width (20) > Width
+                 and then Bar.Sort_Button_X + Files.Rendering.Layouts.Sort_Menu_Width (20) > Width
                then
                   return Width;
                end if;
@@ -22,10 +22,10 @@ separate (Files_Suite.Rendering)
       end Find_Clipped_Width;
 
       Name_Bar : constant Guikit.Layout.Bottom_Bar_Layout :=
-        Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Types.Sort_Name, 20);
+        Files.Rendering.Layouts.Calculate_Bottom_Bar_Layout (1000, Files.Types.Sort_Name, 20);
       Chg_Bar  : constant Guikit.Layout.Bottom_Bar_Layout :=
-        Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Types.Sort_Changed, 20);
-      Menu_W   : constant Natural := Files.UI.Sort_Menu_Width (20);
+        Files.Rendering.Layouts.Calculate_Bottom_Bar_Layout (1000, Files.Types.Sort_Changed, 20);
+      Menu_W   : constant Natural := Files.Rendering.Layouts.Sort_Menu_Width (20);
       Compact_W : constant Natural := Find_Clipped_Width;
    begin
       Assert (Name_Bar.Sort_Button_Width > 0 and then Chg_Bar.Sort_Button_Width > 0,
@@ -49,10 +49,10 @@ separate (Files_Suite.Rendering)
               Bottom_Y - Menu_H + Guikit.Layout.Sort_Menu_Padding;
             Row_Y    : constant Natural := Rows_Y + Row_H / 2;
             Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
-              Files.UI.Calculate_Bottom_Bar_Layout
+              Files.Rendering.Layouts.Calculate_Bottom_Bar_Layout
                 (Compact_W, Files.Types.Sort_Name, 20);
             Visible_W : constant Natural :=
-              Files.UI.Calculate_Sort_Menu_Layout (Compact_W, 0, Files.Types.Sort_Name, 20).Width;
+              Files.Rendering.Layouts.Calculate_Sort_Menu_Layout (Compact_W, 0, Files.Types.Sort_Name, 20).Width;
          begin
             Files_Suite.Support.Assert_Equal
               (Bar.Sort_Button_X + Visible_W,
@@ -77,7 +77,7 @@ separate (Files_Suite.Rendering)
       declare
          Short_H : constant Natural := 20;
          Bar     : constant Guikit.Layout.Bottom_Bar_Layout :=
-           Files.UI.Calculate_Bottom_Bar_Layout
+           Files.Rendering.Layouts.Calculate_Bottom_Bar_Layout
              (1000, Files.Types.Sort_Name, 20);
       begin
          Files_Suite.Support.Assert_Equal

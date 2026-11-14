@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Frame_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,7 +15,7 @@ separate (Files_Suite.Info)
       Select_Name (Model, "meta.txt");
       Files.Model.Toggle_Info_Pane (Model);
       Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       --  Tall enough that every info-pane row (now including the owner/group
       --  fields) stays within the visible pane rather than being clipped.
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 2000, Height => 1200, Line_Height => 20);

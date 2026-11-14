@@ -4,7 +4,7 @@ separate (Files.Rendering.Layouts)
       Line_Height : Positive)
       return Conflict_Dialog_Layout
    is
-      Pad        : constant Natural := Files.UI.Dialog_Padding (Line_Height);
+      Pad        : constant Natural := Dialog_Padding (Line_Height);
       Width      : constant Natural := Dialog_Box_Width (Layout, Line_Height);
       Desired_Message_H : constant Natural := Saturating_Multiply (Line_Height, 2);
       Desired_Apply_H   : constant Natural := Line_Height;
@@ -75,5 +75,6 @@ separate (Files.Rendering.Layouts)
          Cancel_X      =>
            Guikit.Layout.Saturating_Add
              (X, Guikit.Layout.Saturating_Add (Button_Gap, Saturating_Multiply (Button_Step, 3))),
-         Button_Width  => Button_W);
+         Button_Width  => Button_W,
+         Close_Button  => Panel_Close_Button (X, Y, Width, Height, Line_Height));
    end Calculate_Conflict_Dialog_Layout;

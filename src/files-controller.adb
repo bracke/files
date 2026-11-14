@@ -248,6 +248,28 @@ package body Files.Controller is
       return Make_Result (Controller_Command_Executed, Command, Operation);
    end Successful_Command_Result;
 
+   --  What Close_Overlay_Command does, by its key (Escape unless rebound)
+   --  or as a command: the overlay Escape closes on top is closed, else a
+   --  focused field or an edit is cancelled, else there is nothing to do.
+   function Close_Top_Or_Cancel
+     (Model : in out Files.Model.Window_Model)
+      return Controller_Result
+   is
+      Overlay : Files.Model.Input_Overlay;
+   begin
+      if Files.Model.Escape_Overlay (Model, Overlay) then
+         Files.Model.Close_Overlay (Model, Overlay);
+      elsif Files.Model.Focus (Model) /= Files.Types.Focus_None
+        or else Files.Model.Rename.Is_Active (Model)
+        or else Files.Model.Temporary_Item_Is_Active (Model)
+      then
+         Files.Model.Cancel_Focus_Or_Edit (Model);
+      else
+         return Make_Result (Controller_Ignored, Files.Commands.Close_Overlay_Command);
+      end if;
+      return Successful_Command_Result (Files.Commands.Close_Overlay_Command);
+   end Close_Top_Or_Cancel;
+
    function Confirm_Tree_Pick
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
@@ -279,26 +301,6 @@ package body Files.Controller is
          return Make_Result (Controller_Command_Executed, Command, Op);
       end;
    end Confirm_Tree_Pick;
-
-   function Settings_Closed_Result
-     (Id    : Files.Commands.Command_Id;
-      Model : in out Files.Model.Window_Model;
-      Path  : String := "")
-      return Controller_Result
-   is
-      Error_Key : constant String := "error.settings.closed";
-   begin
-      Files.Model.Set_Error (Model, Error_Key);
-      return
-        Make_Result
-          (Controller_Ignored,
-           Id,
-           (Status    => Files.Operation_Results.Operation_Disabled,
-            Error_Key => To_Unbounded_String (Error_Key),
-            Path      => To_Unbounded_String (Path),
-            Action    => Files.Settings.Open_Actions.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
-            others    => <>));
-   end Settings_Closed_Result;
 
    --  Open root Root_Index of the root selector: what a click on it and the
    --  open-selected command both do. The command may come from the palette,
@@ -376,7 +378,7 @@ package body Files.Controller is
  is separate;
 
    --  Forward declaration: the reveal helper is defined alongside the other
-   --  navigation helpers below, but Execute_Command routes to it above them.
+   --  navigation helpers below, but Run_Command routes to it above them.
    function Reveal_Selected_Item
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
@@ -385,7 +387,7 @@ package body Files.Controller is
    --  Run an enabled command that needs no settings path: the one table
    --  of what each command does. Its callers have checked enablement.
    function Run_Command
-     (Id        : Files.Commands.Command_Id;
+     (Id        : Files.Commands.Non_Settings_Command_Id;
       Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Modifiers : Guikit.Input.Modifier_Set)
@@ -525,22 +527,6 @@ package body Files.Controller is
       Settings_Path : String)
       return Controller_Result
    is separate;
-
-   function Execute_Command
-     (Id            : Files.Commands.Command_Id;
-      Model         : in out Files.Model.Window_Model;
-      Settings      : in out Files.Settings.Settings_Model;
-      Settings_Path : String;
-      Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
-      return Controller_Result is
-   begin
-      if not Files.Commands.Status.Is_Enabled (Id, Model) then
-         return Disabled_Command_Result (Id, Model);
-      elsif Files.Commands.Requires_Settings_Path (Id) then
-         return Apply_Settings_Command (Id, Model, Settings, Settings_Path);
-      end if;
-      return Run_Command (Id, Model, Settings, Modifiers);
-   end Execute_Command;
 
    function Complete_Settings_Command
      (Reported      : Controller_Result;
@@ -775,12 +761,39 @@ package body Files.Controller is
       end;
    end Handle_Breadcrumb_Click;
 
-   function Handle_Tree_Click
+   --  Whether a tree click on Node_Index is taken: the tree is open, no
+   --  input-owning overlay but the destination picker (which is the tree
+   --  itself) covers it, and the node exists.
+   function Tree_Node_Accepts_Click
+     (Model      : Files.Model.Window_Model;
+      Node_Index : Natural)
+      return Boolean is
+     (Files.Model.Tree_Panel.Is_Open (Model)
+      and then not Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Tree_Pick_Overlay)
+      and then Node_Index in 1 .. Files.Model.Tree_Panel.Node_Count (Model));
+
+   function Toggle_Tree_Node
      (Model      : in out Files.Model.Window_Model;
       Settings   : Files.Settings.Settings_Model;
-      Node_Index : Natural;
-      Toggle     : Boolean)
-      return Controller_Result is separate;
+      Node_Index : Natural)
+      return Controller_Result is
+   begin
+      if not Tree_Node_Accepts_Click (Model, Node_Index) then
+         return Make_Result (Controller_Ignored);
+      end if;
+      if not Files.Model.Tree_Panel.Node_Is_Expanded (Model, Node_Index) then
+         Files.Operations.Load_Tree_Children (Model, Settings, Node_Index);
+      end if;
+      Files.Model.Tree_Panel.Toggle_Expanded (Model, Node_Index);
+      return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Empty_Operation);
+   end Toggle_Tree_Node;
+
+   function Activate_Tree_Node
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Node_Index : Natural)
+      return Controller_Result
+   is separate;
 
    --  Launch the chosen "Open With" application on the stored target paths, then
    --  close the palette. A detached launch has no application exit status, but
@@ -940,29 +953,36 @@ package body Files.Controller is
    function Handle_Scroll
      (Model : in out Files.Model.Window_Model;
       Lines : Integer)
-      return Controller_Result is
+      return Controller_Result
+   is
+      Top : Files.Model.Input_Overlay;
    begin
       if Lines = 0 then
          return Make_Result (Controller_Ignored);
-      elsif Files.Model.Root_Selector.Is_Open (Model)
-        and then not Files.Model.Command_Palette.Is_Open (Model)
-      then
-         return Make_Result (Controller_Ignored);
-      elsif Files.Model.Command_Palette.Is_Open (Model) then
-         if Files.Model.Command_Palette.Result_Count (Model) = 0 then
-            return Make_Result (Controller_Ignored);
-         else
-            Scroll_Palette_Selection (Model, Lines);
-            return Make_Result (Controller_Palette_Updated);
-         end if;
-      elsif Files.Model.Settings_Pane.Is_Open (Model) then
-         return Scroll_Settings_Result (Model, Lines);
-      elsif Non_Text_Overlay_Owns_Input (Model) then
-         --  Auto-targeted scrolling has no cursor geometry with which to find
-         --  the destination tree. Every non-text modal therefore contains it,
-         --  matching the ordinary pointer translator instead of moving content
-         --  behind the overlay.
-         return Make_Result (Controller_Ignored);
+      elsif Files.Model.Topmost_Overlay (Model, Top) then
+         --  The overlay on top takes the wheel (Files.Types.Overlay_Stack).
+         --  Without cursor geometry only the palette and the settings pane
+         --  have something to scroll; every other overlay contains it,
+         --  matching the pointer translator.
+         case Top is
+            when Files.Types.Command_Palette_Overlay =>
+               if Files.Model.Command_Palette.Result_Count (Model) = 0 then
+                  return Make_Result (Controller_Ignored);
+               end if;
+               Scroll_Palette_Selection (Model, Lines);
+               return Make_Result (Controller_Palette_Updated);
+            when Files.Types.Settings_Pane_Overlay =>
+               return Scroll_Settings_Result (Model, Lines);
+            when Files.Types.Foreground_Job_Overlay
+               | Files.Types.Paste_Conflict_Overlay
+               | Files.Types.Root_Selector_Overlay
+               | Files.Types.Sort_Menu_Overlay
+               | Files.Types.Context_Menu_Overlay
+               | Files.Types.Label_Picker_Overlay
+               | Files.Types.Quick_Look_Overlay
+               | Files.Types.Tree_Pick_Overlay =>
+               return Make_Result (Controller_Ignored);
+         end case;
       elsif Files.Model.Info_Pane_Is_Open (Model) then
          return Scroll_Info_Result (Model, Lines);
       end if;
@@ -1119,22 +1139,5 @@ package body Files.Controller is
       Tree_Page_Rows : Natural := 0)
       return Controller_Result
  is separate;
-
-   function Handle_Key
-     (Model          : in out Files.Model.Window_Model;
-      Settings       : in out Files.Settings.Settings_Model;
-      Settings_Path  : String;
-      Key            : Guikit.Input.Key_Code;
-      Modifiers      : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Tree_Page_Rows : Natural := 0)
-      return Controller_Result
-   is
-   begin
-      --  Every route a key takes to a settings command (a shortcut, Enter in
-      --  the palette, a change in the settings pane) only reports it; it is
-      --  applied here, once.
-      return Complete_Settings_Command
-        (Handle_Key (Model, Settings, Key, Modifiers, Tree_Page_Rows), Model, Settings, Settings_Path);
-   end Handle_Key;
 
 end Files.Controller;

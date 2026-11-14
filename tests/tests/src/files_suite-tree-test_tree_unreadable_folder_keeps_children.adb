@@ -31,17 +31,17 @@ separate (Files_Suite.Tree)
       Files.Model.Tree_Panel.Seed (Model, Seeds);
       Files.Model.Tree_Panel.Open (Model);
 
-      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.Tree_Panel.Visible_Rows (Model).Length), 3, "the readable folder shows its two children");
-      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.Tree_Panel.Visible_Rows (Model).Length), 1, "collapsing hides them");
 
       Assert
         (Files.File_System.Permissions.Set_Permissions (Tree_Dir, 8#000#).Success,
          "the folder is made unreadable");
-      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Assert
         (Files.File_System.Permissions.Set_Permissions (Tree_Dir, 8#755#).Success,
          "the folder is made readable again");

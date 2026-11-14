@@ -3,11 +3,6 @@ function Decode_Image_Bytes
   (Data : Ada.Streams.Stream_Element_Array)
    return Decoded_Image
 is
-   type Pixel_Array is array (Natural range 0 .. 67_108_863) of aliased Interfaces.Unsigned_8;
-   pragma Convention (C, Pixel_Array);
-   package Pixel_Pointers is new System.Address_To_Access_Conversions (Pixel_Array);
-   use type Pixel_Pointers.Object_Pointer;
-
    Result : Decoded_Image;
    Loader : System.Address := System.Null_Address;
    Declared_Width, Declared_Height : Natural := 0;
@@ -57,51 +52,12 @@ begin
          return Result;
       end if;
 
-      declare
-         Width     : constant Natural := Natural (Gdk_Pixbuf_Get_Width (Pixbuf));
-         Height    : constant Natural := Natural (Gdk_Pixbuf_Get_Height (Pixbuf));
-         Channels  : constant Natural := Natural (Gdk_Pixbuf_Get_N_Channels (Pixbuf));
-         Rowstride : constant Natural := Natural (Gdk_Pixbuf_Get_Rowstride (Pixbuf));
-         Address   : constant System.Address := Gdk_Pixbuf_Get_Pixels (Pixbuf);
-         Raw       : constant Pixel_Pointers.Object_Pointer :=
-           Pixel_Pointers.To_Pointer (Address);
-      begin
-         if Width /= Declared_Width
-           or else Height /= Declared_Height
-           or else Channels not in 3 .. 4
-           or else Rowstride < Width * Channels
-           or else Rowstride > Pixel_Array'Length / Height
-           or else Address = System.Null_Address
-           or else Raw = null
-         then
-            Release_Loader;
-            return Result;
-         end if;
-
-         Result.Width := Width;
-         Result.Height := Height;
-         Result.Pixels.Reserve_Capacity
-           (Ada.Containers.Count_Type (Width * Height * 4));
-
-         for Row in 0 .. Height - 1 loop
-            for Column in 0 .. Width - 1 loop
-               declare
-                  At_Source : constant Natural := Row * Rowstride + Column * Channels;
-               begin
-                  Result.Pixels.Append (Raw.all (At_Source));
-                  Result.Pixels.Append (Raw.all (At_Source + 1));
-                  Result.Pixels.Append (Raw.all (At_Source + 2));
-
-                  --  Three channels means no alpha in the source; an emoji
-                  --  without alpha is opaque, not invisible.
-                  Result.Pixels.Append
-                    (if Channels >= 4 then Raw.all (At_Source + 3) else 255);
-               end;
-            end loop;
-         end loop;
-
-         Result.Available := True;
-      end;
+      --  The image gdk-pixbuf made must be the one the header declared.
+      if Natural (Gdk_Pixbuf_Get_Width (Pixbuf)) = Declared_Width
+        and then Natural (Gdk_Pixbuf_Get_Height (Pixbuf)) = Declared_Height
+      then
+         Copy_Pixbuf_Rgba (Pixbuf, Result);
+      end if;
 
       Release_Loader;
    end;

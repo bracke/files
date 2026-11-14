@@ -4,13 +4,7 @@ procedure Info_Pane_Click (Handled : out Boolean; Result : out Input_Action) is
 begin
    Handled := True;
    if Snapshot.Info_Pane_Open
-     and then Close_Button_Hit
-       (Info_Pane.X,
-        Info_Pane.Y,
-        (if Info_Pane.Scrollbar_Visible and then Info_Pane.Width > Info_Pane.Scrollbar_Width
-         then Info_Pane.Width - Info_Pane.Scrollbar_Width
-         else Info_Pane.Width),
-        Info_Pane.Height)
+     and then Close_Button_Hit (Info_Pane.Close_Button)
    then
       Result := Command_Action (Files.Commands.Toggle_Info_Pane_Command);
       return;

@@ -97,11 +97,9 @@ package Files.Interaction is
       Result            : out Interaction_Result;
       Tree_Page_Rows    : Natural := 0);
 
-   --  Apply a translated input action to the model and settings. Mirrors the
-   --  former Dispatch_Click_Action ladder: command, item-click, root-click,
-   --  command-palette result, text-click, settings-click (with save/toggle
-   --  follow-up), and targeted scroll. Scrollbar-drag and no-op kinds are left
-   --  for the shell, which owns the scrollbar-drag runtime state.
+   --  Apply a translated input action to the model and settings: every
+   --  Files.Events action kind but the scrollbar drags and the no-op, which
+   --  the shell keeps because it owns the scrollbar-drag runtime state.
    --
    --  @param Model Window model to update.
    --  @param Settings Live settings model, updated in place when an action persists state.

@@ -7,7 +7,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
    --  @param Free_Field_W  Width of the field's text.
    --  @param Free_Region_W Width of the field's interactive region.
    procedure Draw_Free_Space (Divider_X, Free_X, Free_Field_W, Free_Region_W : Natural) is
-      Pad           : constant Natural := Files.UI.Status_Field_Padding (Line_Height);
+      Pad           : constant Natural := Files.Rendering.Layouts.Status_Field_Padding (Line_Height);
       --  The free field's interactive region: from the divider to the
       --  right edge of the info area, as the click hit-test has it.
       Free_Region_X : constant Natural := Divider_X;

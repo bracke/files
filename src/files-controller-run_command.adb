@@ -5,7 +5,7 @@ with Files.Model.Clipboard;
 with Files.Model.Quick_Look;
 separate (Files.Controller)
    function Run_Command
-     (Id        : Files.Commands.Command_Id;
+     (Id        : Files.Commands.Non_Settings_Command_Id;
       Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Modifiers : Guikit.Input.Modifier_Set)
@@ -162,25 +162,13 @@ separate (Files.Controller)
             Files.Model.Set_Error (Model, "");
             Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Close_Overlay_Command =>
-            declare
-               Overlay : Files.Model.Input_Overlay;
-            begin
-               if Files.Model.Escape_Overlay (Model, Overlay) then
-                  Files.Model.Close_Overlay (Model, Overlay);
-               else
-                  Files.Model.Cancel_Focus_Or_Edit (Model);
-               end if;
-            end;
+            return Close_Top_Or_Cancel (Model);
          when Files.Commands.Toggle_Settings_Pane_Command =>
             if Files.Model.Settings_Pane.Is_Open (Model) then
                Files.Model.Settings_Pane.Toggle (Model);
             else
                Files.Model.Settings_Pane.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
             end if;
-         when Files.Commands.Settings_Command_Id =>
-            --  Reported, not applied: changing the settings file needs its
-            --  path (Complete_Settings_Command applies it).
-            return Make_Result (Controller_Needs_Settings_Path, Id);
          when Files.Commands.Pure_Command_Id =>
             declare
                Had_Results : constant Boolean := Files.Model.Search_Results_Are_Active (Model);

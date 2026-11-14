@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Word_Wrap (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -13,7 +14,7 @@ separate (Files_Suite.Info)
       Select_Name (Model, "meta.txt");
       Files.Model.Toggle_Info_Pane (Model);
       Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
 
       declare
          Narrow_Snapshot : Files.Rendering.View_Snapshot := Snapshot;

@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Type_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -21,7 +22,7 @@ separate (Files_Suite.Info)
          Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
       end loop;
       Files.Model.Selection.Select_All_Visible (Model);
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       declare
          Found_Utf8_Metadata   : Boolean := False;
          Found_Binary_Metadata : Boolean := False;

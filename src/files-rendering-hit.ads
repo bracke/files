@@ -55,12 +55,12 @@ package Files.Rendering.Hit is
    --  @param Frame Frame whose conflict hit regions are tested.
    --  @param X Point X coordinate in pixels.
    --  @param Y Point Y coordinate in pixels.
-   --  @return The control at the point, or a region with Kind Conflict_Hit_None.
-   function Conflict_Hit_At
+   --  @return The control at the point, or a region with Kind Dialog_Hit_None.
+   function Dialog_Hit_At
      (Frame : Frame_Commands;
       X     : Natural;
       Y     : Natural)
-      return Conflict_Hit_Region;
+      return Dialog_Hit_Region;
 
    --  Return the info-pane permission cell containing a point, if any.
    --

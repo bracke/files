@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Filetype_Extra_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -10,7 +11,7 @@ separate (Files_Suite.Info)
 
       --  The detail the info pane shows for the selected folder.
       function Folder_Extra return String is
-         Snap : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Snap : constant Files.Rendering.View_Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       begin
          return
            (if Snap.Selected_Info.Is_Empty then ""

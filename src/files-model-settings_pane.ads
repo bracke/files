@@ -166,12 +166,6 @@ package Files.Model.Settings_Pane is
       Fields : Guikit.Settings_Panel.Field_Vectors.Vector;
       Draw   : not null access procedure (Panel : in out Guikit.Settings_Panel.Panel));
 
-   --  Whether the settings panel is capturing a shortcut chord.
-   --
-   --  @param Model Model to inspect.
-   --  @return True while a chord is being captured.
-   function Panel_Capturing (Model : Window_Model) return Boolean;
-
    --  Disarm capture without changing any field.
    --
    --  @param Model Model to update.

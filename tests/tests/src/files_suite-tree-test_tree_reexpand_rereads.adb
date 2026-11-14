@@ -29,14 +29,14 @@ separate (Files_Suite.Tree)
       Files.Model.Tree_Panel.Open (Model);
       Assert (Files.Model.Tree_Panel.Roots_Match (Model, Seeds), "the tree's roots are the ones it was seeded with");
 
-      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Files_Suite.Support.Assert_Equal (Names, "tree;old;", "the first expand reads the folder");
 
       Ada.Directories.Delete_Directory (Files_Suite.Support.Join (Tree_Dir, "old"));
       Ada.Directories.Create_Path (Files_Suite.Support.Join (Tree_Dir, "new"));
-      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Files_Suite.Support.Assert_Equal (Names, "tree;", "collapsing hides the children");
-      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Files_Suite.Support.Assert_Equal (Names, "tree;new;", "expanding again shows the folder as it is now");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Tree_Panel.Visible_Rows (Model).Element (2).Node_Index, 3,

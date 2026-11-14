@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 with Files.Extra_Info;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Localized_Extras (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -26,7 +27,7 @@ separate (Files_Suite.Info)
          Files.Model.Initialize (Model, Root, Items, Root);
          Files.Model.Selection.Select_Visible (Model, 1);
          Files.Model.Toggle_Info_Pane (Model);
-         Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Files_Suite.Support.Assert_Equal
            (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra),
             Expected,

@@ -378,10 +378,10 @@ package body Files.Interaction is
    begin
       Result := (others => <>);
       --  The controller refuses a disabled command (it reports why) and
-      --  applies a settings command with the path.
+      --  reports a settings command, which Conclude applies with the path.
       Conclude
         (Model, Settings, Settings_Path,
-         Files.Controller.Execute_Command (Command, Model, Settings, Settings_Path, Modifiers), Before, Result, Ran);
+         Files.Controller.Execute_Non_Settings_Command (Command, Model, Settings, Modifiers), Before, Result, Ran);
       Result.Command := Command;
    end Execute_Command;
 

@@ -6,9 +6,9 @@ separate (Files.Rendering.Layouts)
       Line_Height : Positive)
       return Layout_Metrics
    is
-      Toolbar    : constant Natural := Files.UI.Toolbar_Height (Line_Height);
+      Toolbar    : constant Natural := Toolbar_Height (Line_Height);
       Bottom     : constant Natural :=
-        Files.UI.Bottom_Bar_Height (Line_Height);
+        Bottom_Bar_Height (Line_Height);
       Used_Y     : constant Natural := Guikit.Layout.Saturating_Add (Toolbar, Bottom);
       Main_H     : constant Natural := (if Height > Used_Y then Height - Used_Y else 0);
       --  A quarter-width pane is too narrow for ordinary metadata at the

@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 with Files.Rendering.Testing;
 separate (Files_Suite.Rendering)
    --  Blocking dialogs must remain fully operable in a short/narrow window:
@@ -42,7 +43,7 @@ separate (Files_Suite.Rendering)
       Layout := Calculate_Layout (Snap, Compact_W, Compact_H, LH);
       declare
          Panel : constant Paste_Progress_Layout :=
-           Files.Rendering.Testing.Calculate_Paste_Progress_Layout (Layout, LH);
+           Files.Rendering.Layouts.Calculate_Paste_Progress_Layout (Layout, LH);
          Frame : constant Frame_Commands :=
            Build_Frame_Commands (Snap, Compact_W, Compact_H, LH);
       begin

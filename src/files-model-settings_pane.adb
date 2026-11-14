@@ -217,9 +217,6 @@ package body Files.Model.Settings_Pane is
       Draw (Model.Settings_Panel_View);
    end With_Panel;
 
-   function Panel_Capturing (Model : Window_Model) return Boolean is
-     (Guikit.Settings_Panel.Is_Capturing (Model.Settings_Panel_View));
-
    procedure Cancel_Capture (Model : in out Window_Model) is
    begin
       Touch (Model);

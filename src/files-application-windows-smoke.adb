@@ -1,3 +1,5 @@
+with Ada.Real_Time;
+with Files.Fonts;
 with Files.Items;
 with Ada.Strings;
 with Ada.Strings.Fixed;
@@ -42,43 +44,44 @@ package body Files.Application.Windows.Smoke is
            Height      => Height,
            Line_Height => Guikit.Layout.Reference_Line_Height,
            Pointer => (Hover_X => 5, Hover_Y => 5, Has_Hover => Width > 0 and then Height > 0, others => <>));
-      Text      : Files.Rendering.Text.Text_Renderer;
-      Font_Path : constant String := Files.Rendering.Text.Default_Font_Path;
-      Status    : constant Files.Rendering.Text.Text_Render_Status :=
-        Files.Rendering.Text.Initialize_Text
-          (Renderer   => Text,
-           Font_Path  => Font_Path,
-           Pixel_Size => Files.Settings.Default_Font_Pixel_Size);
-      Glyphs    : constant Files.Rendering.Text.Text_Render_Result :=
-        Files.Rendering.Text.Build_Text_Glyphs (Text, Frame);
-      Batch     : constant Guikit.Vulkan.Submission_Batch :=
-        Guikit.Vulkan.Build_Submission
-          (Rectangles         => Frame.Rectangles,
-           Triangles          => Frame.Triangles,
-           Icons              => Frame.Icons,
-           Overlay_Rectangles => Frame.Overlay_Rectangles,
-           Layout             => Frame.Layout,
-           Theme              => Frame.Theme_Palette,
-           Text               => Glyphs);
+      --  The window's own text path (Files.Rendering.Text.Window_Text), as a
+      --  window draws its frames.
+      Text      : Files.Rendering.Text.Window_Text;
+      Font_Path : constant String := Files.Fonts.Default_Font_Path;
    begin
-      return
-        (Size_Matches   => Frame.Layout.Width = Width and then Frame.Layout.Height = Height,
-         Has_Path       => Length (Snapshot.Current_Path) > 0,
-         Rectangles     => Natural (Frame.Rectangles.Length),
-         Glyphs         => Natural (Glyphs.Glyphs.Length),
-         Missing_Glyphs => Glyphs.Missing_Glyph_Count,
-         Vertices       => Natural (Batch.Vertices.Length),
-         Text_Rendered  =>
-           Status = Files.Rendering.Text.Text_Render_Success
-           and then Glyphs.Status = Files.Rendering.Text.Text_Render_Success
-           and then not Glyphs.Glyphs.Is_Empty,
-         Font_Path      => To_Unbounded_String (Font_Path));
+      Files.Rendering.Text.Ensure_Loaded
+        (Text, Font_Path, Files.Settings.Default_Font_Pixel_Size, Ada.Real_Time.Clock);
+      declare
+         Glyphs : constant Files.Rendering.Text.Text_Render_Result :=
+           Files.Rendering.Text.Glyphs_For (Text, Frame, Ada.Real_Time.Clock);
+         Batch  : constant Guikit.Vulkan.Submission_Batch :=
+           Guikit.Vulkan.Build_Submission
+             (Rectangles         => Frame.Rectangles,
+              Triangles          => Frame.Triangles,
+              Icons              => Frame.Icons,
+              Overlay_Rectangles => Frame.Overlay_Rectangles,
+              Layout             => Frame.Layout,
+              Theme              => Frame.Theme_Palette,
+              Text               => Glyphs);
+      begin
+         return
+           (Size_Matches   => Frame.Layout.Width = Width and then Frame.Layout.Height = Height,
+            Has_Path       => Length (Snapshot.Current_Path) > 0,
+            Rectangles     => Natural (Frame.Rectangles.Length),
+            Glyphs         => Natural (Glyphs.Glyphs.Length),
+            Missing_Glyphs => Glyphs.Missing_Glyph_Count,
+            Vertices       => Natural (Batch.Vertices.Length),
+            Text_Rendered  =>
+              Glyphs.Status = Files.Rendering.Text.Text_Render_Success
+              and then not Glyphs.Glyphs.Is_Empty,
+            Font_Path      => To_Unbounded_String (Font_Path));
+      end;
    end Check_Window_Frame;
 
    function Headless_Render_Quality_Report
      (Startup : Startup_Result;
-      Width   : Natural := Files.UI.Default_Window_Width;
-      Height  : Natural := Files.UI.Default_Window_Height)
+      Width   : Natural := Files.Rendering.Layouts.Default_Window_Width;
+      Height  : Natural := Files.Rendering.Layouts.Default_Window_Height)
       return Headless_Render_Quality_Result
  is separate;
 
@@ -293,15 +296,15 @@ package body Files.Application.Windows.Smoke is
  is separate;
 
    function Live_Window_Smoke_Plan
-     (Width  : Natural := Files.UI.Default_Window_Width;
-      Height : Natural := Files.UI.Default_Window_Height)
+     (Width  : Natural := Files.Rendering.Layouts.Default_Window_Width;
+      Height : Natural := Files.Rendering.Layouts.Default_Window_Height)
       return Live_Smoke_Plan is
      (Live_Window_Smoke_Plan (Runtime_Capabilities, Width, Height));
 
    function Live_Window_Smoke_Plan
      (Caps   : Desktop_Capabilities;
-      Width  : Natural := Files.UI.Default_Window_Width;
-      Height : Natural := Files.UI.Default_Window_Height)
+      Width  : Natural := Files.Rendering.Layouts.Default_Window_Width;
+      Height : Natural := Files.Rendering.Layouts.Default_Window_Height)
       return Live_Smoke_Plan is
    begin
       return

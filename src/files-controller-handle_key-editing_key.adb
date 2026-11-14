@@ -161,20 +161,6 @@ begin
          Result := Page_Selection_Result (Model, Down => True);
          return;
       end if;
-   elsif Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
-      --  An open overlay took Escape already (Top_Overlay_Key): here it
-      --  cancels a focus or an edit, and is otherwise nothing to do.
-      if Files.Model.Focus (Model) = Files.Types.Focus_None
-        and then not Files.Model.Rename.Is_Active (Model)
-        and then not Files.Model.Temporary_Item_Is_Active (Model)
-      then
-         Result := Make_Result (Controller_Ignored, Files.Commands.Close_Overlay_Command);
-         return;
-      else
-         Files.Model.Cancel_Focus_Or_Edit (Model);
-         Result := Successful_Command_Result (Files.Commands.Close_Overlay_Command);
-         return;
-      end if;
    end if;
    Handled := False;
    Result := Make_Result (Controller_Ignored);

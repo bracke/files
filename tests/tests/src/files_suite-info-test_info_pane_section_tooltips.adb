@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Section_Tooltips (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -24,7 +25,7 @@ separate (Files_Suite.Info)
       Select_Name (Model, "tip.txt");
       Files.Model.Toggle_Info_Pane (Model);
 
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 2000, Height => 1200, Line_Height => 20);
 
       Assert (Tooltip_Present (Files.Localization.Text ("info.permissions.tooltip")),

@@ -21,11 +21,6 @@ package Files.Rendering.Text is
 
    subtype Text_Render_Result is Guikit.Draw.Text_Render_Result;
 
-   --  Return the first known monospace TrueType font available on the system.
-   --
-   --  @return Font path, or an empty string when no known font is present.
-   function Default_Font_Path return String;
-
    --  Load the text renderer font and initialize the textrender atlas.
    --
    --  @param Renderer Renderer state to initialize.
@@ -72,13 +67,6 @@ package Files.Rendering.Text is
    --  @param Glyphs Glyphs Build_Text_Glyphs returned for it.
    --  @return True when Glyphs may be drawn and uploaded as they are.
    function Text_Glyphs_Current (Renderer : Text_Renderer; Glyphs : Text_Render_Result) return Boolean;
-
-   --  Whether Renderer has its fonts: False after an initialization, or a
-   --  reload when its pooled renderer went to another size, failed.
-   --
-   --  @param Renderer The window's text renderer.
-   --  @return True when Build_Text_Glyphs can draw with it.
-   function Text_Loaded (Renderer : Text_Renderer) return Boolean;
 
    --  Rasterize frame text commands into glyph draw commands.
    --
@@ -152,6 +140,13 @@ package Files.Rendering.Text is
       return Text_Render_Result;
 
 private
+
+   --  Whether Renderer has its fonts: False after an initialization, or a
+   --  reload when its pooled renderer went to another size, failed.
+   --
+   --  @param Renderer The window's text renderer.
+   --  @return True when Build_Text_Glyphs can draw with it.
+   function Text_Loaded (Renderer : Text_Renderer) return Boolean;
 
    type Text_Renderer is record
       Loaded       : Boolean := False;

@@ -1,4 +1,4 @@
-with Files.UI;
+with Files.Rendering.Layouts;
 with Guikit.Frame_Analysis;
 with Interfaces;
 
@@ -11,8 +11,8 @@ package Files.Application.Windows.Smoke is
       Can_Run          : Boolean := False;
       Needs_Display    : Boolean := True;
       Needs_Vulkan     : Boolean := True;
-      Width            : Natural := Files.UI.Default_Window_Width;
-      Height           : Natural := Files.UI.Default_Window_Height;
+      Width            : Natural := Files.Rendering.Layouts.Default_Window_Width;
+      Height           : Natural := Files.Rendering.Layouts.Default_Window_Height;
       Frame_Count      : Positive := 1;
       Input_Poll_Count : Positive := 1;
       Reason_Key       : UString;
@@ -182,8 +182,8 @@ package Files.Application.Windows.Smoke is
    --  @return Structured headless render-quality counters.
    function Headless_Render_Quality_Report
      (Startup : Startup_Result;
-      Width   : Natural := Files.UI.Default_Window_Width;
-      Height  : Natural := Files.UI.Default_Window_Height)
+      Width   : Natural := Files.Rendering.Layouts.Default_Window_Width;
+      Height  : Natural := Files.Rendering.Layouts.Default_Window_Height)
       return Headless_Render_Quality_Result;
 
    --  Return the live-window smoke-test plan for the current environment.
@@ -192,8 +192,8 @@ package Files.Application.Windows.Smoke is
    --  @param Height Requested smoke window height in pixels.
    --  @return Plan describing whether a live smoke can run and why.
    function Live_Window_Smoke_Plan
-     (Width  : Natural := Files.UI.Default_Window_Width;
-      Height : Natural := Files.UI.Default_Window_Height)
+     (Width  : Natural := Files.Rendering.Layouts.Default_Window_Width;
+      Height : Natural := Files.Rendering.Layouts.Default_Window_Height)
       return Live_Smoke_Plan;
 
    --  Live_Window_Smoke_Plan for a host with Caps, whatever this one has.
@@ -204,8 +204,8 @@ package Files.Application.Windows.Smoke is
    --  @return The plan, with the reason it cannot run if it cannot.
    function Live_Window_Smoke_Plan
      (Caps   : Desktop_Capabilities;
-      Width  : Natural := Files.UI.Default_Window_Width;
-      Height : Natural := Files.UI.Default_Window_Height)
+      Width  : Natural := Files.Rendering.Layouts.Default_Window_Width;
+      Height : Natural := Files.Rendering.Layouts.Default_Window_Height)
       return Live_Smoke_Plan;
 
    --  Evaluate a live-window smoke plan without opening a native window.

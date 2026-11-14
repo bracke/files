@@ -4,11 +4,11 @@ separate (Files.Rendering.Layouts)
       Line_Height : Positive)
       return Field_Text_Region
    is
-      Padding : constant Natural := Files.UI.Field_Padding (Line_Height);
+      Padding : constant Natural := Field_Padding (Line_Height);
       Field_X : constant Natural := Guikit.Layout.Saturating_Add (Toolbar.Right_X, Toolbar_Field_Margin);
       Field_W : constant Natural :=
         Guikit.Layout.Filter_Input_Field_Width
-          (Toolbar, Files.UI.Filter_Scope_Chip_Width (Line_Height), Line_Height);
+          (Toolbar, Filter_Scope_Chip_Width (Line_Height), Line_Height);
    begin
       return
         (X           => Guikit.Layout.Saturating_Add (Field_X, Padding),

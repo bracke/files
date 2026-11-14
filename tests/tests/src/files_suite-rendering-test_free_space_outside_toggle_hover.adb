@@ -12,7 +12,7 @@ separate (Files_Suite.Rendering)
       declare
          Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 1000, 800, 20);
          Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
-           Files.UI.Calculate_Bottom_Bar_Layout (1000, Snap.Sort_Field, 20);
+           Files.Rendering.Layouts.Calculate_Bottom_Bar_Layout (1000, Snap.Sort_Field, 20);
          Bottom_Y : constant Natural := Layout.Height - Layout.Bottom_Bar_Height;
          HY       : constant Natural := Bottom_Y + Layout.Bottom_Bar_Height / 2;
          Counts_X : constant Natural := Bar.Info_X + 5;

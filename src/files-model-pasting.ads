@@ -163,14 +163,6 @@ package Files.Model.Pasting is
      (Model : Window_Model)
       return Natural;
 
-   --  The leaf name of the item most recently written, for the progress display.
-   --
-   --  @param Model Model to inspect.
-   --  @return The current item's simple name, or "" before the first write.
-   function Execution_Current_Name
-     (Model : Window_Model)
-      return String;
-
    --  The copy/move mode of the armed execution.
    --
    --  @param Model Model to inspect.

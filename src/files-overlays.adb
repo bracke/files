@@ -90,7 +90,7 @@ package body Files.Overlays is
       Config.Title := To_Unbounded_String (Files.Localization.Text ("settings.title"));
       Config.Switch_Tooltip := To_Unbounded_String (Files.Localization.Text ("settings.tabs.hint"));
       Config.Close_Label := To_Unbounded_String (Files.Localization.Text ("command.action.close"));
-      if Files.Model.Settings_Pane.Panel_Capturing (Model) then
+      if Files.Model.Settings_Pane.Is_Capturing (Model) then
          --  While a chord is being captured, the footer prompts for input
          --  instead of showing any pending validation error.
          Config.Status := To_Unbounded_String (Files.Localization.Text ("settings.shortcut.capturing"));

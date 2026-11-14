@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 with Files.Rendering.Layouts;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Multi_Selection_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -17,7 +18,7 @@ separate (Files_Suite.Info)
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
       Files.Model.Toggle_Info_Pane (Model);
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Files_Suite.Support.Assert_Equal
         (Natural (Snapshot.Selected_Info.Length),
          2,

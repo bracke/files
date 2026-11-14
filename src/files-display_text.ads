@@ -19,10 +19,6 @@ package Files.Display_Text is
    --  @return The localization key of its weekday.
    function Weekday_Key (Value : Ada.Calendar.Time) return String;
 
-   --  @param Value The time.
-   --  @return Local midnight of its day.
-   function Day_Start (Value : Ada.Calendar.Time) return Ada.Calendar.Time;
-
    --  How many calendar days before Now's Value falls: 0 today, 1 yesterday,
    --  negative in the future, counted from local midnights so a 23- or
    --  25-hour day still counts as one.

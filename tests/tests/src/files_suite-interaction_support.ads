@@ -211,9 +211,9 @@ package Files_Suite.Interaction_Support is
       Command  : Files.Commands.Command_Id)
       return Boolean;
 
-   --  Commit the active focused text (rename / create) through the real key seam
-   --  the shell uses -- Enter routed via Files.Controller.Handle_Key (rule d),
-   --  not a direct Commit_Rename call.
+   --  Commit the active focused text (rename / create) with Enter through the
+   --  controller's key handling (Files.Controller.Handle_Key, which the shell's
+   --  Files.Interaction.Handle_Key calls), not a direct Commit_Rename call.
    --
    --  @param Model The window model.
    --  @param Settings The window settings.

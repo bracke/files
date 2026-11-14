@@ -8,6 +8,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       procedure Draw_Titled_Panel
         (X, Y, W, H                : Natural;
          Title_X, Title_Y, Title_W : Natural;
+         Close_Button              : Close_Button_Layout;
          Title                     : UString;
          Name                      : UString;
          Description               : UString := Null_Unbounded_String)
@@ -21,7 +22,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          Add_Overlay_Rect (X, Y, W, Accent_H, Selection_Color);
          Add_Accessibility_Node (Role_Dialog, X, Y, W, H, Name, Description);
          Add_Overlay_Text (Title_X, Title_Y, Title_W, Line_Height, Title, Fit => True);
-         Draw_Close_Button (X, Y, W, H, Overlay => True);
+         Draw_Close_Button (Close_Button, Overlay => True);
       end Draw_Titled_Panel;
 
       --  The Quick Look panel, drawn from its own part of the snapshot.
@@ -42,7 +43,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             --  chosen or it is dismissed.
             Draw_Titled_Panel
               (Picker.X, Picker.Y, Picker.Width, Picker.Height,
-               Picker.Title_X, Picker.Title_Y, Picker.Title_W,
+               Picker.Title_X, Picker.Title_Y, Picker.Title_W, Picker.Close_Button,
                Title => Localized ("label_picker.title"),
                Name  => Localized ("accessibility.label_picker"));
 
@@ -97,10 +98,15 @@ separate (Files.Rendering.Build_Frame_Commands)
          end;
       end if;
 
-      if Snapshot.Sort_Menu_Open and then Bottom.Sort_Button_Width > 0 then
+      --  Shown where the click hit-test finds its rows: a menu laid out with
+      --  no width (no sort button) is neither drawn nor hit.
+      if Snapshot.Sort_Menu_Open
+        and then
+          Files.Rendering.Layouts.Calculate_Sort_Menu_Layout (Width, Height, Snapshot.Sort_Field, Line_Height).Width > 0
+      then
          declare
-            Menu      : constant Files.UI.Sort_Menu_Layout :=
-              Files.UI.Calculate_Sort_Menu_Layout (Width, Height, Snapshot.Sort_Field, Line_Height);
+            Menu      : constant Files.Rendering.Layouts.Sort_Menu_Layout :=
+              Files.Rendering.Layouts.Calculate_Sort_Menu_Layout (Width, Height, Snapshot.Sort_Field, Line_Height);
             Row_H     : constant Natural := Menu.Row_Height;
             Rows_H    : constant Natural := Saturating_Multiply (Row_H, Menu.Row_Count);
             Menu_H    : constant Natural := Menu.Height;
@@ -146,19 +152,18 @@ separate (Files.Rendering.Build_Frame_Commands)
                Discard_A11y : Guikit.Draw.Accessibility_Node_Vectors.Vector;
                Config : constant Guikit.List_Panel.List_Panel_Configuration :=
                  (Line_Height         => Line_Height,
-                  Text_Padding        => Files.UI.Field_Padding (Line_Height),
+                  Text_Padding        => Files.Rendering.Layouts.Field_Padding (Line_Height),
                   Show_Alternate_Rows => False,
                   others              => <>);
             begin
                for Row in Rows'Range loop
                   declare
-                     Field    : constant Files.Types.Sort_Field := Files.UI.Sort_Menu_Row_Field (Row);
+                     Field    : constant Files.Types.Sort_Field := Files.Rendering.Layouts.Sort_Menu_Row_Field (Row);
                      Selected : constant Boolean := Field = Snapshot.Sort_Field;
                   begin
                      Rows (Row) :=
                        (Field    => Field,
-                        Y        =>
-                          Guikit.Layout.Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H)),
+                        Y        => Files.Rendering.Layouts.Sort_Menu_Row_Top (Menu, Row),
                         Selected => Selected,
                         Enabled  => Snapshot.Command_Enabled (Sort_Field_Command (Field)),
                         Label    =>

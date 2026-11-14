@@ -165,6 +165,5 @@ separate (Files.Rendering.Build_Frame_Commands)
          Result.Rectangles.Append (Rectangles);
          Result.Text.Append (Texts);
       end if;
-      Draw_Close_Button
-        (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Overlay => As_Overlay);
+      Draw_Close_Button (Tree_Panel.Close_Button, Overlay => As_Overlay);
    end Draw_Tree_Panel;

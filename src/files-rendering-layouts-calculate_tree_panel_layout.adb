@@ -9,7 +9,7 @@ separate (Files.Rendering.Layouts)
       Panel_Width     : constant Natural := Layout.Main_X;
       Row_Height      : constant Natural :=
         Guikit.Layout.Saturating_Add
-          (Line_Height, Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2));
+          (Line_Height, Saturating_Multiply (Field_Padding (Line_Height), 2));
    begin
       if not Snapshot.Tree_Panel_Open then
          return (others => <>);
@@ -59,6 +59,7 @@ separate (Files.Rendering.Layouts)
               (if Visible then Guikit.Layout.Saturating_Add (Track_Y, Thumb.Offset) else 0),
             Scrollbar_Width   => (if Visible then Bar_W else 0),
             Scrollbar_Height  => (if Visible then Thumb.Length else 0),
-            Scrollbar_Track_Height => (if Visible then Track_H else 0));
+            Scrollbar_Track_Height => (if Visible then Track_H else 0),
+            Close_Button      => Panel_Close_Button (Base.X, Base.Y, Base.Width, Base.Height, Line_Height));
       end;
    end Calculate_Tree_Panel_Layout;

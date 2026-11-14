@@ -161,13 +161,12 @@ package body Files.File_System.Thumbnails is
 
    function Source_Fits_Fast_Decode (Source_Path : String) return Boolean is separate;
 
-   subtype Rgba_Pixel is Files.Images.Rgba_Pixel;
-   package Pixel_Vectors renames Files.Images.Pixel_Vectors;
-
+   --  Pixels: RGBA bytes, row-major, four per pixel (Files.Images'
+   --  raster layout).
    procedure Write_Pixels_As_Ppm
      (Target_Path   : String;
       Size          : Positive;
-      Pixels        : Pixel_Vectors.Vector;
+      Pixels        : Files.Types.Byte_Vectors.Vector;
       Source_Width  : Natural;
       Source_Height : Natural)
    is separate;

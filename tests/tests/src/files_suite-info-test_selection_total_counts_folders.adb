@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Selection_Total_Counts_Folders (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,7 +21,7 @@ separate (Files_Suite.Info)
       --  combined total must count it (folder 500 + file 10). Info pane stays closed.
       Files.Model.Testing.Set_Folder_Size
         (Model, Dir_Path, (Available => True, Total_Bytes => 500, others => <>));
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Assert (not Snapshot.Info_Pane_Open, "the info pane is closed");
       Files_Suite.Support.Assert_Equal
         (Snapshot.Selection_Total_Bytes,

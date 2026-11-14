@@ -7,14 +7,7 @@ begin
    Handled := True;
    Result := Make_Result (Controller_Ignored);
    if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
-      Result :=
-        Make_Result
-          (Controller_Command_Executed,
-           Files.Commands.No_Command,
-           Files.Operations.Resolve_Paste_Conflict
-             (Model     => Model,
-              Settings  => Settings,
-              Choice    => Files.Operations.Choice_Cancel,
-              Apply_All => False));
+      --  As the dialog's Cancel button does, with its apply-to-all choice.
+      Result := Handle_Conflict_Choice (Model, Settings, Files.Operations.Choice_Cancel);
    end if;
 end Paste_Conflict_Key;

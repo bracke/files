@@ -107,9 +107,9 @@ separate (Check_All)
       --  one added without its count moving here, fails.
       Require_Tests ("settings", 36);
       Require_Tests ("startup", 31);
-      Require_Tests ("commands", 40);
+      Require_Tests ("commands", 41);
       Require_Tests ("model", 55);
-      Require_Tests ("interaction", 34);
+      Require_Tests ("interaction", 35);
       Require_Tests ("context_menu", 22);
       Require_Tests ("drags", 8);
       Require_Tests ("tree", 15);

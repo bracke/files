@@ -26,7 +26,6 @@ with Files.Job_Scavenger;
 with Files.Operations;
 with Files.Process_Jobs;
 with Files.Rendering.Hit;
-with Files.UI;
 with Guikit.Utf8;
 with Files.Model.Clipboard;
 with Files.Model.Tree_Panel;
@@ -1400,11 +1399,11 @@ package body Files.Application.Windows is
             Width           =>
               (if Startup.Settings.Window_Width > 0
                then Startup.Settings.Window_Width
-               else Files.UI.Default_Window_Width),
+               else Files.Rendering.Layouts.Default_Window_Width),
             Height          =>
               (if Startup.Settings.Window_Height > 0
                then Startup.Settings.Window_Height
-               else Files.UI.Default_Window_Height));
+               else Files.Rendering.Layouts.Default_Window_Height));
       end loop;
 
       for Frame_Index in 1 .. 3 loop

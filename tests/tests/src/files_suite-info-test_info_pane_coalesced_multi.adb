@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 with Files.Rendering.Layouts;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Coalesced_Multi (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -17,7 +18,7 @@ separate (Files_Suite.Info)
       Files.Model.Toggle_Info_Pane (Model);
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Count (Model), 2, "two items are selected");
 
-      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       --  Wide enough that a short permissions line ("readable, writable") does
       --  not wrap, so the coalesced one-row-per-item layout is what is tested.
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1600, Height => 1200, Line_Height => 20);
