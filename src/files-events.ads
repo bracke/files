@@ -30,6 +30,7 @@ package Files.Events is
       Paste_Cancel_Input_Action,
       Search_Scope_Toggle_Input_Action,
       Label_Picker_Choice_Input_Action,
+      Context_Menu_Command_Input_Action,
       Right_Click_Input_Action);
 
    --  Which paste-conflict-dialog control a Conflict_Click_Input_Action hit.
@@ -111,6 +112,9 @@ package Files.Events is
          when Label_Picker_Choice_Input_Action =>
             --  The chosen swatch (No_Label clears).
             Label : Files.Types.Color_Label := Files.Types.No_Label;
+         when Context_Menu_Command_Input_Action =>
+            --  The command of the context-menu row clicked.
+            Menu_Command : Files.Commands.Command_Id := Files.Commands.No_Command;
          when Right_Click_Input_Action =>
             --  Where the context menu opens, and what lies there: the item
             --  drawn there in the snapshot (0 for none), the details header,

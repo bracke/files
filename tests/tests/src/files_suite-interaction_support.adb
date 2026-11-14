@@ -261,9 +261,9 @@ package body Files_Suite.Interaction_Support is
    end Open_Empty_Context_Menu;
 
    --  Resolve a command from the live context-menu layout (rule a), assert the
-   --  derived coordinate hit-tests back to that row, then dispatch it through the
-   --  real Apply_Context_Menu_Command (rule d). Found is false when the open menu
-   --  does not offer the command.
+   --  derived coordinate hit-tests back to that row, then click it through the
+   --  real Files.Events.Translate_Click and Interaction.Apply_Input_Action
+   --  (rule d). Found is false when the open menu does not offer the command.
    procedure Dispatch_Menu_Command
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
@@ -297,13 +297,24 @@ package body Files_Suite.Interaction_Support is
          Target_Row,
          "the derived coordinate hit-tests back to the resolved menu row");
       Found := True;
-      Files.Interaction.Apply_Context_Menu_Command
-        (Model             => Model,
-         Settings          => Settings,
-         Settings_Path     => Settings_Path,
-         Command           => Menu.Rows (Target_Row).Command,
-         Modifiers         => Guikit.Input.No_Modifiers,
-         Result            => Result);
+      --  Through the click path the shell and a screen reader take: Files.Events
+      --  translates the press on the row, Interaction applies it.
+      declare
+         use type Files.Events.Input_Action_Kind;
+         Frame  : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+         Action : constant Files.Events.Input_Action :=
+           Files.Events.Translate_Click
+             (Snapshot => Snapshot, Frame => Frame, X => Row_X, Y => Row_Y,
+              Width => Window_W, Height => Window_H, Line_Height => Line);
+      begin
+         Assert
+           (Action.Kind = Files.Events.Context_Menu_Command_Input_Action
+            and then Action.Menu_Command = Menu.Rows (Target_Row).Command,
+            "a press on the row translates to its command");
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, Settings_Path, Action, Guikit.Input.No_Modifiers, Result);
+      end;
    end Dispatch_Menu_Command;
 
    --  Whether the currently open context menu lists Command in its real

@@ -21,4 +21,14 @@ package Files.Operation_Jobs.Testing is
    procedure Replace_Result_Recent
      (Path   : String;
       Recent : Boolean);
+
+   --  Make the next finished operation fail after its journal is merged and
+   --  its undo recovered, as if its view work had raised -- first recording
+   --  one creation of Recording, as an untracked creation is recorded then.
+   --  Stays armed until Stop_Failing_After_Merge.
+   --  @param Recording Path of an existing file to record as created.
+   procedure Fail_After_Merge (Recording : String);
+
+   --  Disarm Fail_After_Merge.
+   procedure Stop_Failing_After_Merge;
 end Files.Operation_Jobs.Testing;

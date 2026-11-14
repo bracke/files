@@ -5,7 +5,7 @@ separate (Files.Commands)
       Start : Integer := Text'First;
 
       procedure Token (S : String) is
-         L : constant String := Ada.Characters.Handling.To_Lower (S);
+         L : constant String := Files.Types.To_Lower_Ascii (S);
       begin
          if L = "shift" then
             Mods (Guikit.Input.Shift_Key) := True;

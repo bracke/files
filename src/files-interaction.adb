@@ -424,15 +424,20 @@ package body Files.Interaction is
       Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result)
    is
+      use type Files.Types.Input_Overlay;
       Offered : Boolean := Command = Files.Commands.No_Command;
+      Top     : Files.Model.Input_Overlay;
    begin
       Result := (others => <>);
 
       --  The shell resolves a row and dispatches it in separate steps. Reject
-      --  an action if its menu has already closed or its command does not
-      --  belong to the menu that is open now; otherwise a delayed item-menu
+      --  an action if its menu has already closed, is no longer on top, or
+      --  its command does not belong to the menu that is open now; otherwise a delayed item-menu
       --  click could execute against a newer empty/header menu or selection.
-      if not Files.Model.Context_Menu.Is_Open (Model) then
+      if not Files.Model.Context_Menu.Is_Open (Model)
+        or else not Files.Model.Topmost_Overlay (Model, Top)
+        or else Top /= Files.Types.Context_Menu_Overlay
+      then
          return;
       end if;
 

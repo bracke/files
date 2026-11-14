@@ -56,6 +56,7 @@ package body Files_Suite.History is
    overriding procedure Register_Tests (T : in out History_Test_Case);
 
    procedure Test_Batch_Creation_History (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Failure_After_Merge_Keeps_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Batch_Undo_Covers_Every_Item (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Duplicate_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Undo_Same_Size_Edits (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -161,6 +162,9 @@ package body Files_Suite.History is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Batch_Creation_History'Access, "batch creation has one Undo entry and preserves replacement files");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Failure_After_Merge_Keeps_History'Access,
+         "an operation failing after its journal merge keeps what was recorded since");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Batch_Undo_Covers_Every_Item'Access,
          "a batch's throttled Undo records still end in one entry covering every item");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -217,6 +221,7 @@ package body Files_Suite.History is
    procedure Test_Recorded_Restore_Targets (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Batch_Creation_History (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Failure_After_Merge_Keeps_History (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Batch_Undo_Covers_Every_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

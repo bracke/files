@@ -29,6 +29,12 @@ package Files.Operation_Jobs is
       Settings : Files.Settings.Settings_Model) return Files.Operation_Results.Operation_Result;
 
 private
+   --  A test seam (Files.Operation_Jobs.Testing): when set, Advance calls it
+   --  once the journal is merged and the undo recovered, then fails as if
+   --  its view work had raised.
+   type Merge_Hook is access procedure (Model : in out Files.Model.Window_Model);
+   After_Merge : Merge_Hook := null;
+
    --  Normal operations run against an absolute directory. The Recent view is
    --  synthetic and is represented by an empty root.
    function Request_Path_Is_Consistent

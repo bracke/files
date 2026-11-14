@@ -25,6 +25,18 @@ separate (Files_Suite.Recovery)
       declare
          Arguments : Hostkit.String_Vectors.Vector;
          Exit_Status : Integer;
+      begin
+         Arguments.Append (To_Unbounded_String ("--files-test-shutdown-with-stages"));
+         Assert (Hostkit.Process.Run (Hostkit.Fs.Own_Executable, Arguments, Exit_Status),
+                 "the shutdown-with-stages helper runs");
+         Files_Suite.Support.Assert_Equal
+           (Exit_Status,
+            0,
+            "shutdown finishes within its bound and launches no cleanup worker for staged work");
+      end;
+      declare
+         Arguments : Hostkit.String_Vectors.Vector;
+         Exit_Status : Integer;
          Report : constant String := Join (Root, "late-shutdown-owner");
          File : Ada.Text_IO.File_Type;
          Directory : Files.Types.UString;

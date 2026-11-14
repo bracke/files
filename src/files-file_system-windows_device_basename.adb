@@ -4,7 +4,11 @@ function Windows_Device_Basename (Name : String) return String is
 begin
    for Character_Value of Name loop
       exit when Character_Value = '.';
-      Append (Result, Ada.Characters.Handling.To_Upper (Character_Value));
+      --  ASCII letters only: a UTF-8 byte is no device name's and stays.
+      Append
+        (Result,
+         (if Character_Value in 'a' .. 'z' then Ada.Characters.Handling.To_Upper (Character_Value)
+          else Character_Value));
    end loop;
 
    declare

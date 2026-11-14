@@ -8,7 +8,7 @@ separate (Check_All)
       procedure Require_Key (Key : String) is
       begin
          if Starts_With (Key, "command.") then
-            Project_Tools.Files.Require_Contains
+            Require_In_Text
               (Catalog,
                "en." & Key & " = ",
                "command localization key must exist in share/files.catalog: " & Key);

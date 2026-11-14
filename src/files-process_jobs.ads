@@ -85,6 +85,10 @@ private
    --  released transport itself. Written by the reaper task alone.
    Test_Removal_Attempts : Natural := 0;
    pragma Atomic (Test_Removal_Attempts);
+   --  Test seam: how many cleanup workers the orphan reaper has launched.
+   --  Written by the reaper task alone.
+   Test_Cleanup_Launches : Natural := 0;
+   pragma Atomic (Test_Cleanup_Launches);
 
    --  One process this package started and watches: the job's helper, or the
    --  cleanup worker that removes a transport the reaper could not.

@@ -23,6 +23,20 @@ separate (Files_Suite.Startup)
          "sr-Latn-RS",
          "a script modifier becomes the script subtag, after the language");
       Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("SR_rs.UTF-8@LATIN"),
+         "sr-Latn-RS",
+         "a modifier in upper case names the script as well");
+      --  Lower-casing is ASCII only: a UTF-8 byte (here the lead byte C3 of
+      --  "Ä") passes as it is, where Latin-1 lower-casing would make it E3.
+      Files_Suite.Support.Assert_Equal
+        (Files.Types.To_Lower_Ascii ("Ä-DE"),
+         "Ä-de",
+         "only ASCII letters are lower-cased; a UTF-8 byte stays");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("de_DE@" & "Ä"),
+         "de-DE",
+         "a modifier that is not ASCII is dropped, not rewritten");
+      Files_Suite.Support.Assert_Equal
         (Files.Localization.Normalize_Locale ("uz_UZ@cyrillic"),
          "uz-Cyrl-UZ",
          "a Cyrillic modifier names the Cyrl script");

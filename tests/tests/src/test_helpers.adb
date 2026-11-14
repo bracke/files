@@ -16,6 +16,7 @@ with Files.Operation_Jobs.Testing;
 with Files.Paste;
 with Files.Private_Directories;
 with Files.Process_Jobs;
+with Files.Process_Jobs.Testing;
 with Files.Refresh_Jobs.Testing;
 with Files.Transfer_Jobs;
 with Files.Transfer_Jobs.Testing;
@@ -81,6 +82,8 @@ package body Test_Helpers is
          return Abandon_Transport;
       elsif First = "--files-test-drain-reaper" then
          return Drain_Reaper;
+      elsif First = "--files-test-shutdown-with-stages" then
+         return Shutdown_With_Stages;
       elsif First = "--files-test-late-shutdown-owner" then
          return Late_Shutdown_Owner;
       elsif First = "--files-test-blocked" then
@@ -424,6 +427,36 @@ package body Test_Helpers is
       end;
    end Drain_Reaper_Check;
 
+   --  Release a job whose transport holds staging records -- work the reaper
+   --  would hand to a cleanup worker -- and shut down at once: shutdown must
+   --  finish within its bound without launching a worker; the durable
+   --  marker leaves the transport to startup recovery, so the check removes
+   --  it itself.
+   procedure Shutdown_With_Stages_Check is
+   begin
+      if Ada.Command_Line.Argument_Count /= 1 then
+         return;
+      end if;
+      declare
+         Job       : Files.Process_Jobs.Session;
+         Directory : Ada.Strings.Unbounded.Unbounded_String;
+         Launches  : Natural;
+         Stopped   : Boolean;
+         Removed   : Hostkit.Fs.Delete_Tree_Outcome;
+         pragma Unreferenced (Removed);
+      begin
+         Files.Process_Jobs.Reserve (Job);
+         Directory := Ada.Strings.Unbounded.To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+         Ada.Directories.Create_Directory (Files.Process_Jobs.Path (Job, Files.Protocol_Names.Stages_Directory));
+         Launches := Files.Process_Jobs.Testing.Cleanup_Launches;
+         Files.Process_Jobs.Reset (Job);
+         Files.Process_Jobs.Shutdown (Stopped);
+         Removed := Hostkit.Fs.Delete_Tree_No_Follow (Ada.Strings.Unbounded.To_String (Directory));
+         Hostkit.Process.End_Now
+           (if Stopped and then Files.Process_Jobs.Testing.Cleanup_Launches = Launches then 0 else 1);
+      end;
+   end Shutdown_With_Stages_Check;
+
    --  Check that shutdown waits for a session released late.
    procedure Late_Shutdown_Owner_Check is
    begin
@@ -704,6 +737,8 @@ package body Test_Helpers is
             Abandon_Transport_Fixture;
          when Drain_Reaper =>
             Drain_Reaper_Check;
+         when Shutdown_With_Stages =>
+            Shutdown_With_Stages_Check;
          when Late_Shutdown_Owner =>
             Late_Shutdown_Owner_Check;
          when Scavenge_Helper =>

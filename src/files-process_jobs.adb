@@ -301,24 +301,38 @@ package body Files.Process_Jobs is
       Destroy (Item);
    end Submit_Or_Abandon;
 
-   procedure Dispose (Item : in out State_Access) is
+   --  Stopping: shutdown has begun, and the queue must drain within its
+   --  bound. Then nothing is handed to a cleanup worker or queued again: the
+   --  direct removal is tried once and the in-memory owner dropped; a
+   --  running worker finishes on its own, and the durable marker leaves the
+   --  rest to startup recovery.
+   procedure Dispose (Item : in out State_Access; Stopping : Boolean := False) is
       Stages : constant String := Hostkit.Fs.Join (To_String (Item.Directory), Files.Protocol_Names.Stages_Directory);
 
       function Launch_Cleanup return Boolean is
          Arguments : Hostkit.String_Vectors.Vector;
       begin
+         if Stopping then
+            return False;
+         end if;
          Arguments.Append (Item.Directory);
          Arguments.Append (Item.Identity);
          Item.Cleanup := (others => <>);
          if not Start_Helper (Files.Helper_Modes.Cleanup, Arguments, Item.Cleanup) then
             return False;
          end if;
+         Test_Cleanup_Launches :=
+           (if Test_Cleanup_Launches = Natural'Last then 0 else Test_Cleanup_Launches + 1);
          Note_Started (Item.Cleanup);
          return True;
       end Launch_Cleanup;
 
       procedure Retain_For_Cleanup (Delay_Retry : Boolean) is
       begin
+         if Stopping then
+            Destroy (Item);
+            return;
+         end if;
          --  The helper is gone; only the cleanup worker is watched from here.
          Item.Helper := (others => <>);
          Item.Cancelled := False;
@@ -356,6 +370,10 @@ package body Files.Process_Jobs is
             Status : Hostkit.Spawn.Status;
          begin
             if not Collect (Item.Cleanup, Status) then
+               if Stopping then
+                  Destroy (Item);
+                  return;
+               end if;
                if Files.Timing.Elapsed (Ada.Real_Time.Clock, Item.Cleanup.Started_At, Cleanup_Timeout) then
                   Stop (Item.Cleanup);
                end if;
@@ -375,7 +393,10 @@ package body Files.Process_Jobs is
          end;
       end if;
       if Files.Fs_Primitives.Exists (Stages) then
-         if Ada.Real_Time.Clock < Item.Cleanup_Retry_At then
+         if Stopping then
+            Destroy (Item);
+            return;
+         elsif Ada.Real_Time.Clock < Item.Cleanup_Retry_At then
             Retain_For_Cleanup (Delay_Retry => False);
             return;
          end if;
@@ -407,7 +428,7 @@ package body Files.Process_Jobs is
       --  error is enough.  Hand it to the same independent cleanup worker so
       --  the failure is retried during application idleness instead of being
       --  forgotten when this state is freed.
-      if Transport_Gone (Item) then
+      if Transport_Gone (Item) or else Stopping then
          Destroy (Item);
       elsif Launch_Cleanup then
          Retain_For_Cleanup (Delay_Retry => False);
@@ -447,7 +468,7 @@ package body Files.Process_Jobs is
             begin
                Inspect (Current);
                if Current.Helper.Finished or else not Current.Helper.Started then
-                  Dispose (Current);
+                  Dispose (Current, Stopping);
                else
                   Submit_Or_Abandon (Current);
                end if;

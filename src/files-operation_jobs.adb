@@ -358,6 +358,12 @@ package body Files.Operation_Jobs is
       Same_View       : Boolean := False;
       --  Whether the failure handler could read which operation this was.
       Known_Kind      : Boolean := False;
+      --  What already ran before a failure, so the handler does not run it
+      --  again: a second merge would drop what was recorded after the
+      --  first (an untracked creation), as the journal never held it.
+      Merged          : Boolean := False;
+      Settled         : Boolean := False;
+      Recovered       : Boolean := False;
 
       function Failed_Key return String is
         (if Known_Kind then Failure_Key (Work.Kind) else "error.operation.failed");
@@ -481,17 +487,22 @@ package body Files.Operation_Jobs is
       then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
+      Merged := True;
       Files.Undo_Recording.Settle_History (Model);
+      Settled := True;
       Same_View := Matches_Current_View (Work);
       declare
          Choice : constant Disposition := Choose;
       begin
          Files.Model.End_Foreground_Job (Model);
-         if Choice = Discard then
-            return (Status => Files.Operation_Results.Operation_Success, others => <>);
-         end if;
-         if Done.Result.Status /= Files.Operation_Results.Operation_Success then
+         if Choice /= Discard and then Done.Result.Status /= Files.Operation_Results.Operation_Success then
             Recover_Undo (Model, Job);
+            Recovered := True;
+         end if;
+         if After_Merge /= null then
+            After_Merge (Model);
+            --  As if the view work had failed (test seam).
+            raise Program_Error;
          end if;
          case Choice is
             when Discard =>
@@ -542,14 +553,23 @@ package body Files.Operation_Jobs is
                Same_View := False;
          end;
          Files.Model.End_Foreground_Job (Model);
-         declare
-            Restored : constant Boolean :=
-              Files.History_Journal.Merge (Files.Process_Jobs.Path (Job, ""), Model);
-            pragma Unreferenced (Restored);
-         begin
+         --  Only what did not run yet: a failure after the merge keeps what
+         --  was recorded since.
+         if not Merged then
+            declare
+               Restored : constant Boolean :=
+                 Files.History_Journal.Merge (Files.Process_Jobs.Path (Job, ""), Model);
+               pragma Unreferenced (Restored);
+            begin
+               null;
+            end;
+         end if;
+         if not Settled then
             Files.Undo_Recording.Settle_History (Model);
-         end;
-         Recover_Undo (Model, Job);
+         end if;
+         if not Recovered then
+            Recover_Undo (Model, Job);
+         end if;
          --  Even an interrupted destructive operation may have changed its
          --  original view, but it must not refresh a different current view.
          if Same_View then

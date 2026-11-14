@@ -47,6 +47,7 @@ package body Files_Suite.Context_Menu is
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Right_Click_On_Menu_Is_Ignored (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Menu_Clicks_Go_Through_Events (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Open_And_Edit (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Archive_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Empty_Area_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -81,6 +82,9 @@ package body Files_Suite.Context_Menu is
          "a right-click on the open context menu is ignored, not passed to the item beneath");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Menu_Row_Dispatch'Access, "context-menu row dispatches its command and closes");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Menu_Clicks_Go_Through_Events'Access,
+         "context-menu clicks translate in Files.Events, so a screen reader can activate a row");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Context_Menu_Open_And_Edit'Access, "item-menu open, rename, cut, and duplicate commands");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -138,6 +142,7 @@ package body Files_Suite.Context_Menu is
    procedure Test_Right_Click_On_Menu_Is_Ignored (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Menu_Clicks_Go_Through_Events (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Context_Menu_Open_And_Edit (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

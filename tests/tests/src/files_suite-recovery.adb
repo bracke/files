@@ -125,6 +125,7 @@ package body Files_Suite.Recovery is
    procedure Test_Reserve_Exception_Safety (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transport_Cleanup_Retry (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Released_Job_Leaves_Registry_Alone (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_An_Unsearchable_Entry_Is_Not_Absent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Job_Cancellation_Latches (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Identity_Token_Round_Trips (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Helper_Lease_Survives_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -238,6 +239,9 @@ package body Files_Suite.Recovery is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Released_Job_Leaves_Registry_Alone'Access,
          "releasing a job removes its transport off the caller's task, without the recovery registry");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_An_Unsearchable_Entry_Is_Not_Absent'Access,
+         "an entry the host refuses to look up is never taken as absent");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Job_Cancellation_Latches'Access,
          "a helper sees its cancellation within a check interval, and once seen it stays seen");
@@ -364,6 +368,7 @@ package body Files_Suite.Recovery is
 
    procedure Test_Transport_Cleanup_Retry (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Released_Job_Leaves_Registry_Alone (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_An_Unsearchable_Entry_Is_Not_Absent (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Job_Cancellation_Latches (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Identity_Token_Round_Trips (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

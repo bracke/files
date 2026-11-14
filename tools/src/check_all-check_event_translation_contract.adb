@@ -45,9 +45,16 @@ separate (Check_All)
       procedure Check_Subunit_With_Clauses is
       begin
          for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-events-*.adb", Generated_Directories) loop
-            Require_Only_Allowed_With_Clauses (To_String (Item), "Files.", Body_Allowed);
-            Require_No_Filesystem_Imports (To_String (Item));
-            Project_Tools.Ada_Source.Require_No_Code_Tokens (To_String (Item), Foreign_Tokens);
+            declare
+               procedure No_Foreign_Tokens is
+               begin
+                  Project_Tools.Ada_Source.Require_No_Code_Tokens (To_String (Item), Foreign_Tokens);
+               end No_Foreign_Tokens;
+            begin
+               Require_Only_Allowed_With_Clauses (To_String (Item), "Files.", Body_Allowed);
+               Require_No_Filesystem_Imports (To_String (Item));
+               Guarded (No_Foreign_Tokens'Access);
+            end;
          end loop;
       end Check_Subunit_With_Clauses;
    begin

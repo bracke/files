@@ -12,7 +12,7 @@ separate (Check_All)
         (Root & "/files.gpr",
          "package Naming",
          "files.gpr must not select per-OS bodies with a Naming package; per-host code is hostkit's");
-      Project_Tools.Files.Require_Contains
+      Require_In_Text
         (Root & "/alire.toml",
          "hostkit = ",
          "files must depend on hostkit, which owns every per-host body it used to carry");

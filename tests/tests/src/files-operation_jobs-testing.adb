@@ -2,7 +2,10 @@ with Ada.Directories;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
 
+with Ada.Strings.Unbounded;
+
 with Files.Job_Records;
+with Files.Undo_Recording;
 
 package body Files.Operation_Jobs.Testing is
    use type Ada.Streams.Stream_Element_Offset;
@@ -191,4 +194,25 @@ package body Files.Operation_Jobs.Testing is
          end;
          raise;
    end Replace_Result_Recent;
+
+   Recorded_Path : Ada.Strings.Unbounded.Unbounded_String;
+
+   procedure Record_Then_Fail (Model : in out Files.Model.Window_Model) is
+      Items : Files.Model.Undo_Item_Vectors.Vector;
+   begin
+      Items.Append
+        (Files.Model.Undo_Item'(From => Recorded_Path, others => <>));
+      Files.Undo_Recording.Record_Undo (Model, Files.Model.Undo_Delete_Created, Items, Redoable => False);
+   end Record_Then_Fail;
+
+   procedure Fail_After_Merge (Recording : String) is
+   begin
+      Recorded_Path := Ada.Strings.Unbounded.To_Unbounded_String (Recording);
+      After_Merge := Record_Then_Fail'Access;
+   end Fail_After_Merge;
+
+   procedure Stop_Failing_After_Merge is
+   begin
+      After_Merge := null;
+   end Stop_Failing_After_Merge;
 end Files.Operation_Jobs.Testing;

@@ -6,7 +6,6 @@ separate (Check_All)
       Tool     : constant String := Tool_Dir & "/bin/catalog_check";
       Base     : constant String := Root & "/share/files.catalog";
       Output   : Unbounded_String;
-      Failed   : Natural := 0;
       Checked  : Natural := 0;
    begin
       Run ("catalog_check build", Tool_Dir, Alr, [new String'("--non-interactive"), new String'("build")]);
@@ -27,16 +26,13 @@ separate (Check_All)
                Output  => Output,
                Quiet   => True) /= 0
          then
-            Put_Line
-              (Standard_Error,
-               To_String (Locale) & ": its {arguments} differ from share/files.catalog's (findings above) "
+            --  One problem per catalog that disagrees.
+            Report
+              (To_String (Locale) & ": its {arguments} differ from share/files.catalog's (findings above) "
                & To_String (Output));
-            Failed := Failed + 1;
          end if;
       end loop;
       if Checked = 0 then
          Report ("no locale catalog under share/locales to check against share/files.catalog");
-      elsif Failed > 0 then
-         Report (Natural'Image (Failed) & " locale catalog(s) take other {arguments} than share/files.catalog");
       end if;
    end Check_Locale_Catalog_Arguments;

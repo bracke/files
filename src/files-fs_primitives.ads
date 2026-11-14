@@ -30,11 +30,13 @@ package Files.Fs_Primitives is
    function Entry_Exists (Path : String) return Boolean;
 
    --  Whether nothing at all is at Path: no entry, and no link (dangling or
-   --  not) in its place. Unlike not Entry_Exists, a failure to look
-   --  propagates, so it is never taken for absence.
+   --  not) in its place. Unlike not Entry_Exists, a failure to look (a
+   --  folder on the way that may not be searched, an I/O error) is never
+   --  taken for absence: it is noted and answers False, so a caller that
+   --  takes "gone" as done retries instead.
    --
    --  @param Path Filesystem path to test.
-   --  @return True when Path names nothing.
+   --  @return True only when the host says Path names nothing.
    function Entry_Is_Absent (Path : String) return Boolean;
 
    --  Return the parent directory of Path, read from its text (Parent_Text)

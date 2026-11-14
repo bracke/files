@@ -17,6 +17,7 @@ package Test_Helpers is
       Lease_Holder,
       Abandon_Transport,
       Drain_Reaper,
+      Shutdown_With_Stages,
       Late_Shutdown_Owner,
       Blocked_Helper,
       Scavenge_Helper,

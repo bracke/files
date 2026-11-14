@@ -17,7 +17,13 @@ package body Files.Fs_Primitives is
      (Hostkit.Fs.Kind_Of (Path) /= Hostkit.Fs.Missing_Entry);
 
    function Entry_Is_Absent (Path : String) return Boolean is
-     (not Exists (Path) and then not Hostkit.Fs.Is_Link (Path));
+   begin
+      return Hostkit.Fs.Entry_Is_Absent (Path);
+   exception
+      when Refused : Ada.Directories.Use_Error =>
+         Files.Diagnostics.Note (Refused, "Files.Fs_Primitives");
+         return False;
+   end Entry_Is_Absent;
 
    function Entry_Exists (Path : String) return Boolean is
    begin

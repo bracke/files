@@ -1,5 +1,4 @@
 with Ada.Strings.Unbounded;
-with GNAT.OS_Lib;
 
 with Hostkit.Fs;
 
@@ -230,11 +229,10 @@ package body Files.Settings.Path_References is
       Changed  : out Boolean)
    is
       --  Path itself or an entry inside the folder Path.
+      --  The rule Move_Path_References follows (through Hostkit.Fs.Rebase),
+      --  so a root such as "/" or "C:\" holds what lies below it here too.
       function Under (Candidate : String) return Boolean is
-        (Candidate = Path
-         or else (Candidate'Length > Path'Length
-                  and then Candidate (Candidate'First .. Candidate'First + Path'Length - 1) = Path
-                  and then Candidate (Candidate'First + Path'Length) in '/' | GNAT.OS_Lib.Directory_Separator));
+        (Hostkit.Fs.Is_Same_Or_Inside (Candidate, Path));
 
       procedure Drop (Paths : in out String_Vectors.Vector) is
       begin

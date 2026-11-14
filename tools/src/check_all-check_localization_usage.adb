@@ -4,57 +4,43 @@ separate (Check_All)
       Localization  : constant String := Root & "/src/files-localization.adb";
       Check_Source  : constant String := Combined_Check_All;
 
-      --  Path's code, comments dropped and strings blanked, must say Pattern
-      --  (a name, no quotes): searched in the raw text, a guard's pattern
-      --  would satisfy itself, as its own literal is part of check_all's
-      --  source.
-      procedure Require_In_Code (Path : String; Pattern : String; Message : String) is
-      begin
-         if not Project_Tools.Files.File_Exists (Path)
-           or else Ada.Strings.Fixed.Index
-                     (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => True),
-                      Pattern) = 0
-         then
-            Report (Path & ": " & Message);
-         end if;
-      end Require_In_Code;
    begin
-      Project_Tools.Files.Require_Contains
+      Require_In_Text
         (Main_Manifest,
          "i18n = ""^1.1.0""",
          "files must depend on the i18n crate");
-      Project_Tools.Files.Require_Contains
+      Require_In_Text
         (Main_Manifest,
          "i18n = { path = ""../i18n"" }",
          "files must pin i18n to the local relative crate");
-      Project_Tools.Files.Require_Contains
+      Require_In_Text
         (Check_Source,
          "if Literal = ""cd /d """ & ASCII.LF
          & "        or else Literal = ""cd """,
          "hard-coded text checks must keep terminal shell-verb exemptions narrow");
-      Require_In_Code
+      Require_Contains
         (Check_Source,
          "function Diagnostic_Pragma_Length",
          "hard-coded text checks must exempt developer-diagnostic pragma messages");
-      Require_In_Code
+      Require_Contains
         (Root & "/tools/src/check_all-check_no_user_text_literals.adb",
          "Diagnostic_Pragma_Length (",
          "hard-coded text checks must exempt developer-diagnostic pragma messages");
-      Project_Tools.Files.Require_Contains
+      Require_In_Text
         (Check_Source,
          "if Literal = ""untitled """,
          "hard-coded text checks must keep create-file name template exemptions narrow");
-      Project_Tools.Files.Require_Contains
+      Require_In_Text
         (Check_Source,
          "or else Literal = ""untitled.txt""",
          "hard-coded text checks must keep default create-file name exemptions narrow");
-      Project_Tools.Files.Require_Contains
+      Require_In_Text
         (Check_Source,
          "or else Literal = ""[Trash Info]""" & ASCII.LF
          & "        or else Literal = ""Path=""" & ASCII.LF
          & "        or else Literal = ""DeletionDate=""",
          "hard-coded text checks must keep trashinfo metadata exemptions narrow");
-      Project_Tools.Files.Require_Contains
+      Require_In_Text
         (Check_Source,
          "or else Literal = ""default_view_mode = """ & ASCII.LF
          & "        or else Literal = ""show_hidden_files = """ & ASCII.LF
@@ -63,16 +49,16 @@ separate (Check_All)
          & "        or else Literal = ""high_contrast_theme = """ & ASCII.LF
          & "        or else Literal = ""icon_theme = """,
          "hard-coded text checks must keep settings syntax exemptions narrow");
-      Project_Tools.Files.Require_Contains
+      Require_In_Text
         (Check_Source,
          "and then Key /= ""settings.conf""" & ASCII.LF
          & "        and then not Contains (Key, ""|"")",
          "indirect localization key checks must ignore settings filenames");
-      Project_Tools.Files.Require_Contains
+      Require_In_Text
         (Check_Source,
          "and then not Contains (Key, ""|"")",
          "indirect localization key checks must ignore structured metadata tokens");
-      Project_Tools.Files.Require_Contains
+      Require_In_Text
         (Check_Source,
          "Except => ""files-commands.adb""",
          "indirect localization key checks must not treat stable command identifiers as catalog keys");
@@ -100,7 +86,7 @@ separate (Check_All)
       Require_Registered_Routine
         ("Test_Host_Locale_Fallbacks",
          "the test of the environment and KDE locale fallbacks");
-      Require_In_Code
+      Require_Contains
         (Localization,
          "Hostkit.Host.Native_Locale",
          "the system locale is asked of the host (Hostkit.Host.Native_Locale), not detected per OS here");

@@ -24,6 +24,8 @@ package body Files.Process_Jobs.Testing is
 
    function Removal_Attempts return Natural is (Test_Removal_Attempts);
 
+   function Cleanup_Launches return Natural is (Test_Cleanup_Launches);
+
    procedure Clear_Refusal is
    begin
       Test_Refuse_Next_Launch := False;

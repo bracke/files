@@ -179,9 +179,9 @@ package Files_Suite.Interaction_Support is
       Result   : out Files.Interaction.Interaction_Result);
 
    --  Resolve a command from the live context-menu layout (rule a), assert the
-   --  derived coordinate hit-tests back to that row, then dispatch it through the
-   --  real Apply_Context_Menu_Command (rule d). Found is false when the open menu
-   --  does not offer the command.
+   --  derived coordinate hit-tests back to that row, then click it through the
+   --  real Files.Events.Translate_Click and Interaction.Apply_Input_Action
+   --  (rule d). Found is false when the open menu does not offer the command.
    --
    --  @param Model The window model.
    --  @param Settings The window settings.

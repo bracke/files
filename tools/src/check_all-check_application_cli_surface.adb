@@ -8,7 +8,7 @@ separate (Check_All)
         (Root & "/src/files-rendering.adb",
          "Unit_Width - 1",
          "text glyph rendering must not half-shift wide Unicode filename glyphs");
-      Project_Tools.Files.Require_Contains
+      Require_In_Text
         (Root & "/share/files.catalog",
          "en.cli.help.option.version = ",
          "localized catalog must include version help text");

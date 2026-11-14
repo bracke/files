@@ -69,18 +69,16 @@ procedure Check_All is
       Count_Problems (1);
    end Report;
 
-   --  Run one check. A Require_ guard of Project_Tools reports itself and
-   --  raises Program_Error; any other exception is a check that could not
-   --  finish. Either is counted as one problem, and the next check runs.
-   procedure Run_Check (Check : not null access procedure) is
+   --  Run one check, Name for what it guards. A check reports each problem
+   --  and carries on; an exception is one that could not finish (a missing
+   --  prerequisite, a fault of its own), named and counted as one problem,
+   --  and the next check runs.
+   procedure Run_Check (Name : String; Check : not null access procedure) is
    begin
       Check.all;
    exception
-      when E : Program_Error =>
-         Put_Line (Standard_Error, "  (the check stopped there: " & Ada.Exceptions.Exception_Message (E) & ")");
-         Count_Problems (1);
       when E : others =>
-         Report ("a check stopped early: " & Ada.Exceptions.Exception_Information (E));
+         Report (Name & " stopped early: " & Ada.Exceptions.Exception_Information (E));
    end Run_Check;
 
    --  Whether any check has reported a problem; if so, the run says how many
@@ -94,6 +92,56 @@ procedure Check_All is
       end if;
       return Problems > 0;
    end Problems_Found;
+
+   --  The guards a check calls report and carry on, so one run lists every
+   --  problem: these stand in for Project_Tools' Require_* guards, which
+   --  print and raise Program_Error at the first one.
+
+   --  Path's text, as it is (not only its code), must hold Pattern;
+   --  reported as Message: Path otherwise, or when Path is missing.
+   procedure Require_In_Text (Path : String; Pattern : String; Message : String) is
+   begin
+      if not Project_Tools.Files.File_Exists (Path) or else not Project_Tools.Files.File_Contains (Path, Pattern) then
+         Report (Message & ": " & Path);
+      end if;
+   end Require_In_Text;
+
+   --  Every path of Paths names a file; each missing one is reported.
+   procedure Require_Present (Paths : Project_Tools.Files.Path_List; Message : String) is
+   begin
+      for Path of Paths loop
+         if not Project_Tools.Files.File_Exists (To_String (Path)) then
+            Report (Message & ": " & To_String (Path));
+         end if;
+      end loop;
+   end Require_Present;
+
+   --  Run one Project_Tools guard that prints every problem it finds itself
+   --  and then raises Program_Error: counted as one problem, and the check
+   --  that called it carries on with its next file.
+   procedure Guarded (Guard : not null access procedure) is
+   begin
+      Guard.all;
+   exception
+      when Program_Error =>
+         Count_Problems (1);
+   end Guarded;
+
+   --  Project_Tools.Ada_Source's guard, as one that carries on: this
+   --  homograph hides the use-visible one in every check.
+   procedure Require_Only_Allowed_With_Clauses
+     (Source_Path : String;
+      Prefix      : String;
+      Allowed     : String_List;
+      Quiet       : Boolean := False)
+   is
+      procedure Guard is
+      begin
+         Project_Tools.Ada_Source.Require_Only_Allowed_With_Clauses (Source_Path, Prefix, Allowed, Quiet);
+      end Guard;
+   begin
+      Guarded (Guard'Access);
+   end Require_Only_Allowed_With_Clauses;
    function Temp_Path (Name : String) return String is
       Image : constant String := Integer'Image
         (GNAT.OS_Lib.Pid_To_Integer (GNAT.OS_Lib.Current_Process_Id));
@@ -595,8 +643,6 @@ procedure Check_All is
    --  and only a call of Diagnostics.Note itself counts (not Footnote (E, ...)).
    procedure Check_Swallowing_Handlers is separate;
 
-   procedure Check_Localization_Usage is separate;
-
    --  The pattern is looked for in code only: a comment that names what a
    --  unit must not do (as this file's own comments do) is no violation.
    procedure Require_Not_Contains
@@ -634,6 +680,8 @@ procedure Check_All is
          Report (Path & ": " & Message);
       end if;
    end Require_Contains;
+
+   procedure Check_Localization_Usage is separate;
 
    --  Like Require_Not_Contains, but also scans every subunit body of the unit
    --  whose body is Base_Path -- the sibling files named <stem>-*.adb. A
@@ -755,40 +803,56 @@ procedure Check_All is
    --  a with clause alone; a suite that lost its tests now fails here.
    procedure Check_Test_Subsystem_Coverage is separate;
 
+   --  Ada.Characters.Handling.To_Lower maps Latin-1, so on UTF-8 text it
+   --  rewrites lead bytes (0xC0 .. 0xDE): "Ä" (C3 84) becomes E3 84. src/
+   --  lower-cases with Files.Types.To_Lower_Ascii (tokens, keys, MIME types,
+   --  extensions) or Files.Types.Fold_Case (what a person reads), never that.
+   procedure Check_Ascii_Lowercasing is separate;
+
    type Check_Procedure is access procedure;
+
+   --  A check and the name a run reports it by.
+   type Named_Check is record
+      Name  : Unbounded_String;
+      Check : Check_Procedure;
+   end record;
+
+   function Named (Name : String; Check : Check_Procedure) return Named_Check is
+     (Name => To_Unbounded_String (Name), Check => Check);
 
    --  Every check of the tree, in the order they run. Each runs even when one
    --  before it found a problem; the build waits for all of them.
-   Checks : constant array (Positive range <>) of Check_Procedure :=
-     [Check_Project_Text_Files'Access,
-      Check_GNATdoc_Comments'Access,
-      Check_AUnit_Test_Registration'Access,
-      Check_Test_Subsystem_Coverage'Access,
-      Check_Ada_Only_Tooling'Access,
-      Check_Localization_Usage'Access,
-      Check_Clock_Arithmetic'Access,
-      Check_Environment_Access'Access,
-      Check_Path_Text_Calls'Access,
-      Check_Durability_Calls'Access,
-      Check_Raw_File_System_Calls'Access,
-      Check_Visible_Cache_Invalidation'Access,
-      Check_Swallowing_Handlers'Access,
-      Check_Shared_Package_State'Access,
-      Check_Host_Questions'Access,
-      Check_Filetype_Detection_Order'Access,
-      Check_Event_Translation_Contract'Access,
-      Check_Test_Hooks'Access,
-      Check_Test_Hook_Disarms'Access,
-      Check_Test_Stage_Removal'Access,
-      Check_Command_And_Overlay_Layers'Access,
-      Check_Crate_Structure'Access,
-      Check_Application_CLI_Surface'Access,
-      Check_Rendering_Architecture'Access,
-      Check_Icon_Assets'Access,
-      Check_Platform_Bodies'Access,
-      Check_Packaging_Metadata'Access,
-      Check_CLDR_Importer'Access,
-      Check_Locale_Catalog_Arguments'Access];
+   Checks : constant array (Positive range <>) of Named_Check :=
+     [Named ("Check_Project_Text_Files", Check_Project_Text_Files'Access),
+      Named ("Check_GNATdoc_Comments", Check_GNATdoc_Comments'Access),
+      Named ("Check_AUnit_Test_Registration", Check_AUnit_Test_Registration'Access),
+      Named ("Check_Test_Subsystem_Coverage", Check_Test_Subsystem_Coverage'Access),
+      Named ("Check_Ada_Only_Tooling", Check_Ada_Only_Tooling'Access),
+      Named ("Check_Localization_Usage", Check_Localization_Usage'Access),
+      Named ("Check_Clock_Arithmetic", Check_Clock_Arithmetic'Access),
+      Named ("Check_Environment_Access", Check_Environment_Access'Access),
+      Named ("Check_Path_Text_Calls", Check_Path_Text_Calls'Access),
+      Named ("Check_Durability_Calls", Check_Durability_Calls'Access),
+      Named ("Check_Raw_File_System_Calls", Check_Raw_File_System_Calls'Access),
+      Named ("Check_Visible_Cache_Invalidation", Check_Visible_Cache_Invalidation'Access),
+      Named ("Check_Swallowing_Handlers", Check_Swallowing_Handlers'Access),
+      Named ("Check_Shared_Package_State", Check_Shared_Package_State'Access),
+      Named ("Check_Host_Questions", Check_Host_Questions'Access),
+      Named ("Check_Filetype_Detection_Order", Check_Filetype_Detection_Order'Access),
+      Named ("Check_Event_Translation_Contract", Check_Event_Translation_Contract'Access),
+      Named ("Check_Test_Hooks", Check_Test_Hooks'Access),
+      Named ("Check_Test_Hook_Disarms", Check_Test_Hook_Disarms'Access),
+      Named ("Check_Test_Stage_Removal", Check_Test_Stage_Removal'Access),
+      Named ("Check_Command_And_Overlay_Layers", Check_Command_And_Overlay_Layers'Access),
+      Named ("Check_Crate_Structure", Check_Crate_Structure'Access),
+      Named ("Check_Application_CLI_Surface", Check_Application_CLI_Surface'Access),
+      Named ("Check_Rendering_Architecture", Check_Rendering_Architecture'Access),
+      Named ("Check_Icon_Assets", Check_Icon_Assets'Access),
+      Named ("Check_Platform_Bodies", Check_Platform_Bodies'Access),
+      Named ("Check_Packaging_Metadata", Check_Packaging_Metadata'Access),
+      Named ("Check_CLDR_Importer", Check_CLDR_Importer'Access),
+      Named ("Check_Locale_Catalog_Arguments", Check_Locale_Catalog_Arguments'Access),
+      Named ("Check_Ascii_Lowercasing", Check_Ascii_Lowercasing'Access)];
 
 begin
    if not Project_Tools.Files.File_Exists (Root & "/files.gpr") then
@@ -798,21 +862,21 @@ begin
    end if;
 
    Require_Command ("alr");
-   Run_Check (Require_Alire_GNAT_15'Access);
+   Run_Check ("Require_Alire_GNAT_15", Require_Alire_GNAT_15'Access);
 
    Project_Tools.Files.Write_Text_File (Combined_Suite, Suite_Sources);
    Project_Tools.Files.Write_Text_File (Combined_Check_All, Check_All_Sources);
 
-   for Check of Checks loop
-      Run_Check (Check);
+   for Item of Checks loop
+      Run_Check (To_String (Item.Name), Item.Check);
    end loop;
    if Problems_Found ("the build") then
       Cleanup_Temps;
       return;
    end if;
    Run ("files build", Root, Alr, [1 => new String'("build")]);
-   Run_Check (Check_Executable_CLI_Help'Access);
-   Run_Check (Check_Desktop_Runtime_Contract'Access);
+   Run_Check ("Check_Executable_CLI_Help", Check_Executable_CLI_Help'Access);
+   Run_Check ("Check_Desktop_Runtime_Contract", Check_Desktop_Runtime_Contract'Access);
    if Problems_Found ("the suite") then
       Cleanup_Temps;
       return;

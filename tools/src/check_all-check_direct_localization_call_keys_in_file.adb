@@ -37,7 +37,7 @@ separate (Check_All)
                   end loop;
 
                   if Is_Complete_Localization_Key (To_String (Key)) then
-                     Project_Tools.Files.Require_Contains
+                     Require_In_Text
                        (Catalog,
                         "en." & To_String (Key) & " = ",
                         Path & ": localization key must exist in share/files.catalog: " & To_String (Key));

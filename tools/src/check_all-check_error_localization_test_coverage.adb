@@ -17,7 +17,7 @@ separate (Check_All)
             end if;
 
             Covered_Key := To_Unbounded_String (Line (Line'First + 3 .. Separator - 1));
-            Project_Tools.Files.Require_Contains
+            Require_In_Text
               (Tests,
                "Add_Error_Key (""" & To_String (Covered_Key) & """);",
                "localization tests must cover recoverable error key " & To_String (Covered_Key));

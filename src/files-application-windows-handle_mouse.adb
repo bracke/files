@@ -1,5 +1,3 @@
-with Files.Model.Context_Menu;
-with Files.Rendering.Layouts;
 separate (Files.Application.Windows)
    procedure Handle_Mouse
      (Runtime : in out Runtime_Window)
@@ -41,45 +39,10 @@ separate (Files.Application.Windows)
       end Right_Press;
 
       --  A left press: a click where the button went down, with the
-      --  modifiers held then.
+      --  modifiers held then. Files.Events translates it, an open context
+      --  menu's rows included.
       procedure Left_Press (Event : Guikit.Input.Mouse_Buttons.Button_Event) is
       begin
-         if Files.Model.Context_Menu.Is_Open (Runtime.Model) then
-            declare
-               --  Where the button went down, as for any other click.
-               Press_X  : constant Glfw.Input.Mouse.Coordinate := Event.X;
-               Press_Y  : constant Glfw.Input.Mouse.Coordinate := Event.Y;
-               X        : constant Natural := Scale_Coordinate (Press_X, Window_W, Frame_W);
-               Y        : constant Natural := Scale_Coordinate (Press_Y, Window_H, Frame_H);
-               Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
-               Menu     : constant Files.Rendering.Layouts.Context_Menu_Layout :=
-                 Files.Rendering.Layouts.Calculate_Context_Menu_Layout
-                   (Snapshot, Natural (Frame_W), Natural (Frame_H),
-                    Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
-               Row      : constant Natural := Files.Rendering.Hit.Context_Menu_Row_At (Menu, X, Y);
-               Modifiers : constant Guikit.Input.Modifier_Set := Event.Modifiers;
-               Command  : constant Files.Commands.Command_Id :=
-                 (if Row > 0 and then Row <= Menu.Row_Count then Menu.Rows (Row).Command
-                  else Files.Commands.No_Command);
-               Result   : Files.Interaction.Interaction_Result;
-            begin
-               if Cursor_Is_Inside_Window (Press_X, Press_Y, Window_W, Window_H)
-                 and then Frame_W > 0 and then Frame_H > 0
-                 and then X < Natural (Frame_W) and then Y < Natural (Frame_H)
-               then
-                  Files.Interaction.Apply_Context_Menu_Command
-                    (Model             => Runtime.Model,
-                     Settings          => Runtime.Settings,
-                     Settings_Path     => To_String (Runtime.Settings_Path),
-                     Command           => Command,
-                     Modifiers         => Modifiers,
-                     Result            => Result);
-                  Apply_Interaction_Result (Runtime, Result);
-               end if;
-            end;
-            return;
-         end if;
-
          declare
             --  When the button went down, not when this pass got to it: a
             --  slow frame between two clicks does not split a double click.

@@ -1,5 +1,4 @@
 with Files.Diagnostics;
-with Ada.Characters.Handling;
 with Ada.Strings.Fixed;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Wide_Wide_Characters.Handling;
@@ -136,7 +135,7 @@ package body Files.Types is
                Ada.Strings.Unbounded.Append (Result, Folded);
             elsif Codepoint < 16#80# then
                Ada.Strings.Unbounded.Append
-                 (Result, Ada.Characters.Handling.To_Lower (Text (Start)));
+                 (Result, To_Lower_Ascii (Text (Start .. Start)));
             else
                --  Unmapped non-ASCII: keep its own bytes so its order is stable.
                Ada.Strings.Unbounded.Append (Result, Text (Start .. Index - 1));
@@ -158,7 +157,7 @@ package body Files.Types is
       function Fold_Run (Run_Text : String) return String is
       begin
          if (for all C of Run_Text => Character'Pos (C) < 128) then
-            return Ada.Characters.Handling.To_Lower (Run_Text);
+            return To_Lower_Ascii (Run_Text);
          end if;
          declare
             Composed : constant String :=
@@ -176,7 +175,7 @@ package body Files.Types is
       end Fold_Run;
    begin
       if (for all C of Text => Character'Pos (C) < 128) then
-         return Ada.Characters.Handling.To_Lower (Text);
+         return To_Lower_Ascii (Text);
       end if;
       while Index <= Text'Last loop
          declare

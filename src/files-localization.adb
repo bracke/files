@@ -1,7 +1,6 @@
 with Files.Diagnostics;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Vectors;
-with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Strings;
 with Ada.Strings.Fixed;
@@ -11,6 +10,7 @@ with Messages.Arguments;
 with Messages.Result;
 
 with Files.Environment;
+with Files.Types;
 with Files.Capped_Files;
 with Files.Fs_Primitives;
 with Files.Resources;
@@ -91,10 +91,10 @@ package body Files.Localization is
             if Raw (At_Sign) = '@' then
                for Index in At_Sign + 1 .. Raw'Last loop
                   if Raw (Index) = '.' then
-                     return Ada.Characters.Handling.To_Lower (Raw (At_Sign + 1 .. Index - 1));
+                     return Files.Types.To_Lower_Ascii (Raw (At_Sign + 1 .. Index - 1));
                   end if;
                end loop;
-               return Ada.Characters.Handling.To_Lower (Raw (At_Sign + 1 .. Raw'Last));
+               return Files.Types.To_Lower_Ascii (Raw (At_Sign + 1 .. Raw'Last));
             end if;
          end loop;
          return "";
@@ -734,10 +734,10 @@ package body Files.Localization is
       begin
          for Index in Tag'Range loop
             if Tag (Index) = '-' or else Tag (Index) = '_' then
-               return Ada.Characters.Handling.To_Lower (Tag (Tag'First .. Index - 1));
+               return Files.Types.To_Lower_Ascii (Tag (Tag'First .. Index - 1));
             end if;
          end loop;
-         return Ada.Characters.Handling.To_Lower (Tag);
+         return Files.Types.To_Lower_Ascii (Tag);
       end Language;
    begin
       Ensure_Initialized;

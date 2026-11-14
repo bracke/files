@@ -2,8 +2,8 @@ with Files.Rendering.Layouts;
 separate (Files.Events.Translate_Click)
 --  The overlay on top (Files.Rendering.Topmost_Overlay_Position, the order
 --  the keyboard and the drawing follow too) takes a click it can use and
---  swallows the rest, so nothing behind it reacts. The context menu, the
---  sort menu and the tree pick have regions of their own further on.
+--  swallows the rest, so nothing behind it reacts. The sort menu and the
+--  tree pick have regions of their own further on.
 procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
 
    --  The paste-progress overlay is a modal-lite top-most panel: while a long
@@ -131,6 +131,21 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
       return Command_Action (Files.Commands.Close_Overlay_Command);
    end Root_Selector_Click;
 
+   --  The context menu: a row runs its command, a click on its padding or a
+   --  separator is swallowed, and one outside it closes it.
+   function Context_Menu_Click return Input_Action is
+      Menu : constant Files.Rendering.Layouts.Context_Menu_Layout :=
+        Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Snapshot, Width, Height, Line_Height);
+      Row  : constant Natural := Files.Rendering.Hit.Context_Menu_Row_At (Menu, X, Y);
+   begin
+      if Row in 1 .. Menu.Row_Count then
+         return (Kind => Context_Menu_Command_Input_Action, Menu_Command => Menu.Rows (Row).Command);
+      elsif Files.Rendering.Hit.Context_Menu_Contains (Menu, X, Y) then
+         return No_Action;
+      end if;
+      return Command_Action (Files.Commands.Close_Overlay_Command);
+   end Context_Menu_Click;
+
    Position : constant Natural := Files.Rendering.Topmost_Overlay_Position (Snapshot);
 begin
    Handled := Position /= 0;
@@ -146,8 +161,8 @@ begin
       when Files.Types.Root_Selector_Overlay   => Result := Root_Selector_Click;
       when Files.Types.Label_Picker_Overlay    => Result := Label_Picker_Click;
       when Files.Types.Quick_Look_Overlay      => Result := Quick_Look_Click;
-      when Files.Types.Context_Menu_Overlay
-         | Files.Types.Sort_Menu_Overlay
+      when Files.Types.Context_Menu_Overlay    => Result := Context_Menu_Click;
+      when Files.Types.Sort_Menu_Overlay
          | Files.Types.Tree_Pick_Overlay       =>
          Handled := False;
    end case;

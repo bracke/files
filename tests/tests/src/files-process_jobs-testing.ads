@@ -15,6 +15,10 @@ package Files.Process_Jobs.Testing is
    --    released transport itself, so a test can wait for that attempt.
    function Removal_Attempts return Natural;
 
+   --  @return How many cleanup workers the orphan reaper has launched, so a
+   --    test can tell that shutdown launched none.
+   function Cleanup_Launches return Natural;
+
    --  Disarm a refusal that no Launch consumed, so it cannot leak into the
    --  next test.
    procedure Clear_Refusal;

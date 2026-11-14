@@ -65,6 +65,10 @@ separate (Files.Interaction)
             if Files.Model.Label_Picker.Is_Open (Model) then
                Apply_Label (Model, Settings, Settings_Path, Action.Label, Result);
             end if;
+         when Files.Events.Context_Menu_Command_Input_Action =>
+            --  A row of the context menu: its command runs, the menu closes.
+            Apply_Context_Menu_Command
+              (Model, Settings, Settings_Path, Action.Menu_Command, Modifiers, Result);
          when Files.Events.Path_Favorite_Toggle_Input_Action =>
             --  Toggle the current directory's favorite state directly by path,
             --  independent of the selection, under the policy every settings

@@ -1,13 +1,17 @@
 separate (Check_All)
    procedure Check_AUnit_Test_Registration is
+      procedure Packages_Registered is
+      begin
+         Project_Tools.AUnit_Checks.Require_Registered_Test_Packages
+           (Test_Dir         => Root & "/tests/tests/src",
+            Spec_Pattern     => "files_suite-*.ads",
+            Suite_Path       => Root & "/tests/tests/src/files_suite.adb",
+            Suite_Add_Prefix => "Result.Add_Test (",
+            Suite_Add_Suffix => ".Suite)",
+            Section_Marker   => "function Suite");
+      end Packages_Registered;
    begin
-      Project_Tools.AUnit_Checks.Require_Registered_Test_Packages
-        (Test_Dir         => Root & "/tests/tests/src",
-         Spec_Pattern     => "files_suite-*.ads",
-         Suite_Path       => Root & "/tests/tests/src/files_suite.adb",
-         Suite_Add_Prefix => "Result.Add_Test (",
-         Suite_Add_Suffix => ".Suite)",
-         Section_Marker   => "function Suite");
+      Guarded (Packages_Registered'Access);
       for Found of Project_Tools.Files.List_Tree (Root & "/tests/tests/src", "files_suite-*.adb", Generated_Directories)
       loop
          declare

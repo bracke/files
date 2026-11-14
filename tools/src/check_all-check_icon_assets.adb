@@ -86,7 +86,7 @@ separate (Check_All)
          Expected_Name : String)
       is separate;
    begin
-      Project_Tools.Files.Require_Files
+      Require_Present
         ([To_Unbounded_String (Root & "/share/files/icons/folder.icon"),
           To_Unbounded_String (Root & "/share/files/icons/text.icon"),
           To_Unbounded_String (Root & "/share/files/icons/image.icon"),
