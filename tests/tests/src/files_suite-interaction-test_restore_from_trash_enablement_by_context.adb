@@ -42,7 +42,7 @@ separate (Files_Suite.Interaction)
         (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Root);
       Files.Operations.Settle_Current_Is_Trash (Model);
       Files_Suite.Support.Select_Name (Model, "doomed.txt");
-      Assert (Files.Model.Selected_Count (Model) > 0, "the trashed item is selected in the trash view");
+      Assert (Files.Model.Selection.Selected_Count (Model) > 0, "the trashed item is selected in the trash view");
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Restore_From_Trash_Command, Model),
               "Restore From Trash is enabled with a selection inside the trash directory");
 

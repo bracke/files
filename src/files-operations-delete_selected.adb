@@ -6,7 +6,7 @@ function Delete_Selected
    Settings : Files.Settings.Settings_Model)
    return Operation_Result
 is
-   Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+   Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
    First_Path : Unbounded_String;
    --  The trashed items (From), where they were (To), and what identifies
    --  them. A record a second keeps a crash's loss to the last second's
@@ -20,7 +20,9 @@ begin
    elsif Files.Model.Background_Transfers (Model) then
       return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Trash);
    end if;
-   if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
+   if Files.Model.Selection.Selected_Count (Model) = 0
+     or else Files.Model.Selection.Selection_Includes_Temporary (Model)
+   then
       return Disabled (Model, "error.selection.empty");
    elsif not Files.File_System.Trash_Is_Available then
       Files.Model.Set_Error (Model, "error.trash.unavailable");

@@ -20,6 +20,8 @@ with Files.Controller;
 with Files.File_System;
 with Files.Localization;
 with Files.Model;
+with Files.Model.Selection;
+with Files.Model.Rename;
 with Files.Operations;
 with Files.Settings;
 with Guikit.Command_Palette;

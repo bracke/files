@@ -62,7 +62,7 @@ separate (Files_Suite.Operations)
       Assert (Routed.Operation.Status = Files.Operations.Operation_Success
                 and then Hostkit.Fs.Is_Link (Link_Path),
               "the selected dangling link can be hard-linked");
-      Assert (Files.Model.Undo_Available (Model), "the created link has Undo history");
+      Assert (Files.Model.History.Undo_Available (Model), "the created link has Undo history");
       Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operations.Operation_Success, "Undo removes only the new symbolic link entry: status");

@@ -10,10 +10,10 @@ separate (Files.Rendering)
       Indent_W    : constant Natural := Line_Height;
       Header_H    : constant Natural := Layout.Row_Height;
       Footer_H    : constant Natural := Tree_Footer_Height (Snapshot, Layout);
-      Content_X   : constant Natural := Saturating_Add (Layout.X, Padding);
-      Panel_End_X : constant Natural := Saturating_Add (Layout.X, Layout.Width);
+      Content_X   : constant Natural := Guikit.Layout.Saturating_Add (Layout.X, Padding);
+      Panel_End_X : constant Natural := Guikit.Layout.Saturating_Add (Layout.X, Layout.Width);
       Panel_End_Y : constant Natural :=
-        Saturating_Add (Layout.Y, Layout.Height - Natural'Min (Layout.Height, Footer_H));
+        Guikit.Layout.Saturating_Add (Layout.Y, Layout.Height - Natural'Min (Layout.Height, Footer_H));
       Current     : constant String := To_String (Snapshot.Current_Path);
       Count       : constant Natural := Natural (Snapshot.Tree_Rows.Length);
       Capacity    : constant Natural := Tree_Row_Capacity (Snapshot, Layout);
@@ -34,8 +34,8 @@ separate (Files.Rendering)
             TR    : constant Files.Folder_Tree.Visible_Row :=
               Snapshot.Tree_Rows.Element (Positive (I));
             Row_Y : constant Natural :=
-              Saturating_Add
-                (Saturating_Add (Layout.Y, Header_H),
+              Guikit.Layout.Saturating_Add
+                (Guikit.Layout.Saturating_Add (Layout.Y, Header_H),
                  Saturating_Multiply
                    (Natural (I - First_Row - 1), Layout.Row_Height));
          begin
@@ -44,7 +44,7 @@ separate (Files.Rendering)
                Remaining    : constant Natural := Panel_End_Y - Row_Y;
                Row_H        : constant Natural := Natural'Min (Layout.Row_Height, Remaining);
                Depth_Indent : constant Natural := Saturating_Multiply (TR.Depth, Indent_W);
-               Tri_X        : constant Natural := Saturating_Add (Content_X, Depth_Indent);
+               Tri_X        : constant Natural := Guikit.Layout.Saturating_Add (Content_X, Depth_Indent);
                Tri_Size     : constant Natural := Natural'Min (Line_Height, Row_H);
                Tri_W        : constant Natural :=
                  (if TR.Has_Children and then Tri_X < Panel_End_X
@@ -52,7 +52,7 @@ separate (Files.Rendering)
                   else 0);
                Tri_Y        : constant Natural :=
                  (if Row_H > Tri_Size
-                  then Saturating_Add (Row_Y, (Row_H - Tri_Size) / 2)
+                  then Guikit.Layout.Saturating_Add (Row_Y, (Row_H - Tri_Size) / 2)
                   else Row_Y);
             begin
                Result.Append

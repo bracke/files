@@ -642,6 +642,16 @@ package body Files.Job_Context is
          end if;
          Foreground_Paths.Delete (Foreground_Index);
          Foreground_Records.Delete (Foreground_Index);
+         --  A stage that is gone by other means (removed from outside) is no
+         --  longer waiting for its discard: forgotten here, or the cleanup
+         --  below would never run again in this process.
+         for Index in reverse Foreground_Paths.First_Index .. Foreground_Paths.Last_Index loop
+            if not Files.Fs_Primitives.Entry_Exists (To_String (Foreground_Paths (Index))) then
+               Remove_Record (To_String (Foreground_Records (Index)));
+               Foreground_Paths.Delete (Index);
+               Foreground_Records.Delete (Index);
+            end if;
+         end loop;
          if Foreground_Paths.Is_Empty and then Files.Process_Jobs.Active (Foreground_Job) then
             Files.Process_Jobs.Clean_Stages (Foreground_Job);
             --  Failed records remain in the transport directory. Releasing the

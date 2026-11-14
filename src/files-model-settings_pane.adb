@@ -2,7 +2,86 @@ with Files.Model.Support;
 
 package body Files.Model.Settings_Pane is
 
+   use Ada.Strings.Unbounded;
    use Files.Model.Support;
+
+   --  The number of complete key/value pairs across two parallel lists (the
+   --  shorter of the two lengths).
+   --
+   --  @param Keys Key list.
+   --  @param Values Value list.
+   --  @return Min of the two list lengths.
+   function Pair_Count
+     (Keys   : Files.Types.String_Vectors.Vector;
+      Values : Files.Types.String_Vectors.Vector)
+      return Natural is
+   begin
+      return Natural'Min (Natural (Keys.Length), Natural (Values.Length));
+   end Pair_Count;
+
+   --  Truncate Values to at most Count entries.
+   --
+   --  @param Values List to truncate in place.
+   --  @param Count Maximum number of entries to keep.
+   procedure Trim_To_Count
+     (Values : in out Files.Types.String_Vectors.Vector;
+      Count  : Natural) is
+   begin
+      while Natural (Values.Length) > Count loop
+         Values.Delete (Natural (Values.Length));
+      end loop;
+   end Trim_To_Count;
+
+   --  Bring a settings draft into a consistent state: pair up its parallel
+   --  key/value mapping lists to equal length and clamp each selection index.
+   --
+   --  @param Draft Settings draft to normalize in place.
+   procedure Normalize_Settings_Draft
+     (Draft : in out Files.Settings.Settings_Draft)
+   is
+      procedure Normalize_Pair
+        (Keys          : in out Files.Types.String_Vectors.Vector;
+         Values        : in out Files.Types.String_Vectors.Vector;
+         Index         : in out Natural;
+         Selected_Key   : out Unbounded_String;
+         Selected_Value : out Unbounded_String)
+      is
+         Count : constant Natural := Pair_Count (Keys, Values);
+      begin
+         Trim_To_Count (Keys, Count);
+         Trim_To_Count (Values, Count);
+         if Count = 0 then
+            Index := 0;
+            Selected_Key := Null_Unbounded_String;
+            Selected_Value := Null_Unbounded_String;
+         else
+            if Index = 0 or else Index > Count then
+               Index := 1;
+            end if;
+            Selected_Key := Keys.Element (Index);
+            Selected_Value := Values.Element (Index);
+         end if;
+      end Normalize_Pair;
+   begin
+      Normalize_Pair
+        (Draft.Filetype_Keys,
+         Draft.Filetype_Values,
+         Draft.Filetype_Index,
+         Draft.Filetype_Extension,
+         Draft.Filetype_Value);
+      Normalize_Pair
+        (Draft.Icon_Keys,
+         Draft.Icon_Values,
+         Draft.Icon_Index,
+         Draft.Icon_Filetype,
+         Draft.Icon_Value);
+      Normalize_Pair
+        (Draft.Open_Action_Keys,
+         Draft.Open_Action_Commands,
+         Draft.Open_Action_Index,
+         Draft.Open_Action_Token,
+         Draft.Open_Action_Command);
+   end Normalize_Settings_Draft;
 
    procedure Toggle
      (Model : in out Window_Model)
@@ -88,8 +167,8 @@ package body Files.Model.Settings_Pane is
       return Guikit.Settings_Panel.Take_Change (Model.Settings_Panel_View);
    end Take_Change;
 
-   function Focused_Value (Model : Window_Model) return String
-     renames Files.Model.Support.Settings_Focused_Value;
+   function Focused_Value (Model : Window_Model) return String is
+     (Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View));
 
    function Focused_Kind (Model : Window_Model) return Guikit.Settings_Panel.Field_Kind is
      (Guikit.Settings_Panel.Focused_Kind (Model.Settings_Panel_View));

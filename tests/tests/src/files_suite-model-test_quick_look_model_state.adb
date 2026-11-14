@@ -12,7 +12,7 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Quick_Look.Is_Open (Model), "toggling with a single selection opens quick look");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Quick_Look.Path (Model),
-         To_String (Files.Model.Selected_Item (Model).Full_Path),
+         To_String (Files.Model.Selection.Selected_Item (Model).Full_Path),
          "quick look records the previewed item path");
       Assert
         (Files.Model.Quick_Look.Content_Of (Model).Kind = Files.Quick_Look.Info_Content,

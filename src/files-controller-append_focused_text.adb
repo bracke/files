@@ -27,7 +27,7 @@ separate (Files.Controller)
          declare
             Matched : Boolean;
          begin
-            Files.Model.Type_Ahead_Input (Model, Text, Matched);
+            Files.Model.Selection.Type_Ahead_Input (Model, Text, Matched);
             if Matched then
                Files.Operations.Ensure_Selected_Item_Extra (Model);
             end if;
@@ -40,7 +40,7 @@ separate (Files.Controller)
       if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
          return
            Make_Result
-             (if Files.Model.Rename_Insert_At_Carets (Model, Text)
+             (if Files.Model.Rename.Rename_Insert_At_Carets (Model, Text)
               then Controller_Text_Updated
               else Controller_Ignored);
       end if;

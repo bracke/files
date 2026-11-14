@@ -76,10 +76,10 @@ separate (Check_All)
          "indirect localization key checks must ignore structured metadata tokens");
       Project_Tools.Files.Require_Contains
         (Check_Source,
-         "and then Name /= ""files-commands.adb""",
+         "Except => ""files-commands.adb""",
          "indirect localization key checks must not treat stable command identifiers as catalog keys");
 
-      Check_No_User_Text_Literals_In_Source_Tree (Root & "/src");
+      For_Each_Ada_Source (Root & "/src", Check_No_User_Text_Literals'Access, Except => "files-localization.adb");
       Check_Catalog_Unique_Keys;
       Check_Catalog_Format;
       Check_Catalog_Baseline_Keys;
@@ -109,6 +109,7 @@ separate (Check_All)
         ("Test_Localization_Error_And_Command_Keys",
          "the test of error keys and command names and descriptions");
       Check_Command_Localization_Keys;
-      Check_Indirect_Localization_Keys_In_Tree (Root & "/src");
-      Check_Direct_Localization_Call_Keys_In_Tree (Root & "/src");
+      For_Each_Ada_Source
+        (Root & "/src", Check_Indirect_Localization_Keys_In_File'Access, Except => "files-commands.adb");
+      For_Each_Ada_Source (Root & "/src", Check_Direct_Localization_Call_Keys_In_File'Access);
    end Check_Localization_Usage;

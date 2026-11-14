@@ -55,7 +55,7 @@ separate (Files_Suite.Interaction)
       Right_Click (2);
       Assert (Found, "a layout cell exists for the right-clicked item");
       Assert (Files.Model.Context_Menu.Is_Open (Model), "right-click opens the context menu");
-      Assert (Files.Model.Is_Selected (Model, 2), "right-click selects the unselected item under the cursor");
+      Assert (Files.Model.Selection.Is_Selected (Model, 2), "right-click selects the unselected item under the cursor");
       Assert
         (not Result.Settings_Changed,
          "right-click clears follow-up flags left by an earlier interaction (settings changed)");
@@ -73,8 +73,8 @@ separate (Files_Suite.Interaction)
       --  item moves the menu there and selects that item alone.
       Right_Click (3);
       Assert (Files.Model.Context_Menu.Is_Open (Model), "a second right-click opens the menu again");
-      Assert (Files.Model.Is_Selected (Model, 3), "it selects the newly right-clicked item");
-      Assert (not Files.Model.Is_Selected (Model, 2), "and only that item");
+      Assert (Files.Model.Selection.Is_Selected (Model, 3), "it selects the newly right-clicked item");
+      Assert (not Files.Model.Selection.Is_Selected (Model, 2), "and only that item");
       Right_Click (2);
 
       --  A queued click can carry an index from an older layout. It must not
@@ -91,7 +91,7 @@ separate (Files_Suite.Interaction)
         (not Files.Model.Context_Menu.Is_Open (Model),
          "a stale right-click item index leaves the context menu closed");
       Assert
-        (Files.Model.Is_Selected (Model, 2),
+        (Files.Model.Selection.Is_Selected (Model, 2),
          "a stale right-click item index preserves the current selection");
 
       --  With a modal overlay open the same right-click must be swallowed: the

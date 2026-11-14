@@ -23,7 +23,7 @@ separate (Files_Suite.Model)
       --  scenario starts from an open, selection-backed info pane.
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
       Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second Control+4 closes the info pane");
-      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,

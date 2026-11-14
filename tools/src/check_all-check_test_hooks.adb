@@ -1,7 +1,8 @@
 with Ada.Containers.Indefinite_Hashed_Maps;
-with Ada.Containers.Vectors;
 separate (Check_All)
    procedure Check_Test_Hooks is
+      use Tokens;
+
       --  Names are compared in lower case, in code with its comments
       --  dropped: Windows looks environment variables up regardless of case
       --  (Files_Test_X reads FILES_TEST_X there), and a name in a comment
@@ -15,114 +16,6 @@ separate (Check_All)
          To_Unbounded_String (Root & "/src/files-file_system-volume_trash_bases.adb")];
       Override_Home : constant String := Root & "/src/files-file_system-trash_location_for_environment.adb";
       Override_Homes : constant Project_Tools.Files.Path_List := [1 => To_Unbounded_String (Override_Home)];
-
-      function Is_Blank (Char : Character) return Boolean is
-        (Char in ' ' | ASCII.LF | ASCII.CR | ASCII.HT | ASCII.VT | ASCII.FF);
-
-      function Is_Word (Char : Character) return Boolean is
-        (Char in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_');
-
-      --  A word (identifier, keyword or number), a string or character
-      --  literal (its contents, quotes and doubling undone), or a delimiter.
-      type Token_Kind is (Word, Literal, Symbol);
-
-      type Token is record
-         Kind : Token_Kind := Symbol;
-         Text : Unbounded_String;
-      end record;
-
-      package Token_Vectors is new Ada.Containers.Vectors (Index_Type => Positive, Element_Type => Token);
-      subtype Token_List is Token_Vectors.Vector;
-
-      function Is_Symbol (Item : Token; Text : String) return Boolean is
-        (Item.Kind = Symbol and then To_String (Item.Text) = Text);
-
-      function Is_Word (Item : Token; Text : String) return Boolean is
-        (Item.Kind = Word and then To_String (Item.Text) = Text);
-
-      --  The words after which a character literal may stand ("when 'a'"):
-      --  after any other word, as after ")", a quote is an attribute's tick.
-      function Precedes_Literal (Name : String) return Boolean is
-        (Name = "when" or else Name = "return" or else Name = "in" or else Name = "and" or else Name = "or"
-         or else Name = "xor" or else Name = "not" or else Name = "then" or else Name = "else" or else Name = "is"
-         or else Name = "of" or else Name = "mod" or else Name = "rem" or else Name = "abs" or else Name = "range"
-         or else Name = "do" or else Name = "loop" or else Name = "begin");
-
-      --  The tokens of an Ada source, lower-cased, comments dropped. A quote
-      --  after a word (but Precedes_Literal's) or ")" is an attribute's tick
-      --  (String'("x")), any other one with a character two places on opens
-      --  a character literal.
-      function Tokens_Of (Source : String) return Token_List is
-         Text   : constant String := Ada.Characters.Handling.To_Lower (Code_Of (Source));
-         Result : Token_List;
-         Index  : Positive := Text'First;
-
-         procedure Add (Kind : Token_Kind; Item : String) is
-         begin
-            Result.Append (Token'(Kind => Kind, Text => To_Unbounded_String (Item)));
-         end Add;
-
-         function Ticks_Attribute return Boolean is
-           (not Result.Is_Empty
-            and then ((Result.Last_Element.Kind = Word
-                       and then not Precedes_Literal (To_String (Result.Last_Element.Text)))
-                      or else Is_Symbol (Result.Last_Element, ")")));
-      begin
-         while Index <= Text'Last loop
-            if Is_Blank (Text (Index)) then
-               Index := Index + 1;
-            elsif Text (Index) = '"' then
-               declare
-                  Value : Unbounded_String;
-                  Next  : Positive := Index + 1;
-               begin
-                  loop
-                     exit when Next > Text'Last or else Text (Next) = ASCII.LF;
-                     if Text (Next) /= '"' then
-                        Append (Value, Text (Next));
-                        Next := Next + 1;
-                     elsif Next < Text'Last and then Text (Next + 1) = '"' then
-                        Append (Value, '"');
-                        Next := Next + 2;
-                     else
-                        Next := Next + 1;
-                        exit;
-                     end if;
-                  end loop;
-                  Add (Literal, To_String (Value));
-                  Index := Next;
-               end;
-            elsif Text (Index) = '''
-              and then Index + 2 <= Text'Last
-              and then Text (Index + 2) = '''
-              and then not Ticks_Attribute
-            then
-               Add (Literal, Text (Index + 1 .. Index + 1));
-               Index := Index + 3;
-            elsif Is_Word (Text (Index)) then
-               declare
-                  Last : Positive := Index;
-               begin
-                  while Last < Text'Last and then Is_Word (Text (Last + 1)) loop
-                     Last := Last + 1;
-                  end loop;
-                  Add (Word, Text (Index .. Last));
-                  Index := Last + 1;
-               end;
-            elsif Index < Text'Last
-              and then (Text (Index .. Index + 1) = ":="
-                        or else Text (Index .. Index + 1) = "=>"
-                        or else Text (Index .. Index + 1) = "..")
-            then
-               Add (Symbol, Text (Index .. Index + 1));
-               Index := Index + 2;
-            else
-               Add (Symbol, Text (Index .. Index));
-               Index := Index + 1;
-            end if;
-         end loop;
-         return Result;
-      end Tokens_Of;
 
       --  Where a qualification ending at From starts its operand: past
       --  "string'" or "standard.string'" (any name, dotted, then a tick)
@@ -578,24 +471,9 @@ separate (Check_All)
          Refuse ("check_all's Check_Test_Hooks no longer sees a FILES_ prefix joined to an unknown part");
       end if;
 
-      declare
-         Search : Ada.Directories.Search_Type;
-         Item   : Ada.Directories.Directory_Entry_Type;
-      begin
-         Ada.Directories.Start_Search
-           (Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
-         while Ada.Directories.More_Entries (Search) loop
-            Ada.Directories.Get_Next_Entry (Search, Item);
-            declare
-               Path : constant String := Ada.Directories.Full_Name (Item);
-            begin
-               Units.Append
-                 (Unit'(Path => To_Unbounded_String (Path),
-                        Toks => Tokens_Of (Project_Tools.Files.Read_Raw_File (Path))));
-            end;
-         end loop;
-         Ada.Directories.End_Search (Search);
-      end;
+      for Item of Project_Tools.Files.List_Tree (Root & "/src", "*.ad?", Generated_Directories) loop
+         Units.Append (Unit'(Path => Item, Toks => Tokens_Of (Project_Tools.Files.Read_Raw_File (To_String (Item)))));
+      end loop;
 
       declare
          Known : constant Names := Resolve (Units);

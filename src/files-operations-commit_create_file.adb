@@ -4,7 +4,7 @@ function Commit_Create_File
    Settings : Files.Settings.Settings_Model)
    return Operation_Result
 is
-   Name : constant String := Files.Model.Rename_Text (Model);
+   Name : constant String := Files.Model.Rename.Rename_Text (Model);
 begin
    if not Files.Model.Temporary_Item_Is_Active (Model) then
       return Disabled (Model, "error.create.no_temporary_item");

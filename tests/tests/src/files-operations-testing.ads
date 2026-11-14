@@ -135,6 +135,21 @@ package Files.Operations.Testing is
    --  @return The attempts counted since Count_Undo_Records (True).
    function Undo_Records return Natural;
 
+   --  Make the clock a batch's Undo throttle reads a fake one (Fake True),
+   --  or the real one again (False). The fake clock stands still, so no
+   --  second ever passes between a batch's records, except that its
+   --  Advance_At'th reading (counting from one; zero for never) moves it one
+   --  second on, where it stays. The throttle reads it once for each item a
+   --  batch completes, and once more when the batch ends with items not yet
+   --  recorded.
+   --
+   --  @param Fake Whether to use the fake clock.
+   --  @param Advance_At The reading that moves the clock one second on.
+   procedure Fake_Checkpoint_Clock (Fake : Boolean; Advance_At : Natural := 0);
+
+   --  @return How often the fake clock was read since Fake_Checkpoint_Clock.
+   function Checkpoint_Clock_Readings return Natural;
+
    --  Finish Model's armed paste as one whose failed move kept a copy at
    --  Dest beside its still present Source, as the paste driver does.
    --

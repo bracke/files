@@ -1,0 +1,52 @@
+with Files.File_System.Thumbnails;
+separate (Files_Suite.Thumbnails)
+   procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      Browsed    : constant String := Join (Root, "pictures");
+      Cache_Home : constant String := Join (Root, "cache-home");
+
+      --  The variable this host keeps its per-user cache root in, and what the
+      --  resolver should make of it once XDG_CACHE_HOME is out of the way.
+      Host_Variable : constant String :=
+        (if Hostkit.Host.Current = Hostkit.Host.Windows then "LOCALAPPDATA" else "HOME");
+      Host_Cache_Root : constant String :=
+        (case Hostkit.Host.Current is
+            when Hostkit.Host.Windows => Cache_Home,
+            when Hostkit.Host.MacOS   => Join (Cache_Home, "Library/Caches"),
+            when others               => Join (Cache_Home, ".cache"));
+
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
+
+      function Cache_Directory return String is
+        (Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Browsed));
+   begin
+      Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
+      Files_Suite.Support.Save (Environment, Host_Variable);
+      Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
+      Files_Suite.Support.Assert_Equal
+        (Cache_Directory,
+         Join (Join (Cache_Home, "files"), "thumbnails"),
+         "an explicit XDG_CACHE_HOME is honoured on every host, got " & Cache_Directory);
+
+      Ada.Environment_Variables.Set (Host_Variable, Cache_Home);
+      Ada.Environment_Variables.Set ("XDG_CACHE_HOME", "relative-cache-home");
+      Assert
+        (GNAT.OS_Lib.Is_Absolute_Path (Cache_Directory)
+         and then Cache_Directory /=
+           Join (Join ("relative-cache-home", "files"), "thumbnails"),
+         "a relative XDG_CACHE_HOME cannot redirect thumbnails into the process directory");
+
+      Ada.Environment_Variables.Clear ("XDG_CACHE_HOME");
+      Files_Suite.Support.Assert_Equal
+        (Cache_Directory,
+         Join (Join (Host_Cache_Root, "files"), "thumbnails"),
+         "without XDG_CACHE_HOME the cache follows this host's convention, got " & Cache_Directory);
+
+      Assert
+        (Cache_Directory'Length < Browsed'Length
+           or else Cache_Directory (Cache_Directory'First .. Cache_Directory'First + Browsed'Length - 1)
+                     /= Browsed,
+         "the thumbnail cache is never written into the folder being browsed, got " & Cache_Directory);
+   end Test_Thumbnail_Cache_Is_Per_User;

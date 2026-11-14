@@ -12,16 +12,13 @@ is
       Size : Long_Long_Integer)
       return Natural
    is
-      Modulus : constant Long_Long_Integer := 1_000_000_007;
-      Value   : Long_Long_Integer := Long_Long_Integer (Ada.Directories.File_Kind'Pos (Kind) + 1);
+      Value : Natural := Ada.Directories.File_Kind'Pos (Kind) + 1;
    begin
       for Character_Value of Name loop
-         Value :=
-           (Value * 131 + Long_Long_Integer (Character'Pos (Character_Value))) mod Modulus;
+         Value := Mix_Checksum (Value, Long_Long_Integer (Character'Pos (Character_Value)));
       end loop;
 
-      Value := (Value * 131 + Long_Long_Integer'Max (0, Size)) mod Modulus;
-      return Natural (Value);
+      return Mix_Checksum (Value, Long_Long_Integer'Max (0, Size));
    end Entry_Checksum;
 
    --  One no-follow stat answers everything a listing shows: both times
@@ -33,13 +30,12 @@ is
       Revision : Hostkit.Metadata.Entry_Revision)
       return Natural
    is
-      Modulus : constant Interfaces.Unsigned_64 := 1_000_000_007;
-      Value   : Interfaces.Unsigned_64 := 7;
+      Value : Natural := 7;
 
       procedure Mix (Field : Interfaces.Unsigned_64) is
          use type Interfaces.Unsigned_64;
       begin
-         Value := (Value * 131 + Field mod Modulus) mod Modulus;
+         Value := Mix_Checksum (Value, Long_Long_Integer (Field mod Checksum_Modulus));
       end Mix;
    begin
       for Character_Value of Name loop
@@ -53,7 +49,7 @@ is
       Mix (Revision.Mode);
       Mix (Revision.User_Id);
       Mix (Revision.Group_Id);
-      return Natural (Value);
+      return Value;
    end Revision_Checksum;
 
    Revision : constant Hostkit.Metadata.Entry_Revision :=
@@ -62,7 +58,7 @@ begin
    Result.Entry_Count := Result.Entry_Count + 1;
    if Revision.Available then
       Result.Entry_State_Checksum :=
-        (Result.Entry_State_Checksum + Revision_Checksum (Name, Revision)) mod 1_000_000_007;
+        Mix_Checksum (Result.Entry_State_Checksum, Long_Long_Integer (Revision_Checksum (Name, Revision)), Step => 1);
       return;
    end if;
    declare
@@ -89,7 +85,7 @@ begin
       end if;
 
       Result.Entry_State_Checksum :=
-        (Result.Entry_State_Checksum + Entry_Checksum (Name, Kind, Size)) mod 1_000_000_007;
+        Mix_Checksum (Result.Entry_State_Checksum, Long_Long_Integer (Entry_Checksum (Name, Kind, Size)), Step => 1);
 
       begin
          Modified := Files.Fs_Primitives.Modification_Time (Full);
@@ -107,7 +103,9 @@ begin
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
          Result.Entry_State_Checksum :=
-           (Result.Entry_State_Checksum
-            + Entry_Checksum (Name, Ada.Directories.Special_File, 0)) mod 1_000_000_007;
+           Mix_Checksum
+             (Result.Entry_State_Checksum,
+              Long_Long_Integer (Entry_Checksum (Name, Ada.Directories.Special_File, 0)),
+              Step => 1);
    end;
 end Add_To_Signature;

@@ -26,6 +26,7 @@ with Files.Rendering;
 with Guikit.Frame_Analysis;
 with Guikit.Layout;
 with Guikit.Vulkan;
+with Files.Model.Selection;
 
 package body Files.Application is
 
@@ -410,13 +411,13 @@ package body Files.Application is
          return;
       end if;
       --  The same items Build_Snapshot lists in the info pane.
-      if Files.Model.Info_Pane_Is_Open (Model) and then Files.Model.Selected_Count (Model) > 0 then
+      if Files.Model.Info_Pane_Is_Open (Model) and then Files.Model.Selection.Selected_Count (Model) > 0 then
          declare
             Items : constant Files.Items.Item_Vectors.Vector :=
-              Files.Model.Selected_Items (Model, Limit => Files.Rendering.Max_Info_Items);
+              Files.Model.Selection.Selected_Items (Model, Limit => Files.Rendering.Max_Info_Items);
          begin
             if Items.Is_Empty then
-               Sample (Files.Model.Selected_Item (Model));
+               Sample (Files.Model.Selection.Selected_Item (Model));
             end if;
             for Item of Items loop
                Sample (Item);

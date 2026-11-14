@@ -40,7 +40,7 @@ separate (Files_Suite.Commands)
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Back_Command, Model),
               "direct back can be enabled");
       Model := Sample_Model;
-      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
          "delete enabled with selection");

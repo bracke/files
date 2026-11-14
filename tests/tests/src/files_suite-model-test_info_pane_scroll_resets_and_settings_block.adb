@@ -10,7 +10,7 @@ separate (Files_Suite.Model)
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
       --  Start from an open, selection-backed, unscrolled info pane.
-      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
 
       Files.Model.Scroll_Info_Pane (Model, Lines => 3);
@@ -18,25 +18,25 @@ separate (Files_Suite.Model)
         (Files.Model.Info_Pane_Scroll_Lines (Model),
          3,
          "info pane can scroll before selection changes");
-      Files.Model.Select_Visible (Model, 2);
+      Files.Model.Selection.Select_Visible (Model, 2);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Info_Pane_Scroll_Lines (Model),
          0,
          "single selection resets info pane scroll");
       Files.Model.Scroll_Info_Pane (Model, Lines => 3);
-      Files.Model.Toggle_Visible_Selection (Model, 1);
+      Files.Model.Selection.Toggle_Visible_Selection (Model, 1);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Info_Pane_Scroll_Lines (Model),
          0,
          "toggle selection resets info pane scroll");
       Files.Model.Scroll_Info_Pane (Model, Lines => 3);
-      Files.Model.Select_Visible_Range (Model, 1, 3);
+      Files.Model.Selection.Select_Visible_Range (Model, 1, 3);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Info_Pane_Scroll_Lines (Model),
          0,
          "range selection resets info pane scroll");
       Files.Model.Scroll_Info_Pane (Model, Lines => 3);
-      Files.Model.Clear_Selection (Model);
+      Files.Model.Selection.Clear_Selection (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Info_Pane_Scroll_Lines (Model),
          0,

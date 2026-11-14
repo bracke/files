@@ -25,14 +25,14 @@ separate (Files_Suite.Model)
       Roots_A.Append (To_Unbounded_String (Target));
       Roots_A.Append (To_Unbounded_String (Ada.Directories.Full_Name (Root)));
       Files.Model.Root_Selector.Open (Model, Roots_A);
-      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Selection.Select_Visible (Model, 1);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "root selector blocks background delete key");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Count (Model),
+        (Files.Model.Selection.Selected_Count (Model),
          1,
          "blocked root selector delete keeps selection");
       Assert (Files.Model.Root_Selector.Is_Open (Model), "blocked root selector delete keeps selector open");
@@ -111,7 +111,8 @@ separate (Files_Suite.Model)
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "root selector blocks direct delete command");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 1, "blocked direct delete keeps selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selection.Selected_Count (Model), 1, "blocked direct delete keeps selection");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
          "error.path.missing",

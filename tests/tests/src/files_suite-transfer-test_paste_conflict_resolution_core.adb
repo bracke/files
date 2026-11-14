@@ -1,0 +1,195 @@
+separate (Files_Suite.Transfer)
+   procedure Test_Paste_Conflict_Resolution_Core (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      function Work_Item (Name : String) return Files.Paste.Work_Item is
+      begin
+         return
+           (Source_Path => To_Unbounded_String (Join ("/src", Name)),
+            Dest_Dir    => To_Unbounded_String ("/dest"),
+            Dest_Name   => To_Unbounded_String (Name));
+      end Work_Item;
+
+      --  A destination path spelled as the resolver spells it, with the
+      --  host's separator.
+      function Dest (Name : String) return String is (Files.Paste.Desired_Path ("/dest", Name));
+
+      Items    : Files.Paste.Work_Item_Vectors.Vector;
+      Existing : Files.Types.String_Vectors.Vector;
+      None     : constant Files.Paste.Item_Decision_Vectors.Vector :=
+        Files.Paste.Item_Decision_Vectors.Empty_Vector;
+   begin
+      --  a.txt and b.txt already exist at the destination; c.txt does not.
+      Items.Append (Work_Item ("a.txt"));
+      Items.Append (Work_Item ("b.txt"));
+      Items.Append (Work_Item ("c.txt"));
+      Existing.Append (To_Unbounded_String (Dest ("a.txt")));
+      Existing.Append (To_Unbounded_String (Dest ("b.txt")));
+
+      --  Replace_All: every item is written; the colliding two overwrite.
+      declare
+         Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
+           Files.Paste.Resolve (Items, Files.Paste.Policy_Replace_All, None, Existing);
+      begin
+         Assert (not Actions.Element (1).Skip and then Actions.Element (1).Replaced,
+                 "replace-all overwrites the first colliding item");
+         Assert (not Actions.Element (2).Skip and then Actions.Element (2).Replaced,
+                 "replace-all overwrites the second colliding item");
+         Assert (not Actions.Element (3).Skip, "replace-all writes the non-colliding item unchanged: not skipped");
+         Assert (not Actions.Element (3).Replaced, "replace-all writes the non-colliding item unchanged: not replaced");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Actions.Element (3).Dest_Path),
+            Dest ("c.txt"),
+            "replace-all writes the non-colliding item unchanged: destination");
+      end;
+
+      --  Two sources with one leaf name: only the first replaces; the second
+      --  must not replace the copy the batch has just written.
+      declare
+         Twins   : Files.Paste.Work_Item_Vectors.Vector;
+         Actions : Files.Paste.Resolved_Action_Vectors.Vector;
+      begin
+         Twins.Append (Work_Item ("a.txt"));
+         Twins.Append
+           (Files.Paste.Work_Item'
+              (Source_Path => To_Unbounded_String ("/other/a.txt"),
+               Dest_Dir    => To_Unbounded_String ("/dest"),
+               Dest_Name   => To_Unbounded_String ("a.txt")));
+         Actions := Files.Paste.Resolve (Twins, Files.Paste.Policy_Replace_All, None, Existing);
+         Assert (Actions.Element (1).Replaced
+                   and then To_String (Actions.Element (1).Dest_Path) = Dest ("a.txt"),
+                 "the first same-named item replaces the existing entry");
+         Assert
+           (not Actions.Element (2).Replaced,
+            "a second same-named item is kept under a unique name instead of replacing the first: not replaced");
+         Assert
+           (not Actions.Element (2).Skip,
+            "a second same-named item is kept under a unique name instead of replacing the first: not skipped");
+         Assert
+           (To_String (Actions.Element (2).Dest_Path) /= Dest ("a.txt"),
+            "a second same-named item is kept under a unique name instead of replacing the first: unique destination");
+      end;
+
+      --  On a destination that folds case, Readme.md and README.md are one
+      --  name: with an existing readme.md only the first replaces it, and
+      --  without one the second still does not write over the first.
+      declare
+         Cased   : Files.Paste.Work_Item_Vectors.Vector;
+         Actions : Files.Paste.Resolved_Action_Vectors.Vector;
+         Folded_Existing : Files.Types.String_Vectors.Vector;
+         No_Existing     : Files.Types.String_Vectors.Vector;
+      begin
+         Cased.Append (Work_Item ("Readme.md"));
+         Cased.Append (Work_Item ("README.md"));
+         Folded_Existing.Append (To_Unbounded_String (Dest ("Readme.md")));
+         Folded_Existing.Append (To_Unbounded_String (Dest ("README.md")));
+         Actions := Files.Paste.Resolve
+           (Cased, Files.Paste.Policy_Replace_All, None, Folded_Existing, Fold_Names => True);
+         Assert (Actions.Element (1).Replaced, "the first case-twin replaces the existing entry");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Actions.Element (1).Dest_Path), Dest ("Readme.md"),
+            "a replace keeps the existing entry's spelling");
+         declare
+            Lower : Files.Types.String_Vectors.Vector;
+         begin
+            Lower.Append (To_Unbounded_String (Dest ("readme.md")));
+            Actions := Files.Paste.Resolve
+              (Cased, Files.Paste.Policy_Replace_All, None, Lower, Fold_Names => True);
+            Files_Suite.Support.Assert_Equal
+              (To_String (Actions.Element (1).Dest_Path), Dest ("readme.md"),
+               "Readme.md replacing readme.md writes over readme.md under its own name");
+         end;
+         Assert (not Actions.Element (2).Replaced and then not Actions.Element (2).Skip
+                 and then Files.Types.Fold_Case (To_String (Actions.Element (2).Dest_Path))
+                          /= Files.Types.Fold_Case (Dest ("readme.md")),
+                 "the second case-twin is kept under another name, not replacing the first's copy");
+         Actions := Files.Paste.Resolve (Cased, Files.Paste.Policy_Ask, None, No_Existing, Fold_Names => True);
+         Assert (Files.Types.Fold_Case (To_String (Actions.Element (2).Dest_Path))
+                 /= Files.Types.Fold_Case (To_String (Actions.Element (1).Dest_Path)),
+                 "without an existing entry the case-twins still get two names");
+         Actions := Files.Paste.Resolve (Cased, Files.Paste.Policy_Ask, None, No_Existing);
+         Assert (To_String (Actions.Element (2).Dest_Path) = Dest ("README.md"),
+                 "where names keep their case, both keep their names");
+      end;
+
+      --  Skip_All: colliding ones are skipped, the free one is written.
+      declare
+         Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
+           Files.Paste.Resolve (Items, Files.Paste.Policy_Skip_All, None, Existing);
+      begin
+         Assert (Actions.Element (1).Skip, "skip-all skips the first colliding item");
+         Assert (Actions.Element (2).Skip, "skip-all skips the second colliding item");
+         Assert (not Actions.Element (3).Skip
+                   and then To_String (Actions.Element (3).Dest_Path) = Dest ("c.txt"),
+                 "skip-all still writes the non-colliding item");
+      end;
+
+      --  Rename_All: colliding ones are written under uniquified names.
+      declare
+         Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
+           Files.Paste.Resolve (Items, Files.Paste.Policy_Rename_All, None, Existing);
+      begin
+         Assert (not Actions.Element (1).Skip, "rename-all uniquifies the first colliding item: not skipped");
+         Assert (not Actions.Element (1).Replaced, "rename-all uniquifies the first colliding item: not replaced");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Actions.Element (1).Dest_Path),
+            Dest ("a 2.txt"),
+            "rename-all uniquifies the first colliding item: destination");
+         Assert (not Actions.Element (2).Skip, "rename-all uniquifies the second colliding item: not skipped");
+         Assert (not Actions.Element (2).Replaced, "rename-all uniquifies the second colliding item: not replaced");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Actions.Element (2).Dest_Path),
+            Dest ("b 2.txt"),
+            "rename-all uniquifies the second colliding item: destination");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Actions.Element (3).Dest_Path),
+            Dest ("c.txt"),
+            "rename-all leaves the non-colliding name alone");
+      end;
+
+      --  A choice made for one item holds for it alone: a.txt skipped, then
+      --  Replace All for the rest overwrites b.txt and leaves a.txt alone.
+      declare
+         Skip_First : Files.Paste.Item_Decision_Vectors.Vector;
+      begin
+         Skip_First.Append (Files.Paste.Decision_Skip);
+         Skip_First.Append (Files.Paste.Decision_Pending);
+         Skip_First.Append (Files.Paste.Decision_Pending);
+         Files_Suite.Support.Assert_Equal
+           (Files.Paste.Next_Unresolved_Conflict (Items, Files.Paste.Policy_Ask, Skip_First, Existing),
+            2,
+            "after a.txt is decided, b.txt is the next to ask about");
+         Files_Suite.Support.Assert_Equal
+           (Files.Paste.Next_Unresolved_Conflict (Items, Files.Paste.Policy_Ask, None, Existing, After => 1),
+            2,
+            "the search for the next conflict starts after the one asked about");
+         Files_Suite.Support.Assert_Equal
+           (Files.Paste.Next_Unresolved_Conflict (Items, Files.Paste.Policy_Replace_All, Skip_First, Existing),
+            0,
+            "a policy decides every remaining conflict");
+         declare
+            Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
+              Files.Paste.Resolve (Items, Files.Paste.Policy_Replace_All, Skip_First, Existing);
+         begin
+            Assert (Actions.Element (1).Skip, "the item skipped by itself stays skipped under Replace All");
+            Assert (not Actions.Element (2).Skip and then Actions.Element (2).Replaced,
+                    "Replace All overwrites the item left undecided");
+            Assert (not Actions.Element (3).Skip and then not Actions.Element (3).Replaced,
+                    "and writes the one that did not collide");
+         end;
+      end;
+
+      --  No conflicts: every policy writes each item to its desired path.
+      declare
+         Empty_Existing : Files.Types.String_Vectors.Vector;
+         Actions        : constant Files.Paste.Resolved_Action_Vectors.Vector :=
+           Files.Paste.Resolve (Items, Files.Paste.Policy_Ask, None, Empty_Existing);
+      begin
+         Assert (not Actions.Element (1).Skip and then To_String (Actions.Element (1).Dest_Path) = Dest ("a.txt"),
+                 "with no conflicts the first item is written to its desired path");
+         Assert (not Actions.Element (2).Skip and then To_String (Actions.Element (2).Dest_Path) = Dest ("b.txt"),
+                 "with no conflicts the second item is written to its desired path");
+         Assert (not Actions.Element (3).Skip,
+                 "with no conflicts the third item is written");
+      end;
+   end Test_Paste_Conflict_Resolution_Core;

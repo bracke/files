@@ -11,9 +11,9 @@ function Navigate_History
 is
    Had_Temporary  : constant Boolean := Files.Model.Temporary_Item_Is_Active (Model);
    Temporary_Name : constant String := Files.Model.Temporary_Item_Name (Model);
-   Had_Rename     : constant Boolean := Files.Model.Rename_Is_Active (Model);
-   Rename_Text    : constant String := Files.Model.Rename_Text (Model);
-   Rename_Source  : constant String := Files.Model.Selected_Name (Model);
+   Had_Rename     : constant Boolean := Files.Model.Rename.Rename_Is_Active (Model);
+   Rename_Text    : constant String := Files.Model.Rename.Rename_Text (Model);
+   Rename_Source  : constant String := Files.Model.Selection.Selected_Name (Model);
    Origin         : constant Files.Model.Navigation_Mark := Files.Model.Mark_Navigation (Model);
    Available      : constant Boolean :=
      (if Direction = History_Back
@@ -50,12 +50,12 @@ begin
          elsif Had_Rename then
             declare
                Selection_Restored : constant Boolean :=
-                 Files.Model.Select_By_Name (Model, Rename_Source);
+                 Files.Model.Selection.Select_By_Name (Model, Rename_Source);
                pragma Unreferenced (Selection_Restored);
             begin
                null;
             end;
-            Files.Model.Resume_Rename (Model, Rename_Text);
+            Files.Model.Rename.Resume_Rename (Model, Rename_Text);
          end if;
       end if;
 

@@ -156,7 +156,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
 
                if Menu.Column_Count > 1 and then Menu.Column_Width > 0 then
                   Add_Overlay_Rect
-                    (Saturating_Add (Menu.X, Menu.Column_Width),
+                    (Guikit.Layout.Saturating_Add (Menu.X, Menu.Column_Width),
                      Menu.Y,
                      1,
                      Menu.Height,

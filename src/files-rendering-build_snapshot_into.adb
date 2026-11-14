@@ -7,9 +7,12 @@ with Files.Commands.Status;
 with Files.Grouping;
 with Files.Model.Clipboard;
 with Files.Model.Context_Menu;
+with Files.Model.Folder_Sizes;
 with Files.Model.Label_Picker;
 with Files.Model.Quick_Look;
+with Files.Model.Rename;
 with Files.Model.Root_Selector;
+with Files.Model.Selection;
 with Files.Model.Sort_Menu;
 with Files.Model.Tree_Panel;
 with Files.Model.Pasting;
@@ -102,9 +105,9 @@ separate (Files.Rendering)
       Snapshot.Item_Count := Files.Model.Item_Count (Model);
       Snapshot.Visible_Count := Files.Model.Visible_Count (Model);
       Snapshot.Hidden_Count := Files.Model.Hidden_Item_Count (Model);
-      Snapshot.Selected_Count := Files.Model.Selected_Count (Model);
+      Snapshot.Selected_Count := Files.Model.Selection.Selected_Count (Model);
       Snapshot.Primary_Selected_Visible_Index :=
-        Files.Model.Selected_Index (Model);
+        Files.Model.Selection.Selected_Index (Model);
       declare
          --  Sampled by the window layer (see Volume_Space_Is_Current); unknown
          --  until it has been, so a bogus zero is never shown as a known value.
@@ -134,7 +137,7 @@ separate (Files.Rendering)
       Snapshot.Path_Input_Text := To_Unbounded_String (Files.Model.Path_Input_Text (Model));
       Snapshot.Path_Input_Valid := Files.Model.Path_Input_Is_Valid (Model);
       Snapshot.Path_Input_Error_Key := To_Unbounded_String (Files.Model.Path_Input_Error_Key (Model));
-      Snapshot.Rename_Active := Files.Model.Rename_Is_Active (Model);
+      Snapshot.Rename_Active := Files.Model.Rename.Rename_Is_Active (Model);
       Snapshot.Temporary_Item_Active := Files.Model.Temporary_Item_Is_Active (Model);
       Snapshot.Temporary_Item_Name := To_Unbounded_String (Files.Model.Temporary_Item_Name (Model));
       Snapshot.Info_Pane_Open := Files.Model.Info_Pane_Is_Open (Model);
@@ -196,7 +199,7 @@ separate (Files.Rendering)
             Content : constant Files.Quick_Look.Quick_Look_Content :=
               Files.Model.Quick_Look.Content_Of (Model);
             Item    : constant Files.Items.Directory_Item :=
-              Files.Model.Selected_Item (Model);
+              Files.Model.Selection.Selected_Item (Model);
          begin
             Snapshot.Quick_Look :=
               (Open           => True,
@@ -216,7 +219,7 @@ separate (Files.Rendering)
             if Content.Kind = Files.Quick_Look.Image_Content
               and then Complete_RGBA_Image
                 (Content.Image_Width, Content.Image_Height,
-                 Ada.Containers.Count_Type (Files.Shared_Bytes.Length (Content.Image_Pixels)))
+                 Ada.Containers.Count_Type (Guikit.Shared_Bytes.Length (Content.Image_Pixels)))
             then
                Snapshot.Quick_Look.Image_Width  := Content.Image_Width;
                Snapshot.Quick_Look.Image_Height := Content.Image_Height;
@@ -394,7 +397,7 @@ separate (Files.Rendering)
          else
             Cut_Paths := Build_Cut_Set;
             Paths := Files.Settings.Index_Paths (Settings);
-            Files.Model.For_Each_Rename_Field (Model, Note_Rename'Access);
+            Files.Model.Rename.For_Each_Rename_Field (Model, Note_Rename'Access);
             Snapshot.Items.Reserve_Capacity (Ada.Containers.Count_Type (Snapshot.Visible_Count) + 1);
             Files.Model.For_Each_Visible_Row (Model, Add_Row'Access);
          end if;
@@ -455,10 +458,10 @@ separate (Files.Rendering)
       --  the info pane is open) so the bottom bar's total counts folder contents.
       --  Folders not yet measured mark the total pending (still growing).
       --  The info pane shows at most Max_Info_Items: only those are copied.
-      if Files.Model.Selected_Count (Model) > 0 then
-         Selected := Files.Model.Selected_Items (Model, Limit => Max_Info_Items);
+      if Files.Model.Selection.Selected_Count (Model) > 0 then
+         Selected := Files.Model.Selection.Selected_Items (Model, Limit => Max_Info_Items);
       end if;
-      if Files.Model.Selected_Count (Model) > 0 then
+      if Files.Model.Selection.Selected_Count (Model) > 0 then
          declare
             Total   : Long_Long_Integer := 0;
             Pending : Boolean := False;
@@ -475,8 +478,8 @@ separate (Files.Rendering)
             procedure Count (Item : Files.Items.Directory_Item) is
             begin
                if Item.Kind = Files.Types.Directory_Item then
-                  if Files.Model.Folder_Size_Cached_For (Model, To_String (Item.Full_Path)) then
-                     Add (Files.Model.Folder_Size_Value
+                  if Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, To_String (Item.Full_Path)) then
+                     Add (Files.Model.Folder_Sizes.Folder_Size_Value
                             (Model, To_String (Item.Full_Path)).Total_Bytes);
                   else
                      Pending := True;
@@ -486,13 +489,13 @@ separate (Files.Rendering)
                end if;
             end Count;
          begin
-            Files.Model.For_Each_Selected_Item (Model, Count'Access);
+            Files.Model.Selection.For_Each_Selected_Item (Model, Count'Access);
             Snapshot.Selection_Total_Bytes := Total;
             Snapshot.Selection_Total_Pending := Pending;
          end;
       end if;
 
-      if Snapshot.Info_Pane_Open and then Files.Model.Selected_Count (Model) > 0 then
+      if Snapshot.Info_Pane_Open and then Files.Model.Selection.Selected_Count (Model) > 0 then
          declare
             Items : Files.Items.Item_Vectors.Vector renames Selected;
 
@@ -524,11 +527,11 @@ separate (Files.Rendering)
                   others             => <>);
             begin
                if Is_Directory
-                 and then Files.Model.Folder_Size_Cached_For (Model, To_String (Item.Full_Path))
+                 and then Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, To_String (Item.Full_Path))
                then
                   declare
                      Measured : constant Files.File_System.Directory_Size_Result :=
-                       Files.Model.Folder_Size_Value (Model, To_String (Item.Full_Path));
+                       Files.Model.Folder_Sizes.Folder_Size_Value (Model, To_String (Item.Full_Path));
                   begin
                      Info.Folder_Size_Available := Measured.Available;
                      Info.Folder_Size_Bytes     := Measured.Total_Bytes;
@@ -553,17 +556,17 @@ separate (Files.Rendering)
             end Build_Info;
 
             Single_Item : constant Files.Items.Directory_Item :=
-              Files.Model.Selected_Item (Model);
+              Files.Model.Selection.Selected_Item (Model);
             In_Trash    : constant Boolean := Files.Model.Current_Is_Trash (Model);
          begin
             Snapshot.Permissions_Editable :=
-              Files.Model.Selected_Count (Model) = 1
+              Files.Model.Selection.Selected_Count (Model) = 1
               and then not In_Trash
               and then Files.File_System.Supports_Permissions
               and then Single_Item.Mode_Available;
 
             Snapshot.Ownership_Editable :=
-              Files.Model.Selected_Count (Model) = 1
+              Files.Model.Selection.Selected_Count (Model) = 1
               and then not In_Trash
               and then Files.File_System.Supports_Ownership
               and then Single_Item.Ownership_Available;

@@ -5,7 +5,7 @@ function Duplicate_Selected
    return Operation_Result
 is
    Items     : constant Files.Items.Item_Vectors.Vector :=
-     Files.Model.Selected_Items (Model);
+     Files.Model.Selection.Selected_Items (Model);
    Directory : constant String := Files.Model.Current_Path (Model);
 
    First_Created : Unbounded_String;
@@ -43,7 +43,7 @@ is
         (Model, Settings, "error.duplicate.failed", Directory, Wrote_Some => not Progress.From.Is_Empty);
    end Failed;
 begin
-   if Files.Model.Selection_Includes_Temporary (Model) then
+   if Files.Model.Selection.Selection_Includes_Temporary (Model) then
       return Disabled (Model, "error.create.pending");
    elsif Is_Trash_Directory (Directory) then
       return Disabled (Model, "error.duplicate.failed");

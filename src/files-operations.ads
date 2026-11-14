@@ -1,3 +1,4 @@
+with Ada.Real_Time;
 with Files.Preview_Decoder;
 with Files.Extra_Info_Reader;
 with Files.Items;
@@ -910,6 +911,15 @@ private
    --  Set only by the test suite (Files.Operations.Testing), to count the
    --  records a batch makes. The application never sets it.
    Undo_Record_Attempted : Record_Hook := null
+     with Atomic;
+
+   --  The clock a batch's Undo throttle (Checkpoint_Undo) reads.
+   type Clock_Hook is access function return Ada.Real_Time.Time;
+
+   --  Set only by the test suite (Files.Operations.Testing), so a test
+   --  decides when "a second has passed" for the throttle; null reads
+   --  Ada.Real_Time.Clock. The application never sets it.
+   Checkpoint_Clock : Clock_Hook := null
      with Atomic;
 
 end Files.Operations;

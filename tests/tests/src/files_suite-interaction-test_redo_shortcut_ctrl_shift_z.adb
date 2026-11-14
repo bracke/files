@@ -37,7 +37,7 @@ separate (Files_Suite.Interaction)
       Dispatch_Menu_Command
         (Model, Settings, "", Files.Commands.Rename_Selected_Items_Command, Result, Found);
       Assert (Found, "the item menu offers the rename command");
-      Files.Model.Set_Rename_Text (Model, "summary.txt");
+      Files.Model.Rename.Set_Rename_Text (Model, "summary.txt");
       Commit_Focused_Text (Model, Settings);
       Assert (Ada.Directories.Exists (Renamed), "committing the rename writes the new name");
 
@@ -49,7 +49,7 @@ separate (Files_Suite.Interaction)
          Modifiers         => Ctrl,
          Result            => Result);
       Assert (Ada.Directories.Exists (Source), "Ctrl+Z undoes the rename");
-      Assert (Files.Model.Redo_Available (Model), "redo becomes available after the undo");
+      Assert (Files.Model.History.Redo_Available (Model), "redo becomes available after the undo");
 
       --  Press Ctrl+Shift+Z through the live key seam and assert the redo runs.
       Files.Interaction.Handle_Key
@@ -65,5 +65,5 @@ separate (Files_Suite.Interaction)
          "Ctrl+Shift+Z dispatched through Handle_Key reports the redo command");
       Assert (Ada.Directories.Exists (Renamed), "Ctrl+Shift+Z re-applies the rename");
       Assert (not Ada.Directories.Exists (Source), "Ctrl+Shift+Z removes the reverted name");
-      Assert (not Files.Model.Redo_Available (Model), "the redo shortcut consumes the redo action");
+      Assert (not Files.Model.History.Redo_Available (Model), "the redo shortcut consumes the redo action");
    end Test_Redo_Shortcut_Ctrl_Shift_Z;

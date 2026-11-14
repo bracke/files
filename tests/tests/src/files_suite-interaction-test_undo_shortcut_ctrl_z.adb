@@ -39,10 +39,10 @@ separate (Files_Suite.Interaction)
       Dispatch_Menu_Command
         (Model, Settings, "", Files.Commands.Rename_Selected_Items_Command, Result, Found);
       Assert (Found, "the item menu offers the rename command");
-      Files.Model.Set_Rename_Text (Model, "summary.txt");
+      Files.Model.Rename.Set_Rename_Text (Model, "summary.txt");
       Commit_Focused_Text (Model, Settings);
       Assert (Ada.Directories.Exists (Renamed), "committing the rename writes the new name");
-      Assert (Files.Model.Undo_Available (Model), "the rename records an undoable action");
+      Assert (Files.Model.History.Undo_Available (Model), "the rename records an undoable action");
 
       --  Press Ctrl+Z through the live key seam and assert the undo takes effect.
       Files.Interaction.Handle_Key
@@ -58,5 +58,5 @@ separate (Files_Suite.Interaction)
          "Ctrl+Z dispatched through Handle_Key reports the undo command");
       Assert (Ada.Directories.Exists (Source), "Ctrl+Z restores the original name");
       Assert (not Ada.Directories.Exists (Renamed), "Ctrl+Z removes the renamed file");
-      Assert (not Files.Model.Undo_Available (Model), "the undo consumes the undoable action");
+      Assert (not Files.Model.History.Undo_Available (Model), "the undo consumes the undoable action");
    end Test_Undo_Shortcut_Ctrl_Z;

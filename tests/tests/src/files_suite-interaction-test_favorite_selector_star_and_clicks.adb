@@ -56,7 +56,7 @@ separate (Files_Suite.Interaction)
          "a file favorite navigates to the file's parent directory");
       declare
          Selected  : constant Files.Items.Item_Vectors.Vector :=
-           Files.Model.Selected_Items (Model);
+           Files.Model.Selection.Selected_Items (Model);
          Saw_File  : Boolean := False;
       begin
          for Item of Selected loop

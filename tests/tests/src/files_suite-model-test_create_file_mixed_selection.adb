@@ -9,13 +9,13 @@ separate (Files_Suite.Model)
       Operation : Files.Operations.Operation_Result;
    begin
       Files.Model.Begin_Create_File (Mixed_Model, "pending.txt");
-      Files.Model.Select_Visible_Range
+      Files.Model.Selection.Select_Visible_Range
         (Mixed_Model,
          Anchor_Index => Positive (Files.Model.Visible_Count (Mixed_Model)),
          Target_Index => 1);
-      Mixed_Items := Files.Model.Selected_Items (Mixed_Model);
+      Mixed_Items := Files.Model.Selection.Selected_Items (Mixed_Model);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Count (Mixed_Model),
+        (Files.Model.Selection.Selected_Count (Mixed_Model),
          4,
          "mixed selection includes real items and temporary item");
       Files_Suite.Support.Assert_Equal
@@ -23,7 +23,7 @@ separate (Files_Suite.Model)
          3,
          "selected items excludes the transient create-file item");
       Assert
-        (Files.Model.Selection_Includes_Temporary (Mixed_Model),
+        (Files.Model.Selection.Selection_Includes_Temporary (Mixed_Model),
          "model identifies temporary item inside mixed selection");
       Assert
         (not Files.Model.Testing.Selected_Item_Is_Temporary (Mixed_Model),

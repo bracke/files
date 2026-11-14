@@ -8,6 +8,7 @@ with Files.Controller;
 with Files.Events;
 with Files.Model;
 with Files.Operations;
+with Files.Process_Jobs;
 with Files.Rendering;
 with Files.Settings;
 with Guikit.Input;
@@ -304,6 +305,38 @@ package Files_Suite.Support is
    --
    --  @param Guard Guard leaving scope.
    overriding procedure Finalize (Guard : in out Paste_Guard);
+
+   --  Delete the transport directory Path, a test's fixture, when it is set
+   --  and exists.
+   --
+   --  @param Path Transport directory to delete; empty for none.
+   procedure Remove_Transport_Fixture (Path : Files.Types.UString);
+
+   --  Resets the test's job Session and deletes the transport fixtures it
+   --  was told about (Remove_Transport_Fixture) when it leaves scope -- on
+   --  an assertion failure too -- so a failing test cannot leave a live job
+   --  or a stray transport behind for the next one. Release does the same
+   --  at once, for a test that must restore before the rest of its work;
+   --  doing it twice is harmless. A restore that fails is reported on
+   --  standard error (a finalizer must not raise).
+   type Process_Jobs_Guard (Session : not null access Files.Process_Jobs.Session) is
+     new Ada.Finalization.Limited_Controlled with private;
+
+   --  Have Guard delete Path, a transport fixture, when it restores.
+   --
+   --  @param Guard Guard to tell.
+   --  @param Path Transport directory to delete; empty for none.
+   procedure Track (Guard : in out Process_Jobs_Guard; Path : Files.Types.UString);
+
+   --  Reset the session and delete the tracked fixtures now.
+   --
+   --  @param Guard Guard whose session and fixtures to restore.
+   procedure Release (Guard : in out Process_Jobs_Guard);
+
+   --  Reset the session and delete the tracked fixtures.
+   --
+   --  @param Guard Guard leaving scope.
+   overriding procedure Finalize (Guard : in out Process_Jobs_Guard);
 
    --  Advance Model's paste execution one item at a time, as the frame loop
    --  does, until it ends, and assert it ended within the (scaled) poll
@@ -640,6 +673,11 @@ private
 
    type Directory_Guard is new Ada.Finalization.Limited_Controlled with record
       Saved : Files.Types.UString;
+   end record;
+
+   type Process_Jobs_Guard (Session : not null access Files.Process_Jobs.Session) is
+     new Ada.Finalization.Limited_Controlled with record
+      Fixtures : Files.Types.String_Vectors.Vector;
    end record;
 
 end Files_Suite.Support;

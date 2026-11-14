@@ -23,12 +23,12 @@ begin
    begin
       --  Seed with the resolved name so the field matches its display; the
       --  commit path accepts a name or a number. Fall back to the number.
-      Model.Ownership_Input.Text :=
+      Model.Ownership_Input.Edit.Text :=
         To_Unbounded_String
           (if Account_Name /= "" then Account_Name
            else Files.Types.Account_Image (Id));
    end;
-   Model.Ownership_Input.Cursor := Length (Model.Ownership_Input.Text);
+   Model.Ownership_Input.Edit.Cursor := Length (Model.Ownership_Input.Edit.Text);
    Clear_Root_Selector_State (Model);
    Model.Command_Palette.Open := False;
    Guikit.Command_Palette.Reset (Model.Command_Palette.View);

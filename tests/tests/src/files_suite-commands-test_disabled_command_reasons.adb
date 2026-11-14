@@ -25,7 +25,7 @@ separate (Files_Suite.Commands)
       end Expect;
    begin
       --  A plain file selected: Extract says there is no archive, not that it failed.
-      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Selection.Select_Visible (Model, 1);
       Expect (Files.Commands.Extract_Archive_Command, "error.extract.not_archive", "extract on a plain file");
 
       --  An empty clipboard is named as such.

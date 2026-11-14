@@ -68,7 +68,7 @@ separate (Files_Suite.Rendering)
          end loop;
          Files.Model.Tree_Panel.Seed (Model, Roots);
       end;
-      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Selection.Select_Visible (Model, 1);
       if not Files.Model.Info_Pane_Is_Open (Model) then
          Files.Model.Toggle_Info_Pane (Model);
       end if;

@@ -164,34 +164,33 @@ separate (Files.Controller)
               and then not Files.Model.Settings_Pane.Is_Open (Model)
             then
                declare
-                  Old_Index : constant Natural := Files.Model.Selected_Index (Model);
-                  Old_Count : constant Natural := Files.Model.Selected_Count (Model);
+                  Old_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);
+                  Old_Count : constant Natural := Files.Model.Selection.Selected_Count (Model);
                   Anchor    : constant Natural :=
-                    (if Action.Extend then Files.Model.Range_Anchor (Model) else Old_Index);
+                    (if Action.Extend then Files.Model.Selection.Range_Anchor (Model) else Old_Index);
                begin
                   if Action.Extend
-                    and then Files.Model.Selection_Move_Would_Wrap (Model, Action.Direction)
+                    and then Files.Model.Selection.Selection_Move_Would_Wrap (Model, Action.Direction)
                   then
                      --  Extending a range stops at the edge: wrapping would
                      --  reach across the listing and select all between.
                      return Make_Result (Controller_Ignored);
                   end if;
-                  Files.Model.Move_Selection (Model, Action.Direction);
+                  Files.Model.Selection.Move_Selection (Model, Action.Direction);
                   if Action.Extend then
                      declare
-                        New_Index : constant Natural := Files.Model.Selected_Index (Model);
+                        New_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);
                      begin
                         if Anchor > 0 and then New_Index > 0 then
-                           Files.Model.Select_Visible_Range (Model, Positive (Anchor), Positive (New_Index));
+                           Files.Model.Selection.Select_Visible_Range (Model, Positive (Anchor), Positive (New_Index));
                         end if;
                      end;
                   end if;
                   return
-                    Make_Result
-                      (if Files.Model.Selected_Index (Model) = Old_Index
-                         and then Files.Model.Selected_Count (Model) = Old_Count
-                       then Controller_Ignored
-                       else Controller_Selection_Moved);
+                    Changed_Result
+                      (Files.Model.Selection.Selected_Index (Model) = Old_Index
+                         and then Files.Model.Selection.Selected_Count (Model) = Old_Count,
+                       Controller_Selection_Moved);
                end;
             end if;
          when Files.Events.Scroll_Input_Action =>

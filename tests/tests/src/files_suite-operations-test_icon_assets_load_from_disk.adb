@@ -3,7 +3,7 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
       --  Puts the working directory back however the test ends.
       Cwd_Guard : Files_Suite.Support.Directory_Guard;
-      Trusted_Root : constant String := Files.Resources.Share_Root;
+      Trusted_Root : constant String := Files.Resources.Testing.Share_Root;
       Counterfeit_Cwd : constant String := Join (Root, "counterfeit-resource-cwd");
       Folder : Unbounded_String;
 
@@ -23,11 +23,11 @@ separate (Files_Suite.Operations)
         (Trusted_Root /= "",
          "bundled resources stay anchored to the executable, not the launch directory: a share root exists");
       Files_Suite.Support.Assert_Equal
-        (Files.Resources.Share_Root,
+        (Files.Resources.Testing.Share_Root,
          Trusted_Root,
          "bundled resources stay anchored to the executable, not the launch directory: unchanged by the cwd");
       Assert
-        (Files.Resources.Share_Root /=
+        (Files.Resources.Testing.Share_Root /=
            Ada.Directories.Full_Name ("share"),
          "bundled resources stay anchored to the executable, not the launch directory: not the cwd's share");
       Ada.Directories.Set_Directory (Saved_Directory (Cwd_Guard));

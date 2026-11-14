@@ -38,13 +38,13 @@ separate (Files_Suite.Model)
       begin
          From.Append (To_Unbounded_String (Entry_At));
          Payloads.Append (Backup);
-         Recorded := Files.Model.Commit_Undo_Record
+         Recorded := Files.Model.History.Commit_Undo_Record
            (Model,
             (Kind => Files.Model.Undo_Delete_Created, From => From, Redoable => False,
              Restore_Trash => Payloads, others => <>));
          Assert (Recorded, "the model records the payload-carrying entry");
          for Index in 1 .. 200 loop
-            Recorded := Files.Model.Commit_Undo_Record
+            Recorded := Files.Model.History.Commit_Undo_Record
               (Model,
                (Kind => Files.Model.Undo_Delete_Created, From => From, Redoable => False, others => <>));
             Assert (Recorded, "the model records entry" & Index'Image);
@@ -52,14 +52,14 @@ separate (Files_Suite.Model)
          --  An entry that records nothing still carried a preserved original.
          Payloads.Clear;
          Payloads.Append (Rejected);
-         Recorded := Files.Model.Commit_Undo_Record
+         Recorded := Files.Model.History.Commit_Undo_Record
            (Model,
             (Kind => Files.Model.Undo_Delete_Created, Redoable => False,
              Restore_Trash => Payloads, others => <>));
          Assert (not Recorded, "an entry without paths is not recorded");
       end;
       Files_Suite.Support.Assert_Equal
-        (Natural (Files.Model.Undo_History (Model).Length), 200,
+        (Natural (Files.Model.History.Undo_History (Model).Length), 200,
          "the model trims its undo stack to the depth cap");
       Assert (Ada.Directories.Exists (To_String (Backup)),
               "a model-only history mutation leaves the retired payload on disk");

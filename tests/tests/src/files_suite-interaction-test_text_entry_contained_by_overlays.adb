@@ -19,7 +19,7 @@ separate (Files_Suite.Interaction)
       procedure Prepare_Background is
       begin
          Files.Model.Set_Filter (Model, "");
-         Files.Model.Reset_Type_Ahead (Model);
+         Files.Model.Selection.Reset_Type_Ahead (Model);
          Files_Suite.Support.Select_Name (Model, "Alpha.txt");
          --  A retained field focus makes this exercise hidden-field editing as
          --  well as the no-focus grid type-ahead path.
@@ -46,11 +46,11 @@ separate (Files_Suite.Interaction)
             "",
             Name & " leaves a hidden focused field unchanged");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Type_Ahead_Buffer (Model),
+           (Files.Model.Selection.Type_Ahead_Buffer (Model),
             "",
             Name & " leaves grid type-ahead unchanged");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Selected_Name (Model),
+           (Files.Model.Selection.Selected_Name (Model),
             "Alpha.txt",
             Name & " leaves the grid selection unchanged");
 
@@ -67,7 +67,7 @@ separate (Files_Suite.Interaction)
              (Model, Settings, Visible_Index => 2);
          Assert
            (Click_Outcome.Status = Files.Controller.Controller_Ignored
-            and then Files.Model.Selected_Name (Model) = "Alpha.txt",
+            and then Files.Model.Selection.Selected_Name (Model) = "Alpha.txt",
             Name & " rejects a delayed background item click");
 
          Click_Outcome :=

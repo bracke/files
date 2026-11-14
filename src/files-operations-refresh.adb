@@ -9,7 +9,7 @@ begin
    --  watched reload keeps them (a write deep inside a folder does not move
    --  the folder's own time, so nothing there says they are stale).
    if Measure_Again then
-      Files.Model.Clear_Folder_Size (Model);
+      Files.Model.Folder_Sizes.Clear_Folder_Size (Model);
    end if;
    if Files.Model.Background_Transfers (Model) then
       return Files.Refresh_Jobs.Start (Model, Settings, Force => True);

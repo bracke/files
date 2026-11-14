@@ -51,7 +51,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
          end if;
          if Panel.Message_Height > Line_Height then
             Add_Overlay_Text
-              (Panel.Message_X, Saturating_Add (Panel.Message_Y, Line_Height),
+              (Panel.Message_X, Guikit.Layout.Saturating_Add (Panel.Message_Y, Line_Height),
                Panel.Message_Width,
                Natural'Min (Line_Height, Panel.Message_Height - Line_Height),
                Progress.Name, Muted_Text_Color, Fit => True);

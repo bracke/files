@@ -20,7 +20,8 @@ separate (Files_Suite.Interaction)
         (Result.Status,
          Files.Controller.Controller_Selection_Moved,
          "End moves the grid selection");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), Last, "End selects the last visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selection.Selected_Index (Model), Last, "End selects the last visible item");
       Files_Suite.Support.Assert_Equal (Files.Model.Current_Path (Model), Home_Dir, "End does not navigate");
 
       Files.Interaction.Handle_Key
@@ -33,7 +34,8 @@ separate (Files_Suite.Interaction)
         (Result.Status,
          Files.Controller.Controller_Selection_Moved,
          "Home moves the grid selection");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "Home selects the first visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selection.Selected_Index (Model), 1, "Home selects the first visible item");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
          Home_Dir,
@@ -46,7 +48,7 @@ separate (Files_Suite.Interaction)
          Key               => Guikit.Input.Key_Page_Down,
          Result            => Result);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          Last,
          "PageDown pages the selection down to the last item");
 
@@ -57,7 +59,7 @@ separate (Files_Suite.Interaction)
          Key               => Guikit.Input.Key_Page_Up,
          Result            => Result);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          1,
          "PageUp pages the selection back to the first item");
    end Test_Grid_Nav_Keys;

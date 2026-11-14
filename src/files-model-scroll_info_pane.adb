@@ -15,7 +15,7 @@ begin
          Wanted := (if Step >= Current then 0 else Current - Step);
       end;
    else
-      Wanted := Saturating_Add (Current, Scroll_Step (Lines));
+      Wanted := Guikit.Layout.Saturating_Add (Current, Scroll_Step (Lines));
    end if;
 
    if Wanted /= Current then

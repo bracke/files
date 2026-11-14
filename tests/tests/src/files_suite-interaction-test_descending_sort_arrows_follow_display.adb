@@ -49,7 +49,7 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Down, Guikit.Input.No_Modifiers, Result);
          Files_Suite.Support.Assert_Equal
-           (Display_Position_Of (Files.Model.Selected_Name (Model)),
+           (Display_Position_Of (Files.Model.Selection.Selected_Name (Model)),
             Start_Pos + 1,
             "Down moves to the next displayed item under descending sort");
 
@@ -57,7 +57,7 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Up, Guikit.Input.No_Modifiers, Result);
          Files_Suite.Support.Assert_Equal
-           (Display_Position_Of (Files.Model.Selected_Name (Model)),
+           (Display_Position_Of (Files.Model.Selection.Selected_Name (Model)),
             Start_Pos,
             "Up moves to the previous displayed item under descending sort");
       end;

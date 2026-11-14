@@ -1,3 +1,4 @@
+with Hostkit.Metadata;
 separate (Files_Suite.Operations)
    --  A desktop entry with Terminal=true runs inside a terminal emulator:
    --  Terminal and Path are read, the launch wraps the program in the
@@ -57,8 +58,22 @@ separate (Files_Suite.Operations)
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Home);
       Ada.Environment_Variables.Set ("XDG_DATA_DIRS", System_Base);
       Ada.Environment_Variables.Set ("XDG_CURRENT_DESKTOP", "");
-      --  A program every POSIX host runs stands for the terminal.
-      Ada.Environment_Variables.Set ("TERMINAL", "sh");
+      --  A terminal In_Terminal can hand a program to stands for the user's:
+      --  a stand-in "xterm" made runnable under the test root on a POSIX
+      --  host (wrapped with -e), cmd on Windows (wrapped with /k), so the
+      --  entry must be offered everywhere and no host passes by only checking
+      --  it is hidden.
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
+         Ada.Environment_Variables.Set ("TERMINAL", "cmd");
+      else
+         declare
+            Stand_In : constant String := Join (Root, "xterm");
+         begin
+            Write_File (Stand_In, "#!/bin/sh" & LF);
+            Assert (Hostkit.Metadata.Set_Permissions (Stand_In, 8#755#), "the stand-in terminal is runnable");
+            Ada.Environment_Variables.Set ("TERMINAL", Stand_In);
+         end;
+      end if;
 
       Apps := Files.Desktop_Applications.Available_Applications;
       declare
@@ -85,28 +100,25 @@ separate (Files_Suite.Operations)
                  "Terminal=false is a window program with no working directory");
          Assert (To_String (Find_Application (Apps, "Unclear Program").Exec) = "",
                  "an invalid Terminal value rejects the entry");
-         if not Runs then
-            Assert (To_String (Shell.Exec) = "", "with no usable terminal a terminal program is not offered" & Seen);
-         else
-            Assert (To_String (Shell.Exec) /= "" and then Shell.Terminal,
-                    "Terminal=true is read where a terminal can run it" & Seen);
-            Files_Suite.Support.Assert_Equal
-              (To_String (Shell.Working_Directory), Root, "Path= is read as the working directory");
-            declare
-               Actions : constant Files.Desktop_Applications.Open_Action_Vectors.Vector :=
-                 Files.Desktop_Applications.Launch_Actions
-                   (Shell, Files.Types.String_Vectors.Empty_Vector, "xterm");
-            begin
-               Assert (Natural (Actions.Length) = 1
-                       and then To_String (Actions.First_Element.Executable) = "xterm"
-                       and then Arguments_Image (Actions.First_Element) = "[-e][top][-d][1]",
-                       "the launch runs the program inside the terminal: "
-                       & (if Actions.Is_Empty then "" else Arguments_Image (Actions.First_Element)));
-               Assert (Natural (Actions.Length) = 1
-                       and then Actions.First_Element.Working_Directory = Shell.Working_Directory,
-                       "the launch starts in the entry's working directory");
-            end;
-         end if;
+         Assert (Runs, "the stand-in terminal can run a terminal program" & Seen);
+         Assert (To_String (Shell.Exec) /= "" and then Shell.Terminal,
+                 "Terminal=true is read where a terminal can run it" & Seen);
+         Files_Suite.Support.Assert_Equal
+           (To_String (Shell.Working_Directory), Root, "Path= is read as the working directory");
+         declare
+            Actions : constant Files.Desktop_Applications.Open_Action_Vectors.Vector :=
+              Files.Desktop_Applications.Launch_Actions
+                (Shell, Files.Types.String_Vectors.Empty_Vector, "xterm");
+         begin
+            Assert (Natural (Actions.Length) = 1
+                    and then To_String (Actions.First_Element.Executable) = "xterm"
+                    and then Arguments_Image (Actions.First_Element) = "[-e][top][-d][1]",
+                    "the launch runs the program inside the terminal: "
+                    & (if Actions.Is_Empty then "" else Arguments_Image (Actions.First_Element)));
+            Assert (Natural (Actions.Length) = 1
+                    and then Actions.First_Element.Working_Directory = Shell.Working_Directory,
+                    "the launch starts in the entry's working directory");
+         end;
          Assert (Files.Desktop_Applications.Launch_Actions
                    (Shell, Files.Types.String_Vectors.Empty_Vector, "").Is_Empty
                  or else not Shell.Terminal,

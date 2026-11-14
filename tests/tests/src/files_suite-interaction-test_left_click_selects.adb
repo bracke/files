@@ -10,7 +10,7 @@ separate (Files_Suite.Interaction)
       Item_Center (Model, 2, X, Y, Found);
       Assert (Found, "a layout cell exists for the target item");
       Click (Model, Settings, X, Y, Guikit.Input.No_Modifiers, Result);
-      Assert (Files.Model.Is_Selected (Model, 2), "the clicked item becomes selected");
+      Assert (Files.Model.Selection.Is_Selected (Model, 2), "the clicked item becomes selected");
       Files_Suite.Support.Assert_Equal
         (Selected_Item_Nodes (Model),
          1,

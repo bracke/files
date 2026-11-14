@@ -39,13 +39,13 @@ separate (Files.Commands.Status)
       --  At least one real item is selected: a temporary create row counts as
       --  selected but has no file behind it yet.
       function Real_Selection return Command_Status is
-        (if Files.Model.Selected_Count (Model) = 0 then Disabled (Selection_Empty_Reason)
-         elsif Files.Model.Selection_Includes_Temporary (Model) then Disabled (Create_Pending_Reason)
+        (if Files.Model.Selection.Selected_Count (Model) = 0 then Disabled (Selection_Empty_Reason)
+         elsif Files.Model.Selection.Selection_Includes_Temporary (Model) then Disabled (Create_Pending_Reason)
          else Enabled);
 
       --  Exactly one real item is selected (a multi-selection says nothing).
       function Single_Real_Selection return Command_Status is
-        (All_Of (Real_Selection, Require (Files.Model.Selected_Count (Model) = 1)));
+        (All_Of (Real_Selection, Require (Files.Model.Selection.Selected_Count (Model) = 1)));
 
       --  No inline file or folder creation is pending.
       function No_Pending_Create return Command_Status is
@@ -145,7 +145,7 @@ separate (Files.Commands.Status)
               All_Of
                 (Ordinary_View,
                  Require
-                   (Files.Model.Rename_Is_Enabled (Model) or else Files.Model.Rename_Is_Active (Model),
+                   (Files.Model.Rename.Rename_Is_Enabled (Model) or else Files.Model.Rename.Rename_Is_Active (Model),
                     Rename_Unavailable_Reason));
          when Close_Command_Palette_Command =>
             --  Nothing open to close: Escape just does nothing.
@@ -156,7 +156,7 @@ separate (Files.Commands.Status)
                  Require
                    (Files.Model.Escape_Overlay (Model, Overlay)
                     or else Files.Model.Focus (Model) /= Files.Types.Focus_None
-                    or else Files.Model.Rename_Is_Active (Model));
+                    or else Files.Model.Rename.Rename_Is_Active (Model));
             end;
          when Open_Selected_Root_Command =>
             return Require (Valid_Root_Selected, Root_Unselected_Reason);
@@ -179,7 +179,7 @@ separate (Files.Commands.Status)
          when Select_All_Command | Invert_Selection_Command =>
             return All_Of (Require (Files.Model.Visible_Count (Model) > 0), No_Pending_Create);
          when Deselect_All_Command =>
-            return Require (Files.Model.Selected_Count (Model) > 0);
+            return Require (Files.Model.Selection.Selected_Count (Model) > 0);
          when Save_Settings_Command
             | Reset_Settings_Command =>
             return Require (Files.Model.Settings_Pane.Is_Open (Model), Settings_Closed_Reason);
@@ -191,8 +191,9 @@ separate (Files.Commands.Status)
             return
               All_Of
                 (Ordinary_View,
-                 Require (not Files.Model.Selection_Includes_Temporary (Model), Create_Pending_Reason),
-                 Require (Files.Model.Selected_Count (Model) > 0 or else Files.Model.Current_Path (Model) /= ""));
+                 Require (not Files.Model.Selection.Selection_Includes_Temporary (Model), Create_Pending_Reason),
+                 Require
+                   (Files.Model.Selection.Selected_Count (Model) > 0 or else Files.Model.Current_Path (Model) /= ""));
          when Navigate_Trash_Command =>
             return Require (Files.File_System.Trash_Files_Directory /= "", Trash_Unavailable_Reason);
          when Restore_From_Trash_Command =>
@@ -211,9 +212,9 @@ separate (Files.Commands.Status)
             --  empty view can still have persisted entries that need clearing.
             return Require (Files.Model.In_Recent_View (Model));
          when Undo_Command =>
-            return Require (Files.Model.Undo_Available (Model));
+            return Require (Files.Model.History.Undo_Available (Model));
          when Redo_Command =>
-            return Require (Files.Model.Redo_Available (Model));
+            return Require (Files.Model.History.Redo_Available (Model));
          when Open_Terminal_Command =>
             --  A terminal can be opened for any real directory view, but not the
             --  trash payload directory or the virtual recent view.

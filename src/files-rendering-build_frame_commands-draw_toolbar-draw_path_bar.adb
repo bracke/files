@@ -127,7 +127,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
                      --  Draw '>' in the middle of the three separator cells so
                      --  it has a full character width of space on each side.
                      Add_Text
-                       (Saturating_Add (Saturating_Add (Seg.X, Seg.Width), Advance),
+                       (Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Seg.X, Seg.Width), Advance),
                         Toolbar_Input_Text_Y,
                         Advance,
                         Toolbar_Input_Text_H,
@@ -156,7 +156,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          if Snapshot.Focus = Files.Types.Focus_Path_Input then
             Add_Focus_Ring (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H);
             Add_Caret
-              (Saturating_Add (Path_X, Star_Reserve),
+              (Guikit.Layout.Saturating_Add (Path_X, Star_Reserve),
                Toolbar_Input_Y,
                (if Path_W > Star_Reserve then Path_W - Star_Reserve else 0),
                Toolbar_Input_H,

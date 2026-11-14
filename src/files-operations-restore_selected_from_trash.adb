@@ -4,13 +4,15 @@ function Restore_Selected_From_Trash
    Settings : Files.Settings.Settings_Model)
    return Operation_Result
 is
-   Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+   Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
    First_Path : Unbounded_String;
 begin
    if Files.Model.Background_Transfers (Model) then
       return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Restore);
    end if;
-   if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
+   if Files.Model.Selection.Selected_Count (Model) = 0
+     or else Files.Model.Selection.Selection_Includes_Temporary (Model)
+   then
       return Disabled (Model, "error.selection.empty");
    end if;
 

@@ -34,7 +34,7 @@ separate (Files_Suite.Operations)
         (Project_Tools.Files.Read_Raw_File (Link_Path),
          Project_Tools.Files.Read_Raw_File (Source),
          "the symbolic link resolves to the original contents");
-      Assert (Files.Model.Undo_Available (Model), "undo is available after creating a link");
+      Assert (Files.Model.History.Undo_Available (Model), "undo is available after creating a link");
 
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Undo_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -44,5 +44,5 @@ separate (Files_Suite.Operations)
       Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created symlink");
       Assert (not Hostkit.Fs.Is_Link (Link_Path), "undo leaves no dangling symlink entry");
       Assert (Ada.Directories.Exists (Source), "undo keeps the original source item");
-      Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after undo");
+      Assert (not Files.Model.History.Undo_Available (Model), "undo record is cleared after undo");
    end Test_Create_Symlink_Operation;

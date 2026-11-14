@@ -5,9 +5,9 @@ procedure Set_Filter
 begin
    Touch (Model);
    Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-   Model.Filter_Value := To_Unbounded_String (Text);
+   Model.Filter.Text := To_Unbounded_String (Text);
    Invalidate_Visible (Model);
-   Model.Filter_Cursor := Text'Length;
+   Model.Filter.Cursor := Text'Length;
    Model.Main_View_Scroll := 0;
    Reconcile_Selection (Model);
 end Set_Filter;

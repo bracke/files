@@ -12,7 +12,7 @@ with Files.Exclusive_Streams;
 with Files.Process_Jobs;
 with Files.Fs_Primitives;
 with Hostkit.Fs;
-with Files.Shared_Bytes;
+with Guikit.Shared_Bytes;
 with Files.Path_Checks;
 
 package body Files.Job_Records is
@@ -48,7 +48,7 @@ package body Files.Job_Records is
      (Value : Files.Items.Directory_Item) return Boolean
    is
       Pixel_Count : constant Ada.Containers.Count_Type :=
-        Ada.Containers.Count_Type (Files.Shared_Bytes.Length (Value.Thumbnail_Pixels));
+        Ada.Containers.Count_Type (Guikit.Shared_Bytes.Length (Value.Thumbnail_Pixels));
    begin
       if Value.Thumbnail_Width > Max_Thumbnail_Dimension
         or else Value.Thumbnail_Height > Max_Thumbnail_Dimension
@@ -174,6 +174,7 @@ package body Files.Job_Records is
       Natural'Output (Stream, Value.Entry_State_Checksum);
       Ada.Calendar.Time'Output (Stream, Value.Latest_Modified);
       Boolean'Output (Stream, Value.Latest_Modified_Known);
+      Boolean'Output (Stream, Value.Taken);
    end Write_Signature;
 
    function Read_Signature
@@ -188,6 +189,7 @@ package body Files.Job_Records is
       Result.Entry_State_Checksum := Natural'Input (Stream);
       Result.Latest_Modified := Ada.Calendar.Time'Input (Stream);
       Result.Latest_Modified_Known := Boolean'Input (Stream);
+      Result.Taken := Boolean'Input (Stream);
       if not Signature_Is_Consistent (Result) then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
@@ -363,7 +365,7 @@ package body Files.Job_Records is
       Write_String (Stream, To_String (Value.Thumbnail_Path), Max_Path_Length);
       Natural'Output (Stream, Value.Thumbnail_Width);
       Natural'Output (Stream, Value.Thumbnail_Height);
-      Write_Bytes (Stream, Files.Shared_Bytes.To_Vector (Value.Thumbnail_Pixels));
+      Write_Bytes (Stream, Guikit.Shared_Bytes.To_Vector (Value.Thumbnail_Pixels));
       Boolean'Output (Stream, Value.Metadata_Error);
       Write_String (Stream, To_String (Value.Error_Key), Max_Error_Length);
    end Write_Item;
@@ -410,7 +412,7 @@ package body Files.Job_Records is
       Result.Thumbnail_Path := To_Unbounded_String (Read_String (Stream, Max_Path_Length));
       Result.Thumbnail_Width := Natural'Input (Stream);
       Result.Thumbnail_Height := Natural'Input (Stream);
-      Result.Thumbnail_Pixels := Files.Shared_Bytes.To_Shared (Read_Bytes (Stream));
+      Result.Thumbnail_Pixels := Guikit.Shared_Bytes.To_Shared (Read_Bytes (Stream));
       Result.Metadata_Error := Boolean'Input (Stream);
       Result.Error_Key := To_Unbounded_String (Read_String (Stream, Max_Error_Length));
       if not Item_Is_Consistent (Result) then
@@ -521,11 +523,11 @@ package body Files.Job_Records is
    begin
       for Item of Items loop
          declare
-            Size : constant Natural := Files.Shared_Bytes.Length (Item.Thumbnail_Pixels);
+            Size : constant Natural := Guikit.Shared_Bytes.Length (Item.Thumbnail_Pixels);
          begin
             if Size > Max_Thumbnail_Transport_Bytes - Carried then
                Item.Thumbnail_Available := False;
-               Item.Thumbnail_Pixels := Files.Shared_Bytes.Empty;
+               Item.Thumbnail_Pixels := Guikit.Shared_Bytes.Empty;
             else
                Carried := Carried + Size;
             end if;

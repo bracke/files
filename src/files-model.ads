@@ -483,32 +483,6 @@ package Files.Model is
       Visit : not null access procedure
         (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean));
 
-   --  The fixed end a shift-extended selection grows from: the item last
-   --  selected by a plain click, a Ctrl click or a cursor move
-   --  (Select_Visible, Toggle_Visible_Selection), which a range
-   --  (Select_Visible_Range) keeps. Successive shift-clicks or shift-arrows
-   --  so grow the range from where it began, not from the moving cursor; a
-   --  Ctrl click starts the next range at the item it clicked. When that item
-   --  is no longer shown, the cursor itself.
-   --
-   --  @param Model Model to inspect.
-   --  @return Anchor visible index, or zero when nothing is selected.
-   function Range_Anchor
-     (Model : Window_Model)
-      return Natural;
-
-   --  Whether Move_Selection in Direction would wrap past an edge of the
-   --  listing (to the other end, or to the next column). Extending a range
-   --  stops at the edge instead.
-   --
-   --  @param Model Model to inspect.
-   --  @param Direction Arrow-key direction.
-   --  @return True when the move would wrap.
-   function Selection_Move_Would_Wrap
-     (Model     : Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
-      return Boolean;
-
    --  Set filter text and reconcile selection.
    --
    --  @param Model Model to update.
@@ -589,265 +563,6 @@ package Files.Model is
      (Model      : in out Window_Model;
       Settings   : Files.Settings.Settings_Model;
       Reclassify : Boolean);
-
-   --  Select a visible item by one-based visible index; it becomes the
-   --  Range_Anchor a later shift-extended range grows from.
-   --
-   --  @param Model Model to update.
-   --  @param Visible_Index One-based visible item index.
-   procedure Select_Visible
-     (Model         : in out Window_Model;
-      Visible_Index : Positive);
-
-   --  Visible indexes, in the order they are taken. On the heap: a marquee
-   --  over a large folder names thousands, too many for a stack array.
-   package Visible_Index_Lists is new Ada.Containers.Vectors (Positive, Positive);
-   subtype Visible_Index_List is Visible_Index_Lists.Vector;
-
-   --  Select exactly Indexes (out of range ones are skipped, repeats count
-   --  once), the last one primary: what Clear_Selection and a
-   --  Toggle_Visible_Selection per index do, in one pass over the items
-   --  rather than one per index (a marquee drag does this on every move).
-   --
-   --  @param Model Model to update.
-   --  @param Indexes One-based visible indexes to select.
-   procedure Select_Visible_Set
-     (Model   : in out Window_Model;
-      Indexes : Visible_Index_List);
-
-   --  Toggle a visible item in the deterministic multi-selection set; it
-   --  becomes the Range_Anchor, selected or not, as in other file managers.
-   --
-   --  @param Model Model to update.
-   --  @param Visible_Index One-based visible item index.
-   procedure Toggle_Visible_Selection
-     (Model         : in out Window_Model;
-      Visible_Index : Positive);
-
-   --  Select a deterministic inclusive visible range. The range keeps its
-   --  anchor: Range_Anchor stays at Anchor_Index (normally Range_Anchor
-   --  already), however the cursor moved to Target_Index.
-   --
-   --  @param Model Model to update.
-   --  @param Anchor_Index One-based range anchor in the visible projection.
-   --  @param Target_Index One-based range target in the visible projection.
-   procedure Select_Visible_Range
-     (Model        : in out Window_Model;
-      Anchor_Index : Positive;
-      Target_Index : Positive);
-
-   --  Select all currently visible loaded directory items.
-   --
-   --  Temporary create-file items are excluded because they do not exist on
-   --  disk until committed.
-   --
-   --  @param Model Model to update.
-   procedure Select_All_Visible
-     (Model : in out Window_Model);
-
-   --  Clear the deterministic multi-selection set and primary selection.
-   --
-   --  @param Model Model to update.
-   procedure Clear_Selection
-     (Model : in out Window_Model);
-
-   --  Invert the selection across the currently visible loaded items.
-   --
-   --  Every visible directory item that is currently selected becomes
-   --  unselected and every visible unselected item becomes selected. The
-   --  current directory and view stay intact. Temporary create-file items are
-   --  excluded because they do not exist on disk until committed.
-   --
-   --  @param Model Model to update.
-   procedure Invert_Selection
-     (Model : in out Window_Model);
-
-   --  Clear the entire selection (deselect all visible items).
-   --
-   --  @param Model Model to update.
-   procedure Deselect_All
-     (Model : in out Window_Model);
-
-   --  Move selection in the visible projection with wraparound.
-   --
-   --  @param Model Model to update.
-   --  @param Direction Direction requested by user input.
-   procedure Move_Selection
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction);
-
-   --  Select the first visible item (visible index one).
-   --
-   --  Clears the selection when nothing is visible. Intended for the keyboard
-   --  Home shortcut while the file grid is focused.
-   --
-   --  @param Model Model to update.
-   procedure Select_First_Visible
-     (Model : in out Window_Model);
-
-   --  Select the last visible item (the highest visible index).
-   --
-   --  Clears the selection when nothing is visible. Intended for the keyboard
-   --  End shortcut while the file grid is focused.
-   --
-   --  @param Model Model to update.
-   procedure Select_Last_Visible
-     (Model : in out Window_Model);
-
-   --  Move the single selection by whole pages within the visible projection.
-   --
-   --  A page spans Page_Rows grid rows, i.e. Page_Rows times the selection grid
-   --  column stride items. Movement clamps at the first and last visible item
-   --  (no wraparound). With nothing selected the first visible item is chosen.
-   --  Intended for the keyboard Page Up / Page Down shortcuts while the file
-   --  grid is focused.
-   --
-   --  @param Model Model to update.
-   --  @param Page_Rows Number of grid rows spanned by one page.
-   --  @param Down Move toward the last item when True, toward the first when False.
-   procedure Move_Selection_By_Page
-     (Model     : in out Window_Model;
-      Page_Rows : Positive;
-      Down      : Boolean);
-
-   --  Feed a typed printable character run to the grid type-ahead buffer.
-   --
-   --  Appends Text to the pending type-ahead prefix and jumps the single
-   --  selection to the first visible item whose name starts with the prefix,
-   --  scanning from the current selection and wrapping around. Repeatedly
-   --  typing the same single letter cycles through the items beginning with it.
-   --  A run that matches nothing leaves the current selection untouched. Intended
-   --  for use only when the file grid is focused (no text field active).
-   --
-   --  @param Model Model to update.
-   --  @param Text Printable UTF-8 character run typed by the user.
-   --  @param Matched Set True when a matching item was selected.
-   procedure Type_Ahead_Input
-     (Model   : in out Window_Model;
-      Text    : String;
-      Matched : out Boolean);
-
-   --  Clear the pending grid type-ahead prefix.
-   --
-   --  @param Model Model to update.
-   procedure Reset_Type_Ahead
-     (Model : in out Window_Model);
-
-   --  Return the pending grid type-ahead prefix.
-   --
-   --  @param Model Model to inspect.
-   --  @return Current type-ahead prefix, or an empty string when idle.
-   function Type_Ahead_Buffer
-     (Model : Window_Model)
-      return String;
-
-   --  Set the visible grid column count used by vertical selection movement.
-   --
-   --  @param Model Model to update.
-   --  @param Columns Number of visible item columns; values below one are ignored.
-   procedure Set_Selection_Grid_Columns
-     (Model   : in out Window_Model;
-      Columns : Positive);
-
-   --  Record how many item rows the main view shows, for Page Up and Page
-   --  Down. The shell measures it from the rendered layout before each key.
-   --
-   --  @param Model Model to update.
-   --  @param Rows Whole item rows in view.
-   procedure Set_Selection_Page_Rows
-     (Model : in out Window_Model;
-      Rows  : Positive);
-
-   --  Return the rows Page Up and Page Down move by (ten until measured).
-   --
-   --  @param Model Model to inspect.
-   --  @return Rows per page.
-   function Selection_Page_Rows
-     (Model : Window_Model)
-      return Positive;
-
-   --  Return whether a visible item is selected.
-   --
-   --  @param Model Model to inspect.
-   --  @param Visible_Index One-based visible item index.
-   --  @return True when the visible item is selected.
-   function Is_Selected
-     (Model         : Window_Model;
-      Visible_Index : Positive)
-      return Boolean;
-
-   --  Return the selected visible index.
-   --
-   --  @param Model Model to inspect.
-   --  @return One-based visible selected index, or zero when nothing is selected.
-   function Selected_Index
-     (Model : Window_Model)
-      return Natural;
-
-   --  Return the number of selected items.
-   --
-   --  @param Model Model to inspect.
-   --  @return Selected item count.
-   function Selected_Count
-     (Model : Window_Model)
-      return Natural;
-
-   --  Return the selected item name.
-   --
-   --  @param Model Model to inspect.
-   --  @return Selected item name or an empty string.
-   function Selected_Name
-     (Model : Window_Model)
-      return String;
-
-   --  Return the selected item.
-   --
-   --  @param Model Model to inspect.
-   --  @return Selected item, or a default empty item when no selection exists.
-   function Selected_Item
-     (Model : Window_Model)
-      return Files.Items.Directory_Item;
-
-   --  Return the selected items in deterministic loaded-item order.
-   --
-   --  @param Model Model to inspect.
-   --  @param Limit At most this many, the first in that order.
-   --  @return Selected directory items, excluding transient create-file items.
-   function Selected_Items
-     (Model : Window_Model;
-      Limit : Natural := Natural'Last)
-      return Files.Items.Item_Vectors.Vector;
-
-   --  Visit the selected items in the order Selected_Items lists them,
-   --  without copying them: Item is the model's own, for the duration of the
-   --  call. For a caller that reads each once (a total, a test for any
-   --  archive), where copying a large selection cost more than the work.
-   --
-   --  @param Model Model to inspect.
-   --  @param Visit Called once per selected loaded item.
-   procedure For_Each_Selected_Item
-     (Model : Window_Model;
-      Visit : not null access procedure (Item : Files.Items.Directory_Item));
-
-   --  Restore the loaded, visible items present in a previous selection. Item
-   --  paths provide identity across sorting and reloads; Primary_Path restores
-   --  the keyboard anchor when that item still exists.
-   --
-   --  @param Model Model whose selection is replaced.
-   --  @param Items Previously selected items to match by full path.
-   --  @param Primary_Path Full path of the previous primary item, or empty.
-   procedure Restore_Selection
-     (Model        : in out Window_Model;
-      Items        : Files.Items.Item_Vectors.Vector;
-      Primary_Path : String);
-
-   --  Return whether any selected item is the temporary create-file item.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when the selection includes the pending create-file item.
-   function Selection_Includes_Temporary
-     (Model : Window_Model)
-      return Boolean;
 
    --  Navigate to a directory and push the previous path onto back history.
    --
@@ -1223,149 +938,6 @@ package Files.Model is
 
    type Palette_Mode is (Palette_Commands, Palette_Open_With);
 
-   --  Return whether rename can start for the current selection.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when at least one non-temporary item is selected.
-   function Rename_Is_Enabled
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Toggle synchronized multi-item rename mode.
-   --
-   --  When starting, one inline rename field is created per selected loaded
-   --  item, each with its caret placed before the file extension.
-   --
-   --  @param Model Model to update.
-   procedure Toggle_Rename
-     (Model : in out Window_Model);
-
-   --  Return whether rename mode is active.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when rename mode is active.
-   function Rename_Is_Active
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Return the first rename field's text (a shim for single-field callers).
-   --
-   --  @param Model Model to inspect.
-   --  @return First field's rename text, or an empty string.
-   function Rename_Text
-     (Model : Window_Model)
-      return String;
-
-   --  Set the first rename field's text (a shim for single-field callers).
-   --
-   --  @param Model Model to update.
-   --  @param Text New rename text for the first field.
-   procedure Set_Rename_Text
-     (Model : in out Window_Model;
-      Text  : String);
-
-   --  Insert Text at every rename field's caret, advancing each caret.
-   --
-   --  @param Model Model to update.
-   --  @param Text UTF-8 text to insert.
-   --  @return True when any field changed.
-   function Rename_Insert_At_Carets
-     (Model : in out Window_Model;
-      Text  : String)
-      return Boolean;
-
-   --  Delete, at every rename field's caret, the character or word before
-   --  it (Backward) or after it.
-   --
-   --  @param Model Model to update.
-   --  @param Backward Delete before the caret; otherwise at it.
-   --  @param By_Word A word rather than one character.
-   --  @return True when any field changed (the revision moves only then).
-   function Rename_Delete
-     (Model    : in out Window_Model;
-      Backward : Boolean;
-      By_Word  : Boolean := False)
-      return Boolean;
-
-   --  Move every rename field's caret one character or word in Direction.
-   --
-   --  @param Model Model to update.
-   --  @param Direction Left/Up moves back, Right/Down moves forward.
-   --  @param By_Word To the next word boundary rather than the next character.
-   --  @return True when any caret moved (the revision moves only then).
-   function Rename_Move_All_Carets
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction;
-      By_Word   : Boolean := False)
-      return Boolean;
-
-   --  Move every rename field's caret to the start of its text.
-   --
-   --  @param Model Model to update.
-   --  @return True when any caret moved.
-   function Rename_Set_All_Carets_Home
-     (Model : in out Window_Model)
-      return Boolean;
-
-   --  Move every rename field's caret to the end of its text.
-   --
-   --  @param Model Model to update.
-   --  @return True when any caret moved.
-   function Rename_Set_All_Carets_End
-     (Model : in out Window_Model)
-      return Boolean;
-
-   --  Set the caret of the rename field shown at Visible_Index only.
-   --
-   --  @param Model Model to update.
-   --  @param Visible_Index One-based visible row index of the clicked field.
-   --  @param Position Byte offset of the new caret (clamped to a boundary).
-   procedure Set_Rename_Caret
-     (Model         : in out Window_Model;
-      Visible_Index : Natural;
-      Position      : Natural);
-
-   --  Visit each active rename field, so a caller rendering every row can
-   --  index them once instead of searching the fields per row (a rename of
-   --  a whole large folder made that quadratic). Nothing is visited when no
-   --  rename is active.
-   --
-   --  @param Model Model to inspect.
-   --  @param Visit Called once per field with the three below.
-   --  @param Item_Index The field's item index; zero for the pending create row.
-   --  @param Value Its text.
-   --  @param Cursor Its caret byte offset.
-   procedure For_Each_Rename_Field
-     (Model : Window_Model;
-      Visit : not null access procedure (Item_Index : Natural; Value : UString; Cursor : Natural));
-
-   type Rename_Target is record
-      Item_Index    : Natural := 0;
-      Old_Full_Path : UString;
-      Old_Name      : UString;
-      New_Name      : UString;
-   end record;
-
-   package Rename_Target_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Rename_Target);
-
-   --  Return the commit targets for the active real-item rename fields.
-   --
-   --  @param Model Model to inspect.
-   --  @return One target per real rename field (temporary fields excluded).
-   function Rename_Targets
-     (Model : Window_Model)
-      return Rename_Target_Vectors.Vector;
-
-   --  Resume single-item rename mode for the currently selected item.
-   --
-   --  @param Model Model to update.
-   --  @param Text Rename text to restore.
-   procedure Resume_Rename
-     (Model : in out Window_Model;
-      Text  : String);
-
    --  Begin temporary create-file state and enter rename mode.
    --
    --  @param Model Model to update.
@@ -1419,19 +991,6 @@ package Files.Model is
    procedure Replace_Items
      (Model : in out Window_Model;
       Items : Files.Items.Item_Vectors.Vector);
-
-   --  Select an item by name in the full loaded model. A selection made so
-   --  (after a reload that names its item, Open Containing Folder, a new or
-   --  renamed item) asks the window to scroll it into view: see
-   --  Reveal_Is_Pending.
-   --
-   --  @param Model Model to update.
-   --  @param Name Loaded item name to select.
-   --  @return True when a matching visible item was selected.
-   function Select_By_Name
-     (Model : in out Window_Model;
-      Name  : String)
-      return Boolean;
 
    --  Whether a selection was set by name since the window last scrolled the
    --  selection into view: the window reveals it after the step that set it
@@ -1593,39 +1152,6 @@ package Files.Model is
    procedure Set_Created
      (Action : in out Undo_Entry; Index : Positive; Identity, Tree_Revision : UString);
 
-   --  The window's folder-size measurements: a handle the model holds as
-   --  data, which Files.Operations drives (targets, steps, cancels) in place,
-   --  since a copy is its queues' worth on every loop pass. The model only
-   --  releases it, when the view it measures is left.
-   --
-   --  @param Model Window whose folder-size session is driven.
-   --  @param Change Called once with the session, in place.
-   procedure Update_Folder_Scan
-     (Model  : in out Window_Model;
-      Change : not null access procedure (Scan : in out Files.Folder_Size.Session));
-
-   --  Record finished measurements, those of directories still selected;
-   --  the selected directories are looked up once per batch. A measurement
-   --  of a folder as it was before it changed (its listed time is not the
-   --  item's) is not recorded but handed back in Stale, with the item's
-   --  time, for the caller to measure again.
-   --
-   --  @param Model Window to update.
-   --  @param Measured The finished measurements.
-   --  @param Stale The folders to measure again.
-   procedure Note_Folder_Sizes
-     (Model    : in out Window_Model;
-      Measured : Files.Folder_Size.Measurement_Vectors.Vector;
-      Stale    : out Files.Folder_Size.Measurement_Vectors.Vector);
-
-   --  Note_Folder_Sizes, for a caller that measures nothing again.
-   --
-   --  @param Model Window to update.
-   --  @param Measured The finished measurements.
-   procedure Note_Folder_Sizes
-     (Model    : in out Window_Model;
-      Measured : Files.Folder_Size.Measurement_Vectors.Vector);
-
    --  Stack of undo/redo entries; the last element is the top of the stack.
    package Undo_Entry_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
@@ -1647,174 +1173,6 @@ package Files.Model is
       --  loaded: redo entries the loader never saw are retired with it.
       Redo_Retired  : Boolean := False;
    end record;
-
-   --  @param Model Window whose history to snapshot.
-   --  @return Undo stack, oldest first.
-   function Undo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector;
-
-   --  @param Model Window whose history to snapshot.
-   --  @return Redo stack, oldest first.
-   function Redo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector;
-
-   --  Restore checkpointed history after filtering structurally unusable
-   --  actions and completion markers. Identity snapshots are retained without
-   --  consulting current pathnames so refused operations remain retryable.
-   --  Entries without a Sequence (a journal from an older build) are given
-   --  one, and the next Sequence is past every one the history holds.
-   --  @param Model Window whose checkpointed history to restore.
-   --  @param Undo Undo stack, oldest first.
-   --  @param Redo Redo stack, oldest first.
-   --  @param State The journal's state; Redo_Retired starts over as False.
-   procedure Set_History
-     (Model : in out Window_Model;
-      Undo, Redo : Undo_Entry_Vectors.Vector;
-      State : History_Journal_State := (others => <>));
-
-   --  @param Model Window whose journal state to read.
-   --  @return The journal state to write beside its stacks.
-   function History_State (Model : Window_Model) return History_Journal_State;
-
-   --  Take back the history a background helper journaled, merging it into
-   --  the window's own instead of replacing it: an entry the journal does
-   --  not hold stays when the journal lists it as unjournaled (it left the
-   --  journal only to fit it, or the helper never saw it) and goes when the
-   --  helper retired it (the helper released its payloads). Redo entries the
-   --  helper never saw are retired here when its new record retired its redo
-   --  stack, and the merged undo stack keeps the depth cap; payloads of what
-   --  is retired here are queued for Take_Retired_History.
-   --
-   --  @param Model Window whose history to merge into.
-   --  @param Undo Journaled undo stack, oldest first.
-   --  @param Redo Journaled redo stack, oldest first.
-   --  @param State The journal's state.
-   procedure Merge_History
-     (Model : in out Window_Model;
-      Undo, Redo : Undo_Entry_Vectors.Vector;
-      State : History_Journal_State);
-
-   --  Start recording a performed action: advance the model revision and, for
-   --  a completed rename or move, note each path move whether or not the
-   --  action ends up undoable. Undo_None or an empty From only advances the
-   --  revision. Touches no filesystem; Commit_Undo_Record finishes the record.
-   --
-   --  @param Model Model to update.
-   --  @param Kind  Kind of the performed action.
-   --  @param From  Current (new) locations of the action's items.
-   --  @param To    Old locations, parallel to From.
-   procedure Begin_Undo_Record
-     (Model : in out Window_Model;
-      Kind  : Undo_Action_Kind;
-      From  : Files.Types.String_Vectors.Vector;
-      To    : Files.Types.String_Vectors.Vector);
-
-   --  Finish recording an action whose members the operations layer has
-   --  already verified against the filesystem: the redo stack is retired (a
-   --  new operation invalidates any pending redo) and, when Action keeps any
-   --  From path, Action is pushed and the oldest entries past the depth cap
-   --  are retired. Redo payloads are queued for deletion; payloads of entries
-   --  past the cap, and of an Action that records nothing, are queued for
-   --  release to the system trash. Both, and the journal save, wait for
-   --  Take_Retired_History; nothing touches the filesystem here.
-   --
-   --  @param Model  Model whose history is updated.
-   --  @param Action Verified entry; an empty From records nothing.
-   --  @return True when Action was pushed onto the undo stack.
-   function Commit_Undo_Record
-     (Model  : in out Window_Model;
-      Action : Undo_Entry) return Boolean;
-
-   --  Hand over, and forget, what history mutations left for the operations
-   --  layer: recovery payloads of retired entries to delete, payloads of an
-   --  ended history to release to the system trash, and whether the history
-   --  changed since the journal was last saved.
-   --
-   --  @param Model         Model whose pending history work to drain.
-   --  @param Discarded     Restore_Trash payloads no entry references any more.
-   --  @param Released      Restore_Trash payloads of a released history.
-   --  @param Journal_Dirty True when the history journal must be saved.
-   procedure Take_Retired_History
-     (Model         : in out Window_Model;
-      Discarded     : out Files.Types.String_Vectors.Vector;
-      Released      : out Files.Types.String_Vectors.Vector;
-      Journal_Dirty : out Boolean);
-
-   --  End the history with its window: originals a paste replaced, kept in a
-   --  hidden recovery folder only so Undo could put them back, are queued to
-   --  go to the system trash under their own names (Take_Retired_History).
-   --
-   --  @param Model Model to update.
-   procedure Release_History
-     (Model : in out Window_Model);
-
-   --  Forget the entire undo and redo history, queueing the retired recovery
-   --  payloads and the journal save for Take_Retired_History.
-   --
-   --  @param Model Model to update.
-   procedure Clear_Undo
-     (Model : in out Window_Model);
-
-   --  Return whether an undoable action is available.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when the undo stack is non-empty.
-   function Undo_Available
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Return whether a redoable action is available.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when the redo stack is non-empty.
-   function Redo_Available
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Pop the top entry off the undo stack.
-   --
-   --  @param Model  Model to update.
-   --  @param Action Popped action; a default entry when Found is False.
-   --  @param Found  True when an entry was popped.
-   procedure Take_Undo
-     (Model  : in out Window_Model;
-      Action : out Undo_Entry;
-      Found  : out Boolean);
-
-   --  Pop the top entry off the redo stack.
-   --
-   --  @param Model  Model to update.
-   --  @param Action Popped action; a default entry when Found is False.
-   --  @param Found  True when an entry was popped.
-   procedure Take_Redo
-     (Model  : in out Window_Model;
-      Action : out Undo_Entry;
-      Found  : out Boolean);
-
-   --  Push an action onto the redo stack (after a successful undo), queueing
-   --  the journal save for Take_Retired_History.
-   --
-   --  @param Model  Model to update.
-   --  @param Action Action to push.
-   procedure Push_Redo
-     (Model  : in out Window_Model;
-      Action : Undo_Entry);
-
-   --  Push an action back onto the undo stack (after a successful redo),
-   --  leaving the redo stack untouched and queueing the journal save for
-   --  Take_Retired_History.
-   --
-   --  @param Model  Model to update.
-   --  @param Action Action to push.
-   procedure Push_Undo
-     (Model  : in out Window_Model;
-      Action : Undo_Entry);
-
-   --  Return the top undo entry's "from" (current) paths.
-   --
-   --  @param Model Model to inspect.
-   --  @return Vector of current locations, parallel to the entry's To paths.
-   function Undo_From_Paths
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
 
    --  The replace-or-skip prompt shown when a paste meets existing names.
    --  Every default is the closed state, as for Paste_Execution_State.
@@ -1891,29 +1249,6 @@ package Files.Model is
    --  @param Model Window owning a nonmodal directory-read helper.
    --  @return Shared refresh session, or an empty session.
    function Background_Refresh (Model : Window_Model) return Files.Process_Jobs.Session;
-
-   --  Forget every cached folder-size measurement.
-   --
-   --  @param Model Model to update.
-   procedure Clear_Folder_Size
-     (Model : in out Window_Model);
-
-   --  Drop cached folder-size measurements for directories that are no longer
-   --  part of the current selection, keeping the cache bounded to the selection.
-   --
-   --  @param Model Model to update.
-   procedure Prune_Folder_Sizes_To_Selection
-     (Model : in out Window_Model);
-
-   --  Return whether a folder-size measurement is cached for Path.
-   --
-   --  @param Model Model to inspect.
-   --  @param Path Directory path to look up in the cache.
-   --  @return True when a measurement for Path is cached.
-   function Folder_Size_Cached_For
-     (Model : Window_Model;
-      Path  : String)
-      return Boolean;
 
    --  Free and total space of the volume holding the current directory.
    type Volume_Space is record
@@ -2008,16 +1343,6 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
-   --  Return the cached folder-size measurement for Path.
-   --
-   --  @param Model Model to inspect.
-   --  @param Path Directory path to look up.
-   --  @return Cached totals for Path; Available is False when Path is not cached.
-   function Folder_Size_Value
-     (Model : Window_Model;
-      Path  : String)
-      return Files.File_System.Directory_Size_Result;
-
    --  Record a recoverable error key, and the path its message names.
    --
    --  @param Model Model to update.
@@ -2062,19 +1387,6 @@ package Files.Model is
 
 private
 
-   --  Cache a recursive folder-size measurement for a directory path.
-   --
-   --  The cache holds one measurement at a time, keyed by Path, so a repeated
-   --  selection of the same directory reuses it instead of walking again.
-   --
-   --  @param Model Model to update.
-   --  @param Path Directory the measurement describes.
-   --  @param Value Recursive size totals for Path.
-   procedure Set_Folder_Size
-     (Model : in out Window_Model;
-      Path  : String;
-      Value : Files.File_System.Directory_Size_Result);
-
    --  Clear the destination-picker sub-mode and its captured sources.
    --
    --  @param Model Model to update.
@@ -2100,13 +1412,19 @@ private
      (Index_Type   => Positive,
       Element_Type => Natural);
 
+   --  A single-line text field: what is typed, and where the caret is (a
+   --  byte offset into Text). Every default is the empty field.
+   type Text_Field_State is record
+      Text   : UString;
+      Cursor : Natural := 0;
+   end record;
+
    --  One inline rename editor. Item_Index is a loaded-item index (1 .. last)
-   --  for a real item, or 0 for the temporary create item. Value is the edited
-   --  name and Cursor is the byte offset of that field's caret.
+   --  for a real item, or 0 for the temporary create item; Edit holds the
+   --  edited name and that field's caret.
    type Rename_Field is record
       Item_Index : Natural := 0;
-      Value      : UString;
-      Cursor     : Natural := 0;
+      Edit       : Text_Field_State;
    end record;
 
    package Rename_Field_Vectors is new Ada.Containers.Vectors
@@ -2144,14 +1462,12 @@ private
       Highlight  : Natural := 0;
    end record;
 
-   --  The path bar's text field: what is typed, where the caret is (a byte
-   --  offset), and whether the last commit failed and why. Every default is
-   --  a fresh, valid field.
+   --  The path bar's text field, and whether the last commit failed and
+   --  why. Every default is a fresh, valid field.
    type Path_Input_State is record
-      Text   : UString;
-      Cursor : Natural := 0;
-      Valid  : Boolean := True;
-      Error  : UString;
+      Edit  : Text_Field_State;
+      Valid : Boolean := True;
+      Error : UString;
    end record;
 
    --  The Copy to.../Move to... destination picker over the folder tree: its
@@ -2183,12 +1499,10 @@ private
       Selection   : UString;
    end record;
 
-   --  The info pane's owner or group field: what is typed, where the caret
-   --  is (a byte offset), and whether it edits the group rather than the
-   --  owner. Every default is the idle field.
+   --  The info pane's owner or group field, and whether it edits the group
+   --  rather than the owner. Every default is the idle field.
    type Ownership_Input_State is record
-      Text          : UString;
-      Cursor        : Natural := 0;
+      Edit          : Text_Field_State;
       Editing_Group : Boolean := False;
    end record;
 
@@ -2331,7 +1645,8 @@ private
       Path_Move_Queue      : Files.Types.Path_Move_Vectors.Vector;
       Items                : Files.Items.Item_Vectors.Vector;
       Directory_Signature  : Files.File_System.Directory_Signature;
-      Filter_Value         : UString;
+      --  The filter bar's query and caret.
+      Filter               : Text_Field_State;
       Type_Ahead_Buffer_Value : UString;
       Selected_Item_Index  : Natural := 0;
       Selected_Item_Indexes : Natural_Vectors.Vector;
@@ -2378,7 +1693,6 @@ private
       Label_Picker             : Label_Picker_State;
       Rename                   : Rename_State;
       Temporary            : Temporary_Item_State;
-      Filter_Cursor        : Natural := 0;
       Last_Error           : UString;
       Last_Error_Path_Value : UString;
       Last_Error_Notice_Key : UString;

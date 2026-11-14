@@ -12,16 +12,6 @@ private package Files.Model.Support is
    procedure Reset_Quick_Look
      (Model : in out Window_Model);
 
-   --  Add Left and Right, clamping at Natural'Last instead of overflowing.
-   --
-   --  @param Left First addend.
-   --  @param Right Second addend.
-   --  @return Left + Right, or Natural'Last on overflow.
-   function Saturating_Add
-     (Left  : Natural;
-      Right : Natural)
-      return Natural;
-
    --  The magnitude of a signed scroll delta in lines (its absolute value,
    --  saturating Integer'First).
    --
@@ -29,81 +19,11 @@ private package Files.Model.Support is
    --  @return Number of lines to scroll by.
    function Scroll_Step (Lines : Integer) return Natural;
 
-   --  The byte offset of the UTF-8 codepoint boundary immediately before Cursor
-   --  (for a left-arrow / delete-backward step over a whole character).
-   --
-   --  @param Text Text being edited.
-   --  @param Cursor Current byte offset of the caret.
-   --  @return Byte offset of the previous codepoint boundary.
-   function Previous_Text_Boundary
-     (Text   : String;
-      Cursor : Natural)
-      return Natural;
-
-   --  The byte offset of the UTF-8 codepoint boundary immediately after Cursor
-   --  (for a right-arrow / delete-forward step over a whole character).
-   --
-   --  @param Text Text being edited.
-   --  @param Cursor Current byte offset of the caret.
-   --  @return Byte offset of the next codepoint boundary.
-   function Next_Text_Boundary
-     (Text   : String;
-      Cursor : Natural)
-      return Natural;
-
-   --  The nearest UTF-8 codepoint boundary at or before Cursor, used to snap a
-   --  clamped offset onto a valid character start.
-   --
-   --  @param Text Text being edited.
-   --  @param Cursor Byte offset to snap.
-   --  @return Byte offset of the boundary at or before Cursor.
-   function Text_Boundary_At_Or_Before
-     (Text   : String;
-      Cursor : Natural)
-      return Natural;
-
-   --  Insert Text into Old at the byte offset Cursor (clamped into range).
-   --
-   --  @param Old Existing text.
-   --  @param Cursor Byte offset to insert at.
-   --  @param Text Text to insert.
-   --  @return Old with Text spliced in at Cursor.
-   function Insert_Text_At
-     (Old    : String;
-      Cursor : Natural;
-      Text   : String)
-      return String;
-
-   --  Return the byte offset before a name's extension: the position of the
-   --  last non-leading dot, or the name length when there is no extension.
-   --
-   --  @param Name File name.
-   --  @return Byte offset before the extension (name-relative).
-   function Caret_Before_Extension
-     (Name : String)
-      return Natural;
-
    --  Deactivate rename mode and discard every inline rename field.
    --
    --  @param Model Model whose rename state is reset.
    procedure Reset_Rename_State
      (Model : in out Window_Model);
-
-   --  Return the first rename field's text, or an empty string when inactive.
-   --
-   --  @param Model Model to inspect.
-   --  @return The active rename text, or "" when no rename is active.
-   function First_Rename_Value
-     (Model : Window_Model)
-      return String;
-
-   --  Return the first rename field's caret, or zero when inactive.
-   --
-   --  @param Model Model to inspect.
-   --  @return The active rename caret offset, or 0 when inactive.
-   function First_Rename_Cursor
-     (Model : Window_Model)
-      return Natural;
 
    --  Return whether the active rename is the temporary create-item field.
    --
@@ -113,26 +33,11 @@ private package Files.Model.Support is
      (Model : Window_Model)
       return Boolean;
 
-   --  Update the temporary-item name buffer to track its rename field's value.
-   --
-   --  @param Model Model to update.
-   --  @param Field The temporary item's rename field.
-   procedure Sync_Temporary_From_Field
-     (Model : in out Window_Model;
-      Field : Rename_Field);
-
    --  Close the drive/root selector and forget its selection.
    --
    --  @param Model Model whose root-selector state is cleared.
    procedure Clear_Root_Selector_State
      (Model : in out Window_Model);
-
-   --  Bring a settings draft into a consistent state: pair up its parallel
-   --  key/value mapping lists to equal length and clamp each selection index.
-   --
-   --  @param Draft Settings draft to normalize in place.
-   procedure Normalize_Settings_Draft
-     (Draft : in out Files.Settings.Settings_Draft);
 
    --  Whether Item passes the current filter query (case-insensitive substring
    --  of its name); True when the filter is empty.
@@ -271,17 +176,6 @@ private package Files.Model.Support is
    --  @param Model Model whose selection is reconciled in place.
    procedure Reconcile_Selection (Model : in out Window_Model);
 
-   --  Build the directory polling signature (used to detect background changes)
-   --  from a directory path and its loaded items.
-   --
-   --  @param Directory_Path Path the items were loaded from.
-   --  @param Items Loaded directory items.
-   --  @return Signature capturing the directory's current state.
-   function Signature_From_Items
-     (Directory_Path : String;
-      Items          : Files.Items.Item_Vectors.Vector)
-      return Files.File_System.Directory_Signature;
-
    --  Reorder the stored items to match the model's current sort field and
    --  direction. Keyboard navigation walks the stored item order, so it must be
    --  identical to the displayed order the renderer sorts with -- otherwise a
@@ -300,17 +194,6 @@ private package Files.Model.Support is
    --  @return True when the items are already in band order (or ungrouped).
    function Items_In_Group_Order (Model : Window_Model) return Boolean;
 
-   --  Single-select a visible item without disturbing the type-ahead prefix.
-   --  Type-ahead selection uses this so its own selection jumps do not clear the
-   --  prefix it is accumulating; every other selection path goes through the
-   --  public Select_Visible, which resets the prefix first.
-   --
-   --  @param Model Model to update.
-   --  @param Visible_Index 1-based visible row to select.
-   procedure Select_Visible_Internal
-     (Model         : in out Window_Model;
-      Visible_Index : Positive);
-
    --  Cancel every overlay and edit sub-mode (rename, palette, panes, pickers)
    --  before starting a new edit, so only one is ever active at a time.
    --
@@ -318,38 +201,19 @@ private package Files.Model.Support is
    procedure Clear_Overlay_State_For_Edit
      (Model : in out Window_Model);
 
-   --  A run is only fed to type-ahead when every byte is a printable glyph.
-   --  Control bytes below the space and the DEL byte never start a prefix.
-   --
-   --  @param Text Candidate input run.
-   --  @return True when every byte is printable.
-   function Is_Printable_Run (Text : String) return Boolean;
-
-   --  Return True when Text is a single UTF-8 codepoint repeated one or more
-   --  times (case-insensitively), e.g. "d", "DD", "www". Used to detect the
-   --  repeated-letter cycling gesture.
-   --
-   --  @param Text Candidate input run.
-   --  @return True when Text is one repeated codepoint.
-   function Is_Repeated_Single_Codepoint (Text : String) return Boolean;
-
-   --  Return the first UTF-8 codepoint of Text as a byte string.
-   --
-   --  @param Text Source text.
-   --  @return The leading codepoint's bytes, or "" when Text is empty.
-   function First_Codepoint (Text : String) return String;
-
-   --  The byte length of the currently focused text input's value (path, filter,
-   --  rename, palette, settings or ownership field), or zero when none is focused.
+   --  The currently focused text input (path, filter, rename, palette,
+   --  settings or ownership field): its text and caret. The palette query
+   --  and a settings value are edited whole, so their caret is at the end.
+   --  The empty field when none is focused.
    --
    --  @param Model Model providing the focus target.
-   --  @return Byte length of the focused input's text.
-   function Focused_Text_Length
+   --  @return The focused input's text and caret.
+   function Focused_Field
      (Model : Window_Model)
-      return Natural;
+      return Text_Field_State;
 
-   --  The value of the currently focused text input (path, filter, rename,
-   --  palette, settings or ownership field), or "" when none is focused.
+   --  The value of the currently focused text input (Focused_Field's text),
+   --  or "" when none is focused.
    --
    --  @param Model Model providing the focus target.
    --  @return Text of the focused input.
@@ -361,31 +225,6 @@ private package Files.Model.Support is
    --
    --  @param Model Model whose settings panel is rebuilt.
    procedure Reset_Settings_Panel (Model : in out Window_Model);
-
-   --  The presentation config for the command palette (overlay with shortcuts,
-   --  the component owns the filtering).
-   --
-   --  @param Line_Height Row height in pixels.
-   --  @param Title The heading, in the current language ("" for none yet:
-   --    Files.Overlays supplies it when it draws).
-   --  @param Empty_State What shows when no command matches.
-   --  @param Close_Label The close button's accessible name, in the current
-   --    language ("" for none yet: Files.Overlays supplies it when it draws).
-   --  @return Command-palette component configuration.
-   function Palette_Config
-     (Line_Height : Positive;
-      Title       : String := "";
-      Empty_State : String := "";
-      Close_Label : String := "") return Guikit.Command_Palette.Configuration;
-
-   --  Return the loaded-item indexes of the current real (non-temporary)
-   --  selection, in loaded order, for populating rename fields.
-   --
-   --  @param Model Model to inspect.
-   --  @return Loaded-item indexes of the real selection.
-   function Selected_Loaded_Indexes
-     (Model : Window_Model)
-      return Natural_Vectors.Vector;
 
    --  Return the 1-based index into Rename_Fields for the field shown at
    --  Visible_Index, or zero when that row has no active rename field.
@@ -453,21 +292,75 @@ private package Files.Model.Support is
    procedure Toggle_Settings_Pane
      (Model : in out Window_Model);
 
-   --  The focused field's current value ("" when none).
-   --
-   --  @param Model Model to inspect.
-   --  @return The focused field's value.
-   function Settings_Focused_Value (Model : Window_Model) return String;
-
-   --  An idle transfer session, to release a held one by assignment: the
-   --  model only holds the job handles; Files.Operations drives them.
-   --
-   --  @return A session holding no job.
-   function Released_Transfer return Files.Transfer_Jobs.Session;
-
    --  An idle process session, to release a held one by assignment.
    --
    --  @return A session holding no job.
    function Released_Process return Files.Process_Jobs.Session;
+
+   --  Clear the pending grid type-ahead prefix.
+   --
+   --  @param Model Model to update.
+   procedure Reset_Type_Ahead
+     (Model : in out Window_Model);
+
+   --  Return the selected visible index.
+   --
+   --  @param Model Model to inspect.
+   --  @return One-based visible selected index, or zero when nothing is selected.
+   function Selected_Index
+     (Model : Window_Model)
+      return Natural;
+
+   --  Return the number of selected items.
+   --
+   --  @param Model Model to inspect.
+   --  @return Selected item count.
+   function Selected_Count
+     (Model : Window_Model)
+      return Natural;
+
+   --  Return the selected item.
+   --
+   --  @param Model Model to inspect.
+   --  @return Selected item, or a default empty item when no selection exists.
+   function Selected_Item
+     (Model : Window_Model)
+      return Files.Items.Directory_Item;
+
+   --  Return the selected items in deterministic loaded-item order.
+   --
+   --  @param Model Model to inspect.
+   --  @param Limit At most this many, the first in that order.
+   --  @return Selected directory items, excluding transient create-file items.
+   function Selected_Items
+     (Model : Window_Model;
+      Limit : Natural := Natural'Last)
+      return Files.Items.Item_Vectors.Vector;
+
+   --  Restore the loaded, visible items present in a previous selection. Item
+   --  paths provide identity across sorting and reloads; Primary_Path restores
+   --  the keyboard anchor when that item still exists.
+   --
+   --  @param Model Model whose selection is replaced.
+   --  @param Items Previously selected items to match by full path.
+   --  @param Primary_Path Full path of the previous primary item, or empty.
+   procedure Restore_Selection
+     (Model        : in out Window_Model;
+      Items        : Files.Items.Item_Vectors.Vector;
+      Primary_Path : String);
+
+   --  Return whether any selected item is the temporary create-file item.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when the selection includes the pending create-file item.
+   function Selection_Includes_Temporary
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Forget every cached folder-size measurement.
+   --
+   --  @param Model Model to update.
+   procedure Clear_Folder_Size
+     (Model : in out Window_Model);
 
 end Files.Model.Support;

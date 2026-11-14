@@ -32,17 +32,18 @@ separate (Files_Suite.Model)
         (To_String (Files.Model.Visible_Item (Model, 1).Name),
          "untitled 2.txt",
          "temporary item is the visible item while pending");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "create command selects temporary item");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Count (Model),
+        (Files.Model.Selection.Selected_Index (Model), 1, "create command selects temporary item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selection.Selected_Count (Model),
          1,
          "temporary item counts as a selected visible item");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Name (Model),
+        (Files.Model.Selection.Selected_Name (Model),
          "untitled 2.txt",
          "temporary selection exposes pending name");
       Assert (Files.Model.Testing.Selected_Item_Is_Temporary (Model), "model identifies selected temporary item");
-      Assert (not Files.Model.Rename_Is_Enabled (Model), "temporary item is not a real rename target");
+      Assert (not Files.Model.Rename.Rename_Is_Enabled (Model), "temporary item is not a real rename target");
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
          "active temporary rename can still be cancelled through the command");

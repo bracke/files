@@ -8,7 +8,7 @@ separate (Files.Rendering)
       --  The view starts where the panel ends (Calculate_Layout).
       Panel_Width     : constant Natural := Layout.Main_X;
       Row_Height      : constant Natural :=
-        Saturating_Add
+        Guikit.Layout.Saturating_Add
           (Line_Height, Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2));
    begin
       if not Snapshot.Tree_Panel_Open then
@@ -43,7 +43,7 @@ separate (Files.Rendering)
            and then Capacity > 0
            and then Bar_W > 0
            and then Thumb.Length > 0;
-         Track_Y  : constant Natural := Saturating_Add (Base.Y, Base.Row_Height);
+         Track_Y  : constant Natural := Guikit.Layout.Saturating_Add (Base.Y, Base.Row_Height);
       begin
          return
            (X          => Base.X,
@@ -53,10 +53,10 @@ separate (Files.Rendering)
             Row_Height => Base.Row_Height,
             Scrollbar_Visible => Visible,
             Scrollbar_X       =>
-              (if Visible then Saturating_Add (Base.X, Base.Width - Bar_W) else 0),
+              (if Visible then Guikit.Layout.Saturating_Add (Base.X, Base.Width - Bar_W) else 0),
             Scrollbar_Y       => (if Visible then Track_Y else 0),
             Scrollbar_Thumb_Y =>
-              (if Visible then Saturating_Add (Track_Y, Thumb.Offset) else 0),
+              (if Visible then Guikit.Layout.Saturating_Add (Track_Y, Thumb.Offset) else 0),
             Scrollbar_Width   => (if Visible then Bar_W else 0),
             Scrollbar_Height  => (if Visible then Thumb.Length else 0),
             Scrollbar_Track_Height => (if Visible then Track_H else 0));

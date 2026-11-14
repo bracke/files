@@ -5,9 +5,11 @@ function Prepare_Open_Selected_Action
    Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
    return Operation_Result
 is
-   Items : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+   Items : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
 begin
-   if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
+   if Files.Model.Selection.Selected_Count (Model) = 0
+     or else Files.Model.Selection.Selection_Includes_Temporary (Model)
+   then
       return Disabled (Model, "error.selection.empty");
    elsif Items.Is_Empty then
       return Disabled (Model, "error.selection.empty");
@@ -62,7 +64,7 @@ begin
    end if;
 
    declare
-      Item : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
+      Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
    begin
       if Item.Kind = Files.Types.Directory_Item then
          Files.Model.Set_Error (Model, "");

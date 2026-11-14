@@ -8,9 +8,9 @@ separate (Files_Suite.Commands)
       Result   : Files.Controller.Controller_Result;
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
-      Files.Model.Select_Visible (Model, 2);
+      Files.Model.Selection.Select_Visible (Model, 2);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
-      Assert (Files.Model.Rename_Is_Active (Model), "F2 enters rename before palette opens");
+      Assert (Files.Model.Rename.Rename_Is_Active (Model), "F2 enters rename before palette opens");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Files_Suite.Support.Assert_Equal
@@ -33,7 +33,7 @@ separate (Files_Suite.Commands)
          Files.Commands.Close_Command_Palette_Command,
          "Escape first closes palette");
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "Escape closes the open palette");
-      Assert (Files.Model.Rename_Is_Active (Model), "Escape does not cancel rename while palette is open");
+      Assert (Files.Model.Rename.Rename_Is_Active (Model), "Escape does not cancel rename while palette is open");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_None,
@@ -44,7 +44,7 @@ separate (Files_Suite.Commands)
         (Result.Command,
          Files.Commands.Close_Command_Palette_Command,
          "second Escape routes context cancel");
-      Assert (not Files.Model.Rename_Is_Active (Model), "second Escape cancels pending rename");
+      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "second Escape cancels pending rename");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
          0,

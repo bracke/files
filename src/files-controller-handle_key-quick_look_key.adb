@@ -23,34 +23,36 @@ begin
                   or else Key = Guikit.Input.Key_Page_Up or else Key = Guikit.Input.Key_Page_Down)
       then
          declare
-            Old_Index : constant Natural := Files.Model.Selected_Index (Model);
+            Old_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);
          begin
             case Key is
                when Guikit.Input.Key_Up =>
-                  Files.Model.Move_Selection (Model, Guikit.Input.Move_Up);
+                  Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Up);
                when Guikit.Input.Key_Down =>
-                  Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
+                  Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Down);
                when Guikit.Input.Key_Left =>
-                  Files.Model.Move_Selection (Model, Guikit.Input.Move_Left);
+                  Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Left);
                when Guikit.Input.Key_Right =>
-                  Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+                  Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
                when Guikit.Input.Key_Home =>
-                  Files.Model.Select_First_Visible (Model);
+                  Files.Model.Selection.Select_First_Visible (Model);
                when Guikit.Input.Key_End =>
-                  Files.Model.Select_Last_Visible (Model);
+                  Files.Model.Selection.Select_Last_Visible (Model);
                when Guikit.Input.Key_Page_Up =>
-                  Files.Model.Move_Selection_By_Page (Model, Files.Model.Selection_Page_Rows (Model), False);
+                  Files.Model.Selection.Move_Selection_By_Page
+                    (Model, Files.Model.Selection.Selection_Page_Rows (Model), False);
                when Guikit.Input.Key_Page_Down =>
-                  Files.Model.Move_Selection_By_Page (Model, Files.Model.Selection_Page_Rows (Model), True);
+                  Files.Model.Selection.Move_Selection_By_Page
+                    (Model, Files.Model.Selection.Selection_Page_Rows (Model), True);
                when others =>
                   null;
             end case;
-            if Files.Model.Selected_Index (Model) = Old_Index then
+            if Files.Model.Selection.Selected_Index (Model) = Old_Index then
                Result := Make_Result (Controller_Ignored);
                return;
             end if;
             Files.Model.Quick_Look.Open
-              (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
+              (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
             Result := Make_Result (Controller_Selection_Moved);
             return;
          end;

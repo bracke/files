@@ -10,7 +10,7 @@ separate (Files_Suite.Commands)
       Clipboard : Files.Types.String_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
    begin
-      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Selection.Select_Visible (Model, 1);
       Clipboard.Append (To_Unbounded_String (Join (Root, "Alpha.txt")));
       Files.Model.Clipboard.Set (Model, Clipboard, Files.Model.Clipboard_Copy);
       Files.Model.Navigate_Recent (Model, Empty);

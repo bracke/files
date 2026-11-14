@@ -14,17 +14,21 @@ separate (Files.Settings)
       --  key, the legacy "high_contrast_theme"/"light_theme" booleans below are
       --  resolved into Settings.Theme after the loop (high contrast wins).
       Theme_Explicit : Boolean := False;
-      Legacy_High    : Boolean := False;
-      Legacy_Light   : Boolean := False;
+      Legacy_Theme   : array (Legacy_Theme_Flag) of Boolean := [others => False];
       Entry_Count    : Natural := 0;
 
-      --  Per-section key=value handlers. Each mutates the enclosing Settings (and,
-      --  for [settings], the legacy-theme flags) and reports a rejected value by
-      --  setting Err to the error key; the main loop then returns it. A null Err
-      --  means the line was accepted (or ignored, for the append-only sections).
+      --  Per-section key=value handlers, dispatched through Line_Handlers
+      --  below. Each takes the line's key as written (Key), lower-cased
+      --  (Setting_Key), its unquoted value (Value) and its value as written
+      --  (Raw_Value), mutates the enclosing Settings (and, for [settings], the
+      --  legacy-theme flags) and reports a rejected value by setting Err to the
+      --  error key; the main loop then returns it. A null Err means the line was
+      --  accepted (or ignored, for the append-only sections).
 
       procedure Parse_Filetypes_Line
-        (Key, Value, Raw_Value : String; Err : out Unbounded_String) is
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
+      is
+         pragma Unreferenced (Setting_Key);
       begin
          Err := Null_Unbounded_String;
          if Normalize_Extension (Key) = ""
@@ -40,7 +44,9 @@ separate (Files.Settings)
       end Parse_Filetypes_Line;
 
       procedure Parse_Icons_Line
-        (Key, Value, Raw_Value : String; Err : out Unbounded_String) is
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
+      is
+         pragma Unreferenced (Setting_Key);
       begin
          Err := Null_Unbounded_String;
          if Key = ""
@@ -56,8 +62,9 @@ separate (Files.Settings)
       end Parse_Icons_Line;
 
       procedure Parse_Open_Actions_Line
-        (Key, Raw_Value : String; Err : out Unbounded_String)
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
       is
+         pragma Unreferenced (Setting_Key, Value);
          Normalized_Key : constant String := Normalize_Action_Token (Key);
          Action : constant Open_Action := Parse_Action (Raw_Value);
          Plus   : constant Natural := Modifier_Suffix_Start (Normalized_Key);
@@ -82,7 +89,9 @@ separate (Files.Settings)
       end Parse_Open_Actions_Line;
 
       procedure Parse_Bookmarks_Line
-        (Key, Setting_Key, Value : String; Err : out Unbounded_String) is
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
+      is
+         pragma Unreferenced (Raw_Value);
       begin
          Err := Null_Unbounded_String;
          if Setting_Key = "bookmark" then
@@ -102,7 +111,9 @@ separate (Files.Settings)
       end Parse_Bookmarks_Line;
 
       procedure Parse_Labels_Line
-        (Setting_Key, Value : String; Err : out Unbounded_String) is
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
+      is
+         pragma Unreferenced (Key, Raw_Value);
       begin
          Err := Null_Unbounded_String;
          --  Each entry is written as label = "<color>|<path>". Split on the first
@@ -136,7 +147,9 @@ separate (Files.Settings)
       end Parse_Labels_Line;
 
       procedure Parse_Recent_Line
-        (Setting_Key, Value : String; Err : out Unbounded_String) is
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
+      is
+         pragma Unreferenced (Key, Raw_Value);
       begin
          Err := Null_Unbounded_String;
          --  Each entry is written as recent = "<path>" in file order
@@ -156,7 +169,9 @@ separate (Files.Settings)
       end Parse_Recent_Line;
 
       procedure Parse_Shortcuts_Line
-        (Setting_Key, Value : String; Err : out Unbounded_String) is
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
+      is
+         pragma Unreferenced (Key, Raw_Value);
       begin
          Err := Null_Unbounded_String;
          --  Each entry is written as shortcut = "<command>|<combo>". Split on the
@@ -180,25 +195,25 @@ separate (Files.Settings)
       end Parse_Shortcuts_Line;
 
       procedure Parse_Settings_Line
-        (Setting_Key, Value : String; Err : out Unbounded_String)
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
       is
+         pragma Unreferenced (Key, Raw_Value);
          Setting : Scalar_Setting;
          OK      : Boolean;
       begin
          Err := Null_Unbounded_String;
-         if Setting_Key = "high_contrast_theme" then
-            --  Legacy key: resolved into Settings.Theme after the loop.
-            Parse_Boolean (Files.Types.To_Lower (Value), Legacy_High, OK);
-            if not OK then
-               Err := To_Unbounded_String ("error.settings.invalid_boolean");
+         for Flag in Legacy_Theme_Flag loop
+            if Setting_Key = Legacy_Theme_Keys (Flag).all then
+               --  Legacy key: resolved into Settings.Theme after the loop.
+               Parse_Boolean (Files.Types.To_Lower (Value), Legacy_Theme (Flag), OK);
+               if not OK then
+                  Err := To_Unbounded_String ("error.settings.invalid_boolean");
+               end if;
+               return;
             end if;
-         elsif Setting_Key = "light_theme" then
-            --  Legacy key: resolved into Settings.Theme after the loop.
-            Parse_Boolean (Files.Types.To_Lower (Value), Legacy_Light, OK);
-            if not OK then
-               Err := To_Unbounded_String ("error.settings.invalid_boolean");
-            end if;
-         elsif Scalar_For_Key (Setting_Key, Setting) then
+         end loop;
+
+         if Scalar_For_Key (Setting_Key, Setting) then
             Set_Scalar (Settings, Setting, Value, Err);
             if Setting = Theme_Setting and then Length (Err) = 0 then
                Theme_Explicit := True;
@@ -207,6 +222,47 @@ separate (Files.Settings)
             Err := To_Unbounded_String ("error.settings.unknown_key");
          end if;
       end Parse_Settings_Line;
+
+      --  A key=value line before any section header.
+      procedure Parse_Sectionless_Line
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
+      is
+         pragma Unreferenced (Key, Setting_Key, Value, Raw_Value);
+      begin
+         Err := To_Unbounded_String ("error.settings.missing_section");
+      end Parse_Sectionless_Line;
+
+      type Line_Handler is access procedure
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String);
+
+      --  The handler for a key=value line in each section.
+      Line_Handlers : constant array (Settings_Section) of Line_Handler :=
+        [No_Section            => Parse_Sectionless_Line'Access,
+         Filetypes_Section     => Parse_Filetypes_Line'Access,
+         Icons_Section         => Parse_Icons_Line'Access,
+         Open_Actions_Section  => Parse_Open_Actions_Line'Access,
+         Bookmarks_Section     => Parse_Bookmarks_Line'Access,
+         Labels_Section        => Parse_Labels_Line'Access,
+         Recent_Section        => Parse_Recent_Line'Access,
+         Shortcuts_Section     => Parse_Shortcuts_Line'Access,
+         Settings_Section_Name => Parse_Settings_Line'Access];
+
+      --  The section a header named Name (lower-cased) opens; False when no
+      --  section has that name.
+      function Section_Named
+        (Name  : String;
+         Named : out Settings_Section)
+         return Boolean is
+      begin
+         for Candidate in Named_Section loop
+            if Section_Names (Candidate).all = Name then
+               Named := Candidate;
+               return True;
+            end if;
+         end loop;
+         Named := No_Section;
+         return False;
+      end Section_Named;
    begin
       if Text'Length > Max_Settings_Text_Bytes or else Contains_Nul (Text) then
          return
@@ -263,23 +319,10 @@ separate (Files.Settings)
                declare
                   Name : constant String :=
                     Files.Types.To_Lower (Trim (Line (Line'First + 1 .. Line'Last - 1)));
+                  Named : Settings_Section;
                begin
-                  if Name = "filetypes" then
-                     Section := Filetypes_Section;
-                  elsif Name = "icons" then
-                     Section := Icons_Section;
-                  elsif Name = "open-actions" then
-                     Section := Open_Actions_Section;
-                  elsif Name = "bookmarks" then
-                     Section := Bookmarks_Section;
-                  elsif Name = "labels" then
-                     Section := Labels_Section;
-                  elsif Name = "recent" then
-                     Section := Recent_Section;
-                  elsif Name = "shortcuts" then
-                     Section := Shortcuts_Section;
-                  elsif Name = "settings" then
-                     Section := Settings_Section_Name;
+                  if Section_Named (Name, Named) then
+                     Section := Named;
                   else
                      return
                        (Success   => False,
@@ -311,26 +354,7 @@ separate (Files.Settings)
                   Value     : constant String := Strip_Quotes (Raw_Value);
                   Err       : Unbounded_String := Null_Unbounded_String;
                begin
-                  case Section is
-                     when Filetypes_Section =>
-                        Parse_Filetypes_Line (Key, Value, Raw_Value, Err);
-                     when Icons_Section =>
-                        Parse_Icons_Line (Key, Value, Raw_Value, Err);
-                     when Open_Actions_Section =>
-                        Parse_Open_Actions_Line (Key, Raw_Value, Err);
-                     when Bookmarks_Section =>
-                        Parse_Bookmarks_Line (Key, Setting_Key, Value, Err);
-                     when Labels_Section =>
-                        Parse_Labels_Line (Setting_Key, Value, Err);
-                     when Recent_Section =>
-                        Parse_Recent_Line (Setting_Key, Value, Err);
-                     when Shortcuts_Section =>
-                        Parse_Shortcuts_Line (Setting_Key, Value, Err);
-                     when Settings_Section_Name =>
-                        Parse_Settings_Line (Setting_Key, Value, Err);
-                     when No_Section =>
-                        Err := To_Unbounded_String ("error.settings.missing_section");
-                  end case;
+                  Line_Handlers (Section).all (Key, Setting_Key, Value, Raw_Value, Err);
 
                   if Length (Err) > 0 then
                      return
@@ -349,9 +373,9 @@ separate (Files.Settings)
       --  booleans: high contrast takes precedence over light, matching the old
       --  rendering precedence; absent everything leaves the default (dark).
       if not Theme_Explicit then
-         if Legacy_High then
+         if Legacy_Theme (Legacy_High_Contrast) then
             Settings.Theme := Theme_High_Contrast;
-         elsif Legacy_Light then
+         elsif Legacy_Theme (Legacy_Light) then
             Settings.Theme := Theme_Light;
          else
             Settings.Theme := Theme_Dark;

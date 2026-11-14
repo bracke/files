@@ -21,6 +21,8 @@ with Files.Process_Jobs;
 with Hostkit.Fs;
 with Files.Path_Checks;
 with Files.Model.Pasting;
+with Files.Model.History;
+with Files.Model.Selection;
 
 package body Files.Operation_Jobs is
    use Ada.Strings.Unbounded;
@@ -187,7 +189,7 @@ package body Files.Operation_Jobs is
       Work : Request :=
         (Kind => Kind, Root => To_Unbounded_String (Files.Model.Current_Path (Model)),
          Recent => Files.Model.In_Recent_View (Model), Query => To_Unbounded_String (Files.Model.Filter_Text (Model)),
-         Selected => Files.Model.Selected_Items (Model), Settings => Settings,
+         Selected => Files.Model.Selection.Selected_Items (Model), Settings => Settings,
          Context_Revision => 0,
          View_Incarnation => Files.Model.View_Incarnation (Model));
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
@@ -200,15 +202,15 @@ package body Files.Operation_Jobs is
          return (Status => Files.Operations.Operation_Disabled,
                  Error_Key => To_Unbounded_String ("error.filter.empty"), others => <>);
       end if;
-      if (Kind = Undo and then Files.Model.Undo_History (Model).Is_Empty)
-        or else (Kind = Redo and then Files.Model.Redo_History (Model).Is_Empty)
+      if (Kind = Undo and then Files.Model.History.Undo_History (Model).Is_Empty)
+        or else (Kind = Redo and then Files.Model.History.Redo_History (Model).Is_Empty)
       then
          Files.Model.Set_Error (Model, "error.undo.failed");
          return (Status => Files.Operations.Operation_Failed,
                  Error_Key => To_Unbounded_String ("error.undo.failed"), others => <>);
       end if;
       if Kind not in Search_Names | Search_Contents | Undo | Redo | Empty_Trash
-        and then (Work.Selected.Is_Empty or else Files.Model.Selection_Includes_Temporary (Model))
+        and then (Work.Selected.Is_Empty or else Files.Model.Selection.Selection_Includes_Temporary (Model))
       then
          declare
             Key : constant String :=
@@ -315,8 +317,8 @@ package body Files.Operation_Jobs is
       procedure Recover_Undo is
          Destinations, Sources, Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
          Untracked, Untracked_Identities, Untracked_Tree_Revisions : Files.Types.String_Vectors.Vector;
-         Undo_Stack : constant Files.Model.Undo_Entry_Vectors.Vector := Files.Model.Undo_History (Model);
-         Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.Redo_History (Model);
+         Undo_Stack : constant Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Undo_History (Model);
+         Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Redo_History (Model);
          --  Every path the undo history already records as created.
          Recorded : Files.Settings.Path_Sets.Set;
       begin
@@ -356,7 +358,7 @@ package body Files.Operation_Jobs is
                   end;
                end loop;
                Redo_Stack.Replace_Element (Redo_Stack.Last_Index, Action);
-               Files.Model.Set_History (Model, Undo_Stack, Redo_Stack);
+               Files.Model.History.Set_History (Model, Undo_Stack, Redo_Stack);
             end;
          elsif Work.Kind in Duplicate | Compress_Zip | Compress_Seven_Zip | Extract then
             for Action of Undo_Stack loop
@@ -460,7 +462,8 @@ package body Files.Operation_Jobs is
             Files.Model.Clear_Search_Results (Model);
             if Length (Done.Selection) > 0 then
                declare
-                  Selected : constant Boolean := Files.Model.Select_By_Name (Model, To_String (Done.Selection));
+                  Selected : constant Boolean :=
+                    Files.Model.Selection.Select_By_Name (Model, To_String (Done.Selection));
                   pragma Unreferenced (Selected);
                begin
                   null;
@@ -555,7 +558,7 @@ package body Files.Operation_Jobs is
       if Work.Kind in Search_Names | Search_Contents then
          Files.Model.Set_Filter (Model, To_String (Work.Query));
       else
-         Files.Model.Select_All_Visible (Model);
+         Files.Model.Selection.Select_All_Visible (Model);
       end if;
       Done.Result :=
         (case Work.Kind is
@@ -578,7 +581,7 @@ package body Files.Operation_Jobs is
         (if Files.Model.Last_Error_Key (Model) = "" then To_String (Done.Result.Error_Key)
          else Files.Model.Last_Error_Key (Model));
       Done.Recent := Files.Model.In_Recent_View (Model);
-      Done.Selection := To_Unbounded_String (Files.Model.Selected_Name (Model));
+      Done.Selection := To_Unbounded_String (Files.Model.Selection.Selected_Name (Model));
       for Row of Files.Model.Visible_Rows (Model) loop
          Done.Items.Append (Row.Item);
       end loop;

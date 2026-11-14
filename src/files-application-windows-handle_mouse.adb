@@ -158,8 +158,9 @@ separate (Files.Application.Windows)
                end;
             elsif Is_Item
               and then not Modifiers (Guikit.Input.Shift_Key)
-              and then Files.Model.Is_Selected (Runtime.Model, Positive (Action.Item_Index))
-              and then (Files.Model.Selected_Count (Runtime.Model) > 1 or else Modifiers (Guikit.Input.Control_Key))
+              and then Files.Model.Selection.Is_Selected (Runtime.Model, Positive (Action.Item_Index))
+              and then (Files.Model.Selection.Selected_Count (Runtime.Model) > 1
+                        or else Modifiers (Guikit.Input.Control_Key))
             then
                --  A press on part of the selection may start dragging all of
                --  it: only a release without a drag selects just this item

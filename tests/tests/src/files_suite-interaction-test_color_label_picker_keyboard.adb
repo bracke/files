@@ -12,7 +12,7 @@ separate (Files_Suite.Interaction)
       Ada.Directories.Create_Path (Dir);
       Files_Suite.Support.Write_File (One, "a");
       Model := Loaded_Model (Dir);
-      Files.Model.Select_All_Visible (Model);
+      Files.Model.Selection.Select_All_Visible (Model);
 
       Files.Model.Label_Picker.Open (Model);
       Files_Suite.Support.Assert_Equal

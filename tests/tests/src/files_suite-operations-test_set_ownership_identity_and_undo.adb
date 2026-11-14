@@ -40,7 +40,7 @@ separate (Files_Suite.Operations)
       declare
          Payload : constant String :=
            To_String
-             (Files.Model.Undo_History (Model).Last_Element.To.First_Element);
+             (Files.Model.History.Undo_History (Model).Last_Element.To.First_Element);
          First_Separator : constant Natural :=
            Ada.Strings.Fixed.Index
              (Payload, String'(1 => Ada.Characters.Latin_1.NUL));
@@ -59,7 +59,7 @@ separate (Files_Suite.Operations)
 
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "undo of chown succeeds");
-      Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after chown undo");
+      Assert (not Files.Model.History.Undo_Available (Model), "undo record is cleared after chown undo");
 
       declare
          New_Uid, New_Gid : Files.Types.Account_Id := 0;

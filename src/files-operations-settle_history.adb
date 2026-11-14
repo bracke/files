@@ -3,7 +3,7 @@ procedure Settle_History (Model : in out Files.Model.Window_Model) is
    Discarded, Released : Files.Types.String_Vectors.Vector;
    Journal_Dirty : Boolean;
 begin
-   Files.Model.Take_Retired_History (Model, Discarded, Released, Journal_Dirty);
+   Files.Model.History.Take_Retired_History (Model, Discarded, Released, Journal_Dirty);
    --  The model queues a payload only once no stack holds its entry, so
    --  nothing can still restore it from here.
    for Payload of Discarded loop

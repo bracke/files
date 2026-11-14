@@ -173,27 +173,13 @@ separate (Check_All)
          For_Each_Line (Units, Check_Use'Access);
       end Check_File;
 
-      Search : Ada.Directories.Search_Type;
-      Item   : Ada.Directories.Directory_Entry_Type;
+      Sources : constant Project_Tools.Files.Path_List :=
+        Project_Tools.Files.List_Tree (Root & "/src", "*.ad?", Generated_Directories);
    begin
-      Ada.Directories.Start_Search
-        (Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         Collect_Aliases (Ada.Directories.Full_Name (Item));
+      for Item of Sources loop
+         Collect_Aliases (To_String (Item));
       end loop;
-      Ada.Directories.End_Search (Search);
-      Ada.Directories.Start_Search
-        (Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         begin
-            Check_File (Ada.Directories.Full_Name (Item));
-         exception
-            when Program_Error =>
-               Ada.Directories.End_Search (Search);
-               raise;
-         end;
+      for Item of Sources loop
+         Check_File (To_String (Item));
       end loop;
-      Ada.Directories.End_Search (Search);
    end Check_Raw_File_System_Calls;

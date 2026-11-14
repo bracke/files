@@ -4,7 +4,6 @@ with Files.Images;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Calendar.Formatting;
-with Ada.Real_Time;
 with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
@@ -12,7 +11,7 @@ with GNAT.OS_Lib;
 with Files.Folder_Size;
 with Files.Fs_Primitives;
 with Files.Undo_Payloads;
-with Files.Shared_Bytes;
+with Guikit.Shared_Bytes;
 with Files.Transfer_Jobs;
 with Files.Process_Jobs;
 with Files.Operation_Jobs;
@@ -39,6 +38,10 @@ with Files.History_Journal;
 with Files.Archive_Writing;
 with Files.Model.Quick_Look;
 with Files.Model.Pasting;
+with Files.Model.Folder_Sizes;
+with Files.Model.History;
+with Files.Model.Rename;
+with Files.Model.Selection;
 
 package body Files.Operations is
    use Ada.Strings.Unbounded;
@@ -402,7 +405,7 @@ package body Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
    is
-      Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+      Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
       First_Path : Unbounded_String;
       First_Name : Unbounded_String;
       Unsupported_Key  : Unbounded_String;
@@ -413,7 +416,9 @@ package body Files.Operations is
          return Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Files.Model.Current_Path (Model));
       end Cache_Directory;
    begin
-      if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
+      if Files.Model.Selection.Selected_Count (Model) = 0
+        or else Files.Model.Selection.Selection_Includes_Temporary (Model)
+      then
          return Disabled (Model, "error.selection.empty");
       end if;
 
@@ -470,10 +475,23 @@ package body Files.Operations is
      (Files.Undo_Payloads.Ownership_Text
         ((User_Id, Group_Id, To_Unbounded_String (User_Name), To_Unbounded_String (Group_Name))));
 
+   --  Which file metadata an editable-selection check is about.
+   type Editable_Metadata is (Ownership_Metadata, Permissions_Metadata);
+
+   --  The one check behind Permissions_ and Ownership_Editable_Selection:
+   --  exactly one real (non-temporary) item is selected outside a trash's
+   --  files directory, the platform can change What, and the item's What
+   --  was read.
+   function Metadata_Editable_Selection
+     (Model : Files.Model.Window_Model;
+      What  : Editable_Metadata)
+      return Boolean
+   is separate;
+
    function Permissions_Editable_Selection
      (Model : Files.Model.Window_Model)
       return Boolean
-   is separate;
+   is (Metadata_Editable_Selection (Model, Permissions_Metadata));
 
    --  What a permission or ownership change on Path does once it is made:
    --  record its undo (Old_Text back, New_Text forward, the file's identity
@@ -500,7 +518,7 @@ package body Files.Operations is
          Provenance => (Identities => Identities, others => <>));
       declare
          Reload : constant Operation_Result :=
-           Reload_Current_Directory (Model, Settings, Files.Model.Selected_Name (Model));
+           Reload_Current_Directory (Model, Settings, Files.Model.Selection.Selected_Name (Model));
       begin
          if Reload.Status /= Operation_Success then
             return Reload;
@@ -527,7 +545,7 @@ package body Files.Operations is
    function Ownership_Editable_Selection
      (Model : Files.Model.Window_Model)
       return Boolean
-   is separate;
+   is (Metadata_Editable_Selection (Model, Ownership_Metadata));
 
    function Set_Ownership_For
      (Model    : in out Files.Model.Window_Model;
@@ -551,7 +569,7 @@ package body Files.Operations is
         and then Files.Model.Selected_Item_Needs_Extra (Model)
       then
          declare
-            Item : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
+            Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
          begin
             Files.Model.Set_Selected_Item_Extra
               (Model,
@@ -568,7 +586,7 @@ package body Files.Operations is
    begin
       if Files.Model.Selected_Item_Needs_Extra (Model) then
          declare
-            Item  : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
+            Item  : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
             Extra : Files.Extra_Info.Info;
             Ready : Boolean;
             Asked : Boolean;
@@ -589,11 +607,11 @@ package body Files.Operations is
      (Model         : in out Files.Model.Window_Model;
       Editing_Group : Boolean) is
    begin
-      if not Files.File_System.Supports_Ownership or else Files.Model.Selected_Count (Model) /= 1 then
+      if not Files.File_System.Supports_Ownership or else Files.Model.Selection.Selected_Count (Model) /= 1 then
          return;
       end if;
       declare
-         Item : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
+         Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
       begin
          Files.Model.Focus_Ownership_Input
            (Model,
@@ -625,7 +643,7 @@ package body Files.Operations is
          end if;
       end Poll;
    begin
-      Files.Model.Update_Folder_Scan (Model, Poll'Access);
+      Files.Model.Folder_Sizes.Update_Folder_Scan (Model, Poll'Access);
       declare
          Stale : Files.Folder_Size.Measurement_Vectors.Vector;
 
@@ -636,9 +654,9 @@ package body Files.Operations is
             end loop;
          end Measure_Again;
       begin
-         Files.Model.Note_Folder_Sizes (Model, Taken, Stale);
+         Files.Model.Folder_Sizes.Note_Folder_Sizes (Model, Taken, Stale);
          if not Stale.Is_Empty then
-            Files.Model.Update_Folder_Scan (Model, Measure_Again'Access);
+            Files.Model.Folder_Sizes.Update_Folder_Scan (Model, Measure_Again'Access);
          end if;
       end;
    end Poll_Folder_Sizes;
@@ -651,7 +669,7 @@ package body Files.Operations is
          Files.Folder_Size.Take_All (Scan, Discarded);
       end Cancel;
    begin
-      Files.Model.Update_Folder_Scan (Model, Cancel'Access);
+      Files.Model.Folder_Sizes.Update_Folder_Scan (Model, Cancel'Access);
    end Cancel_Folder_Scan;
 
    procedure Update_Folder_Size
@@ -676,7 +694,7 @@ package body Files.Operations is
             Current := Files.Folder_Size.Targets_Set_For (Scan, Rows, Selection);
          end Check;
       begin
-         Files.Model.Update_Folder_Scan (Model, Check'Access);
+         Files.Model.Folder_Sizes.Update_Folder_Scan (Model, Check'Access);
          if Current then
             return;
          end if;
@@ -686,28 +704,28 @@ package body Files.Operations is
       --  Every selected directory is measured -- for any selection, not only when
       --  the info pane is open -- so both the info pane and the bottom bar's
       --  combined total can count folder contents.
-      if Files.Model.Selected_Count (Model) >= 1
-        and then not Files.Model.Selection_Includes_Temporary (Model)
+      if Files.Model.Selection.Selected_Count (Model) >= 1
+        and then not Files.Model.Selection.Selection_Includes_Temporary (Model)
       then
          declare
             Targets : Files.Folder_Size.Path_Vectors.Vector;
             --  When each was listed, so a size measured before it changed
-            --  is told apart (Files.Model.Note_Folder_Sizes).
+            --  is told apart (Files.Model.Folder_Sizes.Note_Folder_Sizes).
             Listed  : Files.Folder_Size.Time_Vectors.Vector;
 
             --  Read in place: a copy of a large selection, on every change.
             procedure Add (Item : Files.Items.Directory_Item) is
             begin
                if Item.Kind = Files.Types.Directory_Item
-                 and then not Files.Model.Folder_Size_Cached_For (Model, To_String (Item.Full_Path))
+                 and then not Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, To_String (Item.Full_Path))
                then
                   Targets.Append (Item.Full_Path);
                   Listed.Append (Item.Modified_Time);
                end if;
             end Add;
          begin
-            Files.Model.Prune_Folder_Sizes_To_Selection (Model);
-            Files.Model.For_Each_Selected_Item (Model, Add'Access);
+            Files.Model.Folder_Sizes.Prune_Folder_Sizes_To_Selection (Model);
+            Files.Model.Selection.For_Each_Selected_Item (Model, Add'Access);
             declare
                Rows      : constant Natural := Files.Model.Rows_Revision (Model);
                Selection : constant Natural := Files.Model.Selection_Revision (Model);
@@ -718,12 +736,12 @@ package body Files.Operations is
                   Files.Folder_Size.Note_Targets_Set_For (Scan, Rows, Selection);
                end Retarget;
             begin
-               Files.Model.Update_Folder_Scan (Model, Retarget'Access);
+               Files.Model.Folder_Sizes.Update_Folder_Scan (Model, Retarget'Access);
             end;
          end;
       else
          Cancel_Folder_Scan (Model);
-         Files.Model.Clear_Folder_Size (Model);
+         Files.Model.Folder_Sizes.Clear_Folder_Size (Model);
       end if;
    end Update_Folder_Size;
 
@@ -903,7 +921,7 @@ package body Files.Operations is
             Content : Files.Quick_Look.Quick_Look_Content renames Files.Model.Quick_Look.Content_Of (Model);
          begin
             if Content.Kind = Files.Quick_Look.Image_Content
-              and then Files.Shared_Bytes.Is_Empty (Content.Image_Pixels)
+              and then Guikit.Shared_Bytes.Is_Empty (Content.Image_Pixels)
             then
                declare
                   Path  : constant String := To_String (Content.Image_Path);
@@ -916,7 +934,7 @@ package body Files.Operations is
                      Files.Preview_Decoder.Request (Owner, Path, Files.Quick_Look.Preview_Side);
                   elsif Ready and then Image.Available then
                      Files.Model.Quick_Look.Set_Image
-                       (Model, Path, Files.Shared_Bytes.To_Shared (Image.Pixels), Image.Width, Image.Height);
+                       (Model, Path, Guikit.Shared_Bytes.To_Shared (Image.Pixels), Image.Width, Image.Height);
                   end if;
                end;
             end if;

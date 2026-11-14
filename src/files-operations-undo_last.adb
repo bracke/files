@@ -17,7 +17,7 @@ begin
    then
       return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Undo);
    end if;
-   Files.Model.Take_Undo (Model, Action, Found);
+   Files.Model.History.Take_Undo (Model, Action, Found);
    if not Found then
       Files.Model.Set_Error (Model, "error.undo.failed");
       return Make_Result (Operation_Failed, "error.undo.failed", Directory);
@@ -33,7 +33,7 @@ begin
    --  Mode/owner restores are idempotent. An undo-only
    --  action that fully succeeded is simply consumed.
    if not Succeeded then
-      Files.Model.Push_Undo (Model, Action);
+      Files.Model.History.Push_Undo (Model, Action);
       Settle_History (Model);
    elsif Action.Redoable then
       --  A subsequent redo starts a new Undo cycle for the full action.
@@ -41,7 +41,7 @@ begin
       Action.Restores_Completed.Clear;
       Action.Forward_Completed.Clear;
       Action.Copy_Records.Clear;
-      Files.Model.Push_Redo (Model, Action);
+      Files.Model.History.Push_Redo (Model, Action);
       Settle_History (Model);
    end if;
 
@@ -51,7 +51,7 @@ exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.Operations");
       if Found and then not Returned_Action then
-         Files.Model.Push_Undo (Model, Action);
+         Files.Model.History.Push_Undo (Model, Action);
          Settle_History (Model);
       end if;
       Files.Model.Set_Error (Model, "error.undo.failed");

@@ -3,6 +3,9 @@ with Ada.Strings.Unbounded;
 
 with Files.File_System;
 with Files.File_Types;
+with Files.Model.History;
+with Files.Model.Rename;
+with Files.Model.Selection;
 
 package body Files.Commands.Status is
 
@@ -23,7 +26,7 @@ package body Files.Commands.Status is
          end if;
       end Check;
    begin
-      Files.Model.For_Each_Selected_Item (Model, Check'Access);
+      Files.Model.Selection.For_Each_Selected_Item (Model, Check'Access);
       return Found;
    end Selection_Has_Archive;
 

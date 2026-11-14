@@ -90,15 +90,15 @@ separate (Files_Suite.Operations)
             Files.Settings.Note_Recent (Settings, Unselected);
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Step := Files.Operations.Navigate_Recent (Model, Settings);
-            Files.Model.Select_All_Visible (Model);
+            Files.Model.Selection.Select_All_Visible (Model);
             for Index in 1 .. Files.Model.Visible_Count (Model) loop
                Expected_Rows.Append (Files.Model.Visible_Item (Model, Index).Full_Path);
                if Files.Model.Visible_Item (Model, Index).Full_Path = To_Unbounded_String (Unselected) then
-                  Files.Model.Toggle_Visible_Selection (Model, Index);
+                  Files.Model.Selection.Toggle_Visible_Selection (Model, Index);
                end if;
             end loop;
             Files_Suite.Support.Assert_Equal
-              (Files.Model.Selected_Count (Model),
+              (Files.Model.Selection.Selected_Count (Model),
                3,
                "select files from two folders and one directory");
             Files.Model.Set_Background_Transfers (Model, Background);
@@ -123,7 +123,7 @@ separate (Files_Suite.Operations)
                "",
                "Recent Duplicate reports success and records all created paths for Undo: no error");
             Assert
-              (Files.Model.Undo_Available (Model),
+              (Files.Model.History.Undo_Available (Model),
                "Recent Duplicate reports success and records all created paths for Undo: undo available");
             Check_Recent;
             Check_Copies;

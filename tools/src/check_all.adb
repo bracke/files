@@ -2,11 +2,11 @@ with Ada.Command_Line;
 with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Containers.Indefinite_Vectors;
+with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Hash;
-with Ada.Strings.Maps;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
@@ -28,7 +28,6 @@ use Project_Tools.Text;
 procedure Check_All is
    use Ada.Strings.Unbounded;
    use Ada.Text_IO;
-   use type Ada.Directories.File_Kind;
 
    Max_Line_Length : constant Natural := 120;
 
@@ -92,10 +91,9 @@ procedure Check_All is
         or else Ends_With (Name, ".svg");
    end Is_Text_Project_File;
 
-   function Is_Generated_Directory_Name (Name : String) return Boolean is
-   begin
-      return Name = "bin" or else Name = "obj";
-   end Is_Generated_Directory_Name;
+   --  Build output directories, never walked by a tree check.
+   Generated_Directories : constant Project_Tools.Files.Name_List :=
+     [To_Unbounded_String ("bin"), To_Unbounded_String ("obj")];
 
    procedure Require_Command (Name : String) is
    begin
@@ -161,17 +159,11 @@ procedure Check_All is
    function Suite_Sources return String is
       Dir    : constant String := Root & "/tests/tests/src";
       Result : Unbounded_String;
-      Search : Ada.Directories.Search_Type;
-      Found  : Ada.Directories.Directory_Entry_Type;
    begin
-      Ada.Directories.Start_Search
-        (Search, Dir, "files_suite*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Found);
-         Append (Result, Project_Tools.Text.Read_Text_File (Ada.Directories.Full_Name (Found)));
+      for Path of Project_Tools.Files.List_Tree (Dir, "files_suite*.adb", Generated_Directories) loop
+         Append (Result, Project_Tools.Text.Read_Text_File (To_String (Path)));
          Append (Result, ASCII.LF);
       end loop;
-      Ada.Directories.End_Search (Search);
       return To_String (Result);
    end Suite_Sources;
 
@@ -179,17 +171,11 @@ procedure Check_All is
    function Check_All_Sources return String is
       Dir    : constant String := Root & "/tools/src";
       Result : Unbounded_String;
-      Search : Ada.Directories.Search_Type;
-      Found  : Ada.Directories.Directory_Entry_Type;
    begin
-      Ada.Directories.Start_Search
-        (Search, Dir, "check_all*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Found);
-         Append (Result, Project_Tools.Text.Read_Text_File (Ada.Directories.Full_Name (Found)));
+      for Path of Project_Tools.Files.List_Tree (Dir, "check_all*.adb", Generated_Directories) loop
+         Append (Result, Project_Tools.Text.Read_Text_File (To_String (Path)));
          Append (Result, ASCII.LF);
       end loop;
-      Ada.Directories.End_Search (Search);
       return To_String (Result);
    end Check_All_Sources;
 
@@ -197,15 +183,7 @@ procedure Check_All is
 
    procedure Check_Line_Lengths_In_File (Path : String) is separate;
 
-   procedure Check_Line_Lengths_In_Tree (Path : String) is separate;
-
-   procedure Check_Line_Lengths is separate;
-
    procedure Check_Consecutive_Empty_Lines_In_File (Path : String) is separate;
-
-   procedure Check_Consecutive_Empty_Lines_In_Tree (Path : String) is separate;
-
-   procedure Check_Consecutive_Empty_Lines is separate;
 
    function Is_Whitespace_Checked_File (Name : String) return Boolean is
    begin
@@ -224,19 +202,71 @@ procedure Check_All is
 
    procedure Check_Whitespace_In_File (Path : String) is separate;
 
-   procedure Check_Whitespace_In_Tree (Path : String) is separate;
+   --  Every text file of the project the line checks read: the text files
+   --  (Is_Text_Project_File) of the source, test, tooling, configuration and
+   --  share trees, build output skipped, and the manifests, project files and
+   --  ignore lists at the roots of the main, test and tooling crates.
+   function Project_Text_Files return Project_Tools.Files.Path_List is
+      use type Project_Tools.Files.Path_List;
 
-   procedure Check_Whitespace is separate;
+      function Text_Files_In (Path : String) return Project_Tools.Files.Path_List is
+         Found  : constant Project_Tools.Files.Path_List :=
+           Project_Tools.Files.List_Tree (Path, "*", Generated_Directories);
+         Result : Project_Tools.Files.Path_List (1 .. Found'Length);
+         Last   : Natural := 0;
+      begin
+         for Item of Found loop
+            if Is_Text_Project_File (Ada.Directories.Simple_Name (To_String (Item))) then
+               Last := Last + 1;
+               Result (Last) := Item;
+            end if;
+         end loop;
+         return Result (1 .. Last);
+      end Text_Files_In;
+
+      At_Roots : constant Project_Tools.Files.Path_List :=
+        [To_Unbounded_String (Root & "/.gitignore"),
+         To_Unbounded_String (Root & "/alire.toml"),
+         To_Unbounded_String (Root & "/files.gpr"),
+         To_Unbounded_String (Root & "/tests/.gitignore"),
+         To_Unbounded_String (Root & "/tests/alire.toml"),
+         To_Unbounded_String (Root & "/tests/tests.gpr"),
+         To_Unbounded_String (Root & "/tools/alire.toml"),
+         To_Unbounded_String (Root & "/tools/files_check_all.gpr")];
+   begin
+      return Text_Files_In (Root & "/config")
+        & Text_Files_In (Root & "/src")
+        & Text_Files_In (Root & "/tests/tests/src")
+        & Text_Files_In (Root & "/tools/config")
+        & Text_Files_In (Root & "/tools/src")
+        & Text_Files_In (Root & "/share")
+        & At_Roots;
+   end Project_Text_Files;
+
+   --  One pass over Project_Text_Files running every line check on each:
+   --  line length, consecutive empty lines and, where it applies
+   --  (Is_Whitespace_Checked_File), tabs and trailing whitespace.
+   procedure Check_Project_Text_Files is separate;
+
+   --  Visit every Ada source (".ads" and ".adb") under Path, build output
+   --  skipped, but the one whose simple name is Except.
+   procedure For_Each_Ada_Source
+     (Path   : String;
+      Visit  : not null access procedure (Path : String);
+      Except : String := "") is
+   begin
+      for Source of Project_Tools.Files.List_Tree (Path, "*.ad[sb]", Generated_Directories) loop
+         if Ada.Directories.Simple_Name (To_String (Source)) /= Except then
+            Visit (To_String (Source));
+         end if;
+      end loop;
+   end For_Each_Ada_Source;
 
    procedure Check_GNATdoc_In_File (Path : String) is separate;
-
-   procedure Check_GNATdoc_In_Tree (Path : String) is separate;
 
    procedure Check_GNATdoc_Comments is separate;
 
    procedure Check_Ada_Keyword_Identifier_In_File (Path : String) is separate;
-
-   procedure Check_Ada_Keyword_Identifiers_In_Tree (Path : String) is separate;
 
    procedure Check_Ada_Keyword_Identifiers is separate;
 
@@ -294,6 +324,51 @@ procedure Check_All is
    --  for in code with its strings kept, every other one with them blanked.
    function Quotes (Pattern : String) return Boolean is
      (Ada.Strings.Fixed.Index (Pattern, """") > 0);
+
+   function Is_Ada_Identifier_Char (Char : Character) return Boolean is
+     (Char in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_');
+
+   --  Ada source as tokens, for the checks that must not be fooled by a
+   --  comment or a string literal that spells what they look for, nor by
+   --  how a statement is laid out over lines.
+   package Tokens is
+      --  A word (identifier, keyword or number), a string or character
+      --  literal (its contents, quotes and doubling undone), or a delimiter.
+      type Token_Kind is (Word, Literal, Symbol);
+
+      --  One token: its kind and its text, lower case.
+      type Token is record
+         Kind : Token_Kind := Symbol;
+         Text : Unbounded_String;
+      end record;
+
+      package Token_Vectors is new Ada.Containers.Vectors (Index_Type => Positive, Element_Type => Token);
+
+      --  The tokens of a source, in order.
+      subtype Token_List is Token_Vectors.Vector;
+
+      --  @param Item Token to test.
+      --  @param Text Delimiter text, lower case.
+      --  @return True when Item is the delimiter Text.
+      function Is_Symbol (Item : Token; Text : String) return Boolean is
+        (Item.Kind = Symbol and then To_String (Item.Text) = Text);
+
+      --  @param Item Token to test.
+      --  @param Text Word, lower case.
+      --  @return True when Item is the word Text.
+      function Is_Word (Item : Token; Text : String) return Boolean is
+        (Item.Kind = Word and then To_String (Item.Text) = Text);
+
+      --  The tokens of an Ada source, lower-cased, comments dropped. A quote
+      --  after a word (but one a character literal may follow, as "when")
+      --  or ")" is an attribute's tick (String'("x")); any other one with a
+      --  character two places on opens a character literal.
+      --  @param Source Ada source text.
+      --  @return Its tokens, in order.
+      function Tokens_Of (Source : String) return Token_List;
+   end Tokens;
+
+   package body Tokens is separate;
 
    --  Require the sources in src/ whose names start with Prefix (".ads" and
    --  ".adb": a unit, its children and subunits) to name nothing from
@@ -391,8 +466,6 @@ procedure Check_All is
          return False;
    end Has_Shebang;
 
-   procedure Check_Ada_Only_Tooling_In_Tree (Path : String);
-
    procedure Check_Ada_Only_Tooling_File
      (Name : String;
       Full : String) is separate;
@@ -418,9 +491,6 @@ procedure Check_All is
    end Is_Source_String_Delimiter;
 
    function Looks_Like_User_Text (Literal : String) return Boolean is separate;
-
-   function Is_Ada_Identifier_Char (Char : Character) return Boolean is
-     (Char in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_');
 
    --  The length of a developer-diagnostic pragma header ("pragma
    --  Compile_Time_Error" and friends) beginning at Content (From), or 0 when
@@ -455,8 +525,6 @@ procedure Check_All is
    end Diagnostic_Pragma_Length;
 
    procedure Check_No_User_Text_Literals (Path : String) is separate;
-
-   procedure Check_No_User_Text_Literals_In_Source_Tree (Path : String) is separate;
 
    procedure Check_Command_Localization_Keys is separate;
 
@@ -513,11 +581,7 @@ procedure Check_All is
 
    procedure Check_Indirect_Localization_Keys_In_File (Path : String) is separate;
 
-   procedure Check_Indirect_Localization_Keys_In_Tree (Path : String) is separate;
-
    procedure Check_Direct_Localization_Call_Keys_In_File (Path : String) is separate;
-
-   procedure Check_Direct_Localization_Call_Keys_In_Tree (Path : String) is separate;
 
    --  Which host this is, is asked of Hostkit.Host.Current: the build's OS
    --  string spelled the same question a second way, and the code around each
@@ -741,9 +805,7 @@ begin
    Project_Tools.Files.Write_Text_File (Combined_Suite, Suite_Sources);
    Project_Tools.Files.Write_Text_File (Combined_Check_All, Check_All_Sources);
 
-   Check_Line_Lengths;
-   Check_Consecutive_Empty_Lines;
-   Check_Whitespace;
+   Check_Project_Text_Files;
    Check_GNATdoc_Comments;
    Check_Ada_Keyword_Identifiers;
    Check_AUnit_Test_Registration;

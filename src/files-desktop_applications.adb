@@ -1,4 +1,3 @@
-with Ada.Characters.Handling;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Containers.Indefinite_Ordered_Sets;
@@ -634,53 +633,25 @@ package body Files.Desktop_Applications is
       Terminal : String)
       return Files.Settings.Open_Action
    is
-      --  The terminal's program name: no folder, no ".exe", lower case.
-      function Program_Name return String is
-         First : Positive := Terminal'First;
-         Last  : Natural := Terminal'Last;
-      begin
-         for Index in Terminal'Range loop
-            if Terminal (Index) in '/' | '\' then
-               First := Index + 1;
-            end if;
-         end loop;
-         if Last - First + 1 > 4
-           and then Ada.Characters.Handling.To_Lower (Terminal (Last - 3 .. Last)) = ".exe"
-         then
-            Last := Last - 4;
-         end if;
-         return Ada.Characters.Handling.To_Lower (Terminal (First .. Last));
-      end Program_Name;
-
-      Name    : constant String := Program_Name;
-      Options : Files.Types.String_Vectors.Vector;
+      Prefix  : Hostkit.String_Vectors.Vector;
       Wrapped : Files.Settings.Open_Action := Action;
       None    : constant Files.Settings.Open_Action := (others => <>);
    begin
-      if Terminal = "" or else Action.Use_Shell or else To_String (Action.Executable) = "" then
+      --  A terminal Hostkit has no way to hand a program and its arguments
+      --  to (PowerShell, macOS `open`, one it does not know) cannot run
+      --  Action, so the entry gets no launch rather than a guessed one.
+      if Terminal = ""
+        or else Action.Use_Shell
+        or else To_String (Action.Executable) = ""
+        or else not Hostkit.Process.Terminal_Program_Prefix (Terminal, Prefix)
+      then
          return None;
-      end if;
-      if Name = "gnome-terminal" then
-         Options.Append (To_Unbounded_String ("--"));
-      elsif Name in "xfce4-terminal" | "terminator" then
-         Options.Append (To_Unbounded_String ("-x"));
-      elsif Name = "wezterm" then
-         Options.Append (To_Unbounded_String ("start"));
-         Options.Append (To_Unbounded_String ("--"));
-      elsif Name in "kitty" | "foot" | "wt" then
-         null;
-      elsif Name = "cmd" then
-         Options.Append (To_Unbounded_String ("/k"));
-      elsif Name in "pwsh" | "powershell" | "open" then
-         --  These take a command line, not a program and its arguments.
-         return None;
-      else
-         --  x-terminal-emulator, konsole, tilix, alacritty, ghostty, urxvt,
-         --  xterm and most others.
-         Options.Append (To_Unbounded_String ("-e"));
       end if;
       Wrapped.Executable := To_Unbounded_String (Terminal);
-      Wrapped.Arguments := Options;
+      Wrapped.Arguments.Clear;
+      for Option of Prefix loop
+         Wrapped.Arguments.Append (Option);
+      end loop;
       Wrapped.Arguments.Append (Action.Executable);
       Wrapped.Arguments.Append_Vector (Action.Arguments);
       return Wrapped;

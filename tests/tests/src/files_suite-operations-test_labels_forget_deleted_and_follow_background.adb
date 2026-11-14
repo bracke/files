@@ -72,8 +72,8 @@ separate (Files_Suite.Operations)
          --  A rename in the window, then its Undo in the helper.
          Show_Root (False);
          Select_Name (Model, "kept.txt");
-         Files.Model.Toggle_Rename (Model);
-         Files.Model.Set_Rename_Text (Model, "renamed.txt");
+         Files.Model.Rename.Toggle_Rename (Model);
+         Files.Model.Rename.Set_Rename_Text (Model, "renamed.txt");
          Step := Files.Operations.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "the rename succeeds");
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");

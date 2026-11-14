@@ -9,7 +9,7 @@ function Create_Links
    return Operation_Result
 is
    Items     : constant Files.Items.Item_Vectors.Vector :=
-     Files.Model.Selected_Items (Model);
+     Files.Model.Selection.Selected_Items (Model);
    Directory : constant String := Files.Model.Current_Path (Model);
 
    First_Created : Unbounded_String;
@@ -66,7 +66,7 @@ is
       end if;
    end Link_Marker;
 begin
-   if Files.Model.Selection_Includes_Temporary (Model) then
+   if Files.Model.Selection.Selection_Includes_Temporary (Model) then
       return Disabled (Model, "error.create.pending");
    elsif Directory = ""
      or else Files.Model.In_Recent_View (Model)

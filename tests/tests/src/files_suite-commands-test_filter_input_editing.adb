@@ -10,7 +10,7 @@ separate (Files_Suite.Commands)
       Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Focus_Filter_Input (Model);
 
-      Files.Model.Select_Visible (Model, 2);
+      Files.Model.Selection.Select_Visible (Model, 2);
       Result := Files.Controller.Append_Focused_Text (Model, "be");
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -33,7 +33,8 @@ separate (Files_Suite.Commands)
         (Files.Model.Visible_Count (Model),
          1,
          "filter input updates visible projection");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Name (Model), "Beta.txt", "filter reconciles selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selection.Selected_Name (Model), "Beta.txt", "filter reconciles selection");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -106,7 +107,7 @@ separate (Files_Suite.Commands)
          "beta",
          "filter insert restores text at cursor");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Name (Model),
+        (Files.Model.Selection.Selected_Name (Model),
          "Beta.txt",
          "text delete preserves selected visible item");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);

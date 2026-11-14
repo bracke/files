@@ -91,16 +91,18 @@ package Files.Desktop_Applications is
 
    --  The open action that runs Action inside the terminal emulator
    --  Terminal (Hostkit.Process.Default_Terminal names one): the terminal's
-   --  program, its option for a command to run (-e for most, -- for
-   --  gnome-terminal, -x for xfce4-terminal and terminator, start -- for
-   --  wezterm, none for kitty, foot and Windows Terminal, /k for cmd), then
+   --  program, its way of being handed a program to run
+   --  (Hostkit.Process.Terminal_Program_Prefix: -e for most, -- for
+   --  gnome-terminal and foot, -x for xfce4-terminal and terminator, start --
+   --  for wezterm, none for kitty and Windows Terminal, /k for cmd), then
    --  Action's executable and arguments, as arguments of their own.
    --
    --  @param Action The command to run; a shell command line is not wrapped.
    --  @param Terminal The terminal's program, by name or path.
    --  @return The wrapped action; one with no executable when there is no
    --          terminal, or it has no known way to be handed a program and its
-   --          arguments (PowerShell, macOS `open`).
+   --          arguments (PowerShell, macOS `open`, a terminal Hostkit does
+   --          not list).
    function In_Terminal
      (Action   : Files.Settings.Open_Action;
       Terminal : String)

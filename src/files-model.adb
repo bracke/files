@@ -1,33 +1,11 @@
-with Files.Diagnostics;
-with Ada.Containers.Ordered_Sets;
-
-with Files.Type_Ahead;
+with Guikit.Layout;
+with Guikit.Utf8.Editing;
 
 with Files.Model.Support;
-with Files.Path_Checks;
-with Files.Undo_Payloads;
 
 package body Files.Model is
 
-   --  An idle folder-size session, to release a held one by assignment
-   --  (the transfer and process ones are Support's).
-   function Released_Scan return Files.Folder_Size.Session is
-      Idle : Files.Folder_Size.Session;
-   begin
-      return Idle;
-   end Released_Scan;
    use Ada.Strings.Unbounded;
-
-   package UString_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => UString);
-
-   --  Cap the undo history so a session doing thousands of operations does not
-   --  grow it without bound: each entry retains the full source and destination
-   --  path lists (and permission/ownership images), so an unbounded stack pins
-   --  that data for the life of the window. Past the cap the oldest entry --
-   --  least likely to ever be undone -- is dropped; LIFO undo only touches the
-   --  newest, so the reachable history is unaffected.
-   Max_Undo_Depth : constant := 200;
 
    procedure Set_Created
      (Action : in out Undo_Entry; Index : Positive; Identity, Tree_Revision : UString) is
@@ -41,303 +19,6 @@ package body Files.Model is
       Action.Created_Identities.Replace_Element (Index, Identity);
       Action.Created_Tree_Revisions.Replace_Element (Index, Tree_Revision);
    end Set_Created;
-
-   function Undo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.History.Undo_Stack);
-   function Redo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.History.Redo_Stack);
-
-   function Same_Length
-     (Left, Right : Files.Types.String_Vectors.Vector) return Boolean is
-     (Natural (Left.Length) = Natural (Right.Length));
-
-   function Nonempty_Values
-     (Values : Files.Types.String_Vectors.Vector) return Boolean is
-   begin
-      for Value of Values loop
-         if Length (Value) = 0 then
-            return False;
-         end if;
-      end loop;
-      return True;
-   end Nonempty_Values;
-
-   function Unique_Nonempty_Values
-     (Values : Files.Types.String_Vectors.Vector) return Boolean
-   is
-      Seen : UString_Sets.Set;
-   begin
-      for Value of Values loop
-         if Length (Value) = 0 or else Seen.Contains (Value) then
-            return False;
-         end if;
-         Seen.Insert (Value);
-      end loop;
-      return True;
-   end Unique_Nonempty_Values;
-
-   function Valid_Absolute_Path (Value : UString) return Boolean is
-     (Files.Path_Checks.Valid_Absolute_Path (To_String (Value)));
-
-   function Absolute_Paths
-     (Values : Files.Types.String_Vectors.Vector) return Boolean is
-   begin
-      for Value of Values loop
-         if not Valid_Absolute_Path (Value) then
-            return False;
-         end if;
-      end loop;
-      return True;
-   end Absolute_Paths;
-
-   function Unique_Absolute_Paths
-     (Values : Files.Types.String_Vectors.Vector) return Boolean is
-   begin
-      return Unique_Nonempty_Values (Values) and then Absolute_Paths (Values);
-   end Unique_Absolute_Paths;
-
-   function Completion_Markers_Valid
-     (Markers, Allowed : Files.Types.String_Vectors.Vector) return Boolean
-   is
-      Seen : UString_Sets.Set;
-      Allowed_Values : UString_Sets.Set;
-   begin
-      for Value of Allowed loop
-         Allowed_Values.Include (Value);
-      end loop;
-      for Marker of Markers loop
-         if Length (Marker) = 0
-           or else not Allowed_Values.Contains (Marker)
-           or else Seen.Contains (Marker)
-         then
-            return False;
-         end if;
-         Seen.Insert (Marker);
-      end loop;
-      return True;
-   end Completion_Markers_Valid;
-
-   function History_Entry_Usable
-     (Action : Undo_Entry; For_Redo : Boolean) return Boolean
-   is
-      Main_Count : constant Natural := Natural (Action.From.Length);
-      Restore_Count : constant Natural := Natural (Action.Restore_Trash.Length);
-
-      function Payload_Images_Valid
-        (Values : Files.Types.String_Vectors.Vector;
-         Ownership : Boolean) return Boolean is
-      begin
-         if Natural (Values.Length) /= Main_Count then
-            return False;
-         end if;
-         for Value of Values loop
-            if (if Ownership then not Files.Undo_Payloads.Is_Ownership_Text (To_String (Value))
-                else not Files.Undo_Payloads.Is_Mode_Text (To_String (Value)))
-            then
-               return False;
-            end if;
-         end loop;
-         return True;
-      end Payload_Images_Valid;
-
-      Forward_Markers_Valid : Boolean := False;
-      --  Reverse markers name a From path or a kept copy.
-      Reverse_Allowed : Files.Types.String_Vectors.Vector := Action.From;
-   begin
-      Reverse_Allowed.Append_Vector (Action.Kept_Copies);
-      if Action.Kind = Undo_None
-        or else Main_Count = 0
-        or else not Unique_Absolute_Paths (Action.From)
-        or else (not Action.Kept_Copies.Is_Empty
-          and then (Action.Kind /= Undo_Move
-            or else Action.Redoable
-            or else not Unique_Absolute_Paths (Action.Kept_Copies)
-            or else not Same_Length (Action.Kept_Copies, Action.Kept_Copy_Identities)
-            or else not Same_Length (Action.Kept_Copies, Action.Kept_Copy_Tree_Revisions)
-            or else not Nonempty_Values (Action.Kept_Copy_Identities)
-            or else not Unique_Nonempty_Values (Reverse_Allowed)))
-        or else (Action.Kept_Copies.Is_Empty
-          and then not (Action.Kept_Copy_Identities.Is_Empty and then Action.Kept_Copy_Tree_Revisions.Is_Empty))
-        or else not Same_Length (Action.From, Action.Created_Identities)
-        or else not Same_Length (Action.From, Action.Created_Tree_Revisions)
-        or else not Nonempty_Values (Action.Created_Identities)
-        or else (For_Redo and then not Action.Redoable)
-      then
-         return False;
-      end if;
-
-      if Restore_Count = 0 then
-         if not Action.Restore_Identities.Is_Empty
-           or else not Action.Restore_Targets.Is_Empty
-           or else not Action.Restores_Completed.Is_Empty
-         then
-            return False;
-         end if;
-      elsif Action.Redoable
-        or else Action.Kind not in Undo_Move | Undo_Delete_Created
-        or else not Unique_Absolute_Paths (Action.Restore_Trash)
-        or else not Same_Length (Action.Restore_Trash, Action.Restore_Identities)
-        or else not Same_Length (Action.Restore_Trash, Action.Restore_Targets)
-        or else not Nonempty_Values (Action.Restore_Identities)
-        or else not Unique_Absolute_Paths (Action.Restore_Targets)
-        or else not Completion_Markers_Valid
-          (Action.Restores_Completed, Action.Restore_Trash)
-      then
-         return False;
-      end if;
-
-      case Action.Kind is
-         when Undo_Rename | Undo_Move =>
-            if not Same_Length (Action.From, Action.To)
-              or else not Unique_Absolute_Paths (Action.To)
-              or else not Action.Forward.Is_Empty
-              or else Action.Create_Kind /= Create_None
-            then
-               return False;
-            end if;
-            Forward_Markers_Valid :=
-              Completion_Markers_Valid (Action.Forward_Completed, Action.To);
-
-         when Undo_Restore_Trash =>
-            if Action.Redoable
-              or else not Same_Length (Action.From, Action.To)
-              or else not Unique_Absolute_Paths (Action.To)
-              or else not Action.Forward.Is_Empty
-              or else Action.Create_Kind /= Create_None
-              or else Restore_Count /= 0
-              or else not Action.Forward_Completed.Is_Empty
-            then
-               return False;
-            end if;
-            Forward_Markers_Valid := True;
-
-         when Undo_Delete_Created =>
-            if not Action.To.Is_Empty
-              or else (Action.Redoable
-                and then (Action.Create_Kind = Create_None
-                  or else not Same_Length (Action.From, Action.Forward)
-                  or else not Absolute_Paths (Action.Forward)))
-              or else (not Action.Redoable and then not Action.Forward.Is_Empty)
-            then
-               return False;
-            end if;
-            Forward_Markers_Valid :=
-              Completion_Markers_Valid (Action.Forward_Completed, Action.From);
-
-         when Undo_Set_Permissions =>
-            if Action.Create_Kind /= Create_None
-              or else Restore_Count /= 0
-              or else not Payload_Images_Valid (Action.To, False)
-              or else (Action.Redoable and then not Payload_Images_Valid (Action.Forward, False))
-              or else (not Action.Redoable and then not Action.Forward.Is_Empty)
-              or else not Action.Reverse_Completed.Is_Empty
-              or else not Action.Forward_Completed.Is_Empty
-            then
-               return False;
-            end if;
-            Forward_Markers_Valid := True;
-
-         when Undo_Set_Ownership =>
-            if Action.Create_Kind /= Create_None
-              or else Restore_Count /= 0
-              or else not Payload_Images_Valid (Action.To, True)
-              or else (Action.Redoable and then not Payload_Images_Valid (Action.Forward, True))
-              or else (not Action.Redoable and then not Action.Forward.Is_Empty)
-              or else not Action.Reverse_Completed.Is_Empty
-              or else not Action.Forward_Completed.Is_Empty
-            then
-               return False;
-            end if;
-            Forward_Markers_Valid := True;
-
-         when Undo_None =>
-            return False;
-      end case;
-
-      return Forward_Markers_Valid
-        and then Completion_Markers_Valid (Action.Reverse_Completed, Reverse_Allowed)
-        and then (not For_Redo or else
-          (Action.Reverse_Completed.Is_Empty and then Action.Restores_Completed.Is_Empty))
-        and then (For_Redo or else Action.Forward_Completed.Is_Empty)
-        and then
-          ((Action.Copy_Records.Is_Empty)
-           or else (Action.Kind = Undo_Delete_Created
-             and then Action.Redoable
-             and then Action.Create_Kind = Create_Copy
-             and then Files.Copy_Context.Valid (Action.Copy_Records)));
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Model");
-         return False;
-   end History_Entry_Usable;
-
-   --  The usable entries of Undo and Redo, each with a Sequence: one an
-   --  older journal did not carry is given the next of Next.
-   procedure Sanitize_History
-     (Undo, Redo : Undo_Entry_Vectors.Vector;
-      Next : in out Positive;
-      Sanitized_Undo, Sanitized_Redo : out Undo_Entry_Vectors.Vector)
-   is
-      procedure Keep (Action : Undo_Entry; For_Redo : Boolean; Stack : in out Undo_Entry_Vectors.Vector) is
-         Kept : Undo_Entry := Action;
-      begin
-         if History_Entry_Usable (Action, For_Redo) then
-            if Kept.Sequence = 0 then
-               Kept.Sequence := Next;
-            end if;
-            Next := Positive'Max (Next, Kept.Sequence + 1);
-            Stack.Append (Kept);
-         end if;
-      end Keep;
-   begin
-      Sanitized_Undo.Clear;
-      Sanitized_Redo.Clear;
-      for Action of Undo loop
-         Keep (Action, False, Sanitized_Undo);
-      end loop;
-      for Action of Redo loop
-         Keep (Action, True, Sanitized_Redo);
-      end loop;
-   end Sanitize_History;
-
-   procedure Set_History
-     (Model : in out Window_Model;
-      Undo, Redo : Undo_Entry_Vectors.Vector;
-      State : History_Journal_State := (others => <>))
-   is
-      package Sequence_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Positive);
-      Sanitized_Undo, Sanitized_Redo : Undo_Entry_Vectors.Vector;
-      Next : Positive := State.Next_Sequence;
-      Held, Listed : Sequence_Sets.Set;
-      Left_Out : Sequence_Vectors.Vector;
-   begin
-      Sanitize_History (Undo, Redo, Next, Sanitized_Undo, Sanitized_Redo);
-      for Action of Sanitized_Undo loop
-         Held.Include (Action.Sequence);
-      end loop;
-      for Action of Sanitized_Redo loop
-         Held.Include (Action.Sequence);
-      end loop;
-      --  The journal's left-out list, pruned to what can still name an entry
-      --  the history left out: once each, never one this history holds (it
-      --  is journaled again), never one past the Sequences handed out.
-      for Sequence of State.Unjournaled loop
-         if Sequence < Next and then not Held.Contains (Sequence) and then not Listed.Contains (Sequence) then
-            Listed.Include (Sequence);
-            Left_Out.Append (Sequence);
-         end if;
-      end loop;
-      Model.History.Undo_Stack := Sanitized_Undo;
-      Model.History.Redo_Stack := Sanitized_Redo;
-      Model.History.Journal :=
-        (Next_Sequence => Next, Unjournaled => Left_Out, Redo_Retired => False);
-      Support.Touch (Model);
-   end Set_History;
-
-   function History_State (Model : Window_Model) return History_Journal_State is (Model.History.Journal);
-
-   procedure Merge_History
-     (Model : in out Window_Model;
-      Undo, Redo : Undo_Entry_Vectors.Vector;
-      State : History_Journal_State) is separate;
 
    procedure Set_Background_Transfers (Model : in out Window_Model; Enabled : Boolean) is
    begin
@@ -607,10 +288,10 @@ package body Files.Model is
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
       Model.Items := Items;
       Support.Invalidate_Visible (Model);
-      Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);
-      Model.Filter_Value := Null_Unbounded_String;
+      Model.Directory_Signature := Files.File_System.Unknown_Signature (Directory_Path);
+      Model.Filter.Text := Null_Unbounded_String;
       Support.Invalidate_Visible (Model);
-      Model.Filter_Cursor := 0;
+      Model.Filter.Cursor := 0;
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
       Model.View_Value := Default_View_Mode;
@@ -625,7 +306,8 @@ package body Files.Model is
       Support.Invalidate_Visible (Model);
       Model.Recent_Open_Queue.Clear;
       Model.Focus_Value := Files.Types.Focus_None;
-      Model.Path_Input := (Text => To_Unbounded_String (Directory_Path), Cursor => Directory_Path'Length, others => <>);
+      Model.Path_Input :=
+        (Edit => (Text => To_Unbounded_String (Directory_Path), Cursor => Directory_Path'Length), others => <>);
       Model.Info_Pane_Open := False;
       Model.Main_View_Scroll := 0;
       Clear_Root_Selector_State (Model);
@@ -818,7 +500,7 @@ package body Files.Model is
    function Filter_Text
      (Model : Window_Model)
       return String is
-     (To_String (Model.Filter_Value));
+     (To_String (Model.Filter.Text));
 
    procedure Clear_Filter
      (Model : in out Window_Model) is separate;
@@ -844,152 +526,13 @@ package body Files.Model is
    procedure Clear_Search_Results
      (Model : in out Window_Model) is separate;
 
-   procedure Reset_Type_Ahead
-     (Model : in out Window_Model) is separate;
-
-   function Type_Ahead_Buffer
-     (Model : Window_Model)
-      return String is
-     (To_String (Model.Type_Ahead_Buffer_Value));
-
-   procedure Type_Ahead_Input
-     (Model   : in out Window_Model;
-      Text    : String;
-      Matched : out Boolean)
-   is separate;
-
    procedure Focus_Filter_Input
      (Model : in out Window_Model) is separate;
-
-   --  Make the item at Visible_Index the Range_Anchor (none past the end).
-   procedure Note_Range_Anchor
-     (Model         : in out Window_Model;
-      Visible_Index : Positive) is
-   begin
-      Model.Range_Anchor_Path :=
-        (if Natural (Visible_Index) <= Visible_Count (Model)
-         then Visible_Item (Model, Visible_Index).Full_Path
-         else Null_Unbounded_String);
-   end Note_Range_Anchor;
-
-   procedure Select_Visible
-     (Model         : in out Window_Model;
-      Visible_Index : Positive) is separate;
-
-   procedure Toggle_Visible_Selection
-     (Model         : in out Window_Model;
-      Visible_Index : Positive)
-   is separate;
-
-   procedure Select_Visible_Range
-     (Model        : in out Window_Model;
-      Anchor_Index : Positive;
-      Target_Index : Positive)
-   is separate;
-
-   procedure Select_All_Visible
-     (Model : in out Window_Model) is separate;
-
-   procedure Clear_Selection
-     (Model : in out Window_Model) is separate;
-
-   procedure Invert_Selection
-     (Model : in out Window_Model)
-   is separate;
-
-   procedure Deselect_All
-     (Model : in out Window_Model) is separate;
-
-   procedure Move_Selection
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
-   is separate;
-
-   procedure Select_First_Visible
-     (Model : in out Window_Model)
-   is separate;
-
-   procedure Select_Last_Visible
-     (Model : in out Window_Model)
-   is separate;
-
-   procedure Move_Selection_By_Page
-     (Model     : in out Window_Model;
-      Page_Rows : Positive;
-      Down      : Boolean)
-   is separate;
-
-   procedure Set_Selection_Grid_Columns
-     (Model   : in out Window_Model;
-      Columns : Positive) is separate;
-
-   function Is_Selected
-     (Model         : Window_Model;
-      Visible_Index : Positive)
-      return Boolean is separate;
-
-   function Selected_Index
-     (Model : Window_Model)
-      return Natural is separate;
-
-   function Selected_Count
-     (Model : Window_Model)
-      return Natural is separate;
-
-   function Selected_Name
-     (Model : Window_Model)
-      return String
-   is separate;
-
-   function Selected_Item
-     (Model : Window_Model)
-      return Files.Items.Directory_Item
-   is separate;
-
-   function Selected_Items
-     (Model : Window_Model;
-      Limit : Natural := Natural'Last)
-      return Files.Items.Item_Vectors.Vector
-   is separate;
-
-   procedure For_Each_Selected_Item
-     (Model : Window_Model;
-      Visit : not null access procedure (Item : Files.Items.Directory_Item))
-   is
-   begin
-      if Selected_Count (Model) = 0 or else Model.Items.Is_Empty then
-         return;
-      end if;
-      declare
-         Selected : constant Selection_Flags := Selected_Flags (Model);
-      begin
-         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-            if Selected (Index) then
-               Visit (Model.Items (Index));
-            end if;
-         end loop;
-      end;
-   end For_Each_Selected_Item;
-
-   procedure Restore_Selection
-     (Model        : in out Window_Model;
-      Items        : Files.Items.Item_Vectors.Vector;
-      Primary_Path : String)
-   is separate;
-
-   function Selection_Includes_Temporary
-     (Model : Window_Model)
-      return Boolean is separate;
 
    function Focus
      (Model : Window_Model)
       return Files.Types.Focus_Target is
      (Model.Focus_Value);
-
-   function Select_By_Name
-     (Model : in out Window_Model;
-      Name  : String)
-      return Boolean is separate;
 
    function Reveal_Is_Pending
      (Model : Window_Model)
@@ -1001,14 +544,6 @@ package body Files.Model is
    begin
       Model.Reveal_Pending := False;
    end Clear_Reveal;
-
-   procedure Set_Selection_Page_Rows (Model : in out Window_Model; Rows : Positive) is
-   begin
-      Model.Selection_Page_Rows_Value := Rows;
-   end Set_Selection_Page_Rows;
-
-   function Selection_Page_Rows (Model : Window_Model) return Positive is
-     (Model.Selection_Page_Rows_Value);
 
    --  Cap on the back-navigation history so a session that keeps navigating does
    --  not grow it without bound. Forward history is already bounded (cleared on
@@ -1050,7 +585,7 @@ package body Files.Model is
       Model.Search_Results_Active := False;
       Support.Invalidate_Visible (Model);
       Set_Current_Path (Model, New_Path);
-      Model.Path_Input := (Text => New_Path, Cursor => Length (New_Path), others => <>);
+      Model.Path_Input := (Edit => (Text => New_Path, Cursor => Length (New_Path)), others => <>);
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
       Reset_Rename_State (Model);
@@ -1058,9 +593,9 @@ package body Files.Model is
       Clear_Root_Selector_State (Model);
       Model.Info_Pane_Scroll := 0;
       Model.Main_View_Scroll := 0;
-      Model.Filter_Value := Null_Unbounded_String;
+      Model.Filter.Text := Null_Unbounded_String;
       Support.Invalidate_Visible (Model);
-      Model.Filter_Cursor := 0;
+      Model.Filter.Cursor := 0;
       Model.Command_Palette.Open := False;
       Guikit.Command_Palette.Reset (Model.Command_Palette.View);
       Model.Focus_Value := Files.Types.Focus_None;
@@ -1088,7 +623,7 @@ package body Files.Model is
       --  selection walk it, so it must already be sorted by the model's field.
       Files.File_System.Sort_Items
         (Model.Items, Model.Sort_Field_Value, Model.Sort_Ascending);
-      Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);
+      Model.Directory_Signature := Files.File_System.Unknown_Signature (Directory_Path);
    end Navigate_To;
 
    procedure Navigate_Recent
@@ -1109,7 +644,7 @@ package body Files.Model is
       Leave_View (Model, Null_Unbounded_String);
       Model.Items := Items;
       Support.Invalidate_Visible (Model);
-      Model.Directory_Signature := Signature_From_Items ("", Items);
+      Model.Directory_Signature := Files.File_System.Unknown_Signature ("");
    end Navigate_Recent;
 
    procedure Go_Back
@@ -1168,63 +703,6 @@ package body Files.Model is
       Leave_View (Model, Mark.Path);
    end Return_To;
 
-   procedure Select_Visible_Set
-     (Model   : in out Window_Model;
-      Indexes : Visible_Index_List)
-   is
-      package Flag_Vectors is new Ada.Containers.Vectors (Positive, Boolean);
-      --  Each visible index's item, worked out once (on the heap: a folder
-      --  can be too big for the stack).
-      Visible_Items : Visible_Index_Lists.Vector;
-      Visible_Count : Natural := 0;
-      Taken         : Flag_Vectors.Vector := Flag_Vectors.To_Vector (False, Model.Items.Length);
-      Temporary_Taken : Boolean := False;
-      Chosen        : Natural_Vectors.Vector;
-      Primary       : Natural := 0;
-   begin
-      --  From the cached visible-row map: a marquee drag selects on every
-      --  move, and testing each item against the filter again was most of it.
-      Support.Ensure_Visible_Map (Model);
-      for Index of Model.Visible_Items loop
-         Visible_Count := Visible_Count + 1;
-         Visible_Items.Append (Index);
-      end loop;
-      if Temporary_Is_Visible (Model) then
-         Visible_Count := Visible_Count + 1;
-         Visible_Items.Append (Temporary_Item_Index);
-      end if;
-      for Visible of Indexes loop
-         if Visible <= Visible_Count then
-            declare
-               Item : constant Natural := Visible_Items (Visible);
-            begin
-               if Item = Temporary_Item_Index then
-                  if not Temporary_Taken then
-                     Temporary_Taken := True;
-                     Chosen.Append (Item);
-                  end if;
-                  Primary := Item;
-               elsif Item in 1 .. Natural (Taken.Length) then
-                  if not Taken (Item) then
-                     Taken (Item) := True;
-                     Chosen.Append (Item);
-                  end if;
-                  Primary := Item;
-               end if;
-            end;
-         end if;
-      end loop;
-      --  A rubber band that has not moved asks for the selection it already
-      --  has; changing nothing then leaves the snapshot to be reused.
-      if Natural_Vectors."=" (Chosen, Model.Selected_Item_Indexes) and then Primary = Model.Selected_Item_Index then
-         return;
-      end if;
-      Clear_Selection (Model);
-      Model.Selected_Item_Indexes := Chosen;
-      Model.Selected_Item_Index := Primary;
-      Reconcile_Rename_With_Selection (Model);
-   end Select_Visible_Set;
-
    procedure Focus_Path_Input
      (Model : in out Window_Model) is separate;
 
@@ -1235,7 +713,7 @@ package body Files.Model is
    function Path_Input_Text
      (Model : Window_Model)
       return String is
-     (To_String (Model.Path_Input.Text));
+     (To_String (Model.Path_Input.Edit.Text));
 
    procedure Commit_Path_Input
      (Model  : in out Window_Model;
@@ -1255,83 +733,6 @@ package body Files.Model is
    procedure Focus_Rename_Input
      (Model : in out Window_Model) is separate;
 
-   function Rename_Is_Enabled
-     (Model : Window_Model)
-      return Boolean is
-     (Selected_Count (Model) >= 1 and then not Selection_Includes_Temporary (Model));
-
-   procedure Toggle_Rename
-     (Model : in out Window_Model) is separate;
-
-   function Rename_Is_Active
-     (Model : Window_Model)
-      return Boolean is
-     (Model.Rename.Active);
-
-   function Rename_Text
-     (Model : Window_Model)
-      return String is
-     (First_Rename_Value (Model));
-
-   procedure Set_Rename_Text
-     (Model : in out Window_Model;
-      Text  : String) is separate;
-
-   function Rename_Insert_At_Carets
-     (Model : in out Window_Model;
-      Text  : String)
-      return Boolean
-   is separate;
-
-   function Rename_Delete
-     (Model    : in out Window_Model;
-      Backward : Boolean;
-      By_Word  : Boolean := False)
-      return Boolean
-   is separate;
-
-   function Rename_Move_All_Carets
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction;
-      By_Word   : Boolean := False)
-      return Boolean
-   is separate;
-
-   function Rename_Set_All_Carets_Home
-     (Model : in out Window_Model)
-      return Boolean
-   is separate;
-
-   function Rename_Set_All_Carets_End
-     (Model : in out Window_Model)
-      return Boolean
-   is separate;
-
-   procedure Set_Rename_Caret
-     (Model         : in out Window_Model;
-      Visible_Index : Natural;
-      Position      : Natural) is separate;
-
-   procedure For_Each_Rename_Field
-     (Model : Window_Model;
-      Visit : not null access procedure (Item_Index : Natural; Value : UString; Cursor : Natural)) is
-   begin
-      if Model.Rename.Active then
-         for Field of Model.Rename.Fields loop
-            Visit (Field.Item_Index, Field.Value, Field.Cursor);
-         end loop;
-      end if;
-   end For_Each_Rename_Field;
-
-   function Rename_Targets
-     (Model : Window_Model)
-      return Rename_Target_Vectors.Vector
-   is separate;
-
-   procedure Resume_Rename
-     (Model : in out Window_Model;
-      Text  : String) is separate;
-
    procedure Focus_Ownership_Input
      (Model         : in out Window_Model;
       Editing_Group : Boolean;
@@ -1341,7 +742,7 @@ package body Files.Model is
    function Ownership_Input_Text
      (Model : Window_Model)
       return String is
-     (To_String (Model.Ownership_Input.Text));
+     (To_String (Model.Ownership_Input.Edit.Text));
 
    procedure Set_Ownership_Input_Text
      (Model : in out Window_Model;
@@ -1354,27 +755,11 @@ package body Files.Model is
 
    function Text_Cursor_Position
      (Model : Window_Model)
-      return Natural is
+      return Natural
+   is
+      Field : constant Text_Field_State := Focused_Field (Model);
    begin
-      case Model.Focus_Value is
-         when Files.Types.Focus_Path_Input =>
-            return Text_Boundary_At_Or_Before (To_String (Model.Path_Input.Text), Model.Path_Input.Cursor);
-         when Files.Types.Focus_Filter_Input =>
-            return Text_Boundary_At_Or_Before (To_String (Model.Filter_Value), Model.Filter_Cursor);
-         when Files.Types.Focus_Rename_Input =>
-            return Text_Boundary_At_Or_Before (First_Rename_Value (Model), First_Rename_Cursor (Model));
-         when Files.Types.Focus_Command_Palette =>
-            --  The palette query has no separate caret; it sits at the end.
-            return Guikit.Command_Palette.Query (Model.Command_Palette.View)'Length;
-         when Files.Types.Focus_Settings_Input =>
-            --  The panel edits whole values; the caret sits at the end.
-            return Settings_Focused_Value (Model)'Length;
-         when Files.Types.Focus_Ownership_Input =>
-            return Text_Boundary_At_Or_Before
-                     (To_String (Model.Ownership_Input.Text), Model.Ownership_Input.Cursor);
-         when Files.Types.Focus_None =>
-            return 0;
-      end case;
+      return Guikit.Utf8.Editing.Boundary_At_Or_Before (To_String (Field.Text), Field.Cursor);
    end Text_Cursor_Position;
 
    procedure Set_Text_Cursor_Position
@@ -1382,20 +767,20 @@ package body Files.Model is
       Position : Natural)
    is
       Clamped : constant Natural :=
-        Text_Boundary_At_Or_Before (Focused_Text_Value (Model), Position);
+        Guikit.Utf8.Editing.Boundary_At_Or_Before (Focused_Text_Value (Model), Position);
    begin
       Support.Touch (Model);
       case Model.Focus_Value is
          when Files.Types.Focus_Path_Input =>
-            Model.Path_Input.Cursor := Clamped;
+            Model.Path_Input.Edit.Cursor := Clamped;
          when Files.Types.Focus_Filter_Input =>
-            Model.Filter_Cursor := Clamped;
+            Model.Filter.Cursor := Clamped;
          when Files.Types.Focus_Rename_Input =>
             if not Model.Rename.Fields.Is_Empty then
                declare
                   Field : Rename_Field := Model.Rename.Fields.First_Element;
                begin
-                  Field.Cursor := Clamped;
+                  Field.Edit.Cursor := Clamped;
                   Model.Rename.Fields.Replace_Element (Model.Rename.Fields.First_Index, Field);
                end;
             end if;
@@ -1406,7 +791,7 @@ package body Files.Model is
             --  The panel edits whole values; there is no movable caret.
             null;
          when Files.Types.Focus_Ownership_Input =>
-            Model.Ownership_Input.Cursor := Clamped;
+            Model.Ownership_Input.Edit.Cursor := Clamped;
          when Files.Types.Focus_None =>
             null;
       end case;
@@ -1417,14 +802,15 @@ package body Files.Model is
       Direction : Guikit.Input.Navigation_Direction)
    is
       Cursor : constant Natural := Text_Cursor_Position (Model);
+      Text   : constant String := Focused_Text_Value (Model);
    begin
       Support.Touch (Model);
       if Direction = Guikit.Input.Move_Left or else Direction = Guikit.Input.Move_Up then
          if Cursor > 0 then
-            Set_Text_Cursor_Position (Model, Previous_Text_Boundary (Focused_Text_Value (Model), Cursor));
+            Set_Text_Cursor_Position (Model, Guikit.Utf8.Editing.Previous_Boundary (Text, Cursor));
          end if;
-      elsif Cursor < Focused_Text_Length (Model) then
-         Set_Text_Cursor_Position (Model, Next_Text_Boundary (Focused_Text_Value (Model), Cursor));
+      elsif Cursor < Text'Length then
+         Set_Text_Cursor_Position (Model, Guikit.Utf8.Editing.Next_Boundary (Text, Cursor));
       end if;
    end Move_Text_Cursor;
 
@@ -1436,7 +822,7 @@ package body Files.Model is
 
       if Model.Focus_Value = Files.Types.Focus_Path_Input then
          Model.Path_Input :=
-           (Text => Model.Current_Path_Value, Cursor => Length (Model.Current_Path_Value), others => <>);
+           (Edit => (Text => Model.Current_Path_Value, Cursor => Length (Model.Current_Path_Value)), others => <>);
       end if;
 
       if Is_Temporary_Rename (Model) then
@@ -1601,7 +987,7 @@ package body Files.Model is
             Model.Sort_Field_Value,
             Model.Sort_Ascending);
       end if;
-      Model.Directory_Signature := Signature_From_Items (Current_Path (Model), Items);
+      Model.Directory_Signature := Files.File_System.Unknown_Signature (Current_Path (Model));
       Model.Main_View_Scroll := 0;
       Model.Info_Pane_Scroll := 0;
       Model.Selected_Item_Index := 0;
@@ -1633,147 +1019,6 @@ package body Files.Model is
    function Last_Error_Notice
      (Model : Window_Model)
       return String is (To_String (Model.Last_Error_Notice_Key));
-
-   procedure Retire_Payloads
-     (Pending : in out Files.Types.String_Vectors.Vector;
-      Entries : Undo_Entry_Vectors.Vector);
-
-   procedure Retire_Payloads
-     (Pending : in out Files.Types.String_Vectors.Vector;
-      Entries : Undo_Entry_Vectors.Vector) is separate;
-
-   procedure Begin_Undo_Record
-     (Model : in out Window_Model;
-      Kind  : Undo_Action_Kind;
-      From  : Files.Types.String_Vectors.Vector;
-      To    : Files.Types.String_Vectors.Vector) is separate;
-
-   function Commit_Undo_Record
-     (Model  : in out Window_Model;
-      Action : Undo_Entry) return Boolean is separate;
-
-   procedure Take_Retired_History
-     (Model         : in out Window_Model;
-      Discarded     : out Files.Types.String_Vectors.Vector;
-      Released      : out Files.Types.String_Vectors.Vector;
-      Journal_Dirty : out Boolean) is separate;
-
-   procedure Release_History
-     (Model : in out Window_Model)
-   is separate;
-
-   procedure Clear_Undo
-     (Model : in out Window_Model) is separate;
-
-   function Undo_Available
-     (Model : Window_Model)
-      return Boolean is
-     (not Model.History.Undo_Stack.Is_Empty);
-
-   function Redo_Available
-     (Model : Window_Model)
-      return Boolean is
-     (not Model.History.Redo_Stack.Is_Empty);
-
-   procedure Take_Undo
-     (Model  : in out Window_Model;
-      Action : out Undo_Entry;
-      Found  : out Boolean) is separate;
-
-   procedure Take_Redo
-     (Model  : in out Window_Model;
-      Action : out Undo_Entry;
-      Found  : out Boolean) is separate;
-
-   procedure Push_Redo
-     (Model  : in out Window_Model;
-      Action : Undo_Entry) is separate;
-
-   procedure Push_Undo
-     (Model  : in out Window_Model;
-      Action : Undo_Entry) is separate;
-
-   function Undo_From_Paths
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is separate;
-
-   procedure Update_Folder_Scan
-     (Model  : in out Window_Model;
-      Change : not null access procedure (Scan : in out Files.Folder_Size.Session)) is
-   begin
-      Change (Model.Folder_Scan);
-   end Update_Folder_Scan;
-
-   procedure Note_Folder_Sizes
-     (Model    : in out Window_Model;
-      Measured : Files.Folder_Size.Measurement_Vectors.Vector)
-   is
-      Ignored : Files.Folder_Size.Measurement_Vectors.Vector;
-   begin
-      Note_Folder_Sizes (Model, Measured, Ignored);
-   end Note_Folder_Sizes;
-
-   procedure Note_Folder_Sizes
-     (Model    : in out Window_Model;
-      Measured : Files.Folder_Size.Measurement_Vectors.Vector;
-      Stale    : out Files.Folder_Size.Measurement_Vectors.Vector)
-   is
-      use type Files.Types.Item_Kind;
-      package Time_Maps is new Ada.Containers.Ordered_Maps
-        (Key_Type => UString, Element_Type => Ada.Calendar.Time, "<" => Ada.Strings.Unbounded."<",
-         "=" => Ada.Calendar."=");
-      --  Each selected directory, and when it was listed as it is now.
-      Selected : Time_Maps.Map;
-   begin
-      Stale.Clear;
-      if Measured.Is_Empty then
-         return;
-      end if;
-      for Index of Model.Selected_Item_Indexes loop
-         if Index in Model.Items.First_Index .. Model.Items.Last_Index
-           and then Model.Items (Index).Kind = Files.Types.Directory_Item
-         then
-            Selected.Include (Model.Items (Index).Full_Path, Model.Items (Index).Modified_Time);
-         end if;
-      end loop;
-      for Done of Measured loop
-         if not Selected.Contains (Done.Path) then
-            null;
-         elsif Ada.Calendar."=" (Done.Listed, Files.Types.Unknown_Time)
-           or else Ada.Calendar."=" (Done.Listed, Selected.Element (Done.Path))
-         then
-            Model.Folder_Sizes.Include (Done.Path, Done.Result);
-         else
-            --  Measured as the folder was before it changed: dropped, and
-            --  handed back to be measured again as it is now.
-            Stale.Append
-              (Files.Folder_Size.Measurement'
-                 (Path => Done.Path, Result => Done.Result, Listed => Selected.Element (Done.Path)));
-         end if;
-      end loop;
-      Support.Touch_Header (Model);
-   end Note_Folder_Sizes;
-
-   procedure Set_Folder_Size
-     (Model : in out Window_Model;
-      Path  : String;
-      Value : Files.File_System.Directory_Size_Result) is separate;
-
-   procedure Clear_Folder_Size
-     (Model : in out Window_Model) is separate;
-
-   procedure Prune_Folder_Sizes_To_Selection
-     (Model : in out Window_Model) is separate;
-
-   function Folder_Size_Cached_For
-     (Model : Window_Model;
-      Path  : String)
-      return Boolean is separate;
-
-   function Folder_Size_Value
-     (Model : Window_Model;
-      Path  : String)
-      return Files.File_System.Directory_Size_Result is separate;
 
    procedure Set_Volume_Space
      (Model   : in out Window_Model;
@@ -1863,41 +1108,5 @@ package body Files.Model is
      (Model : Window_Model)
       return Boolean is
      (Model.Account_Names.Sampled = Model.Revision_Value);
-
-   function Range_Anchor
-     (Model : Window_Model)
-      return Natural
-   is
-      Anchor : constant Natural :=
-        (if Length (Model.Range_Anchor_Path) = 0 then 0
-         else Visible_Index_Of (Model, To_String (Model.Range_Anchor_Path)));
-   begin
-      if Anchor > 0 and then Selected_Count (Model) > 0 then
-         return Anchor;
-      end if;
-      return Selected_Index (Model);
-   end Range_Anchor;
-
-   function Selection_Move_Would_Wrap
-     (Model     : Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
-      return Boolean
-   is
-      Count   : constant Natural := Visible_Count (Model);
-      Current : constant Natural := Selected_Index (Model);
-      --  As Move_Selection steps a row.
-      Stride  : constant Natural :=
-        Natural'Max (1, Natural'Min (Natural (Model.Selection_Columns), Natural'Max (1, Count)));
-   begin
-      if Count = 0 or else Current = 0 then
-         return False;
-      end if;
-      case Direction is
-         when Guikit.Input.Move_Left  => return Current = 1;
-         when Guikit.Input.Move_Right => return Current = Count;
-         when Guikit.Input.Move_Up    => return Current <= Stride;
-         when Guikit.Input.Move_Down  => return Current + Stride > Count;
-      end case;
-   end Selection_Move_Would_Wrap;
 
 end Files.Model;

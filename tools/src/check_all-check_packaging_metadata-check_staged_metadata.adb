@@ -2,7 +2,12 @@ separate (Check_All.Check_Packaging_Metadata)
    procedure Check_Staged_Metadata is
    begin
       Project_Tools.Files.Delete_Tree (Stage);
-      Copy_Share_Tree (Root & "/share", Stage & "/share");
+      Project_Tools.Files.Copy_Filtered_Tree
+        (Source_Dir      => Root & "/share",
+         Target_Dir      => Stage & "/share",
+         Skip_Entries    => [1 .. 0 => <>],
+         Skip_Files      => [1 .. 0 => <>],
+         Failure_Message => "could not stage the share tree");
       Check_Staged_Manifest_Entries;
       Project_Tools.Files.Require_Files
         ([To_Unbounded_String (Stage & "/share/applications/files.desktop"),

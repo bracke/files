@@ -21,6 +21,10 @@ with Files.Folder_Tree;
 with Files.Interaction;
 with Files.Localization;
 with Files.Model;
+with Files.Model.Selection;
+with Files.Model.Rename;
+with Files.Model.History;
+with Files.Model.Folder_Sizes;
 with Files.Model.Root_Selector;
 with Files.Operations;
 with Files.Paste;
@@ -742,7 +746,7 @@ package body Files_Suite.Interaction is
    function First_Selected_Visible (Model : Files.Model.Window_Model) return Natural is
    begin
       for Index in 1 .. Files.Model.Visible_Count (Model) loop
-         if Files.Model.Is_Selected (Model, Index) then
+         if Files.Model.Selection.Is_Selected (Model, Index) then
             return Index;
          end if;
       end loop;

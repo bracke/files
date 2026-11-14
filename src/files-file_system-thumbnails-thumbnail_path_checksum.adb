@@ -3,12 +3,11 @@ function Thumbnail_Path_Checksum
   (Source_Path : String)
    return Natural
 is
-   Modulus : constant Long_Long_Integer := 1_000_000_007;
-   Result  : Long_Long_Integer := 0;
+   Result : Natural := 0;
 begin
    for Value of Source_Path loop
-      Result := (Result * 33 + Long_Long_Integer (Character'Pos (Value))) mod Modulus;
+      Result := Mix_Checksum (Result, Long_Long_Integer (Character'Pos (Value)), Step => 33);
    end loop;
 
-   return Natural (Result);
+   return Result;
 end Thumbnail_Path_Checksum;

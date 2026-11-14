@@ -1,35 +1,13 @@
-with Guikit.Layout;
-with Ada.Calendar;
 with Ada.Containers.Indefinite_Hashed_Maps;
+with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 
 with Files.Grouping;
 with Files.Settings_Form;
-with Guikit.Utf8.Editing;
 
 package body Files.Model.Support is
 
-   --  The number of complete key/value pairs across two parallel lists (the
-   --  shorter of the two lengths).
-   --
-   --  @param Keys Key list.
-   --  @param Values Value list.
-   --  @return Min of the two list lengths.
-   function Pair_Count
-     (Keys   : Files.Types.String_Vectors.Vector;
-      Values : Files.Types.String_Vectors.Vector)
-      return Natural;
-
-   --  Truncate Values to at most Count entries.
-   --
-   --  @param Values List to truncate in place.
-   --  @param Count Maximum number of entries to keep.
-   procedure Trim_To_Count
-     (Values : in out Files.Types.String_Vectors.Vector;
-      Count  : Natural);
-
    use Ada.Strings.Unbounded;
-   use type Ada.Calendar.Time;
    use type Files.Types.Focus_Target;
    use type Files.Types.Group_Mode;
 
@@ -97,12 +75,6 @@ package body Files.Model.Support is
       Model.Quick_Look := (others => <>);
    end Reset_Quick_Look;
 
-   function Saturating_Add
-     (Left  : Natural;
-      Right : Natural)
-      return Natural
-     renames Guikit.Layout.Saturating_Add;
-
    function Scroll_Step (Lines : Integer) return Natural is
    begin
       if Lines = Integer'First then
@@ -114,61 +86,6 @@ package body Files.Model.Support is
       end if;
    end Scroll_Step;
 
-   function Previous_Text_Boundary
-     (Text   : String;
-      Cursor : Natural)
-      return Natural is
-   begin
-      return Guikit.Utf8.Editing.Previous_Boundary (Text, Cursor);
-   end Previous_Text_Boundary;
-
-   function Next_Text_Boundary
-     (Text   : String;
-      Cursor : Natural)
-      return Natural is
-   begin
-      return Guikit.Utf8.Editing.Next_Boundary (Text, Cursor);
-   end Next_Text_Boundary;
-
-   function Text_Boundary_At_Or_Before
-     (Text   : String;
-      Cursor : Natural)
-      return Natural is
-   begin
-      return Guikit.Utf8.Editing.Boundary_At_Or_Before (Text, Cursor);
-   end Text_Boundary_At_Or_Before;
-
-   function Insert_Text_At
-     (Old    : String;
-      Cursor : Natural;
-      Text   : String)
-      return String is
-   begin
-      if Cursor = 0 then
-         return Text & Old;
-      elsif Cursor >= Old'Length then
-         return Old & Text;
-      else
-         return Old (Old'First .. Old'First + Cursor - 1)
-           & Text
-           & Old (Old'First + Cursor .. Old'Last);
-      end if;
-   end Insert_Text_At;
-
-   function Caret_Before_Extension
-     (Name : String)
-      return Natural
-   is
-      Start : constant Natural := Files.Types.Extension_Start (Name);
-      Dot   : constant Natural := (if Start = 0 then 0 else Start - Name'First);
-   begin
-      if Dot = 0 then
-         return Name'Length;
-      else
-         return Guikit.Utf8.Editing.Boundary_At_Or_Before (Name, Dot);
-      end if;
-   end Caret_Before_Extension;
-
    procedure Reset_Rename_State
      (Model : in out Window_Model) is
    begin
@@ -177,28 +94,6 @@ package body Files.Model.Support is
       Model.Rename.Active := False;
       Model.Rename.Fields.Clear;
    end Reset_Rename_State;
-
-   function First_Rename_Value
-     (Model : Window_Model)
-      return String is
-   begin
-      if Model.Rename.Fields.Is_Empty then
-         return "";
-      else
-         return To_String (Model.Rename.Fields.First_Element.Value);
-      end if;
-   end First_Rename_Value;
-
-   function First_Rename_Cursor
-     (Model : Window_Model)
-      return Natural is
-   begin
-      if Model.Rename.Fields.Is_Empty then
-         return 0;
-      else
-         return Model.Rename.Fields.First_Element.Cursor;
-      end if;
-   end First_Rename_Cursor;
 
    function Is_Temporary_Rename
      (Model : Window_Model)
@@ -217,87 +112,12 @@ package body Files.Model.Support is
       return False;
    end Is_Temporary_Rename;
 
-   procedure Sync_Temporary_From_Field
-     (Model : in out Window_Model;
-      Field : Rename_Field) is
-   begin
-      Touch (Model);
-      if Field.Item_Index = 0 and then Model.Temporary.Active then
-         Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-         Model.Temporary.Name := Field.Value;
-      end if;
-   end Sync_Temporary_From_Field;
-
    procedure Clear_Root_Selector_State
      (Model : in out Window_Model) is
    begin
       Touch (Model);
       Model.Root_Selector := (others => <>);
    end Clear_Root_Selector_State;
-
-   function Pair_Count
-     (Keys   : Files.Types.String_Vectors.Vector;
-      Values : Files.Types.String_Vectors.Vector)
-      return Natural is
-   begin
-      return Natural'Min (Natural (Keys.Length), Natural (Values.Length));
-   end Pair_Count;
-
-   procedure Trim_To_Count
-     (Values : in out Files.Types.String_Vectors.Vector;
-      Count  : Natural) is
-   begin
-      while Natural (Values.Length) > Count loop
-         Values.Delete (Natural (Values.Length));
-      end loop;
-   end Trim_To_Count;
-
-   procedure Normalize_Settings_Draft
-     (Draft : in out Files.Settings.Settings_Draft)
-   is
-      procedure Normalize_Pair
-        (Keys          : in out Files.Types.String_Vectors.Vector;
-         Values        : in out Files.Types.String_Vectors.Vector;
-         Index         : in out Natural;
-         Selected_Key   : out Unbounded_String;
-         Selected_Value : out Unbounded_String)
-      is
-         Count : constant Natural := Pair_Count (Keys, Values);
-      begin
-         Trim_To_Count (Keys, Count);
-         Trim_To_Count (Values, Count);
-         if Count = 0 then
-            Index := 0;
-            Selected_Key := Null_Unbounded_String;
-            Selected_Value := Null_Unbounded_String;
-         else
-            if Index = 0 or else Index > Count then
-               Index := 1;
-            end if;
-            Selected_Key := Keys.Element (Index);
-            Selected_Value := Values.Element (Index);
-         end if;
-      end Normalize_Pair;
-   begin
-      Normalize_Pair
-        (Draft.Filetype_Keys,
-         Draft.Filetype_Values,
-         Draft.Filetype_Index,
-         Draft.Filetype_Extension,
-         Draft.Filetype_Value);
-      Normalize_Pair
-        (Draft.Icon_Keys,
-         Draft.Icon_Values,
-         Draft.Icon_Index,
-         Draft.Icon_Filetype,
-         Draft.Icon_Value);
-      Normalize_Pair
-        (Draft.Open_Action_Keys,
-         Draft.Open_Action_Commands,
-         Draft.Open_Action_Index,
-         Draft.Open_Action_Token,
-         Draft.Open_Action_Command);
-   end Normalize_Settings_Draft;
 
    function Item_Is_Visible
      (Model : Window_Model;
@@ -306,8 +126,8 @@ package body Files.Model.Support is
    is
    begin
       --  No filter (the common case): no copy of it, nor of the name.
-      return Model.Search_Results_Active or else Length (Model.Filter_Value) = 0
-        or else Files.Types.Contains_Case_Insensitive (To_String (Item.Name), To_String (Model.Filter_Value));
+      return Model.Search_Results_Active or else Length (Model.Filter.Text) = 0
+        or else Files.Types.Contains_Case_Insensitive (To_String (Item.Name), To_String (Model.Filter.Text));
    end Item_Is_Visible;
 
    function Temporary_Is_Visible (Model : Window_Model) return Boolean is
@@ -522,54 +342,6 @@ package body Files.Model.Support is
       Reconcile_Rename_With_Selection (Model);
    end Reconcile_Selection;
 
-   function Signature_From_Items
-     (Directory_Path : String;
-      Items          : Files.Items.Item_Vectors.Vector)
-      return Files.File_System.Directory_Signature
-   is
-      Result : Files.File_System.Directory_Signature :=
-        (Path                  => To_Unbounded_String (Directory_Path),
-         Exists                => True,
-         Entry_Count           => Natural (Items.Length),
-         Entry_State_Checksum  => 0,
-         Latest_Modified       => Files.Types.Unknown_Time,
-         Latest_Modified_Known => False);
-
-      function Item_Checksum
-        (Item : Files.Items.Directory_Item)
-         return Natural
-      is
-         Modulus : constant Long_Long_Integer := 1_000_000_007;
-         Value   : Long_Long_Integer := Long_Long_Integer (Files.Types.Item_Kind'Pos (Item.Kind) + 1);
-      begin
-         for Character_Value of To_String (Item.Name) loop
-            Value :=
-              (Value * 131 + Long_Long_Integer (Character'Pos (Character_Value))) mod Modulus;
-         end loop;
-
-         if Item.Size_Available then
-            Value := (Value * 131 + Long_Long_Integer'Max (0, Item.Size)) mod Modulus;
-         else
-            Value := (Value * 131) mod Modulus;
-         end if;
-
-         return Natural (Value);
-      end Item_Checksum;
-   begin
-      for Item of Items loop
-         Result.Entry_State_Checksum :=
-           (Result.Entry_State_Checksum + Item_Checksum (Item)) mod 1_000_000_007;
-         if Item.Modified_Available
-           and then (not Result.Latest_Modified_Known or else Item.Modified_Time > Result.Latest_Modified)
-         then
-            Result.Latest_Modified := Item.Modified_Time;
-            Result.Latest_Modified_Known := True;
-         end if;
-      end loop;
-
-      return Result;
-   end Signature_From_Items;
-
    package Label_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
       Element_Type    => Files.Types.Color_Label,
@@ -767,29 +539,6 @@ package body Files.Model.Support is
       end;
    end Resort_Items;
 
-   procedure Select_Visible_Internal
-     (Model         : in out Window_Model;
-      Visible_Index : Positive)
-   is
-      Item_Index : constant Natural := Visible_To_Item_Index (Model, Visible_Index);
-   begin
-      Touch_Selection (Model);
-      Model.Selected_Item_Index := Item_Index;
-      Model.Selected_Item_Indexes.Clear;
-      if Item_Index = 0
-        and then Temporary_Is_Visible (Model)
-        and then Visible_Index = Visible_Count (Model)
-      then
-         Model.Selected_Item_Index := Temporary_Item_Index;
-      end if;
-      Add_Selected_Index (Model, Model.Selected_Item_Index);
-      Model.Info_Pane_Scroll := 0;
-      Reconcile_Rename_With_Selection (Model);
-      --  A changed selection invalidates any open Quick Look preview, which is
-      --  bound to the item that was selected when it opened.
-      Reset_Quick_Look (Model);
-   end Select_Visible_Internal;
-
    procedure Clear_Overlay_State_For_Edit
      (Model : in out Window_Model) is
    begin
@@ -799,105 +548,38 @@ package body Files.Model.Support is
       Guikit.Command_Palette.Reset (Model.Command_Palette.View);
    end Clear_Overlay_State_For_Edit;
 
-   function Is_Printable_Run (Text : String) return Boolean is
-   begin
-      if Text = "" then
-         return False;
-      end if;
-
-      for Char of Text loop
-         if Character'Pos (Char) < Character'Pos (' ')
-           or else Character'Pos (Char) = 16#7F#
-         then
-            return False;
-         end if;
-      end loop;
-
-      return True;
-   end Is_Printable_Run;
-
-   function Is_Repeated_Single_Codepoint (Text : String) return Boolean is
-      Lower : constant String := Files.Types.To_Lower (Text);
-      First : Natural;
-      Cursor : Natural := 0;
-      Unit   : Natural;
-   begin
-      if Lower = "" then
-         return False;
-      end if;
-
-      First := Guikit.Utf8.Editing.Next_Boundary (Lower, 0);
-      declare
-         Head : constant String := Lower (Lower'First .. Lower'First + First - 1);
-      begin
-         Cursor := First;
-         while Cursor < Lower'Length loop
-            Unit := Guikit.Utf8.Editing.Next_Boundary (Lower, Cursor) - Cursor;
-            if Unit /= Head'Length
-              or else Lower (Lower'First + Cursor .. Lower'First + Cursor + Unit - 1) /= Head
-            then
-               return False;
-            end if;
-            Cursor := Cursor + Unit;
-         end loop;
-      end;
-
-      return True;
-   end Is_Repeated_Single_Codepoint;
-
-   function First_Codepoint (Text : String) return String is
-      Unit : constant Natural := Guikit.Utf8.Editing.Next_Boundary (Text, 0);
-   begin
-      if Text = "" or else Unit = 0 then
-         return "";
-      end if;
-
-      return Text (Text'First .. Text'First + Unit - 1);
-   end First_Codepoint;
-
-   function Focused_Text_Length
+   function Focused_Field
      (Model : Window_Model)
-      return Natural is
+      return Text_Field_State
+   is
+      --  A field edited as a whole value: the caret sits at its end.
+      function At_End (Text : String) return Text_Field_State is
+        ((Text => To_Unbounded_String (Text), Cursor => Text'Length));
    begin
       case Model.Focus_Value is
          when Files.Types.Focus_Path_Input =>
-            return Length (Model.Path_Input.Text);
+            return Model.Path_Input.Edit;
          when Files.Types.Focus_Filter_Input =>
-            return Length (Model.Filter_Value);
+            return Model.Filter;
          when Files.Types.Focus_Rename_Input =>
-            return First_Rename_Value (Model)'Length;
+            return (if Model.Rename.Fields.Is_Empty then (others => <>) else Model.Rename.Fields.First_Element.Edit);
          when Files.Types.Focus_Command_Palette =>
-            return Guikit.Command_Palette.Query (Model.Command_Palette.View)'Length;
+            --  The palette query has no separate caret.
+            return At_End (Guikit.Command_Palette.Query (Model.Command_Palette.View));
          when Files.Types.Focus_Settings_Input =>
-            return Settings_Focused_Value (Model)'Length;
+            --  The panel edits whole values.
+            return At_End (Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View));
          when Files.Types.Focus_Ownership_Input =>
-            return Length (Model.Ownership_Input.Text);
+            return Model.Ownership_Input.Edit;
          when Files.Types.Focus_None =>
-            return 0;
+            return (others => <>);
       end case;
-   end Focused_Text_Length;
+   end Focused_Field;
 
    function Focused_Text_Value
      (Model : Window_Model)
       return String is
-   begin
-      case Model.Focus_Value is
-         when Files.Types.Focus_Path_Input =>
-            return To_String (Model.Path_Input.Text);
-         when Files.Types.Focus_Filter_Input =>
-            return To_String (Model.Filter_Value);
-         when Files.Types.Focus_Rename_Input =>
-            return First_Rename_Value (Model);
-         when Files.Types.Focus_Command_Palette =>
-            return Guikit.Command_Palette.Query (Model.Command_Palette.View);
-         when Files.Types.Focus_Settings_Input =>
-            return Settings_Focused_Value (Model);
-         when Files.Types.Focus_Ownership_Input =>
-            return To_String (Model.Ownership_Input.Text);
-         when Files.Types.Focus_None =>
-            return "";
-      end case;
-   end Focused_Text_Value;
+     (To_String (Focused_Field (Model).Text));
 
    procedure Reset_Settings_Panel (Model : in out Window_Model) is
    begin
@@ -905,46 +587,6 @@ package body Files.Model.Support is
       Guikit.Settings_Panel.Reset (Model.Settings_Panel_View);
       Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Files.Settings_Form.Fields (Model));
    end Reset_Settings_Panel;
-
-   function Palette_Config
-     (Line_Height : Positive;
-      Title       : String := "";
-      Empty_State : String := "";
-      Close_Label : String := "") return Guikit.Command_Palette.Configuration is
-     (Line_Height    => Line_Height,
-      Show_Icons     => False,
-      Show_Shortcuts => True,
-      Overlay        => True,
-      Wrap_Selection => True,
-      Placeholder    => Null_Unbounded_String,
-      Empty_State    => To_Unbounded_String (Empty_State),
-      Title          => To_Unbounded_String (Title),
-      Close_Label    => To_Unbounded_String (Close_Label));
-
-   function Selected_Loaded_Indexes
-     (Model : Window_Model)
-      return Natural_Vectors.Vector
-   is
-      Result : Natural_Vectors.Vector;
-   begin
-      if Model.Items.Is_Empty then
-         return Result;
-      end if;
-
-      declare
-         Selected : constant Selection_Flags := Selected_Flags (Model);
-      begin
-         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-            if Selected (Index)
-              and then Item_Is_Visible (Model, Model.Items (Index))
-            then
-               Result.Append (Natural (Index));
-            end if;
-         end loop;
-      end;
-
-      return Result;
-   end Selected_Loaded_Indexes;
 
    function Find_Rename_Field
      (Model         : Window_Model;
@@ -986,8 +628,7 @@ package body Files.Model.Support is
       Model.Rename.Fields.Append
         (Rename_Field'
            (Item_Index => 0,
-            Value      => To_Unbounded_String (Name),
-            Cursor     => Name'Length));
+            Edit       => (Text => To_Unbounded_String (Name), Cursor => Name'Length)));
       Model.Rename.Active := True;
       Model.Main_View_Scroll := 0;
       Model.Selected_Item_Index := Temporary_Item_Index;
@@ -1068,21 +709,184 @@ package body Files.Model.Support is
       end if;
    end Toggle_Settings_Pane;
 
-   function Settings_Focused_Value (Model : Window_Model) return String is
-   begin
-      return Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View);
-   end Settings_Focused_Value;
-
-   function Released_Transfer return Files.Transfer_Jobs.Session is
-      Idle : Files.Transfer_Jobs.Session;
-   begin
-      return Idle;
-   end Released_Transfer;
-
    function Released_Process return Files.Process_Jobs.Session is
       Idle : Files.Process_Jobs.Session;
    begin
       return Idle;
    end Released_Process;
+
+   --  An idle folder-size session, to release a held one by assignment
+   --  (the transfer and process ones are Support's).
+   function Released_Scan return Files.Folder_Size.Session is
+      Idle : Files.Folder_Size.Session;
+   begin
+      return Idle;
+   end Released_Scan;
+
+   procedure Reset_Type_Ahead
+     (Model : in out Window_Model) is
+   begin
+      Touch_Header (Model);
+      Model.Type_Ahead_Buffer_Value := Null_Unbounded_String;
+   end Reset_Type_Ahead;
+
+   function Selected_Index
+     (Model : Window_Model)
+      return Natural is
+   begin
+      if Model.Selected_Item_Index = Temporary_Item_Index then
+         if Temporary_Is_Visible (Model) then
+            return Visible_Count (Model);
+         end if;
+
+         return 0;
+      end if;
+
+      if Model.Selected_Item_Index = 0 then
+         return 0;
+      end if;
+
+      return Item_To_Visible_Index (Model, Positive (Model.Selected_Item_Index));
+   end Selected_Index;
+
+   function Selected_Count
+     (Model : Window_Model)
+      return Natural is
+   begin
+      if not Model.Selected_Item_Indexes.Is_Empty then
+         return Natural (Model.Selected_Item_Indexes.Length);
+      elsif Selected_Index (Model) /= 0 then
+         return 1;
+      else
+         return 0;
+      end if;
+   end Selected_Count;
+
+   function Selected_Item
+     (Model : Window_Model)
+      return Files.Items.Directory_Item
+   is
+      Item_Index : constant Natural := Effective_Selected_Item_Index (Model);
+   begin
+      if Selected_Count (Model) = 0 then
+         return Files.File_System.Make_Item ("", "", Files.Types.Unknown_Item);
+      elsif Item_Index = Temporary_Item_Index then
+         return Temporary_Item (Model);
+      end if;
+
+      return Model.Items.Element (Positive (Item_Index));
+   end Selected_Item;
+
+   function Selected_Items
+     (Model : Window_Model;
+      Limit : Natural := Natural'Last)
+      return Files.Items.Item_Vectors.Vector
+   is
+      Result : Files.Items.Item_Vectors.Vector;
+   begin
+      if Selected_Count (Model) = 0 or else Model.Items.Is_Empty then
+         return Result;
+      end if;
+
+      declare
+         Selected : constant Selection_Flags := Selected_Flags (Model);
+      begin
+         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+            exit when Natural (Result.Length) >= Limit;
+            if Selected (Index) then
+               Result.Append (Model.Items (Index));
+            end if;
+         end loop;
+      end;
+
+      return Result;
+   end Selected_Items;
+
+   procedure Restore_Selection
+     (Model        : in out Window_Model;
+      Items        : Files.Items.Item_Vectors.Vector;
+      Primary_Path : String)
+   is
+      --  Runs on every refresh, so a large Select All must stay linear:
+      --  hash the previous paths once instead of rescanning them per item.
+      package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+        (Element_Type        => String,
+         Hash                => Ada.Strings.Hash,
+         Equivalent_Elements => "=");
+
+      First_Selected   : Natural := 0;
+      Primary_Selected : Natural := 0;
+      Previous_Paths   : Path_Sets.Set;
+   begin
+      Touch_Selection (Model);
+      Model.Selected_Item_Index := 0;
+      Model.Selected_Item_Indexes.Clear;
+      Reset_Quick_Look (Model);
+
+      Previous_Paths.Reserve_Capacity (Items.Length);
+      for Previous of Items loop
+         Previous_Paths.Include (To_String (Previous.Full_Path));
+      end loop;
+
+      if not Model.Items.Is_Empty and then not Previous_Paths.Is_Empty then
+         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+            declare
+               --  Read in place: Element copied the whole item, three times.
+               Item : Files.Items.Directory_Item renames Model.Items (Index);
+               Path : constant String := To_String (Item.Full_Path);
+            begin
+               if Item_Is_Visible (Model, Item)
+                 and then Previous_Paths.Contains (Path)
+               then
+                  --  Indexes ascend and the list was cleared above, so each is
+                  --  new; appending directly avoids a linear duplicate check.
+                  Model.Selected_Item_Indexes.Append (Natural (Index));
+                  if First_Selected = 0 then
+                     First_Selected := Natural (Index);
+                  end if;
+                  if Path = Primary_Path then
+                     Primary_Selected := Natural (Index);
+                  end if;
+               end if;
+            end;
+         end loop;
+      end if;
+
+      Model.Selected_Item_Index :=
+        (if Primary_Selected /= 0 then Primary_Selected else First_Selected);
+      Model.Info_Pane_Scroll := 0;
+      Reconcile_Rename_With_Selection (Model);
+   end Restore_Selection;
+
+   function Selection_Includes_Temporary
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      if not Temporary_Is_Visible (Model) then
+         return False;
+      elsif Model.Selected_Item_Index = Temporary_Item_Index then
+         return True;
+      end if;
+
+      for Index of Model.Selected_Item_Indexes loop
+         if Index = Temporary_Item_Index then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Selection_Includes_Temporary;
+
+   procedure Clear_Folder_Size
+     (Model : in out Window_Model) is
+   begin
+      --  Released, not driven: a measurement still running is stopped by its
+      --  last handle going.
+      Model.Folder_Scan := Released_Scan;
+      if not Model.Folder_Sizes.Is_Empty then
+         Touch_Header (Model);
+         Model.Folder_Sizes.Clear;
+      end if;
+   end Clear_Folder_Size;
 
 end Files.Model.Support;

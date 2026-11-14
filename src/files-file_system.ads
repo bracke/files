@@ -27,14 +27,35 @@ package Files.File_System is
    subtype Directory_Item is Files.Items.Directory_Item;
    package Item_Vectors renames Files.Items.Item_Vectors;
 
+   --  What a directory held when it was read, to tell later whether it
+   --  changed (Same_State). Taken is False for a signature read from nothing
+   --  (Unknown_Signature, and every default): it records no state, so it
+   --  never matches another, nor itself.
    type Directory_Signature is record
       Path               : UString;
+      Taken              : Boolean := False;
       Exists             : Boolean := False;
       Entry_Count        : Natural := 0;
       Entry_State_Checksum : Natural := 0;
       Latest_Modified    : Ada.Calendar.Time := Files.Types.Unknown_Time;
       Latest_Modified_Known : Boolean := False;
    end record;
+
+   --  The signature of a listing not read from the directory (search
+   --  results, items handed in) or one that could not be signed: the next
+   --  check of Path reads it again.
+   --
+   --  @param Path The directory it stands for.
+   --  @return A signature that was not taken.
+   function Unknown_Signature (Path : String := "") return Directory_Signature;
+
+   --  Whether two signatures were both taken and record the same state. An
+   --  unknown signature is the same as nothing, itself included.
+   --
+   --  @param Left One signature.
+   --  @param Right The other.
+   --  @return True when nothing changed between them.
+   function Same_State (Left, Right : Directory_Signature) return Boolean;
 
    --  Signature: the directory's change signature, taken while it was
    --  listed, when the load was asked for one (Load_Directory_Deferring_Thumbnails);
@@ -1052,6 +1073,25 @@ package Files.File_System is
    function Read_Preview_Text
      (Path : String; Max_Bytes : Natural; Success, Complete : out Boolean) return String;
 private
+
+   --  Rolling checksums (directory signatures, thumbnail cache names) all
+   --  reduce by this prime, so each fits a Natural.
+   Checksum_Modulus : constant := 1_000_000_007;
+
+   --  Fold Value into the rolling checksum Sum: Sum * Step + Value, reduced
+   --  by Checksum_Modulus. Step 1 adds Value to a sum of checksums.
+   --
+   --  @param Sum The checksum so far, below Checksum_Modulus.
+   --  @param Value What to fold in, not negative.
+   --  @param Step What each fold multiplies Sum by.
+   --  @return The new checksum.
+   function Mix_Checksum
+     (Sum   : Natural;
+      Value : Long_Long_Integer;
+      Step  : Positive := 131)
+      return Natural is
+     (Natural
+        ((Long_Long_Integer (Sum) * Long_Long_Integer (Step) + Value mod Checksum_Modulus) mod Checksum_Modulus));
 
    --  Change the permission bits of one verified entry through a handle that
    --  pins it, capturing the bits it had. In the private part: only

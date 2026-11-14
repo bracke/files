@@ -9,7 +9,7 @@ separate (Files_Suite.Commands)
       Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
-      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Files.Controller.Testing.Replace_Focused_Text (Model, "details");

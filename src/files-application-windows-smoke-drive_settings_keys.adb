@@ -196,7 +196,7 @@ separate (Files.Application.Windows.Smoke)
                  Files.Rendering.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
             begin
                for Cell of Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
-                  if Cell.Visible_Index = Files.Model.Selected_Index (Runtime.Model) then
+                  if Cell.Visible_Index = Files.Model.Selection.Selected_Index (Runtime.Model) then
                      return Cell.Height > 0;
                   end if;
                end loop;
@@ -260,23 +260,23 @@ separate (Files.Application.Windows.Smoke)
       begin
          Files.Model.Replace_Items (Runtime.Model, Scenario_Overflow_Items (Runtime.Model));
          Files.Model.Set_View_Mode (Runtime.Model, Files.Types.Details);
-         Files.Model.Select_Visible (Runtime.Model, 1);
+         Files.Model.Selection.Select_Visible (Runtime.Model, 1);
          Render_Window (Runtime);
          Press (Guikit.Input.Key_End);
          Expect (Files.Model.Main_View_Scroll_Lines (Runtime.Model) > 0 and then Selected_Shown);
          Press (Guikit.Input.Key_Home);
          Expect (Files.Model.Main_View_Scroll_Lines (Runtime.Model) = 0 and then Selected_Shown);
          Press (Guikit.Input.Key_Page_Down);
-         Expect (Files.Model.Selected_Index (Runtime.Model) > 2 and then Selected_Shown);
+         Expect (Files.Model.Selection.Selected_Index (Runtime.Model) > 2 and then Selected_Shown);
 
          Press (Guikit.Input.Key_Home);
-         Files.Model.Select_All_Visible (Runtime.Model);
+         Files.Model.Selection.Select_All_Visible (Runtime.Model);
          Press_Item (2);
-         Expect (Files.Model.Selected_Count (Runtime.Model) = Files.Model.Visible_Count (Runtime.Model));
+         Expect (Files.Model.Selection.Selected_Count (Runtime.Model) = Files.Model.Visible_Count (Runtime.Model));
          Release_Left;
          Handle_Mouse (Runtime);
-         Expect (Files.Model.Selected_Count (Runtime.Model) = 1
-                 and then Files.Model.Selected_Index (Runtime.Model) = 2);
+         Expect (Files.Model.Selection.Selected_Count (Runtime.Model) = 1
+                 and then Files.Model.Selection.Selected_Index (Runtime.Model) = 2);
          Runtime.Last_Click_Item := 0;
          Runtime.Last_Click_Path := Null_Unbounded_String;
 

@@ -38,7 +38,7 @@ separate (Files_Suite.Commands)
          Ada.Directories.Full_Name (Sub),
          "reveal navigates to the item's containing folder");
       Assert
-        (Files.Model.Selected_Count (Model) = 1
-           and then To_String (Files.Model.Selected_Items (Model).First_Element.Name) = "found.txt",
+        (Files.Model.Selection.Selected_Count (Model) = 1
+           and then To_String (Files.Model.Selection.Selected_Items (Model).First_Element.Name) = "found.txt",
          "reveal selects the item in its containing folder");
    end Test_Open_Containing_Folder_Command;

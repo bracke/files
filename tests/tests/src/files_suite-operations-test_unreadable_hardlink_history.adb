@@ -78,7 +78,7 @@ separate (Files_Suite.Operations)
          Assert (not Ada.Directories.Exists (Link_Path),
                  "the refused hard link leaves nothing behind");
       end if;
-      Assert (not Files.Model.Undo_Available (Model),
+      Assert (not Files.Model.History.Undo_Available (Model),
               "unsafe deletion is not recorded as Undo");
       Assert (Files.File_System.Set_Permissions (Source, 8#644#).Success,
               "new source permissions can be restored");

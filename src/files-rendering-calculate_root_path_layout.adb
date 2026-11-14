@@ -44,11 +44,11 @@ separate (Files.Rendering)
       for Index in Start_Index .. Root_Count loop
          declare
             Row_Y : constant Natural :=
-              Saturating_Add
-                (Saturating_Add (Layout.Y, Layout.Padding),
+              Guikit.Layout.Saturating_Add
+                (Guikit.Layout.Saturating_Add (Layout.Y, Layout.Padding),
                  Saturating_Multiply (Natural (Index - Start_Index), Layout.Row_Height));
             Layout_End_Y : constant Natural :=
-              Saturating_Add
+              Guikit.Layout.Saturating_Add
                 (Layout.Y,
                  (if Layout.Height > Layout.Padding then Layout.Height - Layout.Padding else 0));
          begin
@@ -60,7 +60,7 @@ separate (Files.Rendering)
                Result.Append
                  (Root_Path_Layout'
                     (Root_Index => Index,
-                     X          => Saturating_Add (Layout.X, Horizontal_Padding),
+                     X          => Guikit.Layout.Saturating_Add (Layout.X, Horizontal_Padding),
                      Y          => Row_Y,
                      Width      => Content_W,
                      Height     => Row_H,

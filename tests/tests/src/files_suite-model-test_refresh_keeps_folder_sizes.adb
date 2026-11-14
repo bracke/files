@@ -25,17 +25,18 @@ separate (Files_Suite.Model)
          end;
       end loop;
       Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
-      Files.Model.Select_All_Visible (Model);
+      Files.Model.Selection.Select_All_Visible (Model);
       Files.Model.Testing.Set_Folder_Size (Model, Big, Sized);
       Files.Model.Testing.Set_Folder_Size (Model, Small, Sized);
 
       Files.Model.Replace_Items (Model, Items);
-      Assert (Files.Model.Folder_Size_Cached_For (Model, Big), "an unchanged folder keeps its size");
-      Assert (Files.Model.Folder_Size_Cached_For (Model, Small), "so does the other");
+      Assert (Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Big), "an unchanged folder keeps its size");
+      Assert (Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Small), "so does the other");
 
       --  Something in small changed: its own time moved, it is measured again.
       Items (2).Modified_Time := Items (2).Modified_Time + 60.0;
       Files.Model.Replace_Items (Model, Items);
-      Assert (Files.Model.Folder_Size_Cached_For (Model, Big), "the unchanged folder still keeps its size");
-      Assert (not Files.Model.Folder_Size_Cached_For (Model, Small), "a changed folder is measured again");
+      Assert
+        (Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Big), "the unchanged folder still keeps its size");
+      Assert (not Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Small), "a changed folder is measured again");
    end Test_Refresh_Keeps_Folder_Sizes;

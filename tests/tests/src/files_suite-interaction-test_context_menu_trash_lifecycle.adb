@@ -33,7 +33,7 @@ separate (Files_Suite.Interaction)
         (Model, Settings, "", Files.Commands.Delete_Selected_Items_Command, Result, Found);
       Assert (Found, "the item menu offers the delete command");
       Assert (not Ada.Directories.Exists (Doomed), "delete moves the item out of the directory");
-      Assert (Files.Model.Undo_Available (Model), "delete records an undoable action");
+      Assert (Files.Model.History.Undo_Available (Model), "delete records an undoable action");
 
       --  Undo has neither a context-menu row nor a keyboard shortcut, so it is
       --  driven through the reducer's command branch, the same entry the shell
@@ -47,10 +47,10 @@ separate (Files_Suite.Interaction)
            (Model, Settings, "", Undo_Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert (Ada.Directories.Exists (Doomed), "undo restores the trashed item to its original path");
-      Assert (not Files.Model.Undo_Available (Model), "undo consumes the undoable action");
+      Assert (not Files.Model.History.Undo_Available (Model), "undo consumes the undoable action");
       --  Re-trashing would allocate a fresh trash location, so a restored trash
       --  action is undo-only and is never offered for redo.
-      Assert (not Files.Model.Redo_Available (Model), "a restored-trash undo is not offered for redo");
+      Assert (not Files.Model.History.Redo_Available (Model), "a restored-trash undo is not offered for redo");
 
       --  Restore From Trash, dispatched from the item menu while viewing trash.
       declare

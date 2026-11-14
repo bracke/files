@@ -1,3 +1,4 @@
+with Guikit.Layout;
 with Files.Model.Support;
 
 package body Files.Model.Tree_Panel is
@@ -95,7 +96,7 @@ package body Files.Model.Tree_Panel is
          Wanted := (if Step >= Current then 0 else Current - Step);
       else
          Step := Natural (Rows);
-         Wanted := Natural'Min (Maximum, Saturating_Add (Current, Step));
+         Wanted := Natural'Min (Maximum, Guikit.Layout.Saturating_Add (Current, Step));
       end if;
 
       --  Compare the stored value as well as its clamped public projection. A

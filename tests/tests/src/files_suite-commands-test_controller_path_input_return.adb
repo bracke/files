@@ -102,7 +102,7 @@ separate (Files_Suite.Commands)
          "error.path.missing",
          "invalid path input stores validation diagnostic");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid path input preserves temporary create state");
-      Assert (Files.Model.Rename_Is_Active (Model), "invalid path input preserves rename state");
+      Assert (Files.Model.Rename.Rename_Is_Active (Model), "invalid path input preserves rename state");
 
       Files.Controller.Testing.Replace_Focused_Text (Model, Target);
       Assert (Files.Model.Path_Input_Is_Valid (Model), "path input edit clears stale validation state");
@@ -155,7 +155,7 @@ separate (Files_Suite.Commands)
          Files.Types.Focus_None,
          "path input commit clears focus");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "path input success clears temporary create state");
-      Assert (not Files.Model.Rename_Is_Active (Model), "path input success clears rename state");
+      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "path input success clears rename state");
 
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Focus_Path_Input (Model);

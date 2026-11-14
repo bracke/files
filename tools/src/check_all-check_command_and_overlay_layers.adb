@@ -1,8 +1,5 @@
 separate (Check_All)
    procedure Check_Command_And_Overlay_Layers is
-      Search : Ada.Directories.Search_Type;
-      Item   : Ada.Directories.Directory_Entry_Type;
-
       --  The with clauses parsed (a list or a split clause cannot hide one),
       --  and no qualified name either, in the spec, the body and every
       --  subunit; the Status and Execution children are meant to use it.
@@ -14,18 +11,13 @@ separate (Check_All)
    begin
       Check (Root & "/src/files-commands.ads");
       Check (Root & "/src/files-commands.adb");
-      Ada.Directories.Start_Search
-        (Search, Root & "/src", "files-commands-*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
+      for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-commands-*.adb", Generated_Directories) loop
          if Ada.Strings.Fixed.Index
-              (To_String (Project_Tools.Text.Read_Text_File (Ada.Directories.Full_Name (Item))),
-               "separate (Files.Commands)") > 0
+              (To_String (Project_Tools.Text.Read_Text_File (To_String (Item))), "separate (Files.Commands)") > 0
          then
-            Check (Ada.Directories.Full_Name (Item));
+            Check (To_String (Item));
          end if;
       end loop;
-      Ada.Directories.End_Search (Search);
       for Pattern of String_List'
         [To_Unbounded_String ("Build_Frame"),
          To_Unbounded_String ("Files.Localization")]
@@ -35,15 +27,11 @@ separate (Check_All)
             "the model holds overlay state; Files.Overlays draws and localizes it (" & To_String (Pattern) & ")");
          --  The specs too: a with clause there reaches every model body,
          --  which could then use the unit by a name this check never sees.
-         Ada.Directories.Start_Search
-           (Search, Root & "/src", "files-model*.ads", [Ada.Directories.Ordinary_File => True, others => False]);
-         while Ada.Directories.More_Entries (Search) loop
-            Ada.Directories.Get_Next_Entry (Search, Item);
+         for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-model*.ads", Generated_Directories) loop
             Require_Not_Contains
-              (Ada.Directories.Full_Name (Item), To_String (Pattern),
+              (To_String (Item), To_String (Pattern),
                "the model holds overlay state; Files.Overlays draws and localizes it (" & To_String (Pattern)
-               & ", " & Ada.Directories.Simple_Name (Item) & ")");
+               & ", " & Ada.Directories.Simple_Name (To_String (Item)) & ")");
          end loop;
-         Ada.Directories.End_Search (Search);
       end loop;
    end Check_Command_And_Overlay_Layers;

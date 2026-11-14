@@ -49,20 +49,14 @@ separate (Check_All)
       end Check;
 
       procedure Check_All (Pattern : String) is
-         Search : Ada.Directories.Search_Type;
-         Item   : Ada.Directories.Directory_Entry_Type;
-         Found  : Boolean := False;
+         Found : constant Project_Tools.Files.Path_List :=
+           Project_Tools.Files.List_Tree (Root & "/src", Pattern, Generated_Directories);
       begin
-         Ada.Directories.Start_Search
-           (Search, Root & "/src", Pattern, [Ada.Directories.Ordinary_File => True, others => False]);
-         while Ada.Directories.More_Entries (Search) loop
-            Ada.Directories.Get_Next_Entry (Search, Item);
-            Found := True;
-            Check (Ada.Directories.Full_Name (Item));
-            Checked.Include (Ada.Directories.Simple_Name (Item));
+         for Item of Found loop
+            Check (To_String (Item));
+            Checked.Include (Ada.Directories.Simple_Name (To_String (Item)));
          end loop;
-         Ada.Directories.End_Search (Search);
-         if not Found then
+         if Found'Length = 0 then
             Put_Line (Standard_Error, "src/" & Pattern & ": no source matches; update Check_Shared_Package_State");
             Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
             raise Program_Error;
@@ -87,8 +81,6 @@ separate (Check_All)
       --  Every unit that runs a task of its own is checked above, or says
       --  here why its package-level variables are not shared with the task.
       declare
-         Search : Ada.Directories.Search_Type;
-         Item   : Ada.Directories.Directory_Entry_Type;
          Main_Thread_State : constant Name_Sets.Set :=
            Name_Sets.Union
              --  Reaper is set and read by Ensure_Reaper and Shutdown only, on
@@ -99,24 +91,24 @@ separate (Check_All)
               --  package's report variables are Scavenge's and Clean_Report's.
               Name_Sets.To_Set ("files-job_scavenger.adb"));
       begin
-         Ada.Directories.Start_Search
-           (Search, Root & "/src", "*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
-         while Ada.Directories.More_Entries (Search) loop
-            Ada.Directories.Get_Next_Entry (Search, Item);
-            if Ada.Strings.Fixed.Index
-                 (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Ada.Directories.Full_Name (Item)))),
-                  "task body") > 0
-              and then not Checked.Contains (Ada.Directories.Simple_Name (Item))
-              and then not Main_Thread_State.Contains (Ada.Directories.Simple_Name (Item))
-            then
-               Put_Line
-                 (Standard_Error,
-                  "src/" & Ada.Directories.Simple_Name (Item) & " runs a task: add it to Check_Shared_Package_State,"
-                  & " or say there why its package state is not shared");
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               raise Program_Error;
-            end if;
+         for Item of Project_Tools.Files.List_Tree (Root & "/src", "*.adb", Generated_Directories) loop
+            declare
+               Path : constant String := To_String (Item);
+               Name : constant String := Ada.Directories.Simple_Name (Path);
+               Code : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
+            begin
+               if Ada.Strings.Fixed.Index (Code, "task body") > 0
+                 and then not Checked.Contains (Name)
+                 and then not Main_Thread_State.Contains (Name)
+               then
+                  Put_Line
+                    (Standard_Error,
+                     "src/" & Name & " runs a task: add it to Check_Shared_Package_State,"
+                     & " or say there why its package state is not shared");
+                  Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+                  raise Program_Error;
+               end if;
+            end;
          end loop;
-         Ada.Directories.End_Search (Search);
       end;
    end Check_Shared_Package_State;

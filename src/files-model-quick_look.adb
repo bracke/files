@@ -24,7 +24,7 @@ package body Files.Model.Quick_Look is
    procedure Set_Image
      (Model  : in out Window_Model;
       Path   : String;
-      Pixels : Files.Shared_Bytes.Bytes;
+      Pixels : Guikit.Shared_Bytes.Bytes;
       Width  : Natural;
       Height : Natural) is
    begin

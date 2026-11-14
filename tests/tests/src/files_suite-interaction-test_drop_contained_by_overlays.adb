@@ -20,9 +20,9 @@ separate (Files_Suite.Interaction)
       procedure Seed_Type_Ahead is
          Matched : Boolean;
       begin
-         Files.Model.Reset_Type_Ahead (Model);
-         Files.Model.Type_Ahead_Input (Model, "A", Matched);
-         Assert (Matched and then Files.Model.Type_Ahead_Buffer (Model) = "A",
+         Files.Model.Selection.Reset_Type_Ahead (Model);
+         Files.Model.Selection.Type_Ahead_Input (Model, "A", Matched);
+         Assert (Matched and then Files.Model.Selection.Type_Ahead_Buffer (Model) = "A",
                  "prepare a live grid type-ahead prefix before opening an overlay");
       end Seed_Type_Ahead;
 
@@ -35,7 +35,7 @@ separate (Files_Suite.Interaction)
            (Files.Model.Input_Owning_Overlay_Is_Open (Model),
             Name & " is covered by the shared input-overlay policy");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Type_Ahead_Buffer (Model),
+           (Files.Model.Selection.Type_Ahead_Buffer (Model),
             "",
             Name & " ends the previous grid type-ahead session when it opens");
          Files_Suite.Support.Assert_Equal

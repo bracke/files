@@ -8,8 +8,6 @@ separate (Check_All)
    is
       Short  : constant String :=
         Package_Name (Ada.Strings.Fixed.Index (Package_Name, ".", Ada.Strings.Backward) + 1 .. Package_Name'Last);
-      Search : Ada.Directories.Search_Type;
-      Item   : Ada.Directories.Directory_Entry_Type;
 
       function Identifier_Char (C : Character) return Boolean is
         (C in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_');
@@ -72,17 +70,7 @@ separate (Check_All)
          end loop;
       end Check;
    begin
-      Ada.Directories.Start_Search
-        (Search, Root & "/src", Prefix & "*", [Ada.Directories.Ordinary_File => True, others => False]);
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         declare
-            Name : constant String := Ada.Directories.Simple_Name (Item);
-         begin
-            if Ends_With (Name, ".ads") or else Ends_With (Name, ".adb") then
-               Check (Ada.Directories.Full_Name (Item));
-            end if;
-         end;
+      for Item of Project_Tools.Files.List_Tree (Root & "/src", Prefix & "*.ad[sb]", Generated_Directories) loop
+         Check (To_String (Item));
       end loop;
-      Ada.Directories.End_Search (Search);
    end Require_Only_Names_From;

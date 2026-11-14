@@ -41,7 +41,7 @@ separate (Files_Suite.Interaction)
            (Reload.Status, Files.Operations.Operation_Success, "the descending directory reloads");
       end;
       --  Two-column grid: Down should move down a row (two display positions).
-      Files.Model.Set_Selection_Grid_Columns (Model, 2);
+      Files.Model.Selection.Set_Selection_Grid_Columns (Model, 2);
       Files_Suite.Support.Select_Name (Model, "c.txt");
       declare
          Start_Pos : constant Natural := Display_Position_Of ("c.txt");
@@ -49,13 +49,13 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Down, Guikit.Input.No_Modifiers, Result);
          Files_Suite.Support.Assert_Equal
-           (Display_Position_Of (Files.Model.Selected_Name (Model)),
+           (Display_Position_Of (Files.Model.Selection.Selected_Name (Model)),
             Start_Pos + 2,
             "grid Down moves down a row (not up) under descending sort");
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Up, Guikit.Input.No_Modifiers, Result);
          Files_Suite.Support.Assert_Equal
-           (Display_Position_Of (Files.Model.Selected_Name (Model)),
+           (Display_Position_Of (Files.Model.Selection.Selected_Name (Model)),
             Start_Pos,
             "grid Up returns to the previous row under descending sort");
       end;

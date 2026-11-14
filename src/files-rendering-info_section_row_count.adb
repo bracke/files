@@ -15,11 +15,11 @@ separate (Files.Rendering)
       for Field in Info_Section_Field loop
          if Info_Field_Shown (Info, Field) then
             Rows :=
-              Saturating_Add
+              Guikit.Layout.Saturating_Add
                 (Rows,
                  (if Field = Info_Permissions
                   then Permission_Grid_Rows
-                  else Saturating_Add
+                  else Guikit.Layout.Saturating_Add
                          (2,
                           Wrapped_Line_Count (Info_Field_Display_Value (Info, Field), Text_W, Line_Height))));
          end if;

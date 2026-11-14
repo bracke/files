@@ -5,7 +5,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       --  Even inset on every side; the vertical inset is derived so the box
       --  is comfortably taller than the text with matching top/bottom bands.
       Padding_V   : constant Natural :=
-        Natural'Max (Padding, Saturating_Add (Line_Height / 3, Guikit.Layout.Scaled (2, Line_Height)));
+        Natural'Max (Padding, Guikit.Layout.Saturating_Add (Line_Height / 3, Guikit.Layout.Scaled (2, Line_Height)));
       Margin      : constant Natural := Guikit.Layout.Scaled (4, Line_Height);
       Horizontal_Gap : constant Natural := Guikit.Layout.Scaled (12, Line_Height);
       Vertical_Gap   : constant Natural := Guikit.Layout.Scaled (18, Line_Height);
@@ -88,9 +88,9 @@ separate (Files.Rendering.Build_Frame_Commands)
         (if Capacity > 0 and then Line_Units > 0
          then Saturating_Multiply (Line_Units, Cell_W) else Text_W);
       Tip_W       : constant Natural :=
-        Saturating_Add (Draw_Text_W, Saturating_Multiply (Padding, 2));
+        Guikit.Layout.Saturating_Add (Draw_Text_W, Saturating_Multiply (Padding, 2));
       Tip_H       : constant Natural :=
-        Saturating_Add
+        Guikit.Layout.Saturating_Add
           (Saturating_Multiply (Row_Count, Line_Height),
            Saturating_Multiply (Padding_V, 2));
 
@@ -99,13 +99,14 @@ separate (Files.Rendering.Build_Frame_Commands)
          return
            Width > Margin
            and then Hover_X <= Natural'Last - Horizontal_Gap
-           and then Saturating_Add (Hover_X, Horizontal_Gap) <= Natural'Last - Tip_W
-           and then Saturating_Add (Saturating_Add (Hover_X, Horizontal_Gap), Tip_W) <= Width - Margin;
+           and then Guikit.Layout.Saturating_Add (Hover_X, Horizontal_Gap) <= Natural'Last - Tip_W
+           and then Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Hover_X, Horizontal_Gap), Tip_W)
+             <= Width - Margin;
       end Fits_Right;
 
       function Fits_Left return Boolean is
       begin
-         return Hover_X >= Saturating_Add (Saturating_Add (Tip_W, Horizontal_Gap), Margin);
+         return Hover_X >= Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Tip_W, Horizontal_Gap), Margin);
       end Fits_Left;
 
       function Fits_Below return Boolean is
@@ -113,25 +114,26 @@ separate (Files.Rendering.Build_Frame_Commands)
          return
            Height > Margin
            and then Hover_Y <= Natural'Last - Vertical_Gap
-           and then Saturating_Add (Hover_Y, Vertical_Gap) <= Natural'Last - Tip_H
-           and then Saturating_Add (Saturating_Add (Hover_Y, Vertical_Gap), Tip_H) <= Height - Margin;
+           and then Guikit.Layout.Saturating_Add (Hover_Y, Vertical_Gap) <= Natural'Last - Tip_H
+           and then Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Hover_Y, Vertical_Gap), Tip_H)
+             <= Height - Margin;
       end Fits_Below;
 
       function Fits_Above return Boolean is
       begin
-         return Hover_Y >= Saturating_Add (Saturating_Add (Tip_H, Vertical_Gap), Margin);
+         return Hover_Y >= Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Tip_H, Vertical_Gap), Margin);
       end Fits_Above;
 
       Tip_X       : constant Natural :=
-        (if Fits_Right then Saturating_Add (Hover_X, Horizontal_Gap)
+        (if Fits_Right then Guikit.Layout.Saturating_Add (Hover_X, Horizontal_Gap)
          elsif Fits_Left then Hover_X - Tip_W - Horizontal_Gap
-         elsif Width > Saturating_Add (Tip_W, Margin)
+         elsif Width > Guikit.Layout.Saturating_Add (Tip_W, Margin)
          then Natural'Min (Hover_X, Width - Tip_W - Margin)
          else 0);
       Tip_Y       : constant Natural :=
-        (if Fits_Below then Saturating_Add (Hover_Y, Vertical_Gap)
+        (if Fits_Below then Guikit.Layout.Saturating_Add (Hover_Y, Vertical_Gap)
          elsif Fits_Above then Hover_Y - Tip_H - Vertical_Gap
-         elsif Height > Saturating_Add (Tip_H, Margin)
+         elsif Height > Guikit.Layout.Saturating_Add (Tip_H, Margin)
          then Natural'Min (Hover_Y, Height - Tip_H - Margin)
          else 0);
    begin
@@ -151,8 +153,8 @@ separate (Files.Rendering.Build_Frame_Commands)
          Box_Height      => Tip_H,
          Fill_Color      => Overlay_Color,
          Border_Color    => Border_Color,
-         Label_X         => Saturating_Add (Tip_X, Padding),
-         Label_Y         => Saturating_Add (Tip_Y, Padding_V),
+         Label_X         => Guikit.Layout.Saturating_Add (Tip_X, Padding),
+         Label_Y         => Guikit.Layout.Saturating_Add (Tip_Y, Padding_V),
          Label_Width     => 0,
          Label_Height    => 0,
          Label_Text      => Null_Unbounded_String,
@@ -165,10 +167,10 @@ separate (Files.Rendering.Build_Frame_Commands)
          Line_First : Integer := Wrapped'First;
 
          procedure Emit_Line (First, Last : Integer) is
-            Label_X : constant Natural := Saturating_Add (Tip_X, Padding);
+            Label_X : constant Natural := Guikit.Layout.Saturating_Add (Tip_X, Padding);
             Label_Y : constant Natural :=
-              Saturating_Add
-                (Saturating_Add (Tip_Y, Padding_V), Saturating_Multiply (Row, Line_Height));
+              Guikit.Layout.Saturating_Add
+                (Guikit.Layout.Saturating_Add (Tip_Y, Padding_V), Saturating_Multiply (Row, Line_Height));
             Draw_W  : constant Natural := Clipped_Size (Label_X, Draw_Text_W, Layout.Width);
             Draw_H  : constant Natural := Clipped_Size (Label_Y, Line_Height, Layout.Height);
          begin
@@ -186,7 +188,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             if Wrapped (Position) = ASCII.LF then
                Emit_Line (Line_First, Position - 1);
                Line_First := Position + 1;
-               Row := Saturating_Add (Row, 1);
+               Row := Guikit.Layout.Saturating_Add (Row, 1);
             end if;
          end loop;
          Emit_Line (Line_First, Wrapped'Last);

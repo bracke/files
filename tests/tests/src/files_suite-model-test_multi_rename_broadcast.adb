@@ -34,10 +34,10 @@ separate (Files_Suite.Model)
    begin
       --  Select Alpha.txt (visible 1) and Beta.txt (visible 2) and enter the
       --  synchronized multi-rename.
-      Files.Model.Select_Visible (Model, 1);
-      Files.Model.Toggle_Visible_Selection (Model, 2);
-      Files.Model.Toggle_Rename (Model);
-      Assert (Files.Model.Rename_Is_Active (Model), "multi-rename activates for two selected items");
+      Files.Model.Selection.Select_Visible (Model, 1);
+      Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
+      Files.Model.Rename.Toggle_Rename (Model);
+      Assert (Files.Model.Rename.Rename_Is_Active (Model), "multi-rename activates for two selected items");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Testing.Rename_Field_Count (Model),
          2,
@@ -49,7 +49,7 @@ separate (Files_Suite.Model)
       Assert (RCursor (1) = 5 and then RCursor (2) = 4, "initial carets sit before each extension");
 
       --  A typed character inserts at every caret, each caret advancing.
-      Changed := Files.Model.Rename_Insert_At_Carets (Model, "X");
+      Changed := Files.Model.Rename.Rename_Insert_At_Carets (Model, "X");
       Assert (Changed, "insert reports a change across the fields");
       Assert
         (RValue (1) = "AlphaX.txt" and then RValue (2) = "BetaX.txt",
@@ -57,7 +57,7 @@ separate (Files_Suite.Model)
       Assert (RCursor (1) = 6 and then RCursor (2) = 5, "each caret advances past the inserted text");
 
       --  Backspace deletes at every caret.
-      Changed := Files.Model.Rename_Delete (Model, Backward => True);
+      Changed := Files.Model.Rename.Rename_Delete (Model, Backward => True);
       Assert (Changed, "backspace reports a change across the fields");
       Assert
         (RValue (1) = "Alpha.txt" and then RValue (2) = "Beta.txt",
@@ -65,12 +65,12 @@ separate (Files_Suite.Model)
       Assert (RCursor (1) = 5 and then RCursor (2) = 4, "each caret retreats after backspace");
 
       --  A per-field click moves only that field's caret.
-      Files.Model.Set_Rename_Caret (Model, Visible_Index => 1, Position => 0);
+      Files.Model.Rename.Set_Rename_Caret (Model, Visible_Index => 1, Position => 0);
       Files_Suite.Support.Assert_Equal (RCursor (1), 0, "a click moves the clicked field's caret");
       Files_Suite.Support.Assert_Equal (RCursor (2), 4, "a click leaves the other field's caret untouched");
 
       --  A keyboard arrow moves every caret together.
-      Changed := Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right);
+      Changed := Files.Model.Rename.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right);
       Assert (Changed, "arrow reports a change across the fields");
       Assert (RCursor (1) = 1 and then RCursor (2) = 5, "a keyboard arrow moves every caret together");
    end Test_Multi_Rename_Broadcast;

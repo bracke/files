@@ -15,8 +15,9 @@ separate (Files_Suite.Operations)
       Reset_Root;
       Write_File (Item, "look");
       Files.Model.Initialize (Model, Root, Files.File_System.Load_Directory (Root, Settings).Items, Root);
-      Assert (Files.Model.Select_By_Name (Model, "look.txt"), "an item to look at");
-      Files.Model.Quick_Look.Open (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
+      Assert (Files.Model.Selection.Select_By_Name (Model, "look.txt"), "an item to look at");
+      Files.Model.Quick_Look.Open
+        (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
       Assert (Files.Model.Topmost_Overlay (Model, Overlay) and then Overlay = Files.Model.Quick_Look_Overlay,
               "Quick Look alone is on top");
       Assert (not Files.Model.Escape_Overlay (Model, Overlay), "Escape's close command does not reach below it");

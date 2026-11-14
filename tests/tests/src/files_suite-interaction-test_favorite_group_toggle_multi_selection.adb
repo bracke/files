@@ -20,9 +20,9 @@ separate (Files_Suite.Interaction)
 
       --  All three selected, none favorited: one invocation stars every item.
       Model := Loaded_Model (Dir);
-      Files.Model.Select_All_Visible (Model);
+      Files.Model.Selection.Select_All_Visible (Model);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Count (Model),
+        (Files.Model.Selection.Selected_Count (Model),
          3,
          "all three files are selected before the group toggle");
       Files.Interaction.Apply_Input_Action

@@ -33,12 +33,6 @@ separate (Files.Events)
          Extent : Natural)
          return Boolean renames Guikit.Layout.Within;
 
-      function Saturating_Add
-        (Left  : Natural;
-         Right : Natural)
-         return Natural
-        renames Guikit.Layout.Saturating_Add;
-
       --  Text_Width and Focused let a click on a focused, scrolled field
       --  (see Files.Rendering.Input_Scroll_Columns) land on the character
       --  drawn under it rather than one from the unscrolled text. Caret is
@@ -65,8 +59,8 @@ separate (Files.Events)
             return Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Scroll);
          end if;
 
-         Click_Column := Saturating_Add (Click_X - Text_X, Char_W / 2) / Char_W;
-         return Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Saturating_Add (Click_Column, Scroll));
+         Click_Column := Guikit.Layout.Saturating_Add (Click_X - Text_X, Char_W / 2) / Char_W;
+         return Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Guikit.Layout.Saturating_Add (Click_Column, Scroll));
       end Cursor_At;
 
       function Text_Click

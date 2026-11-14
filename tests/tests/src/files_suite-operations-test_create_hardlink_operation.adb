@@ -35,7 +35,7 @@ separate (Files_Suite.Operations)
         (Project_Tools.Files.Read_Raw_File (Link_Path),
          Project_Tools.Files.Read_Raw_File (Source),
          "the hard link shares the original contents");
-      Assert (Files.Model.Undo_Available (Model), "undo is available after creating a hard link");
+      Assert (Files.Model.History.Undo_Available (Model), "undo is available after creating a hard link");
 
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Undo_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -55,7 +55,7 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Files.Operations.Clear_Undo (Model);
-      Files.Model.Select_All_Visible (Model);
+      Files.Model.Selection.Select_All_Visible (Model);
       Ada.Directories.Delete_File (Join (Dir, "b.txt"));
       Routed := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Create_Hardlink_Command, Model, Settings);
@@ -71,10 +71,10 @@ separate (Files_Suite.Operations)
         (Ada.Directories.Exists (Join (Dir, "a (link).txt")),
          "a partial link batch refreshes and retains one undoable committed link: link created");
       Assert
-        (Files.Model.Select_By_Name (Model, "a (link).txt"),
+        (Files.Model.Selection.Select_By_Name (Model, "a (link).txt"),
          "a partial link batch refreshes and retains one undoable committed link: link listed");
       Files_Suite.Support.Assert_Equal
-        (Natural (Files.Model.Undo_From_Paths (Model).Length),
+        (Natural (Files.Model.History.Undo_From_Paths (Model).Length),
          1,
          "a partial link batch refreshes and retains one undoable committed link: Undo paths");
       Routed := Files.Controller.Execute_Non_Settings_Command

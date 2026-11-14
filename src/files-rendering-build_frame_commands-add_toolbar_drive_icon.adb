@@ -9,14 +9,15 @@ separate (Files.Rendering.Build_Frame_Commands)
       Bar_H     : constant Natural := Natural'Max (2, Size / 9);
       Bar_W     : constant Natural := Natural'Max (1, Saturating_Multiply (Size, 2) / 3);
       Gap       : constant Natural := Natural'Max (2, Size / 7);
-      Total_H   : constant Natural := Saturating_Add (Saturating_Multiply (Bar_H, 3), Saturating_Multiply (Gap, 2));
-      Bar_X     : constant Natural := Saturating_Add (X, Centered (Size, Bar_W));
-      First_Y   : constant Natural := Saturating_Add (Y, Centered (Size, Total_H));
+      Total_H   : constant Natural :=
+        Guikit.Layout.Saturating_Add (Saturating_Multiply (Bar_H, 3), Saturating_Multiply (Gap, 2));
+      Bar_X     : constant Natural := Guikit.Layout.Saturating_Add (X, Centered (Size, Bar_W));
+      First_Y   : constant Natural := Guikit.Layout.Saturating_Add (Y, Centered (Size, Total_H));
 
       procedure Add_Bar (Index : Natural) is
-         Offset_Y : constant Natural := Saturating_Multiply (Index, Saturating_Add (Bar_H, Gap));
+         Offset_Y : constant Natural := Saturating_Multiply (Index, Guikit.Layout.Saturating_Add (Bar_H, Gap));
       begin
-         Add_Rect (Bar_X, Saturating_Add (First_Y, Offset_Y), Bar_W, Bar_H, Color);
+         Add_Rect (Bar_X, Guikit.Layout.Saturating_Add (First_Y, Offset_Y), Bar_W, Bar_H, Color);
       end Add_Bar;
    begin
       if Size = 0 then

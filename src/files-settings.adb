@@ -129,6 +129,29 @@ package body Files.Settings is
 
    function "+" (Text : String) return Key_Text is (new String'(Text));
 
+   --  The sections a "[name]" header line can open.
+   subtype Named_Section is Settings_Section range Filetypes_Section .. Settings_Section_Name;
+
+   --  The header name of each section, as Parse matches it (lower-cased).
+   Section_Names : constant array (Named_Section) of Key_Text :=
+     [Filetypes_Section     => +"filetypes",
+      Icons_Section         => +"icons",
+      Open_Actions_Section  => +"open-actions",
+      Bookmarks_Section     => +"bookmarks",
+      Labels_Section        => +"labels",
+      Recent_Section        => +"recent",
+      Shortcuts_Section     => +"shortcuts",
+      Settings_Section_Name => +"settings"];
+
+   --  The legacy theme booleans of [settings], read only when a file has no
+   --  "theme" key: high contrast wins over light.
+   type Legacy_Theme_Flag is (Legacy_High_Contrast, Legacy_Light);
+
+   --  The settings-file key of each legacy theme boolean.
+   Legacy_Theme_Keys : constant array (Legacy_Theme_Flag) of Key_Text :=
+     [Legacy_High_Contrast => +"high_contrast_theme",
+      Legacy_Light         => +"light_theme"];
+
    --  How the settings pane holds a scalar setting. Pane_Required slots are
    --  always written into the draft validation text, so an empty value is
    --  rejected; Pane_Optional slots are written only when non-empty, so an

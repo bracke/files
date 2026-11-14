@@ -28,6 +28,29 @@ package body Files.Process_Jobs is
    --  parent retry covers launch and false-success races; a second failure
    --  leaves the transport on disk for the next startup recovery pass.
    Cleanup_Failure_Limit : constant Positive := 2;
+
+   --  A refused stop signal is retried this soon: long enough not to spin on
+   --  a process that is still being torn down, short enough that a cancel
+   --  feels immediate.
+   Stop_Retry_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (100);
+
+   --  A cancelled worker gets this long to notice its cancellation marker and
+   --  exit cleanly (publishing nothing more) before it is killed.
+   Cancel_Grace_Period : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (2);
+
+   --  After a cleanup worker fails, the next attempt waits this long so a
+   --  transient refusal (a sharing violation, a busy volume) can clear
+   --  instead of being retried at reaper-poll rate.
+   Cleanup_Retry_Delay : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (2);
+
+   --  A cleanup worker only deletes a staging transport; one still running
+   --  after this long is assumed stuck and is killed so the retry sequence
+   --  can move on.
+   Cleanup_Timeout : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (30);
+
+   --  How often the orphan reaper polls its queue: frequent enough that a
+   --  finished worker is reaped promptly, rare enough to cost no idle CPU.
+   Reaper_Poll_Interval : constant Duration := 0.05;
    Cancellation_Marker : constant Ada.Streams.Stream_Element_Array :=
      [Character'Pos ('c'), Character'Pos ('a'), Character'Pos ('n'),
       Character'Pos ('c'), Character'Pos ('e'), Character'Pos ('l'),
@@ -70,7 +93,7 @@ package body Files.Process_Jobs is
          end if;
          Item.Terminated := Item.Terminated or else Sent;
          if not Item.Terminated then
-            Item.Stop_Retry_At := Ada.Real_Time.Clock + Ada.Real_Time.Milliseconds (100);
+            Item.Stop_Retry_At := Ada.Real_Time.Clock + Stop_Retry_Interval;
          end if;
       end if;
    end Stop;
@@ -94,7 +117,7 @@ package body Files.Process_Jobs is
                Item.Detached := Item.Terminated;
             end if;
          elsif Item.Cancelled and then not Item.Stop_Requested
-           and then Files.Timing.Elapsed (Ada.Real_Time.Clock, Item.Cancel_At, Ada.Real_Time.Seconds (2))
+           and then Files.Timing.Elapsed (Ada.Real_Time.Clock, Item.Cancel_At, Cancel_Grace_Period)
          then
             Stop (Item);
             --  A process stuck in kernel I/O may not become reapable immediately.
@@ -293,7 +316,7 @@ package body Files.Process_Jobs is
          Item.Stop_Requested := False;
          Item.Stop_Retry_At := Ada.Real_Time.Clock;
          if Delay_Retry then
-            Item.Cleanup_Retry_At := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (2);
+            Item.Cleanup_Retry_At := Ada.Real_Time.Clock + Cleanup_Retry_Delay;
          end if;
          Ensure_Reaper;
          Submit_Or_Abandon (Item);
@@ -329,7 +352,7 @@ package body Files.Process_Jobs is
             if Found and then Status.State in Hostkit.Spawn.Wait_Running
               | Hostkit.Spawn.Wait_Stopped | Hostkit.Spawn.Wait_Continued
             then
-               if Files.Timing.Elapsed (Ada.Real_Time.Clock, Item.Cleanup_Started_At, Ada.Real_Time.Seconds (30)) then
+               if Files.Timing.Elapsed (Ada.Real_Time.Clock, Item.Cleanup_Started_At, Cleanup_Timeout) then
                   declare
                      Sent : constant Boolean := Hostkit.Signals.Send_To_Process
                        (Hostkit.Spawn.Process_Id (Item.Cleanup_Process), Hostkit.Signals.Signal_Kill);
@@ -424,10 +447,10 @@ package body Files.Process_Jobs is
                   Stopping := True;
                end Stop;
             or
-               delay 0.05;
+               delay Reaper_Poll_Interval;
             end select;
          else
-            delay 0.05;
+            delay Reaper_Poll_Interval;
          end if;
 
          Orphan_Queue.Take_All (Current);

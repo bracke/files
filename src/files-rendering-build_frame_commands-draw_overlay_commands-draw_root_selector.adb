@@ -38,7 +38,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                then Row_H - Saturating_Multiply (Root_Selector_Padding (Line_Height), 2)
                else Row_H);
             Toolbar_Icon_Size : constant Natural :=
-              Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2));
+              Guikit.Layout.Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2));
             --  Uniform across rows (they share Row_Height), so compute once.
             Glyph_Size : constant Natural := Natural'Min (Toolbar_Icon_Size, Inner_H);
             List_Rows  : Guikit.List_Panel.List_Panel_Row_Vectors.Vector;
@@ -90,22 +90,22 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                Region_Height =>
                  (declare
                     Last_Row : constant Root_Path_Layout := Root_Rows.Last_Element;
-                    Bottom   : constant Natural := Saturating_Add (Last_Row.Y, Last_Row.Height);
+                    Bottom   : constant Natural := Guikit.Layout.Saturating_Add (Last_Row.Y, Last_Row.Height);
                   begin (if Bottom > First_Row.Y then Bottom - First_Row.Y else 0)),
                Config        => Config,
                Rows          => List_Rows,
                Draw_Chrome   => False,
                Row_Height    => Row_H,
-               Leading_Icon_Width => Saturating_Add (Glyph_Size, Root_Selector_Padding (Line_Height)));
+               Leading_Icon_Width => Guikit.Layout.Saturating_Add (Glyph_Size, Root_Selector_Padding (Line_Height)));
 
             for Index in 1 .. Natural (Root_Rows.Length) loop
                declare
                   Row     : constant Root_Path_Layout := Root_Rows.Element (Positive (Index));
                   Row_Pad : constant Natural := Natural'Min (Root_Selector_Padding (Line_Height), Row.Height);
-                  Glyph_X : constant Natural := Saturating_Add (Row.X, Row_Pad);
+                  Glyph_X : constant Natural := Guikit.Layout.Saturating_Add (Row.X, Row_Pad);
                   Glyph_Y : constant Natural :=
                     (if Row.Height > Glyph_Size
-                     then Saturating_Add (Row.Y, (Row.Height - Glyph_Size) / 2)
+                     then Guikit.Layout.Saturating_Add (Row.Y, (Row.Height - Glyph_Size) / 2)
                      else Row.Y);
                begin
                   if Index > 1 then
@@ -114,12 +114,12 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                   if Glyph_Size > 0 then
                      Add_Overlay_Rect
                        (Glyph_X,
-                        Saturating_Add (Glyph_Y, Glyph_Size / 4),
+                        Guikit.Layout.Saturating_Add (Glyph_Y, Glyph_Size / 4),
                         Glyph_Size,
                         Natural'Max (1, Glyph_Size / 2),
                         Icon_Folder_Color);
                      Add_Overlay_Rect
-                       (Saturating_Add (Glyph_X, Glyph_Size / 4),
+                       (Guikit.Layout.Saturating_Add (Glyph_X, Glyph_Size / 4),
                         Glyph_Y,
                         Natural'Max (1, Glyph_Size / 2),
                         Natural'Max (1, Glyph_Size / 4),

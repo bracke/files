@@ -20,6 +20,8 @@ with Files.Model.Root_Selector;
 with Files.Model.Settings_Pane;
 with Files.Model.Tree_Panel;
 with Files.Model.Pasting;
+with Files.Model.Rename;
+with Files.Model.Selection;
 
 package body Files.Controller is
    use Ada.Strings.Unbounded;
@@ -273,6 +275,22 @@ package body Files.Controller is
          Operation => Operation);
    end Make_Result;
 
+   --  The result of an action that may have left the model as it was:
+   --  ignored when Unchanged, otherwise Changed.
+   function Changed_Result
+     (Unchanged : Boolean;
+      Changed   : Controller_Status := Controller_Command_Executed)
+      return Controller_Result
+   is (Make_Result (if Unchanged then Controller_Ignored else Changed));
+
+   --  The result of an action that moved a position or count from Old to
+   --  Current: ignored when it stayed put, otherwise Changed.
+   function Changed_Result
+     (Old, Current : Natural;
+      Changed      : Controller_Status := Controller_Command_Executed)
+      return Controller_Result
+   is (Changed_Result (Current = Old, Changed));
+
    function Successful_Command_Result
      (Command : Files.Commands.Command_Id)
       return Controller_Result
@@ -342,7 +360,7 @@ package body Files.Controller is
          when Files.Types.Focus_Filter_Input =>
             Files.Model.Set_Filter (Model, Text);
          when Files.Types.Focus_Rename_Input =>
-            Files.Model.Set_Rename_Text (Model, Text);
+            Files.Model.Rename.Set_Rename_Text (Model, Text);
          when Files.Types.Focus_Command_Palette =>
             Files.Model.Command_Palette.Set_Query (Model, Text);
          when Files.Types.Focus_Settings_Input =>
@@ -371,7 +389,7 @@ package body Files.Controller is
          when Files.Types.Focus_Filter_Input =>
             return Files.Model.Filter_Text (Model);
          when Files.Types.Focus_Rename_Input =>
-            return Files.Model.Rename_Text (Model);
+            return Files.Model.Rename.Rename_Text (Model);
          when Files.Types.Focus_Command_Palette =>
             return Files.Model.Command_Palette.Query (Model);
          when Files.Types.Focus_Settings_Input =>
@@ -699,7 +717,7 @@ package body Files.Controller is
          if Operation.Status = Files.Operations.Operation_Navigated then
             declare
                Selected : constant Boolean :=
-                 Files.Model.Select_By_Name (Model, Files.Fs_Primitives.Leaf_Text (Path));
+                 Files.Model.Selection.Select_By_Name (Model, Files.Fs_Primitives.Leaf_Text (Path));
                pragma Unreferenced (Selected);
             begin
                null;
@@ -719,7 +737,7 @@ package body Files.Controller is
       return Controller_Result
    is
       Items : constant Files.Items.Item_Vectors.Vector :=
-        Files.Model.Selected_Items (Model);
+        Files.Model.Selection.Selected_Items (Model);
    begin
       if Natural (Items.Length) /= 1 then
          return Make_Result (Controller_Ignored, Files.Commands.Open_Containing_Folder_Command);
@@ -741,7 +759,7 @@ package body Files.Controller is
             if Operation.Status = Files.Operations.Operation_Navigated then
                declare
                   Selected : constant Boolean :=
-                    Files.Model.Select_By_Name (Model, Files.Fs_Primitives.Leaf_Text (Path));
+                    Files.Model.Selection.Select_By_Name (Model, Files.Fs_Primitives.Leaf_Text (Path));
                   pragma Unreferenced (Selected);
                begin
                   null;
@@ -1045,11 +1063,7 @@ package body Files.Controller is
       Old_Lines : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
    begin
       Files.Model.Scroll_Info_Pane (Model, Lines);
-      return
-        Make_Result
-          (if Files.Model.Info_Pane_Scroll_Lines (Model) = Old_Lines
-           then Controller_Ignored
-           else Controller_Command_Executed);
+      return Changed_Result (Old_Lines, Files.Model.Info_Pane_Scroll_Lines (Model));
    end Scroll_Info_Result;
 
    function Scroll_Tree_Result
@@ -1060,11 +1074,7 @@ package body Files.Controller is
       Old_Rows : constant Natural := Files.Model.Tree_Panel.Scroll_Rows (Model);
    begin
       Files.Model.Tree_Panel.Scroll (Model, Rows);
-      return
-        Make_Result
-          (if Files.Model.Tree_Panel.Scroll_Rows (Model) = Old_Rows
-           then Controller_Ignored
-           else Controller_Command_Executed);
+      return Changed_Result (Old_Rows, Files.Model.Tree_Panel.Scroll_Rows (Model));
    end Scroll_Tree_Result;
 
    function Scroll_Settings_Result
@@ -1084,11 +1094,7 @@ package body Files.Controller is
       Old_Lines : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
    begin
       Files.Model.Scroll_Main_View (Model, Lines);
-      return
-        Make_Result
-          (if Files.Model.Main_View_Scroll_Lines (Model) = Old_Lines
-           then Controller_Ignored
-           else Controller_Command_Executed);
+      return Changed_Result (Old_Lines, Files.Model.Main_View_Scroll_Lines (Model));
    end Scroll_Main_Result;
 
    function Handle_Scroll
@@ -1208,11 +1214,7 @@ package body Files.Controller is
       Old_Index : constant Natural := Files.Model.Root_Selector.Selected_Index (Model);
    begin
       Files.Model.Root_Selector.Move_Selection (Model, Direction);
-      return
-        Make_Result
-          (if Files.Model.Root_Selector.Selected_Index (Model) = Old_Index
-           then Controller_Ignored
-           else Controller_Selection_Moved);
+      return Changed_Result (Old_Index, Files.Model.Root_Selector.Selected_Index (Model), Controller_Selection_Moved);
    end Root_Selection_Result;
 
    function Root_Jump_Result
@@ -1223,39 +1225,27 @@ package body Files.Controller is
       Old_Index : constant Natural := Files.Model.Root_Selector.Selected_Index (Model);
    begin
       Files.Model.Root_Selector.Set_Selected_Index (Model, Index);
-      return
-        Make_Result
-          (if Files.Model.Root_Selector.Selected_Index (Model) = Old_Index
-           then Controller_Ignored
-           else Controller_Selection_Moved);
+      return Changed_Result (Old_Index, Files.Model.Root_Selector.Selected_Index (Model), Controller_Selection_Moved);
    end Root_Jump_Result;
 
    function First_Selection_Result
      (Model : in out Files.Model.Window_Model)
       return Controller_Result
    is
-      Old_Index : constant Natural := Files.Model.Selected_Index (Model);
+      Old_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);
    begin
-      Files.Model.Select_First_Visible (Model);
-      return
-        Make_Result
-          (if Files.Model.Selected_Index (Model) = Old_Index
-           then Controller_Ignored
-           else Controller_Selection_Moved);
+      Files.Model.Selection.Select_First_Visible (Model);
+      return Changed_Result (Old_Index, Files.Model.Selection.Selected_Index (Model), Controller_Selection_Moved);
    end First_Selection_Result;
 
    function Last_Selection_Result
      (Model : in out Files.Model.Window_Model)
       return Controller_Result
    is
-      Old_Index : constant Natural := Files.Model.Selected_Index (Model);
+      Old_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);
    begin
-      Files.Model.Select_Last_Visible (Model);
-      return
-        Make_Result
-          (if Files.Model.Selected_Index (Model) = Old_Index
-           then Controller_Ignored
-           else Controller_Selection_Moved);
+      Files.Model.Selection.Select_Last_Visible (Model);
+      return Changed_Result (Old_Index, Files.Model.Selection.Selected_Index (Model), Controller_Selection_Moved);
    end Last_Selection_Result;
 
    function Page_Selection_Result
@@ -1263,14 +1253,10 @@ package body Files.Controller is
       Down  : Boolean)
       return Controller_Result
    is
-      Old_Index : constant Natural := Files.Model.Selected_Index (Model);
+      Old_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);
    begin
-      Files.Model.Move_Selection_By_Page (Model, Files.Model.Selection_Page_Rows (Model), Down);
-      return
-        Make_Result
-          (if Files.Model.Selected_Index (Model) = Old_Index
-           then Controller_Ignored
-           else Controller_Selection_Moved);
+      Files.Model.Selection.Move_Selection_By_Page (Model, Files.Model.Selection.Selection_Page_Rows (Model), Down);
+      return Changed_Result (Old_Index, Files.Model.Selection.Selected_Index (Model), Controller_Selection_Moved);
    end Page_Selection_Result;
 
    function Handle_Key

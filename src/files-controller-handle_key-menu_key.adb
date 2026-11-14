@@ -10,9 +10,9 @@ begin
        or else (Key = Guikit.Input.Key_Menu and then Modifiers = Guikit.Input.No_Modifiers))
      and then Files.Model.Focus (Model) = Files.Types.Focus_None
    then
-      if Files.Model.Selected_Count (Model) > 0 then
+      if Files.Model.Selection.Selected_Count (Model) > 0 then
          Files.Model.Context_Menu.Open
-           (Model, 0, 0, Files.Types.Context_Menu_Item, Files.Model.Selected_Index (Model));
+           (Model, 0, 0, Files.Types.Context_Menu_Item, Files.Model.Selection.Selected_Index (Model));
       else
          Files.Model.Context_Menu.Open (Model, 0, 0, Files.Types.Context_Menu_Empty);
       end if;

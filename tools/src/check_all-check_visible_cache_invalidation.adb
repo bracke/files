@@ -1,8 +1,5 @@
 separate (Check_All)
    procedure Check_Visible_Cache_Invalidation is
-      Search : Ada.Directories.Search_Type;
-      Item   : Ada.Directories.Directory_Entry_Type;
-
       Writes : constant array (Positive range <>) of Unbounded_String :=
         [To_Unbounded_String ("model.items :="),
          To_Unbounded_String ("model.items.clear"),
@@ -15,7 +12,8 @@ separate (Check_All)
          To_Unbounded_String ("model.items.set_length"),
          To_Unbounded_String ("model.items.reverse_elements"),
          To_Unbounded_String ("sort_items (model.items"),
-         To_Unbounded_String ("filter_value :="),
+         To_Unbounded_String ("model.filter :="),
+         To_Unbounded_String ("model.filter.text :="),
          To_Unbounded_String ("search_results_active :=")];
 
       --  Text lowered, with every run of blanks and line ends one space.
@@ -120,11 +118,7 @@ separate (Check_All)
          Judge;
       end Check_File;
    begin
-      Ada.Directories.Start_Search
-        (Search, Root & "/src", "files-model*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         Check_File (Ada.Directories.Full_Name (Item));
+      for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-model*.adb", Generated_Directories) loop
+         Check_File (To_String (Item));
       end loop;
-      Ada.Directories.End_Search (Search);
    end Check_Visible_Cache_Invalidation;

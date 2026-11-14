@@ -10,14 +10,14 @@ separate (Files_Suite.Model)
       --  page the SELECTION rather than scrolling the main view. The main view
       --  still scrolls through the wheel / targeted-scroll seam, which
       --  Test_Main_View_Scroll_And_Settings_Block covers.
-      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Selection.Select_Visible (Model, 1);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "grid PageUp on the first item is ignored");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          1,
          "grid PageUp keeps the first item selected");
 
@@ -41,7 +41,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Selection_Moved,
          "grid PageDown pages the selection");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          Files.Model.Visible_Count (Model),
          "grid PageDown moves the selection a full page down to the last item");
 
@@ -51,7 +51,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Ignored,
          "grid PageDown on the last item is ignored");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          Files.Model.Visible_Count (Model),
          "grid PageDown keeps the last item selected");
 
@@ -61,7 +61,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Selection_Moved,
          "grid PageUp pages the selection back");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          1,
          "grid PageUp returns the selection to the first item");
    end Test_Grid_Page_Keys_Page_The_Selection;

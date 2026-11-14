@@ -11,7 +11,7 @@ separate (Files_Suite.Commands)
       Ctrl_Shift (Guikit.Input.Control_Key) := True;
       Ctrl_Shift (Guikit.Input.Shift_Key) := True;
       Files.Model.Focus_Filter_Input (Model);
-      Files.Model.Select_Visible (Model, 2);
+      Files.Model.Selection.Select_Visible (Model, 2);
       Files.Controller.Testing.Replace_Focused_Text (Model, "beta");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
@@ -49,7 +49,7 @@ separate (Files_Suite.Commands)
          3,
          "clear-filter restores visible projection");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Name (Model),
+        (Files.Model.Selection.Selected_Name (Model),
          "Beta.txt",
          "clear-filter preserves selected visible item");
       Assert

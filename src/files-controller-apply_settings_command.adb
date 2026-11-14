@@ -32,7 +32,7 @@ begin
       when Files.Commands.Toggle_Favorite_Command =>
          declare
             Selected : constant Files.Items.Item_Vectors.Vector :=
-              Files.Model.Selected_Items (Model);
+              Files.Model.Selection.Selected_Items (Model);
             Updated  : Files.Settings.Settings_Model := Settings;
 
             --  Add or remove Path so it matches Favorited, toggling only when

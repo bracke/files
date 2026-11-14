@@ -10,11 +10,11 @@ separate (Files.Rendering.Build_Frame_Commands)
       Char_W : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
       Raw    : constant String := To_String (Text);
       Raw_X  : constant Natural :=
-        Saturating_Add
-          (Saturating_Add (X, Files.UI.Field_Padding (Line_Height)),
+        Guikit.Layout.Saturating_Add
+          (Guikit.Layout.Saturating_Add (X, Files.UI.Field_Padding (Line_Height)),
            Saturating_Multiply
              (Guikit.Utf8.Display_Units_Before (Raw, Cursor), Char_W));
-      Max_X  : constant Natural := (if Field_W > 2 then Saturating_Add (X, Field_W - 2) else X);
+      Max_X  : constant Natural := (if Field_W > 2 then Guikit.Layout.Saturating_Add (X, Field_W - 2) else X);
       --  The caret height tracks the font: a fixed fraction of the line
       --  height (so it scales linearly with the font size), clamped to the
       --  field, and centered vertically. Using Line_Height minus fixed
@@ -29,12 +29,12 @@ separate (Files.Rendering.Build_Frame_Commands)
       Descent_Bias : constant Natural := Line_Height / 8;
       Caret_Y : constant Natural :=
         Natural'Min
-          (Saturating_Add
+          (Guikit.Layout.Saturating_Add
              (Y,
-              Saturating_Add
+              Guikit.Layout.Saturating_Add
                 (Centered (Field_H, Caret_H),
                  Descent_Bias)),
-           (if Field_H > Caret_H then Saturating_Add (Y, Field_H - Caret_H) else Y));
+           (if Field_H > Caret_H then Guikit.Layout.Saturating_Add (Y, Field_H - Caret_H) else Y));
       Caret_W : constant Natural := Natural'Min (2, Field_W);
    begin
       if Field_W > 0 and then Caret_H > 4 then

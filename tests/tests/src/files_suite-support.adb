@@ -26,6 +26,7 @@ with Hostkit.Host;
 with Hostkit.Metadata;
 with Hostkit.Process;
 with Files.Model.Pasting;
+with Files.Model.Selection;
 
 package body Files_Suite.Support is
 
@@ -707,7 +708,7 @@ package body Files_Suite.Support is
      (Model : in out Files.Model.Window_Model;
       Name  : String)
    is
-      Selected : constant Boolean := Files.Model.Select_By_Name (Model, Name);
+      Selected : constant Boolean := Files.Model.Selection.Select_By_Name (Model, Name);
       pragma Unreferenced (Selected);
    begin
       null;
@@ -767,6 +768,36 @@ package body Files_Suite.Support is
          Ada.Text_IO.Put_Line
            (Ada.Text_IO.Standard_Error,
             "Paste_Guard could not end the paste execution: " & Ada.Exceptions.Exception_Message (Error));
+   end Finalize;
+
+   procedure Remove_Transport_Fixture (Path : Files.Types.UString) is
+   begin
+      if Length (Path) > 0 and then Ada.Directories.Exists (To_String (Path)) then
+         Project_Tools.Files.Delete_Tree (To_String (Path));
+      end if;
+   end Remove_Transport_Fixture;
+
+   procedure Track (Guard : in out Process_Jobs_Guard; Path : Files.Types.UString) is
+   begin
+      Guard.Fixtures.Append (Path);
+   end Track;
+
+   procedure Release (Guard : in out Process_Jobs_Guard) is
+   begin
+      Files.Process_Jobs.Reset (Guard.Session.all);
+      for Path of Guard.Fixtures loop
+         Remove_Transport_Fixture (Path);
+      end loop;
+   end Release;
+
+   overriding procedure Finalize (Guard : in out Process_Jobs_Guard) is
+   begin
+      Release (Guard);
+   exception
+      when Error : others =>
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Standard_Error,
+            "Process_Jobs_Guard could not restore the job fixtures: " & Ada.Exceptions.Exception_Message (Error));
    end Finalize;
 
    function Finish_Paste

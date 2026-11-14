@@ -11,21 +11,21 @@ is
    --  one-line title band. The preferred swatch edge tracks the line height;
    --  narrow/short windows shrink the row below that preference.
    Desired_Swatch : constant Natural := Saturating_Multiply (Line_Height, 2);
-   Desired_Title_H : constant Natural := Saturating_Add (Line_Height, Padding);
+   Desired_Title_H : constant Natural := Guikit.Layout.Saturating_Add (Line_Height, Padding);
    Desired_Row_W : constant Natural :=
-     Saturating_Add
+     Guikit.Layout.Saturating_Add
        (Saturating_Multiply (Desired_Swatch, Count),
         Saturating_Multiply (Desired_Gap, Count - 1));
    Panel_W  : constant Natural :=
      Natural'Min
        (Layout.Width,
-        Saturating_Add (Desired_Row_W, Saturating_Multiply (Padding, 2)));
+        Guikit.Layout.Saturating_Add (Desired_Row_W, Saturating_Multiply (Padding, 2)));
    Panel_H  : constant Natural :=
      Natural'Min
        (Layout.Height,
-        Saturating_Add
+        Guikit.Layout.Saturating_Add
           (Desired_Title_H,
-           Saturating_Add (Desired_Swatch, Saturating_Multiply (Padding, 2))));
+           Guikit.Layout.Saturating_Add (Desired_Swatch, Saturating_Multiply (Padding, 2))));
    Panel_X  : constant Natural :=
      Centered (Layout.Width, Panel_W);
    Panel_Y  : constant Natural :=
@@ -48,11 +48,11 @@ is
    Remaining_H : constant Natural := Panel_H - Title_H;
    Swatch      : constant Natural := Natural'Min (Horizontal_Swatch, Remaining_H);
    Row_W            : constant Natural :=
-     Saturating_Add
+     Guikit.Layout.Saturating_Add
        (Saturating_Multiply (Swatch, Count), Gaps_W);
    Row_X            : constant Natural :=
-     Saturating_Add (Panel_X, (Panel_W - Row_W) / 2);
-   Row_Y            : constant Natural := Saturating_Add (Panel_Y, Title_H);
+     Guikit.Layout.Saturating_Add (Panel_X, (Panel_W - Row_W) / 2);
+   Row_Y            : constant Natural := Guikit.Layout.Saturating_Add (Panel_Y, Title_H);
    Result   : Label_Picker_Layout;
 begin
    Result.X           := Panel_X;
@@ -63,9 +63,9 @@ begin
    Result.Visible     := Panel_W > 0 and then Panel_H > 0;
    for Index in Result.Swatches'Range loop
       Result.Swatches (Index) :=
-        (X      => Saturating_Add
+        (X      => Guikit.Layout.Saturating_Add
                      (Row_X,
-                      Saturating_Multiply (Index - 1, Saturating_Add (Swatch, Gap))),
+                      Saturating_Multiply (Index - 1, Guikit.Layout.Saturating_Add (Swatch, Gap))),
          Y      => Row_Y,
          Width  => Swatch,
          Height => Swatch);

@@ -20,7 +20,7 @@ separate (Files_Suite.Interaction)
         (Files.File_System.Make_Item
            (Files_Suite.Support.Root, "opened-dir", Files.Types.Directory_Item, "inode/directory"));
       Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
-      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Selection.Select_Visible (Model, 1);
 
       Files.Interaction.Apply_Input_Action
         (Model             => Model,

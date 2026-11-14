@@ -18,7 +18,7 @@ separate (Files_Suite.Interaction)
 
       Click (Model, Settings, X2, Y2, Ctrl, Result);
       Assert
-        (Files.Model.Is_Selected (Model, 1) and then Files.Model.Is_Selected (Model, 3),
+        (Files.Model.Selection.Is_Selected (Model, 1) and then Files.Model.Selection.Is_Selected (Model, 3),
          "ctrl-click adds the second item to the selection");
       Files_Suite.Support.Assert_Equal
         (Selected_Item_Nodes (Model),
@@ -26,8 +26,8 @@ separate (Files_Suite.Interaction)
          "two item nodes report Selected after ctrl-click");
 
       Click (Model, Settings, X1, Y1, Ctrl, Result);
-      Assert (not Files.Model.Is_Selected (Model, 1), "ctrl-click toggles the first item back off");
-      Assert (Files.Model.Is_Selected (Model, 3), "the other item stays selected");
+      Assert (not Files.Model.Selection.Is_Selected (Model, 1), "ctrl-click toggles the first item back off");
+      Assert (Files.Model.Selection.Is_Selected (Model, 3), "the other item stays selected");
       Files_Suite.Support.Assert_Equal
         (Selected_Item_Nodes (Model),
          1,

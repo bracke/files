@@ -10,11 +10,11 @@ separate (Files.Rendering)
       return Detail_Column_Geometry_Array
    is
       use type Files.Types.Detail_Column;
-      Icon_Gap  : constant Natural := Saturating_Add (Line_Height, Guikit.Layout.Scaled (6, Line_Height));
+      Icon_Gap  : constant Natural := Guikit.Layout.Saturating_Add (Line_Height, Guikit.Layout.Scaled (6, Line_Height));
       Base_X    : constant Natural :=
-        Saturating_Add (Saturating_Add (Content_X, Pad), Icon_Gap);
+        Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Content_X, Pad), Icon_Gap);
       Available : constant Natural :=
-        (if Content_W > Saturating_Add (Icon_Gap, Saturating_Multiply (Pad, 2))
+        (if Content_W > Guikit.Layout.Saturating_Add (Icon_Gap, Saturating_Multiply (Pad, 2))
          then Content_W - Icon_Gap - Saturating_Multiply (Pad, 2)
          else 0);
       Min_Name  : constant Natural := Natural'Min (Available, Saturating_Multiply (Line_Height, 5));
@@ -40,13 +40,13 @@ separate (Files.Rendering)
                             (Natural'Max (Widths (Column), Files.Types.Minimum_Detail_Column_Width), Line_Height)
                      else Default_Detail_Column_Width (Column, Line_Height));
                   Room  : constant Natural :=
-                    (if Available > Saturating_Add (Fixed_Sum, Min_Name)
+                    (if Available > Guikit.Layout.Saturating_Add (Fixed_Sum, Min_Name)
                      then Available - Fixed_Sum - Min_Name
                      else 0);
                   Width : constant Natural := Natural'Min (Raw, Room);
                begin
                   Result (Column) := (Visible => True, X => 0, Width => Width);
-                  Fixed_Sum := Saturating_Add (Fixed_Sum, Width);
+                  Fixed_Sum := Guikit.Layout.Saturating_Add (Fixed_Sum, Width);
                end;
             end if;
          end;
@@ -60,14 +60,14 @@ separate (Files.Rendering)
       --  Place columns left to right: the name column absorbs the remainder in
       --  the first slot, then the visible optional columns follow in stored
       --  order.
-      Cursor := Saturating_Add (Base_X, Result (Files.Types.Name_Column).Width);
+      Cursor := Guikit.Layout.Saturating_Add (Base_X, Result (Files.Types.Name_Column).Width);
       for Slot in Order'Range loop
          declare
             Column : constant Files.Types.Detail_Column := Order (Slot);
          begin
             if Column /= Files.Types.Name_Column and then Result (Column).Visible then
                Result (Column).X := Cursor;
-               Cursor := Saturating_Add (Cursor, Result (Column).Width);
+               Cursor := Guikit.Layout.Saturating_Add (Cursor, Result (Column).Width);
             end if;
          end;
       end loop;

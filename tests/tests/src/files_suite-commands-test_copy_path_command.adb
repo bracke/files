@@ -33,7 +33,7 @@ separate (Files_Suite.Commands)
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Copy_Path_Command, Model),
          "copy-path is disabled with no selection");
-      Files.Model.Select_All_Visible (Model);
+      Files.Model.Selection.Select_All_Visible (Model);
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Copy_Path_Command, Model),
          "copy-path is enabled with a real selection");

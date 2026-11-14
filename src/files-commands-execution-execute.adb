@@ -27,7 +27,7 @@ separate (Files.Commands.Execution)
             Files.Model.Focus_Path_Input (Model);
             Files.Model.Set_Error (Model, "");
          when Rename_Selected_Items_Command =>
-            Files.Model.Toggle_Rename (Model);
+            Files.Model.Rename.Toggle_Rename (Model);
          when Focus_Filter_Input_Command =>
             Files.Model.Focus_Filter_Input (Model);
             Files.Model.Set_Error (Model, "");
@@ -37,16 +37,16 @@ separate (Files.Commands.Execution)
          when Clear_Filter_Command =>
             Files.Model.Clear_Filter (Model);
          when Select_All_Command =>
-            Files.Model.Select_All_Visible (Model);
+            Files.Model.Selection.Select_All_Visible (Model);
          when Invert_Selection_Command =>
-            Files.Model.Invert_Selection (Model);
+            Files.Model.Selection.Invert_Selection (Model);
          when Deselect_All_Command =>
-            Files.Model.Deselect_All (Model);
+            Files.Model.Selection.Deselect_All (Model);
          when Copy_Path_Command =>
             --  Building the newline-joined selection paths is pure; the shell
             --  reads the recorded request and writes the system clipboard.
             Files.Model.Clipboard.Set_System_Request
-              (Model, Joined_Full_Paths (Files.Model.Selected_Items (Model)));
+              (Model, Joined_Full_Paths (Files.Model.Selection.Selected_Items (Model)));
             Files.Model.Set_Error (Model, "");
          when Set_Color_Label_Command =>
             --  Opening the swatch picker is pure model state; the chosen label is

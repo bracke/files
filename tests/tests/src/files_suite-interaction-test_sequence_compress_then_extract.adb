@@ -26,7 +26,7 @@ separate (Files_Suite.Interaction)
       --  Step 2: reload so the new archive appears, select it, and extract.
       Model := Loaded_Model (Dir);
       Files_Suite.Support.Select_Name (Model, "report.zip");
-      Assert (Files.Model.Selected_Count (Model) > 0, "the reloaded listing contains the new archive");
+      Assert (Files.Model.Selection.Selected_Count (Model) > 0, "the reloaded listing contains the new archive");
       Open_Item_Context_Menu (Model, Settings, Result);
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
               "Extract is enabled on the reloaded archive selection");

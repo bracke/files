@@ -64,7 +64,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
          end if;
          if Dialog.Message_Height > Line_Height then
             Add_Overlay_Text
-              (Dialog.Message_X, Saturating_Add (Dialog.Message_Y, Line_Height),
+              (Dialog.Message_X, Guikit.Layout.Saturating_Add (Dialog.Message_Y, Line_Height),
                Dialog.Message_Width,
                Natural'Min (Line_Height, Dialog.Message_Height - Line_Height),
                Localized ("dialog.paste_conflict.exists"), Text_Color, Fit => True);
@@ -74,7 +74,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
          declare
             Box_Size : constant Natural := Natural'Min (Line_Height, Dialog.Apply_Height);
             Text_Offset : constant Natural :=
-              Saturating_Add (Box_Size, Files.UI.Field_Padding (Line_Height));
+              Guikit.Layout.Saturating_Add (Box_Size, Files.UI.Field_Padding (Line_Height));
             Hovered  : constant Boolean :=
               Has_Hover
               and then Contains_Point
@@ -90,13 +90,13 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                Add_Overlay_Rect
                  (Dialog.Apply_X, Dialog.Apply_Y, Box_Size, Box_Size, Border_Color);
                Add_Overlay_Rect
-                 (Saturating_Add (Dialog.Apply_X, 1), Saturating_Add (Dialog.Apply_Y, 1),
+                 (Guikit.Layout.Saturating_Add (Dialog.Apply_X, 1), Guikit.Layout.Saturating_Add (Dialog.Apply_Y, 1),
                   (if Box_Size > 2 then Box_Size - 2 else 0),
                   (if Box_Size > 2 then Box_Size - 2 else 0),
                   (if Snapshot.Paste_Conflict_Apply_All
                    then Selection_Color else Overlay_Color));
                Add_Overlay_Text
-                 (Saturating_Add (Dialog.Apply_X, Text_Offset),
+                 (Guikit.Layout.Saturating_Add (Dialog.Apply_X, Text_Offset),
                   Dialog.Apply_Y,
                   (if Dialog.Apply_Width > Text_Offset
                    then Dialog.Apply_Width - Text_Offset

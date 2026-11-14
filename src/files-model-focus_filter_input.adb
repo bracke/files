@@ -6,7 +6,7 @@ begin
    Reset_Type_Ahead (Model);
    Model.Focus_Value := Files.Types.Focus_Filter_Input;
    Model.Tree_Panel.Keyboard := False;
-   Model.Filter_Cursor := Length (Model.Filter_Value);
+   Model.Filter.Cursor := Length (Model.Filter.Text);
    Clear_Root_Selector_State (Model);
    Model.Command_Palette.Open := False;
    Guikit.Command_Palette.Reset (Model.Command_Palette.View);

@@ -16,7 +16,7 @@ separate (Files.Controller)
       function Selected_Paths return Files.Types.String_Vectors.Vector is
          Paths : Files.Types.String_Vectors.Vector;
       begin
-         for Item of Files.Model.Selected_Items (Model) loop
+         for Item of Files.Model.Selection.Selected_Items (Model) loop
             Paths.Append (Item.Full_Path);
          end loop;
          return Paths;
@@ -189,7 +189,7 @@ separate (Files.Controller)
                Files.Model.Quick_Look.Close (Model);
             else
                Files.Model.Quick_Look.Open
-                 (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
+                 (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
             end if;
             Files.Model.Set_Error (Model, "");
             Operation.Status := Files.Operations.Operation_Success;

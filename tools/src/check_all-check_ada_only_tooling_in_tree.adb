@@ -1,47 +1,11 @@
 separate (Check_All)
    procedure Check_Ada_Only_Tooling_In_Tree (Path : String) is
-      Search    : Ada.Directories.Search_Type;
-      Dir_Entry : Ada.Directories.Directory_Entry_Type;
-      Started   : Boolean := False;
    begin
-      if not Project_Tools.Files.Directory_Exists (Path) then
-         return;
-      end if;
-
-      Ada.Directories.Start_Search
-        (Search,
-         Directory => Path,
-         Pattern   => "*",
-         Filter    =>
-           [Ada.Directories.Ordinary_File => True,
-           Ada.Directories.Directory     => True,
-           Ada.Directories.Special_File  => False]);
-      Started := True;
-
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
+      for Item of Project_Tools.Files.List_Tree (Path, "*", Generated_Directories) loop
          declare
-            Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
-            Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
+            Full : constant String := To_String (Item);
          begin
-            if Name = "." or else Name = ".." then
-               null;
-            elsif Ada.Directories.Kind (Dir_Entry) = Ada.Directories.Directory then
-               if not Is_Generated_Directory_Name (Name) then
-                  Check_Ada_Only_Tooling_In_Tree (Full);
-               end if;
-            else
-               Check_Ada_Only_Tooling_File (Name, Full);
-            end if;
+            Check_Ada_Only_Tooling_File (Ada.Directories.Simple_Name (Full), Full);
          end;
       end loop;
-
-      Ada.Directories.End_Search (Search);
-      Started := False;
-   exception
-      when others =>
-         if Started then
-            Ada.Directories.End_Search (Search);
-         end if;
-         raise;
    end Check_Ada_Only_Tooling_In_Tree;

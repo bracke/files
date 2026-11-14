@@ -28,17 +28,17 @@ separate (Files.Controller)
             --  moving cursor (which Select_Visible_Range leaves on the last
             --  click's target): successive shift-clicks grow the range from
             --  where it began. Shared with the shift+arrow path in Handle_Key.
-            Anchor : constant Natural := Files.Model.Range_Anchor (Model);
+            Anchor : constant Natural := Files.Model.Selection.Range_Anchor (Model);
          begin
-            Files.Model.Select_Visible_Range
+            Files.Model.Selection.Select_Visible_Range
               (Model,
                Positive ((if Anchor = 0 then Visible_Index else Anchor)),
                Positive (Visible_Index));
          end;
       elsif Modifiers (Guikit.Input.Control_Key) and then not Activate then
-         Files.Model.Toggle_Visible_Selection (Model, Positive (Visible_Index));
+         Files.Model.Selection.Toggle_Visible_Selection (Model, Positive (Visible_Index));
       else
-         Files.Model.Select_Visible (Model, Positive (Visible_Index));
+         Files.Model.Selection.Select_Visible (Model, Positive (Visible_Index));
       end if;
 
       if Activate then

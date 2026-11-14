@@ -111,8 +111,8 @@ separate (Files_Suite.Interaction)
 
          --  An empty-space marquee begin is a shell-owned no-op in the reducer:
          --  applying it must not disturb a prior selection (it is not a clear).
-         Files.Model.Select_Visible (Model, 5);
-         Assert (Files.Model.Is_Selected (Model, 5), "item 5 is selected before the marquee begins");
+         Files.Model.Selection.Select_Visible (Model, 5);
+         Assert (Files.Model.Selection.Is_Selected (Model, 5), "item 5 is selected before the marquee begins");
          declare
             Action : constant Files.Events.Input_Action :=
               Files.Events.Translate_Click
@@ -122,7 +122,7 @@ separate (Files_Suite.Interaction)
             Files.Interaction.Apply_Input_Action
               (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
          end;
-         Assert (Files.Model.Is_Selected (Model, 5),
+         Assert (Files.Model.Selection.Is_Selected (Model, 5),
                  "beginning a marquee leaves the prior selection to the shell (no clear)");
 
          --  Dragging over items 1 and 2 (non-additive) selects exactly them and
@@ -130,37 +130,37 @@ separate (Files_Suite.Interaction)
          Base := Files.Interaction.Selected_Visible_Indices (Model);
          Files.Interaction.Apply_Marquee_Selection
            (Model, Hits, Additive => False, Base => Base);
-         Assert (Files.Model.Is_Selected (Model, 1) and then Files.Model.Is_Selected (Model, 2),
+         Assert (Files.Model.Selection.Is_Selected (Model, 1) and then Files.Model.Selection.Is_Selected (Model, 2),
                  "a non-additive marquee selects exactly the items it touches");
-         Assert (not Files.Model.Is_Selected (Model, 3)
-                 and then not Files.Model.Is_Selected (Model, 5),
+         Assert (not Files.Model.Selection.Is_Selected (Model, 3)
+                 and then not Files.Model.Selection.Is_Selected (Model, 5),
                  "a non-additive marquee replaces the prior selection");
 
          --  Releasing keeps the selection: the reducer applies nothing on a
          --  marquee release, so the last applied set survives.
          declare
-            Before : constant Natural := Files.Model.Selected_Count (Model);
+            Before : constant Natural := Files.Model.Selection.Selected_Count (Model);
          begin
             Files_Suite.Support.Assert_Equal (Before, 2, "the marquee selection holds after the drag");
          end;
 
          --  An additive marquee unions the touched items with the base snapshot.
-         Files.Model.Clear_Selection (Model);
-         Files.Model.Select_Visible (Model, 4);
+         Files.Model.Selection.Clear_Selection (Model);
+         Files.Model.Selection.Select_Visible (Model, 4);
          Base := Files.Interaction.Selected_Visible_Indices (Model);
          Files.Interaction.Apply_Marquee_Selection
            (Model, Hits, Additive => True, Base => Base);
          Assert
-           (Files.Model.Is_Selected (Model, 1),
+           (Files.Model.Selection.Is_Selected (Model, 1),
             "an additive marquee unions the touched items with the prior selection (item 1)");
          Assert
-           (Files.Model.Is_Selected (Model, 2),
+           (Files.Model.Selection.Is_Selected (Model, 2),
             "an additive marquee unions the touched items with the prior selection (item 2)");
          Assert
-           (Files.Model.Is_Selected (Model, 4),
+           (Files.Model.Selection.Is_Selected (Model, 4),
             "an additive marquee unions the touched items with the prior selection (item 4)");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Selected_Count (Model),
+           (Files.Model.Selection.Selected_Count (Model),
             3,
             "the additive marquee selects exactly the union");
 

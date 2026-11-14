@@ -9,7 +9,7 @@ separate (Files_Suite.Commands)
       Model    : Files.Model.Window_Model := Sample_Model;
       Result   : Files.Controller.Controller_Result;
    begin
-      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Toggle_Settings_Pane_Command, Model),
          "settings pane command is enabled in the normal model state");
@@ -52,7 +52,7 @@ separate (Files_Suite.Commands)
         (not Files.Model.Temporary_Item_Is_Active (Model),
          "settings pane opening clears pending create state");
       Assert
-        (not Files.Model.Rename_Is_Active (Model),
+        (not Files.Model.Rename.Rename_Is_Active (Model),
          "settings pane opening clears pending rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),

@@ -121,7 +121,7 @@ package body Files.Extension_Labels is
         or else Result.Atlas_Bytes > Max_Atlas_Bytes
         or else Result.Atlas_Width > Result.Atlas_Bytes / Result.Atlas_Height
       then
-         return (Width => 0, Height => 0, Pixels => Files.Shared_Bytes.Empty);
+         return (Width => 0, Height => 0, Pixels => Guikit.Shared_Bytes.Empty);
       end if;
 
       declare
@@ -142,7 +142,7 @@ package body Files.Extension_Labels is
            or else W0 > Max_Atlas_Bytes / 4
            or else H0 > Max_Atlas_Bytes / (W0 * 4)
          then
-            return (Width => 0, Height => 0, Pixels => Files.Shared_Bytes.Empty);
+            return (Width => 0, Height => 0, Pixels => Guikit.Shared_Bytes.Empty);
          end if;
 
          declare
@@ -218,7 +218,7 @@ package body Files.Extension_Labels is
             end loop;
 
             if not Inked then
-               return (Width => 0, Height => 0, Pixels => Files.Shared_Bytes.Empty);
+               return (Width => 0, Height => 0, Pixels => Guikit.Shared_Bytes.Empty);
             end if;
 
             --  Crop to the inked bounds so no transparent margin remains on any side.
@@ -247,7 +247,7 @@ package body Files.Extension_Labels is
                            end;
                         end loop;
                      end loop;
-                     Out_Label.Pixels := Files.Shared_Bytes.To_Shared (Cropped);
+                     Out_Label.Pixels := Guikit.Shared_Bytes.To_Shared (Cropped);
                   end;
                end return;
             end;
@@ -264,13 +264,13 @@ package body Files.Extension_Labels is
       Key : constant String := Theme_Tag (Theme) & ":" & Natural'Image (Height) & ":" & Ext;
    begin
       if Ext = "" or else Height < 1 then
-         return (Width => 0, Height => 0, Pixels => Files.Shared_Bytes.Empty);
+         return (Width => 0, Height => 0, Pixels => Guikit.Shared_Bytes.Empty);
       end if;
       --  The renderer is (re)loaded only for a label not cached yet.
       if not Cache.Contains (Key) then
          Ensure_Renderer (Height);
          if not Guikit.Text.Loaded (R) then
-            return (Width => 0, Height => 0, Pixels => Files.Shared_Bytes.Empty);
+            return (Width => 0, Height => 0, Pixels => Guikit.Shared_Bytes.Empty);
          end if;
          if Natural (Cache.Length) >= Max_Cached_Labels then
             Cache.Clear;
@@ -285,7 +285,7 @@ package body Files.Extension_Labels is
                   Files.Diagnostics.Note (Swallowed, "Files.Extension_Labels");
                   --  Kept as an empty label: one that cannot be drawn is not
                   --  tried again on every frame.
-                  Made := (Width => 0, Height => 0, Pixels => Files.Shared_Bytes.Empty);
+                  Made := (Width => 0, Height => 0, Pixels => Guikit.Shared_Bytes.Empty);
             end;
             Cache.Insert (Key, Made);
          end;
@@ -295,7 +295,7 @@ package body Files.Extension_Labels is
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Extension_Labels");
          return (Width => 0, Height => 0,
-                 Pixels => Files.Shared_Bytes.Empty);
+                 Pixels => Guikit.Shared_Bytes.Empty);
    end Label_For;
 
 end Files.Extension_Labels;

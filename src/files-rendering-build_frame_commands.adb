@@ -50,7 +50,8 @@ separate (Files.Rendering)
       --  a pixel low.
       Toolbar_Input_Text_Y : constant Natural :=
         (if Toolbar_Input_H > Line_Height
-         then Optically_Raised (Saturating_Add (Toolbar_Input_Y, (Toolbar_Input_H - Line_Height) / 2), Line_Height)
+         then Optically_Raised
+           (Guikit.Layout.Saturating_Add (Toolbar_Input_Y, (Toolbar_Input_H - Line_Height) / 2), Line_Height)
          else Toolbar_Input_Y);
       Toolbar_Input_Text_H : constant Natural :=
         Natural'Min (Line_Height, Toolbar_Input_H);
@@ -71,7 +72,7 @@ separate (Files.Rendering)
         (if Height > Layout.Bottom_Bar_Height then Height - Layout.Bottom_Bar_Height else 0);
       Bottom_Pad    : constant Natural := Guikit.Layout.Scaled (Guikit.Layout.Bottom_Bar_Padding, Line_Height);
       Bottom_Content_Y : constant Natural :=
-        Saturating_Add (Bottom_Y, Optically_Raised (Bottom_Pad, Line_Height));
+        Guikit.Layout.Saturating_Add (Bottom_Y, Optically_Raised (Bottom_Pad, Line_Height));
       Bottom_Content_H : constant Natural :=
         (if Layout.Bottom_Bar_Height > Saturating_Multiply (Bottom_Pad, 2)
          then Layout.Bottom_Bar_Height - Saturating_Multiply (Bottom_Pad, 2)
@@ -93,10 +94,10 @@ separate (Files.Rendering)
            and then Left_H > 0
            and then Right_W > 0
            and then Right_H > 0
-           and then Left_X < Saturating_Add (Right_X, Right_W)
-           and then Right_X < Saturating_Add (Left_X, Left_W)
-           and then Left_Y < Saturating_Add (Right_Y, Right_H)
-           and then Right_Y < Saturating_Add (Left_Y, Left_H);
+           and then Left_X < Guikit.Layout.Saturating_Add (Right_X, Right_W)
+           and then Right_X < Guikit.Layout.Saturating_Add (Left_X, Left_W)
+           and then Left_Y < Guikit.Layout.Saturating_Add (Right_Y, Right_H)
+           and then Right_Y < Guikit.Layout.Saturating_Add (Left_Y, Left_H);
       end Intersects;
 
       function Clipped_Size
@@ -113,45 +114,40 @@ separate (Files.Rendering)
          end if;
       end Clipped_Size;
 
-      function Hidden_By_Settings_Pane
-        (X      : Natural;
-         Y      : Natural;
-         Item_W : Natural;
-         Item_H : Natural)
-         return Boolean
-      is
-      begin
-         return Snapshot.Settings_Pane_Open
-           and then Intersects
-             (X,
-              Y,
-              Item_W,
-              Item_H,
-              Settings_Pane.X,
-              Settings_Pane.Y,
-              Settings_Pane.Width,
-              Settings_Pane.Height);
-      end Hidden_By_Settings_Pane;
+      --  Whether an item's rectangle lies under an overlay's rectangle while
+      --  that overlay is open.
+      function Hidden_By_Overlay
+        (Open      : Boolean;
+         Overlay_X : Natural;
+         Overlay_Y : Natural;
+         Overlay_W : Natural;
+         Overlay_H : Natural;
+         X         : Natural;
+         Y         : Natural;
+         Item_W    : Natural;
+         Item_H    : Natural)
+         return Boolean is
+        (Open and then Intersects (X, Y, Item_W, Item_H, Overlay_X, Overlay_Y, Overlay_W, Overlay_H));
 
-      function Hidden_By_Command_Palette
+      --  Whether the settings pane or the command palette covers it.
+      function Hidden_By_Overlays
         (X      : Natural;
          Y      : Natural;
          Item_W : Natural;
          Item_H : Natural)
-         return Boolean
-      is
-      begin
-         return Snapshot.Command_Palette_Open
-           and then Intersects
-             (X,
-              Y,
-              Item_W,
-              Item_H,
-              Palette.X,
-              Palette.Y,
-              Palette.Width,
-              Palette.Height);
-      end Hidden_By_Command_Palette;
+         return Boolean is
+        (Hidden_By_Overlay
+           (Snapshot.Settings_Pane_Open,
+            Settings_Pane.X,
+            Settings_Pane.Y,
+            Settings_Pane.Width,
+            Settings_Pane.Height,
+            X,
+            Y,
+            Item_W,
+            Item_H)
+         or else Hidden_By_Overlay
+           (Snapshot.Command_Palette_Open, Palette.X, Palette.Y, Palette.Width, Palette.Height, X, Y, Item_W, Item_H));
 
       --  One rectangle into Target, clipped to the window; nothing when
       --  none of it is inside.
@@ -345,10 +341,8 @@ separate (Files.Rendering)
          Scale_To_Box : Boolean := False;
          Italic : Boolean := False) is
       begin
-         if not Hidden_By_Settings_Pane (X, Y, Clipped_Size (X, Text_W, Layout.Width),
-                                         Clipped_Size (Y, Text_H, Layout.Height))
-           and then not Hidden_By_Command_Palette (X, Y, Clipped_Size (X, Text_W, Layout.Width),
-                                                   Clipped_Size (Y, Text_H, Layout.Height))
+         if not Hidden_By_Overlays
+           (X, Y, Clipped_Size (X, Text_W, Layout.Width), Clipped_Size (Y, Text_H, Layout.Height))
          then
             Append_Text (Result.Text, X, Y, Text_W, Text_H, Text, Color, Fit, Scale_To_Box, Italic);
          end if;

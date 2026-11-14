@@ -11,7 +11,7 @@ begin
    end if;
 
    declare
-      Item      : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
+      Item      : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
       Path      : constant String :=
         Files.Fs_Primitives.Full_Name (To_String (Item.Full_Path));
       Old_Mode : Natural;

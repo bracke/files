@@ -32,7 +32,7 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
-         Files.Model.Rename_Text (Model)'Length,
+         Files.Model.Rename.Rename_Text (Model)'Length,
          "End moves the rename cursor to the end of the name");
       Result := Files.Controller.Append_Focused_Text (Model, ".bak");
       Files_Suite.Support.Assert_Equal
@@ -40,7 +40,7 @@ separate (Files_Suite.Commands)
          Files.Controller.Controller_Text_Updated,
          "rename append works immediately after F2");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename_Text (Model),
+        (Files.Model.Rename.Rename_Text (Model),
          "old.txt.bak",
          "initial rename cursor appends text at the end");
       Files.Controller.Testing.Replace_Focused_Text (Model, "new.tx");
@@ -51,7 +51,7 @@ separate (Files_Suite.Commands)
          "rename Left moves cursor");
       Result := Files.Controller.Append_Focused_Text (Model, "t");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename_Text (Model),
+        (Files.Model.Rename.Rename_Text (Model),
          "new.ttx",
          "rename insert uses cursor position");
       Result := Files.Controller.Append_Focused_Text (Model, "t");
@@ -60,7 +60,7 @@ separate (Files_Suite.Commands)
          Files.Controller.Controller_Text_Updated,
          "rename append updates text");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename_Text (Model),
+        (Files.Model.Rename.Rename_Text (Model),
          "new.tttx",
          "rename second insert advances cursor");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
@@ -69,12 +69,12 @@ separate (Files_Suite.Commands)
          Files.Controller.Controller_Text_Updated,
          "rename Backspace edits text");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename_Text (Model),
+        (Files.Model.Rename.Rename_Text (Model),
          "new.ttx",
          "rename Backspace removes character before cursor");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename_Text (Model),
+        (Files.Model.Rename.Rename_Text (Model),
          "new.tt",
          "rename Delete removes character at cursor");
       Files.Controller.Testing.Replace_Focused_Text (Model, "new.tx");
@@ -84,7 +84,7 @@ separate (Files_Suite.Commands)
          "rename replacement clamps cursor to text end");
       Result := Files.Controller.Append_Focused_Text (Model, "t");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename_Text (Model),
+        (Files.Model.Rename.Rename_Text (Model),
          "new.txt",
          "rename append restores commit text");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
@@ -101,5 +101,5 @@ separate (Files_Suite.Commands)
          Files.Operations.Operation_Success,
          "Return commits rename");
       Assert (Ada.Directories.Exists (Join (Root, "new.txt")), "rename file exists after Return");
-      Assert (not Files.Model.Rename_Is_Active (Model), "rename Return clears rename mode");
+      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "rename Return clears rename mode");
    end Test_Controller_Rename_Return;

@@ -109,7 +109,7 @@ begin
    end if;
    Cached.Generate := Generate_Thumbnails;
    Normalized_Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
-   Signature := (Path => Normalized_Path, Exists => True, others => <>);
+   Signature := (Path => Normalized_Path, Taken => True, Exists => True, others => <>);
    Signing := With_Signature;
    Support.For_Each_Entry (Path, Add_Entry'Access);
    Signing := False;
@@ -151,7 +151,7 @@ begin
            Items => Items, Error_Key => Null_Unbounded_String,
            Signature =>
              (if With_Signature and then Signed then Signature
-              else Directory_Signature'(Path => Normalized_Path, others => <>)));
+              else Unknown_Signature (To_String (Normalized_Path))));
 exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.File_System");

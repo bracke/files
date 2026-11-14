@@ -4,9 +4,9 @@ separate (Files.Rendering.Build_Frame_Commands)
       procedure Draw_Quick_Look (Look : Quick_Look_Snapshot) is
          QL      : constant Quick_Look_Layout := Calculate_Quick_Look_Layout (Layout, Line_Height);
          Margin  : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
-         Title_X : constant Natural := Saturating_Add (QL.X, Margin);
+         Title_X : constant Natural := Guikit.Layout.Saturating_Add (QL.X, Margin);
          Title_Y : constant Natural :=
-           Saturating_Add (QL.Y, Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4));
+           Guikit.Layout.Saturating_Add (QL.Y, Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4));
          --  The accent band along the panel's top edge.
          Accent_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (3, Line_Height), QL.Height);
          Title_W : constant Natural :=
@@ -31,7 +31,7 @@ separate (Files.Rendering.Build_Frame_Commands)
 
          case Look.Kind is
             when Files.Quick_Look.Image_Content =>
-               if not Files.Shared_Bytes.Is_Empty (Look.Image_Pixels)
+               if not Guikit.Shared_Bytes.Is_Empty (Look.Image_Pixels)
                  and then Look.Image_Width > 0
                  and then Look.Image_Height > 0
                then
@@ -48,9 +48,9 @@ separate (Files.Rendering.Build_Frame_Commands)
                      Draw_H : constant Natural :=
                        (if Height_Bound then CH else Saturating_Multiply (IH, CW) / IW);
                      Img_X  : constant Natural :=
-                       Saturating_Add (QL.Content_X, Centered (CW, Draw_W));
+                       Guikit.Layout.Saturating_Add (QL.Content_X, Centered (CW, Draw_W));
                      Img_Y  : constant Natural :=
-                       Saturating_Add (QL.Content_Y, Centered (CH, Draw_H));
+                       Guikit.Layout.Saturating_Add (QL.Content_Y, Centered (CH, Draw_H));
                   begin
                      if Draw_W > 0 and then Draw_H > 0 then
                         --  One icon command carrying the decoded pixels; the
@@ -98,14 +98,14 @@ separate (Files.Rendering.Build_Frame_Commands)
                      exit when Row >= Preview_Lines;
                      Add_Overlay_Text
                        (QL.Content_X,
-                        Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
+                        Guikit.Layout.Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
                         QL.Content_Width, Line_Height, Line, Fit => True);
                      Row := Row + 1;
                   end loop;
                   if Content_Omitted and then Max_Lines > 0 then
                      Add_Overlay_Text
                        (QL.Content_X,
-                        Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
+                        Guikit.Layout.Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
                         QL.Content_Width, Line_Height,
                         Localized ("quick_look.truncated"), Muted_Text_Color, Italic => True);
                   end if;
@@ -114,7 +114,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                declare
                   Text_Height : constant Natural := Saturating_Multiply (Line_Height, 2);
                   Reserved_H  : constant Natural :=
-                    Saturating_Add (Margin, Text_Height);
+                    Guikit.Layout.Saturating_Add (Margin, Text_Height);
                   Icon_Height_Available : constant Natural :=
                     (if QL.Content_Height > Reserved_H
                      then QL.Content_Height - Reserved_H
@@ -124,11 +124,11 @@ separate (Files.Rendering.Build_Frame_Commands)
                       (Saturating_Multiply (Line_Height, 3),
                        Natural'Min (QL.Content_Width, Icon_Height_Available));
                   Content_End_Y : constant Natural :=
-                    Saturating_Add (QL.Content_Y, QL.Content_Height);
+                    Guikit.Layout.Saturating_Add (QL.Content_Y, QL.Content_Height);
                   Row_Y     : Natural :=
-                    Saturating_Add
+                    Guikit.Layout.Saturating_Add
                       (QL.Content_Y,
-                       Saturating_Add
+                       Guikit.Layout.Saturating_Add
                          (Icon_Size, (if Icon_Size > 0 then Margin else 0)));
                   Size_Value : constant UString :=
                     (if Look.Size_Available
@@ -146,7 +146,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                            Theme_Name       => To_Unbounded_String (Icon_Theme_Name),
                            Thumbnail_Width  => 0,
                            Thumbnail_Height => 0,
-                           Thumbnail_Pixels => Files.Shared_Bytes.Empty,
+                           Thumbnail_Pixels => Guikit.Shared_Bytes.Empty,
                            Overlay          => True,
                            Draw_Width       => 0,
                            Draw_Height      => 0,
@@ -159,7 +159,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                        (QL.Content_X, Row_Y, QL.Content_Width,
                         Natural'Min (Line_Height, Content_End_Y - Row_Y),
                         Look.Filetype, Muted_Text_Color, Fit => True);
-                     Row_Y := Saturating_Add (Row_Y, Line_Height);
+                     Row_Y := Guikit.Layout.Saturating_Add (Row_Y, Line_Height);
                   end if;
                   if Row_Y < Content_End_Y then
                      Add_Overlay_Text
@@ -182,9 +182,10 @@ separate (Files.Rendering.Build_Frame_Commands)
             Picker  : constant Label_Picker_Layout :=
               Calculate_Label_Picker_Layout (Layout, Line_Height);
             Margin  : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
-            Title_X : constant Natural := Saturating_Add (Picker.X, Margin);
+            Title_X : constant Natural := Guikit.Layout.Saturating_Add (Picker.X, Margin);
             Title_Y : constant Natural :=
-              Saturating_Add (Picker.Y, Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4));
+              Guikit.Layout.Saturating_Add
+                (Picker.Y, Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4));
             --  The accent band along the panel's top edge.
             Accent_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (3, Line_Height), Picker.Height);
             --  The keyboard highlight's second ring sits this far inside a swatch.
@@ -272,7 +273,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             Menu_Y    : constant Natural := Menu.Y;
             Menu_W    : constant Natural := Menu.Width;
             Rows_Y    : constant Natural := Menu.Rows_Y;
-            Row_X     : constant Natural := Saturating_Add (Menu_X, 1);
+            Row_X     : constant Natural := Guikit.Layout.Saturating_Add (Menu_X, 1);
             Row_W     : constant Natural := (if Menu_W > 2 then Menu_W - 2 else 0);
          begin
             --  Keyboard and pointer routing are confined to the open menu;
@@ -308,7 +309,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   declare
                      Field    : constant Files.Types.Sort_Field := Files.UI.Sort_Menu_Row_Field (Row);
                      Row_Y    : constant Natural :=
-                       Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
+                       Guikit.Layout.Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
                      Selected : constant Boolean := Field = Snapshot.Sort_Field;
                      Hovered  : constant Boolean :=
                        Has_Hover and then Contains_Point (Menu_X, Row_Y, Menu_W, Row_H, Hover_X, Hover_Y);
@@ -355,7 +356,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   declare
                      Field : constant Files.Types.Sort_Field := Files.UI.Sort_Menu_Row_Field (Row);
                      Row_Y : constant Natural :=
-                       Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
+                       Guikit.Layout.Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
                      Selected : constant Boolean := Field = Snapshot.Sort_Field;
                      Label : constant UString :=
                        To_Unbounded_String

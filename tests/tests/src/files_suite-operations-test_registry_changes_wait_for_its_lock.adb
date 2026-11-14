@@ -1,3 +1,4 @@
+with Ada.Exceptions;
 with Hostkit.Locks;
 with Files.Protocol_Names;
 separate (Files_Suite.Operations)
@@ -14,11 +15,16 @@ separate (Files_Suite.Operations)
       Registry    : constant String := Join (Join (Join (Test_Temp, "data"), "files"), "recovery-index");
       Held        : Hostkit.Locks.Lock;
 
+      --  Whether the sweep returned, and what it raised if it did not: a
+      --  sweep that raised has not gone ahead.
       protected Sweep_State is
          procedure Finish;
+         procedure Fail (Raised : Ada.Exceptions.Exception_Occurrence);
          function Finished return Boolean;
+         function Failure return String;
       private
-         Done : Boolean := False;
+         Done   : Boolean := False;
+         Failed : Unbounded_String;
       end Sweep_State;
 
       protected body Sweep_State is
@@ -27,7 +33,16 @@ separate (Files_Suite.Operations)
             Done := True;
          end Finish;
 
+         procedure Fail (Raised : Ada.Exceptions.Exception_Occurrence) is
+         begin
+            Failed := To_Unbounded_String
+              (Ada.Exceptions.Exception_Name (Raised) & ": " & Ada.Exceptions.Exception_Message (Raised));
+            Done := True;
+         end Fail;
+
          function Finished return Boolean is (Done);
+
+         function Failure return String is (To_String (Failed));
       end Sweep_State;
    begin
       if not Ada.Environment_Variables.Exists ("FILES_TEST_TEMP") then
@@ -49,17 +64,23 @@ separate (Files_Suite.Operations)
             Files.File_System.Sweep_Recovery_Registry;
             Sweep_State.Finish;
          exception
-            when others =>
-               Sweep_State.Finish;
+            when Raised : others =>
+               Sweep_State.Fail (Raised);
          end Sweeper;
+
+         Waited : Boolean;
       begin
          delay 0.5;
-         Assert (not Sweep_State.Finished, "a registry sweep waits while another holds the registry's lock");
+         Waited := not Sweep_State.Finished;
+         --  Let go before asserting: a failed assertion here would otherwise
+         --  wait, leaving the block, for a sweeper blocked on the lock.
          Hostkit.Locks.Release (Held);
          for Attempt in Files_Suite.Support.Polling loop
             exit when Sweep_State.Finished;
          end loop;
+         Assert (Waited, "a registry sweep waits while another holds the registry's lock");
          Assert (Sweep_State.Finished, "and goes ahead once the lock is let go");
+         Assert (Sweep_State.Failure = "", "the sweep raised nothing: " & Sweep_State.Failure);
       end;
    exception
       when others =>

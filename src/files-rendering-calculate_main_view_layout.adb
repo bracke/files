@@ -30,14 +30,14 @@ separate (Files.Rendering)
          then 1
          else Natural'Max
            (1,
-            Saturating_Add (Content_W, Main_Grid_Gap (Line_Height))
-              / Saturating_Add (Cell_W, Main_Grid_Gap (Line_Height))));
+            Guikit.Layout.Saturating_Add (Content_W, Main_Grid_Gap (Line_Height))
+              / Guikit.Layout.Saturating_Add (Cell_W, Main_Grid_Gap (Line_Height))));
       Rows         : constant Natural := (if Count = 0 then 0 else 1 + (Count - 1) / Columns);
       Row_Content_H : constant Natural :=
         (if Rows = 0 then 0
          elsif Snapshot.View_Mode = Files.Types.Details
          then Saturating_Multiply (Rows, Cell_H)
-         else Saturating_Add
+         else Guikit.Layout.Saturating_Add
            (Saturating_Multiply (Rows, Cell_H),
             Saturating_Multiply (Rows - 1, Main_Grid_Gap (Line_Height))));
       --  Details shows a sticky column header; its rows scroll in the area
@@ -61,7 +61,7 @@ separate (Files.Rendering)
       Row_Stride   : constant Natural :=
         (if Snapshot.View_Mode = Files.Types.Details
          then Cell_H
-         else Saturating_Add (Cell_H, Main_Grid_Gap (Line_Height)));
+         else Guikit.Layout.Saturating_Add (Cell_H, Main_Grid_Gap (Line_Height)));
       --  At the very end of the list use the exact Max_Scroll instead of the
       --  floored multiple: Max_Scroll is rarely a whole row period, and the
       --  per-item visibility test drops a row that doesn't fully fit, so
@@ -83,8 +83,8 @@ separate (Files.Rendering)
       Visible      : constant Boolean := Bar_W > 0 and then Thumb.Length > 0;
       Thumb_H      : constant Natural := Thumb.Length;
       Track_Top    : constant Natural :=
-        Saturating_Add (Saturating_Add (Layout.Main_Y, Padding), Header_H);
-      Thumb_Y      : constant Natural := Saturating_Add (Track_Top, Thumb.Offset);
+        Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Layout.Main_Y, Padding), Header_H);
+      Thumb_Y      : constant Natural := Guikit.Layout.Saturating_Add (Track_Top, Thumb.Offset);
    begin
       return
         (Columns           => Positive'Max (1, Positive (Columns)),
@@ -92,7 +92,8 @@ separate (Files.Rendering)
          Scroll_Lines      => Scroll_Lines,
          Scroll_Pixels     => Scroll_Px,
          Scrollbar_Visible => Visible,
-         Scrollbar_X       => (if Visible then Saturating_Add (Layout.Main_X, Layout.Main_Width - Bar_W) else 0),
+         Scrollbar_X       =>
+           (if Visible then Guikit.Layout.Saturating_Add (Layout.Main_X, Layout.Main_Width - Bar_W) else 0),
          Scrollbar_Y       => (if Visible then Track_Top else 0),
          Scrollbar_Thumb_Y => (if Visible then Thumb_Y else 0),
          Scrollbar_Width   => (if Visible then Bar_W else 0),

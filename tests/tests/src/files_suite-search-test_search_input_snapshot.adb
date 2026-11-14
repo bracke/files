@@ -1,0 +1,57 @@
+separate (Files_Suite.Search)
+   procedure Test_Search_Input_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
+      Load : Files.File_System.Directory_Load_Result;
+      Step : Files.Operations.Operation_Result;
+      Outcome : Files.Controller.Controller_Result;
+      Revision : Natural;
+   begin
+      for Contents in Boolean loop
+         for Stale in Boolean loop
+            Reset_Root;
+            Write_Binary_File (Join (Root, "alpha.txt"), "alpha bytes");
+            Write_Binary_File (Join (Root, "beta.txt"), "beta bytes");
+            Load := Files.File_System.Load_Directory (Root, Settings);
+            Files.Model.Initialize (Model, Root, Load.Items, Root);
+            Files.Model.Set_Background_Transfers (Model, True);
+            Files.Model.Set_Filter (Model, "alpha");
+            Files.Model.Focus_Filter_Input (Model);
+            Step := (if Contents then Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents)
+                     else Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names));
+            Revision := Files.Model.Revision (Model);
+            Outcome := Files.Controller.Append_Focused_Text (Model, "x");
+            Files_Suite.Support.Assert_Equal
+              (Outcome.Status,
+               Files.Controller.Controller_Ignored,
+               "native character input cannot edit the active search snapshot: status");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Filter_Text (Model),
+               "alpha",
+               "native character input cannot edit the active search snapshot: filter");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Revision (Model),
+               Revision,
+               "native character input cannot edit the active search snapshot: revision");
+            if Stale then
+               Files.Model.Set_Filter (Model, "beta");
+            end if;
+            Step := Complete_Operation (Model, Settings, Step);
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "changed queries discard old outcomes while unchanged searches apply: status");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Search_Results_Are_Active (Model),
+               not Stale,
+               "changed queries discard old outcomes while unchanged searches apply: results active");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Item_Count (Model),
+               (if Stale then 2 else 1),
+               "changed queries discard old outcomes while unchanged searches apply: item count");
+         end loop;
+      end loop;
+   end Test_Search_Input_Snapshot;

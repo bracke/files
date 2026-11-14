@@ -8,9 +8,9 @@ separate (Files_Suite.Model)
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
       --  Start from an open info pane with nothing selected.
-      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
-      Files.Model.Clear_Selection (Model);
+      Files.Model.Selection.Clear_Selection (Model);
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_2, Ctrl);
       Files_Suite.Support.Assert_Equal
@@ -50,7 +50,7 @@ separate (Files_Suite.Model)
          Files.Commands.Toggle_Info_Pane_Command,
          "info-pane click routes command with no selection");
       Assert (not Files.Model.Info_Pane_Is_Open (Model), "info-pane click closes the pane with no selection");
-      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Selection.Select_Visible (Model, 1);
       Result := Files.Controller.Handle_Command_Click (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,

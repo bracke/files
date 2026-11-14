@@ -93,7 +93,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
                Add_Border
                  (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height, Border_Color);
                Add_Text
-                 (Saturating_Add (Scope_Chip.X, Files.UI.Field_Padding (Line_Height)),
+                 (Guikit.Layout.Saturating_Add (Scope_Chip.X, Files.UI.Field_Padding (Line_Height)),
                   Toolbar_Input_Text_Y,
                   (if Scope_Chip.Width > 2 * Files.UI.Field_Padding (Line_Height)
                    then Scope_Chip.Width - 2 * Files.UI.Field_Padding (Line_Height)

@@ -63,7 +63,7 @@ begin
             Item.Thumbnail_Path := To_Unbounded_String (Thumbnail_Path);
             Item.Thumbnail_Width := Thumbnail.Width;
             Item.Thumbnail_Height := Thumbnail.Height;
-            Item.Thumbnail_Pixels := Files.Shared_Bytes.To_Shared (Thumbnail.Pixels);
+            Item.Thumbnail_Pixels := Guikit.Shared_Bytes.To_Shared (Thumbnail.Pixels);
          end if;
       end if;
       Item.Creation_Time :=

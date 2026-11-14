@@ -34,8 +34,8 @@ separate (Files_Suite.Rendering)
       procedure Nothing is null;
       procedure Scroll_Down is begin Files.Model.Set_Main_View_Scroll_Lines (Model, 10); end Scroll_Down;
       procedure Scroll_Up is begin Files.Model.Set_Main_View_Scroll_Lines (Model, 0); end Scroll_Up;
-      procedure Pick is begin Files.Model.Select_Visible (Model, 3); end Pick;
-      procedure Pick_Other is begin Files.Model.Toggle_Visible_Selection (Model, 7); end Pick_Other;
+      procedure Pick is begin Files.Model.Selection.Select_Visible (Model, 3); end Pick;
+      procedure Pick_Other is begin Files.Model.Selection.Toggle_Visible_Selection (Model, 7); end Pick_Other;
       procedure Filter is begin Files.Model.Set_Filter (Model, "1"); end Filter;
       procedure Unfilter is begin Files.Model.Clear_Filter (Model); end Unfilter;
       procedure Resort is begin Files.Model.Select_Sort_Field (Model, Files.Types.Sort_Size); end Resort;

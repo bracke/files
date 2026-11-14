@@ -43,7 +43,7 @@ separate (Files_Suite.Interaction)
       Assert (Files.Model.Search_Results_Are_Active (Model), "the window still shows its search results");
       Assert_Equal (Files.Model.Visible_Count (Model), 2, "the hidden result goes, and nothing is read again");
       Assert (Name_At (1) = "Alpha.txt" and then Name_At (2) = "Beta.txt", "the results keep their order");
-      Assert (Ada.Strings.Unbounded.To_String (Files.Model.Selected_Item (Model).Name) = "Beta.txt",
+      Assert (Ada.Strings.Unbounded.To_String (Files.Model.Selection.Selected_Item (Model).Name) = "Beta.txt",
               "the selection stays");
 
       --  And then sorts the other way.
@@ -69,13 +69,13 @@ separate (Files_Suite.Interaction)
               (Path   => Ada.Strings.Unbounded.To_Unbounded_String (Folder),
                Result => (Available => True, Total_Bytes => 7, File_Count => 1, Item_Count => 1, Capped => False),
                others => <>));
-         Files.Model.Note_Folder_Sizes (Model, Measured);
+         Files.Model.Folder_Sizes.Note_Folder_Sizes (Model, Measured);
       end;
-      Assert (Files.Model.Folder_Size_Cached_For (Model, Folder), "the folder's size is measured");
+      Assert (Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Folder), "the folder's size is measured");
       Shared := Settings;
       Shared.Show_Hidden_Files := True;
       Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
       Assert_Equal (Files.Model.Visible_Count (Model), 2, "the listing is read again with hidden files");
-      Assert (Files.Model.Folder_Size_Cached_For (Model, Folder), "and the size measured is kept");
+      Assert (Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Folder), "and the size measured is kept");
       Reset_Root;
    end Test_Shared_Settings_Keep_Search_Results;

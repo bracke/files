@@ -26,18 +26,17 @@ separate (Files.Rendering.Build_Frame_Commands)
          Glyph_W    : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
          Glyph_X    : constant Natural :=
            (if Btn.Width > Glyph_W
-            then Saturating_Add (Btn.X, (Btn.Width - Glyph_W) / 2)
+            then Guikit.Layout.Saturating_Add (Btn.X, (Btn.Width - Glyph_W) / 2)
             else Btn.X);
          Glyph_Y    : constant Natural :=
            (if Btn.Height > Line_Height
-            then Saturating_Add (Btn.Y, (Btn.Height - Line_Height) / 2)
+            then Guikit.Layout.Saturating_Add (Btn.Y, (Btn.Height - Line_Height) / 2)
             else Btn.Y);
          --  Base-layer glyph text is suppressed when covered by the settings
          --  pane or command palette; overlay glyphs are never hidden.
          Show_Glyph : constant Boolean :=
            Overlay
-           or else not (Hidden_By_Settings_Pane (Glyph_X, Glyph_Y, Glyph_W, Line_Height)
-                        or else Hidden_By_Command_Palette (Glyph_X, Glyph_Y, Glyph_W, Line_Height));
+           or else not Hidden_By_Overlays (Glyph_X, Glyph_Y, Glyph_W, Line_Height);
       begin
          if Overlay then
             Guikit.Widgets.Draw_Close_Button

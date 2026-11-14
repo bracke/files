@@ -19,8 +19,8 @@ separate (Files_Suite.Interaction)
       procedure Rename (Name, New_Name : String) is
       begin
          Files_Suite.Support.Select_Name (Model, Name);
-         Files.Model.Toggle_Rename (Model);
-         Files.Model.Set_Rename_Text (Model, New_Name);
+         Files.Model.Rename.Toggle_Rename (Model);
+         Files.Model.Rename.Set_Rename_Text (Model, New_Name);
          Op := Files.Operations.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Op.Status,
@@ -87,7 +87,7 @@ separate (Files_Suite.Interaction)
          Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "f" & Index'Image), "x");
       end loop;
       Model := Loaded_Model (Dir);
-      Files.Model.Select_All_Visible (Model);
+      Files.Model.Selection.Select_All_Visible (Model);
       Files.Model.Label_Picker.Open (Model);
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",

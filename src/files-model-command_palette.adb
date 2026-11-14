@@ -4,7 +4,33 @@ with Files.Model.Support;
 
 package body Files.Model.Command_Palette is
 
+   use Ada.Strings.Unbounded;
    use Files.Model.Support;
+
+   --  The presentation config for the command palette (overlay with shortcuts,
+   --  the component owns the filtering).
+   --
+   --  @param Line_Height Row height in pixels.
+   --  @param Title The heading, in the current language ("" for none yet:
+   --    Files.Overlays supplies it when it draws).
+   --  @param Empty_State What shows when no command matches.
+   --  @param Close_Label The close button's accessible name, in the current
+   --    language ("" for none yet: Files.Overlays supplies it when it draws).
+   --  @return Command-palette component configuration.
+   function Palette_Config
+     (Line_Height : Positive;
+      Title       : String := "";
+      Empty_State : String := "";
+      Close_Label : String := "") return Guikit.Command_Palette.Configuration is
+     (Line_Height    => Line_Height,
+      Show_Icons     => False,
+      Show_Shortcuts => True,
+      Overlay        => True,
+      Wrap_Selection => True,
+      Placeholder    => Null_Unbounded_String,
+      Empty_State    => To_Unbounded_String (Empty_State),
+      Title          => To_Unbounded_String (Title),
+      Close_Label    => To_Unbounded_String (Close_Label));
 
    procedure Open
      (Model : in out Window_Model) is
@@ -157,7 +183,7 @@ package body Files.Model.Command_Palette is
    begin
       --  The component keeps the query and selection across these.
       Guikit.Command_Palette.Set_Configuration
-        (Model.Command_Palette.View, Support.Palette_Config (Line_Height, Title, Empty_State, Close_Label));
+        (Model.Command_Palette.View, Palette_Config (Line_Height, Title, Empty_State, Close_Label));
       if Model.Command_Palette.Listed_Revision /= Model.Revision_Value then
          Guikit.Command_Palette.Set_Commands
            (Model.Command_Palette.View, Files.Command_Palette.Commands (Model));

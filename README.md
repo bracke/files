@@ -203,7 +203,9 @@ UTF-8 source encoding, and Ada 2022.
 The crate uses two Alire manifests:
 
 - `alire.toml` — the **development** manifest, with local-path pins to the
-  runtime sibling crates listed above.
+  runtime sibling crates: `hostkit`, `humanize`, `messages`, `i18n`,
+  `textrender`, `zlib`, `cryptolib`, `guikit` and `a11y` (checked out as
+  `../a11ykit`), as laid out under "Sibling crate dependencies".
 - `alire.release.toml` — the **publishable** manifest: identical metadata but
   **no local pins** (it depends on published crates through explicit compatible
   or exact version constraints).

@@ -8,10 +8,10 @@ separate (Files_Suite.Rendering)
       Window : constant Files.Accessibility.Window_Key := Files.Accessibility.New_Window_Key;
    begin
       Files.Accessibility.Stop;
-      Assert (Files.Accessibility.Published_Windows = 0, "Stop forgets every window");
+      Assert (Files.Accessibility.Testing.Published_Windows = 0, "Stop forgets every window");
       Files.Accessibility.Publish (Window, Frame);
-      Assert (Files.Accessibility.Published_Windows = 0, "a frame drawn after Stop is not published");
+      Assert (Files.Accessibility.Testing.Published_Windows = 0, "a frame drawn after Stop is not published");
       Files.Accessibility.Set_Active (Window);
       Files.Accessibility.Forget (Window);
-      Assert (Files.Accessibility.Published_Windows = 0, "closing a window after Stop publishes nothing");
+      Assert (Files.Accessibility.Testing.Published_Windows = 0, "closing a window after Stop publishes nothing");
    end Test_A11y_Stop_Is_Final;

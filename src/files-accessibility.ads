@@ -53,11 +53,6 @@ package Files.Accessibility is
    --  @param Frame Render frame containing accessibility nodes.
    procedure Publish (Window : Window_Key; Frame : Files.Rendering.Frame_Commands);
 
-   --  How many windows the application's tree holds now.
-   --
-   --  @return The number of windows published and not forgotten since Stop.
-   function Published_Windows return Natural;
-
    --  Take a closed window out of the tree.
    --
    --  @param Window The window that closed.
@@ -85,5 +80,12 @@ package Files.Accessibility is
      (Window : out Window_Key;
       Item   : out A11ykit.Provider.Request)
       return Boolean;
+
+private
+
+   --  How many windows the application's tree holds now.
+   --
+   --  @return The number of windows published and not forgotten since Stop.
+   function Published_Windows return Natural;
 
 end Files.Accessibility;

@@ -1,5 +1,5 @@
 with Ada.Streams;
-with Files.Shared_Bytes;
+with Guikit.Shared_Bytes;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Characters.Handling;
@@ -387,6 +387,22 @@ package body Files.File_System is
       Settings  : Files.Settings.Settings_Model)
       return Item_Load_Result
    is separate;
+
+   function Unknown_Signature (Path : String := "") return Directory_Signature is
+     ((Path => To_Unbounded_String (Path), others => <>));
+
+   function Same_State (Left, Right : Directory_Signature) return Boolean is
+     (Left.Taken
+      and then Right.Taken
+      and then Left.Path = Right.Path
+      and then Left.Exists = Right.Exists
+      and then Left.Entry_Count = Right.Entry_Count
+      and then Left.Entry_State_Checksum = Right.Entry_State_Checksum
+      and then Left.Latest_Modified_Known = Right.Latest_Modified_Known
+      and then
+        (not Left.Latest_Modified_Known
+         or else not Right.Latest_Modified_Known
+         or else Left.Latest_Modified = Right.Latest_Modified));
 
    function Directory_State
      (Path : String)
@@ -896,9 +912,11 @@ package body Files.File_System is
       Element_Type => Unbounded_String,
       "<"          => Hostkit.Metadata."<");
 
-   User_Name_Cache  : Id_Name_Maps.Map;
+   --  Which account database an id is resolved against.
+   type Name_Account is (User_Names, Group_Names);
 
-   Group_Name_Cache : Id_Name_Maps.Map;
+   --  One session memo per account database.
+   Account_Name_Caches : array (Name_Account) of Id_Name_Maps.Map;
 
    function Supports_Permissions return Boolean is separate;
 
@@ -925,9 +943,18 @@ package body Files.File_System is
       Found : out Boolean)
       return Files.Types.Account_Id is separate;
 
-   function User_Name_For_Id (Id : Files.Types.Account_Id) return String is separate;
+   --  The one memoized id-to-name lookup behind User_Name_For_Id and
+   --  Group_Name_For_Id; Kind picks the database and its memo.
+   function Account_Name_For_Id
+     (Kind : Name_Account;
+      Id   : Files.Types.Account_Id)
+      return String is separate;
 
-   function Group_Name_For_Id (Id : Files.Types.Account_Id) return String is separate;
+   function User_Name_For_Id (Id : Files.Types.Account_Id) return String is
+     (Account_Name_For_Id (User_Names, Id));
+
+   function Group_Name_For_Id (Id : Files.Types.Account_Id) return String is
+     (Account_Name_For_Id (Group_Names, Id));
 
    subtype Update_Field is Hostkit.Metadata.Identity_Field;
 

@@ -46,7 +46,6 @@ separate (Check_All)
           To_Unbounded_String ("Files.Model"),
           To_Unbounded_String ("Files.Quick_Look"),
           To_Unbounded_String ("Files.Settings"),
-          To_Unbounded_String ("Files.Shared_Bytes"),
           To_Unbounded_String ("Files.Types")]);
       Require_Only_Allowed_With_Clauses
         (Rendering_Body,
@@ -72,9 +71,6 @@ separate (Check_All)
       --  files-rendering-* body is held to the union of the two, plus the
       --  units the snapshot and frame subunits import for themselves.
       declare
-         Search  : Ada.Directories.Search_Type;
-         Item    : Ada.Directories.Directory_Entry_Type;
-         Started : Boolean := False;
          Stateful_Overlay_Units : constant Project_Tools.Ada_Source.String_List :=
            [To_Unbounded_String ("Guikit.Command_Palette"),
             To_Unbounded_String ("Guikit.Settings_Panel")];
@@ -97,35 +93,32 @@ separate (Check_All)
             To_Unbounded_String ("Files.Model"),
             To_Unbounded_String ("Files.Model.Clipboard"),
             To_Unbounded_String ("Files.Model.Context_Menu"),
+            To_Unbounded_String ("Files.Model.Folder_Sizes"),
             To_Unbounded_String ("Files.Model.Label_Picker"),
             To_Unbounded_String ("Files.Model.Pasting"),
             To_Unbounded_String ("Files.Model.Quick_Look"),
+            To_Unbounded_String ("Files.Model.Rename"),
             To_Unbounded_String ("Files.Model.Root_Selector"),
+            To_Unbounded_String ("Files.Model.Selection"),
             To_Unbounded_String ("Files.Model.Sort_Menu"),
             To_Unbounded_String ("Files.Model.Tree_Panel"),
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Root_Labels"),
             To_Unbounded_String ("Files.Settings"),
-            To_Unbounded_String ("Files.Shared_Bytes"),
             To_Unbounded_String ("Files.Types"),
             To_Unbounded_String ("Files.UI")];
       begin
-         Ada.Directories.Start_Search
-           (Search, Root & "/src", "files-rendering-*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
-         Started := True;
-         while Ada.Directories.More_Entries (Search) loop
-            Ada.Directories.Get_Next_Entry (Search, Item);
-            Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), "Files.", Family_Allowed);
+         for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-rendering-*.adb", Generated_Directories) loop
+            Require_Only_Allowed_With_Clauses (To_String (Item), "Files.", Family_Allowed);
             --  The stateful overlays render at the window layer (CLAUDE.md):
             --  their state cannot pass through the immutable snapshot.
             for Unit of Stateful_Overlay_Units loop
-               Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), To_String (Unit), No_Units);
+               Require_Only_Allowed_With_Clauses (To_String (Item), To_String (Unit), No_Units);
             end loop;
             for Unit of Filesystem_Units loop
-               Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), To_String (Unit), No_Units);
+               Require_Only_Allowed_With_Clauses (To_String (Item), To_String (Unit), No_Units);
             end loop;
          end loop;
-         Ada.Directories.End_Search (Search);
          --  The parent's own spec and body too: the text checks above match
          --  one spelling of a with clause, this one parses them.
          for Suffix in 1 .. 2 loop
@@ -138,12 +131,6 @@ separate (Check_All)
                  (Root & "/src/files-rendering.ad" & (if Suffix = 1 then "s" else "b"), To_String (Unit), No_Units);
             end loop;
          end loop;
-      exception
-         when others =>
-            if Started then
-               Ada.Directories.End_Search (Search);
-            end if;
-            raise;
       end;
 
       Require_Not_Contains
@@ -218,8 +205,8 @@ separate (Check_All)
             end if;
          end Require_At_Most;
       begin
-         Require_At_Most ("files-rendering.adb", 1_454);
-         Require_At_Most ("files-rendering-build_frame_commands.adb", 914);
-         Require_At_Most ("files-application-windows.adb", 1_598);
+         Require_At_Most ("files-rendering.adb", 1_451);
+         Require_At_Most ("files-rendering-build_frame_commands.adb", 908);
+         Require_At_Most ("files-application-windows.adb", 1_482);
       end;
    end Check_Rendering_Architecture;

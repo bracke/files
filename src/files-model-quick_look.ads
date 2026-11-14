@@ -1,4 +1,4 @@
-with Files.Shared_Bytes;
+with Guikit.Shared_Bytes;
 
 --  The Quick Look overlay: the item it previews and the content prepared
 --  for it.
@@ -29,7 +29,7 @@ package Files.Model.Quick_Look is
    procedure Set_Image
      (Model  : in out Window_Model;
       Path   : String;
-      Pixels : Files.Shared_Bytes.Bytes;
+      Pixels : Guikit.Shared_Bytes.Bytes;
       Width  : Natural;
       Height : Natural);
 

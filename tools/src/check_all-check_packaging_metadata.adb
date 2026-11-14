@@ -10,11 +10,6 @@ separate (Check_All)
 
       procedure Check_Manifest_Entries is separate;
 
-      procedure Copy_Share_Tree
-        (From_Path : String;
-         To_Path   : String)
-      is separate;
-
       procedure Check_Staged_Manifest_Entries is separate;
 
       --  The packaging metadata in the source tree: required files, the

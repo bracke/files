@@ -14,12 +14,12 @@ separate (Files.Rendering)
       end if;
       declare
          Top    : constant Natural := Saturating_Multiply ((Position - 1) / Main.Columns, Main.Row_Stride);
-         Bottom : constant Natural := Saturating_Add (Top, Main.Cell_Height);
+         Bottom : constant Natural := Guikit.Layout.Saturating_Add (Top, Main.Cell_Height);
          --  Wanted pixel offset; the layout snaps it down to a whole row, so
          --  a row that must end the view starts the next row period instead.
          Wanted : constant Natural :=
            (if Top < Main.Scroll_Pixels then Top
-            elsif Bottom > Saturating_Add (Main.Scroll_Pixels, Main.Viewport_Height)
+            elsif Bottom > Guikit.Layout.Saturating_Add (Main.Scroll_Pixels, Main.Viewport_Height)
             then Natural'Min
               (Main.Max_Scroll_Pixels,
                Saturating_Multiply

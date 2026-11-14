@@ -4,7 +4,7 @@ function Commit_Rename
    Settings : Files.Settings.Settings_Model)
    return Operation_Result
 is
-   Targets     : constant Files.Model.Rename_Target_Vectors.Vector := Files.Model.Rename_Targets (Model);
+   Targets     : constant Files.Model.Rename.Rename_Target_Vectors.Vector := Files.Model.Rename.Rename_Targets (Model);
    Current_Dir : constant String := Files.Model.Current_Path (Model);
    From_V      : Files.Types.String_Vectors.Vector;
    To_V        : Files.Types.String_Vectors.Vector;
@@ -35,7 +35,7 @@ is
       end if;
    end Record_First_Error;
 begin
-   if not Files.Model.Rename_Is_Active (Model) or else Targets.Is_Empty then
+   if not Files.Model.Rename.Rename_Is_Active (Model) or else Targets.Is_Empty then
       return Disabled (Model, "error.rename.disabled");
    elsif Current_Dir = ""
      or else Files.Model.In_Recent_View (Model)

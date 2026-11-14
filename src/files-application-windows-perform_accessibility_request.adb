@@ -41,7 +41,7 @@ separate (Files.Application.Windows)
          Dispatch_Click_Action (Runtime, Action, Guikit.Input.No_Modifiers);
          Files.Diagnostics.Trace
            ("Files.Application.Windows",
-            "selected=" & Natural'Image (Files.Model.Selected_Count (Runtime.Model)));
+            "selected=" & Natural'Image (Files.Model.Selection.Selected_Count (Runtime.Model)));
 
          --  Space on the focused field changes it, saving included.
          if Files.Window_Policy.Activation_Presses_Space

@@ -20,7 +20,7 @@ separate (Files_Suite.Interaction)
            (Files.File_System.Make_Item
               (Files_Suite.Support.Root, "open-nav", Files.Types.Directory_Item, "inode/directory"));
          Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
-         Files.Model.Select_Visible (Model, 1);
+         Files.Model.Selection.Select_Visible (Model, 1);
 
          Open_Item_Context_Menu (Model, Settings, Result);
          Dispatch_Menu_Command
@@ -50,7 +50,7 @@ separate (Files_Suite.Interaction)
          Dispatch_Menu_Command
            (Model, Settings, "", Files.Commands.Rename_Selected_Items_Command, Result, Found);
          Assert (Found, "the item menu offers the rename command");
-         Assert (Files.Model.Rename_Is_Active (Model), "rename starts inline editing of the selection");
+         Assert (Files.Model.Rename.Rename_Is_Active (Model), "rename starts inline editing of the selection");
 
          Model := Loaded_Model (Dir);
          Files_Suite.Support.Select_Name (Model, "report.txt");

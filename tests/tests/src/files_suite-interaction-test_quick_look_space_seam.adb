@@ -57,7 +57,7 @@ separate (Files_Suite.Interaction)
          Model  : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
          Result : Files.Interaction.Interaction_Result;
       begin
-         Files.Model.Deselect_All (Model);
+         Files.Model.Selection.Deselect_All (Model);
          Press_Space (Model, Result);
          Assert (not Files.Model.Quick_Look.Is_Open (Model), "Space with no selection does not open Quick Look");
       end;
@@ -67,8 +67,9 @@ separate (Files_Suite.Interaction)
          Model  : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
          Result : Files.Interaction.Interaction_Result;
       begin
-         Files.Model.Select_All_Visible (Model);
-         Assert (Files.Model.Selected_Count (Model) > 1, "the sample model has more than one selectable item");
+         Files.Model.Selection.Select_All_Visible (Model);
+         Assert
+           (Files.Model.Selection.Selected_Count (Model) > 1, "the sample model has more than one selectable item");
          Press_Space (Model, Result);
          Assert
            (not Files.Model.Quick_Look.Is_Open (Model),

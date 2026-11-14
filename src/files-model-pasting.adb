@@ -5,6 +5,16 @@ package body Files.Model.Pasting is
    use Ada.Strings.Unbounded;
    use Files.Model.Support;
 
+   --  An idle transfer session, to release a held one by assignment: the
+   --  model only holds the job handles; Files.Operations drives them.
+   --
+   --  @return A session holding no job.
+   function Released_Transfer return Files.Transfer_Jobs.Session is
+      Idle : Files.Transfer_Jobs.Session;
+   begin
+      return Idle;
+   end Released_Transfer;
+
    procedure Begin_Conflict
      (Model           : in out Window_Model;
       Items           : Files.Paste.Work_Item_Vectors.Vector;

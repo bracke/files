@@ -58,7 +58,7 @@ package Files.History_Journal is
    function Restore (Directory : String; Model : in out Files.Model.Window_Model) return Boolean;
 
    --  Take back a helper's journal into the window's history without losing
-   --  what the journal left out (Files.Model.Merge_History).
+   --  what the journal left out (Files.Model.History.Merge_History).
    --  @param Directory Absolute private helper transport directory.
    --  @param Model Window model whose history to merge into.
    --  @return True when a complete snapshot was read and merged.

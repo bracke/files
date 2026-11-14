@@ -27,6 +27,7 @@ with Guikit.Utf8;
 with Files.Model.Clipboard;
 with Files.Model.Tree_Panel;
 with Files.Model.Pasting;
+with Files.Model.Selection;
 
 package body Files.Application.Windows is
    use Ada.Strings.Unbounded;
@@ -178,34 +179,7 @@ package body Files.Application.Windows is
 
    overriding procedure Character_Entered
      (Object : not null access Desktop_Window;
-      Char   : Wide_Wide_Character)
-   is
-      Bytes    : constant String := Text_Input_Bytes (Char);
-      Parallel : constant Boolean := Object.Last_Was_Tracked_Press;
-      Dropped  : constant Boolean := Object.Drop_Next_Character;
-   begin
-      Object.Last_Was_Tracked_Press := False;
-      Object.Drop_Next_Character := False;
-      if Bytes = "" or else Dropped then
-         return;
-      end if;
-      --  Plain typing coalesces into one event; a key's own character stays
-      --  separate so a consumed shortcut can drop exactly that character.
-      if not Parallel
-        and then not Object.Pending_Input.Is_Empty
-        and then Object.Pending_Input.Last_Element.Kind = Text_Event
-        and then not Object.Pending_Input.Last_Element.Parallel
-      then
-         declare
-            Last : Input_Event renames Object.Pending_Input (Object.Pending_Input.Last_Index);
-         begin
-            Append (Last.Text, Bytes);
-         end;
-      elsif Natural (Object.Pending_Input.Length) < Max_Pending_Input_Events then
-         Object.Pending_Input.Append
-           (Input_Event'(Kind => Text_Event, Text => To_Unbounded_String (Bytes), Parallel => Parallel, others => <>));
-      end if;
-   end Character_Entered;
+      Char   : Wide_Wide_Character) is separate;
 
    --  The key a press means under the keyboard layout (QWERTZ: Ctrl+Z).
    function Layout_Key
@@ -218,113 +192,23 @@ package body Files.Application.Windows is
       Key      : Glfw.Input.Keys.Key;
       Scancode : Glfw.Input.Keys.Scancode;
       Action   : Glfw.Input.Keys.Action;
-      Mods     : Glfw.Input.Keys.Modifiers)
-   is
-      use type Glfw.Input.Keys.Action;
-      use type Guikit.Input.Key_Code;
-   begin
-      Object.Last_Was_Tracked_Press := False;
-      Object.Drop_Next_Character := False;
-      if Action = Glfw.Input.Keys.Release then
-         return;
-      end if;
-      declare
-         Code : constant Guikit.Input.Key_Code := Glfw.Input.Keys.Codes.To_Key_Code (Layout_Key (Key, Scancode));
-      begin
-         if Code = Guikit.Input.Key_Unknown then
-            return;
-         --  A held key repeats as the system's own repeat settings say: the
-         --  window system sends Repeat for it.
-         elsif Action = Glfw.Input.Keys.Repeat and then not Key_Repeats (Code) then
-            Object.Drop_Next_Character := True;
-         elsif Natural (Object.Pending_Input.Length) < Max_Pending_Input_Events then
-            Object.Pending_Input.Append
-              (Input_Event'
-                 (Kind      => Key_Press_Event,
-                  Key       => Code,
-                  Modifiers => Glfw.Input.Keys.Codes.To_Modifiers (Mods),
-                  others    => <>));
-            Object.Last_Was_Tracked_Press := True;
-         end if;
-      end;
-   end Key_Changed;
+      Mods     : Glfw.Input.Keys.Modifiers) is separate;
 
    overriding procedure Mouse_Scrolled
      (Object : not null access Desktop_Window;
       X      : Glfw.Input.Mouse.Scroll_Offset;
-      Y      : Glfw.Input.Mouse.Scroll_Offset) is
-      pragma Unreferenced (X);
-   begin
-      Object.Pending_Scroll :=
-        Add_Pending_Scroll
-          (Object.Pending_Scroll,
-           Accumulate_Scroll_Offset (Object.Pending_Scroll_Remainder, Long_Float (Y)));
-   end Mouse_Scrolled;
+      Y      : Glfw.Input.Mouse.Scroll_Offset) is separate;
 
    overriding procedure Mouse_Button_Changed
      (Object : not null access Desktop_Window;
       Button : Glfw.Input.Mouse.Button;
       State  : Glfw.Input.Button_State;
-      Mods   : Glfw.Input.Keys.Modifiers)
-   is
-      use type Guikit.Input.Mouse_Buttons.Button_Kind;
-      Event   : Guikit.Input.Mouse_Buttons.Button_Event :=
-        (Button    => Guikit.Input.Mouse_Buttons.Left_Mouse_Button,
-         Pressed   => State = Glfw.Input.Pressed,
-         X         => Object.Last_Mouse_X,
-         Y         => Object.Last_Mouse_Y,
-         Modifiers => Glfw.Input.Keys.Codes.To_Modifiers (Mods),
-         Dragged   => False,
-         At_Time   => Ada.Real_Time.Clock);
-      Bounced : Boolean;
-   begin
-      if Button = Glfw.Input.Mouse.Right_Button then
-         --  A right-click acts on the press, where it went down.
-         if State /= Glfw.Input.Pressed then
-            return;
-         end if;
-         Event.Button := Guikit.Input.Mouse_Buttons.Right_Mouse_Button;
-      elsif Button /= Glfw.Input.Mouse.Left_Button then
-         return;
-      elsif not Event.Pressed then
-         Event.Dragged := Object.Drag_Moved;
-      end if;
-
-      Guikit.Input.Mouse_Buttons.Queue_Event
-        (Object.Pending_Mouse, Object.Last_Left_Press_Time, Event, Bounced);
-      if Event.Button /= Guikit.Input.Mouse_Buttons.Left_Mouse_Button then
-         return;
-      elsif not Event.Pressed then
-         Object.Left_Mouse_Down := False;
-      elsif Bounced then
-         --  The button is physically down again after the bounce's release.
-         Object.Left_Mouse_Down := True;
-      else
-         Object.Left_Mouse_Down := True;
-         Object.Drag_Start_X := Event.X;
-         Object.Drag_Start_Y := Event.Y;
-         Object.Drag_Moved := False;
-      end if;
-   end Mouse_Button_Changed;
+      Mods   : Glfw.Input.Keys.Modifiers) is separate;
 
    overriding procedure Mouse_Position_Changed
      (Object : not null access Desktop_Window;
       X      : Glfw.Input.Mouse.Coordinate;
-      Y      : Glfw.Input.Mouse.Coordinate)
-   is
-      Delta_X : constant Glfw.Input.Mouse.Coordinate := X - Object.Drag_Start_X;
-      Delta_Y : constant Glfw.Input.Mouse.Coordinate := Y - Object.Drag_Start_Y;
-      Drag_Threshold : constant Glfw.Input.Mouse.Coordinate := 6.0;
-   begin
-      Object.Last_Mouse_X := X;
-      Object.Last_Mouse_Y := Y;
-
-      if Object.Left_Mouse_Down
-        and then (abs Delta_X >= Drag_Threshold or else abs Delta_Y >= Drag_Threshold)
-      then
-         Object.Drag_Moved := True;
-      end if;
-   end Mouse_Position_Changed;
+      Y      : Glfw.Input.Mouse.Coordinate) is separate;
 
    function To_Modifiers
      (Window : not null access Glfw.Windows.Window)
@@ -375,8 +259,8 @@ package body Files.Application.Windows is
               Files.Rendering.Calculate_Main_View_Layout
                 (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size));
          begin
-            Files.Model.Set_Selection_Grid_Columns (Runtime.Model, Main_View.Columns);
-            Files.Model.Set_Selection_Page_Rows
+            Files.Model.Selection.Set_Selection_Grid_Columns (Runtime.Model, Main_View.Columns);
+            Files.Model.Selection.Set_Selection_Page_Rows
               (Runtime.Model,
                Files.Rendering.Main_View_Page_Rows (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size)));
          end Apply;
@@ -444,7 +328,7 @@ package body Files.Application.Windows is
       if Runtime.Handle.Pending_Input.Is_Empty then
          return;
       end if;
-      Selected_Before := Files.Model.Selected_Index (Runtime.Model);
+      Selected_Before := Files.Model.Selection.Selected_Index (Runtime.Model);
       Path_Before := To_Unbounded_String (Files.Model.Current_Path (Runtime.Model));
       Events := Runtime.Handle.Pending_Input;
       Runtime.Handle.Pending_Input.Clear;
@@ -459,7 +343,7 @@ package body Files.Application.Windows is
                --  it moved, selected=<before>-><after>) and onto the screen.
                Files.Diagnostics.Trace ("Files.Application.Windows", "key=" & Guikit.Input.Key_Code'Image (Event.Key));
                declare
-                  Key_Selected_Before : constant Natural := Files.Model.Selected_Index (Runtime.Model);
+                  Key_Selected_Before : constant Natural := Files.Model.Selection.Selected_Index (Runtime.Model);
 
                   --  Natural'Image without its leading blank.
                   function Image_Of (Value : Natural) return String is
@@ -469,7 +353,7 @@ package body Files.Application.Windows is
                   Files.Diagnostics.Trace
                     ("Files.Application.Windows",
                      "selected=" & Image_Of (Key_Selected_Before) & "->"
-                     & Image_Of (Files.Model.Selected_Index (Runtime.Model)));
+                     & Image_Of (Files.Model.Selection.Selected_Index (Runtime.Model)));
                end;
             when Text_Event =>
                if not (Event.Parallel and then Consumed) then
@@ -481,7 +365,7 @@ package body Files.Application.Windows is
 
       --  The selection follows the keyboard into view.
       if Runtime.Handle /= null
-        and then (Files.Model.Selected_Index (Runtime.Model) /= Selected_Before
+        and then (Files.Model.Selection.Selected_Index (Runtime.Model) /= Selected_Before
                   or else Files.Model.Current_Path (Runtime.Model) /= To_String (Path_Before)
                   or else Files.Model.Reveal_Is_Pending (Runtime.Model))
       then
@@ -557,10 +441,10 @@ package body Files.Application.Windows is
    procedure Handle_Type_Ahead_Timeout
      (Runtime : in out Runtime_Window) is
    begin
-      if Files.Model.Type_Ahead_Buffer (Runtime.Model) /= ""
+      if Files.Model.Selection.Type_Ahead_Buffer (Runtime.Model) /= ""
         and then Ada.Real_Time.Clock > Runtime.Type_Ahead_Input_At + Type_Ahead_Timeout
       then
-         Files.Model.Reset_Type_Ahead (Runtime.Model);
+         Files.Model.Selection.Reset_Type_Ahead (Runtime.Model);
       end if;
    end Handle_Type_Ahead_Timeout;
 
@@ -952,7 +836,7 @@ package body Files.Application.Windows is
      (Model : Files.Model.Window_Model)
       return Files.Types.String_Vectors.Vector
    is
-      Items  : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+      Items  : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
       Result : Files.Types.String_Vectors.Vector;
    begin
       for Item of Items loop

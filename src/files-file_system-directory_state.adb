@@ -5,6 +5,7 @@ function Directory_State
 is
    Result    : Directory_Signature :=
      (Path                  => To_Unbounded_String (Path),
+      Taken                 => True,
       Exists                => False,
       Entry_Count           => 0,
       Entry_State_Checksum  => 0,
@@ -31,5 +32,5 @@ exception
       --  A bounded enumeration failure may happen after some entries were
       --  accumulated.  Once the scan is unavailable none of those partial
       --  counters or timestamps are authoritative.
-      return (Path => Result.Path, others => <>);
+      return Unknown_Signature (To_String (Result.Path));
 end Directory_State;

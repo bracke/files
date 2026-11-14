@@ -27,7 +27,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          else Selection_Color);
       Fold       : constant Natural := Natural'Max (1, Draw_Size / 4);
       Stripe_W   : constant Natural := Natural'Max (1, Draw_Size / 5);
-      Body_Y     : constant Natural := Saturating_Add (Y, Natural'Max (1, Draw_Size / 4));
+      Body_Y     : constant Natural := Guikit.Layout.Saturating_Add (Y, Natural'Max (1, Draw_Size / 4));
       Body_H     : constant Natural :=
         (if Draw_Size > Body_Y - Y then Draw_Size - (Body_Y - Y) else Draw_Size);
 
@@ -38,12 +38,12 @@ separate (Files.Rendering.Build_Frame_Commands)
 
       function X_Offset (Offset : Natural) return Natural is
       begin
-         return Saturating_Add (X, Offset);
+         return Guikit.Layout.Saturating_Add (X, Offset);
       end X_Offset;
 
       function Y_Offset (Offset : Natural) return Natural is
       begin
-         return Saturating_Add (Y, Offset);
+         return Guikit.Layout.Saturating_Add (Y, Offset);
       end Y_Offset;
 
       function Asset_Color (Role : Icon_Asset_Color_Role) return Render_Color is
@@ -65,10 +65,10 @@ separate (Files.Rendering.Build_Frame_Commands)
        Rect  : Icon_Asset_Rect)
       is
          Rect_X : constant Natural :=
-           Saturating_Add
+           Guikit.Layout.Saturating_Add
              (X, Bounded_Product_Divide (Value => Rect.Grid_X, Factor => Draw_Size, Denominator => Asset.Grid));
          Rect_Y : constant Natural :=
-           Saturating_Add
+           Guikit.Layout.Saturating_Add
              (Y, Bounded_Product_Divide (Value => Rect.Grid_Y, Factor => Draw_Size, Denominator => Asset.Grid));
          Rect_W : constant Natural :=
            Natural'Max
@@ -85,10 +85,10 @@ separate (Files.Rendering.Build_Frame_Commands)
          Tri   : Icon_Asset_Tri)
       is
          function PX (G : Natural) return Float is
-           (Float (Saturating_Add
+           (Float (Guikit.Layout.Saturating_Add
               (X, Bounded_Product_Divide (Value => G, Factor => Draw_Size, Denominator => Asset.Grid))));
          function PY (G : Natural) return Float is
-           (Float (Saturating_Add
+           (Float (Guikit.Layout.Saturating_Add
               (Y, Bounded_Product_Divide (Value => G, Factor => Draw_Size, Denominator => Asset.Grid))));
       begin
          Add_Triangle
@@ -134,15 +134,15 @@ separate (Files.Rendering.Build_Frame_Commands)
             Shown    : constant String := Guikit.Utf8.Prefix_By_Units (Ext, 3);
             Lbl      : constant Files.Extension_Labels.Label :=
               Files.Extension_Labels.Label_For (Shown, Text_H, Snapshot.Theme_Palette);
-            Band_W   : constant Natural := Saturating_Add (Lbl.Width, 2 * Pad_X);
-            Band_H   : constant Natural := Saturating_Add (Lbl.Height, 2 * Pad_Y);
+            Band_W   : constant Natural := Guikit.Layout.Saturating_Add (Lbl.Width, 2 * Pad_X);
+            Band_H   : constant Natural := Guikit.Layout.Saturating_Add (Lbl.Height, 2 * Pad_Y);
             Overhang : constant Natural := Band_W / 3;
             Main_Right : constant Natural :=
               Natural'Min
-                (Layout.Width, Saturating_Add (Layout.Main_X, Layout.Main_Width));
+                (Layout.Width, Guikit.Layout.Saturating_Add (Layout.Main_X, Layout.Main_Width));
             Main_Bottom : constant Natural :=
               Natural'Min
-                (Layout.Height, Saturating_Add (Layout.Main_Y, Layout.Main_Height));
+                (Layout.Height, Guikit.Layout.Saturating_Add (Layout.Main_Y, Layout.Main_Height));
          begin
             if Lbl.Width > 0
               and then Band_W <= Layout.Main_Width
@@ -150,13 +150,13 @@ separate (Files.Rendering.Build_Frame_Commands)
             then
                declare
                   Raw_X : constant Natural :=
-                    Saturating_Add
+                    Guikit.Layout.Saturating_Add
                       (X,
                        (if Draw_Size + Overhang > Band_W
                         then Draw_Size + Overhang - Band_W
                         else 0));
                   Raw_Y : constant Natural :=
-                    Saturating_Add
+                    Guikit.Layout.Saturating_Add
                       (Y, (if Draw_Size > Band_H then Draw_Size - Band_H else 0));
                   Band_X : constant Natural :=
                     Natural'Max
@@ -164,8 +164,8 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Band_Y : constant Natural :=
                     Natural'Max
                       (Layout.Main_Y, Natural'Min (Raw_Y, Main_Bottom - Band_H));
-                  Text_X : constant Natural := Saturating_Add (Band_X, Pad_X);
-                  Text_Y : constant Natural := Saturating_Add (Band_Y, Pad_Y);
+                  Text_X : constant Natural := Guikit.Layout.Saturating_Add (Band_X, Pad_X);
+                  Text_Y : constant Natural := Guikit.Layout.Saturating_Add (Band_Y, Pad_Y);
                begin
                --  A small near-white index tab at the icon's bottom-right, drawn on
                --  the overlay layer so it sits on top of the opaque icon. It may
@@ -194,9 +194,7 @@ separate (Files.Rendering.Build_Frame_Commands)
    begin
       if Draw_Size = 0 then
          return;
-      elsif Hidden_By_Settings_Pane (X, Y, Draw_Size, Draw_Size) then
-         return;
-      elsif Hidden_By_Command_Palette (X, Y, Draw_Size, Draw_Size) then
+      elsif Hidden_By_Overlays (X, Y, Draw_Size, Draw_Size) then
          return;
       end if;
 
@@ -232,7 +230,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Thumbnail_Width  => (if Use_Thumbnail then Item.Thumbnail_Width else 0),
                   Thumbnail_Height => (if Use_Thumbnail then Item.Thumbnail_Height else 0),
                   Thumbnail_Pixels =>
-                    (if Use_Thumbnail then Item.Thumbnail.Pixels else Files.Shared_Bytes.Empty),
+                    (if Use_Thumbnail then Item.Thumbnail.Pixels else Guikit.Shared_Bytes.Empty),
                   Overlay          => Overlay,
                   Draw_Width       => Fit_W,
                   Draw_Height      => Fit_H,
@@ -267,7 +265,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                Base_Color);
             Add_Rect (X, Body_Y, Draw_Size, Body_H, Base_Color);
             if Draw_Size > 4 then
-               Add_Rect (X_Offset (1), Saturating_Add (Body_Y, 1), Draw_Size - 2, 1, Border_Color);
+               Add_Rect (X_Offset (1), Guikit.Layout.Saturating_Add (Body_Y, 1), Draw_Size - 2, 1, Border_Color);
             end if;
 
          when Files.File_Types.Executable_Icon =>
@@ -282,7 +280,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Scale (1, 3),
                   Accent);
                Add_Rect
-                 (X_Offset (Saturating_Add (Scale (1, 2), Stripe_W)),
+                 (X_Offset (Guikit.Layout.Saturating_Add (Scale (1, 2), Stripe_W)),
                   Y_Offset (Scale (1, 2)),
                   Stripe_W,
                   Stripe_W,
@@ -399,7 +397,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Add_Rect (X_Offset (Scale (1, 5)), Y_Offset (Scale (1, 2)), Scale (3, 5), 1, Border_Color);
                   Add_Rect
                     (X_Offset (Scale (1, 5)),
-                     Y_Offset (Saturating_Add (Scale (1, 2), Scale (1, 5))),
+                     Y_Offset (Guikit.Layout.Saturating_Add (Scale (1, 2), Scale (1, 5))),
                      Scale (1, 2),
                      1,
                      Border_Color);

@@ -46,7 +46,7 @@ separate (Files_Suite.Model)
          "error.path.missing",
          "invalid root selection records error");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid root selection preserves temporary create state");
-      Assert (Files.Model.Rename_Is_Active (Model), "invalid root selection preserves rename state");
+      Assert (Files.Model.Rename.Rename_Is_Active (Model), "invalid root selection preserves rename state");
       Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 0);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -80,7 +80,7 @@ separate (Files_Suite.Model)
          "",
          "root selection clears stale error state");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "root selection clears temporary create state");
-      Assert (not Files.Model.Rename_Is_Active (Model), "root selection clears rename state");
+      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "root selection clears rename state");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "selected root directory items are loaded");
       Assert (not Files.Model.Root_Selector.Is_Open (Model), "root selection closes selector");
       Assert (Files.Model.Can_Go_Back (Model), "root selection updates back history");

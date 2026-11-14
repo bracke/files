@@ -796,7 +796,8 @@ jobs:
           # The Down key must have moved the selection (its selected= trace,
           # written right after the key's own, has two different ends), then a
           # frame must have been drawn with that selection (drawn-selection=,
-          # traced when the frame is rebuilt) and presented after it -- not
+          # traced when the frame is rebuilt, read from the snapshot the frame
+          # was built from, numbered as selected= is) and presented after it -- not
           # merely any frame after the key, such as an idle re-present of the
           # frame from before the move.
           if ! awk '/files-trace: Files.Application.Windows: key=KEY_DOWN/ { key = 1; next }

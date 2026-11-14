@@ -1,3 +1,5 @@
+with Files.Model.Rename;
+with Files.Model.Selection;
 package body Files.Commands.Execution is
 
    procedure Execute

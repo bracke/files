@@ -54,7 +54,7 @@ separate (Files.Controller)
                Raw   : constant String :=
                  Ada.Strings.Fixed.Trim (Files.Model.Ownership_Input_Text (Model), Ada.Strings.Both);
                Group : constant Boolean := Files.Model.Ownership_Editing_Group (Model);
-               Item  : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
+               Item  : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
                Resolved : Files.Types.Account_Id := 0;
                Found    : Boolean := False;
 

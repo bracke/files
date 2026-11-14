@@ -35,7 +35,7 @@ separate (Files_Suite.Commands)
             Model  : Files.Model.Window_Model := Sample_Model;
             Result : Files.Controller.Controller_Result;
          begin
-            Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+            Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
             if Files.Commands.Status.Is_Enabled (Id, Model) then
                Result := Files.Controller.Execute_Non_Settings_Command (Id, Model, Settings);
                Files_Suite.Support.Assert_Equal

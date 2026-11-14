@@ -17,7 +17,7 @@ begin
    then
       return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Redo);
    end if;
-   Files.Model.Take_Redo (Model, Action, Found);
+   Files.Model.History.Take_Redo (Model, Action, Found);
    if not Found then
       Files.Model.Set_Error (Model, "error.undo.failed");
       return Make_Result (Operation_Failed, "error.undo.failed", Directory);
@@ -32,10 +32,10 @@ begin
    --  apply unfinished items. A full Redo starts a fresh Undo/Redo cycle.
    if Succeeded then
       Action.Forward_Completed.Clear;
-      Files.Model.Push_Undo (Model, Action);
+      Files.Model.History.Push_Undo (Model, Action);
       Settle_History (Model);
    else
-      Files.Model.Push_Redo (Model, Action);
+      Files.Model.History.Push_Redo (Model, Action);
       Settle_History (Model);
    end if;
 
@@ -45,7 +45,7 @@ exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.Operations");
       if Found and then not Returned_Action then
-         Files.Model.Push_Redo (Model, Action);
+         Files.Model.History.Push_Redo (Model, Action);
          Settle_History (Model);
       end if;
       Files.Model.Set_Error (Model, "error.undo.failed");

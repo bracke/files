@@ -10,7 +10,7 @@ separate (Files_Suite.Commands)
       Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
-      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
@@ -34,18 +34,18 @@ separate (Files_Suite.Commands)
          Files.Types.Focus_None,
          "closed settings text click does not focus input");
       Files.Model.Command_Palette.Open (Model);
-      Files.Model.Select_Visible (Model, 1);
-      Files.Model.Toggle_Rename (Model);
+      Files.Model.Selection.Select_Visible (Model, 1);
+      Files.Model.Rename.Toggle_Rename (Model);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane opens from palette state");
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "settings pane opening closes command palette");
-      Assert (not Files.Model.Rename_Is_Active (Model), "settings pane opening clears active rename state");
+      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "settings pane opening clears active rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Settings_Input,
          "settings pane opening moves focus to settings input");
-      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Selection.Select_Visible (Model, 1);
       Assert
         (Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Save_Settings_Command),
          "settings pane allowlist includes save");
@@ -108,14 +108,15 @@ separate (Files_Suite.Commands)
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane reopens after Escape close check");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Assert (Files.Model.Selected_Item (Model).Name = "Alpha.txt", "settings modal starts with stable selection");
+      Assert
+        (Files.Model.Selection.Selected_Item (Model).Name = "Alpha.txt", "settings modal starts with stable selection");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "settings pane blocks background selection keys");
       Assert
-        (Files.Model.Selected_Item (Model).Name = "Alpha.txt",
+        (Files.Model.Selection.Selected_Item (Model).Name = "Alpha.txt",
          "settings pane keeps background selection unchanged");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 1);
       Files_Suite.Support.Assert_Equal

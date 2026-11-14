@@ -22,6 +22,9 @@ with Files.Fonts;
 with Files.Folder_Tree;
 with Files.Localization;
 with Files.Model;
+with Files.Model.Selection;
+with Files.Model.Rename;
+with Files.Model.Folder_Sizes;
 with Files.UI;
 with Guikit.Utf8;
 with Files.Quick_Look;
@@ -41,6 +44,7 @@ with A11ykit.Tree;
 with Guikit.Vulkan;
 with Files.Types;
 with Guikit.Layout;
+with Files.Accessibility.Testing;
 
 --  Rendering tests expressed as layout INVARIANTS and behaviours rather than
 --  exact pixel coordinates. Each routine constructs its own deterministic view

@@ -22,7 +22,7 @@ separate (Files_Suite.Interaction)
       procedure Expect_Selected (First, Last : Positive; Message : String) is
       begin
          for Index in 1 .. Files.Model.Visible_Count (Model) loop
-            Assert (Files.Model.Is_Selected (Model, Index) = (Index in First .. Last),
+            Assert (Files.Model.Selection.Is_Selected (Model, Index) = (Index in First .. Last),
                     Message & ": item" & Index'Image);
          end loop;
       end Expect_Selected;
@@ -39,7 +39,7 @@ separate (Files_Suite.Interaction)
 
       Click_Item (3, Guikit.Input.No_Modifiers);
       Click_Item (7, Ctrl);
-      Assert (Files.Model.Is_Selected (Model, 3) and then Files.Model.Is_Selected (Model, 7),
+      Assert (Files.Model.Selection.Is_Selected (Model, 3) and then Files.Model.Selection.Is_Selected (Model, 7),
               "a ctrl-click adds to the selection");
       Click_Item (10, Shift);
       Expect_Selected (7, 10, "shift-click ranges from the ctrl-clicked item");

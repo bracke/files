@@ -20,19 +20,19 @@ separate (Files_Suite.Interaction)
       Dispatch_Menu_Command
         (Model, Settings, "", Files.Commands.Rename_Selected_Items_Command, Result, Found);
       Assert (Found, "the item menu offers the rename command");
-      Assert (Files.Model.Rename_Is_Active (Model), "rename starts inline editing");
+      Assert (Files.Model.Rename.Rename_Is_Active (Model), "rename starts inline editing");
 
       --  Step 2: set the new name and commit through the real Enter key seam.
-      Files.Model.Set_Rename_Text (Model, "summary.txt");
+      Files.Model.Rename.Set_Rename_Text (Model, "summary.txt");
       Commit_Focused_Text (Model, Settings);
       Assert (Ada.Directories.Exists (Renamed), "committing the rename writes the new name");
       Assert (not Ada.Directories.Exists (Source), "committing the rename removes the old name");
-      Assert (not Files.Model.Rename_Is_Active (Model), "committing the rename ends inline editing");
-      Assert (Files.Model.Undo_Available (Model), "the rename records an undoable action");
+      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "committing the rename ends inline editing");
+      Assert (Files.Model.History.Undo_Available (Model), "the rename records an undoable action");
 
       --  Step 3: undo through the reducer command branch restores the original.
       Dispatch_Command (Model, Settings, Files.Commands.Undo_Command, Result);
       Assert (Ada.Directories.Exists (Source), "undo restores the original name");
       Assert (not Ada.Directories.Exists (Renamed), "undo removes the renamed file");
-      Assert (not Files.Model.Undo_Available (Model), "undo consumes the undoable action");
+      Assert (not Files.Model.History.Undo_Available (Model), "undo consumes the undoable action");
    end Test_Sequence_Rename_Then_Undo;

@@ -220,6 +220,12 @@ private
      (Into       : in out Desktop_Window;
       Occurrence : Ada.Exceptions.Exception_Occurrence);
 
+   --  The window-system callbacks below run from GLFW's C callbacks, so each
+   --  ends in a handler that notes an exception (Note_Event_Loop) and returns
+   --  rather than let it unwind into C. They do not extend
+   --  Guikit.Input.Pending.Pending_Window: files coalesces typing, ties a
+   --  key's own character to its press, and tracks drags and right-clicks,
+   --  which that window's queue has no place for.
    overriding procedure Character_Entered
      (Object : not null access Desktop_Window;
       Char   : Wide_Wide_Character);

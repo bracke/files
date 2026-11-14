@@ -1,6 +1,6 @@
 with Files.Folder_Tree;
 with Files.Quick_Look;
-with Files.Shared_Bytes;
+with Guikit.Shared_Bytes;
 with Files.Model.Command_Palette;
 with Files.Model.Context_Menu;
 with Files.Model.Quick_Look;
@@ -23,7 +23,7 @@ separate (Files.Application.Windows.Smoke)
 
          when Scenario_Selection =>
             if Has_Item then
-               Files.Model.Select_Visible (Runtime.Model, 1);
+               Files.Model.Selection.Select_Visible (Runtime.Model, 1);
             end if;
 
          when Scenario_Scrolled =>
@@ -138,7 +138,7 @@ separate (Files.Application.Windows.Smoke)
             --  Preview the first item: Quick Look opens an overlay panel drawn on
             --  top of the grid, exercising the overlay icon/text/rect passes.
             if Has_Item then
-               Files.Model.Select_Visible (Runtime.Model, 1);
+               Files.Model.Selection.Select_Visible (Runtime.Model, 1);
                Files.Model.Quick_Look.Toggle (Runtime.Model);
             end if;
 
@@ -147,7 +147,7 @@ separate (Files.Application.Windows.Smoke)
             --  icon-atlas tile and overlay image pass are exercised end to end
             --  (no real file or image library needed).
             if Has_Item then
-               Files.Model.Select_Visible (Runtime.Model, 1);
+               Files.Model.Selection.Select_Visible (Runtime.Model, 1);
                declare
                   Dim     : constant := 256;
                   Content : Files.Quick_Look.Quick_Look_Content;
@@ -164,7 +164,7 @@ separate (Files.Application.Windows.Smoke)
                         Pixels.Append (255);
                      end loop;
                   end loop;
-                  Content.Image_Pixels := Files.Shared_Bytes.To_Shared (Pixels);
+                  Content.Image_Pixels := Guikit.Shared_Bytes.To_Shared (Pixels);
                   Files.Model.Quick_Look.Open (Runtime.Model, Content);
                end;
             end if;

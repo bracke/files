@@ -117,5 +117,16 @@ separate (Check_All)
       Require_Tests ("model", 54);
       Require_Tests ("interaction", 95);
       Require_Tests ("rendering", 101);
-      Require_Tests ("operations", 330);
+      Require_Tests ("operations", 47);
+      Require_Tests ("transfer", 55);
+      Require_Tests ("recovery", 46);
+      Require_Tests ("history", 33);
+      Require_Tests ("trash", 30);
+      Require_Tests ("search", 10);
+      Require_Tests ("thumbnails", 19);
+      Require_Tests ("archives", 7);
+      Require_Tests ("info", 33);
+      Require_Tests ("names", 18);
+      Require_Tests ("refresh", 16);
+      Require_Tests ("open_actions", 16);
    end Check_Test_Subsystem_Coverage;

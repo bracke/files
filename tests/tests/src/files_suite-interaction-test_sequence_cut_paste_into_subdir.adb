@@ -53,7 +53,7 @@ separate (Files_Suite.Interaction)
       end;
 
       --  Step 3: if the move is undoable, undo returns the file to its origin.
-      if Files.Model.Undo_Available (Model) then
+      if Files.Model.History.Undo_Available (Model) then
          Dispatch_Command (Model, Settings, Files.Commands.Undo_Command, Result);
          Assert (Ada.Directories.Exists (Source), "undo moves the cut file back to its origin");
          Assert (not Ada.Directories.Exists (Pasted), "undo removes the file from the subdirectory");

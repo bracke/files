@@ -50,7 +50,7 @@ separate (Files_Suite.Interaction)
               "Tab from the filter gives the open tree the keyboard and a highlighted row");
 
       --  Arrows move the tree's highlight and leave the grid's selection alone.
-      Selected := Files.Model.Selected_Index (Model);
+      Selected := Files.Model.Selection.Selected_Index (Model);
       Files.Model.Tree_Panel.Set_Cursor (Model, Tree_Dir);
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal
@@ -60,7 +60,7 @@ separate (Files_Suite.Interaction)
         (Files.Model.Tree_Panel.Cursor (Model), Alpha,
          "Down moves the tree highlight, not the grid selection (tree cursor)");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model), Selected,
+        (Files.Model.Selection.Selected_Index (Model), Selected,
          "Down moves the tree highlight, not the grid selection (grid selection)");
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Assert (CResult.Status = Files.Controller.Controller_Command_Executed

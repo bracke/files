@@ -22,13 +22,13 @@ separate (Files_Suite.Commands)
       Files.Model.Context_Menu.Open (Model, 10, 10, Files.Types.Context_Menu_Empty);
       Assert (Files.Model.Context_Menu.Is_Open (Model), "context menu opens");
       declare
-         Before : constant Natural := Files.Model.Selected_Index (Model);
+         Before : constant Natural := Files.Model.Selection.Selected_Index (Model);
       begin
          --  Down navigates the menu (see Test_Context_Menu_Keyboard); the point
          --  here is that it does not leak through to move the grid behind it.
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Selected_Index (Model),
+           (Files.Model.Selection.Selected_Index (Model),
             Before,
             "the grid does not move behind the context menu");
          Assert (Files.Model.Context_Menu.Is_Open (Model), "a non-Escape key leaves the menu open");

@@ -9,6 +9,8 @@ with Files.Refresh_Jobs;
 with Files.Fs_Primitives;
 with Files.Leaf_Names;
 with Hostkit.Fs;
+with Files.Model.History;
+with Files.Model.Selection;
 
 package body Files.Operations.Support is
    use Ada.Strings.Unbounded;
@@ -98,9 +100,9 @@ package body Files.Operations.Support is
          --  Only a reload here restores them: the background one above
          --  restores its own, so a Select All is not copied for nothing.
          Previous_Selection : constant Files.Items.Item_Vectors.Vector :=
-           Files.Model.Selected_Items (Model);
+           Files.Model.Selection.Selected_Items (Model);
          Previous_Primary : constant String :=
-           To_String (Files.Model.Selected_Item (Model).Full_Path);
+           To_String (Files.Model.Selection.Selected_Item (Model).Full_Path);
       begin
          --  The Recent view has no backing directory (Current_Path is empty), so a
          --  directory load would spuriously fail and a mutation performed from
@@ -126,7 +128,7 @@ package body Files.Operations.Support is
                end loop;
                Files.Model.Navigate_Recent (Model, Items);
                if Preserve_Selection and then Select_Name = "" then
-                  Files.Model.Restore_Selection
+                  Files.Model.Selection.Restore_Selection
                     (Model, Previous_Selection, Previous_Primary);
                end if;
                Files.Model.Set_Error (Model, "");
@@ -148,13 +150,13 @@ package body Files.Operations.Support is
             Files.Model.Set_Directory_Signature (Model, Load.Signature);
             if Select_Name /= "" then
                declare
-                  Selection_Restored : constant Boolean := Files.Model.Select_By_Name (Model, Select_Name);
+                  Selection_Restored : constant Boolean := Files.Model.Selection.Select_By_Name (Model, Select_Name);
                   pragma Unreferenced (Selection_Restored);
                begin
                   null;
                end;
             elsif Preserve_Selection then
-               Files.Model.Restore_Selection
+               Files.Model.Selection.Restore_Selection
                  (Model, Previous_Selection, Previous_Primary);
             end if;
             Files.Model.Set_Error (Model, "");
@@ -228,16 +230,25 @@ package body Files.Operations.Support is
    --  How long Checkpoint_Undo leaves between records.
    Checkpoint_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
 
+   --  The throttle's clock: the test suite's when it set one.
+   function Checkpoint_Now return Ada.Real_Time.Time is
+      Hook : constant Clock_Hook := Checkpoint_Clock;
+   begin
+      return (if Hook = null then Ada.Real_Time.Clock else Hook.all);
+   end Checkpoint_Now;
+
    --  Replace the batch's entry with one covering every item appended.
+   --  Now is the throttle's clock reading the record is made at.
    procedure Record_Progress
      (Model    : in out Files.Model.Window_Model;
-      Progress : in out Progressive_Undo)
+      Progress : in out Progressive_Undo;
+      Now      : Ada.Real_Time.Time)
    is
       Previous : Files.Model.Undo_Entry;
       Found    : Boolean;
    begin
       if Progress.Recorded then
-         Files.Model.Take_Undo (Model, Previous, Found);
+         Files.Model.History.Take_Undo (Model, Previous, Found);
          --  Taken: should the record below raise, a later one must not
          --  take the entry under it, which is not the batch's.
          Progress.Recorded := False;
@@ -246,7 +257,7 @@ package body Files.Operations.Support is
       --  not retried until the next interval either.
       Progress.Attempted := True;
       Progress.Attempted_Count := Natural (Progress.From.Length);
-      Progress.Last_Checkpoint := Ada.Real_Time.Clock;
+      Progress.Last_Checkpoint := Now;
       Progress.Recorded := Try_Record_Undo
         (Model, Progress.Kind, Progress.From, Progress.To,
          Forward     => Progress.Forward,
@@ -258,7 +269,7 @@ package body Files.Operations.Support is
             Retain_Verified_Main => Progress.Verified_Count,
             others               => <>));
       if Progress.Recorded
-        and then Natural (Files.Model.Undo_From_Paths (Model).Length) = Natural (Progress.From.Length)
+        and then Natural (Files.Model.History.Undo_From_Paths (Model).Length) = Natural (Progress.From.Length)
       then
          Progress.Verified_Count := Natural (Progress.From.Length);
       end if;
@@ -269,12 +280,16 @@ package body Files.Operations.Support is
 
    procedure Checkpoint_Undo
      (Model    : in out Files.Model.Window_Model;
-      Progress : in out Progressive_Undo) is
+      Progress : in out Progressive_Undo)
+   is
+      --  Read once a call, whether or not it records, so a test clock
+      --  counts one reading per item.
+      Now : constant Ada.Real_Time.Time := Checkpoint_Now;
    begin
       if not Progress.Attempted
-        or else Files.Timing.Elapsed (Ada.Real_Time.Clock, Progress.Last_Checkpoint, Checkpoint_Interval)
+        or else Files.Timing.Elapsed (Now, Progress.Last_Checkpoint, Checkpoint_Interval)
       then
-         Record_Progress (Model, Progress);
+         Record_Progress (Model, Progress, Now);
       end if;
    end Checkpoint_Undo;
 
@@ -283,7 +298,7 @@ package body Files.Operations.Support is
       Progress : in out Progressive_Undo) return Undo_Outcome is
    begin
       if Natural (Progress.From.Length) /= Progress.Attempted_Count then
-         Record_Progress (Model, Progress);
+         Record_Progress (Model, Progress, Checkpoint_Now);
       end if;
       return (if Progress.From.Is_Empty or else Progress.Recorded then Undo_Covered else Undo_Unavailable);
    end Finish_Undo;

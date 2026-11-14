@@ -16,7 +16,7 @@ separate (Files_Suite.Interaction)
       --  Selected file: favoriting stores the item's full path, not the folder.
       Files_Suite.Support.Select_Name (Model, "Alpha.txt");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Count (Model),
+        (Files.Model.Selection.Selected_Count (Model),
          1,
          "the sample file is selected before favoriting");
       Files.Interaction.Apply_Input_Action
@@ -59,9 +59,9 @@ separate (Files_Suite.Interaction)
       Assert (not Has_Favorite (Settings, Item), "toggling the selected file again removes its favorite");
 
       --  No selection: the toggle falls back to the current directory.
-      Files.Model.Deselect_All (Model);
+      Files.Model.Selection.Deselect_All (Model);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Count (Model),
+        (Files.Model.Selection.Selected_Count (Model),
          0,
          "the selection is cleared for the fallback path");
       Files.Interaction.Apply_Input_Action
@@ -80,7 +80,7 @@ separate (Files_Suite.Interaction)
          "the setup removes the current-folder favorite");
       Files.Model.Begin_Create_File (Model, "untitled.txt");
       Assert
-        (Files.Model.Selection_Includes_Temporary (Model),
+        (Files.Model.Selection.Selection_Includes_Temporary (Model),
          "the pending create row is selected before the favorite command");
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Toggle_Favorite_Command, Model),

@@ -110,7 +110,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             Theme_Name => To_Unbounded_String (Icon_Theme_Name),
             Thumbnail_Width  => 0,
             Thumbnail_Height => 0,
-            Thumbnail_Pixels => Files.Shared_Bytes.Empty,
+            Thumbnail_Pixels => Guikit.Shared_Bytes.Empty,
             Overlay          => False,
             Draw_Width       => 0,
             Draw_Height      => 0,

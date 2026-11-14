@@ -4,6 +4,7 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 
 with Files.File_System;
+with Files.Model.Selection;
 
 package body Files.Application.Windows.Smoke is
    use Ada.Strings.Unbounded;

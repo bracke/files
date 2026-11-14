@@ -41,13 +41,13 @@ separate (Files.Rendering.Build_Frame_Commands)
 
       if Layout.Info_Pane_Width > 0 then
          Add_Rect
-           (Saturating_Add (Layout.Main_X, Layout.Main_Width),
+           (Guikit.Layout.Saturating_Add (Layout.Main_X, Layout.Main_Width),
             Layout.Main_Y,
             Layout.Info_Pane_Width,
             Layout.Main_Height,
             Pane_Color);
          Add_Rect
-           (Saturating_Add (Layout.Main_X, Layout.Main_Width),
+           (Guikit.Layout.Saturating_Add (Layout.Main_X, Layout.Main_Width),
             Layout.Main_Y,
             1,
             Layout.Main_Height,
@@ -78,12 +78,12 @@ separate (Files.Rendering.Build_Frame_Commands)
               (if Button_Index = First_File_Action_Button then Group_Pad else Inner_Pad);
             Button_Pad_R : constant Natural :=
               (if Button_Index = First_File_Action_Button - 1 then Group_Pad else Inner_Pad);
-            Visible_X : constant Natural := Saturating_Add (Button_X, Button_Pad_L);
+            Visible_X : constant Natural := Guikit.Layout.Saturating_Add (Button_X, Button_Pad_L);
             Visible_W : constant Natural :=
-              (if Button_W > Saturating_Add (Button_Pad_L, Button_Pad_R)
+              (if Button_W > Guikit.Layout.Saturating_Add (Button_Pad_L, Button_Pad_R)
                then Button_W - Button_Pad_L - Button_Pad_R
                else 0);
-            Visible_Y : constant Natural := Saturating_Add (Button_Y, Pad_V);
+            Visible_Y : constant Natural := Guikit.Layout.Saturating_Add (Button_Y, Pad_V);
             Visible_H : constant Natural :=
               (if Button_H > Saturating_Multiply (Pad_V, 2)
                then Button_H - Saturating_Multiply (Pad_V, 2)

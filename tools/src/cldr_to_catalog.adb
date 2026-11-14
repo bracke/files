@@ -1,6 +1,5 @@
 with Ada.Command_Line;
 with Ada.Containers.Vectors;
-with Ada.Directories;
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -579,56 +578,21 @@ procedure Cldr_To_Catalog is
       end loop;
    end Import_File;
 
+   --  Import Path, a CLDR XML file or a tree of them (every ".xml" file
+   --  under it, in walk order).
    procedure Import_Path
      (Path    : String;
-      Entries : in out Entry_Vectors.Vector);
-
-   procedure Import_Path
-     (Path    : String;
-      Entries : in out Entry_Vectors.Vector)
-   is
-      Search  : Ada.Directories.Search_Type;
-      Element : Ada.Directories.Directory_Entry_Type;
-      Started : Boolean := False;
+      Entries : in out Entry_Vectors.Vector) is
    begin
       if Project_Tools.Files.File_Exists (Path) then
          if Ends_With (Path, ".xml") then
             Import_File (Path, Entries);
          end if;
-         return;
-      elsif not Project_Tools.Files.Directory_Exists (Path) then
-         return;
+      else
+         for File of Project_Tools.Files.List_Tree (Path, "*.xml") loop
+            Import_File (To_String (File), Entries);
+         end loop;
       end if;
-
-      Ada.Directories.Start_Search
-        (Search,
-         Directory => Path,
-         Pattern   => "*",
-         Filter    =>
-           [Ada.Directories.Ordinary_File => True,
-            Ada.Directories.Directory     => True,
-            Ada.Directories.Special_File  => False]);
-      Started := True;
-
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Element);
-         declare
-            Name : constant String := Ada.Directories.Simple_Name (Element);
-            Full : constant String := Ada.Directories.Full_Name (Element);
-         begin
-            if Name /= "." and then Name /= ".." then
-               Import_Path (Full, Entries);
-            end if;
-         end;
-      end loop;
-
-      Ada.Directories.End_Search (Search);
-   exception
-      when others =>
-         if Started then
-            Ada.Directories.End_Search (Search);
-         end if;
-         raise;
    end Import_Path;
 
    function Render (Entries : Entry_Vectors.Vector) return String is

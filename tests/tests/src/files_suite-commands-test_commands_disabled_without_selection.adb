@@ -54,11 +54,11 @@ separate (Files_Suite.Commands)
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Invert_Selection_Command, Model),
          "invert-selection enabled with visible items");
-      Files.Model.Select_All_Visible (Model);
+      Files.Model.Selection.Select_All_Visible (Model);
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Deselect_All_Command, Model),
          "deselect-all enabled with a non-empty selection");
-      Files.Model.Clear_Selection (Model);
+      Files.Model.Selection.Clear_Selection (Model);
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Undo_Command, Model),
          "undo disabled with no recorded history");

@@ -27,14 +27,14 @@ separate (Files_Suite.Rendering)
             Step & ": the patched snapshot is the rebuilt one");
       end Check;
 
-      procedure First is begin Files.Model.Select_Visible (Model, 1); end First;
-      procedure Down is begin Files.Model.Move_Selection (Model, Guikit.Input.Move_Down); end Down;
-      procedure Toggle is begin Files.Model.Toggle_Visible_Selection (Model, 3); end Toggle;
-      procedure Span is begin Files.Model.Select_Visible_Range (Model, 1, 2); end Span;
-      procedure All_Rows is begin Files.Model.Select_All_Visible (Model); end All_Rows;
-      procedure Invert is begin Files.Model.Invert_Selection (Model); end Invert;
-      procedure Clear is begin Files.Model.Clear_Selection (Model); end Clear;
-      procedure Last is begin Files.Model.Select_Last_Visible (Model); end Last;
+      procedure First is begin Files.Model.Selection.Select_Visible (Model, 1); end First;
+      procedure Down is begin Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Down); end Down;
+      procedure Toggle is begin Files.Model.Selection.Toggle_Visible_Selection (Model, 3); end Toggle;
+      procedure Span is begin Files.Model.Selection.Select_Visible_Range (Model, 1, 2); end Span;
+      procedure All_Rows is begin Files.Model.Selection.Select_All_Visible (Model); end All_Rows;
+      procedure Invert is begin Files.Model.Selection.Invert_Selection (Model); end Invert;
+      procedure Clear is begin Files.Model.Selection.Clear_Selection (Model); end Clear;
+      procedure Last is begin Files.Model.Selection.Select_Last_Visible (Model); end Last;
       procedure By_Name is begin Files_Suite.Support.Select_Name (Model, "Beta.txt"); end By_Name;
    begin
       for Grouped in Boolean loop
@@ -75,7 +75,7 @@ separate (Files_Suite.Rendering)
                Step & ": the patched snapshot is the rebuilt one");
          end Check_Header;
 
-         Selected : constant String := To_String (Files.Model.Selected_Item (Model).Full_Path);
+         Selected : constant String := To_String (Files.Model.Selection.Selected_Item (Model).Full_Path);
 
          procedure Size is
          begin
@@ -83,14 +83,14 @@ separate (Files_Suite.Rendering)
               (Model, Selected, (Available => True, Total_Bytes => 4096, File_Count => 2, Item_Count => 3,
                                  Capped => False));
          end Size;
-         procedure Unsize is begin Files.Model.Clear_Folder_Size (Model); end Unsize;
+         procedure Unsize is begin Files.Model.Folder_Sizes.Clear_Folder_Size (Model); end Unsize;
          procedure Space is
          begin
             Files.Model.Set_Volume_Space
               (Model, Files.Model.Current_Path (Model), (Known => True, Free_Bytes => 1_000, Total_Bytes => 5_000),
                Ada.Calendar.Clock);
          end Space;
-         procedure Type_Ahead is begin Files.Model.Reset_Type_Ahead (Model); end Type_Ahead;
+         procedure Type_Ahead is begin Files.Model.Selection.Reset_Type_Ahead (Model); end Type_Ahead;
       begin
          Check_Header ("a folder size measured", Size'Access);
          Check_Header ("folder sizes dropped", Unsize'Access);
@@ -118,9 +118,9 @@ separate (Files_Suite.Rendering)
       declare
          Rows : Natural;
       begin
-         Files.Model.Select_Visible (Model, 1);
-         Files.Model.Toggle_Visible_Selection (Model, 2);
-         Files.Model.Toggle_Rename (Model);
+         Files.Model.Selection.Select_Visible (Model, 1);
+         Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
+         Files.Model.Rename.Toggle_Rename (Model);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Testing.Rename_Field_Count (Model), 2, "the multi-rename opens two fields");
          declare
@@ -128,7 +128,7 @@ separate (Files_Suite.Rendering)
               Files.Rendering.Build_Snapshot (Model, Settings);
          begin
             Rows := Files.Model.Rows_Revision (Model);
-            Files.Model.Toggle_Visible_Selection (Model, 2);
+            Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
             Files_Suite.Support.Assert_Equal
               (Files.Model.Testing.Rename_Field_Count (Model), 1, "deselecting a row drops its rename field");
             Assert
@@ -137,7 +137,7 @@ separate (Files_Suite.Rendering)
                  = Files.Rendering.Build_Snapshot (Model, Settings),
                "a selection change during a multi-rename keeps the rows only as a rebuild draws them");
          end;
-         Files.Model.Toggle_Rename (Model);
+         Files.Model.Rename.Toggle_Rename (Model);
       end;
 
       --  And a change a row shows moves it: the filter hides rows.

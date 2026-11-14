@@ -21,6 +21,8 @@ with Files.Path_Checks;
 with Files.Model.Command_Palette;
 with Files.Model.Quick_Look;
 with Files.Model.Pasting;
+with Files.Model.Rename;
+with Files.Model.Selection;
 
 package body Files.Refresh_Jobs is
    use Ada.Strings.Unbounded;
@@ -266,7 +268,7 @@ package body Files.Refresh_Jobs is
       then
          return (Status => Files.Operations.Operation_Success, others => <>);
       elsif not Force
-        and then (Files.Model.Rename_Is_Active (Model) or else Files.Model.Temporary_Item_Is_Active (Model)
+        and then (Files.Model.Rename.Rename_Is_Active (Model) or else Files.Model.Temporary_Item_Is_Active (Model)
                   or else Files.Model.Command_Palette.Is_Open (Model))
       then
          --  Replacing the items now would drop the edit or close the palette:
@@ -376,7 +378,7 @@ package body Files.Refresh_Jobs is
          Cancel (Model);
          return False;
       elsif Files.Model.Command_Palette.Is_Open (Model)
-        or else Files.Model.Rename_Is_Active (Model)
+        or else Files.Model.Rename.Rename_Is_Active (Model)
         or else Files.Model.Temporary_Item_Is_Active (Model)
       then
          --  Replacing the items would close the palette or drop the edit the
@@ -411,9 +413,9 @@ package body Files.Refresh_Jobs is
       if Done.Reloaded then
          declare
             Previous_Selection : constant Files.Items.Item_Vectors.Vector :=
-              Files.Model.Selected_Items (Model);
+              Files.Model.Selection.Selected_Items (Model);
             --  The primary item as the info pane shows it, details and all.
-            Previous_Item    : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
+            Previous_Item    : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
             Previous_Primary : constant Files.Types.UString := Previous_Item.Full_Path;
             Previous_Info    : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
             --  A refresh of the folder in view keeps where the user was: its
@@ -433,13 +435,13 @@ package body Files.Refresh_Jobs is
             if Length (Work.Selection) > 0 then
                declare
                   Selected : constant Boolean :=
-                    Files.Model.Select_By_Name (Model, To_String (Work.Selection));
+                    Files.Model.Selection.Select_By_Name (Model, To_String (Work.Selection));
                   pragma Unreferenced (Selected);
                begin
                   null;
                end;
             else
-               Files.Model.Restore_Selection
+               Files.Model.Selection.Restore_Selection
                  (Model, Previous_Selection, To_String (Previous_Primary));
             end if;
             if not Work.Recent then
@@ -451,16 +453,16 @@ package body Files.Refresh_Jobs is
             Files.Model.Keep_Info_Pane (Model, Previous_Item, Previous_Info, Keep_Extra => not Work.Force);
             if Previewing
               and then Previewed /= ""
-              and then To_String (Files.Model.Selected_Item (Model).Full_Path) = Previewed
+              and then To_String (Files.Model.Selection.Selected_Item (Model).Full_Path) = Previewed
             then
                --  Prepared afresh when the change being picked up is to it;
                --  otherwise the preview it had, image and all, comes back.
                Files.Model.Quick_Look.Open
                  (Model,
-                  (if Files.Operations.Quick_Look_Stamp (Files.Model.Selected_Item (Model))
+                  (if Files.Operations.Quick_Look_Stamp (Files.Model.Selection.Selected_Item (Model))
                       = Previous_Preview.Source_Stamp
                    then Previous_Preview
-                   else Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model))));
+                   else Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model))));
             end if;
          end;
       end if;
@@ -757,7 +759,6 @@ package body Files.Refresh_Jobs is
    procedure Run_Watch_Helper (Directory : String) is
       use type Ada.Real_Time.Time;
       use type Ada.Real_Time.Time_Span;
-      use type Files.File_System.Directory_Signature;
       Watch : Hostkit.Watch.Watch_State;
       Pending : Boolean := False;
       Input : aliased Files.Lease_Streams.Input_Stream;
@@ -821,7 +822,11 @@ package body Files.Refresh_Jobs is
                State : constant Files.File_System.Directory_Signature :=
                  Files.File_System.Directory_State (To_String (Watched));
             begin
-               if State /= Last_State then
+               --  Moved, or became readable or unreadable; a folder that
+               --  stays unreadable (no state either time) is not a change.
+               if (State.Taken or else Last_State.Taken)
+                 and then not Files.File_System.Same_State (State, Last_State)
+               then
                   Pending := True;
                   Last_State := State;
                end if;

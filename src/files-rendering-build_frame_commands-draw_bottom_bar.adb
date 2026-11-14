@@ -32,9 +32,9 @@ separate (Files.Rendering.Build_Frame_Commands)
             --  a full space before the arrow, so it is a touch wider; centre the
             --  drawn content within the button rather than left-aligning it.
             Rendered_W  : constant Natural :=
-              Saturating_Add (Label_W, Saturating_Add (Arrow_Gap, Arrow_W));
+              Guikit.Layout.Saturating_Add (Label_W, Guikit.Layout.Saturating_Add (Arrow_Gap, Arrow_W));
             Text_X0     : constant Natural :=
-              Saturating_Add
+              Guikit.Layout.Saturating_Add
                 (Bottom.Sort_Button_X,
                  (if Bottom.Sort_Button_Width > Rendered_W
                   then (Bottom.Sort_Button_Width - Rendered_W) / 2
@@ -44,7 +44,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                then Bottom.Sort_Button_Width - Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2)
                else 0);
             Arrow_X     : constant Natural :=
-              Saturating_Add (Text_X0, Saturating_Add (Label_W, Arrow_Gap));
+              Guikit.Layout.Saturating_Add (Text_X0, Guikit.Layout.Saturating_Add (Label_W, Arrow_Gap));
             Sort_Color  : constant Render_Color :=
               Command_Color (Files.Commands.Toggle_Sort_Menu_Command);
          begin
@@ -56,7 +56,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                To_Unbounded_String (Field_Label),
                Sort_Color,
                Fit => False);
-            if Content_W > Saturating_Add (Label_W, Arrow_Gap) then
+            if Content_W > Guikit.Layout.Saturating_Add (Label_W, Arrow_Gap) then
                Add_Text
                  (Arrow_X,
                   Bottom_Content_Y,
@@ -157,7 +157,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                Pressed  => Is_Pressed (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height),
                Enabled  => Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command));
             Add_Text
-              (Saturating_Add (Bottom.Info_X, Pad),
+              (Guikit.Layout.Saturating_Add (Bottom.Info_X, Pad),
                Bottom_Content_Y,
                Counts_W,
                Bottom_Content_H,
@@ -187,7 +187,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   --  bottom.
                   Add_Rect
                     (Divider_X,
-                     Saturating_Add (Bottom_Y, 1),
+                     Guikit.Layout.Saturating_Add (Bottom_Y, 1),
                      1,
                      (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
                       else Layout.Bottom_Bar_Height),
@@ -203,7 +203,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                         --  rect band), not the smaller inset content band.
                         Bar_Y  : constant Natural :=
                           (if Info_Btn_H > Bar_H
-                           then Saturating_Add (Info_Btn_Y, (Info_Btn_H - Bar_H) / 2)
+                           then Guikit.Layout.Saturating_Add (Info_Btn_Y, (Info_Btn_H - Bar_H) / 2)
                            else Info_Btn_Y);
                         Bar_W  : constant Natural :=
                           (if Free_Field_W > Pad then Free_Field_W - Pad else 0);
@@ -211,7 +211,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                         --  margins before and after it are equal.
                         Bar_X  : constant Natural :=
                           (if Free_Region_W > Bar_W
-                           then Saturating_Add (Free_Region_X, (Free_Region_W - Bar_W) / 2)
+                           then Guikit.Layout.Saturating_Add (Free_Region_X, (Free_Region_W - Bar_W) / 2)
                            else Free_Region_X);
                         Used   : constant Long_Long_Integer :=
                           Snapshot.Total_Space_Bytes - Snapshot.Free_Space_Bytes;
@@ -314,7 +314,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          Inset : constant Natural := Guikit.Layout.Scaled (4, Line_Height);
       begin
          Add_Text
-           (Saturating_Add (Bottom.Info_Pane_X, Inset),
+           (Guikit.Layout.Saturating_Add (Bottom.Info_Pane_X, Inset),
             Bottom_Content_Y,
             (if Bottom.Info_Pane_Width > 2 * Inset then Bottom.Info_Pane_Width - 2 * Inset else 0),
             Bottom_Content_H,

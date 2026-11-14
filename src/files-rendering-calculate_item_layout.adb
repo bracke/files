@@ -64,7 +64,8 @@ separate (Files.Rendering)
             Cell   : constant Guikit.Item_Grid.Cell_Metrics :=
               Guikit.Item_Grid.Cell_Metrics_For (View, Content_W, Line_Height);
             Margin : constant Natural :=
-              Saturating_Add (Saturating_Add (Cell.Height, Guikit.Item_Grid.Grid_Gap (Line_Height)), Line_Height * 2);
+              Guikit.Layout.Saturating_Add
+                (Guikit.Layout.Saturating_Add (Cell.Height, Guikit.Item_Grid.Grid_Gap (Line_Height)), Line_Height * 2);
             Top    : constant Natural := (if Window_Top > Content_Y then Window_Top - Content_Y else 0);
             Shift  : constant Natural := (if Top > Margin then Top - Margin else 0);
          begin
@@ -75,10 +76,12 @@ separate (Files.Rendering)
                Label_At         => Label_At'Access,
                View             => View,
                Content_X        => Content_X,
-               Content_Y        => Saturating_Add (Content_Y, Shift),
+               Content_Y        => Guikit.Layout.Saturating_Add (Content_Y, Shift),
                Content_W        => Content_W,
                Content_H        =>
-                 Saturating_Add (Saturating_Add (Top - Shift, Window_Height), Saturating_Add (Margin, Margin)),
+                 Guikit.Layout.Saturating_Add
+                   (Guikit.Layout.Saturating_Add (Top - Shift, Window_Height),
+                    Guikit.Layout.Saturating_Add (Margin, Margin)),
                Columns          => Columns,
                Scroll_Pixels    => Shift,
                Line_Height      => Line_Height);

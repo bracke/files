@@ -115,18 +115,18 @@ separate (Files_Suite.Model)
       Redo.Append (Undo_Only_Redo);
       Redo.Append (Good_Redo);
 
-      Files.Model.Set_History (Model, Undo, Redo);
+      Files.Model.History.Set_History (Model, Undo, Redo);
 
       Assert
-        (Natural (Files.Model.Undo_History (Model).Length) = 1
-         and then Same_Action (Files.Model.Undo_History (Model).First_Element, Good_Undo),
+        (Natural (Files.Model.History.Undo_History (Model).Length) = 1
+         and then Same_Action (Files.Model.History.Undo_History (Model).First_Element, Good_Undo),
          "only the structurally and path-valid Undo action and its partial progress survive");
       Assert
-        (Natural (Files.Model.Redo_History (Model).Length) = 1
-         and then Same_Action (Files.Model.Redo_History (Model).First_Element, Good_Redo),
+        (Natural (Files.Model.History.Redo_History (Model).Length) = 1
+         and then Same_Action (Files.Model.History.Redo_History (Model).First_Element, Good_Redo),
          "Redo filters undo-only entries but retains a valid action with stale paths");
       Assert
-        (Files.Model.Undo_History (Model).First_Element.Created_Identities.First_Element =
+        (Files.Model.History.Undo_History (Model).First_Element.Created_Identities.First_Element =
            To_Unbounded_String ("persisted-identity"),
          "sanitizing restored history does not recapture or discard its identity snapshot");
    end Test_History_Restore_Admission;

@@ -41,27 +41,12 @@ separate (Check_All)
       --  subunit inherits the body's context and may add its own with
       --  clauses, which would otherwise widen the boundary unseen.
       procedure Check_Subunit_With_Clauses is
-         Search  : Ada.Directories.Search_Type;
-         Item    : Ada.Directories.Directory_Entry_Type;
-         Prefix  : constant String := "files-events-";
-         Started : Boolean := False;
       begin
-         Ada.Directories.Start_Search
-           (Search, Root & "/src", Prefix & "*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
-         Started := True;
-         while Ada.Directories.More_Entries (Search) loop
-            Ada.Directories.Get_Next_Entry (Search, Item);
-            Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), "Files.", Body_Allowed);
-            Require_No_Filesystem_Imports (Ada.Directories.Full_Name (Item));
-            Project_Tools.Ada_Source.Require_No_Code_Tokens (Ada.Directories.Full_Name (Item), Foreign_Tokens);
+         for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-events-*.adb", Generated_Directories) loop
+            Require_Only_Allowed_With_Clauses (To_String (Item), "Files.", Body_Allowed);
+            Require_No_Filesystem_Imports (To_String (Item));
+            Project_Tools.Ada_Source.Require_No_Code_Tokens (To_String (Item), Foreign_Tokens);
          end loop;
-         Ada.Directories.End_Search (Search);
-      exception
-         when others =>
-            if Started then
-               Ada.Directories.End_Search (Search);
-            end if;
-            raise;
       end Check_Subunit_With_Clauses;
    begin
       --  No filesystem or process imports in the spec, the body, or (below)
@@ -178,7 +163,8 @@ separate (Check_All)
           To_Unbounded_String ("Root_Filesystem"),
           To_Unbounded_String ("Root_Kind"),
           To_Unbounded_String ("Root_Ready"),
-          To_Unbounded_String ("Sort_Items")],
+          To_Unbounded_String ("Sort_Items"),
+          To_Unbounded_String ("Unknown_Signature")],
          "the model reads no disk");
       for Banned of String_List'
         [To_Unbounded_String ("Hostkit."),
@@ -204,8 +190,6 @@ separate (Check_All)
          [To_Unbounded_String ("Session"), To_Unbounded_String ("Empty_Session"), To_Unbounded_String ("Valid")],
          "the model makes no transport; Operations.Begin_Paste_Execution does");
       declare
-         Search  : Ada.Directories.Search_Type;
-         Item    : Ada.Directories.Directory_Entry_Type;
          Allowed : constant String_List :=
            [To_Unbounded_String ("Files.Command_Palette"),
             To_Unbounded_String ("Files.Copy_Context"),
@@ -227,26 +211,21 @@ separate (Check_All)
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Settings"),
             To_Unbounded_String ("Files.Settings_Form"),
-            To_Unbounded_String ("Files.Shared_Bytes"),
             To_Unbounded_String ("Files.Transfer_Jobs"),
             To_Unbounded_String ("Files.Type_Ahead"),
             To_Unbounded_String ("Files.Types"),
             To_Unbounded_String ("Files.Undo_Payloads")];
       begin
-         Ada.Directories.Start_Search
-           (Search, Root & "/src", "files-model*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
-         while Ada.Directories.More_Entries (Search) loop
-            Ada.Directories.Get_Next_Entry (Search, Item);
-            Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), "Files.", Allowed);
+         for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-model*.ad?", Generated_Directories) loop
+            Require_Only_Allowed_With_Clauses (To_String (Item), "Files.", Allowed);
             --  Nor any unit that does I/O, however it is spelled: a deny-list
             --  of a few names let GNAT.Directory_Operations or a C import
             --  through. Ada.Directories is held to Simple_Name above.
             for Unit of Filesystem_Units loop
                if To_String (Unit) /= "Ada.Directories" then
-                  Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), To_String (Unit), No_Units);
+                  Require_Only_Allowed_With_Clauses (To_String (Item), To_String (Unit), No_Units);
                end if;
             end loop;
          end loop;
-         Ada.Directories.End_Search (Search);
       end;
    end Check_Event_Translation_Contract;

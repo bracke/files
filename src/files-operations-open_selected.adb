@@ -7,11 +7,13 @@ function Open_Selected
    Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
    return Operation_Result
 is
-   Items : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+   Items : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
    package Action_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Files.Settings.Open_Action, "=" => Files.Settings."=");
 begin
-   if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
+   if Files.Model.Selection.Selected_Count (Model) = 0
+     or else Files.Model.Selection.Selection_Includes_Temporary (Model)
+   then
       return Disabled (Model, "error.selection.empty");
    elsif Natural (Items.Length) > 1 then
       declare

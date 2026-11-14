@@ -21,13 +21,13 @@ separate (Files_Suite.Interaction)
 
       Click (Model, Settings, X3, Y3, Shift, Result);
       Assert
-        (Files.Model.Is_Selected (Model, 1),
+        (Files.Model.Selection.Is_Selected (Model, 1),
          "shift-click selects the inclusive range from the anchor to the clicked item (item 1)");
       Assert
-        (Files.Model.Is_Selected (Model, 2),
+        (Files.Model.Selection.Is_Selected (Model, 2),
          "shift-click selects the inclusive range from the anchor to the clicked item (item 2)");
       Assert
-        (Files.Model.Is_Selected (Model, 3),
+        (Files.Model.Selection.Is_Selected (Model, 3),
          "shift-click selects the inclusive range from the anchor to the clicked item (item 3)");
       Files_Suite.Support.Assert_Equal
         (Selected_Item_Nodes (Model),

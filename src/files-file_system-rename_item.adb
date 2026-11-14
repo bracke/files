@@ -83,6 +83,12 @@ is
                  (if Index = 1 then Open & Word & Close
                   else Open & Word & " " & Files.Types.Natural_Text (Index) & Close))));
 
+      --  How many scratch names are tried before the rename gives up. Each
+      --  occupied candidate is an earlier stranded entry or a user's file, so
+      --  a directory holding this many is pathological; the bound keeps the
+      --  search from probing the filesystem without end.
+      Max_Temp_Candidates : constant := 4096;
+
       Temp : Unbounded_String := Null_Unbounded_String;
 
       --  Whether the entry is left at the scratch name.
@@ -97,7 +103,7 @@ is
          return (Success => False, Error_Key => To_Unbounded_String (Rename_Stranded_Key));
       end Stranded_Result;
    begin
-      for Index in 1 .. 4096 loop
+      for Index in 1 .. Max_Temp_Candidates loop
          if not Exists_Safely (Temp_Candidate (Index)) then
             Temp := To_Unbounded_String (Temp_Candidate (Index));
             exit;

@@ -95,7 +95,7 @@ begin
    --  The model advances its revision and notes completed renames and moves;
    --  everything that reads the filesystem happens here, before the model
    --  commits the entry.
-   Files.Model.Begin_Undo_Record (Model, Kind, From, To);
+   Files.Model.History.Begin_Undo_Record (Model, Kind, From, To);
    if Kind = Files.Model.Undo_None or else (From.Is_Empty and then Provenance.Kept_Copies.Is_Empty) then
       return False;
    end if;
@@ -239,7 +239,7 @@ begin
    --  The model retires the redo stack (and, past its depth cap, the oldest
    --  undo entries) before pushing; their payloads are deleted and the
    --  journal saved only once the entries have left both stacks.
-   Recorded := Files.Model.Commit_Undo_Record
+   Recorded := Files.Model.History.Commit_Undo_Record
      (Model,
       Files.Model.Undo_Entry'
         (Kind          => Entry_Kind,

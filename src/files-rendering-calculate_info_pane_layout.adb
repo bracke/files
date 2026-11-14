@@ -18,7 +18,7 @@ separate (Files.Rendering)
 
          for Info of Snapshot.Selected_Info loop
             Rows :=
-              Saturating_Add
+              Guikit.Layout.Saturating_Add
                 (Rows,
                  Info_Section_Row_Count (Info, Text_W, Line_Height));
          end loop;
@@ -27,7 +27,7 @@ separate (Files.Rendering)
       end Total_Info_Rows;
 
       --  Right of the view, which starts after the folder tree when it is open.
-      Pane_X        : constant Natural := Saturating_Add (Layout.Main_X, Layout.Main_Width);
+      Pane_X        : constant Natural := Guikit.Layout.Saturating_Add (Layout.Main_X, Layout.Main_Width);
       Bar_W         : constant Natural := Natural'Min (Scrollbar_Width (Layout), Layout.Info_Pane_Width);
       --  The combined selection total is now the last line of the Contents
       --  section (counted by Total_Info_Rows), so no header rows are reserved.
@@ -35,7 +35,7 @@ separate (Files.Rendering)
       Raw_Content_H : constant Natural := Saturating_Multiply (Content_Rows, Line_Height);
       Content_H     : constant Natural :=
         (if Raw_Content_H > 0
-         then Saturating_Add (Raw_Content_H, Saturating_Multiply (Info_Pane_Padding (Line_Height), 2))
+         then Guikit.Layout.Saturating_Add (Raw_Content_H, Saturating_Multiply (Info_Pane_Padding (Line_Height), 2))
          else 0);
       Max_Scroll_Px : constant Natural :=
         (if Content_H > Layout.Main_Height then Content_H - Layout.Main_Height else 0);
@@ -56,7 +56,7 @@ separate (Files.Rendering)
         and then Bar_W > 0
         and then Thumb.Length > 0;
       Thumb_H       : constant Natural := Thumb.Length;
-      Thumb_Y       : constant Natural := Saturating_Add (Layout.Main_Y, Thumb.Offset);
+      Thumb_Y       : constant Natural := Guikit.Layout.Saturating_Add (Layout.Main_Y, Thumb.Offset);
    begin
       if not Snapshot.Info_Pane_Open or else Layout.Info_Pane_Width = 0 then
          return (others => <>);
@@ -71,7 +71,8 @@ separate (Files.Rendering)
          Scroll_Lines      => Scroll_Lines,
          Scroll_Pixels     => Scroll_Px,
          Scrollbar_Visible => Visible,
-         Scrollbar_X       => (if Visible then Saturating_Add (Pane_X, Layout.Info_Pane_Width - Bar_W) else 0),
+         Scrollbar_X       =>
+           (if Visible then Guikit.Layout.Saturating_Add (Pane_X, Layout.Info_Pane_Width - Bar_W) else 0),
          Scrollbar_Y       => (if Visible then Layout.Main_Y else 0),
          Scrollbar_Thumb_Y => (if Visible then Thumb_Y else 0),
          Scrollbar_Width   => (if Visible then Bar_W else 0),

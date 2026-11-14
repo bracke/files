@@ -1,7 +1,5 @@
 separate (Check_All)
    procedure Check_AUnit_Test_Registration is
-      Search : Ada.Directories.Search_Type;
-      Found  : Ada.Directories.Directory_Entry_Type;
    begin
       Project_Tools.AUnit_Checks.Require_Registered_Test_Packages
         (Test_Dir         => Root & "/tests/tests/src",
@@ -10,13 +8,10 @@ separate (Check_All)
          Suite_Add_Prefix => "Result.Add_Test (",
          Suite_Add_Suffix => ".Suite)",
          Section_Marker   => "function Suite");
-      Ada.Directories.Start_Search
-        (Search, Root & "/tests/tests/src", "files_suite-*.adb",
-         [Ada.Directories.Ordinary_File => True, others => False]);
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Found);
+      for Found of Project_Tools.Files.List_Tree (Root & "/tests/tests/src", "files_suite-*.adb", Generated_Directories)
+      loop
          declare
-            Path    : constant String := Ada.Directories.Full_Name (Found);
+            Path    : constant String := To_String (Found);
             Content : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
             Prefix  : constant String := ASCII.LF & "   procedure Test_";
             From    : Natural := Content'First;
@@ -50,5 +45,4 @@ separate (Check_All)
             end if;
          end;
       end loop;
-      Ada.Directories.End_Search (Search);
    end Check_AUnit_Test_Registration;

@@ -31,7 +31,7 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_A, Ctrl, Result);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Selected_Count (Model),
+           (Files.Model.Selection.Selected_Count (Model),
             1,
             "Ctrl+A in a focused text field does not select every file");
          Files.Model.Cancel_Focus_Or_Edit (Model);
@@ -40,7 +40,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_A, Ctrl, Result);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Count (Model),
+        (Files.Model.Selection.Selected_Count (Model),
          2,
          "with the grid focused the same shortcut still works");
 

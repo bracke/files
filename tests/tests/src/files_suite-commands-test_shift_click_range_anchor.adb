@@ -30,7 +30,7 @@ separate (Files_Suite.Commands)
       Result :=
         Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 6, Modifiers => Shift);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Count (Model),
+        (Files.Model.Selection.Selected_Count (Model),
          4,
          "the first shift-click selects the 3..6 range");
       Result :=
@@ -44,12 +44,12 @@ separate (Files_Suite.Commands)
 
          "a shift-click reports a selection move");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Count (Model),
+        (Files.Model.Selection.Selected_Count (Model),
          7,
          "the second shift-click extends the range from the original anchor, not the moved cursor");
       for Index in 1 .. 9 loop
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Is_Selected (Model, Index),
+           (Files.Model.Selection.Is_Selected (Model, Index),
             (Index in 3 .. 9),
             "exactly items 3..9 are selected after the range extension");
       end loop;

@@ -2,7 +2,7 @@ with Ada.Calendar;
 with Ada.Containers.Vectors;
 
 with Files.Extra_Info;
-with Files.Shared_Bytes;
+with Guikit.Shared_Bytes;
 with Files.Types;
 
 --  A directory's entry as files shows it: the value the listing produces and
@@ -41,7 +41,7 @@ package Files.Items is
       Thumbnail_Height    : Natural := 0;
       --  Shared, immutable: copying an item (into rows, snapshots, caches)
       --  must not copy its decoded thumbnail.
-      Thumbnail_Pixels    : Files.Shared_Bytes.Bytes;
+      Thumbnail_Pixels    : Guikit.Shared_Bytes.Bytes;
       Metadata_Error     : Boolean := False;
       Error_Key          : UString;
    end record;

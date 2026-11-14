@@ -1,5 +1,5 @@
 with Files.File_Types;
-with Files.Shared_Bytes;
+with Guikit.Shared_Bytes;
 
 with Files.Diagnostics;
 separate (Files.Application.Windows.Smoke)
@@ -94,7 +94,7 @@ separate (Files.Application.Windows.Smoke)
                         Thumbnail_Path      => Null_Unbounded_String,
                         Thumbnail_Width     => 0,
                         Thumbnail_Height    => 0,
-                        Thumbnail           => (Pixels => Files.Shared_Bytes.Empty),
+                        Thumbnail           => (Pixels => Guikit.Shared_Bytes.Empty),
                         Metadata_Error     => False,
                         Error_Key          => Null_Unbounded_String,
                         Selected           => True,

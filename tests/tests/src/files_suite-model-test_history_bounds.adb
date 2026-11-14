@@ -27,7 +27,7 @@ separate (Files_Suite.Model)
          Found  : Boolean;
       begin
          loop
-            Files.Model.Take_Undo (Model, Action, Found);
+            Files.Model.History.Take_Undo (Model, Action, Found);
             exit when not Found;
             Count := Count + 1;
          end loop;

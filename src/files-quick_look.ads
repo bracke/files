@@ -1,4 +1,4 @@
-with Files.Shared_Bytes;
+with Guikit.Shared_Bytes;
 with Files.Types;
 
 --  Pure Quick Look content preparation. Given an item's metadata plus a bounded
@@ -44,7 +44,7 @@ package Files.Quick_Look is
       --  pure). Empty when decoding was unavailable; the renderer then falls back
       --  to the item's small thumbnail. Shared, so the snapshot rebuilt on
       --  every change does not copy the image.
-      Image_Pixels   : Files.Shared_Bytes.Bytes;
+      Image_Pixels   : Guikit.Shared_Bytes.Bytes;
       Image_Width    : Natural := 0;
       Image_Height   : Natural := 0;
       --  The previewed file's size and modification time as listed, so a

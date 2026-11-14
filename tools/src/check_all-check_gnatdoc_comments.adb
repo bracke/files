@@ -1,7 +1,13 @@
 separate (Check_All)
    procedure Check_GNATdoc_Comments is
    begin
-      Check_GNATdoc_In_Tree (Root & "/src");
-      Check_GNATdoc_In_Tree (Root & "/tests/tests/src");
-      Check_GNATdoc_In_Tree (Root & "/tools/src");
+      for Tree of String_List'
+        [To_Unbounded_String (Root & "/src"),
+         To_Unbounded_String (Root & "/tests/tests/src"),
+         To_Unbounded_String (Root & "/tools/src")]
+      loop
+         for Spec of Project_Tools.Files.List_Tree (To_String (Tree), "*.ads", Generated_Directories) loop
+            Check_GNATdoc_In_File (To_String (Spec));
+         end loop;
+      end loop;
    end Check_GNATdoc_Comments;

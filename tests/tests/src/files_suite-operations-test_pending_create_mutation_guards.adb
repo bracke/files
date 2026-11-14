@@ -23,10 +23,10 @@ separate (Files_Suite.Operations)
             Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Model.Begin_Create_File (Model, "pending.txt");
-            Files.Model.Toggle_Visible_Selection (Model, 1);
+            Files.Model.Selection.Toggle_Visible_Selection (Model, 1);
             Assert
-              (Files.Model.Selection_Includes_Temporary (Model)
-               and then Files.Model.Selected_Count (Model) = 2,
+              (Files.Model.Selection.Selection_Includes_Temporary (Model)
+               and then Files.Model.Selection.Selected_Count (Model) = 2,
                "prepare a real-plus-temporary mixed selection");
 
             Step :=
@@ -50,7 +50,7 @@ separate (Files_Suite.Operations)
                Files_Suite.Support.Assert_Equal
                  (Files.Model.Last_Error_Key (Model), "error.create.pending", Context & ": error key");
                Assert (Files.Model.Temporary_Item_Is_Active (Model), Context & ": the inline creation stays active");
-               Assert (not Files.Model.Undo_Available (Model), Context & ": no Undo entry");
+               Assert (not Files.Model.History.Undo_Available (Model), Context & ": no Undo entry");
                Assert (not Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)),
                        Context & ": no background operation");
                Assert (not Ada.Directories.Exists (Join (Root, "source (copy).zip")), Context & ": no duplicate");

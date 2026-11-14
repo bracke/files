@@ -2,7 +2,7 @@ separate (Files.Application.Windows)
    procedure Reveal_Selection (Runtime : in out Runtime_Window) is
       Frame_W  : Glfw.Size := 0;
       Frame_H  : Glfw.Size := 0;
-      Selected : constant Natural := Files.Model.Selected_Index (Runtime.Model);
+      Selected : constant Natural := Files.Model.Selection.Selected_Index (Runtime.Model);
    begin
       Files.Model.Clear_Reveal (Runtime.Model);
       if Runtime.Handle = null or else Selected = 0 then

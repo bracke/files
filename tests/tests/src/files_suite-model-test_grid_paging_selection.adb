@@ -34,48 +34,52 @@ separate (Files_Suite.Model)
          "paging model exposes all 25 visible items");
 
       --  Direct model primitives: first / last selection.
-      Files.Model.Select_Last_Visible (Model);
+      Files.Model.Selection.Select_Last_Visible (Model);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          25,
          "Select_Last_Visible selects the last visible item");
-      Files.Model.Select_First_Visible (Model);
+      Files.Model.Selection.Select_First_Visible (Model);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          1,
          "Select_First_Visible selects the first visible item");
 
       --  Single-column paging moves by Page_Rows items and clamps at the edges.
-      Files.Model.Move_Selection_By_Page (Model, 10, Down => True);
+      Files.Model.Selection.Move_Selection_By_Page (Model, 10, Down => True);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          11,
          "PageDown advances the selection by one page (10 rows)");
-      Files.Model.Move_Selection_By_Page (Model, 10, Down => True);
+      Files.Model.Selection.Move_Selection_By_Page (Model, 10, Down => True);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          21,
          "a second PageDown advances another page");
-      Files.Model.Move_Selection_By_Page (Model, 10, Down => True);
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 25, "PageDown clamps at the last item");
-      Files.Model.Move_Selection_By_Page (Model, 10, Down => True);
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 25, "PageDown on the last item stays put");
-      Files.Model.Move_Selection_By_Page (Model, 10, Down => False);
+      Files.Model.Selection.Move_Selection_By_Page (Model, 10, Down => True);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model), 25, "PageDown clamps at the last item");
+      Files.Model.Selection.Move_Selection_By_Page (Model, 10, Down => True);
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selection.Selected_Index (Model), 25, "PageDown on the last item stays put");
+      Files.Model.Selection.Move_Selection_By_Page (Model, 10, Down => False);
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selection.Selected_Index (Model),
          15,
          "PageUp retreats the selection by one page");
-      Files.Model.Move_Selection_By_Page (Model, 10, Down => False);
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 5, "a second PageUp retreats another page");
-      Files.Model.Move_Selection_By_Page (Model, 10, Down => False);
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "PageUp clamps at the first item");
+      Files.Model.Selection.Move_Selection_By_Page (Model, 10, Down => False);
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selection.Selected_Index (Model), 5, "a second PageUp retreats another page");
+      Files.Model.Selection.Move_Selection_By_Page (Model, 10, Down => False);
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selection.Selected_Index (Model), 1, "PageUp clamps at the first item");
 
       --  Grid stride: with 3 columns a page spans Page_Rows * columns items.
-      Files.Model.Set_Selection_Grid_Columns (Model, 3);
-      Files.Model.Select_First_Visible (Model);
-      Files.Model.Move_Selection_By_Page (Model, 2, Down => True);
+      Files.Model.Selection.Set_Selection_Grid_Columns (Model, 3);
+      Files.Model.Selection.Select_First_Visible (Model);
+      Files.Model.Selection.Move_Selection_By_Page (Model, 2, Down => True);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          7,
          "grid paging moves Page_Rows * columns items (2*3)");
 
@@ -83,14 +87,14 @@ separate (Files_Suite.Model)
       declare
          Empty : Files.Model.Window_Model := Paging_Model (0);
       begin
-         Files.Model.Select_First_Visible (Empty);
+         Files.Model.Selection.Select_First_Visible (Empty);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Selected_Index (Empty),
+           (Files.Model.Selection.Selected_Index (Empty),
             0,
             "first-visible on an empty grid selects nothing");
-         Files.Model.Move_Selection_By_Page (Empty, 10, Down => True);
+         Files.Model.Selection.Move_Selection_By_Page (Empty, 10, Down => True);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Selected_Index (Empty),
+           (Files.Model.Selection.Selected_Index (Empty),
             0,
             "paging an empty grid selects nothing");
       end;
@@ -103,7 +107,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Selection_Moved,
          "plain End moves the grid selection");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          25,
          "plain End selects the last visible item");
       Files_Suite.Support.Assert_Equal (Files.Model.Current_Path (Model), Home_Dir, "plain End does not navigate");
@@ -114,7 +118,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Selection_Moved,
          "plain Home moves the grid selection");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          1,
          "plain Home selects the first visible item");
       Files_Suite.Support.Assert_Equal

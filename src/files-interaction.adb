@@ -13,6 +13,7 @@ with Files.Model.Context_Menu;
 with Files.Model.Label_Picker;
 with Files.Model.Settings_Pane;
 with Files.Model.Tree_Panel;
+with Files.Model.Selection;
 
 package body Files.Interaction is
 
@@ -120,7 +121,7 @@ package body Files.Interaction is
       Result        : in out Interaction_Result)
    is
       Selected : constant Files.Items.Item_Vectors.Vector :=
-        Files.Model.Selected_Items (Model);
+        Files.Model.Selection.Selected_Items (Model);
       Paths    : Files.Settings.String_Vectors.Vector;
       Updated  : Files.Settings.Settings_Model := Settings;
    begin
@@ -883,7 +884,7 @@ package body Files.Interaction is
             --  unselected item immediately selects it so the user can see what
             --  the menu commands will operate on. A right-click on something
             --  already part of the selection preserves the full multi-selection.
-            if not Files.Model.Is_Selected (Model, Positive (Item_Index))
+            if not Files.Model.Selection.Is_Selected (Model, Positive (Item_Index))
             then
                declare
                   Click_Result : Files.Controller.Controller_Result;
@@ -891,7 +892,7 @@ package body Files.Interaction is
                   --  A menu still open for another item would make the
                   --  click below ignored, leaving nothing selected.
                   Files.Model.Context_Menu.Close (Model);
-                  Files.Model.Clear_Selection (Model);
+                  Files.Model.Selection.Clear_Selection (Model);
                   Click_Result :=
                     Files.Controller.Handle_Item_Click
                       (Model         => Model,
@@ -1016,7 +1017,7 @@ package body Files.Interaction is
    is
       --  The base (when additive), then the hits; the model drops repeats and
       --  indexes a stale base names past the listing's end.
-      Combined : Files.Model.Visible_Index_List;
+      Combined : Files.Model.Selection.Visible_Index_List;
    begin
       if Additive then
          for Index of Base loop
@@ -1026,7 +1027,7 @@ package body Files.Interaction is
       for Index of Hits loop
          Combined.Append (Index);
       end loop;
-      Files.Model.Select_Visible_Set (Model, Combined);
+      Files.Model.Selection.Select_Visible_Set (Model, Combined);
    end Apply_Marquee_Selection;
 
 end Files.Interaction;

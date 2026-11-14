@@ -51,7 +51,7 @@ separate (Files_Suite.Model)
         (Files.Model.Main_View_Scroll_Lines (Model),
          0,
          "create command scrolls temporary item into view");
-      Assert (Files.Model.Rename_Is_Active (Model), "create command starts rename mode");
+      Assert (Files.Model.Rename.Rename_Is_Active (Model), "create command starts rename mode");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Rename_Input,

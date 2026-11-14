@@ -6,7 +6,7 @@ separate (Files_Suite.Model)
       Result   : Files.Operations.Operation_Result;
       Item     : Files.Items.Directory_Item;
    begin
-      Item := Files.Model.Selected_Item (Model);
+      Item := Files.Model.Selection.Selected_Item (Model);
       Files_Suite.Support.Assert_Equal (To_String (Item.Name), "", "empty selection returns an empty selected item");
       Files_Suite.Support.Assert_Equal (To_String (Item.Full_Path), "", "empty selection selected item has empty path");
       Assert (Item.Kind = Files.Types.Unknown_Item, "empty selection selected item has unknown kind");
@@ -51,7 +51,7 @@ separate (Files_Suite.Model)
          "error.rename.disabled",
          "disabled rename records an error");
 
-      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Selection.Select_Visible (Model, 1);
       Result := Files.Operations.Delete_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

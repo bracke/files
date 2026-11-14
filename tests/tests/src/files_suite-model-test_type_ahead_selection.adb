@@ -83,53 +83,55 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Selection_Moved,
          "type-ahead reports a moved selection");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          1,
          "typing d selects the first d-item (delta)");
 
       --  A longer prefix refines to the matching item.
       Feed ("u");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 3, "refining to du selects dune");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Index (Model), 3, "refining to du selects dune");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Type_Ahead_Buffer (Model),
+        (Files.Model.Selection.Type_Ahead_Buffer (Model),
          "du",
          "buffer accumulates the refined prefix");
 
       --  A non-matching character leaves the selection where it was.
       Feed ("z");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          3,
          "a non-matching character keeps the current selection");
 
       --  Repeated single letter cycles through every item starting with it.
       Model := New_Grid_Model;
       Feed ("d");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "first d selects delta");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Index (Model), 1, "first d selects delta");
       Feed ("d");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 2, "second d cycles to Doc");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Index (Model), 2, "second d cycles to Doc");
       Feed ("d");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 3, "third d cycles to dune");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Index (Model), 3, "third d cycles to dune");
       Feed ("d");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 4, "fourth d cycles to date");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Index (Model), 4, "fourth d cycles to date");
       Feed ("d");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "fifth d wraps back to delta");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Index (Model), 1, "fifth d wraps back to delta");
 
       --  Reset trigger (arrow key): a fresh keystroke starts a new prefix rather
       --  than extending the stale one.
       Model := New_Grid_Model;
       Feed ("d");
       Feed ("u");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 3, "du selects dune before the reset");
-      Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Type_Ahead_Buffer (Model),
+        (Files.Model.Selection.Selected_Index (Model), 3, "du selects dune before the reset");
+      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Down);
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selection.Type_Ahead_Buffer (Model),
          "",
          "an arrow key clears the type-ahead buffer");
-      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 4, "arrow key moves selection to date");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selection.Selected_Index (Model), 4, "arrow key moves selection to date");
       Feed ("d");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          1,
          "a keystroke after the reset starts a fresh single-letter cycle (delta)");
 
@@ -139,19 +141,19 @@ separate (Files_Suite.Model)
       Feed ("d");
       Feed ("u");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Selected_Index (Model),
+        (Files.Model.Selection.Selected_Index (Model),
          3,
          "du selects dune before the focus change");
       Files.Model.Focus_Path_Input (Model);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Type_Ahead_Buffer (Model),
+        (Files.Model.Selection.Type_Ahead_Buffer (Model),
          "",
          "focusing a text field clears the type-ahead buffer");
 
       --  Typing into the focused text field edits the field and never moves the
       --  grid selection (the path input, unlike the filter, does not reproject).
       declare
-         Before        : constant Natural := Files.Model.Selected_Index (Model);
+         Before        : constant Natural := Files.Model.Selection.Selected_Index (Model);
          Before_Length : constant Natural := Files.Model.Path_Input_Text (Model)'Length;
       begin
          Feed ("x");
@@ -160,11 +162,11 @@ separate (Files_Suite.Model)
             Before_Length + 1,
             "typed text lands in the focused path input");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Type_Ahead_Buffer (Model),
+           (Files.Model.Selection.Type_Ahead_Buffer (Model),
             "",
             "typing into a text field never feeds type-ahead");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Selected_Index (Model),
+           (Files.Model.Selection.Selected_Index (Model),
             Before,
             "typing into a text field does not jump the grid selection");
       end;
@@ -177,7 +179,7 @@ separate (Files_Suite.Model)
          "cancelling returns focus to the grid");
       Feed ("d");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Type_Ahead_Buffer (Model),
+        (Files.Model.Selection.Type_Ahead_Buffer (Model),
          "d",
          "a keystroke after the focus reset starts a fresh prefix");
    end Test_Type_Ahead_Selection;

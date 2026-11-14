@@ -43,7 +43,7 @@ separate (Files_Suite.Interaction)
         (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Root);
       Files.Operations.Settle_Current_Is_Trash (Model);
       Files_Suite.Support.Select_Name (Model, "doomed.txt");
-      Assert (Files.Model.Selected_Count (Model) > 0, "the trashed item is selectable in the trash view");
+      Assert (Files.Model.Selection.Selected_Count (Model) > 0, "the trashed item is selectable in the trash view");
 
       --  Step 3: restore from the item menu returns the file to its origin.
       Open_Item_Context_Menu (Model, Settings, Result);

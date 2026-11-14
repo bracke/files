@@ -9,7 +9,7 @@ separate (Files.Rendering)
       Toolbar      : constant Guikit.Layout.Toolbar_Layout :=
         Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
       Field_Margin : constant Natural := Toolbar_Field_Margin;
-      Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
+      Path_X       : constant Natural := Guikit.Layout.Saturating_Add (Toolbar.Middle_X, Field_Margin);
       Path_W       : constant Natural :=
         (if Toolbar.Middle_Width > Saturating_Multiply (Field_Margin, 2)
          then Toolbar.Middle_Width - Saturating_Multiply (Field_Margin, 2)
@@ -19,10 +19,11 @@ separate (Files.Rendering)
       Pad          : constant Natural := Files.UI.Field_Padding (Line_Height);
       Star_Reserve : constant Natural := Path_Bar_Content_Offset (Width, Line_Height);
       Advance      : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
-      Inner_X      : constant Natural := Saturating_Add (Saturating_Add (Path_X, Pad), Star_Reserve);
+      Inner_X      : constant Natural :=
+        Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Path_X, Pad), Star_Reserve);
       Inner_W      : constant Natural :=
-        (if Path_W > Saturating_Add (Saturating_Multiply (Pad, 2), Star_Reserve)
-         then Path_W - Saturating_Add (Saturating_Multiply (Pad, 2), Star_Reserve)
+        (if Path_W > Guikit.Layout.Saturating_Add (Saturating_Multiply (Pad, 2), Star_Reserve)
+         then Path_W - Guikit.Layout.Saturating_Add (Saturating_Multiply (Pad, 2), Star_Reserve)
          else 0);
       --  Separator occupies three cells: one blank cell, the '>' glyph, one
       --  blank cell -- a full character width of separation on each side.
@@ -36,9 +37,9 @@ separate (Files.Rendering)
          Count : constant Natural := Natural (Src.Length);
       begin
          for I in 1 .. Count loop
-            Sum := Saturating_Add (Sum, Guikit.Utf8.Display_Units (To_String (Src.Element (I).Label)));
+            Sum := Guikit.Layout.Saturating_Add (Sum, Guikit.Utf8.Display_Units (To_String (Src.Element (I).Label)));
             if I < Count then
-               Sum := Saturating_Add (Sum, Sep_Cells);
+               Sum := Guikit.Layout.Saturating_Add (Sum, Sep_Cells);
             end if;
          end loop;
          return Sum;
@@ -88,7 +89,7 @@ separate (Files.Rendering)
                Seg        : constant Files.Breadcrumbs.Segment := Shown.Element (Positive (I));
                Cells      : constant Natural := Guikit.Utf8.Display_Units (To_String (Seg.Label));
                Seg_W      : constant Natural := Saturating_Multiply (Cells, Advance);
-               Field_End  : constant Natural := Saturating_Add (Inner_X, Inner_W);
+               Field_End  : constant Natural := Guikit.Layout.Saturating_Add (Inner_X, Inner_W);
                Remaining  : constant Natural :=
                  (if Field_End > Cursor_X then Field_End - Cursor_X else 0);
                Draw_W     : constant Natural := Natural'Min (Seg_W, Remaining);
@@ -116,9 +117,9 @@ separate (Files.Rendering)
                --  there is no room for another separator or segment.
                exit when Draw_W < Seg_W;
                Cursor_X :=
-                 Saturating_Add
+                 Guikit.Layout.Saturating_Add
                    (Cursor_X,
-                    Saturating_Add (Draw_W, Saturating_Multiply (Sep_Cells, Advance)));
+                    Guikit.Layout.Saturating_Add (Draw_W, Saturating_Multiply (Sep_Cells, Advance)));
             end;
          end loop;
       end;

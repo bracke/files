@@ -36,11 +36,11 @@ separate (Files.Rendering)
       --  and hit-testing both read these fields, so they stay in agreement.
       Result.Padding := Guikit.Layout.Scaled (4, Line_Height);
       Result.Row_Height :=
-        Saturating_Add (Line_Height, Saturating_Multiply (Result.Padding, 2));
+        Guikit.Layout.Saturating_Add (Line_Height, Saturating_Multiply (Result.Padding, 2));
       --  A separator is just a 1px divider line surrounded by the row padding,
       --  so it takes noticeably less vertical space than a command row.
       Result.Separator_Height :=
-        Saturating_Add (1, Saturating_Multiply (Result.Padding, 2));
+        Guikit.Layout.Saturating_Add (1, Saturating_Multiply (Result.Padding, 2));
 
       --  Size one column to the widest command label (using the same monospace
       --  cell metric and edge padding the renderer draws rows with).
@@ -70,7 +70,7 @@ separate (Files.Rendering)
          Result.Width :=
            Natural'Max
              (Guikit.Layout.Scaled (180, Line_Height),
-              Saturating_Add (Max_Label, Edge_Pad));
+              Guikit.Layout.Saturating_Add (Max_Label, Edge_Pad));
       end;
 
       declare
@@ -82,7 +82,7 @@ separate (Files.Rendering)
          begin
             for Row in First_Row .. Last_Row loop
                Value :=
-                 Saturating_Add
+                 Guikit.Layout.Saturating_Add
                    (Value,
                     (if Result.Rows (Row).Kind = Files.Commands.Menu_Separator
                      then Result.Separator_Height
@@ -95,7 +95,7 @@ separate (Files.Rendering)
          Best_Break        : Natural := 0;
          Best_Tallest      : Natural := Natural'Last;
       begin
-         Result.Height := Saturating_Add (Total_Rows_Height, Outer_Padding);
+         Result.Height := Guikit.Layout.Saturating_Add (Total_Rows_Height, Outer_Padding);
 
          --  At compact heights, split only at a group separator.  This keeps
          --  every command mouse-reachable without shrinking text below its
@@ -124,14 +124,14 @@ separate (Files.Rendering)
             end loop;
 
             if Best_Break > 0
-              and then Saturating_Add (Best_Tallest, Outer_Padding) <= Height
+              and then Guikit.Layout.Saturating_Add (Best_Tallest, Outer_Padding) <= Height
             then
                Result.Column_Count := 2;
                Result.Column_Break_Row := Best_Break;
                Result.Width :=
                  Natural'Min (Width, Saturating_Multiply (Single_Column_Width, 2));
                Result.Column_Width := Result.Width / 2;
-               Result.Height := Saturating_Add (Best_Tallest, Outer_Padding);
+               Result.Height := Guikit.Layout.Saturating_Add (Best_Tallest, Outer_Padding);
             end if;
          end if;
 

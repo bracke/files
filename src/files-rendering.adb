@@ -157,12 +157,6 @@ package body Files.Rendering is
       return Boolean is
      (Guikit.Layout.Within_Rect (Point_X, Point_Y, X, Y, Box_W, Box_H));
 
-   function Saturating_Add
-     (Left  : Natural;
-      Right : Natural)
-      return Natural
-     renames Guikit.Layout.Saturating_Add;
-
    function Saturating_Multiply
      (Value  : Natural;
       Factor : Natural)
@@ -231,7 +225,7 @@ package body Files.Rendering is
             end loop;
             --  Padding before the text and a gap of the same again either side of
             --  the column divider.
-            Cached_Time_Width := Saturating_Add (Widest, 3 * Details_Column_Padding (Line_Height));
+            Cached_Time_Width := Guikit.Layout.Saturating_Add (Widest, 3 * Details_Column_Padding (Line_Height));
          end;
          Cached_Time_Width_Height := Line_Height;
          Cached_Time_Width_Locale := Ada.Strings.Unbounded.To_Unbounded_String (Locale);
@@ -289,7 +283,7 @@ package body Files.Rendering is
       return Natural is
    begin
       return
-        Saturating_Add
+        Guikit.Layout.Saturating_Add
           (Saturating_Multiply (Value / Denominator, Numerator),
            Saturating_Multiply (Value mod Denominator, Numerator) / Denominator);
    end Scaled_Down;
@@ -453,8 +447,8 @@ package body Files.Rendering is
          else 0);
    begin
       return
-        (X      => Saturating_Add (Layout.Main_X, Padding),
-         Y      => Saturating_Add (Layout.Main_Y, Padding),
+        (X      => Guikit.Layout.Saturating_Add (Layout.Main_X, Padding),
+         Y      => Guikit.Layout.Saturating_Add (Layout.Main_Y, Padding),
          Width  => (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
                     then Layout.Main_Width - Saturating_Multiply (Padding, 2)
                     else Layout.Main_Width),
@@ -470,7 +464,8 @@ package body Files.Rendering is
    begin
       return
         Natural'Min
-          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding (Line_Height), 2)), Content_H);
+          (Guikit.Layout.Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding (Line_Height), 2)),
+           Content_H);
    end Details_Header_Height;
 
    function Details_Header_Geometry
@@ -633,7 +628,7 @@ package body Files.Rendering is
       return Natural is
    begin
       if Menu.Column_Count > 1 and then Row > Menu.Column_Break_Row then
-         return Saturating_Add (Menu.X, Menu.Column_Width);
+         return Guikit.Layout.Saturating_Add (Menu.X, Menu.Column_Width);
       else
          return Menu.X;
       end if;
@@ -722,7 +717,7 @@ package body Files.Rendering is
          Command_Width  => Layout.Command_Width,
          Command_Height => Layout.Command_Height,
          Line_Height    => Line_Height,
-         Title_Height   => Saturating_Add (Line_Height, Command_Palette_Padding (Line_Height)));
+         Title_Height   => Guikit.Layout.Saturating_Add (Line_Height, Command_Palette_Padding (Line_Height)));
    end Calculate_Command_Palette_Layout;
 
    function Calculate_Quick_Look_Layout
@@ -744,13 +739,13 @@ package body Files.Rendering is
       Panel_Y   : constant Natural :=
         Centered (Layout.Height, Panel_H);
       --  The title band reserves one line height plus padding at the top.
-      Desired_Title_H : constant Natural := Saturating_Add (Line_Height, Padding);
+      Desired_Title_H : constant Natural := Guikit.Layout.Saturating_Add (Line_Height, Padding);
       Title_H   : constant Natural := Natural'Min (Desired_Title_H, Panel_H);
       Horizontal_Padding : constant Natural := Natural'Min (Padding, Panel_W / 2);
       Remaining_H : constant Natural := Panel_H - Title_H;
       Bottom_Padding : constant Natural := Natural'Min (Padding, Remaining_H);
-      Content_X : constant Natural := Saturating_Add (Panel_X, Horizontal_Padding);
-      Content_Y : constant Natural := Saturating_Add (Panel_Y, Title_H);
+      Content_X : constant Natural := Guikit.Layout.Saturating_Add (Panel_X, Horizontal_Padding);
+      Content_Y : constant Natural := Guikit.Layout.Saturating_Add (Panel_Y, Title_H);
       Used_W    : constant Natural := Saturating_Multiply (Horizontal_Padding, 2);
    begin
       return
@@ -779,11 +774,11 @@ package body Files.Rendering is
       Preferred_Width : constant Natural := Natural'Max (Layout.Width / 3, Saturating_Multiply (Line_Height, 18));
       Dropdown_Width  : constant Natural := Natural'Min (Layout.Width, Preferred_Width);
       Row_Height      : constant Natural :=
-        Saturating_Add
-          (Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2)),
+        Guikit.Layout.Saturating_Add
+          (Guikit.Layout.Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2)),
            Saturating_Multiply (Root_Selector_Padding (Line_Height), 2));
       Wanted_Height   : constant Natural :=
-        Saturating_Add
+        Guikit.Layout.Saturating_Add
           (Saturating_Multiply (Natural (Snapshot.Roots.Length), Row_Height),
            Saturating_Multiply (Root_Selector_Padding (Line_Height), 2));
       Dropdown_Height : constant Natural := Natural'Min (Layout.Main_Height, Wanted_Height);
@@ -815,18 +810,20 @@ package body Files.Rendering is
       Toolbar      : constant Guikit.Layout.Toolbar_Layout :=
         Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
       Field_Margin : constant Natural := Toolbar_Field_Margin;
-      Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
+      Path_X       : constant Natural := Guikit.Layout.Saturating_Add (Toolbar.Middle_X, Field_Margin);
       Pad          : constant Natural := Files.UI.Field_Padding (Line_Height);
       --  Box for the drawn favourite star (a filled/outline vector shape); a
       --  near-line-height square so the star reads clearly at the input height.
       Star_W       : constant Positive := Line_Height;
    begin
-      if Toolbar.Middle_Width <= Saturating_Add (Saturating_Multiply (Field_Margin, 2), Saturating_Add (Star_W, Pad))
+      if Toolbar.Middle_Width
+        <= Guikit.Layout.Saturating_Add
+             (Saturating_Multiply (Field_Margin, 2), Guikit.Layout.Saturating_Add (Star_W, Pad))
       then
          return (others => <>);
       end if;
       return
-        (X       => Saturating_Add (Path_X, Pad),
+        (X       => Guikit.Layout.Saturating_Add (Path_X, Pad),
          Y       => Guikit.Layout.Toolbar_Input_Y (Line_Height),
          Width   => Star_W,
          Height  => Guikit.Layout.Toolbar_Input_Height (Line_Height),
@@ -846,7 +843,7 @@ package body Files.Rendering is
       end if;
       --  Star cell width plus one full character cell of separation so the
       --  breadcrumbs/edit text are clearly detached from the star.
-      return Saturating_Add (Star.Width, Guikit.Layout.Caret_Advance_Width (Line_Height));
+      return Guikit.Layout.Saturating_Add (Star.Width, Guikit.Layout.Caret_Advance_Width (Line_Height));
    end Path_Bar_Content_Offset;
 
    function Path_Field_Text_Region
@@ -882,7 +879,7 @@ package body Files.Rendering is
       return Natural
    is
       Reserved : constant Natural :=
-        Saturating_Add (Layout.Row_Height, Tree_Footer_Height (Snapshot, Layout));
+        Guikit.Layout.Saturating_Add (Layout.Row_Height, Tree_Footer_Height (Snapshot, Layout));
    begin
       return (if Layout.Height > Reserved then Layout.Height - Reserved else 0);
    end Tree_Content_Height;
@@ -937,8 +934,8 @@ package body Files.Rendering is
       return
         (Visible      => True,
          Choose_X     => Panel.X,
-         Cancel_X     => Saturating_Add (Panel.X, Half),
-         Y            => Saturating_Add (Panel.Y, Panel.Height - Height),
+         Cancel_X     => Guikit.Layout.Saturating_Add (Panel.X, Half),
+         Y            => Guikit.Layout.Saturating_Add (Panel.Y, Panel.Height - Height),
          Button_Width => Half,
          Height       => Height);
    end Tree_Pick_Buttons;
@@ -1152,13 +1149,13 @@ package body Files.Rendering is
       begin
          if Last < First then
             Visit (Row, First, First - 1);
-            Row := Saturating_Add (Row, 1);
+            Row := Guikit.Layout.Saturating_Add (Row, 1);
             return;
          end if;
          Start := Skip_Wrap_Whitespace (Text, First, Last);
          if Start > Last then
             Visit (Row, First, First - 1);
-            Row := Saturating_Add (Row, 1);
+            Row := Guikit.Layout.Saturating_Add (Row, 1);
             return;
          end if;
          loop
@@ -1166,7 +1163,7 @@ package body Files.Rendering is
                Line_Last : constant Integer := Wrapped_Line_Last (Text, Start, Last, Capacity);
             begin
                Visit (Row, Start, Line_Last);
-               Row := Saturating_Add (Row, 1);
+               Row := Guikit.Layout.Saturating_Add (Row, 1);
                exit when Line_Last >= Last;
                Start := Skip_Wrap_Whitespace (Text, Line_Last + 1, Last);
                exit when Start > Last;
@@ -1204,7 +1201,7 @@ package body Files.Rendering is
       procedure Count (Row : Natural; First : Integer; Last : Integer) is
          pragma Unreferenced (First, Last);
       begin
-         Rows := Natural'Max (Rows, Saturating_Add (Row, 1));
+         Rows := Natural'Max (Rows, Guikit.Layout.Saturating_Add (Row, 1));
       end Count;
    begin
       For_Each_Wrapped_Line (To_String (Text), Text_W, Line_Height, Count'Access);
@@ -1217,7 +1214,7 @@ package body Files.Rendering is
       return Natural
    is
       Reserved_W : constant Natural :=
-        Saturating_Add (Scrollbar_W, Saturating_Multiply (Info_Pane_Padding (Layout.Line_Height), 2));
+        Guikit.Layout.Saturating_Add (Scrollbar_W, Saturating_Multiply (Info_Pane_Padding (Layout.Line_Height), 2));
    begin
       return
         (if Layout.Info_Pane_Width > Reserved_W
@@ -1269,9 +1266,9 @@ package body Files.Rendering is
       Rows : Natural := 0;
    begin
       for Section of Sections loop
-         Rows := Saturating_Add (Rows, 2);
+         Rows := Guikit.Layout.Saturating_Add (Rows, 2);
          for Value of Section.Values loop
-            Rows := Saturating_Add (Rows, Wrapped_Line_Count (Value, Text_W, Line_Height));
+            Rows := Guikit.Layout.Saturating_Add (Rows, Wrapped_Line_Count (Value, Text_W, Line_Height));
          end loop;
       end loop;
       return Rows;
@@ -1293,7 +1290,7 @@ package body Files.Rendering is
       return Close_Button_Layout
    is
       Inset   : constant Natural := Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4);
-      Reserve : constant Natural := Saturating_Add (Saturating_Multiply (Inset, 2), Line_Height);
+      Reserve : constant Natural := Guikit.Layout.Saturating_Add (Saturating_Multiply (Inset, 2), Line_Height);
    begin
       --  Need room for the inset on both sides plus the square itself.
       if Panel_Width < Reserve or else Panel_Height < Reserve then
@@ -1302,8 +1299,8 @@ package body Files.Rendering is
 
       return
         (Visible => True,
-         X       => Saturating_Add (Panel_X, Panel_Width - Inset - Line_Height),
-         Y       => Saturating_Add (Panel_Y, Inset),
+         X       => Guikit.Layout.Saturating_Add (Panel_X, Panel_Width - Inset - Line_Height),
+         Y       => Guikit.Layout.Saturating_Add (Panel_Y, Inset),
          Width   => Line_Height,
          Height  => Line_Height);
    end Panel_Close_Button;

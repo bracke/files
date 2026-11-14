@@ -20,13 +20,17 @@ is
       --  item could never be trashed. The info file's Path= keeps the
       --  original, which restore uses. The macOS home trash has no info file,
       --  so there a name is cut only when a counter must be added.
-      Info_Room : constant Natural := (if Info_Directory = "" then 0 else 10);
+      Info_Suffix     : constant String := ".trashinfo";
+      Longest_Counter : constant String := ".2147483647";
+      Info_Room       : constant Natural := (if Info_Directory = "" then 0 else Info_Suffix'Length);
 
       function Fit (Room : Natural) return String is (Files.Leaf_Names.Fit (Name, Room));
 
       --  Room for the info file's suffix and the longest counter.
       Base      : constant String :=
-        (if Info_Directory = "" then Name else Fit (255 - Info_Room - 11));
+        (if Info_Directory = ""
+         then Name
+         else Fit (Files.Leaf_Names.Max_Length - Info_Room - Longest_Counter'Length));
       Counter   : Positive := 2;
       Candidate : Unbounded_String := To_Unbounded_String (Base);
    begin
@@ -34,13 +38,13 @@ is
         or else (Info_Directory /= ""
                  and then
                    Files.Fs_Primitives.Entry_Exists
-                     (Hostkit.Fs.Join (Info_Directory, To_String (Candidate) & ".trashinfo")))
+                     (Hostkit.Fs.Join (Info_Directory, To_String (Candidate) & Info_Suffix)))
       loop
          declare
             Suffix : constant String := "." & Natural_Text (Counter);
          begin
             Candidate := To_Unbounded_String
-              ((if Info_Directory = "" then Fit (255 - Suffix'Length) else Base) & Suffix);
+              ((if Info_Directory = "" then Fit (Files.Leaf_Names.Max_Length - Suffix'Length) else Base) & Suffix);
          end;
          exit when Counter = Positive'Last;
          Counter := Counter + 1;
