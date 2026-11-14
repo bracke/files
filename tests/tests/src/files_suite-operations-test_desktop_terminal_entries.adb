@@ -15,6 +15,17 @@ separate (Files_Suite.Operations)
         Files.Settings.Make_Action
           ("top", Files.Types.String_Vectors."&" (To_Unbounded_String ("-d"), To_Unbounded_String ("1")));
 
+      --  Path as a desktop-entry string: a backslash is an escape there, so a
+      --  Windows path's own backslashes are written doubled.
+      function Escaped (Path : String) return String is
+         Result : Unbounded_String;
+      begin
+         for C of Path loop
+            Append (Result, (if C = '\' then "\\" else (1 => C)));
+         end loop;
+         return To_String (Result);
+      end Escaped;
+
       function Arguments_Image (Action : Files.Settings.Open_Action) return String is
          Result : Unbounded_String;
       begin
@@ -34,7 +45,7 @@ separate (Files_Suite.Operations)
       Write_File
         (Join (Join (Home, "applications"), "terminal-program.desktop"),
          "[Desktop Entry]" & LF & "Type=Application" & LF & "Name=Terminal Program" & LF
-         & "Exec=top -d 1" & LF & "Terminal=true" & LF & "Path=" & Root & LF);
+         & "Exec=top -d 1" & LF & "Terminal=true" & LF & "Path=" & Escaped (Root) & LF);
       Write_File
         (Join (Join (Home, "applications"), "window-program.desktop"),
          "[Desktop Entry]" & LF & "Type=Application" & LF & "Name=Window Program" & LF
@@ -79,12 +90,8 @@ separate (Files_Suite.Operations)
          else
             Assert (To_String (Shell.Exec) /= "" and then Shell.Terminal,
                     "Terminal=true is read where a terminal can run it" & Seen);
-            --  A backslash is a desktop-entry escape: a Windows root
-            --  would read back decoded.
-            if Ada.Strings.Fixed.Index (Root, "\") = 0 then
-               Files_Suite.Support.Assert_Equal
-                 (To_String (Shell.Working_Directory), Root, "Path= is read as the working directory");
-            end if;
+            Files_Suite.Support.Assert_Equal
+              (To_String (Shell.Working_Directory), Root, "Path= is read as the working directory");
             declare
                Actions : constant Files.Desktop_Applications.Open_Action_Vectors.Vector :=
                  Files.Desktop_Applications.Launch_Actions
