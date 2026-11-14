@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 with Files.Model.Status_Samples;
 with Files.Model.Testing;
 with Guikit.Input;
@@ -13,7 +14,7 @@ separate (Files_Suite.Rendering)
       Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
 
       procedure Check (Step : String; Change : not null access procedure) is
-         Before : aliased constant Files.Rendering.View_Snapshot :=
+         Before : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Rows   : constant Natural := Files.Model.Rows_Revision (Model);
          Moved  : constant Natural := Files.Model.Revision (Model);
@@ -23,8 +24,8 @@ separate (Files_Suite.Rendering)
          Files_Suite.Support.Assert_Equal
            (Files.Model.Rows_Revision (Model), Rows, Step & ": the rows revision stays");
          Assert
-           (Files.Rendering.Build_Snapshot (Model, Settings, Rows_From => Before'Access)
-            = Files.Rendering.Build_Snapshot (Model, Settings),
+           (Files.Rendering.Testing.Build_Snapshot_Keeping_Rows (Model, Settings, Before)
+            = Files.Rendering.Testing.Build_Snapshot_At (Model, Settings, Before.Now),
             Step & ": the patched snapshot is the rebuilt one");
       end Check;
 
@@ -63,7 +64,7 @@ separate (Files_Suite.Rendering)
       --  outside the rows, so the rows a patch keeps must be a rebuild's.
       declare
          procedure Check_Header (Step : String; Change : not null access procedure) is
-            Before : aliased constant Files.Rendering.View_Snapshot :=
+            Before : constant Files.Rendering.View_Snapshot :=
               Files.Rendering.Build_Snapshot (Model, Settings);
             Rows   : constant Natural := Files.Model.Rows_Revision (Model);
          begin
@@ -71,8 +72,8 @@ separate (Files_Suite.Rendering)
             Files_Suite.Support.Assert_Equal
               (Files.Model.Rows_Revision (Model), Rows, Step & ": the rows revision stays");
             Assert
-              (Files.Rendering.Build_Snapshot (Model, Settings, Rows_From => Before'Access)
-               = Files.Rendering.Build_Snapshot (Model, Settings),
+              (Files.Rendering.Testing.Build_Snapshot_Keeping_Rows (Model, Settings, Before)
+               = Files.Rendering.Testing.Build_Snapshot_At (Model, Settings, Before.Now),
                Step & ": the patched snapshot is the rebuilt one");
          end Check_Header;
 
@@ -101,15 +102,15 @@ separate (Files_Suite.Rendering)
 
       --  A column drag: settings the rows do not read.
       declare
-         Before : aliased constant Files.Rendering.View_Snapshot :=
+         Before : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Key    : constant Files.Settings.Snapshot_Settings_Key := Files.Settings.Snapshot_Settings_Key_Of (Settings);
       begin
          Settings.Column_Widths (Files.Types.Name_Column) := Settings.Column_Widths (Files.Types.Name_Column) + 24;
          Assert (Files.Settings.Same_Row_Settings (Settings, Key), "a column width is no row setting");
          Assert
-           (Files.Rendering.Build_Snapshot (Model, Settings, Rows_From => Before'Access)
-            = Files.Rendering.Build_Snapshot (Model, Settings),
+           (Files.Rendering.Testing.Build_Snapshot_Keeping_Rows (Model, Settings, Before)
+            = Files.Rendering.Testing.Build_Snapshot_At (Model, Settings, Before.Now),
             "a column drag's patched snapshot is the rebuilt one");
       end;
 
@@ -125,7 +126,7 @@ separate (Files_Suite.Rendering)
          Files_Suite.Support.Assert_Equal
            (Files.Model.Testing.Rename_Field_Count (Model), 2, "the multi-rename opens two fields");
          declare
-            Before : aliased constant Files.Rendering.View_Snapshot :=
+            Before : constant Files.Rendering.View_Snapshot :=
               Files.Rendering.Build_Snapshot (Model, Settings);
          begin
             Rows := Files.Model.Rows_Revision (Model);
@@ -134,8 +135,8 @@ separate (Files_Suite.Rendering)
               (Files.Model.Testing.Rename_Field_Count (Model), 1, "deselecting a row drops its rename field");
             Assert
               (Files.Model.Rows_Revision (Model) /= Rows
-               or else Files.Rendering.Build_Snapshot (Model, Settings, Rows_From => Before'Access)
-                 = Files.Rendering.Build_Snapshot (Model, Settings),
+               or else Files.Rendering.Testing.Build_Snapshot_Keeping_Rows (Model, Settings, Before)
+                 = Files.Rendering.Testing.Build_Snapshot_At (Model, Settings, Before.Now),
                "a selection change during a multi-rename keeps the rows only as a rebuild draws them");
          end;
          Files.Model.Rename.Toggle (Model);

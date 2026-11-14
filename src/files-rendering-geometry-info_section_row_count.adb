@@ -1,8 +1,9 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Geometry)
    function Info_Section_Row_Count
      (Info        : Info_Snapshot;
       Text_W      : Natural;
-      Line_Height : Positive)
+      Line_Height : Positive;
+      Now         : Ada.Calendar.Time)
       return Natural
    is
       --  The selected item's name is rendered once as a heading followed by a
@@ -21,7 +22,7 @@ separate (Files.Rendering)
                   then Permission_Grid_Rows
                   else Guikit.Layout.Saturating_Add
                          (2,
-                          Wrapped_Line_Count (Info_Field_Display_Value (Info, Field), Text_W, Line_Height))));
+                          Wrapped_Line_Count (Info_Field_Display_Value (Info, Field, Now), Text_W, Line_Height))));
          end if;
       end loop;
 

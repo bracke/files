@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Text_Input)
    procedure Test_Text_Input_Click_Focuses (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,8 +7,8 @@ separate (Files_Suite.Text_Input)
       Result   : Files.Interaction.Interaction_Result;
       Toolbar  : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Window_W, Line);
       --  The path field's drawn box and text, as drawing and hit-testing share them.
-      Region   : constant Files.Rendering.Field_Text_Region :=
-        Files.Rendering.Path_Field_Text_Region (Toolbar, Window_W, Line);
+      Region   : constant Files.Rendering.Layouts.Field_Text_Region :=
+        Files.Rendering.Layouts.Path_Field_Text_Region (Toolbar, Window_W, Line);
       Center_Y : constant Natural :=
         Guikit.Layout.Toolbar_Input_Y (Line) + Guikit.Layout.Toolbar_Input_Height (Line) / 2;
       Left_X   : constant Natural := Region.X;

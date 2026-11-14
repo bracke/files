@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Main_View_Max_Scroll
      (Main        : Main_View_Layout;
       Line_Height : Positive)

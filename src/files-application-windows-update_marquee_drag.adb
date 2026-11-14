@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files.Application.Windows)
    procedure Update_Marquee_Drag
      (Runtime    : in out Runtime_Window;
@@ -64,10 +65,10 @@ separate (Files.Application.Windows)
          Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
 
          Layout    : Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout
+           Files.Rendering.Layouts.Calculate_Layout
              (Runtime.View.Snapshots (Runtime.View.Current_Slot), Natural (Frame_W), Natural (Frame_H), Line_Height);
-         Main_View : Files.Rendering.Main_View_Layout :=
-           Files.Rendering.Calculate_Main_View_Layout
+         Main_View : Files.Rendering.Layouts.Main_View_Layout :=
+           Files.Rendering.Layouts.Calculate_Main_View_Layout
              (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height);
       begin
          --  Auto-scroll: while the cursor is dragged to (or past) the top or
@@ -78,11 +79,11 @@ separate (Files.Application.Windows)
          --  as they move off screen. Nothing to do when it all fits (no bar).
          if Main_View.Scrollbar_Visible then
             declare
-               Max_Lines  : constant Natural := Files.Rendering.Main_View_Max_Scroll (Main_View, Line_Height);
+               Max_Lines  : constant Natural := Files.Rendering.Layouts.Main_View_Max_Scroll (Main_View, Line_Height);
                Current    : constant Natural := Files.Model.Main_View_Scroll_Lines (Runtime.Model);
                Old_Px     : constant Natural := Main_View.Scroll_Pixels;
                Step       : constant Integer :=
-                 Files.Rendering.Marquee_Auto_Scroll_Step
+                 Files.Rendering.Layouts.Marquee_Auto_Scroll_Step
                    (Cursor_Y      => Y_Frame,
                     Region_Top    => Integer (Main_View.Scrollbar_Y),
                     Region_Bottom =>
@@ -103,11 +104,11 @@ separate (Files.Application.Windows)
                         --  origin by the scroll's actual pixel shift (which the
                         --  renderer may snap to a row period, so measure it).
                         Refresh_Snapshot (Runtime);
-                        Layout := Files.Rendering.Calculate_Layout
+                        Layout := Files.Rendering.Layouts.Calculate_Layout
                           (Runtime.View.Snapshots (Runtime.View.Current_Slot), Natural (Frame_W), Natural (Frame_H),
                            Line_Height);
                         Main_View :=
-                          Files.Rendering.Calculate_Main_View_Layout
+                          Files.Rendering.Layouts.Calculate_Main_View_Layout
                             (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height);
                         Runtime.Marquee.Origin_Y :=
                           Runtime.Marquee.Origin_Y
@@ -129,7 +130,7 @@ separate (Files.Application.Windows)
             Rect_W : Natural;
             Rect_H : Natural;
          begin
-            Files.Rendering.Marquee_Rect
+            Files.Rendering.Layouts.Marquee_Rect
               (Start_X   => Natural'Max (0, Runtime.Marquee.Origin_X),
                Start_Y   => Natural'Max (0, Runtime.Marquee.Origin_Y),
                Current_X => Natural'Max (0, X_Frame),
@@ -138,7 +139,7 @@ separate (Files.Application.Windows)
                Y         => Rect_Y,
                Width     => Rect_W,
                Height    => Rect_H);
-            Files.Rendering.Marquee_Rect
+            Files.Rendering.Layouts.Marquee_Rect
               (Start_X   => Natural'Max (0, Runtime.Marquee.Origin_X),
                Start_Y   => Natural'Max (0, Runtime.Marquee.Origin_Y + Scroll),
                Current_X => Natural'Max (0, X_Frame),
@@ -151,8 +152,8 @@ separate (Files.Application.Windows)
                --  Hit-tested in unscrolled content coordinates: a row the
                --  auto-scroll moved off screen has no area on screen but is
                --  still inside the band. Only the band's rows are laid out.
-               Items : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-                 Files.Rendering.Calculate_Item_Layout
+               Items : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+                 Files.Rendering.Layouts.Calculate_Item_Layout
                    (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height,
                     Whole_Content => True, Window_Top => Band_Y, Window_Height => Natural'Max (Band_H, 1));
             begin

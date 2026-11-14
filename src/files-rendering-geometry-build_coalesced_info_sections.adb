@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Geometry)
    function Build_Coalesced_Info_Sections
      (Snapshot : View_Snapshot)
       return Coalesced_Section_Vectors.Vector
@@ -10,7 +10,7 @@ separate (Files.Rendering)
          Values : Info_Value_Vectors.Vector;
       begin
          for Info of Snapshot.Selected_Info loop
-            Values.Append (Info_Field_Display_Value (Info, Field));
+            Values.Append (Info_Field_Display_Value (Info, Field, Snapshot.Now));
          end loop;
          return Values;
       end Field_Values;
@@ -63,7 +63,7 @@ separate (Files.Rendering)
       begin
          for Info of Snapshot.Selected_Info loop
             if not Info.Is_Directory then
-               Values.Append (Info_Field_Value (Info, Info_Size) & Info_Postfix (Info));
+               Values.Append (Info_Field_Value (Info, Info_Size, Snapshot.Now) & Info_Postfix (Info));
             end if;
          end loop;
          if not Values.Is_Empty then
@@ -122,8 +122,8 @@ separate (Files.Rendering)
          begin
             for Info of Snapshot.Selected_Info loop
                if Info.Ownership_Available then
-                  Owners.Append (Info_Field_Value (Info, Info_Owner));
-                  Groups.Append (Info_Field_Value (Info, Info_Group));
+                  Owners.Append (Info_Field_Value (Info, Info_Owner, Snapshot.Now));
+                  Groups.Append (Info_Field_Value (Info, Info_Group, Snapshot.Now));
                else
                   Owners.Append (To_Unbounded_String (Coalesced_Placeholder));
                   Groups.Append (To_Unbounded_String (Coalesced_Placeholder));
@@ -142,7 +142,7 @@ separate (Files.Rendering)
          begin
             for Info of Snapshot.Selected_Info loop
                if Info.Metadata_Error then
-                  Values.Append (Info_Field_Value (Info, Info_Metadata_Error));
+                  Values.Append (Info_Field_Value (Info, Info_Metadata_Error, Snapshot.Now));
                else
                   Values.Append (To_Unbounded_String (Coalesced_Placeholder));
                end if;

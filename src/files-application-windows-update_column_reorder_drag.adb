@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files.Application.Windows)
 procedure Update_Column_Reorder_Drag
   (Runtime    : in out Runtime_Window;
@@ -49,7 +50,7 @@ begin
          Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
          Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout
+           Files.Rendering.Layouts.Calculate_Layout
              (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
          Drop     : constant Natural :=
            Files.Rendering.Hit.Details_Header_Drop_Index
@@ -73,9 +74,9 @@ begin
          Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
          Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout
+           Files.Rendering.Layouts.Calculate_Layout
              (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
-         Cell     : constant Files.Rendering.Detail_Header_Cell :=
+         Cell     : constant Files.Rendering.Layouts.Detail_Header_Cell :=
            Files.Rendering.Hit.Details_Header_Cell_At
              (Snapshot, Layout, Natural'Max (0, X_Frame), Y_Frame, Line_Height);
       begin

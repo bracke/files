@@ -4,10 +4,12 @@ separate (Check_All)
       Events_Body : constant String := Root & "/src/files-events.adb";
 
       --  Of files' own units, translation may only import Files.UI and the
-      --  pure Files.Rendering.Hit geometry, which forbids the mutable model,
-      --  filesystem-operation, and filesystem-inspection units.
+      --  pure Files.Rendering.Hit and Files.Rendering.Layouts geometry, which
+      --  forbids the mutable model, filesystem-operation, and
+      --  filesystem-inspection units.
       Body_Allowed : constant String_List :=
         [To_Unbounded_String ("Files.Rendering.Hit"),
+         To_Unbounded_String ("Files.Rendering.Layouts"),
          To_Unbounded_String ("Files.UI")];
 
       --  Nor does it bind to foreign code itself: no import, export or

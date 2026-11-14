@@ -13,5 +13,5 @@ separate (Files.Rendering.Build_Frame_Commands)
       return
         Info_Value
           (Label_Key,
-           Humanized_Time_Text (Value));
+           Humanized_Time_Text (Value, Snapshot.Now));
    end Time_Text;

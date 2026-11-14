@@ -27,9 +27,9 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane)
              ("accessibility.info.summary",
               Files.Localization.Argument_List'
               [Arg ("type_label", Files.Localization.Text ("info.filetype")),
-               Arg ("type", To_String (Info_Field_Value (Info, Info_Filetype))),
+               Arg ("type", To_String (Info_Field_Value (Info, Info_Filetype, Snapshot.Now))),
                Arg ("size_label", Files.Localization.Text ("info.size")),
-               Arg ("size", To_String (Info_Field_Value (Info, Info_Size)))]);
+               Arg ("size", To_String (Info_Field_Value (Info, Info_Size, Snapshot.Now)))]);
          Modified : constant String :=
            (if Full
             then Files.Localization.Text

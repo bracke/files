@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Geometry)
    function Calculate_Paste_Progress_Layout
      (Layout      : Layout_Metrics;
       Line_Height : Positive)

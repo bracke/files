@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Drags)
    --  A details column dragged at a 2x line height is stored in reference
    --  units (half its framebuffer pixels) and drawn back at the pixel width it
@@ -14,9 +15,9 @@ separate (Files_Suite.Drags)
       function Size_Width (Settings : Files.Settings.Settings_Model; Line_Height : Positive) return Natural is
          Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Wide_W, Wide_H, Line_Height);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Wide_W, Wide_H, Line_Height);
       begin
-         for Cell of Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
+         for Cell of Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
             if Cell.Visible_Index = 1 then
                return Cell.Size_Width;
             end if;

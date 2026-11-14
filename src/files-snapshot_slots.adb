@@ -8,14 +8,18 @@ package body Files.Snapshot_Slots is
      (View     : in out View_Slots;
       Model    : Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Now      : Ada.Real_Time.Time)
+      Now      : Ada.Real_Time.Time;
+      Wall_Now : Ada.Calendar.Time)
    is
+      use type Ada.Calendar.Time;
+      Minute : constant Ada.Calendar.Time := Files.Timing.Minute_Start (Wall_Now);
       Action : constant Files.Snapshot_Policy.Snapshot_Action :=
         Files.Snapshot_Policy.Action_For
           (Valid         => View.Snapshot_Valid,
            Same_Revision => View.Cached_Model_Revision = Files.Model.Revision (Model),
            Same_Settings => Files.Settings.Same_Snapshot_Settings (Settings, View.Cached_Settings_Key),
            Same_Scroll   => View.Cached_Scroll_Revision = Files.Model.Scroll_Revision (Model),
+           Same_Minute   => View.Cached_Minute = Minute,
            Same_Rows     => View.Cached_Rows_Revision = Files.Model.Rows_Revision (Model),
            Same_Row_Settings => Files.Settings.Same_Row_Settings (Settings, View.Cached_Settings_Key),
            Pasting       => Files.Model.Foreground_Job_Is_Active (Model),
@@ -64,7 +68,7 @@ package body Files.Snapshot_Slots is
                View.Snapshots (View.Current_Slot).Items := View.Snapshots (From).Items;
             end if;
          end if;
-         Files.Rendering.Build_Snapshot_Into (View.Snapshots (View.Current_Slot), Model, Settings, Keep_Rows);
+         Files.Rendering.Build_Snapshot_Into (View.Snapshots (View.Current_Slot), Model, Settings, Minute, Keep_Rows);
          View.Last_Generation := View.Last_Generation + 1;
          View.Slot_Contents (View.Current_Slot) := View.Last_Generation;
          View.Slot_Rows (View.Current_Slot) :=
@@ -76,6 +80,7 @@ package body Files.Snapshot_Slots is
       View.Cached_Model_Revision := Files.Model.Revision (Model);
       View.Cached_Settings_Key := Files.Settings.Snapshot_Settings_Key_Of (Settings);
       View.Snapshot_Built_At := Now;
+      View.Cached_Minute := Minute;
       View.Snapshot_Valid := True;
    end Refresh;
 

@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Scroll_Lines_Revealing
      (Snapshot      : View_Snapshot;
       Layout        : Layout_Metrics;

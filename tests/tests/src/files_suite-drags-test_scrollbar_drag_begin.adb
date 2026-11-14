@@ -1,4 +1,5 @@
 with Files.Model.Context_Menu;
+with Files.Rendering.Layouts;
 separate (Files_Suite.Drags)
    procedure Test_Scrollbar_Drag_Begin (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -26,9 +27,9 @@ separate (Files_Suite.Drags)
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Main     : constant Files.Rendering.Main_View_Layout :=
-           Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Main     : constant Files.Rendering.Layouts.Main_View_Layout :=
+           Files.Rendering.Layouts.Calculate_Main_View_Layout (Snapshot, Layout, Line);
          Action   : Files.Events.Input_Action;
          X, Y     : Natural;
       begin
@@ -50,7 +51,7 @@ separate (Files_Suite.Drags)
          --  viewport of lines.
          declare
             Page : constant Natural := Natural'Max (1, Main.Viewport_Height / Line);
-            Maximum : constant Natural := Files.Rendering.Main_View_Max_Scroll (Main, Line);
+            Maximum : constant Natural := Files.Rendering.Layouts.Main_View_Max_Scroll (Main, Line);
             Page_Action : constant Files.Events.Input_Action :=
               Files.Events.Translate_Click
                 (Snapshot, Frame,
@@ -82,10 +83,10 @@ separate (Files_Suite.Drags)
                  Files.Rendering.Build_Frame_Commands
                    (Paged_Snapshot, Window_W, Window_H, Line);
                Paged_Layout : constant Files.Rendering.Layout_Metrics :=
-                 Files.Rendering.Calculate_Layout
+                 Files.Rendering.Layouts.Calculate_Layout
                    (Paged_Snapshot, Window_W, Window_H, Line);
-               Paged_Main : constant Files.Rendering.Main_View_Layout :=
-                 Files.Rendering.Calculate_Main_View_Layout
+               Paged_Main : constant Files.Rendering.Layouts.Main_View_Layout :=
+                 Files.Rendering.Layouts.Calculate_Main_View_Layout
                    (Paged_Snapshot, Paged_Layout, Line);
                Page_Action : constant Files.Events.Input_Action :=
                  Files.Events.Translate_Click

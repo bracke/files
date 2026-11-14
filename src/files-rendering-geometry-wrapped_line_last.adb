@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Geometry)
    function Wrapped_Line_Last
      (Raw          : String;
       Start        : Integer;

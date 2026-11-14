@@ -1,11 +1,12 @@
+with Files.Rendering.Layouts;
 separate (Files.Events.Translate_Click)
 --  The info-pane and main-view scrollbars. A press on the track pages by
 --  what the region shows (at least a line), as the folder tree's pages by its
 --  row capacity: the info pane's viewport is the whole pane, the main view's
 --  its Viewport_Height.
 procedure Scrollbar_Click (Handled : out Boolean; Result : out Input_Action) is
-   Main_View : constant Files.Rendering.Main_View_Layout :=
-     Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
+   Main_View : constant Files.Rendering.Layouts.Main_View_Layout :=
+     Files.Rendering.Layouts.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
 
    --  Whole lines of Line_Height in Viewport pixels, at least one.
    function Page_Lines (Viewport : Natural) return Positive is
@@ -23,7 +24,7 @@ begin
            Info_Pane.Scrollbar_Height,
            Page_Lines (Info_Pane.Height),
            Snapshot.Info_Pane_Scroll_Lines,
-           Files.Rendering.Info_Pane_Max_Scroll (Info_Pane, Line_Height));
+           Files.Rendering.Layouts.Info_Pane_Max_Scroll (Info_Pane, Line_Height));
       return;
    elsif Main_View.Scrollbar_Visible
      and then Within (X, Main_View.Scrollbar_X, Main_View.Scrollbar_Width)
@@ -36,7 +37,7 @@ begin
            Main_View.Scrollbar_Height,
            Page_Lines (Main_View.Viewport_Height),
            Snapshot.Main_View_Scroll_Lines,
-           Files.Rendering.Main_View_Max_Scroll (Main_View, Line_Height));
+           Files.Rendering.Layouts.Main_View_Max_Scroll (Main_View, Line_Height));
       return;
    end if;
    Handled := False;

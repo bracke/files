@@ -49,13 +49,13 @@ separate (Files.Application.Windows.Smoke)
                     Height      => Height,
                     Line_Height => Guikit.Layout.Reference_Line_Height);
                Drag_Snapshot : Files.Rendering.View_Snapshot := Snapshot;
-               Text     : Files.Rendering.Text_Renderer;
-               Text_Status : constant Files.Rendering.Text_Render_Status :=
-                 Files.Rendering.Initialize_Text
+               Text     : Files.Rendering.Text.Text_Renderer;
+               Text_Status : constant Files.Rendering.Text.Text_Render_Status :=
+                 Files.Rendering.Text.Initialize_Text
                    (Renderer    => Text,
-                    Font_Path   => Files.Rendering.Default_Font_Path,
+                    Font_Path   => Files.Rendering.Text.Default_Font_Path,
                     Pixel_Size  => Files.Settings.Default_Font_Pixel_Size);
-               Glyphs : Files.Rendering.Text_Render_Result;
+               Glyphs : Files.Rendering.Text.Text_Render_Result;
             begin
                if Frame.Layout.Width = Width
                  and then Frame.Layout.Height = Height
@@ -132,11 +132,11 @@ separate (Files.Application.Windows.Smoke)
                   end if;
                end;
 
-               if Text_Status = Files.Rendering.Text_Render_Success then
-                  Glyphs := Files.Rendering.Build_Text_Glyphs (Text, Frame);
+               if Text_Status = Files.Rendering.Text.Text_Render_Success then
+                  Glyphs := Files.Rendering.Text.Build_Text_Glyphs (Text, Frame);
                   Result.Missing_Glyph_Count :=
                     Result.Missing_Glyph_Count + Glyphs.Missing_Glyph_Count;
-                  if Glyphs.Status = Files.Rendering.Text_Render_Success and then not Glyphs.Glyphs.Is_Empty then
+                  if Glyphs.Status = Files.Rendering.Text.Text_Render_Success and then not Glyphs.Glyphs.Is_Empty then
                      Result.Text_Glyph_Frames := Result.Text_Glyph_Frames + 1;
                   else
                      Result.Failed_Frames := Result.Failed_Frames + 1;

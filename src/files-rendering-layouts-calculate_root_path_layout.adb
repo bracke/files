@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Calculate_Root_Path_Layout
      (Snapshot : View_Snapshot;
       Layout   : Root_Selector_Layout)

@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Interaction)
    --  Same seam for the info pane: open it, derive its close (X) button from
    --  the real info-pane layout (kept clear of the scrollbar column), click the
@@ -14,15 +15,15 @@ separate (Files_Suite.Interaction)
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Info     : constant Files.Rendering.Info_Pane_Layout :=
-           Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Info     : constant Files.Rendering.Layouts.Info_Pane_Layout :=
+           Files.Rendering.Layouts.Calculate_Info_Pane_Layout (Snapshot, Layout, Line);
          Panel_W  : constant Natural :=
            (if Info.Scrollbar_Visible and then Info.Width > Info.Scrollbar_Width
             then Info.Width - Info.Scrollbar_Width
             else Info.Width);
-         Close    : constant Files.Rendering.Close_Button_Layout :=
-           Files.Rendering.Panel_Close_Button (Info.X, Info.Y, Panel_W, Info.Height, Line);
+         Close    : constant Files.Rendering.Layouts.Close_Button_Layout :=
+           Files.Rendering.Layouts.Panel_Close_Button (Info.X, Info.Y, Panel_W, Info.Height, Line);
       begin
          Assert (Close.Visible, "the open info pane exposes a close (X) button");
          Click

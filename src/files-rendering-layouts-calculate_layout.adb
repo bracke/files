@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Calculate_Layout
      (Snapshot    : View_Snapshot;
       Width       : Natural;

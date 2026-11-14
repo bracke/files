@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Multi_Selection_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -40,9 +41,9 @@ separate (Files_Suite.Info)
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
       declare
          Layout       : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
-         Info_Layout  : constant Files.Rendering.Info_Pane_Layout :=
-           Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height => 20);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
+         Info_Layout  : constant Files.Rendering.Layouts.Info_Pane_Layout :=
+           Files.Rendering.Layouts.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height => 20);
          --  A multi-item selection draws a COALESCED, field-major layout: each
          --  section label appears once and each value row is postfixed with its
          --  item name, so there is no dedicated Name section.

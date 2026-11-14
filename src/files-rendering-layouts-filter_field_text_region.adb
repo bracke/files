@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Filter_Field_Text_Region
      (Toolbar     : Guikit.Layout.Toolbar_Layout;
       Line_Height : Positive)

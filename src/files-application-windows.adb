@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Files.Window_Polls;
 with Files.Foreground_Jobs;
 with Files.Preview_Decoder;
@@ -29,6 +30,7 @@ with Guikit.Utf8;
 with Files.Model.Clipboard;
 with Files.Model.Tree_Panel;
 with Files.Model.Selection;
+with Files.Rendering.Layouts;
 
 package body Files.Application.Windows is
    use Ada.Strings.Unbounded;
@@ -42,7 +44,6 @@ package body Files.Application.Windows is
    use type Files.Types.Focus_Target;
    use type Files.Types.Detail_Column;
    use type Files.Types.Item_Kind;
-   use type Files.Rendering.Text_Render_Status;
    use type Guikit.Vulkan.Vulkan_Status;
    use type Files.Rendering.View_Snapshot;
    use type System.Address;
@@ -50,7 +51,6 @@ package body Files.Application.Windows is
    function Key_Repeats (Key : Guikit.Input.Key_Code) return Boolean renames Files.Window_Policy.Key_Repeats;
 
    --  How long a window whose text failed to load waits before trying again.
-   Text_Retry_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (5);
    File_Watch_Poll_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
    --  With the watch helper reporting changes (Watch_Is_Native), the re-read
    --  only covers what it can miss (a change made over the network to a
@@ -105,8 +105,7 @@ package body Files.Application.Windows is
          Runtime.Font_Pixel_Size := Scaled_Font_Size (Runtime);
       end if;
       if Result.Needs_Glyph_Rebuild then
-         Runtime.Text_Ready := False;
-         Runtime.Glyph_Text_Valid := False;
+         Files.Rendering.Text.Invalidate (Runtime.Text);
       end if;
       Flush_System_Clipboard (Runtime);
    end Apply_Interaction_Result;
@@ -208,10 +207,6 @@ package body Files.Application.Windows is
      (Window : not null access Glfw.Windows.Window)
       return Guikit.Input.Modifier_Set renames Glfw.Windows.Modifiers.Held;
 
-   --  @return Minutes since 2000-01-01 by the wall clock: the key that tells
-   --    a snapshot or frame built in an earlier minute (relative times) apart.
-   function Wall_Clock_Minute return Natural is separate;
-
    --  Make Runtime.View.Snapshots (Runtime.View.Current_Slot) the snapshot of the model
    --  and settings as they are now, rebuilding it only when the model revision,
    --  the snapshot settings or the minute moved since it was built (or a paste
@@ -225,7 +220,8 @@ package body Files.Application.Windows is
    --  @param Runtime Window whose current snapshot is brought up to date.
    procedure Refresh_Snapshot (Runtime : in out Runtime_Window) is
    begin
-      Files.Snapshot_Slots.Refresh (Runtime.View, Runtime.Model, Runtime.Settings, Ada.Real_Time.Clock);
+      Files.Snapshot_Slots.Refresh
+        (Runtime.View, Runtime.Model, Runtime.Settings, Ada.Real_Time.Clock, Ada.Calendar.Clock);
    end Refresh_Snapshot;
 
    procedure Refresh_Selection_Grid_Columns
@@ -246,17 +242,17 @@ package body Files.Application.Windows is
       declare
          procedure Apply (Snapshot : Files.Rendering.View_Snapshot) is
             Layout    : constant Files.Rendering.Layout_Metrics :=
-              Files.Rendering.Calculate_Layout
+              Files.Rendering.Layouts.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H),
                  Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
-            Main_View : constant Files.Rendering.Main_View_Layout :=
-              Files.Rendering.Calculate_Main_View_Layout
+            Main_View : constant Files.Rendering.Layouts.Main_View_Layout :=
+              Files.Rendering.Layouts.Calculate_Main_View_Layout
                 (Snapshot, Layout, Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
          begin
             Files.Model.Selection.Set_Grid_Columns (Runtime.Model, Main_View.Columns);
             Files.Model.Selection.Set_Page_Rows
               (Runtime.Model,
-               Files.Rendering.Main_View_Page_Rows
+               Files.Rendering.Layouts.Main_View_Page_Rows
                  (Snapshot, Layout, Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size)));
          end Apply;
       begin
@@ -999,7 +995,6 @@ package body Files.Application.Windows is
 
    procedure Update_Scrollbar_Drag
      (Runtime    : in out Runtime_Window;
-      Cursor_X   : Glfw.Input.Mouse.Coordinate;
       Cursor_Y   : Glfw.Input.Mouse.Coordinate;
       Window_W   : Glfw.Size;
       Window_H   : Glfw.Size;

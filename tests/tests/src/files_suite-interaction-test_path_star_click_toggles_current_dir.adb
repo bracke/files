@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Interaction)
    procedure Test_Path_Star_Click_Toggles_Current_Dir (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,8 +7,8 @@ separate (Files_Suite.Interaction)
       Result   : Files.Interaction.Interaction_Result;
       Path     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "path-star.conf");
       Current  : constant String := Files.Model.Current_Path (Model);
-      Star     : constant Files.Rendering.Path_Favorite_Star_Bounds :=
-        Files.Rendering.Path_Favorite_Star_Region (Window_W, Line);
+      Star     : constant Files.Rendering.Layouts.Path_Favorite_Star_Bounds :=
+        Files.Rendering.Layouts.Path_Favorite_Star_Region (Window_W, Line);
 
       --  Rebuild the real snapshot/frame each time and translate a click at the
       --  star's center, so the assertion drives the same seam the shell drives.

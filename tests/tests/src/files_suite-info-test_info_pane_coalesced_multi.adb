@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Coalesced_Multi (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,9 +24,9 @@ separate (Files_Suite.Info)
 
       declare
          Layout      : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Width => 1600, Height => 1200, Line_Height => 20);
-         Info_Layout : constant Files.Rendering.Info_Pane_Layout :=
-           Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height => 20);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Width => 1600, Height => 1200, Line_Height => 20);
+         Info_Layout : constant Files.Rendering.Layouts.Info_Pane_Layout :=
+           Files.Rendering.Layouts.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height => 20);
 
          --  Count the distinct rows a label appears on within the info pane
          --  (the label is drawn twice per row for a faux-bold weight).

@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Calculate_Main_View_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;

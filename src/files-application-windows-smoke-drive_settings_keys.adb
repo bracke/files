@@ -2,6 +2,7 @@ with Files.Fs_Primitives;
 with Guikit.Settings_Panel;
 with Hostkit.Fs;
 with Files.Model.Settings_Pane;
+with Files.Rendering.Layouts;
 
 separate (Files.Application.Windows.Smoke)
    procedure Drive_Settings_Keys
@@ -193,9 +194,9 @@ separate (Files.Application.Windows.Smoke)
                Snapshot : constant Files.Rendering.View_Snapshot :=
                  Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
                Layout   : constant Files.Rendering.Layout_Metrics :=
-                 Files.Rendering.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+                 Files.Rendering.Layouts.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
             begin
-               for Cell of Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
+               for Cell of Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
                   if Cell.Visible_Index = Files.Model.Selection.Selected_Index (Runtime.Model) then
                      return Cell.Height > 0;
                   end if;
@@ -216,9 +217,9 @@ separate (Files.Application.Windows.Smoke)
                Snapshot : constant Files.Rendering.View_Snapshot :=
                  Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
                Layout   : constant Files.Rendering.Layout_Metrics :=
-                 Files.Rendering.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+                 Files.Rendering.Layouts.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
             begin
-               for Cell of Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
+               for Cell of Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
                   if Cell.Visible_Index = Visible_Index and then Cell.Height > 0 and then Frame_W > 0 then
                      Runtime.Handle.Drag_Start_X :=
                        Glfw.Input.Mouse.Coordinate

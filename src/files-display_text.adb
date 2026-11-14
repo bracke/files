@@ -161,7 +161,7 @@ package body Files.Display_Text is
 
    function Humanized_Time_Text
      (Value : Ada.Calendar.Time;
-      Now   : Ada.Calendar.Time := Ada.Calendar.Clock)
+      Now   : Ada.Calendar.Time)
       return String
    is
       function Within_A_Minute return Boolean is

@@ -79,6 +79,14 @@ package Files.UI is
    --  @return Bottom bar height in pixels.
    function Bottom_Bar_Height (Line_Height : Positive) return Natural;
 
+   --  The bottom bar's top edge in a window Height tall, 0 when the window
+   --  is no taller than the bar.
+   --
+   --  @param Height Window height in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The bar's top Y in pixels.
+   function Bottom_Bar_Y (Height : Natural; Line_Height : Positive) return Natural;
+
    --  Geometry of the open sort dropdown: the menu rectangle (it opens upward
    --  from the bottom bar, left-aligned with the sort button), the top of its
    --  first row, the row height, and the row count (one row per sort field).

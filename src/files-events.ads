@@ -29,7 +29,8 @@ package Files.Events is
       Conflict_Click_Input_Action,
       Paste_Cancel_Input_Action,
       Search_Scope_Toggle_Input_Action,
-      Label_Picker_Choice_Input_Action);
+      Label_Picker_Choice_Input_Action,
+      Right_Click_Input_Action);
 
    --  Which paste-conflict-dialog control a Conflict_Click_Input_Action hit.
    type Conflict_Button_Kind is
@@ -110,6 +111,16 @@ package Files.Events is
          when Label_Picker_Choice_Input_Action =>
             --  The chosen swatch (No_Label clears).
             Label : Files.Types.Color_Label := Files.Types.No_Label;
+         when Right_Click_Input_Action =>
+            --  Where the context menu opens, and what lies there: the item
+            --  drawn there in the snapshot (0 for none), the details header,
+            --  or the open context menu itself.
+            Menu_X       : Natural := 0;
+            Menu_Y       : Natural := 0;
+            In_Main_View : Boolean := False;
+            Target_Item  : Natural := 0;
+            On_Header    : Boolean := False;
+            Over_Menu    : Boolean := False;
          when No_Input_Action
             | Path_Favorite_Toggle_Input_Action
             | Tree_Pick_Confirm_Input_Action
@@ -150,6 +161,26 @@ package Files.Events is
       Height      : Natural;
       Activate    : Boolean := False;
       Modifiers   : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Line_Height : Positive)
+      return Input_Action;
+
+   --  Translate a right click into the context-menu action it asks for. A
+   --  coordinate on or past the window's right or bottom edge names no pixel
+   --  and is no action.
+   --
+   --  @param Snapshot The snapshot the frame on screen was built from.
+   --  @param X Horizontal window coordinate.
+   --  @param Y Vertical window coordinate.
+   --  @param Width Window width in pixels.
+   --  @param Height Window height in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return A Right_Click_Input_Action, or No_Input_Action.
+   function Translate_Right_Click
+     (Snapshot    : Files.Rendering.View_Snapshot;
+      X           : Natural;
+      Y           : Natural;
+      Width       : Natural;
+      Height      : Natural;
       Line_Height : Positive)
       return Input_Action;
 

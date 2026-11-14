@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Interaction)
    procedure Test_Scroll_Targets_Pane_Under_Cursor (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -13,11 +14,11 @@ separate (Files_Suite.Interaction)
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Target_W, Target_H, Line);
-         Info     : constant Files.Rendering.Info_Pane_Layout :=
-           Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line);
-         Main     : constant Files.Rendering.Main_View_Layout :=
-           Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Target_W, Target_H, Line);
+         Info     : constant Files.Rendering.Layouts.Info_Pane_Layout :=
+           Files.Rendering.Layouts.Calculate_Info_Pane_Layout (Snapshot, Layout, Line);
+         Main     : constant Files.Rendering.Layouts.Main_View_Layout :=
+           Files.Rendering.Layouts.Calculate_Main_View_Layout (Snapshot, Layout, Line);
       begin
          Assert (Info.Width > 0 and then Info.Height > 0, "the info pane has a hittable region");
          Assert
@@ -80,7 +81,7 @@ separate (Files_Suite.Interaction)
          Fits   : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Wide   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Fits, Window_W, Window_H, Line);
+           Files.Rendering.Layouts.Calculate_Layout (Fits, Window_W, Window_H, Line);
          Action : constant Files.Events.Input_Action :=
            Files.Events.Translate_Scroll_At
              (Fits,

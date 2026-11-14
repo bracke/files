@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files.Events)
    function Translate_Scroll_At
      (Snapshot    : Files.Rendering.View_Snapshot;
@@ -15,7 +16,7 @@ separate (Files.Events)
       --  Only the frame: each region's own layout is worked out in the branch
       --  that asks whether the wheel is over it, and only there.
       Layout  : constant Files.Rendering.Layout_Metrics :=
-        Files.Rendering.Calculate_Layout (Snapshot, Width, Height, Line_Height);
+        Files.Rendering.Layouts.Calculate_Layout (Snapshot, Width, Height, Line_Height);
 
       function Within
         (Value  : Natural;
@@ -49,11 +50,11 @@ separate (Files.Events)
       --  The wheel over the open folder tree: Over is False, with no action,
       --  when it is elsewhere.
       procedure Tree_Scroll (Over : out Boolean; Result : out Input_Action) is
-         Tree     : constant Files.Rendering.Tree_Panel_Layout :=
-           Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
+         Tree     : constant Files.Rendering.Layouts.Tree_Panel_Layout :=
+           Files.Rendering.Layouts.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
          Count    : constant Natural := Natural (Snapshot.Tree_Rows.Length);
          Capacity : constant Natural :=
-           Files.Rendering.Tree_Row_Capacity (Snapshot, Tree);
+           Files.Rendering.Layouts.Tree_Row_Capacity (Snapshot, Tree);
       begin
          Over := Within (X, Tree.X, Tree.Width) and then Within (Y, Tree.Y, Tree.Height);
          Result :=
@@ -61,7 +62,7 @@ separate (Files.Events)
             else Bounded_Scroll_Action
                    (Scroll_Tree_Panel,
                     Snapshot.Tree_Panel_Scroll_Rows,
-                    Files.Rendering.Tree_Max_Scroll (Snapshot, Tree)));
+                    Files.Rendering.Layouts.Tree_Max_Scroll (Snapshot, Tree)));
       end Tree_Scroll;
 
       --  These overlays own pointer input but do not currently expose a
@@ -82,8 +83,8 @@ separate (Files.Events)
 
       if Snapshot.Command_Palette_Open then
          declare
-            Palette : constant Files.Rendering.Command_Palette_Layout :=
-              Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height);
+            Palette : constant Files.Rendering.Layouts.Command_Palette_Layout :=
+              Files.Rendering.Layouts.Calculate_Command_Palette_Layout (Layout, Line_Height);
          begin
             if Within (X, Palette.Results_X, Palette.Results_Width)
               and then Within (Y, Palette.Results_Y, Palette.Results_Height)
@@ -103,8 +104,7 @@ separate (Files.Events)
       if Snapshot.Settings_Pane_Open then
          declare
             Settings_Pane : constant Guikit.Layout.Settings_Pane_Layout :=
-              Guikit.Layout.Calculate_Settings_Pane_Layout
-                (Width, Height, Layout.Toolbar_Height, Line_Height);
+              Files.Rendering.Layouts.Settings_Pane_Region (Layout, Line_Height);
          begin
             if Within (X, Settings_Pane.X, Settings_Pane.Width)
               and then Within (Y, Settings_Pane.Y, Settings_Pane.Height)
@@ -138,15 +138,15 @@ separate (Files.Events)
 
       if Snapshot.Info_Pane_Open then
          declare
-            Info : constant Files.Rendering.Info_Pane_Layout :=
-              Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
+            Info : constant Files.Rendering.Layouts.Info_Pane_Layout :=
+              Files.Rendering.Layouts.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
          begin
             if Within (X, Info.X, Info.Width) and then Within (Y, Info.Y, Info.Height) then
                return
                  Bounded_Scroll_Action
                    (Scroll_Info_Pane,
                     Snapshot.Info_Pane_Scroll_Lines,
-                    Files.Rendering.Info_Pane_Max_Scroll (Info, Line_Height));
+                    Files.Rendering.Layouts.Info_Pane_Max_Scroll (Info, Line_Height));
             end if;
          end;
       end if;
@@ -155,14 +155,14 @@ separate (Files.Events)
         and then Within (Y, Layout.Main_Y, Layout.Main_Height)
       then
          declare
-            Main : constant Files.Rendering.Main_View_Layout :=
-              Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
+            Main : constant Files.Rendering.Layouts.Main_View_Layout :=
+              Files.Rendering.Layouts.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
          begin
             return
               Bounded_Scroll_Action
                 (Scroll_Main_View,
                  Snapshot.Main_View_Scroll_Lines,
-                 Files.Rendering.Main_View_Max_Scroll (Main, Line_Height));
+                 Files.Rendering.Layouts.Main_View_Max_Scroll (Main, Line_Height));
          end;
       end if;
 

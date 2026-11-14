@@ -40,7 +40,7 @@ package Files.Display_Text is
    --  @return Its text.
    function Humanized_Time_Text
      (Value : Ada.Calendar.Time;
-      Now   : Ada.Calendar.Time := Ada.Calendar.Clock)
+      Now   : Ada.Calendar.Time)
       return String;
 
    --  @param Value A number.

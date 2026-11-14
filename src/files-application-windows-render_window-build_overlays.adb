@@ -1,4 +1,5 @@
 with Files.Overlays;
+with Files.Rendering.Layouts;
 separate (Files.Application.Windows.Render_Window)
    procedure Build_Overlays is
       Snapshot    : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Drawn_Slot);
@@ -7,7 +8,7 @@ separate (Files.Application.Windows.Render_Window)
       if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Command_Palette_Overlay) then
          declare
             Layout : constant Files.Rendering.Layout_Metrics :=
-              Files.Rendering.Calculate_Layout (Snapshot, Natural (Width), Natural (Height), Line_Height);
+              Files.Rendering.Layouts.Calculate_Layout (Snapshot, Natural (Width), Natural (Height), Line_Height);
          begin
             Palette.Shown := True;
             Files.Overlays.Build_Palette_Frame
@@ -30,10 +31,9 @@ separate (Files.Application.Windows.Render_Window)
       if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Settings_Pane_Overlay) then
          declare
             Layout : constant Files.Rendering.Layout_Metrics :=
-              Files.Rendering.Calculate_Layout (Snapshot, Natural (Width), Natural (Height), Line_Height);
+              Files.Rendering.Layouts.Calculate_Layout (Snapshot, Natural (Width), Natural (Height), Line_Height);
             Pane : constant Guikit.Layout.Settings_Pane_Layout :=
-              Guikit.Layout.Calculate_Settings_Pane_Layout
-                (Natural (Width), Natural (Height), Layout.Toolbar_Height, Line_Height);
+              Files.Rendering.Layouts.Settings_Pane_Region (Layout, Line_Height);
          begin
             Settings.Shown := True;
             Files.Overlays.Build_Settings_Frame
@@ -48,9 +48,11 @@ separate (Files.Application.Windows.Render_Window)
                   Line_Height => Line_Height),
                Focused       => Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input,
                Hover_X       =>
-                 (if Runtime.Cached_Inputs.Has_Hover then Integer (Runtime.Cached_Inputs.Hover_X) else -1),
+                 (if Runtime.Cached_Inputs.Pointer.Has_Hover
+                  then Integer (Runtime.Cached_Inputs.Pointer.Hover_X) else -1),
                Hover_Y       =>
-                 (if Runtime.Cached_Inputs.Has_Hover then Integer (Runtime.Cached_Inputs.Hover_Y) else -1),
+                 (if Runtime.Cached_Inputs.Pointer.Has_Hover
+                  then Integer (Runtime.Cached_Inputs.Pointer.Hover_Y) else -1),
                Rectangles    => Settings.Rectangles,
                Text          => Settings.Text,
                Accessibility => Settings.Accessibility);

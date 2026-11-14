@@ -1,3 +1,5 @@
+with Ada.Calendar.Formatting;
+
 package body Files.Timing is
 
    function Elapsed
@@ -65,5 +67,21 @@ package body Files.Timing is
       when Ada.Calendar.Time_Error =>
          return False;
    end Elapsed;
+
+   function Minute_Start (T : Ada.Calendar.Time) return Ada.Calendar.Time is
+      Year       : Ada.Calendar.Year_Number;
+      Month      : Ada.Calendar.Month_Number;
+      Day        : Ada.Calendar.Day_Number;
+      Hour       : Ada.Calendar.Formatting.Hour_Number;
+      Minute     : Ada.Calendar.Formatting.Minute_Number;
+      Second     : Ada.Calendar.Formatting.Second_Number;
+      Sub_Second : Ada.Calendar.Formatting.Second_Duration;
+   begin
+      Ada.Calendar.Formatting.Split (T, Year, Month, Day, Hour, Minute, Second, Sub_Second, Time_Zone => 0);
+      return Ada.Calendar.Formatting.Time_Of (Year, Month, Day, Hour, Minute, 0, 0.0, Time_Zone => 0);
+   exception
+      when Ada.Calendar.Time_Error =>
+         return T;
+   end Minute_Start;
 
 end Files.Timing;

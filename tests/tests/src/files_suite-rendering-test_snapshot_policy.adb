@@ -6,11 +6,11 @@ separate (Files_Suite.Rendering)
       use Files.Snapshot_Policy;
 
       function Act
-        (Valid, Revision, Settings, Scroll : Boolean := True;
+        (Valid, Revision, Settings, Scroll, Minute : Boolean := True;
          Rows : Boolean := False;
          Row_Settings : Boolean := True;
          Pasting, Elapsed : Boolean := False) return Snapshot_Action is
-        (Action_For (Valid, Revision, Settings, Scroll, Rows, Row_Settings, Pasting, Elapsed));
+        (Action_For (Valid, Revision, Settings, Scroll, Minute, Rows, Row_Settings, Pasting, Elapsed));
    begin
       Assert (Act = Reuse, "nothing changed: reuse");
       Assert (Act (Scroll => False) = Patch_Scroll, "only a scroll offset moved: patch it, no rebuild");
@@ -41,4 +41,14 @@ separate (Files_Suite.Rendering)
         (Act (Pasting => True, Revision => False, Rows => False) = Rebuild,
          "rows that changed during a paste are rebuilt at once");
       Assert (Act (Elapsed => True) = Reuse, "the interval means nothing without a paste");
+      Assert
+        (Act (Minute => False, Rows => True) = Patch_Rows,
+         "a new minute redraws the relative times against it, keeping the rows");
+      Assert
+        (Act (Minute => False, Rows => True, Scroll => False) = Patch_Rows,
+         "a new minute with a scroll takes the offsets as well");
+      Assert
+        (Act (Minute => False, Pasting => True, Rows => True) = Patch_Rows,
+         "a paste's interval does not hold back a new minute");
+      Assert (Act (Minute => False) = Rebuild, "a new minute with changed rows rebuilds");
    end Test_Snapshot_Policy;

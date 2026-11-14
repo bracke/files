@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Tree_Max_Scroll
      (Snapshot : View_Snapshot;
       Layout   : Tree_Panel_Layout)

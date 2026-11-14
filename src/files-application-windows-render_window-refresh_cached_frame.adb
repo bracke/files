@@ -12,26 +12,29 @@ separate (Files.Application.Windows.Render_Window)
         Mouse_Down
         and then Runtime.Drag_Source_Index /= 0
         and then Runtime.Handle.Drag_Moved;
-      Current_Minute : constant Natural := Wall_Clock_Minute;
       Inputs : constant Frame_Inputs :=
-        (Width          => Natural (Width),
-         Height         => Natural (Height),
-         Line_Height    => Line_Height,
-         Hover_X        => Hover_X,
-         Hover_Y        => Hover_Y,
-         Has_Hover      => Has_Hover_Now,
-         Has_Press      => Has_Press_Now,
-         Drag_Item      => Runtime.Drag_Source_Index,
-         Has_Drag       => Has_Drag_Now,
-         Marquee_Active => Runtime.Marquee.Active,
-         Marquee_X      => Runtime.Marquee.Rect_X,
-         Marquee_Y      => Runtime.Marquee.Rect_Y,
-         Marquee_W      => Runtime.Marquee.Rect_W,
-         Marquee_H      => Runtime.Marquee.Rect_H);
+        (Width       => Natural (Width),
+         Height      => Natural (Height),
+         Line_Height => Line_Height,
+         --  A press and a drag are where the pointer is.
+         Pointer     =>
+           (Hover_X         => Hover_X,
+            Hover_Y         => Hover_Y,
+            Has_Hover       => Has_Hover_Now,
+            Pressed_X       => Hover_X,
+            Pressed_Y       => Hover_Y,
+            Has_Press       => Has_Press_Now,
+            Drag_Item_Index => Runtime.Drag_Source_Index,
+            Drag_X          => Hover_X,
+            Drag_Y          => Hover_Y,
+            Has_Drag        => Has_Drag_Now,
+            Marquee_Active  => Runtime.Marquee.Active,
+            Marquee_X       => Runtime.Marquee.Rect_X,
+            Marquee_Y       => Runtime.Marquee.Rect_Y,
+            Marquee_W       => Runtime.Marquee.Rect_W,
+            Marquee_H       => Runtime.Marquee.Rect_H));
       Inputs_Match : constant Boolean :=
-        Runtime.Frame_Cache_Valid
-        and then Runtime.Cached_Minute = Current_Minute
-        and then Runtime.Cached_Inputs = Inputs;
+        Runtime.Frame_Cache_Valid and then Runtime.Cached_Inputs = Inputs;
 
       --  Rebuild the cached frame from Snapshot and record the input keys it
       --  was built for. Snapshot is an in-parameter (passed by reference, not
@@ -42,27 +45,11 @@ separate (Files.Application.Windows.Render_Window)
          Runtime.Cached_Frame :=
            Files.Rendering.Build_Frame_Commands
              (Snapshot    => Snapshot,
-              Width       => Natural (Width),
-              Height      => Natural (Height),
-              Line_Height => Line_Height,
-              Pointer =>
-                (Hover_X => Hover_X,
-                 Hover_Y => Hover_Y,
-                 Has_Hover => Has_Hover_Now,
-                 Pressed_X => Hover_X,
-                 Pressed_Y => Hover_Y,
-                 Has_Press => Has_Press_Now,
-                 Drag_Item_Index => Runtime.Drag_Source_Index,
-                 Drag_X => Hover_X,
-                 Drag_Y => Hover_Y,
-                 Has_Drag => Has_Drag_Now,
-                 Marquee_Active => Runtime.Marquee.Active,
-                 Marquee_X => Runtime.Marquee.Rect_X,
-                 Marquee_Y => Runtime.Marquee.Rect_Y,
-                 Marquee_W => Runtime.Marquee.Rect_W,
-                 Marquee_H => Runtime.Marquee.Rect_H));
+              Width       => Inputs.Width,
+              Height      => Inputs.Height,
+              Line_Height => Inputs.Line_Height,
+              Pointer     => Inputs.Pointer);
          Runtime.Cached_Inputs := Inputs;
-         Runtime.Cached_Minute := Current_Minute;
          Runtime.Frame_Cache_Valid := True;
          --  With the key and presented= traces, CI checks that the frame
          --  shown after a key is one drawn with the selection it moved to.

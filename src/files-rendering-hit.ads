@@ -1,3 +1,5 @@
+with Files.Rendering.Layouts;
+
 --  Pure geometry hit-tests: map a window pixel to the item, row, header cell,
 --  overlay control, or toolbar/bottom-bar command under it.
 --
@@ -7,6 +9,8 @@
 --  filesystem, or the GPU. Input translation (Files.Events) and the window
 --  layer call these; the renderer itself never needs them.
 package Files.Rendering.Hit is
+
+   use Files.Rendering.Layouts;
 
    --  Whether a window coordinate is on the main view. The folder tree and
    --  the info pane sit beside it, so its rectangle is all of it.
@@ -32,6 +36,19 @@ package Files.Rendering.Hit is
       X    : Natural;
       Y    : Natural)
       return Natural;
+
+   --  Whether a point lies on a shown context menu (a row, a separator or
+   --  its padding).
+   --
+   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
+   --  @param X Window X coordinate.
+   --  @param Y Window Y coordinate.
+   --  @return True when the menu is visible and contains the point.
+   function Context_Menu_Contains
+     (Menu : Context_Menu_Layout;
+      X    : Natural;
+      Y    : Natural)
+      return Boolean;
 
    --  Return the paste-conflict-dialog control containing a point, if any.
    --

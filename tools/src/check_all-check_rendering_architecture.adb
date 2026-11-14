@@ -4,6 +4,12 @@ separate (Check_All)
       Rendering_Spec : constant String := Root & "/src/files-rendering.ads";
       Hit_Body       : constant String := Root & "/src/files-rendering-hit.adb";
       Hit_Spec       : constant String := Root & "/src/files-rendering-hit.ads";
+      Layouts_Spec   : constant String := Root & "/src/files-rendering-layouts.ads";
+      Layouts_Body   : constant String := Root & "/src/files-rendering-layouts.adb";
+      Geometry_Spec  : constant String := Root & "/src/files-rendering-geometry.ads";
+      Geometry_Body  : constant String := Root & "/src/files-rendering-geometry.adb";
+      Text_Spec      : constant String := Root & "/src/files-rendering-text.ads";
+      Text_Body      : constant String := Root & "/src/files-rendering-text.adb";
       Fonts_Body     : constant String := Root & "/src/files-fonts.adb";
       Fonts_Spec     : constant String := Root & "/src/files-fonts.ads";
       Application_Body : constant String := Root & "/src/files-application.adb";
@@ -36,6 +42,12 @@ separate (Check_All)
       Check_Rendering_Unit (Rendering_Spec, "rendering spec");
       Check_Rendering_Unit (Rendering_Body, "rendering body");
       Check_Rendering_Unit (Hit_Spec, "hit-testing spec");
+      Check_Rendering_Unit (Layouts_Spec, "layouts spec");
+      Check_Rendering_Unit (Layouts_Body, "layouts body");
+      Check_Rendering_Unit (Geometry_Spec, "rendering geometry spec");
+      Check_Rendering_Unit (Geometry_Body, "rendering geometry body");
+      Check_Rendering_Unit (Text_Spec, "text rendering spec");
+      Check_Rendering_Unit (Text_Body, "text rendering body");
 
       --  Lock the Files.* import boundary of the rendering layer through the
       --  shared helper. The allow-lists are the units each source actually
@@ -63,14 +75,29 @@ separate (Check_All)
           To_Unbounded_String ("Files.File_Types"),
           To_Unbounded_String ("Files.Fonts"),
           To_Unbounded_String ("Files.Localization"),
+          To_Unbounded_String ("Files.Rendering.Geometry"),
+          To_Unbounded_String ("Files.Rendering.Layouts"),
           To_Unbounded_String ("Files.UI")]);
       --  Hit-testing stays pure geometry: it may import only the domain UI
-      --  layout it maps pixels through (the body is also covered above as a
-      --  files-rendering-* source).
+      --  layout it maps pixels through and the rendering layer's own
+      --  geometry (the body is also covered above as a files-rendering-*
+      --  source).
       Require_Only_Allowed_With_Clauses
         (Hit_Body,
          "Files.",
-         [To_Unbounded_String ("Files.UI")]);
+         [To_Unbounded_String ("Files.Rendering.Geometry"),
+          To_Unbounded_String ("Files.UI")]);
+      --  The layouts and the text read no model and no files: snapshots in,
+      --  geometry or glyphs out.
+      Require_Only_Allowed_With_Clauses
+        (Layouts_Spec,
+         "Files.",
+         [To_Unbounded_String ("Files.Commands"),
+          To_Unbounded_String ("Files.Types")]);
+      Require_Only_Allowed_With_Clauses
+        (Text_Spec,
+         "Files.",
+         No_Units);
 
       --  A subunit inherits its parent's context and may add with clauses
       --  of its own, which the two lists above would not see. Every
@@ -111,8 +138,11 @@ separate (Check_All)
             To_Unbounded_String ("Files.Model.Status_Samples"),
             To_Unbounded_String ("Files.Model.Tree_Panel"),
             To_Unbounded_String ("Files.Quick_Look"),
+            To_Unbounded_String ("Files.Rendering.Geometry"),
+            To_Unbounded_String ("Files.Rendering.Layouts"),
             To_Unbounded_String ("Files.Root_Labels"),
             To_Unbounded_String ("Files.Settings"),
+            To_Unbounded_String ("Files.Timing"),
             To_Unbounded_String ("Files.Types"),
             To_Unbounded_String ("Files.UI")];
       begin
@@ -213,7 +243,9 @@ separate (Check_All)
             end if;
          end Require_At_Most;
       begin
-         Require_At_Most ("files-rendering.adb", 1_451);
+         Require_At_Most ("files-rendering.adb", 133);
+         Require_At_Most ("files-rendering-layouts.adb", 407);
+         Require_At_Most ("files-rendering-geometry.adb", 584);
          Require_At_Most ("files-rendering-build_frame_commands.adb", 908);
          Require_At_Most ("files-application-windows.adb", 1_476);
       end;

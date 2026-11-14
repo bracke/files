@@ -1,5 +1,11 @@
+with Ada.Calendar;
+
+with Files.Rendering.Layouts;
+
 --  Test-only access to private subprograms of Files.Rendering, kept out of the program.
 package Files.Rendering.Testing is
+
+   use Files.Rendering.Layouts;
 
    --  Return the palette color role that renders a color label's swatch/dot.
    --  No_Label resolves to Muted_Text_Color; it is never drawn, so the value
@@ -61,5 +67,33 @@ package Files.Rendering.Testing is
      (Layout      : Layout_Metrics;
       Line_Height : Positive)
       return Paste_Progress_Layout;
+
+   --  Build_Snapshot at a given time.
+   --
+   --  @param Model Source window model.
+   --  @param Settings Settings model.
+   --  @param Now The time the snapshot shows the folder at.
+   --  @return The snapshot.
+   function Build_Snapshot_At
+     (Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Now      : Ada.Calendar.Time)
+      return View_Snapshot;
+
+   --  Build_Snapshot as Build_Snapshot_Into builds it when the rows are
+   --  kept: Rows_From's rows are taken and only their selected flags set,
+   --  at Rows_From's time.
+   --
+   --  @param Model Source window model.
+   --  @param Settings Settings model.
+   --  @param Rows_From A snapshot of this model whose rows are still right
+   --    but for which are selected (the model's Rows_Revision has not moved
+   --    since it was built).
+   --  @return The snapshot.
+   function Build_Snapshot_Keeping_Rows
+     (Model     : Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Rows_From : View_Snapshot)
+      return View_Snapshot;
 
 end Files.Rendering.Testing;

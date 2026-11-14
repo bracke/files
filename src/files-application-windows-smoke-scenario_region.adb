@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files.Application.Windows.Smoke)
    function Scenario_Region
      (Runtime  : Runtime_Window;
@@ -10,7 +11,7 @@ separate (Files.Application.Windows.Smoke)
       Snapshot    : constant Files.Rendering.View_Snapshot :=
         Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
       Layout      : constant Files.Rendering.Layout_Metrics :=
-        Files.Rendering.Calculate_Layout (Snapshot, Frame_W, Frame_H, Line_Height);
+        Files.Rendering.Layouts.Calculate_Layout (Snapshot, Frame_W, Frame_H, Line_Height);
    begin
       if Frame_W = 0 or else Frame_H = 0 or else Layout.Width = 0 then
          return (others => <>);
@@ -34,8 +35,8 @@ separate (Files.Application.Windows.Smoke)
             --  The selected item's cell rectangle must hold ink: its icon,
             --  label and selection fill render there.
             declare
-               Items        : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-                 Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
+               Items        : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+                 Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
                Target_Index : Natural := 0;
             begin
                for Item of Snapshot.Items loop

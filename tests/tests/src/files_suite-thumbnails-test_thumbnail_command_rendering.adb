@@ -1,3 +1,4 @@
+with Files.Rendering.Text;
 separate (Files_Suite.Thumbnails)
    procedure Test_Thumbnail_Command_Rendering (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -55,7 +56,7 @@ separate (Files_Suite.Thumbnails)
               Width       => 1000,
               Height      => 800,
               Line_Height => 20);
-         Empty_Text : Files.Rendering.Text_Render_Result;
+         Empty_Text : Files.Rendering.Text.Text_Render_Result;
          Thumbnail_Batch : Guikit.Vulkan.Submission_Batch;
          Found_Thumbnail_Command : Boolean := False;
          Found_Thumbnail_Icon    : Boolean := False;

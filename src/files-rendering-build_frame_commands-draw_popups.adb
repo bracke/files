@@ -1,5 +1,29 @@
 separate (Files.Rendering.Build_Frame_Commands)
    procedure Draw_Popups is
+      --  The chrome of a centered, titled modal panel (Quick Look, the label
+      --  picker): drop shadow, pane, border, the accent band along its top,
+      --  its accessibility node, title and close button. The panel owns
+      --  pointer and keyboard input while open, so the inactive file-view
+      --  controls behind it leave the accessibility frame.
+      procedure Draw_Titled_Panel
+        (X, Y, W, H                : Natural;
+         Title_X, Title_Y, Title_W : Natural;
+         Title                     : UString;
+         Name                      : UString;
+         Description               : UString := Null_Unbounded_String)
+      is
+         Accent_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (3, Line_Height), H);
+      begin
+         Result.Accessibility.Clear;
+         Add_Overlay_Drop_Shadow (X, Y, W, H);
+         Add_Overlay_Rect (X, Y, W, H, Pane_Color);
+         Add_Overlay_Border (X, Y, W, H, Border_Color);
+         Add_Overlay_Rect (X, Y, W, Accent_H, Selection_Color);
+         Add_Accessibility_Node (Role_Dialog, X, Y, W, H, Name, Description);
+         Add_Overlay_Text (Title_X, Title_Y, Title_W, Line_Height, Title, Fit => True);
+         Draw_Close_Button (X, Y, W, H, Overlay => True);
+      end Draw_Titled_Panel;
+
       --  The Quick Look panel, drawn from its own part of the snapshot.
       procedure Draw_Quick_Look (Look : Quick_Look_Snapshot) is separate;
    begin
@@ -11,32 +35,16 @@ separate (Files.Rendering.Build_Frame_Commands)
          declare
             Picker  : constant Label_Picker_Layout :=
               Calculate_Label_Picker_Layout (Layout, Line_Height);
-            Margin  : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
-            Title_X : constant Natural := Guikit.Layout.Saturating_Add (Picker.X, Margin);
-            Title_Y : constant Natural :=
-              Guikit.Layout.Saturating_Add (Picker.Y, Guikit.Layout.Panel_Edge_Inset (Line_Height));
-            --  The accent band along the panel's top edge.
-            Accent_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (3, Line_Height), Picker.Height);
             --  The keyboard highlight's second ring sits this far inside a swatch.
             Ring_Inset : constant Natural := Guikit.Layout.Scaled (2, Line_Height);
-            Title_W : constant Natural :=
-              (if Picker.Width > Saturating_Multiply (Margin, 2)
-               then Picker.Width - Saturating_Multiply (Margin, 2) else Picker.Width);
          begin
             --  The picker consumes all background input until a color is
-            --  chosen or it is dismissed, so expose only the picker controls
-            --  to assistive technology while it is open.
-            Result.Accessibility.Clear;
-            Add_Overlay_Drop_Shadow (Picker.X, Picker.Y, Picker.Width, Picker.Height);
-            Add_Overlay_Rect (Picker.X, Picker.Y, Picker.Width, Picker.Height, Pane_Color);
-            Add_Overlay_Border (Picker.X, Picker.Y, Picker.Width, Picker.Height, Border_Color);
-            Add_Overlay_Rect (Picker.X, Picker.Y, Picker.Width, Accent_H, Selection_Color);
-            Add_Accessibility_Node
-              (Role_Dialog, Picker.X, Picker.Y, Picker.Width, Picker.Height,
-               Localized ("accessibility.label_picker"));
-            Add_Overlay_Text
-              (Title_X, Title_Y, Title_W, Line_Height,
-               Localized ("label_picker.title"), Fit => True);
+            --  chosen or it is dismissed.
+            Draw_Titled_Panel
+              (Picker.X, Picker.Y, Picker.Width, Picker.Height,
+               Picker.Title_X, Picker.Title_Y, Picker.Title_W,
+               Title => Localized ("label_picker.title"),
+               Name  => Localized ("accessibility.label_picker"));
 
             for Index in Picker.Swatches'Range loop
                declare
@@ -86,8 +94,6 @@ separate (Files.Rendering.Build_Frame_Commands)
                     (Role_Button, Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height, Name);
                end;
             end loop;
-
-            Draw_Close_Button (Picker.X, Picker.Y, Picker.Width, Picker.Height, Overlay => True);
          end;
       end if;
 
@@ -126,6 +132,16 @@ separate (Files.Rendering.Build_Frame_Commands)
                --  has no selected accent bar, so each row's accent is set to the
                --  selection colour, which renders Draw_Palette_Row's accent
                --  invisible against a selected row's background.
+               type Sort_Row is record
+                  Field    : Files.Types.Sort_Field;
+                  Y        : Natural;
+                  Selected : Boolean;
+                  Enabled  : Boolean;
+                  Label    : UString;
+               end record;
+               --  Each row worked out once, for its fill and then for its
+               --  separator and accessibility node drawn over the fills.
+               Rows : array (1 .. Menu.Row_Count) of Sort_Row;
                List_Rows    : Guikit.List_Panel.List_Panel_Row_Vectors.Vector;
                Discard_A11y : Guikit.Draw.Accessibility_Node_Vectors.Vector;
                Config : constant Guikit.List_Panel.List_Panel_Configuration :=
@@ -134,30 +150,39 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Show_Alternate_Rows => False,
                   others              => <>);
             begin
-               for Row in 1 .. Menu.Row_Count loop
+               for Row in Rows'Range loop
                   declare
                      Field    : constant Files.Types.Sort_Field := Files.UI.Sort_Menu_Row_Field (Row);
-                     Row_Y    : constant Natural :=
-                       Guikit.Layout.Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
                      Selected : constant Boolean := Field = Snapshot.Sort_Field;
-                     Hovered  : constant Boolean :=
-                       Has_Hover and then Contains_Point (Menu_X, Row_Y, Menu_W, Row_H, Hover_X, Hover_Y);
+                  begin
+                     Rows (Row) :=
+                       (Field    => Field,
+                        Y        =>
+                          Guikit.Layout.Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H)),
+                        Selected => Selected,
+                        Enabled  => Snapshot.Command_Enabled (Sort_Field_Command (Field)),
+                        Label    =>
+                          To_Unbounded_String
+                            (Sort_Field_Label (Field) & (if Selected then " " & Direction_Text else "")));
+                  end;
+               end loop;
+
+               for Row in Rows'Range loop
+                  declare
+                     This        : Sort_Row renames Rows (Row);
+                     Hovered     : constant Boolean :=
+                       Has_Hover and then Contains_Point (Menu_X, This.Y, Menu_W, Row_H, Hover_X, Hover_Y);
                      Highlighted : constant Boolean := Row = Snapshot.Sort_Menu_Highlight;
-                     Pressed  : constant Boolean := Is_Pressed (Menu_X, Row_Y, Menu_W, Row_H);
-                     Enabled  : constant Boolean := Snapshot.Command_Enabled (Sort_Field_Command (Field));
-                     Label    : constant UString :=
-                       To_Unbounded_String
-                         (Sort_Field_Label (Field)
-                          & (if Selected then " " & Direction_Text else ""));
+                     Pressed     : constant Boolean := Is_Pressed (Menu_X, This.Y, Menu_W, Row_H);
                   begin
                      List_Rows.Append
                        (Guikit.List_Panel.List_Panel_Row'
-                          (Label            => Label,
-                           Selected         => Selected,
-                           Enabled          => Enabled,
-                           Label_Color      => (if Enabled then Text_Color else Disabled_Text_Color),
+                          (Label            => This.Label,
+                           Selected         => This.Selected,
+                           Enabled          => This.Enabled,
+                           Label_Color      => (if This.Enabled then Text_Color else Disabled_Text_Color),
                            Accent_Color     => Selection_Color,
-                           Has_Background   => not Selected,
+                           Has_Background   => not This.Selected,
                            Background_Color =>
                              (if Pressed then Pressed_Color
                               elsif Hovered or else Highlighted then Hover_Color
@@ -181,31 +206,20 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Draw_Chrome   => False,
                   Row_Height    => Row_H);
 
-               for Row in 1 .. Menu.Row_Count loop
-                  declare
-                     Field : constant Files.Types.Sort_Field := Files.UI.Sort_Menu_Row_Field (Row);
-                     Row_Y : constant Natural :=
-                       Guikit.Layout.Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
-                     Selected : constant Boolean := Field = Snapshot.Sort_Field;
-                     Label : constant UString :=
-                       To_Unbounded_String
-                         (Sort_Field_Label (Field)
-                          & (if Selected then " " & Direction_Text else ""));
-                  begin
-                     if Row > 1 then
-                        Add_Overlay_Rect (Row_X, Row_Y, Row_W, 1, Border_Color);
-                     end if;
-                     Add_Accessibility_Node
-                       (Role_List_Item,
-                        Menu_X,
-                        Row_Y,
-                        Menu_W,
-                        Row_H,
-                        Label,
-                        Localized (Files.Commands.Description_Key (Sort_Field_Command (Field))),
-                        Enabled  => Snapshot.Command_Enabled (Sort_Field_Command (Field)),
-                        Selected => Selected);
-                  end;
+               for Row in Rows'Range loop
+                  if Row > Rows'First then
+                     Add_Overlay_Rect (Row_X, Rows (Row).Y, Row_W, 1, Border_Color);
+                  end if;
+                  Add_Accessibility_Node
+                    (Role_List_Item,
+                     Menu_X,
+                     Rows (Row).Y,
+                     Menu_W,
+                     Row_H,
+                     Rows (Row).Label,
+                     Localized (Files.Commands.Description_Key (Sort_Field_Command (Rows (Row).Field))),
+                     Enabled  => Rows (Row).Enabled,
+                     Selected => Rows (Row).Selected);
                end loop;
             end;
          end;

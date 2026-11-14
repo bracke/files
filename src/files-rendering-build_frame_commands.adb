@@ -67,9 +67,8 @@ separate (Files.Rendering)
         Calculate_Tree_Row_Layout (Snapshot, Tree_Panel, Line_Height);
       Info_Pane     : constant Info_Pane_Layout := Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
       Settings_Pane : constant Guikit.Layout.Settings_Pane_Layout :=
-        Guikit.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
-      Bottom_Y      : constant Natural :=
-        (if Height > Layout.Bottom_Bar_Height then Height - Layout.Bottom_Bar_Height else 0);
+        Settings_Pane_Region (Layout, Line_Height);
+      Bottom_Y      : constant Natural := Files.UI.Bottom_Bar_Y (Height, Line_Height);
       Bottom_Pad    : constant Natural := Guikit.Layout.Scaled (Guikit.Layout.Bottom_Bar_Padding, Line_Height);
       Bottom_Content_Y : constant Natural :=
         Guikit.Layout.Saturating_Add (Bottom_Y, Optically_Raised (Bottom_Pad, Line_Height));
@@ -824,7 +823,7 @@ separate (Files.Rendering)
          end if;
 
          return
-           To_Unbounded_String (Humanized_Time_Text (Item.Modified_Time));
+           To_Unbounded_String (Humanized_Time_Text (Item.Modified_Time, Snapshot.Now));
       end Detail_Time_Text;
 
       function Detail_Created_Text (Item : Item_Snapshot) return UString is
@@ -834,7 +833,7 @@ separate (Files.Rendering)
          end if;
 
          return
-           To_Unbounded_String (Humanized_Time_Text (Item.Creation_Time));
+           To_Unbounded_String (Humanized_Time_Text (Item.Creation_Time, Snapshot.Now));
       end Detail_Created_Text;
 
       --  The root selector, context menu and paste dialogs.
@@ -866,18 +865,6 @@ separate (Files.Rendering)
    begin
       Draw_Toolbar;
       Draw_Bottom_Bar;
-      if Layout.Bottom_Bar_Height > 0
-        and then Bottom.Sort_Button_X > 0
-        and then Bottom.Sort_Button_Width > 0
-      then
-         Add_Rect (Bottom.Sort_Button_X, Bottom_Y, 1, Layout.Bottom_Bar_Height, Border_Color);
-      end if;
-      if Layout.Bottom_Bar_Height > 0 and then Bottom.Info_X > 0 then
-         Add_Rect (Bottom.Info_X, Bottom_Y, 1, Layout.Bottom_Bar_Height, Border_Color);
-      end if;
-      if Layout.Bottom_Bar_Height > 0 and then Bottom.Info_Pane_X > 0 then
-         Add_Rect (Bottom.Info_Pane_X, Bottom_Y, 1, Layout.Bottom_Bar_Height, Border_Color);
-      end if;
 
       Draw_Main_View;
 

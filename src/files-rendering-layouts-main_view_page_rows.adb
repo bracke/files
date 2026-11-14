@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Main_View_Page_Rows
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;

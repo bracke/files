@@ -1,4 +1,5 @@
 with Files.Model.Context_Menu;
+with Files.Rendering.Layouts;
 separate (Files_Suite.Context_Menu)
    procedure Test_Header_Menu_Column_Config (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -26,10 +27,10 @@ separate (Files_Suite.Context_Menu)
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Rows     : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
-         Row      : Files.Rendering.Item_Layout;
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Rows     : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
+         Row      : Files.Rendering.Layouts.Item_Layout;
          Header_X : Natural := 0;
          Header_Y : Natural := 0;
          In_Main  : Boolean;

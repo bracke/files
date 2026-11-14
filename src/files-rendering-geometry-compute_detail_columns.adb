@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Geometry)
    function Compute_Detail_Columns
      (Visible     : Files.Types.Detail_Column_Visibility;
       Widths      : Files.Types.Detail_Column_Widths;

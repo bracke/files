@@ -4,6 +4,7 @@ with Files.Model.Label_Picker;
 with Files.Model.Quick_Look;
 with Files.Model.Settings_Pane;
 with Files.Model.Tree_Panel;
+with Files.Rendering.Layouts;
 separate (Files_Suite.Context_Menu)
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -19,9 +20,9 @@ separate (Files_Suite.Context_Menu)
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Items    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Items    : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
          In_Main  : Boolean;
          Index    : Natural;
       begin

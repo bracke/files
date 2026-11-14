@@ -1,5 +1,6 @@
 with Files.Model.Context_Menu;
 with Files.Model.Tree_Panel;
+with Files.Rendering.Layouts;
 separate (Files_Suite.Tree)
    procedure Test_Tree_Toggle_Command_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,11 +21,11 @@ separate (Files_Suite.Tree)
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Panel    : constant Files.Rendering.Tree_Panel_Layout :=
-           Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line);
-         Rows     : constant Files.Rendering.Tree_Row_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Tree_Row_Layout (Snapshot, Panel, Line);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Panel    : constant Files.Rendering.Layouts.Tree_Panel_Layout :=
+           Files.Rendering.Layouts.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line);
+         Rows     : constant Files.Rendering.Layouts.Tree_Row_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Calculate_Tree_Row_Layout (Snapshot, Panel, Line);
          Target   : constant String := Files.Model.Tree_Panel.Node_Path (Model, 1);
          Expected : constant Files.File_System.Path_Result :=
            Files.File_System.Normalize_Path (Target);
@@ -33,7 +34,7 @@ separate (Files_Suite.Tree)
       begin
          Assert (not Rows.Is_Empty, "the open tree lays out at least one row");
          declare
-            Row : constant Files.Rendering.Tree_Row_Layout := Rows.Element (1);
+            Row : constant Files.Rendering.Layouts.Tree_Row_Layout := Rows.Element (1);
          begin
             X := Row.Triangle_X + Line + 2;
             Y := Row.Y + Row.Height / 2;

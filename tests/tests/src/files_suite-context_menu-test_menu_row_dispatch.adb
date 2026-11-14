@@ -1,5 +1,6 @@
 with Files.Model.Clipboard;
 with Files.Model.Context_Menu;
+with Files.Rendering.Layouts;
 separate (Files_Suite.Context_Menu)
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,9 +18,9 @@ separate (Files_Suite.Context_Menu)
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Items    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Items    : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
       begin
          Item_Center (Model, 2, X, Y, Found);
          Assert (Found, "a layout cell exists for the menu-anchor item");
@@ -35,8 +36,8 @@ separate (Files_Suite.Context_Menu)
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
-         Menu     : constant Files.Rendering.Context_Menu_Layout :=
-           Files.Rendering.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
+         Menu     : constant Files.Rendering.Layouts.Context_Menu_Layout :=
+           Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
          Target_Row : Natural := 0;
          Row_X      : Natural;
          Row_Y      : Natural;

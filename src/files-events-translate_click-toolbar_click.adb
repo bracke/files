@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files.Events.Translate_Click)
 --  The toolbar (path, breadcrumbs, filter, scope chip) and the bottom bar.
 procedure Toolbar_Click (Handled : out Boolean; Result : out Input_Action) is
@@ -8,15 +9,15 @@ procedure Toolbar_Click (Handled : out Boolean; Result : out Input_Action) is
    Scope_Chip       : constant Guikit.Layout.Scope_Chip_Region :=
      Guikit.Layout.Filter_Scope_Chip_Region_Of
        (Toolbar, Files.UI.Filter_Scope_Chip_Width (Line_Height), Line_Height);
-   Path_Star        : constant Files.Rendering.Path_Favorite_Star_Bounds :=
-     Files.Rendering.Path_Favorite_Star_Region (Width, Line_Height);
+   Path_Star        : constant Files.Rendering.Layouts.Path_Favorite_Star_Bounds :=
+     Files.Rendering.Layouts.Path_Favorite_Star_Region (Width, Line_Height);
    Breadcrumb_Index : constant Natural :=
      Files.Rendering.Hit.Breadcrumb_At
-       (Files.Rendering.Calculate_Breadcrumb_Layout (Snapshot, Width, Line_Height), X, Y);
-   Path_Text        : constant Files.Rendering.Field_Text_Region :=
-     Files.Rendering.Path_Field_Text_Region (Toolbar, Width, Line_Height);
-   Filter_Text      : constant Files.Rendering.Field_Text_Region :=
-     Files.Rendering.Filter_Field_Text_Region (Toolbar, Line_Height);
+       (Files.Rendering.Layouts.Calculate_Breadcrumb_Layout (Snapshot, Width, Line_Height), X, Y);
+   Path_Text        : constant Files.Rendering.Layouts.Field_Text_Region :=
+     Files.Rendering.Layouts.Path_Field_Text_Region (Toolbar, Width, Line_Height);
+   Filter_Text      : constant Files.Rendering.Layouts.Field_Text_Region :=
+     Files.Rendering.Layouts.Filter_Field_Text_Region (Toolbar, Line_Height);
 begin
    Handled := True;
    if Path_Star.Visible
@@ -73,7 +74,7 @@ begin
       Command :=
         Files.Rendering.Hit.Bottom_Bar_Command_At
           (X, Y, Width, Height, Snapshot.Sort_Field,
-           Files.Rendering.Free_Space_Label_Width (Snapshot, Line_Height), Line_Height);
+           Files.Rendering.Layouts.Free_Space_Label_Width (Snapshot, Line_Height), Line_Height);
    end if;
 
    if Command /= Files.Commands.No_Command then

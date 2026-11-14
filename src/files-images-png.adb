@@ -389,8 +389,8 @@ package body Files.Images.Png is
       Channels : Positive;
       Pixels   : in out Pixel_Vectors.Vector)
    is
-      function Sample (Column, Channel : Natural) return Natural is
-        (Natural (Row (Row'First + Offset (Column * Channels + Channel))));
+      function Sample (Column, Channel : Natural) return Channel_Value is
+        (Channel_Value (Row (Row'First + Offset (Column * Channels + Channel))));
    begin
       for Column in 0 .. Found.Width - 1 loop
          Pixels.Append
@@ -401,9 +401,9 @@ package body Files.Images.Png is
                Alpha =>
                  (if Channels = 4 then Sample (Column, 3)
                   elsif Found.Transparent
-                    and then Sample (Column, 0) = Found.Transparent_Red
-                    and then Sample (Column, 1) = Found.Transparent_Green
-                    and then Sample (Column, 2) = Found.Transparent_Blue
+                    and then Natural (Sample (Column, 0)) = Found.Transparent_Red
+                    and then Natural (Sample (Column, 1)) = Found.Transparent_Green
+                    and then Natural (Sample (Column, 2)) = Found.Transparent_Blue
                   then 0
                   else 255)));
       end loop;

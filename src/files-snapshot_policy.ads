@@ -9,8 +9,8 @@ package Files.Snapshot_Policy with Pure is
       Patch_Rows,    --  the rows stand but for which are selected: keep them
       Rebuild);      --  the items, the settings or the time it shows moved
 
-   --  Nothing a snapshot holds depends on the clock: relative times are
-   --  formatted when the frame is built (its cache keys the minute), and a
+   --  A snapshot holds the minute it shows the folder at (relative times
+   --  are drawn against it), so a new minute rebuilds all but its rows; a
    --  new day that moves the date bands reorders the items, which moves the
    --  rows revision.
    --
@@ -18,6 +18,7 @@ package Files.Snapshot_Policy with Pure is
    --  @param Same_Revision The model has not changed since.
    --  @param Same_Settings The snapshot settings have not changed since.
    --  @param Same_Scroll No scroll offset has moved since.
+   --  @param Same_Minute The wall-clock minute has not moved since.
    --  @param Same_Rows The model's rows have not changed since but for the
    --    selection (Files.Model.Rows_Revision).
    --  @param Same_Row_Settings The settings the rows read have not changed
@@ -28,7 +29,7 @@ package Files.Snapshot_Policy with Pure is
    --    the build.
    --  @return What to do with the snapshot.
    function Action_For
-     (Valid, Same_Revision, Same_Settings, Same_Scroll : Boolean;
+     (Valid, Same_Revision, Same_Settings, Same_Scroll, Same_Minute : Boolean;
       Same_Rows, Same_Row_Settings : Boolean;
       Pasting, Paste_Interval_Elapsed : Boolean)
       return Snapshot_Action
@@ -36,9 +37,9 @@ package Files.Snapshot_Policy with Pure is
        --  A paste's progress moves the revision with every item; it waits
        --  for the interval unless the rows themselves changed.
        elsif Pasting and then not Paste_Interval_Elapsed
-         and then Same_Rows and then Same_Row_Settings and then Same_Settings
+         and then Same_Rows and then Same_Row_Settings and then Same_Settings and then Same_Minute
        then (if Same_Scroll then Reuse else Patch_Scroll)
-       elsif Same_Revision and then Same_Settings and then not Pasting
+       elsif Same_Revision and then Same_Settings and then Same_Minute and then not Pasting
        then (if Same_Scroll then Reuse else Patch_Scroll)
        elsif Same_Rows and then Same_Row_Settings then Patch_Rows
        else Rebuild);

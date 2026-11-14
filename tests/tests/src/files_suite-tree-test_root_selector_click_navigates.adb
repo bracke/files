@@ -1,4 +1,5 @@
 with Files.Model.Command_Palette;
+with Files.Rendering.Layouts;
 separate (Files_Suite.Tree)
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,11 +24,11 @@ separate (Files_Suite.Tree)
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Selector : constant Files.Rendering.Root_Selector_Layout :=
-           Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line);
-         Rows     : constant Files.Rendering.Root_Path_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Selector);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Selector : constant Files.Rendering.Layouts.Root_Selector_Layout :=
+           Files.Rendering.Layouts.Calculate_Root_Selector_Layout (Snapshot, Layout, Line);
+         Rows     : constant Files.Rendering.Layouts.Root_Path_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Calculate_Root_Path_Layout (Snapshot, Selector);
          Action   : Files.Events.Input_Action;
       begin
          for Row of Rows loop

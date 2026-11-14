@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Drags)
    procedure Test_Column_Resize_Drag (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -25,10 +26,10 @@ separate (Files_Suite.Drags)
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Rows     : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
-         Row      : Files.Rendering.Item_Layout;
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Rows     : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
+         Row      : Files.Rendering.Layouts.Item_Layout;
          Found    : Boolean := False;
          Sep_X    : Natural;
          Base_W   : Natural;
@@ -98,9 +99,9 @@ separate (Files_Suite.Drags)
             After_Snapshot : constant Files.Rendering.View_Snapshot :=
               Files.Rendering.Build_Snapshot (Model, Settings);
             After_Layout   : constant Files.Rendering.Layout_Metrics :=
-              Files.Rendering.Calculate_Layout (After_Snapshot, Window_W, Window_H, Line);
-            After_Rows     : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-              Files.Rendering.Calculate_Item_Layout (After_Snapshot, After_Layout, Line);
+              Files.Rendering.Layouts.Calculate_Layout (After_Snapshot, Window_W, Window_H, Line);
+            After_Rows     : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+              Files.Rendering.Layouts.Calculate_Item_Layout (After_Snapshot, After_Layout, Line);
          begin
             for Cell of After_Rows loop
                if Cell.Visible_Index = 1 then

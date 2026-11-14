@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Info_Pane_Max_Scroll
      (Info        : Info_Pane_Layout;
       Line_Height : Positive)

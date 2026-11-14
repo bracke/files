@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Refresh)
    --  The window scrolled the selection into view only after a key moved
    --  it. A selection set by name -- a reload that names its item (a new or
@@ -29,16 +30,18 @@ separate (Files_Suite.Refresh)
       declare
          Snapshot : Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Width => 1000, Height => 600, Line_Height => 20);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Width => 1000, Height => 600, Line_Height => 20);
          Lines    : constant Natural :=
-           Files.Rendering.Scroll_Lines_Revealing (Snapshot, Layout, 20, Files.Model.Selection.Selected_Index (Model));
+           Files.Rendering.Layouts.Scroll_Lines_Revealing
+             (Snapshot, Layout, 20, Files.Model.Selection.Selected_Index (Model));
       begin
          Assert (Lines > 0, "revealing the far item scrolls the view");
          Files.Model.Set_Main_View_Scroll_Lines (Model, Lines);
          Files.Model.Clear_Reveal (Model);
          Snapshot.Main_View_Scroll_Lines := Lines;
          Files_Suite.Support.Assert_Equal
-           (Files.Rendering.Scroll_Lines_Revealing (Snapshot, Layout, 20, Files.Model.Selection.Selected_Index (Model)),
+           (Files.Rendering.Layouts.Scroll_Lines_Revealing
+              (Snapshot, Layout, 20, Files.Model.Selection.Selected_Index (Model)),
             Lines, "once revealed the item is in view");
       end;
       Assert (not Files.Model.Reveal_Is_Pending (Model), "a revealed selection waits no more");

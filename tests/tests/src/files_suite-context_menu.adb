@@ -54,6 +54,7 @@ package body Files_Suite.Context_Menu is
    procedure Test_Item_Menu_Contents_And_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Empty_Area_Menu_Contents (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Header_Menu_Column_Config (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Right_Click_Translation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Extract_Enablement_By_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash_Enablement_By_Context (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Enablement_Reflects_Clipboard (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -97,6 +98,9 @@ package body Files_Suite.Context_Menu is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Header_Menu_Column_Config'Access,
          "details-header menu lists the column toggles and grouping and flips a setting");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Right_Click_Translation'Access,
+         "a right click is translated against the snapshot: item, header, empty view, chrome, the menu itself");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Extract_Enablement_By_Selection'Access,
          "extract enables only when the selection includes an archive");
@@ -148,6 +152,8 @@ package body Files_Suite.Context_Menu is
    procedure Test_Empty_Area_Menu_Contents (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Header_Menu_Column_Config (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Right_Click_Translation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Extract_Enablement_By_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

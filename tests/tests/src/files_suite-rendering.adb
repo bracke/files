@@ -26,6 +26,7 @@ with Files.Model.Selection;
 with Files.Model.Rename;
 with Files.Model.Folder_Sizes;
 with Files.UI;
+with Files.Timing;
 with Guikit.Utf8;
 with Files.Quick_Look;
 with Interfaces;
@@ -33,6 +34,8 @@ with Guikit.Draw;
 with Guikit.Shared_Bytes;
 with Files.Rendering;
 with Files.Rendering.Hit;
+with Files.Rendering.Layouts;
+with Files.Rendering.Text;
 with Files.Accessibility;
 with Files.Icon_Themes;
 with Files.Settings;
@@ -56,6 +59,8 @@ package body Files_Suite.Rendering is
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
    use Files.Rendering;
+   use Files.Rendering.Layouts;
+   use Files.Rendering.Text;
    use Guikit.Draw;
    use type Files.Commands.Command_Id;
    use type Guikit.Draw.Render_Color;
@@ -96,6 +101,7 @@ package body Files_Suite.Rendering is
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Modified_Time_Is_Local (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Frame_Shows_Snapshot_Time (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Far_Future_Modified_Time (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_A11y_Stop_Is_Final (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -249,6 +255,9 @@ package body Files_Suite.Rendering is
          "bottom bar shows filesystem free space when known and omits it when unknown");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Modified_Time_Is_Local'Access, "the Modified column shows local time, not UTC");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Frame_Shows_Snapshot_Time'Access,
+         "a frame draws relative times against its snapshot's minute, not the clock");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Far_Future_Modified_Time'Access,
          "A far-future file date does not break the frame");
@@ -483,6 +492,8 @@ package body Files_Suite.Rendering is
    is
       Snapshot : View_Snapshot;
    begin
+      --  Shown now, as a window's snapshot is.
+      Snapshot.Now := Files.Timing.Minute_Start (Ada.Calendar.Clock);
       Snapshot.View_Mode := Mode;
       for Index in 1 .. Count loop
          Snapshot.Items.Append
@@ -665,6 +676,7 @@ package body Files_Suite.Rendering is
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Modified_Time_Is_Local (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Frame_Shows_Snapshot_Time (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Far_Future_Modified_Time (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

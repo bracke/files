@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Interaction)
    procedure Test_Overlays_Contain_Wheel_Input (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -57,16 +58,16 @@ separate (Files_Suite.Interaction)
          end loop;
          declare
             Tree_Layout : constant Files.Rendering.Layout_Metrics :=
-              Files.Rendering.Calculate_Layout
+              Files.Rendering.Layouts.Calculate_Layout
                 (Overlay, Target_W, Target_H, Line);
-            Tree : constant Files.Rendering.Tree_Panel_Layout :=
-              Files.Rendering.Calculate_Tree_Panel_Layout
+            Tree : constant Files.Rendering.Layouts.Tree_Panel_Layout :=
+              Files.Rendering.Layouts.Calculate_Tree_Panel_Layout
                 (Overlay, Tree_Layout, Line);
             Tree_Frame : constant Files.Rendering.Frame_Commands :=
               Files.Rendering.Build_Frame_Commands
                 (Overlay, Target_W, Target_H, Line);
             Capacity : constant Natural :=
-              Files.Rendering.Tree_Row_Capacity (Overlay, Tree);
+              Files.Rendering.Layouts.Tree_Row_Capacity (Overlay, Tree);
             Maximum : constant Natural :=
               (if Natural (Overlay.Tree_Rows.Length) > Capacity
                then Natural (Overlay.Tree_Rows.Length) - Capacity
@@ -106,8 +107,8 @@ separate (Files_Suite.Interaction)
                begin
                   Overlay.Tree_Panel_Scroll_Rows := Near_End;
                   declare
-                     Paged_Tree : constant Files.Rendering.Tree_Panel_Layout :=
-                       Files.Rendering.Calculate_Tree_Panel_Layout
+                     Paged_Tree : constant Files.Rendering.Layouts.Tree_Panel_Layout :=
+                       Files.Rendering.Layouts.Calculate_Tree_Panel_Layout
                          (Overlay, Tree_Layout, Line);
                      Paged_Frame : constant Files.Rendering.Frame_Commands :=
                        Files.Rendering.Build_Frame_Commands
@@ -154,10 +155,10 @@ separate (Files_Suite.Interaction)
          Assert_Overlay_Swallows_Scroll (Overlay, "the destination picker");
          declare
             Tree_Layout : constant Files.Rendering.Layout_Metrics :=
-              Files.Rendering.Calculate_Layout
+              Files.Rendering.Layouts.Calculate_Layout
                 (Overlay, Target_W, Target_H, Line);
-            Tree : constant Files.Rendering.Tree_Panel_Layout :=
-              Files.Rendering.Calculate_Tree_Panel_Layout
+            Tree : constant Files.Rendering.Layouts.Tree_Panel_Layout :=
+              Files.Rendering.Layouts.Calculate_Tree_Panel_Layout
                 (Overlay, Tree_Layout, Line);
             Action : constant Files.Events.Input_Action :=
               Files.Events.Translate_Scroll_At

@@ -213,6 +213,7 @@ separate (Files.Controller)
             | Files.Events.Ownership_Edit_Input_Action
             | Files.Events.Conflict_Click_Input_Action
             | Files.Events.Label_Picker_Choice_Input_Action
+            | Files.Events.Right_Click_Input_Action
             | Files.Events.Search_Scope_Toggle_Input_Action
             | Files.Events.Paste_Cancel_Input_Action =>
             null;

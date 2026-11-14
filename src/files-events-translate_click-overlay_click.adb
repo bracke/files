@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files.Events.Translate_Click)
 --  The modal overlays, top-most first: each takes a click it can use and swallows the rest.
 procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
@@ -29,8 +30,8 @@ begin
          use type Files.Rendering.Conflict_Hit_Kind;
          Hit    : constant Files.Rendering.Conflict_Hit_Region :=
            Files.Rendering.Hit.Conflict_Hit_At (Frame, X, Y);
-         Dialog : constant Files.Rendering.Conflict_Dialog_Layout :=
-           Files.Rendering.Calculate_Conflict_Dialog_Layout (Layout, Line_Height);
+         Dialog : constant Files.Rendering.Layouts.Conflict_Dialog_Layout :=
+           Files.Rendering.Layouts.Calculate_Conflict_Dialog_Layout (Layout, Line_Height);
       begin
          case Hit.Kind is
             when Files.Rendering.Conflict_Hit_Replace =>
@@ -65,8 +66,8 @@ begin
    --  inside the panel body is swallowed so nothing behind it reacts.
    if Snapshot.Quick_Look.Open then
       declare
-         QL : constant Files.Rendering.Quick_Look_Layout :=
-           Files.Rendering.Calculate_Quick_Look_Layout (Layout, Line_Height);
+         QL : constant Files.Rendering.Layouts.Quick_Look_Layout :=
+           Files.Rendering.Layouts.Calculate_Quick_Look_Layout (Layout, Line_Height);
       begin
          if Close_Button_Hit (QL.X, QL.Y, QL.Width, QL.Height)
            or else not (Within (X, QL.X, QL.Width) and then Within (Y, QL.Y, QL.Height))
@@ -84,18 +85,18 @@ begin
    --  it, and a click inside the body is swallowed.
    if Snapshot.Label_Picker_Open then
       declare
-         Picker : constant Files.Rendering.Label_Picker_Layout :=
-           Files.Rendering.Calculate_Label_Picker_Layout (Layout, Line_Height);
+         Picker : constant Files.Rendering.Layouts.Label_Picker_Layout :=
+           Files.Rendering.Layouts.Calculate_Label_Picker_Layout (Layout, Line_Height);
       begin
          for Index in Picker.Swatches'Range loop
             declare
-               Swatch : constant Files.Rendering.Label_Swatch_Bounds :=
+               Swatch : constant Files.Rendering.Layouts.Label_Swatch_Bounds :=
                  Picker.Swatches (Index);
             begin
                if Within (X, Swatch.X, Swatch.Width)
                  and then Within (Y, Swatch.Y, Swatch.Height)
                then
-                  Result := Label_Choice_Action (Files.Rendering.Label_For_Swatch (Index));
+                  Result := Label_Choice_Action (Files.Rendering.Layouts.Label_For_Swatch (Index));
                   return;
                end if;
             end;
@@ -162,10 +163,11 @@ begin
    end;
 
    declare
-      Root_Layout : constant Files.Rendering.Root_Selector_Layout :=
-        Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height);
+      Root_Layout : constant Files.Rendering.Layouts.Root_Selector_Layout :=
+        Files.Rendering.Layouts.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height);
       Root_Index  : constant Natural :=
-        Files.Rendering.Hit.Root_Path_At (Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout), X, Y);
+        Files.Rendering.Hit.Root_Path_At
+          (Files.Rendering.Layouts.Calculate_Root_Path_Layout (Snapshot, Root_Layout), X, Y);
    begin
       if Snapshot.Root_Selector_Open
         and then Close_Button_Hit

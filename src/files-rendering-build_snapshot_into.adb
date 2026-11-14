@@ -18,11 +18,13 @@ with Files.Model.Sort_Menu;
 with Files.Model.Status_Samples;
 with Files.Model.Tree_Panel;
 with Files.Model.Pasting;
+with Files.Timing;
 separate (Files.Rendering)
    procedure Build_Snapshot_Into
      (Snapshot  : in out View_Snapshot;
       Model     : Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
+      Now       : Ada.Calendar.Time;
       Keep_Rows : Boolean := False)
    is
 
@@ -92,6 +94,7 @@ separate (Files.Rendering)
             Snapshot.Items.Move (Rows);
          end if;
       end;
+      Snapshot.Now := Files.Timing.Minute_Start (Now);
       Copy_Fields;
       Snapshot_Overlays;
       if Keep_Rows then

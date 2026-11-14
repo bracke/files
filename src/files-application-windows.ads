@@ -16,6 +16,7 @@ private with Files.Commands;
 private with Files.Drop_Events;
 private with Files.Events;
 private with Files.Rendering;
+private with Files.Rendering.Text;
 private with Files.Snapshot_Slots;
 private with Files.Settings;
 private with Files.Types;
@@ -266,9 +267,6 @@ private
    subtype Snapshot_Slot is Files.Snapshot_Slots.Snapshot_Slot;
    use type Snapshot_Slot;
 
-   --  Everything besides the snapshot that a frame is built from: its size
-   --  and the pointer. A frame is rebuilt only when these (or the snapshot,
-   --  or the minute) change, compared as one record.
    --  One window-layer overlay's draw commands (command palette or settings
    --  panel), as merged over the cached frame. Kept from the last present,
    --  an unchanged overlay is not presented again.
@@ -280,21 +278,14 @@ private
       Accessibility : Guikit.Draw.Accessibility_Node_Vectors.Vector;
    end record;
 
+   --  Everything besides the snapshot that a frame is built from: its size
+   --  and the pointer. A frame is rebuilt only when these or the snapshot
+   --  change, compared as one record.
    type Frame_Inputs is record
-      Width          : Natural := 0;
-      Height         : Natural := 0;
-      Line_Height    : Positive := Guikit.Layout.Reference_Line_Height;
-      Hover_X        : Natural := 0;
-      Hover_Y        : Natural := 0;
-      Has_Hover      : Boolean := False;
-      Has_Press      : Boolean := False;
-      Drag_Item      : Natural := 0;
-      Has_Drag       : Boolean := False;
-      Marquee_Active : Boolean := False;
-      Marquee_X      : Natural := 0;
-      Marquee_Y      : Natural := 0;
-      Marquee_W      : Natural := 0;
-      Marquee_H      : Natural := 0;
+      Width       : Natural := 0;
+      Height      : Natural := 0;
+      Line_Height : Positive := Guikit.Layout.Reference_Line_Height;
+      Pointer     : Files.Rendering.Pointer_State := Files.Rendering.No_Pointer;
    end record;
 
    --  Details-header column-resize drag state, owned by the shell exactly like
@@ -392,8 +383,8 @@ private
       --  the pending prefix once this is older than Type_Ahead_Timeout so a fresh
       --  keystroke after a pause starts a new prefix.
       Type_Ahead_Input_At : Ada.Real_Time.Time := Never;
-      Text            : Files.Rendering.Text_Renderer;
-      Text_Ready      : Boolean := False;
+      --  The window's text: its fonts, a failed load's retry, its glyphs.
+      Text            : Files.Rendering.Text.Window_Text;
       --  The size text is drawn at, in framebuffer pixels: the setting's
       --  size times Pixel_Ratio, the framebuffer's pixels per window pixel
       --  (2.0 on a Retina display), so text keeps its size on screen.
@@ -401,18 +392,6 @@ private
       Pixel_Ratio     : Float := 1.0;
       --  The window title last set.
       Shown_Title : Ada.Strings.Unbounded.Unbounded_String;
-      --  The font pixel size text initialization last failed at, or 0. It is
-      --  not retried at that size every frame (nor does the failure keep the
-      --  window presenting); a size change tries again.
-      Text_Failed_Size : Natural := 0;
-      --  When it last failed; it is tried again after Text_Retry_Interval.
-      Text_Failed_At   : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
-      --  The text Text_Glyphs were built from, while Glyph_Text_Valid: equal
-      --  text commands reuse the glyphs (the fonts and atlas stay loaded).
-      Glyph_Text         : Guikit.Draw.Text_Command_Vectors.Vector;
-      Glyph_Overlay_Text : Guikit.Draw.Text_Command_Vectors.Vector;
-      Glyph_Text_Valid   : Boolean := False;
-      Text_Glyphs     : Files.Rendering.Text_Render_Result;
       Vulkan          : Guikit.Vulkan.Vulkan_Renderer;
       Shown           : Boolean := False;
       Fallback_Frames : Natural := 0;
@@ -437,12 +416,9 @@ private
       --  current (Files.Snapshot_Slots; Refresh_Snapshot refreshes them).
       View                 : Files.Snapshot_Slots.View_Slots;
       Cached_Frame         : Files.Rendering.Frame_Commands;
-      --  The pointer and size inputs Cached_Frame was built for.
+      --  The pointer and size inputs Cached_Frame was built for. The time
+      --  it shows is its snapshot's (View_Snapshot.Now).
       Cached_Inputs        : Frame_Inputs;
-      --  Wall-clock minute the cached frame was built in. Relative times
-      --  ("now", "Today 23:50") and the Today / This week group bands are
-      --  computed from the clock, which no other key covers.
-      Cached_Minute        : Natural := 0;
       Last_Glyph_Count : Natural := 0;
       Last_Missing_Glyph_Count : Natural := 0;
       Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=

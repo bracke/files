@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Rendering)
    --  Clicking the counts area toggles hidden files; clicking the free-space
    --  field toggles between free and used space.
@@ -8,7 +9,7 @@ separate (Files_Suite.Rendering)
       Snap.Free_Space_Known := True;
       Snap.Free_Space_Bytes := 12_000_000_000;
       declare
-         Free_W   : constant Natural := Files.Rendering.Free_Space_Label_Width (Snap, 20);
+         Free_W   : constant Natural := Files.Rendering.Layouts.Free_Space_Label_Width (Snap, 20);
          Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
            Files.UI.Calculate_Bottom_Bar_Layout (1000, Snap.Sort_Field, 20);
          BBP      : constant Natural := Guikit.Layout.Bottom_Bar_Padding;

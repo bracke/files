@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Tree)
    procedure Test_Breadcrumb_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -27,8 +28,8 @@ separate (Files_Suite.Tree)
            Files.Rendering.Build_Snapshot (Model, Settings);
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Breadcrumb_Width, Window_H, Line);
-         Rows     : constant Files.Rendering.Breadcrumb_Segment_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Breadcrumb_Layout (Snapshot, Breadcrumb_Width, Line);
+         Rows     : constant Files.Rendering.Layouts.Breadcrumb_Segment_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Calculate_Breadcrumb_Layout (Snapshot, Breadcrumb_Width, Line);
          Action   : Files.Events.Input_Action;
          X, Y     : Natural := 0;
          Found    : Boolean := False;

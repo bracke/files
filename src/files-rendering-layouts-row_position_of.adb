@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Row_Position_Of
      (Snapshot      : View_Snapshot;
       Visible_Index : Natural)

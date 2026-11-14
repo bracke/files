@@ -27,10 +27,10 @@ separate (Files.File_System.Thumbnails)
          begin
             Decoded.Append
               (Rgba_Pixel'
-                 (Red   => Natural (Image.Pixels.Element (Offset)),
-                  Green => Natural (Image.Pixels.Element (Offset + 1)),
-                  Blue  => Natural (Image.Pixels.Element (Offset + 2)),
-                  Alpha => Natural (Image.Pixels.Element (Offset + 3))));
+                 (Red   => Files.Images.Channel_Value (Image.Pixels.Element (Offset)),
+                  Green => Files.Images.Channel_Value (Image.Pixels.Element (Offset + 1)),
+                  Blue  => Files.Images.Channel_Value (Image.Pixels.Element (Offset + 2)),
+                  Alpha => Files.Images.Channel_Value (Image.Pixels.Element (Offset + 3))));
          end;
       end loop;
       Write_Pixels_As_Ppm (Target_Path, Size, Decoded, Image.Width, Image.Height);

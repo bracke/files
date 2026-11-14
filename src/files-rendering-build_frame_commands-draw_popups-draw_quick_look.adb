@@ -2,31 +2,18 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
    --  The Quick Look panel, drawn from its own part of the snapshot.
    procedure Draw_Quick_Look (Look : Quick_Look_Snapshot) is
       QL      : constant Quick_Look_Layout := Calculate_Quick_Look_Layout (Layout, Line_Height);
-      Margin  : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
-      Title_X : constant Natural := Guikit.Layout.Saturating_Add (QL.X, Margin);
-      Title_Y : constant Natural :=
-        Guikit.Layout.Saturating_Add (QL.Y, Guikit.Layout.Panel_Edge_Inset (Line_Height));
-      --  The accent band along the panel's top edge.
-      Accent_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (3, Line_Height), QL.Height);
-      Title_W : constant Natural :=
-        (if QL.Width > Saturating_Multiply (Margin, 2)
-         then QL.Width - Saturating_Multiply (Margin, 2) else QL.Width);
+      --  The panel's padding, which also spaces the info content's icon.
+      Margin  : constant Natural := Titled_Panel_Padding (Line_Height);
    begin
-      --  Quick Look owns pointer and keyboard input while open.  Keep
-      --  inactive file-view controls out of the accessibility frame;
-      --  the dialog description identifies the item being previewed and
-      --  updates as keyboard navigation changes the selection.
-      Result.Accessibility.Clear;
-      Add_Overlay_Drop_Shadow (QL.X, QL.Y, QL.Width, QL.Height);
-      Add_Overlay_Rect (QL.X, QL.Y, QL.Width, QL.Height, Pane_Color);
-      Add_Overlay_Border (QL.X, QL.Y, QL.Width, QL.Height, Border_Color);
-      Add_Overlay_Rect (QL.X, QL.Y, QL.Width, Accent_H, Selection_Color);
-      Add_Accessibility_Node
-        (Role_Dialog, QL.X, QL.Y, QL.Width, QL.Height,
-         Localized ("accessibility.quick_look"), Look.Name);
-      --  Panel title: the previewed item's name, which also serves as the
-      --  content marker tests assert on for every kind.
-      Add_Overlay_Text (Title_X, Title_Y, Title_W, Line_Height, Look.Name, Fit => True);
+      --  The dialog description identifies the item being previewed and
+      --  updates as keyboard navigation changes the selection. The title is
+      --  the previewed item's name, which also serves as the content marker
+      --  tests assert on for every kind.
+      Draw_Titled_Panel
+        (QL.X, QL.Y, QL.Width, QL.Height, QL.Title_X, QL.Title_Y, QL.Title_W,
+         Title       => Look.Name,
+         Name        => Localized ("accessibility.quick_look"),
+         Description => Look.Name);
 
       case Look.Kind is
          when Files.Quick_Look.Image_Content =>
@@ -168,6 +155,4 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
                end if;
             end;
       end case;
-
-      Draw_Close_Button (QL.X, QL.Y, QL.Width, QL.Height, Overlay => True);
    end Draw_Quick_Look;

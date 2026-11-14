@@ -50,6 +50,17 @@ separate (Files.Interaction)
               Files.Controller.Handle_Breadcrumb_Click
                 (Model, Settings, Action.Segment_Index);
             Observe_Controller_Outcome (Outcome, Result);
+         when Files.Events.Right_Click_Input_Action =>
+            Apply_Right_Click
+              (Model             => Model,
+               Settings          => Settings,
+               In_Main           => Action.In_Main_View,
+               Item_Index        => Action.Target_Item,
+               X                 => Action.Menu_X,
+               Y                 => Action.Menu_Y,
+               Result            => Result,
+               In_Details_Header => Action.On_Header,
+               On_Context_Menu   => Action.Over_Menu);
          when Files.Events.Label_Picker_Choice_Input_Action =>
             --  Apply the chosen color label to every selected item and persist
             --  through the same settings-write seam the favorite toggle uses,

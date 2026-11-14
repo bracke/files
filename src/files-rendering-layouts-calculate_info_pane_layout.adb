@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Calculate_Info_Pane_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
@@ -20,7 +20,7 @@ separate (Files.Rendering)
             Rows :=
               Guikit.Layout.Saturating_Add
                 (Rows,
-                 Info_Section_Row_Count (Info, Text_W, Line_Height));
+                 Info_Section_Row_Count (Info, Text_W, Line_Height, Snapshot.Now));
          end loop;
 
          return Rows;

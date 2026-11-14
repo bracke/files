@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files.Application.Windows)
    procedure Fire_Key
      (Runtime   : in out Runtime_Window;
@@ -34,13 +35,13 @@ separate (Files.Application.Windows)
                return Natural
             is
                Layout : constant Files.Rendering.Layout_Metrics :=
-                 Files.Rendering.Calculate_Layout
+                 Files.Rendering.Layouts.Calculate_Layout
                    (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
-               Tree : constant Files.Rendering.Tree_Panel_Layout :=
-                 Files.Rendering.Calculate_Tree_Panel_Layout
+               Tree : constant Files.Rendering.Layouts.Tree_Panel_Layout :=
+                 Files.Rendering.Layouts.Calculate_Tree_Panel_Layout
                    (Snapshot, Layout, Line_Height);
             begin
-               return Files.Rendering.Tree_Row_Capacity (Snapshot, Tree);
+               return Files.Rendering.Layouts.Tree_Row_Capacity (Snapshot, Tree);
             end Capacity_For;
          begin
             --  Key repeats arrive between frames; the current snapshot is

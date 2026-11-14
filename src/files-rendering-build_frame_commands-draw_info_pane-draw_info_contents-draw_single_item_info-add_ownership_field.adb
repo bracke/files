@@ -6,7 +6,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
      (Field   : Info_Section_Field;
       Editing : Boolean)
    is
-      Value      : constant UString := Info_Field_Value (Info, Field);
+      Value      : constant UString := Info_Field_Value (Info, Field, Snapshot.Now);
       Value_Rows : constant Natural := Wrapped_Line_Count (Value, Text_W, Line_Height);
       Value_Row  : Natural;
       Cell_Y     : Integer;

@@ -68,6 +68,9 @@ package body Files.UI is
    function Toolbar_Height (Line_Height : Positive) return Natural is
      (Guikit.Layout.Saturating_Multiply (Line_Height, 2));
 
+   function Bottom_Bar_Y (Height : Natural; Line_Height : Positive) return Natural is
+     (if Height > Bottom_Bar_Height (Line_Height) then Height - Bottom_Bar_Height (Line_Height) else 0);
+
    function Bottom_Bar_Height (Line_Height : Positive) return Natural is
      (Guikit.Layout.Saturating_Add
         (Line_Height,
@@ -90,7 +93,7 @@ package body Files.UI is
       Menu_H    : constant Natural :=
         Guikit.Layout.Saturating_Add
           (Guikit.Layout.Saturating_Multiply (Row_H, Row_Count), Guikit.Layout.Saturating_Multiply (Menu_Pad, 2));
-      Bottom_Y  : constant Natural := (if Height > Row_H then Height - Row_H else 0);
+      Bottom_Y  : constant Natural := Bottom_Bar_Y (Height, Line_Height);
       Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
    begin
       return

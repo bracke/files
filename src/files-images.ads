@@ -1,10 +1,12 @@
 with Ada.Containers.Vectors;
 with Ada.Streams;
+with Interfaces;
 with Files.Types;
 
 --  Raster images decoded to RGBA pixels, from a file (Quick Look and the
 --  thumbnail writers) or from bytes in memory (colour emoji inside a font).
---  gdk-pixbuf does the decoding; this is the one place that binds it.
+--  PNG (Files.Images.Png) and Netpbm (Files.Images.Netpbm) are decoded in
+--  Ada; every other format goes to gdk-pixbuf, which this package binds.
 package Files.Images is
 
    --  The largest source that is decoded: a side, and a pixel count.
@@ -58,12 +60,16 @@ package Files.Images is
       Height : out Natural)
       return Boolean;
 
-   --  One pixel of a raster a thumbnail is made from, each channel 0 .. 255.
+   --  One channel of a pixel, 0 .. 255.
+   subtype Channel_Value is Interfaces.Unsigned_8;
+
+   --  One pixel of a raster a thumbnail is made from: four bytes, so a
+   --  Max_Source_Pixels raster holds 16 MiB.
    type Rgba_Pixel is record
-      Red   : Natural := 0;
-      Green : Natural := 0;
-      Blue  : Natural := 0;
-      Alpha : Natural := 255;
+      Red   : Channel_Value := 0;
+      Green : Channel_Value := 0;
+      Blue  : Channel_Value := 0;
+      Alpha : Channel_Value := 255;
    end record;
 
    --  A raster's pixels, row-major from index 0.

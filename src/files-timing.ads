@@ -44,6 +44,14 @@ package Files.Timing is
       Interval : Duration)
       return Boolean;
 
+   --  The start of the wall-clock minute T falls in (seconds dropped, in
+   --  UTC, so a time zone change cannot move it). What a view snapshot keeps
+   --  of the time it shows a folder at: two built in the same minute agree.
+   --
+   --  @param T A time.
+   --  @return The start of its minute; T itself when it cannot be split.
+   function Minute_Start (T : Ada.Calendar.Time) return Ada.Calendar.Time;
+
    --  How long the program waits, at exit, for a worker task to take a stop
    --  request, and then for it to finish: a stuck task cannot hold the exit
    --  for longer than about two seconds in all.

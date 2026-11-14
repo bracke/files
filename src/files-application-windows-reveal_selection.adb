@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files.Application.Windows)
    procedure Reveal_Selection (Runtime : in out Runtime_Window) is
       Frame_W  : Glfw.Size := 0;
@@ -14,9 +15,9 @@ separate (Files.Application.Windows)
          Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
          Snapshot    : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Current_Slot);
          Layout      : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
          Lines       : constant Natural :=
-           Files.Rendering.Scroll_Lines_Revealing (Snapshot, Layout, Line_Height, Positive (Selected));
+           Files.Rendering.Layouts.Scroll_Lines_Revealing (Snapshot, Layout, Line_Height, Positive (Selected));
       begin
          if Lines /= Files.Model.Main_View_Scroll_Lines (Runtime.Model) then
             Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, Lines);

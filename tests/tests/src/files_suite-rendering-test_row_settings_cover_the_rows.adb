@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 with Files.Settings.Testing;
 separate (Files_Suite.Rendering)
    --  The window keeps a snapshot's rows while Same_Row_Settings holds
@@ -19,13 +20,13 @@ separate (Files_Suite.Rendering)
       Row_Changes : Natural := 0;
 
       procedure Check (Step : String; Changed : Files.Settings.Settings_Model) is
-         Before : aliased constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Base);
+         Before : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Base);
       begin
          Changes := Changes + 1;
          if Files.Settings.Same_Row_Settings (Changed, Files.Settings.Snapshot_Settings_Key_Of (Base)) then
             Assert
-              (Files.Rendering.Build_Snapshot (Model, Changed, Rows_From => Before'Access)
-               = Files.Rendering.Build_Snapshot (Model, Changed),
+              (Files.Rendering.Testing.Build_Snapshot_Keeping_Rows (Model, Changed, Before)
+               = Files.Rendering.Testing.Build_Snapshot_At (Model, Changed, Before.Now),
                Step & ": a change the rows are kept across leaves them as a rebuild draws them");
          else
             Row_Changes := Row_Changes + 1;

@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Drags)
    procedure Test_Column_Reorder_Drag (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -26,10 +27,10 @@ separate (Files_Suite.Drags)
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Rows     : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
-         Row      : Files.Rendering.Item_Layout;
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Rows     : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
+         Row      : Files.Rendering.Layouts.Item_Layout;
          Found    : Boolean := False;
          Header_Y : Natural;
          Cell_X   : Natural;
@@ -110,10 +111,10 @@ separate (Files_Suite.Drags)
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Rows     : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
-         Row      : Files.Rendering.Item_Layout;
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Rows     : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
+         Row      : Files.Rendering.Layouts.Item_Layout;
          Found    : Boolean := False;
          Action   : Files.Events.Input_Action;
       begin

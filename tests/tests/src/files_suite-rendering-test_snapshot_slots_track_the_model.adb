@@ -1,4 +1,6 @@
+with Ada.Calendar;
 with Ada.Real_Time;
+with Files.Rendering.Testing;
 with Files.Snapshot_Slots;
 separate (Files_Suite.Rendering)
    --  The window's two snapshots: after every kind of change, drawn between
@@ -11,6 +13,9 @@ separate (Files_Suite.Rendering)
       Model    : Files.Model.Window_Model;
       Items    : Files.Items.Item_Vectors.Vector;
       View     : Files.Snapshot_Slots.View_Slots;
+      --  One wall-clock time throughout, so a minute turning over mid-test
+      --  cannot make a refresh and the rebuild it is compared with differ.
+      Wall     : constant Ada.Calendar.Time := Ada.Calendar.Clock;
 
       --  Refresh as the window does, then compare; Draw puts the current
       --  slot on screen afterwards, as a render would.
@@ -19,8 +24,8 @@ separate (Files_Suite.Rendering)
          Was_Valid    : constant Boolean := View.Snapshot_Valid;
       begin
          Change.all;
-         Files.Snapshot_Slots.Refresh (View, Model, Settings, Ada.Real_Time.Clock);
-         Assert (View.Snapshots (View.Current_Slot) = Build_Snapshot (Model, Settings),
+         Files.Snapshot_Slots.Refresh (View, Model, Settings, Ada.Real_Time.Clock, Wall);
+         Assert (View.Snapshots (View.Current_Slot) = Files.Rendering.Testing.Build_Snapshot_At (Model, Settings, Wall),
                  Name & ": the current snapshot is the one a rebuild gives");
          if Was_Valid and then View.Current_Slot /= View.Drawn_Slot then
             Assert (View.Snapshots (View.Drawn_Slot) = Drawn_Before,

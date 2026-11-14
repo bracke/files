@@ -91,6 +91,7 @@ separate (Files_Suite.Rendering)
          Boundary_Menu.X := Natural'Last;
          Boundary_Menu.Y := Natural'Last;
          Boundary_Menu.Width := 1;
+         Boundary_Menu.Column_Width := 1;
          Boundary_Menu.Height := 1;
          Boundary_Menu.Row_Height := 1;
          Boundary_Menu.Row_Count := 1;

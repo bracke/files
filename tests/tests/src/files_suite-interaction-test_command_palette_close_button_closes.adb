@@ -1,5 +1,6 @@
 with Files.Overlays;
 with Files.Model.Command_Palette;
+with Files.Rendering.Layouts;
 separate (Files_Suite.Interaction)
    --  Open the command palette, derive its close (X) button from the real
    --  palette layout, click the button's center through the shell's
@@ -24,11 +25,11 @@ separate (Files_Suite.Interaction)
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Palette  : constant Files.Rendering.Command_Palette_Layout :=
-           Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line);
-         Close    : constant Files.Rendering.Close_Button_Layout :=
-           Files.Rendering.Panel_Close_Button
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Palette  : constant Files.Rendering.Layouts.Command_Palette_Layout :=
+           Files.Rendering.Layouts.Calculate_Command_Palette_Layout (Layout, Line);
+         Close    : constant Files.Rendering.Layouts.Close_Button_Layout :=
+           Files.Rendering.Layouts.Panel_Close_Button
              (Palette.X, Palette.Y, Palette.Width, Palette.Height, Line);
          P_Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector;
          P_Text  : Guikit.Draw.Text_Command_Vectors.Vector;

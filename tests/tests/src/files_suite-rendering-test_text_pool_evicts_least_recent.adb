@@ -7,7 +7,7 @@ separate (Files_Suite.Rendering)
       Frame     : constant Frame_Commands := Build_Frame_Commands
         (Sample_Snapshot (2, Files.Types.Small_Icons), Width => 800, Height => 600, Line_Height => 20);
       Renderers : array (1 .. 5) of Text_Renderer;
-      Glyphs    : array (1 .. 5) of Files.Rendering.Text_Render_Result;
+      Glyphs    : array (1 .. 5) of Files.Rendering.Text.Text_Render_Result;
    begin
       --  Four sizes no other test uses fill the pool.
       for Index in 1 .. 4 loop

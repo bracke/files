@@ -1,11 +1,11 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
 function Calculate_Label_Picker_Layout
   (Layout      : Layout_Metrics;
    Line_Height : Positive)
    return Label_Picker_Layout
 is
    Count           : constant Positive := Files.Types.Swatch_Count;
-   Padding         : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
+   Padding         : constant Natural := Titled_Panel_Padding (Line_Height);
    Desired_Gap     : constant Natural := Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4);
    --  A compact centered panel: a single row of square swatches under a
    --  one-line title band. The preferred swatch edge tracks the line height;
@@ -59,6 +59,7 @@ begin
    Result.Y           := Panel_Y;
    Result.Width       := Panel_W;
    Result.Height      := Panel_H;
+   Titled_Panel_Title (Panel_X, Panel_Y, Panel_W, Line_Height, Result.Title_X, Result.Title_Y, Result.Title_W);
    Result.Swatch_Size := Swatch;
    Result.Visible     := Panel_W > 0 and then Panel_H > 0;
    for Index in Result.Swatches'Range loop

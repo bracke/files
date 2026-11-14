@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files_Suite.Drags)
    procedure Test_Marquee_Selection_Drag (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -24,11 +25,11 @@ separate (Files_Suite.Drags)
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Cells    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
-         Cell_1   : constant Files.Rendering.Item_Layout := Cells.Element (1);
-         Cell_2   : constant Files.Rendering.Item_Layout := Cells.Element (2);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Cells    : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
+         Cell_1   : constant Files.Rendering.Layouts.Item_Layout := Cells.Element (1);
+         Cell_2   : constant Files.Rendering.Layouts.Item_Layout := Cells.Element (2);
          Bottom_Y : constant Natural :=
            Cells.Element (Cells.Last_Index).Y
            + Cells.Element (Cells.Last_Index).Height + 20;
@@ -46,7 +47,7 @@ separate (Files_Suite.Drags)
                  "the six-row list leaves empty grid space below the last row");
 
          --  Details rows share an X, so span a nonzero width across rows 1..2.
-         Files.Rendering.Marquee_Rect
+         Files.Rendering.Layouts.Marquee_Rect
            (Start_X   => Cell_1.X + 5,
             Start_Y   => Cell_1.Y + Cell_1.Height / 2,
             Current_X => Cell_1.X + 15,
@@ -98,7 +99,7 @@ separate (Files_Suite.Drags)
             Header_X : constant Natural := Layout.Main_X + Layout.Main_Width / 2;
             Header_Y : constant Natural :=
               (if Cell_1.Y > Line then Cell_1.Y - Line / 2 else Cell_1.Y);
-            Header   : constant Files.Rendering.Detail_Header_Cell :=
+            Header   : constant Files.Rendering.Layouts.Detail_Header_Cell :=
               Files.Rendering.Hit.Details_Header_Cell_At (Snapshot, Layout, Header_X, Header_Y, Line);
             Action   : constant Files.Events.Input_Action :=
               Files.Events.Translate_Click

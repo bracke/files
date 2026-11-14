@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Tree_Row_Capacity
      (Snapshot : View_Snapshot;
       Layout   : Tree_Panel_Layout)

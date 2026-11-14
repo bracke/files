@@ -19,9 +19,6 @@ separate (Files.Application.Windows)
       Settings        : Overlay_Commands;
       Overlay_Changed : Boolean := False;
 
-      use type Ada.Real_Time.Time_Span;
-      use type Guikit.Draw.Text_Command_Vectors.Vector;
-
       --  Build the command palette's or the settings panel's commands, when
       --  shown, over the frame drawn now (their state lives in their
       --  components, not in the cached frame).
@@ -80,9 +77,7 @@ separate (Files.Application.Windows)
       Overlay_Changed := Palette /= Runtime.Last_Palette or else Settings /= Runtime.Last_Settings;
       if Frame_Rebuilt
         or else Overlay_Changed
-        or else (not Runtime.Text_Ready
-                 and then (Runtime.Text_Failed_Size /= Runtime.Font_Pixel_Size
-                           or else Ada.Real_Time.Clock >= Runtime.Text_Failed_At + Text_Retry_Interval))
+        or else Files.Rendering.Text.Retry_Due (Runtime.Text, Runtime.Font_Pixel_Size, Ada.Real_Time.Clock)
       then
          Runtime.Present_Grace := Present_Grace_Frames;
       end if;

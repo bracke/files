@@ -34,9 +34,9 @@ is
    Row_Bytes : Stream_Element_Array (1 .. Stream_Element_Offset (Out_W) * 3);
 
    function Against_White
-     (Channel, Alpha : Natural) return Stream_Element is
+     (Channel, Alpha : Files.Images.Channel_Value) return Stream_Element is
      (Stream_Element
-        ((Channel * Alpha + 255 * (255 - Alpha) + 127) / 255));
+        ((Natural (Channel) * Natural (Alpha) + 255 * (255 - Natural (Alpha)) + 127) / 255));
 begin
    Hostkit.Fs.Create_Stream (Output, Stream_IO.Out_File, Target_Path);
    Stream_IO.Write (Output, Files.Images.Netpbm.P6_Header (Out_W, Out_H));

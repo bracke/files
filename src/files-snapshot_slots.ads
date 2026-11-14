@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Ada.Real_Time;
 with Files.Model;
 with Files.Rendering;
@@ -50,6 +51,8 @@ package Files.Snapshot_Slots is
       --  these are the whole of Build_Snapshot's inputs, so the snapshot is
       --  reused only while both still match -- no explicit invalidation.
       Cached_Settings_Key  : Files.Settings.Snapshot_Settings_Key;
+      --  The wall-clock minute the current snapshot shows (its Now).
+      Cached_Minute        : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
    end record;
 
    --  Ten progress updates a second: a rebuild is O(items), and on every
@@ -64,11 +67,14 @@ package Files.Snapshot_Slots is
    --  @param Model The window's model.
    --  @param Settings The live settings.
    --  @param Now The current time.
+   --  @param Wall_Now The wall-clock time, which the snapshot shows the
+   --    folder at.
    procedure Refresh
      (View     : in out View_Slots;
       Model    : Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Now      : Ada.Real_Time.Time);
+      Now      : Ada.Real_Time.Time;
+      Wall_Now : Ada.Calendar.Time);
 
    --  The other slot.
    --

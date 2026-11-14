@@ -1,7 +1,7 @@
+with Files.Rendering.Layouts;
 separate (Files.Application.Windows)
    procedure Update_Scrollbar_Drag
      (Runtime    : in out Runtime_Window;
-      Cursor_X   : Glfw.Input.Mouse.Coordinate;
       Cursor_Y   : Glfw.Input.Mouse.Coordinate;
       Window_W   : Glfw.Size;
       Window_H   : Glfw.Size;
@@ -10,7 +10,6 @@ separate (Files.Application.Windows)
       Mouse_Down : Boolean)
    is
       use type Files.Events.Scroll_Target;
-      pragma Unreferenced (Cursor_X);
 
       procedure Cancel_Drag is
       begin
@@ -34,7 +33,7 @@ separate (Files.Application.Windows)
          Line_Height  : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
          Snapshot     : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Current_Slot);
          Layout       : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout
+           Files.Rendering.Layouts.Calculate_Layout
              (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
 
          procedure Apply_Drag
@@ -91,8 +90,8 @@ separate (Files.Application.Windows)
          case Runtime.Scrollbar_Drag_Target is
             when Files.Events.Scroll_Main_View =>
                declare
-                  Main_View : constant Files.Rendering.Main_View_Layout :=
-                    Files.Rendering.Calculate_Main_View_Layout
+                  Main_View : constant Files.Rendering.Layouts.Main_View_Layout :=
+                    Files.Rendering.Layouts.Calculate_Main_View_Layout
                       (Snapshot, Layout, Line_Height);
                begin
                   if Main_View.Scrollbar_Visible then
@@ -100,7 +99,7 @@ separate (Files.Application.Windows)
                        (Track_Y     => Main_View.Scrollbar_Y,
                         Track_H     => Main_View.Scrollbar_Track_Height,
                         Thumb_H     => Main_View.Scrollbar_Height,
-                        Maximum     => Files.Rendering.Main_View_Max_Scroll (Main_View, Line_Height),
+                        Maximum     => Files.Rendering.Layouts.Main_View_Max_Scroll (Main_View, Line_Height),
                         Apply_Lines => Set_Main_Lines'Access);
                   else
                      Cancel_Drag;
@@ -108,8 +107,8 @@ separate (Files.Application.Windows)
                end;
             when Files.Events.Scroll_Info_Pane =>
                declare
-                  Info_Pane : constant Files.Rendering.Info_Pane_Layout :=
-                    Files.Rendering.Calculate_Info_Pane_Layout
+                  Info_Pane : constant Files.Rendering.Layouts.Info_Pane_Layout :=
+                    Files.Rendering.Layouts.Calculate_Info_Pane_Layout
                       (Snapshot, Layout, Line_Height);
                begin
                   if Info_Pane.Scrollbar_Visible then
@@ -117,7 +116,7 @@ separate (Files.Application.Windows)
                        (Track_Y     => Info_Pane.Scrollbar_Y,
                         Track_H     => Info_Pane.Scrollbar_Track_Height,
                         Thumb_H     => Info_Pane.Scrollbar_Height,
-                        Maximum     => Files.Rendering.Info_Pane_Max_Scroll (Info_Pane, Line_Height),
+                        Maximum     => Files.Rendering.Layouts.Info_Pane_Max_Scroll (Info_Pane, Line_Height),
                         Apply_Lines => Set_Info_Lines'Access);
                   else
                      Cancel_Drag;
@@ -125,10 +124,10 @@ separate (Files.Application.Windows)
                end;
             when Files.Events.Scroll_Tree_Panel =>
                declare
-                  Tree_Panel : constant Files.Rendering.Tree_Panel_Layout :=
-                    Files.Rendering.Calculate_Tree_Panel_Layout
+                  Tree_Panel : constant Files.Rendering.Layouts.Tree_Panel_Layout :=
+                    Files.Rendering.Layouts.Calculate_Tree_Panel_Layout
                       (Snapshot, Layout, Line_Height);
-                  Maximum : constant Natural := Files.Rendering.Tree_Max_Scroll (Snapshot, Tree_Panel);
+                  Maximum : constant Natural := Files.Rendering.Layouts.Tree_Max_Scroll (Snapshot, Tree_Panel);
                begin
                   if Tree_Panel.Scrollbar_Visible
                     and then Tree_Panel.Row_Height > 0

@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts;
 separate (Files.Events.Translate_Click)
 --  The main view: details header, items, and the empty-space marquee.
 procedure Main_View_Click (Handled : out Boolean; Result : out Input_Action) is
@@ -7,7 +8,7 @@ begin
    --  A press on a header separator begins a column resize and takes
    --  precedence over the sort click on the header cell behind it.
    declare
-      Separator : constant Files.Rendering.Detail_Column_Separator :=
+      Separator : constant Files.Rendering.Layouts.Detail_Column_Separator :=
         Files.Rendering.Hit.Details_Header_Separator_At (Snapshot, Layout, X, Y, Line_Height);
    begin
       if Separator.Present then
@@ -24,7 +25,7 @@ begin
    --  release when the press never crossed the drag threshold, so a reorder
    --  drag never also fires a sort click.
    declare
-      Cell : constant Files.Rendering.Detail_Header_Cell :=
+      Cell : constant Files.Rendering.Layouts.Detail_Header_Cell :=
         Files.Rendering.Hit.Details_Header_Cell_At (Snapshot, Layout, X, Y, Line_Height);
    begin
       if Cell.Present then
@@ -40,28 +41,28 @@ begin
 
    --  The item rectangles, only once the header has not taken the press.
    declare
-      Item_Layout : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-        Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
+      Item_Layout : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+        Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
    begin
       Item_Index := Files.Rendering.Hit.Item_At (Item_Layout, X, Y);
       if Item_Index /= 0 then
          --  Item_At answers the item's visible index; the rows (and their
          --  rectangles) also hold group headers, so look up its row position.
-         Row := Files.Rendering.Row_Position_Of (Snapshot, Item_Index);
+         Row := Files.Rendering.Layouts.Row_Position_Of (Snapshot, Item_Index);
          if Snapshot.Rename_Active
            and then Row /= 0
            and then Row <= Natural (Item_Layout.Length)
            and then Snapshot.Items.Element (Positive (Row)).Renaming
          then
             declare
-               Item_Rect : constant Files.Rendering.Item_Layout :=
+               Item_Rect : constant Files.Rendering.Layouts.Item_Layout :=
                  Item_Layout.Element (Positive (Row));
                Snapshot_Item : constant Files.Rendering.Item_Snapshot :=
                  Snapshot.Items.Element (Positive (Row));
                Field_X : Natural;
                Field_W : Natural;
             begin
-               Files.Rendering.Rename_Field_Extent
+               Files.Rendering.Layouts.Rename_Field_Extent
                  (Item      => Item_Rect,
                   View_Mode => Snapshot.View_Mode,
                   Renaming  => True,

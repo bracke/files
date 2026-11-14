@@ -1,4 +1,4 @@
-separate (Files.Rendering)
+separate (Files.Rendering.Layouts)
    function Calculate_Conflict_Dialog_Layout
      (Layout      : Layout_Metrics;
       Line_Height : Positive)

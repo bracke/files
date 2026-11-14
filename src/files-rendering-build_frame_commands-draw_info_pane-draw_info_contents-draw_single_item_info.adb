@@ -29,7 +29,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
         (Field : Info_Section_Field;
          Color : Render_Color := Text_Color)
       is
-         Display_Value : constant UString := Info_Field_Display_Value (Info, Field);
+         Display_Value : constant UString := Info_Field_Display_Value (Info, Field, Snapshot.Now);
          Value_Rows : constant Natural := Wrapped_Line_Count (Display_Value, Text_W, Line_Height);
       begin
          Add_Info_Label (Current_Row, Info_Field_Label_Key (Field));
@@ -69,7 +69,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
            Natural'Min
              (Saturating_Multiply
                 (Line_Height,
-                 Info_Section_Row_Count (Info, Text_W, Line_Height)),
+                 Info_Section_Row_Count (Info, Text_W, Line_Height, Snapshot.Now)),
               Info_Pane.Height);
          Visible_Y : constant Integer := Integer'Max (Row_Y, Integer (Info_Pane.Y));
          Raw_Bottom : constant Integer :=

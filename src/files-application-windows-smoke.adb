@@ -7,7 +7,7 @@ with Files.Model.Selection;
 
 package body Files.Application.Windows.Smoke is
    use Ada.Strings.Unbounded;
-   use type Files.Rendering.Text_Render_Status;
+   use type Files.Rendering.Text.Text_Render_Status;
    use type Files.Types.Focus_Target;
    use type Files.Types.View_Mode;
    use type Glfw.Size;
@@ -42,14 +42,15 @@ package body Files.Application.Windows.Smoke is
            Height      => Height,
            Line_Height => Guikit.Layout.Reference_Line_Height,
            Pointer => (Hover_X => 5, Hover_Y => 5, Has_Hover => Width > 0 and then Height > 0, others => <>));
-      Text      : Files.Rendering.Text_Renderer;
-      Font_Path : constant String := Files.Rendering.Default_Font_Path;
-      Status    : constant Files.Rendering.Text_Render_Status :=
-        Files.Rendering.Initialize_Text
+      Text      : Files.Rendering.Text.Text_Renderer;
+      Font_Path : constant String := Files.Rendering.Text.Default_Font_Path;
+      Status    : constant Files.Rendering.Text.Text_Render_Status :=
+        Files.Rendering.Text.Initialize_Text
           (Renderer   => Text,
            Font_Path  => Font_Path,
            Pixel_Size => Files.Settings.Default_Font_Pixel_Size);
-      Glyphs    : constant Files.Rendering.Text_Render_Result := Files.Rendering.Build_Text_Glyphs (Text, Frame);
+      Glyphs    : constant Files.Rendering.Text.Text_Render_Result :=
+        Files.Rendering.Text.Build_Text_Glyphs (Text, Frame);
       Batch     : constant Guikit.Vulkan.Submission_Batch :=
         Guikit.Vulkan.Build_Submission
           (Rectangles         => Frame.Rectangles,
@@ -68,8 +69,8 @@ package body Files.Application.Windows.Smoke is
          Missing_Glyphs => Glyphs.Missing_Glyph_Count,
          Vertices       => Natural (Batch.Vertices.Length),
          Text_Rendered  =>
-           Status = Files.Rendering.Text_Render_Success
-           and then Glyphs.Status = Files.Rendering.Text_Render_Success
+           Status = Files.Rendering.Text.Text_Render_Success
+           and then Glyphs.Status = Files.Rendering.Text.Text_Render_Success
            and then not Glyphs.Glyphs.Is_Empty,
          Font_Path      => To_Unbounded_String (Font_Path));
    end Check_Window_Frame;
@@ -259,8 +260,7 @@ package body Files.Application.Windows.Smoke is
       Runtime.Settings := Base.Settings;
       Runtime.Synced_Settings_Revision := Files.Model.Settings_Revision (Runtime.Model);
       Runtime.Font_Pixel_Size := Base.Font;
-      Runtime.Text_Ready := False;
-      Runtime.Glyph_Text_Valid := False;
+      Files.Rendering.Text.Invalidate (Runtime.Text);
       Runtime.Frame_Cache_Valid := False;
       Runtime.View.Snapshot_Valid := False;
       Apply_Scenario (Runtime, Scenario);

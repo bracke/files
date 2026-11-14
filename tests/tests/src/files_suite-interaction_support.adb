@@ -13,6 +13,7 @@ with Files.Rendering.Testing;
 with Files.Types;
 with Guikit.Draw;
 with Files_Suite.Support;
+with Files.Rendering.Layouts;
 
 package body Files_Suite.Interaction_Support is
 
@@ -32,9 +33,9 @@ package body Files_Suite.Interaction_Support is
       Snapshot : constant Files.Rendering.View_Snapshot :=
         Files.Rendering.Build_Snapshot (Model, Files.Settings.Default_Settings);
       Layout   : constant Files.Rendering.Layout_Metrics :=
-        Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-      Items    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-        Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
+        Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+      Items    : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+        Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
    begin
       X := 0;
       Y := 0;
@@ -137,7 +138,7 @@ package body Files_Suite.Interaction_Support is
       Snapshot : constant Files.Rendering.View_Snapshot :=
         Files.Rendering.Build_Snapshot (Model, Settings);
       Layout   : constant Files.Rendering.Layout_Metrics :=
-        Files.Rendering.Calculate_Layout (Snapshot, Target_W, Target_H, Line);
+        Files.Rendering.Layouts.Calculate_Layout (Snapshot, Target_W, Target_H, Line);
    begin
       return Layout.Main_Y + Layout.Main_Height / 2;
    end Targeted_Main_Y;
@@ -154,9 +155,9 @@ package body Files_Suite.Interaction_Support is
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Target_W, Target_H, Line);
-         Info     : constant Files.Rendering.Info_Pane_Layout :=
-           Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Target_W, Target_H, Line);
+         Info     : constant Files.Rendering.Layouts.Info_Pane_Layout :=
+           Files.Rendering.Layouts.Calculate_Info_Pane_Layout (Snapshot, Layout, Line);
       begin
          Scroll_Down_At (Model, Settings, Info.X + Info.Width / 2, Info.Y + Info.Height / 2);
          Scroll_Down_At
@@ -225,9 +226,9 @@ package body Files_Suite.Interaction_Support is
       Snapshot : constant Files.Rendering.View_Snapshot :=
         Files.Rendering.Build_Snapshot (Model, Settings);
       Layout   : constant Files.Rendering.Layout_Metrics :=
-        Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-      Items    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-        Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
+        Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+      Items    : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+        Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
       X, Y     : Natural := 0;
       In_Main  : Boolean;
       Index    : Natural;
@@ -256,9 +257,9 @@ package body Files_Suite.Interaction_Support is
       Snapshot : constant Files.Rendering.View_Snapshot :=
         Files.Rendering.Build_Snapshot (Model, Settings);
       Layout   : constant Files.Rendering.Layout_Metrics :=
-        Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-      Items    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-        Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
+        Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+      Items    : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
+        Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
       X : constant Natural := Layout.Main_X + Layout.Main_Width / 2;
       Y : constant Natural := Layout.Main_Y + Layout.Main_Height / 2;
       Index : constant Natural := Files.Rendering.Hit.Item_At (Items, X, Y);
@@ -280,8 +281,8 @@ package body Files_Suite.Interaction_Support is
    is
       Snapshot : constant Files.Rendering.View_Snapshot :=
         Files.Rendering.Build_Snapshot (Model, Settings);
-      Menu     : constant Files.Rendering.Context_Menu_Layout :=
-        Files.Rendering.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
+      Menu     : constant Files.Rendering.Layouts.Context_Menu_Layout :=
+        Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
       Target_Row   : Natural := 0;
       Row_X, Row_Y : Natural;
    begin
@@ -323,8 +324,8 @@ package body Files_Suite.Interaction_Support is
    is
       Snapshot : constant Files.Rendering.View_Snapshot :=
         Files.Rendering.Build_Snapshot (Model, Settings);
-      Menu     : constant Files.Rendering.Context_Menu_Layout :=
-        Files.Rendering.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
+      Menu     : constant Files.Rendering.Layouts.Context_Menu_Layout :=
+        Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
    begin
       for Row in 1 .. Menu.Row_Count loop
          if Menu.Rows (Row).Command = Command then
@@ -428,11 +429,11 @@ package body Files_Suite.Interaction_Support is
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Selector : constant Files.Rendering.Root_Selector_Layout :=
-           Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line);
-         Rows     : constant Files.Rendering.Root_Path_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Selector);
+           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Selector : constant Files.Rendering.Layouts.Root_Selector_Layout :=
+           Files.Rendering.Layouts.Calculate_Root_Selector_Layout (Snapshot, Layout, Line);
+         Rows     : constant Files.Rendering.Layouts.Root_Path_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Calculate_Root_Path_Layout (Snapshot, Selector);
       begin
          for Row of Rows loop
             if Files.Model.Root_Selector.Path (Model, Positive (Row.Root_Index)) = Target_Path then

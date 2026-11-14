@@ -234,4 +234,14 @@ package body Files.Events is
       return Input_Action
  is separate;
 
+   function Translate_Right_Click
+     (Snapshot    : Files.Rendering.View_Snapshot;
+      X           : Natural;
+      Y           : Natural;
+      Width       : Natural;
+      Height      : Natural;
+      Line_Height : Positive)
+      return Input_Action
+   is separate;
+
 end Files.Events;

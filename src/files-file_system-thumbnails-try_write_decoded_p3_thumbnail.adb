@@ -29,9 +29,9 @@ separate (Files.File_System.Thumbnails)
          begin
             Pixels.Append
               (Rgba_Pixel'
-                 (Red   => Natural (Rgba.Element (At_Red)),
-                  Green => Natural (Rgba.Element (At_Red + 1)),
-                  Blue  => Natural (Rgba.Element (At_Red + 2)),
+                 (Red   => Files.Images.Channel_Value (Rgba.Element (At_Red)),
+                  Green => Files.Images.Channel_Value (Rgba.Element (At_Red + 1)),
+                  Blue  => Files.Images.Channel_Value (Rgba.Element (At_Red + 2)),
                   Alpha => 255));
          end;
       end loop;

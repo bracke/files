@@ -1,4 +1,5 @@
 with Files.Model.Context_Menu;
+with Files.Rendering.Layouts;
 separate (Files.Application.Windows)
    procedure Handle_Mouse
      (Runtime : in out Runtime_Window)
@@ -9,63 +10,32 @@ separate (Files.Application.Windows)
       Frame_H  : Glfw.Size := 0;
 
       --  A right press: the context menu for what lies where it went down.
+      --  Files.Events translates it against the snapshot on screen; an item
+      --  drawn there is found again in the model as it is now.
       procedure Right_Press (Event : Guikit.Input.Mouse_Buttons.Button_Event) is
       begin
+         --  Scale_Coordinate deliberately returns the framebuffer extent for
+         --  a cursor on/beyond the bottom or right edge. Such a coordinate
+         --  names no pixel and must not close or replace a context menu.
+         if not Cursor_Is_Inside_Window (Event.X, Event.Y, Window_W, Window_H)
+           or else Frame_W <= 0 or else Frame_H <= 0
+         then
+            return;
+         end if;
          declare
-            Press_X  : constant Glfw.Input.Mouse.Coordinate := Event.X;
-            Press_Y  : constant Glfw.Input.Mouse.Coordinate := Event.Y;
-            X        : constant Natural := Scale_Coordinate (Press_X, Window_W, Frame_W);
-            Y        : constant Natural := Scale_Coordinate (Press_Y, Window_H, Frame_H);
-            Slot     : constant Snapshot_Slot := Hit_Slot (Runtime);
-            Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Slot);
-            Layout   : constant Files.Rendering.Layout_Metrics :=
-              Files.Rendering.Calculate_Layout
-                (Snapshot, Natural (Frame_W), Natural (Frame_H),
-                 Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
-            Item_Layout : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-              Files.Rendering.Calculate_Item_Layout
-                (Snapshot, Layout, Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
-            Menu : constant Files.Rendering.Context_Menu_Layout :=
-              Files.Rendering.Calculate_Context_Menu_Layout
-                (Snapshot, Natural (Frame_W), Natural (Frame_H),
-                 Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
-            --  The menu is drawn over the view: the item beneath it is not
-            --  what a right-click on it meant.
-            On_Menu : constant Boolean :=
-              Menu.Visible
-              and then X >= Menu.X and then X - Menu.X < Menu.Width
-              and then Y >= Menu.Y and then Y - Menu.Y < Menu.Height;
-            In_Main : constant Boolean :=
-              not On_Menu
-              and then Files.Rendering.Hit.On_Main_View (Layout, X, Y);
-            Item_Index : constant Natural :=
-              (if In_Main
-               then Current_Item_Index (Runtime, Slot, Files.Rendering.Hit.Item_At (Item_Layout, X, Y))
-               else 0);
-            In_Details_Header : constant Boolean :=
-              In_Main
-              and then Files.Rendering.Hit.Details_Header_Cell_At
-                (Snapshot, Layout, X, Y, Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size)).Present;
-            Result : Files.Interaction.Interaction_Result;
+            Slot   : constant Snapshot_Slot := Hit_Slot (Runtime);
+            Action : Files.Events.Input_Action :=
+              Files.Events.Translate_Right_Click
+                (Snapshot    => Runtime.View.Snapshots (Slot),
+                 X           => Scale_Coordinate (Event.X, Window_W, Frame_W),
+                 Y           => Scale_Coordinate (Event.Y, Window_H, Frame_H),
+                 Width       => Natural (Frame_W),
+                 Height      => Natural (Frame_H),
+                 Line_Height => Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
          begin
-            --  Scale_Coordinate deliberately returns the framebuffer extent for
-            --  a cursor on/beyond the bottom or right edge. Such a coordinate
-            --  names no pixel and must not close or replace a context menu.
-            if Cursor_Is_Inside_Window (Press_X, Press_Y, Window_W, Window_H)
-              and then Frame_W > 0 and then Frame_H > 0
-              and then X < Natural (Frame_W) and then Y < Natural (Frame_H)
-            then
-               Files.Interaction.Apply_Right_Click
-                 (Model             => Runtime.Model,
-                  Settings          => Runtime.Settings,
-                  In_Main           => In_Main,
-                  Item_Index        => Item_Index,
-                  X                 => X,
-                  Y                 => Y,
-                  Result            => Result,
-                  In_Details_Header => In_Details_Header,
-                  On_Context_Menu   => On_Menu);
-               Apply_Interaction_Result (Runtime, Result);
+            if Action.Kind = Files.Events.Right_Click_Input_Action then
+               Action.Target_Item := Current_Item_Index (Runtime, Slot, Action.Target_Item);
+               Dispatch_Click_Action (Runtime, Action, Event.Modifiers);
             end if;
          end;
       end Right_Press;
@@ -82,8 +52,8 @@ separate (Files.Application.Windows)
                X        : constant Natural := Scale_Coordinate (Press_X, Window_W, Frame_W);
                Y        : constant Natural := Scale_Coordinate (Press_Y, Window_H, Frame_H);
                Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
-               Menu     : constant Files.Rendering.Context_Menu_Layout :=
-                 Files.Rendering.Calculate_Context_Menu_Layout
+               Menu     : constant Files.Rendering.Layouts.Context_Menu_Layout :=
+                 Files.Rendering.Layouts.Calculate_Context_Menu_Layout
                    (Snapshot, Natural (Frame_W), Natural (Frame_H),
                     Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
                Row      : constant Natural := Files.Rendering.Hit.Context_Menu_Row_At (Menu, X, Y);

@@ -1,4 +1,5 @@
 with Guikit.Layout;
+with Files.Rendering.Layouts;
 separate (Files.Events)
    function Translate_Click
      (Snapshot    : Files.Rendering.View_Snapshot;
@@ -17,13 +18,13 @@ separate (Files.Events)
       --  rows, breadcrumbs) itself, so a click another region takes first
       --  never pays for them.
       Layout         : constant Files.Rendering.Layout_Metrics :=
-        Files.Rendering.Calculate_Layout (Snapshot, Width, Height, Line_Height);
-      Palette_Layout : constant Files.Rendering.Command_Palette_Layout :=
-        Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height);
-      Info_Pane      : constant Files.Rendering.Info_Pane_Layout :=
-        Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
+        Files.Rendering.Layouts.Calculate_Layout (Snapshot, Width, Height, Line_Height);
+      Palette_Layout : constant Files.Rendering.Layouts.Command_Palette_Layout :=
+        Files.Rendering.Layouts.Calculate_Command_Palette_Layout (Layout, Line_Height);
+      Info_Pane      : constant Files.Rendering.Layouts.Info_Pane_Layout :=
+        Files.Rendering.Layouts.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
       Settings_Pane  : constant Guikit.Layout.Settings_Pane_Layout :=
-        Guikit.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
+        Files.Rendering.Layouts.Settings_Pane_Region (Layout, Line_Height);
       Command        : Files.Commands.Command_Id := Files.Commands.No_Command;
       Item_Index     : Natural := 0;
 
@@ -34,7 +35,7 @@ separate (Files.Events)
          return Boolean renames Guikit.Layout.Within;
 
       --  Text_Width and Focused let a click on a focused, scrolled field
-      --  (see Files.Rendering.Input_Scroll_Columns) land on the character
+      --  (see Files.Rendering.Layouts.Input_Scroll_Columns) land on the character
       --  drawn under it rather than one from the unscrolled text. Caret is
       --  the field's own caret, which a rename field of a multi-rename keeps
       --  per item rather than in the snapshot's single text cursor.
@@ -51,7 +52,7 @@ separate (Files.Events)
          Raw    : constant String := To_String (Text);
          Scroll : constant Natural :=
            (if Focused
-            then Files.Rendering.Input_Scroll_Columns (Raw, Caret, Text_Width, Line_Height)
+            then Files.Rendering.Layouts.Input_Scroll_Columns (Raw, Caret, Text_Width, Line_Height)
             else 0);
          Click_Column : Natural;
       begin
@@ -124,7 +125,7 @@ separate (Files.Events)
       end Settings_Click_Hit;
 
       --  A click on an overlay panel's top-right close (X) button. The button
-      --  geometry comes from Files.Rendering.Panel_Close_Button so it matches
+      --  geometry comes from Files.Rendering.Layouts.Panel_Close_Button so it matches
       --  what Build_Frame_Commands drew exactly (rule: coordinates from layout).
       function Close_Button_Hit
         (Panel_X : Natural;
@@ -133,8 +134,8 @@ separate (Files.Events)
          Panel_H : Natural)
          return Boolean
       is
-         Btn : constant Files.Rendering.Close_Button_Layout :=
-           Files.Rendering.Panel_Close_Button (Panel_X, Panel_Y, Panel_W, Panel_H, Line_Height);
+         Btn : constant Files.Rendering.Layouts.Close_Button_Layout :=
+           Files.Rendering.Layouts.Panel_Close_Button (Panel_X, Panel_Y, Panel_W, Panel_H, Line_Height);
       begin
          return Btn.Visible
            and then Within (X, Btn.X, Btn.Width)

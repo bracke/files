@@ -17,8 +17,7 @@ separate (Files.Application.Windows.Render_Window)
          then
             Runtime.Pixel_Ratio := Ratio;
             Runtime.Font_Pixel_Size := Scaled_Font_Size (Runtime);
-            Runtime.Text_Ready := False;
-            Runtime.Glyph_Text_Valid := False;
+            Files.Rendering.Text.Invalidate (Runtime.Text);
             Runtime.Frame_Cache_Valid := False;
             Runtime.View.Snapshot_Valid := False;
          end if;
@@ -32,7 +31,6 @@ separate (Files.Application.Windows.Render_Window)
 
       Update_Scrollbar_Drag
         (Runtime    => Runtime,
-         Cursor_X   => Cursor_X,
          Cursor_Y   => Cursor_Y,
          Window_W   => Window_W,
          Window_H   => Window_H,

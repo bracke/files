@@ -1,9 +1,11 @@
 with Ada.Containers.Vectors;
+with Files.Rendering.Geometry;
 with Files.UI;
 with Guikit.Segmented;
 
 package body Files.Rendering.Hit is
 
+   use Files.Rendering.Geometry;
    use Guikit.Layout;
    use type Files.Types.View_Mode;
    use type Files.Commands.Context_Menu_Row_Kind;
@@ -51,58 +53,39 @@ package body Files.Rendering.Hit is
    function Ownership_Hit_At (Frame : Frame_Commands; X, Y : Natural) return Ownership_Hit_Region is
      (Ownership_At (Frame.Ownership_Hits, X, Y));
 
+   function Context_Menu_Contains
+     (Menu : Context_Menu_Layout;
+      X    : Natural;
+      Y    : Natural)
+      return Boolean is
+     (Menu.Visible and then Contains_Rectangle_Point (Menu.X, Menu.Y, Menu.Width, Menu.Height, X, Y));
+
    function Context_Menu_Row_At
      (Menu : Context_Menu_Layout;
       X    : Natural;
       Y    : Natural)
       return Natural is
-      First_Row_Y : constant Natural := Saturating_Add (Menu.Y, Menu.Padding);
    begin
-      if not Menu.Visible
-        or else X < Menu.X
-        or else X - Menu.X >= Menu.Width
-        or else Y < Menu.Y
-        or else Y - Menu.Y >= Menu.Height
-        or else Y < First_Row_Y
-        or else Menu.Row_Height = 0
-      then
+      --  The declared surface bounds the rows: a clipped menu's latent rows
+      --  below it are not drawn, so not clickable.
+      if not Context_Menu_Contains (Menu, X, Y) or else Menu.Row_Height = 0 then
          return 0;
       end if;
 
-      --  Rows have variable heights (separators are shorter), so walk them in
-      --  the column under X and return the command row containing Y. Separator
-      --  rows are not selectable and resolve to no row.
-      declare
-         Second_Column : constant Boolean :=
-           Menu.Column_Count > 1
-           and then X - Menu.X >= Menu.Column_Width;
-         First_Row : constant Positive :=
-           (if Second_Column then Positive (Menu.Column_Break_Row + 1) else 1);
-         Last_Row  : constant Natural :=
-           (if Second_Column then Menu.Row_Count
-            elsif Menu.Column_Count > 1 then Menu.Column_Break_Row
-            else Menu.Row_Count);
-         Row_Top : Natural := First_Row_Y;
-      begin
-         for Row in First_Row .. Last_Row loop
-            declare
-               Row_H : constant Natural :=
-                 (if Menu.Rows (Row).Kind = Files.Commands.Menu_Separator
-                  then Menu.Separator_Height
-                  else Menu.Row_Height);
-            begin
-               if Y >= Row_Top and then Y - Row_Top < Row_H then
-                  if Menu.Rows (Row).Kind = Files.Commands.Menu_Separator then
-                     return 0;
-                  else
-                     return Row;
-                  end if;
-               end if;
-               Row_Top := Saturating_Add (Row_Top, Row_H);
-            end;
-         end loop;
-         return 0;
-      end;
+      --  The rows where the renderer draws them (Context_Menu_Row_Left/Top/
+      --  Width/Height); a separator is not selectable and resolves to none.
+      for Row in 1 .. Menu.Row_Count loop
+         if Contains_Rectangle_Point
+           (Context_Menu_Row_Left (Menu, Row),
+            Context_Menu_Row_Top (Menu, Row),
+            Context_Menu_Row_Width (Menu, Row),
+            Context_Menu_Row_Height (Menu, Row),
+            X, Y)
+         then
+            return (if Menu.Rows (Row).Kind = Files.Commands.Menu_Separator then 0 else Row);
+         end if;
+      end loop;
+      return 0;
    end Context_Menu_Row_At;
 
    function Item_At
@@ -390,8 +373,7 @@ package body Files.Rendering.Hit is
       return Files.Commands.Command_Id
    is
       Bottom   : constant Bottom_Bar_Layout := Files.UI.Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
-      Bottom_H : constant Natural := Files.UI.Bottom_Bar_Height (Line_Height);
-      Bottom_Y : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
+      Bottom_Y : constant Natural := Files.UI.Bottom_Bar_Y (Height, Line_Height);
       --  The hidden-files toggle occupies only the counts area; when a free-space
       --  field is split off, the toggle stops at the divider and the free field
       --  is its own, non-interactive region.
@@ -452,7 +434,7 @@ package body Files.Rendering.Hit is
         or else X < Menu.X
         or else X >= Saturating_Add (Menu.X, Menu.Width)
         or else Y < Menu.Rows_Y
-        or else Y >= Saturating_Add (Menu.Rows_Y, Saturating_Multiply (Menu.Row_Height, Menu.Row_Count))
+        or else Y >= Saturating_Add (Menu.Rows_Y, Guikit.Layout.Saturating_Multiply (Menu.Row_Height, Menu.Row_Count))
         or else Menu.Row_Height = 0
       then
          return Files.Commands.No_Command;
