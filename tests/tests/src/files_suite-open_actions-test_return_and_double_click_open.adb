@@ -1,4 +1,5 @@
 with Files.Settings.Testing;
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
    procedure Test_Return_And_Double_Click_Open (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -22,7 +23,7 @@ separate (Files_Suite.Open_Actions)
       Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain+control",
-         Files.Settings.Make_Action (No_Op_Executable, Arguments));
+         Files.Settings.Open_Actions.Make_Action (No_Op_Executable, Arguments));
       Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

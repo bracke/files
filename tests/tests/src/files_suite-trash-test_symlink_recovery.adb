@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    procedure Test_Symlink_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -11,10 +12,10 @@ separate (Files_Suite.Trash)
       Model    : Files.Model.Window_Model;
       Step     : Files.Operations.Operation_Result;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       Write_Binary_File (Target, "target");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Root, "link-data"));

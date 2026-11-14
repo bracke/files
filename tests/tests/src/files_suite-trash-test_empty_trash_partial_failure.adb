@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    procedure Test_Empty_Trash_Partial_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -10,7 +11,7 @@ separate (Files_Suite.Trash)
       Locked_Child : constant String := Join (Locked_Dir, "inside.txt");
       Trashed_Lock : constant String := Join (Trash_File, "locked-dir");
       --  Restores what the test changes, on failure too.
-      Environment  : Files_Suite.Support.Environment_Guard;
+      Environment  : Files_Suite.Support.Guards.Environment_Guard;
       Load         : Files.File_System.Directory_Load_Result;
       Model        : Files.Model.Window_Model;
       Result       : Files.Controller.Controller_Result;
@@ -24,9 +25,9 @@ separate (Files_Suite.Trash)
          null;
       end Unlock_Payload;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
 
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);

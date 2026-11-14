@@ -13,6 +13,7 @@ with Ada.Text_IO;
 with GNAT.OS_Lib;
 
 with Project_Tools.Ada_Source;
+with Project_Tools.Ada_Source.Tokens;
 with Project_Tools.AUnit_Checks;
 with Project_Tools.Files;
 with Project_Tools.Processes;
@@ -44,6 +45,55 @@ procedure Check_All is
    end Project_Root;
 
    Root : constant String := Project_Root;
+
+   --  Problems found so far. A check reports each one it finds (Report) and
+   --  carries on, so one run lists them all; the run fails once, after the
+   --  last check and before the build and the suite.
+   Problems : Natural := 0;
+
+   --  Count Count problems that were reported elsewhere (a shared check of
+   --  Project_Tools that prints its own), and fail the run.
+   procedure Count_Problems (Count : Natural) is
+   begin
+      if Count > 0 then
+         Problems := Problems + Count;
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+      end if;
+   end Count_Problems;
+
+   --  Report one problem: Message on standard error, counted, and the run's
+   --  exit status set to failure.
+   procedure Report (Message : String) is
+   begin
+      Put_Line (Standard_Error, Message);
+      Count_Problems (1);
+   end Report;
+
+   --  Run one check. A Require_ guard of Project_Tools reports itself and
+   --  raises Program_Error; any other exception is a check that could not
+   --  finish. Either is counted as one problem, and the next check runs.
+   procedure Run_Check (Check : not null access procedure) is
+   begin
+      Check.all;
+   exception
+      when E : Program_Error =>
+         Put_Line (Standard_Error, "  (the check stopped there: " & Ada.Exceptions.Exception_Message (E) & ")");
+         Count_Problems (1);
+      when E : others =>
+         Report ("a check stopped early: " & Ada.Exceptions.Exception_Information (E));
+   end Run_Check;
+
+   --  Whether any check has reported a problem; if so, the run says how many
+   --  and its exit status is already failure.
+   function Problems_Found (Before : String) return Boolean is
+   begin
+      if Problems > 0 then
+         Put_Line
+           (Standard_Error,
+            "files project checks failed:" & Natural'Image (Problems) & " problem(s) found before " & Before);
+      end if;
+      return Problems > 0;
+   end Problems_Found;
    function Temp_Path (Name : String) return String is
       Image : constant String := Integer'Image
         (GNAT.OS_Lib.Pid_To_Integer (GNAT.OS_Lib.Current_Process_Id));
@@ -120,18 +170,10 @@ procedure Check_All is
            Quiet   => True);
 
       if Status /= 0 then
-         Put_Line
-           (Standard_Error,
-            "could not run `alr exec -- gnatls --version`");
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report ("could not run `alr exec -- gnatls --version`");
       elsif Ada.Strings.Fixed.Index (To_String (Output), "GNATLS 15.") = 0 then
-         Put_Line
-           (Standard_Error,
-            "wrong Ada compiler: files validation must use Alire GNAT 15; got: "
+         Report ("wrong Ada compiler: files validation must use Alire GNAT 15; got: "
             & To_String (Output));
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
       end if;
    end Require_Alire_GNAT_15;
 
@@ -261,6 +303,7 @@ procedure Check_All is
         & Text_Files_In (Root & "/tests/tests/src")
         & Text_Files_In (Root & "/tools/config")
         & Text_Files_In (Root & "/tools/src")
+        & Text_Files_In (Root & "/tools/i18n_bundle")
         & Text_Files_In (Root & "/share")
         & At_Roots;
    end Project_Text_Files;
@@ -288,59 +331,12 @@ procedure Check_All is
 
    procedure Check_GNATdoc_Comments is separate;
 
-   procedure Check_Ada_Keyword_Identifier_In_File (Path : String) is separate;
-
-   procedure Check_Ada_Keyword_Identifiers is separate;
-
-   --  Text with its Ada comments removed (a "--" outside a string literal
-   --  to the end of its line), so a registration that is only mentioned in a
-   --  comment, or commented out, does not count as one. With Blank_Strings
-   --  the contents of string literals are spaces too, their quotes kept.
-   function Code_Of (Text : String; Blank_Strings : Boolean := False) return String is
-      Result    : String (Text'Range);
-      Last      : Natural := Text'First - 1;
-      In_String : Boolean := False;
-      Index     : Positive := Text'First;
-   begin
-      while Index <= Text'Last loop
-         --  A character literal ('"', '-') is copied whole: its quote is not a
-         --  string's, its dash not a comment's.
-         if not In_String
-           and then Text (Index) = '''
-           and then Index + 2 <= Text'Last
-           and then Text (Index + 2) = '''
-         then
-            Result (Last + 1 .. Last + 3) := Text (Index .. Index + 2);
-            Last := Last + 3;
-            Index := Index + 3;
-            goto Next;
-         end if;
-         if Text (Index) = ASCII.LF then
-            In_String := False;
-         elsif Text (Index) = '"' then
-            In_String := not In_String;
-         elsif not In_String
-           and then Text (Index) = '-'
-           and then Index < Text'Last
-           and then Text (Index + 1) = '-'
-           --  A character literal '-' followed by '-' is not a comment.
-           and then not (Index > Text'First and then Text (Index - 1) = ''')
-         then
-            while Index <= Text'Last and then Text (Index) /= ASCII.LF loop
-               Index := Index + 1;
-            end loop;
-            exit when Index > Text'Last;
-         end if;
-         Last := Last + 1;
-         --  A string's contents blanked, its quotes kept: text in a message
-         --  neither satisfies nor trips a check of code.
-         Result (Last) :=
-           (if Blank_Strings and then In_String and then Text (Index) /= '"' then ' ' else Text (Index));
-         Index := Index + 1;
-         <<Next>>
-      end loop;
-      return Result (Text'First .. Last);
-   end Code_Of;
+   --  Text with its Ada comments removed, so a registration that is only
+   --  mentioned in a comment, or commented out, does not count as one. With
+   --  Blank_Strings the contents of string literals are spaces too, their
+   --  quotes kept. The one Ada lexer, Project_Tools.Ada_Source.Tokens.
+   function Code_Of (Text : String; Blank_Strings : Boolean := False) return String
+     renames Project_Tools.Ada_Source.Tokens.Without_Comments;
 
    --  Whether a pattern spells a string literal: one that does is looked
    --  for in code with its strings kept, every other one with them blanked.
@@ -353,68 +349,7 @@ procedure Check_All is
    --  Ada source as tokens, for the checks that must not be fooled by a
    --  comment or a string literal that spells what they look for, nor by
    --  how a statement is laid out over lines.
-   package Tokens is
-      --  A word (identifier, keyword or number), a string or character
-      --  literal (its contents, quotes and doubling undone), or a delimiter.
-      type Token_Kind is (Word, Literal, Symbol);
-
-      --  One token: its kind; its text, lower case (but a literal's as
-      --  written, when tokenized with Preserve_Case); the line it is on; and,
-      --  for a literal, whether it is a character literal rather than a
-      --  string.
-      type Token is record
-         Kind         : Token_Kind := Symbol;
-         Text         : Unbounded_String;
-         Line         : Positive := 1;
-         Is_Character : Boolean := False;
-      end record;
-
-      package Token_Vectors is new Ada.Containers.Vectors (Index_Type => Positive, Element_Type => Token);
-
-      --  The tokens of a source, in order.
-      subtype Token_List is Token_Vectors.Vector;
-
-      --  @param Item Token to test.
-      --  @param Text Delimiter text, lower case.
-      --  @return True when Item is the delimiter Text.
-      function Is_Symbol (Item : Token; Text : String) return Boolean is
-        (Item.Kind = Symbol and then To_String (Item.Text) = Text);
-
-      --  @param Item Token to test.
-      --  @param Text Word, lower case.
-      --  @return True when Item is the word Text.
-      function Is_Word (Item : Token; Text : String) return Boolean is
-        (Item.Kind = Word and then To_String (Item.Text) = Text);
-
-      --  The tokens of an Ada source, lower-cased, comments dropped. A quote
-      --  after a word (but one a character literal may follow, as "when")
-      --  or ")" is an attribute's tick (String'("x")); any other one with a
-      --  character two places on opens a character literal.
-      --  @param Source Ada source text.
-      --  @param Preserve_Case Keep the literals' text as written (words are
-      --  lower-cased all the same), for checks of what a literal says.
-      --  @return Its tokens, in order.
-      function Tokens_Of (Source : String; Preserve_Case : Boolean := False) return Token_List;
-
-      --  Past the prefix of a dotted name starting at From: the index of the
-      --  last name of Files.Hooks.Prefix (that of Prefix); From itself when
-      --  no "." follows the word there.
-      function Past_Name_Prefix (Toks : Token_List; From : Positive) return Positive;
-
-      --  Past the parenthesized group opening at From (a "("), groups nested
-      --  in it included: the index after its closing ")", or past the end.
-      function Past_Parentheses (Toks : Token_List; From : Positive) return Positive;
-
-      --  Where a qualification starting at From starts its operand: past
-      --  "string'" or "standard.string'" (any name, dotted, then a tick)
-      --  when a "(" follows; From itself otherwise.
-      function Past_Qualifier (Toks : Token_List; From : Positive) return Positive;
-
-      --  Past every "(" and qualification from From on.
-      function Past_Openers (Toks : Token_List; From : Positive) return Positive;
-   end Tokens;
-
-   package body Tokens is separate;
+   package Tokens renames Project_Tools.Ada_Source.Tokens;
 
    --  Require the sources in src/ whose names start with Prefix (".ads" and
    --  ".adb": a unit, its children and subunits) to name nothing from
@@ -446,9 +381,7 @@ procedure Check_All is
       Code : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Combined_Suite)));
    begin
       if Ada.Strings.Fixed.Index (Code, "(T, " & Routine & "'Access") = 0 then
-         Put_Line (Standard_Error, Routine & ", " & Message & ", must stay registered");
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Routine & ", " & Message & ", must stay registered");
       end if;
    end Require_Registered_Routine;
 
@@ -674,17 +607,14 @@ procedure Check_All is
       --  A guard on a file that was renamed or split away guards nothing:
       --  say so, rather than pass.
       if not Project_Tools.Files.File_Exists (Path) then
-         Put_Line (Standard_Error, "guarded file is missing: " & Path & " (" & Message & ")");
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report ("guarded file is missing: " & Path & " (" & Message & ")");
+         return;
       end if;
       if Ada.Strings.Fixed.Index
           (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => not Quotes (Pattern)),
            Pattern) > 0
       then
-         Put_Line (Standard_Error, Message);
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Message);
       end if;
    end Require_Not_Contains;
 
@@ -701,9 +631,7 @@ procedure Check_All is
                      (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => not Quotes (Pattern)),
                    Pattern) = 0
       then
-         Put_Line (Standard_Error, Path & ": " & Message);
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Path & ": " & Message);
       end if;
    end Require_Contains;
 
@@ -827,6 +755,41 @@ procedure Check_All is
    --  a with clause alone; a suite that lost its tests now fails here.
    procedure Check_Test_Subsystem_Coverage is separate;
 
+   type Check_Procedure is access procedure;
+
+   --  Every check of the tree, in the order they run. Each runs even when one
+   --  before it found a problem; the build waits for all of them.
+   Checks : constant array (Positive range <>) of Check_Procedure :=
+     [Check_Project_Text_Files'Access,
+      Check_GNATdoc_Comments'Access,
+      Check_AUnit_Test_Registration'Access,
+      Check_Test_Subsystem_Coverage'Access,
+      Check_Ada_Only_Tooling'Access,
+      Check_Localization_Usage'Access,
+      Check_Clock_Arithmetic'Access,
+      Check_Environment_Access'Access,
+      Check_Path_Text_Calls'Access,
+      Check_Durability_Calls'Access,
+      Check_Raw_File_System_Calls'Access,
+      Check_Visible_Cache_Invalidation'Access,
+      Check_Swallowing_Handlers'Access,
+      Check_Shared_Package_State'Access,
+      Check_Host_Questions'Access,
+      Check_Filetype_Detection_Order'Access,
+      Check_Event_Translation_Contract'Access,
+      Check_Test_Hooks'Access,
+      Check_Test_Hook_Disarms'Access,
+      Check_Test_Stage_Removal'Access,
+      Check_Command_And_Overlay_Layers'Access,
+      Check_Crate_Structure'Access,
+      Check_Application_CLI_Surface'Access,
+      Check_Rendering_Architecture'Access,
+      Check_Icon_Assets'Access,
+      Check_Platform_Bodies'Access,
+      Check_Packaging_Metadata'Access,
+      Check_CLDR_Importer'Access,
+      Check_Locale_Catalog_Arguments'Access];
+
 begin
    if not Project_Tools.Files.File_Exists (Root & "/files.gpr") then
       Put_Line (Standard_Error, "check_all must be run from the files project root or tools directory");
@@ -835,44 +798,25 @@ begin
    end if;
 
    Require_Command ("alr");
-   Require_Alire_GNAT_15;
+   Run_Check (Require_Alire_GNAT_15'Access);
 
    Project_Tools.Files.Write_Text_File (Combined_Suite, Suite_Sources);
    Project_Tools.Files.Write_Text_File (Combined_Check_All, Check_All_Sources);
 
-   Check_Project_Text_Files;
-   Check_GNATdoc_Comments;
-   Check_Ada_Keyword_Identifiers;
-   Check_AUnit_Test_Registration;
-   Check_Test_Subsystem_Coverage;
-   Check_Ada_Only_Tooling;
-   Check_Localization_Usage;
-   Check_Clock_Arithmetic;
-   Check_Environment_Access;
-   Check_Path_Text_Calls;
-   Check_Durability_Calls;
-   Check_Raw_File_System_Calls;
-   Check_Visible_Cache_Invalidation;
-   Check_Swallowing_Handlers;
-   Check_Shared_Package_State;
-   Check_Host_Questions;
-   Check_Filetype_Detection_Order;
-   Check_Event_Translation_Contract;
-   Check_Test_Hooks;
-   Check_Test_Hook_Disarms;
-   Check_Test_Stage_Removal;
-   Check_Command_And_Overlay_Layers;
-   Check_Crate_Structure;
-   Check_Application_CLI_Surface;
-   Check_Rendering_Architecture;
-   Check_Icon_Assets;
-   Check_Platform_Bodies;
-   Check_Packaging_Metadata;
-   Check_CLDR_Importer;
-   Check_Locale_Catalog_Arguments;
+   for Check of Checks loop
+      Run_Check (Check);
+   end loop;
+   if Problems_Found ("the build") then
+      Cleanup_Temps;
+      return;
+   end if;
    Run ("files build", Root, Alr, [1 => new String'("build")]);
-   Check_Executable_CLI_Help;
-   Check_Desktop_Runtime_Contract;
+   Run_Check (Check_Executable_CLI_Help'Access);
+   Run_Check (Check_Desktop_Runtime_Contract'Access);
+   if Problems_Found ("the suite") then
+      Cleanup_Temps;
+      return;
+   end if;
    Run ("top-level tests build", Root & "/tests", Alr, [1 => new String'("build")]);
    --  CI has just run the suite with its own settings (a small stack among
    --  them) and passes --skip-suite rather than run it a second time.
@@ -884,7 +828,7 @@ begin
    Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Success);
 exception
    when E : Program_Error =>
-      --  A check that failed reports itself and raises Program_Error; a
+      --  The build steps report themselves and raise Program_Error; a
       --  Program_Error from anywhere else is a failure too, never a pass.
       Cleanup_Temps;
       if Ada.Exceptions.Exception_Message (E) /= "" then

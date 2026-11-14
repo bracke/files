@@ -15,11 +15,7 @@ separate (Check_All.Check_Packaging_Metadata)
          elsif Starts_With (Manifest_Path, "share/")
            and then not Project_Tools.Files.File_Exists (Stage & "/" & Manifest_Path)
          then
-            Put_Line
-              (Standard_Error,
-               "staged install is missing manifest resource: " & Manifest_Path);
-            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-            raise Program_Error;
+            Report ("staged install is missing manifest resource: " & Manifest_Path);
          end if;
       end Check_Line;
    begin

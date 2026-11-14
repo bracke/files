@@ -32,11 +32,8 @@ separate (Check_All)
                            Name_Last := Name_Last + 1;
                         end loop;
                         if Ada.Strings.Fixed.Index (Content, Content (Name_First .. Name_Last) & "'Access") = 0 then
-                           Put_Line
-                             (Standard_Error,
-                              Path & ": " & Content (Name_First .. Name_Last) & " is declared but never registered");
-                           Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-                           raise Program_Error;
+                           Report
+                             (Path & ": " & Content (Name_First .. Name_Last) & " is declared but never registered");
                         end if;
                         From := Name_Last + 1;
                      end;

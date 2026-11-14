@@ -1,5 +1,6 @@
 with Files.Extra_Info;
 with Files.Extra_Info_Reader;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Info)
    procedure Test_Item_Details_Reject_Stale_Revision (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -27,7 +28,7 @@ separate (Files_Suite.Info)
       --  Poll Who's request of Item until it is read.
       procedure Await (Who : Files.Extra_Info_Reader.Requester; Item : Files.Items.Directory_Item) is
       begin
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             Files.Extra_Info_Reader.Take (Who, Item, False, Extra, Ready, Asked);
             Assert (Asked, "a request stays asked until it is read");
             exit when Ready;

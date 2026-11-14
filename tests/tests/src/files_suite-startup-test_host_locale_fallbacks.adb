@@ -1,23 +1,19 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Startup)
    procedure Test_Host_Locale_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "LC_ALL");
-      Files_Suite.Support.Save (Environment, "LC_MESSAGES");
-      Files_Suite.Support.Save (Environment, "LC_TIME");
-      Files_Suite.Support.Save (Environment, "LC_NUMERIC");
-      Files_Suite.Support.Save (Environment, "LANG");
-      Files_Suite.Support.Save (Environment, "HOME");
-      --  The host locale calls -- GetUserDefaultLocaleName, CFLocaleCopyCurrent
-      --  -- and the frameworks they need went to Hostkit.Host with the rest of
-      --  the per-OS bodies, and are asserted there. What files owns, and what
-      --  this checks, is that it asks one question instead of branching on the
-      --  host itself before it even gets to the environment.
-      Assert
-        (Files_Suite.Repository.Source_Contains ("Hostkit.Host.Native_Locale"),
-         "the system locale is asked of the host, not detected per OS here");
+      Files_Suite.Support.Guards.Save (Environment, "LC_ALL");
+      Files_Suite.Support.Guards.Save (Environment, "LC_MESSAGES");
+      Files_Suite.Support.Guards.Save (Environment, "LC_TIME");
+      Files_Suite.Support.Guards.Save (Environment, "LC_NUMERIC");
+      Files_Suite.Support.Guards.Save (Environment, "LANG");
+      Files_Suite.Support.Guards.Save (Environment, "HOME");
+      --  That files asks the host one question (Hostkit.Host.Native_Locale)
+      --  is check_all's to guard (Check_Localization_Usage); this checks the
+      --  environment and KDE fallbacks around it.
 
       --  LC_MESSAGES unset, as the precedence walk leaves it.
       Ada.Environment_Variables.Clear ("LC_MESSAGES");

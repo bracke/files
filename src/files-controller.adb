@@ -19,6 +19,7 @@ with Files.Model.Tree_Panel;
 with Files.Model.Pasting;
 with Files.Model.Rename;
 with Files.Model.Selection;
+with Files.Settings.Open_Actions;
 
 package body Files.Controller is
    use Ada.Strings.Unbounded;
@@ -58,7 +59,7 @@ package body Files.Controller is
         (Status    => Files.Operations.Operation_Disabled,
          Error_Key => Null_Unbounded_String,
          Path      => Null_Unbounded_String,
-         Action    => Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
+         Action    => Files.Settings.Open_Actions.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
          others    => <>);
    end Empty_Operation;
 
@@ -295,7 +296,7 @@ package body Files.Controller is
            (Status    => Files.Operations.Operation_Disabled,
             Error_Key => To_Unbounded_String (Error_Key),
             Path      => To_Unbounded_String (Path),
-            Action    => Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
+            Action    => Files.Settings.Open_Actions.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
             others    => <>));
    end Settings_Closed_Result;
 

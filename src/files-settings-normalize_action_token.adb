@@ -14,7 +14,7 @@ separate (Files.Settings)
          Unknowns  : Unbounded_String := Null_Unbounded_String;
 
          procedure Add_Modifier (Text : String) is
-            Name : constant String := Files.Types.To_Lower (Trim (Text));
+            Name : constant String := Files.Types.To_Lower_Ascii (Trim (Text));
          begin
             if Name = "shift" then
                Modifiers (Guikit.Input.Shift_Key) := True;

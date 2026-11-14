@@ -2,6 +2,7 @@ with Files.Undo_Recording;
 with Files.Undo_Recording.Testing;
 with Ada.Exceptions;
 with Files.File_System.Testing;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    --  A batch records its Undo entry at once and then at most once a second,
    --  not once per item; a trash batch too, and it undoes completely. A batch
@@ -17,7 +18,7 @@ separate (Files_Suite.Operations)
       Model       : Files.Model.Window_Model;
       Step        : Files.Operations.Operation_Result;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       function Name (Index : Positive) return String is
         ("item-" & Files.Types.Natural_Text (Index) & ".txt");
@@ -75,8 +76,8 @@ separate (Files_Suite.Operations)
          return Present;
       end Copies_Present;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
 
       --  Duplicate: twelve copies within one second of the throttle's
       --  clock are recorded exactly twice -- at the first copy, so an Undo

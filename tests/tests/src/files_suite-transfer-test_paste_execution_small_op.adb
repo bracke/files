@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Paste_Execution_Small_Op (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,7 +9,7 @@ separate (Files_Suite.Transfer)
       Dest     : constant String := Join (Dest_Dir, "only.txt");
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Model    : aliased Files.Model.Window_Model;
-      Paste    : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;

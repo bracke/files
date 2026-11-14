@@ -1,4 +1,5 @@
 with Files.Model.Label_Picker;
+with Files.Settings.Path_References;
 separate (Files_Suite.Interaction)
    procedure Test_Color_Label_Picker_Applies_To_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -42,15 +43,15 @@ separate (Files_Suite.Interaction)
         (Model, Settings, "", Choose (Files.Types.Green), Guikit.Input.No_Modifiers, Result);
       Assert (not Files.Model.Label_Picker.Is_Open (Model), "choosing a swatch closes the picker");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Label_Of (Settings, One),
+        (Files.Settings.Path_References.Label_Of (Settings, One),
          Files.Types.Green,
          "the first item is labeled green");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Label_Of (Settings, Two),
+        (Files.Settings.Path_References.Label_Of (Settings, Two),
          Files.Types.Green,
          "the second item is labeled green");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Label_Of (Settings, Three),
+        (Files.Settings.Path_References.Label_Of (Settings, Three),
          Files.Types.Green,
          "the third item is labeled green");
       Assert (Result.Settings_Changed, "labeling reports a settings change");
@@ -63,7 +64,7 @@ separate (Files_Suite.Interaction)
       Assert (not Files.Model.Label_Picker.Is_Open (Model),
               "a stale choice does not reopen the picker");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Label_Of (Settings, One),
+        (Files.Settings.Path_References.Label_Of (Settings, One),
          Files.Types.Green,
          "a stale choice does not relabel the selection");
 
@@ -72,34 +73,34 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Choose (Files.Types.No_Label), Guikit.Input.No_Modifiers, Result);
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Label_Of (Settings, One),
+        (Files.Settings.Path_References.Label_Of (Settings, One),
          Files.Types.No_Label,
          "None clears the first label");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Label_Of (Settings, Two),
+        (Files.Settings.Path_References.Label_Of (Settings, Two),
          Files.Types.No_Label,
          "None clears the second label");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Label_Of (Settings, Three),
+        (Files.Settings.Path_References.Label_Of (Settings, Three),
          Files.Types.No_Label,
          "None clears the third label");
 
       --  A mixed selection (one already labeled differently) all takes the
       --  chosen color.
-      Files.Settings.Set_Label (Settings, Two, Files.Types.Red);
+      Files.Settings.Path_References.Set_Label (Settings, Two, Files.Types.Red);
       Files.Model.Label_Picker.Open (Model);
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Choose (Files.Types.Blue), Guikit.Input.No_Modifiers, Result);
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Label_Of (Settings, One),
+        (Files.Settings.Path_References.Label_Of (Settings, One),
          Files.Types.Blue,
          "the first item becomes blue");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Label_Of (Settings, Two),
+        (Files.Settings.Path_References.Label_Of (Settings, Two),
          Files.Types.Blue,
          "the previously red item is overwritten to blue");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Label_Of (Settings, Three),
+        (Files.Settings.Path_References.Label_Of (Settings, Three),
          Files.Types.Blue,
          "the third item becomes blue");
    end Test_Color_Label_Picker_Applies_To_Selection;

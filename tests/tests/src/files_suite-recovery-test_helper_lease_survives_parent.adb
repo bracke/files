@@ -1,3 +1,4 @@
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Helper_Lease_Survives_Parent
      (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -39,7 +40,7 @@ separate (Files_Suite.Recovery)
              Files.Job_Transports.Claim_Busy,
          "recovery cannot claim the transport after the parent crashes while its helper lives");
       Write_Binary_File (Release_Path, "release");
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          Outcome := Files.Job_Transports.Claim_Abandoned
            (To_String (Directory), To_String (Identity), Recovery_Owner);
          exit when Outcome = Files.Job_Transports.Claim_Acquired;

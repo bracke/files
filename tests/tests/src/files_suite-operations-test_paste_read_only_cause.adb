@@ -1,10 +1,11 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    procedure Test_Paste_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;

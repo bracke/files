@@ -1,4 +1,5 @@
 with Files.Settings.Testing;
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
    procedure Test_Explicit_Shell_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -32,7 +33,7 @@ separate (Files_Suite.Open_Actions)
       Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain",
-         Files.Settings.Make_Action (No_Op_Executable, Shell_Arguments, True));
+         Files.Settings.Open_Actions.Make_Action (No_Op_Executable, Shell_Arguments, True));
       Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -71,7 +72,7 @@ separate (Files_Suite.Open_Actions)
       Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain",
-         Files.Settings.Make_Action ("cd", Files.Settings.String_Vectors.Empty_Vector, True));
+         Files.Settings.Open_Actions.Make_Action ("cd", Files.Settings.String_Vectors.Empty_Vector, True));
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -89,7 +90,7 @@ separate (Files_Suite.Open_Actions)
          Files.Settings.Testing.Add_Open_Action
            (Settings,
             "text/plain",
-            Files.Settings.Make_Action ("exit", Exit_Arguments, True));
+            Files.Settings.Open_Actions.Make_Action ("exit", Exit_Arguments, True));
       end;
       --  "exit 7" is launched and let go, so its non-zero exit code is not surfaced.
       --  That was true before as well, but for a worse reason: the backgrounding

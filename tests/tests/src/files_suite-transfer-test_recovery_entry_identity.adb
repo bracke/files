@@ -1,9 +1,11 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Transfer)
    procedure Test_Recovery_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Step : Files.Operations.Operation_Result;
       Source : constant String := Join (Root, "original");
       Dest : constant String := Join (Root, "original (copy)");
@@ -14,7 +16,7 @@ separate (Files_Suite.Transfer)
       Entries : Files.Job_Context.Journal_Entry_Vectors.Vector;
       File : Ada.Streams.Stream_IO.File_Type;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
       for Redo_Recovery in Boolean loop
          Reset_Root;
@@ -34,14 +36,14 @@ separate (Files_Suite.Transfer)
             Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "prepare Redo recovery");
          end if;
          Files.Model.Set_Background_Transfers (Model, True);
-         Files_Suite.Support.Save (Environment, "FILES_TEST_LOST_CREATION_METADATA");
+         Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_LOST_CREATION_METADATA");
          Ada.Environment_Variables.Set ("FILES_TEST_LOST_CREATION_METADATA", "1");
          Step := (if Redo_Recovery then Files.Operations.Redo_Last (Model, Settings)
                   else Files.Operations.Duplicate_Selected (Model, Settings));
          declare
             Job : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Model);
          begin
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                Files.Process_Jobs.Poll (Job, Finished, Cancelled);
                exit when Finished;
             end loop;
@@ -53,7 +55,7 @@ separate (Files_Suite.Transfer)
             Assert (Hostkit.Fs.Move_No_Replace (Dest, Saved), "retain the published entry");
             Write_Binary_File (Dest, "unrelated replacement");
             --  The fault is over: put the variable back now, not at scope exit.
-            Files_Suite.Support.Finalize (Environment);
+            Files_Suite.Support.Guards.Finalize (Environment);
             Step := Complete_Operation (Model, Settings, Step);
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
@@ -196,7 +198,7 @@ separate (Files_Suite.Transfer)
    exception
       when others =>
          Files.Job_Context.Initialize ("");
-         Files_Suite.Support.Release (Paste);
+         Files_Suite.Support.Guards.Release (Paste);
          if Ada.Streams.Stream_IO.Is_Open (File) then
             Ada.Streams.Stream_IO.Close (File);
          end if;

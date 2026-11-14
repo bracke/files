@@ -1,3 +1,5 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Info)
    procedure Test_Folder_Size_Helper_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,7 +7,7 @@ separate (Files_Suite.Info)
       Scan : Files.Folder_Size.Session;
       Marker : constant String := Join (Root, "size-started");
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Started, Previous, Path : Unbounded_String;
       Result : Files.File_System.Directory_Size_Result;
       Available, Finished, Cancelled : Boolean;
@@ -41,7 +43,7 @@ separate (Files_Suite.Info)
       procedure Await_Helper is
          File : Ada.Text_IO.File_Type;
       begin
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Ada.Directories.Exists (Marker);
          end loop;
          Assert (Ada.Directories.Exists (Marker), "the size helper reaches stalled filesystem work");
@@ -53,7 +55,7 @@ separate (Files_Suite.Info)
 
       procedure Await_Reaped (Started : Unbounded_String) is
       begin
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             Files.Process_Jobs.Poll (Empty, Finished, Cancelled);
             exit when not Ada.Directories.Exists (To_String (Started));
          end loop;
@@ -61,7 +63,7 @@ separate (Files_Suite.Info)
                  "the abandoned size helper is terminated and reaped");
       end Await_Reaped;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_FOLDER_SIZES");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_FOLDER_SIZES");
       Reset_Root;
       Files.Folder_Size.Cancel (Scan);
       loop
@@ -120,7 +122,7 @@ separate (Files_Suite.Info)
       Ada.Directories.Create_Path (Join (Root, "ready"));
       Write_Binary_File (Join (Join (Root, "ready"), "data"), "12345678");
       Files.Folder_Size.Request (Scan, Join (Root, "ready"));
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          Files.Folder_Size.Step (Scan);
          Take (Scan, Path, Result, Available);
          exit when Available;
@@ -140,7 +142,7 @@ separate (Files_Suite.Info)
          begin
             Files.Folder_Size.Request (Scan, Target);
             Assert (Files.Folder_Size.Is_Active (Scan), "a request leaves collection for a later frame");
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                Files.Folder_Size.Step (Scan);
                Take (Scan, Path, Result, Available);
                exit when Available;
@@ -172,7 +174,7 @@ separate (Files_Suite.Info)
       Files_Suite.Support.Assert_Equal
         (Files.Folder_Size.Testing.Batch_Length (Scan), 3, "three folders go to one helper");
       for Expected of Targets loop
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             Files.Folder_Size.Step (Scan);
             Take (Scan, Path, Result, Available);
             exit when Available;

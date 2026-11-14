@@ -10,7 +10,13 @@ project Bundle_I18n_Data is
    for Create_Missing_Dirs use "True";
    for Main use ("bundle_i18n_data.adb");
 
+   --  The files project's own warnings and style (config/files_config.gpr
+   --  and files.gpr), spelled out because there is no Alire config here.
    package Compiler is
-      for Default_Switches ("Ada") use ("-gnat2022", "-gnatyM120");
+      for Default_Switches ("Ada") use
+        ("-gnat2022", "-gnatW8", "-gnatwa", "-gnatw.X", "-gnatwe", "-gnatVa", "-gnata",
+         "-gnaty3", "-gnatya", "-gnatyA", "-gnatyB", "-gnatyb", "-gnatyc", "-gnatye", "-gnatyf", "-gnatyh",
+         "-gnatyi", "-gnatyI", "-gnatyk", "-gnatyl", "-gnatym", "-gnatyn", "-gnatyO", "-gnatyp", "-gnatyr",
+         "-gnatyS", "-gnatyt", "-gnatyu", "-gnatyx", "-gnatyM120");
    end Compiler;
 end Bundle_I18n_Data;

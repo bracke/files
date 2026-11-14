@@ -1,4 +1,5 @@
 with Hostkit.Process;
+with Files.Settings.Open_Actions;
 separate (Files.Settings)
    function Default_Settings return Settings_Model is
       Settings : Settings_Model;
@@ -68,7 +69,7 @@ separate (Files.Settings)
          for Argument of Given loop
             Args.Append (Argument);
          end loop;
-         Add_Open_Action (Settings, "text/plain", Make_Action (To_String (Program), Args));
+         Add_Open_Action (Settings, "text/plain", Open_Actions.Make_Action (To_String (Program), Args));
       end;
 
       return Settings;

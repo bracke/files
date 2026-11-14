@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Publication_Journal_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -16,7 +17,7 @@ separate (Files_Suite.Transfer)
                     (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, Replaced);
                   Actions : Files.Paste.Resolved_Action_Vectors.Vector;
                   Model : aliased Files.Model.Window_Model;
-                  Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+                  Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
                   pragma Unreferenced (Paste);
                   Step : Files.Operations.Operation_Result;
                   Outcome : Files.Transfer_Jobs.Job_Result;

@@ -45,14 +45,4 @@ package body Files.Settings.Testing is
    function Default_Settings_Text return String
      renames Files.Settings.Default_Settings_Text;
 
-   function Has_Embedded_Placeholder
-     (Argument : String)
-      return Boolean
-     renames Files.Settings.Has_Embedded_Placeholder;
-
-   function Has_Embedded_Placeholder
-     (Action : Open_Action)
-      return Boolean
-     renames Files.Settings.Has_Embedded_Placeholder;
-
 end Files.Settings.Testing;

@@ -1,8 +1,9 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    procedure Test_Icon_Assets_Load_From_Disk (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Puts the working directory back however the test ends.
-      Cwd_Guard : Files_Suite.Support.Directory_Guard;
+      Cwd_Guard : Files_Suite.Support.Guards.Directory_Guard;
       Trusted_Root : constant String := Files.Resources.Testing.Share_Root;
       Counterfeit_Cwd : constant String := Join (Root, "counterfeit-resource-cwd");
       Folder : Unbounded_String;

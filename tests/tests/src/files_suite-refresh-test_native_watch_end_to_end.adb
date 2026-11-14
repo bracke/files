@@ -1,5 +1,6 @@
 with Ada.Real_Time;
 with Hostkit.Watch;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Refresh)
    --  The watch, end to end through its helper process: once up, the helper
    --  reports everything the listing shows on every host -- from the host's
@@ -17,19 +18,21 @@ separate (Files_Suite.Refresh)
       Ada.Directories.Create_Path (Folder);
       Files.Refresh_Jobs.Watch_Path (Watch, Folder);
       --  The helper registers its watch once it is running.
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          Native := Files.Refresh_Jobs.Watch_Is_Native (Watch);
          exit when Native;
       end loop;
       Assert (Native, "the helper says it reports changes, on every host");
       --  Give the helper time to have its watch in place before the change.
-      for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Files_Suite.Support.Scaled (0.5))) loop
+      for Attempt in Files_Suite.Support.Timing.Polling
+        (Limit => Seconds (Files_Suite.Support.Timing.Scaled (0.5))) loop
          null;
       end loop;
       Write_Binary_File (Join (Folder, "new.txt"), "new");
       --  Waits for an event take the ordinary limit, not the launch one: a
       --  host whose helper re-reads the folder hears it a second or more late.
-      for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Files_Suite.Support.Scaled (Poll_Limit))) loop
+      for Attempt in Files_Suite.Support.Timing.Polling
+        (Limit => Seconds (Files_Suite.Support.Timing.Scaled (Poll_Limit))) loop
          Noticed := Files.Refresh_Jobs.Poll_Watch (Watch);
          exit when Noticed;
       end loop;
@@ -42,20 +45,22 @@ separate (Files_Suite.Refresh)
       --  ChangesW) must not answer for the write below.
       declare
          use type Ada.Real_Time.Time_Span;
-         Quiet_Since : Files_Suite.Support.Instant := Files_Suite.Support.Now;
+         Quiet_Since : Files_Suite.Support.Timing.Instant := Files_Suite.Support.Timing.Now;
       begin
-         for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Files_Suite.Support.Scaled (Poll_Limit))) loop
+         for Attempt in Files_Suite.Support.Timing.Polling
+           (Limit => Seconds (Files_Suite.Support.Timing.Scaled (Poll_Limit))) loop
             if Files.Refresh_Jobs.Poll_Watch (Watch) then
-               Quiet_Since := Files_Suite.Support.Now;
+               Quiet_Since := Files_Suite.Support.Timing.Now;
             end if;
-            exit when Files_Suite.Support.Elapsed (Quiet_Since) >= Files_Suite.Support.Scaled (1.0);
+            exit when Files_Suite.Support.Timing.Elapsed (Quiet_Since) >= Files_Suite.Support.Timing.Scaled (1.0);
          end loop;
-         Assert (Files_Suite.Support.Elapsed (Quiet_Since) >= Files_Suite.Support.Scaled (1.0),
+         Assert (Files_Suite.Support.Timing.Elapsed (Quiet_Since) >= Files_Suite.Support.Timing.Scaled (1.0),
                  "the watch falls quiet after the file is made");
       end;
       Write_Binary_File (Join (Folder, "new.txt"), "new, and grown");
       Noticed := False;
-      for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Files_Suite.Support.Scaled (Poll_Limit))) loop
+      for Attempt in Files_Suite.Support.Timing.Polling
+        (Limit => Seconds (Files_Suite.Support.Timing.Scaled (Poll_Limit))) loop
          Noticed := Files.Refresh_Jobs.Poll_Watch (Watch);
          exit when Noticed;
       end loop;

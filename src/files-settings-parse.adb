@@ -1,4 +1,6 @@
 with Files.Diagnostics;
+with Files.Settings.Path_References;
+with Files.Settings.Open_Actions;
 separate (Files.Settings)
    function Parse
      (Text : String)
@@ -79,7 +81,7 @@ separate (Files.Settings)
                else Normalized_Key (Normalized_Key'First .. Plus - 1)))
            or else not Action_Token_Modifiers_Are_Known (Key)
            or else To_String (Action.Executable) = ""
-           or else Has_Unsafe_Placeholder_Usage (Action)
+           or else Open_Actions.Has_Unsafe_Placeholder_Usage (Action)
            or else not Action_Text_Is_Serializable (Action)
          then
             Err := To_Unbounded_String ("error.settings.invalid_open_action");
@@ -136,7 +138,7 @@ separate (Files.Settings)
                      if Color_Label_From_Name (Color_Text, Label)
                        and then Persistent_Path_Is_Valid (Path_Text)
                      then
-                        Set_Label (Settings, Path_Text, Label);
+                        Path_References.Set_Label (Settings, Path_Text, Label);
                      elsif Label /= Files.Types.No_Label then
                         Err := To_Unbounded_String ("error.settings.invalid");
                      end if;
@@ -205,7 +207,7 @@ separate (Files.Settings)
          for Flag in Legacy_Theme_Flag loop
             if Setting_Key = Legacy_Theme_Keys (Flag).all then
                --  Legacy key: resolved into Settings.Theme after the loop.
-               Parse_Boolean (Files.Types.To_Lower (Value), Legacy_Theme (Flag), OK);
+               Parse_Boolean (Files.Types.To_Lower_Ascii (Value), Legacy_Theme (Flag), OK);
                if not OK then
                   Err := To_Unbounded_String ("error.settings.invalid_boolean");
                end if;
@@ -318,7 +320,7 @@ separate (Files.Settings)
             elsif Line (Line'First) = '[' and then Line (Line'Last) = ']' then
                declare
                   Name : constant String :=
-                    Files.Types.To_Lower (Trim (Line (Line'First + 1 .. Line'Last - 1)));
+                    Files.Types.To_Lower_Ascii (Trim (Line (Line'First + 1 .. Line'Last - 1)));
                   Named : Settings_Section;
                begin
                   if Section_Named (Name, Named) then
@@ -349,7 +351,7 @@ separate (Files.Settings)
 
                declare
                   Key       : constant String := Trim (Line (Line'First .. Equals - 1));
-                  Setting_Key : constant String := Files.Types.To_Lower (Key);
+                  Setting_Key : constant String := Files.Types.To_Lower_Ascii (Key);
                   Raw_Value : constant String := Trim (Line (Equals + 1 .. Line'Last));
                   Value     : constant String := Strip_Quotes (Raw_Value);
                   Err       : Unbounded_String := Null_Unbounded_String;

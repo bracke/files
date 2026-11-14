@@ -1,3 +1,4 @@
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Transport_Cleanup_Retry (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -36,7 +37,7 @@ separate (Files_Suite.Recovery)
          --  the removal itself. Wait for that attempt: it must fail on the
          --  unreadable transport, so the retry below is a real one.
          Files.Process_Jobs.Reset (Job);
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Files.Process_Jobs.Testing.Removal_Attempts /= Attempts_Before;
          end loop;
          Assert (Files.Process_Jobs.Testing.Removal_Attempts /= Attempts_Before,
@@ -47,7 +48,7 @@ separate (Files_Suite.Recovery)
       Result := Files.File_System.Permissions.Set_Permissions (To_String (Transport), 8#700#);
       Assert (Result.Success, "restore access for the cleanup retry");
 
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when not Ada.Directories.Exists (To_String (Transport));
       end loop;
       Assert (not Ada.Directories.Exists (To_String (Transport)),

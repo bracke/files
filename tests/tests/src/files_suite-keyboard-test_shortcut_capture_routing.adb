@@ -1,5 +1,6 @@
 with Files.Overlays;
 with Files.Model.Settings_Pane;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Keyboard)
    --  With a settings Shortcut row armed, the key seam routes the next physical
    --  chord to capture (rebinding the live keymap) rather than acting on it, and
@@ -8,7 +9,7 @@ separate (Files_Suite.Keyboard)
    procedure Test_Shortcut_Capture_Routing (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Clears the overrides this test sets, on an assertion failure too.
-      Shortcuts : Files_Suite.Support.Shortcut_Guard;
+      Shortcuts : Files_Suite.Support.Guards.Shortcut_Guard;
       pragma Unreferenced (Shortcuts);
       use type Guikit.Input.Key_Code;
       use type Files.Commands.Shortcut;

@@ -1,5 +1,6 @@
 with Files.File_System.Permissions;
 with Files_Suite.Volumes;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Read_Only_Directory_Transfers (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,7 +8,7 @@ separate (Files_Suite.Transfer)
       Source : constant String := Join (Root, "source");
       Remote : Files_Suite.Volumes.Remote_Directory;
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
@@ -20,7 +21,7 @@ separate (Files_Suite.Transfer)
       end Remove;
       procedure Cleanup is
       begin
-         Files_Suite.Support.Release (Paste);
+         Files_Suite.Support.Guards.Release (Paste);
          if Ada.Directories.Exists (Source) then
             Remove (Source);
          end if;
@@ -61,13 +62,13 @@ separate (Files_Suite.Transfer)
       begin
          if Hostkit.Metadata.Mode_Bits_Are_Native then
             Assert
-              (Metadata_Mode_Of (Path) = 8#555#,
+              (Mode_Of (Path, With_Special_Bits => True) = 8#555#,
                "publication and history preserve root, child directory and file permissions: root mode");
             Assert
-              (Metadata_Mode_Of (Join (Path, "locked")) = 8#555#,
+              (Mode_Of (Join (Path, "locked"), With_Special_Bits => True) = 8#555#,
                "publication and history preserve root, child directory and file permissions: child directory mode");
             Assert
-              (Metadata_Mode_Of (Join (Path, "locked/child")) = 8#444#,
+              (Mode_Of (Join (Path, "locked/child"), With_Special_Bits => True) = 8#444#,
                "publication and history preserve root, child directory and file permissions: file mode");
          else
             Assert

@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Startup)
    --  Configuration used to go in ~/.config on every host: right on Linux, and
    --  neither convention on the other two, so a new install now asks Hostkit.
@@ -29,11 +30,11 @@ separate (Files_Suite.Startup)
       --  declined the host location and the test failed for the wrong reason.
       --
       --  The guard restores HOME, USERPROFILE and XDG_CONFIG_HOME, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "HOME");
-      Files_Suite.Support.Save (Environment, "USERPROFILE");
-      Files_Suite.Support.Save (Environment, "XDG_CONFIG_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "HOME");
+      Files_Suite.Support.Guards.Save (Environment, "USERPROFILE");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_CONFIG_HOME");
 
       Reset_Root;
       Ada.Directories.Create_Path (Scratch_Home);

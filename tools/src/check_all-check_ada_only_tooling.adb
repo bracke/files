@@ -32,8 +32,6 @@ separate (Check_All)
       Scan_Python (Root & "/.claude");
       Scan_Python (Root & "/.config");
 
-      if Python_Errors > 0 then
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
-      end if;
+      --  The shared check reports each artifact itself; they count here.
+      Count_Problems (Python_Errors);
    end Check_Ada_Only_Tooling;

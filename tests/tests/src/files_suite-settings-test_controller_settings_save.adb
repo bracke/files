@@ -1,5 +1,6 @@
 with Files.Controller.Testing;
 with Files.Model.Settings_Pane;
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Settings)
    procedure Test_Controller_Settings_Save (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -12,7 +13,7 @@ separate (Files_Suite.Settings)
          Draft_Model : Files.Model.Window_Model := Sample_Model;
          Draft_Settings : Files.Settings.Settings_Model := Loaded.Settings;
          Controller_Result : Files.Controller.Controller_Result;
-         Lookup : Files.Settings.Action_Lookup_Result;
+         Lookup : Files.Settings.Open_Actions.Action_Lookup_Result;
          Ctrl : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       begin
          Ctrl (Guikit.Input.Control_Key) := True;
@@ -146,7 +147,7 @@ separate (Files_Suite.Settings)
             "text",
             "controller save updates live icon mappings");
          Lookup :=
-           Files.Settings.Lookup_Open_Action
+           Files.Settings.Open_Actions.Lookup_Open_Action
              (Draft_Settings,
               "text/markdown",
               Guikit.Input.No_Modifiers);

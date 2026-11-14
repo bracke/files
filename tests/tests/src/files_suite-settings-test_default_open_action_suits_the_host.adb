@@ -1,3 +1,4 @@
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Settings)
    --  A fresh install's one seeded open action has to name a program the host
    --  running it actually has. It named xdg-open on every host, and since a
@@ -8,8 +9,8 @@ separate (Files_Suite.Settings)
    procedure Test_Default_Open_Action_Suits_The_Host (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Defaults : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Lookup   : constant Files.Settings.Action_Lookup_Result :=
-        Files.Settings.Lookup_Open_Action (Defaults, "text/plain", Guikit.Input.No_Modifiers);
+      Lookup   : constant Files.Settings.Open_Actions.Action_Lookup_Result :=
+        Files.Settings.Open_Actions.Lookup_Open_Action (Defaults, "text/plain", Guikit.Input.No_Modifiers);
       Expected : constant String :=
         (case Hostkit.Host.Current is
             when Hostkit.Host.Windows => "cmd",

@@ -23,7 +23,7 @@ separate (Files.Settings)
                return False;
             else
                declare
-                  Name : constant String := Files.Types.To_Lower (Trim (Clean (Position .. Last - 1)));
+                  Name : constant String := Files.Types.To_Lower_Ascii (Trim (Clean (Position .. Last - 1)));
                begin
                   if Name /= "shift"
                     and then Name /= "control"

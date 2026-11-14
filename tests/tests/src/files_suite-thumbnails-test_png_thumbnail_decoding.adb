@@ -16,14 +16,6 @@ separate (Files_Suite.Thumbnails)
       declare
          Png_W   : constant := 60;
          Png_H   : constant := 60;
-         --  A well-formed PNG: signature, then an IHDR chunk (with a CRC slot,
-         --  unlike Minimal_Png_Header) declaring 8-bit truecolour, non-interlaced.
-         Signature : constant String :=
-           Byte (16#89#) & "PNG" & Byte (16#0D#) & Byte (16#0A#) & Byte (16#1A#) & Byte (16#0A#);
-         Ihdr    : constant String :=
-           Byte (0) & Byte (0) & Byte (0) & Byte (Png_W)
-           & Byte (0) & Byte (0) & Byte (0) & Byte (Png_H)
-           & Byte (8) & Byte (2) & Byte (0) & Byte (0) & Byte (0);
          Raster  : Unbounded_String;
          Png_Src : constant String := Join (Root, "decodable-rgb.png");
          Decoded : Files.File_System.Thumbnails.Thumbnail_Result;
@@ -34,11 +26,9 @@ separate (Files_Suite.Thumbnails)
                Append (Raster, Byte (173) & Byte (89) & Byte (211));
             end loop;
          end loop;
-         Write_Binary_File
-           (Png_Src,
-            Signature & Chunk ("IHDR", Ihdr)
-            & Chunk ("IDAT", Stored_Zlib_Stream (To_String (Raster)))
-            & Chunk ("IEND", ""));
+         --  A well-formed PNG (Minimal_Png_RGB): IHDR declaring 8-bit
+         --  truecolour, non-interlaced, a stored IDAT, IEND.
+         Write_Binary_File (Png_Src, Minimal_Png_RGB (Png_W, Png_H, To_String (Raster)));
          Decoded := Files.File_System.Thumbnails.Generate_Thumbnail (Png_Src, Thumbnail_Cache, Size => 8);
          Assert
            (Decoded.Status = Files.File_System.Thumbnails.Thumbnail_Generated,

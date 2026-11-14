@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
    --  Settings that already would not load (another writer got them there)
    --  still take a small change in memory: refusing every later change would
@@ -14,7 +15,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       while Files.Settings.Loadable (Settings) and then Batch < 1_000 loop
          for Index in Batch * 100 + 1 .. Batch * 100 + 100 loop
-            Files.Settings.Toggle_Favorite_Path (Settings, "/nowhere/" & Index'Image);
+            Files.Settings.Path_References.Toggle_Favorite_Path (Settings, "/nowhere/" & Index'Image);
          end loop;
          Batch := Batch + 1;
       end loop;

@@ -1,3 +1,5 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Transfer)
    procedure Test_Background_Transfers (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -11,7 +13,7 @@ separate (Files_Suite.Transfer)
       Finished : Boolean := False;
       Outcome  : Files.Transfer_Jobs.Job_Result;
       Model    : aliased Files.Model.Window_Model;
-      Paste    : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
@@ -25,7 +27,7 @@ separate (Files_Suite.Transfer)
          Other_Owner : constant Files.Transfer_Jobs.Session := Job;
       begin
          Files.Transfer_Jobs.Reset (Job);
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             Files.Transfer_Jobs.Poll (Other_Owner, Finished, Outcome);
             exit when Finished;
          end loop;
@@ -73,7 +75,7 @@ separate (Files_Suite.Transfer)
       end;
       Files.Transfer_Jobs.Start (Job, Action, Files.File_System.Drop_Copy);
       Files.Transfer_Jobs.Cancel (Job);
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          Files.Transfer_Jobs.Poll (Job, Finished, Outcome);
          exit when Finished;
       end loop;

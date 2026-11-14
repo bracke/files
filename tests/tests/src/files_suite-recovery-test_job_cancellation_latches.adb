@@ -1,4 +1,5 @@
 with Files.Protocol_Names;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    --  A helper asks Files.Job_Context.Cancelled for every chunk it copies,
    --  so the marker is read only now and then: a cancel is seen within a
@@ -13,7 +14,7 @@ separate (Files_Suite.Recovery)
       Assert (not Files.Job_Context.Cancelled, "a job nobody cancelled is not cancelled");
 
       Files.Process_Jobs.Cancel (Job);
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Files.Job_Context.Cancelled;
       end loop;
       Assert (Files.Job_Context.Cancelled, "the helper sees its parent's cancel");

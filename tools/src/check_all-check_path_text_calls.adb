@@ -27,12 +27,8 @@ separate (Check_All)
                From := At_Simple + Simple'Length;
             end loop;
             if Bad then
-               Put_Line
-                 (Standard_Error,
-                  Path & ": reads a path with Ada.Directories (Simple_Name, Containing_Directory, Compose);"
+               Report (Path & ": reads a path with Ada.Directories (Simple_Name, Containing_Directory, Compose);"
                   & " use Files.Fs_Primitives or Hostkit.Fs.Join");
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               raise Program_Error;
             end if;
          end;
       end loop;

@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
    --  The recent view refreshes in place, and a move back from it that fails
    --  returns to it -- not to some other entry of the history.
@@ -12,7 +13,7 @@ separate (Files_Suite.Operations)
       Reset_Root;
       Ada.Directories.Create_Path (Folder);
       Write_File (Item, "opened");
-      Files.Settings.Note_Recent (Settings, Item);
+      Files.Settings.Path_References.Note_Recent (Settings, Item);
       Files.Model.Initialize (Model, Folder, Files.Items.Item_Vectors.Empty_Vector, Root);
       Step := Files.Operations.Refresh (Model, Settings);
       Step := Files.Operations.Navigate_Recent (Model, Settings);

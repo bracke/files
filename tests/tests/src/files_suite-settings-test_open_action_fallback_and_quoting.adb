@@ -1,27 +1,28 @@
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Settings)
    procedure Test_Open_Action_Fallback_And_Quoting (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Open_Action_Settings_Text);
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Lookup    : Files.Settings.Action_Lookup_Result;
+      Lookup    : Files.Settings.Open_Actions.Action_Lookup_Result;
       Expanded  : Files.Settings.Open_Action;
    begin
       Modifiers := Guikit.Input.No_Modifiers;
       Modifiers (Guikit.Input.Shift_Key) := True;
-      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Modifiers);
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Modifiers);
       Assert (Lookup.Found, "missing modifier action falls back to unmodified filetype");
       Files_Suite.Support.Assert_Equal
         (To_String (Lookup.Token),
          "text/x-ada",
          "fallback token is unmodified filetype");
-      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, " text/x-ada ", Modifiers);
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Parsed.Settings, " text/x-ada ", Modifiers);
       Assert (Lookup.Found, "fallback open action lookup trims filetype");
       Files_Suite.Support.Assert_Equal
         (To_String (Lookup.Token),
          "text/x-ada",
          "trimmed fallback token is unmodified filetype");
 
-      Lookup := Files.Settings.Lookup_Open_Action
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action
         (Parsed.Settings,
          "text/quoted",
          Guikit.Input.No_Modifiers);
@@ -38,18 +39,18 @@ separate (Files_Suite.Settings)
         (To_String (Lookup.Action.Arguments.Element (1)),
          "--project file",
          "quoted argument preserves spaces");
-      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/main.ada");
+      Expanded := Files.Settings.Open_Actions.Expand_Placeholders (Lookup.Action, "/tmp/example/main.ada");
       Files_Suite.Support.Assert_Equal
         (To_String (Expanded.Arguments.Element (2)),
          "/tmp/example/main.ada",
          "quoted placeholder expands as one argument");
-      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/main.ada/");
+      Expanded := Files.Settings.Open_Actions.Expand_Placeholders (Lookup.Action, "/tmp/example/main.ada/");
       Files_Suite.Support.Assert_Equal
         (To_String (Expanded.Arguments.Element (2)),
          "/tmp/example/main.ada/",
          "path placeholder preserves trailing separator verbatim");
 
-      Lookup := Files.Settings.Lookup_Open_Action
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action
         (Parsed.Settings,
          "text/quote-char",
          Guikit.Input.No_Modifiers);
@@ -63,7 +64,7 @@ separate (Files_Suite.Settings)
          "arg "" inner",
          "quoted argument preserves doubled quote");
 
-      Lookup := Files.Settings.Lookup_Open_Action
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action
         (Parsed.Settings,
          "text/equals",
          Guikit.Input.No_Modifiers);
@@ -77,7 +78,7 @@ separate (Files_Suite.Settings)
          "arg=two words",
          "quoted equals-containing action argument parses");
 
-      Lookup := Files.Settings.Lookup_Open_Action
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action
         (Parsed.Settings,
          "text/empty-arg",
          Guikit.Input.No_Modifiers);
@@ -95,7 +96,7 @@ separate (Files_Suite.Settings)
          "after-empty",
          "argument after empty quoted argument is preserved");
 
-      Lookup := Files.Settings.Lookup_Open_Action
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action
         (Parsed.Settings,
          "text/shell",
          Guikit.Input.No_Modifiers);
@@ -109,7 +110,7 @@ separate (Files_Suite.Settings)
         (To_String (Lookup.Action.Arguments.Element (1)),
          "{name}",
          "shell action arguments are still parsed as a vector");
-      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/shell.txt");
+      Expanded := Files.Settings.Open_Actions.Expand_Placeholders (Lookup.Action, "/tmp/example/shell.txt");
       Assert (Expanded.Use_Shell, "placeholder expansion preserves explicit shell flag");
       Files_Suite.Support.Assert_Equal
         (To_String (Expanded.Executable),
@@ -119,7 +120,7 @@ separate (Files_Suite.Settings)
         (To_String (Expanded.Arguments.Element (1)),
          "shell.txt",
          "shell action placeholder expands");
-      Lookup := Files.Settings.Lookup_Open_Action
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action
         (Parsed.Settings,
          "text/shell-upper",
          Guikit.Input.No_Modifiers);
@@ -129,7 +130,8 @@ separate (Files_Suite.Settings)
         (To_String (Lookup.Action.Executable),
          "upper-runner",
          "uppercase shell executable parses");
-      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Guikit.Input.No_Modifiers);
+      Lookup :=
+        Files.Settings.Open_Actions.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "unmodified non-shell open action is found");
       Assert (not Lookup.Action.Use_Shell, "shell execution is opt-in through explicit prefix");
    end Test_Open_Action_Fallback_And_Quoting;

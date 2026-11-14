@@ -1,5 +1,6 @@
 with Files.Foreground_Jobs;
 with Files.Process_Jobs.Testing;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    --  A background paste whose helper cannot start (a process limit, a full
    --  temporary volume) ends with an error. It used to raise from every loop
@@ -11,7 +12,7 @@ separate (Files_Suite.Transfer)
       Dest_Dir : constant String := Join (Root, "refused-dest");
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Model    : aliased Files.Model.Window_Model;
-      Paste    : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;

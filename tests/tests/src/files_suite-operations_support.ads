@@ -13,8 +13,10 @@ package Files_Suite.Operations_Support is
    --  Path's permission bits, asserting the host reports them.
    --
    --  @param Path Entry whose mode to read.
-   --  @return The owner, group and other bits of Path (below 8#1000#).
-   function Mode_Of (Path : String) return Natural;
+   --  @param With_Special_Bits Keep the setuid, setgid and sticky bits.
+   --  @return The owner, group and other bits of Path (below 8#1000#), and
+   --  the special bits above them when With_Special_Bits.
+   function Mode_Of (Path : String; With_Special_Bits : Boolean := False) return Natural;
 
    --  The result of an operation once it is finished: a paste execution it
    --  left running is driven to its end first.
@@ -197,12 +199,6 @@ package Files_Suite.Operations_Support is
       Settings : in out Files.Settings.Settings_Model;
       Expected : Boolean;
       What     : String);
-
-   --  Path's permission bits as the host reports them, asserting it does.
-   --
-   --  @param Path Entry whose mode to read.
-   --  @return The permission bits of Path, special bits included.
-   function Metadata_Mode_Of (Path : String) return Natural;
 
    --  Whether only Path's owner can reach it.
    --

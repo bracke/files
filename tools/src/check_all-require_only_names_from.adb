@@ -14,9 +14,7 @@ separate (Check_All)
 
       procedure Refuse (Path, What : String) is
       begin
-         Put_Line (Standard_Error, Path & ": " & Message & " (" & What & ")");
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Path & ": " & Message & " (" & What & ")");
       end Refuse;
 
       procedure Check (Path : String) is

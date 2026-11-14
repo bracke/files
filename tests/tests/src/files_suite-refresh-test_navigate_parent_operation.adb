@@ -2,6 +2,7 @@ with Files.File_System.Trash;
 with Files.Items;
 with Files.Commands.Status;
 with Files.Model.Clipboard;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Refresh)
    procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -15,10 +16,10 @@ separate (Files_Suite.Refresh)
       Full_Child  : constant String := Ada.Directories.Full_Name (Child_Dir);
       --  Its own trash, not whichever an earlier test left configured.
       Trash_Home  : constant String := Root & "_nav_parent_xdg";
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);

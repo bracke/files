@@ -3,13 +3,15 @@ with Files.Images;
 with Files.Preview_Decoder;
 with Files.Quick_Look;
 with Files.Model.Quick_Look;
+with Files_Suite.Support.Images;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Thumbnails)
    procedure Test_Quick_Look_Decodes_Off_Thread (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Files.Quick_Look.Content_Kind;
       First  : constant String := Join (Root, "first.jpg");
       Second : constant String := Join (Root, "second.jpg");
-      Bytes  : constant String := Files_Suite.Support.Red_Jpeg_8x8;
+      Bytes  : constant String := Files_Suite.Support.Images.Red_Jpeg_8x8;
       Image  : Files.Images.Decoded_Image;
       Ready  : Boolean := False;
       Model  : Files.Model.Window_Model;
@@ -26,7 +28,7 @@ separate (Files_Suite.Thumbnails)
          procedure Await (Owner : Files.Preview_Decoder.Requester; Path : String) is
          begin
             Ready := False;
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                Files.Preview_Decoder.Take (Owner, Path, Image, Ready, Asked);
                exit when Ready;
             end loop;
@@ -55,7 +57,7 @@ separate (Files_Suite.Thumbnails)
          Files.Preview_Decoder.Request (A, Second, 8);
          Files.Preview_Decoder.Take (A, First, Image, Ready, Asked);
          Assert (not Ready and then not Asked, "the one left behind is no longer asked for");
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             Files.Preview_Decoder.Take (A, First, Image, Ready, Asked);
             Assert (not Ready, "the one left behind is never handed out");
             Files.Preview_Decoder.Take (A, Second, Image, Ready, Asked);
@@ -112,7 +114,7 @@ separate (Files_Suite.Thumbnails)
       Assert
         (Guikit.Shared_Bytes.Is_Empty (Files.Model.Quick_Look.Content_Of (Model).Image_Pixels),
          "without its decoded image: the decode is not done on the UI thread");
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          Files.Window_Polls.Poll_Quick_Look (Model, 103);
          exit when not Guikit.Shared_Bytes.Is_Empty (Files.Model.Quick_Look.Content_Of (Model).Image_Pixels);
       end loop;

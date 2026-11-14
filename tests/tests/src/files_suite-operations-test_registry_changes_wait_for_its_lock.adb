@@ -1,6 +1,8 @@
 with Ada.Exceptions;
 with Hostkit.Locks;
 with Files.Protocol_Names;
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Operations)
    --  Every change to the recovery registry takes its lock, so two processes
    --  never act on one slot at once: one could otherwise delete a slot the
@@ -11,7 +13,7 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
       use type Hostkit.Locks.Lock_Outcome;
       Test_Temp   : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TEMP", Root & "_temp");
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Registry    : constant String := Join (Join (Join (Test_Temp, "data"), "files"), "recovery-index");
       Held        : Hostkit.Locks.Lock;
 
@@ -46,7 +48,7 @@ separate (Files_Suite.Operations)
       end Sweep_State;
    begin
       if not Ada.Environment_Variables.Exists ("FILES_TEST_TEMP") then
-         Files_Suite.Support.Save (Environment, "FILES_TEST_TEMP");
+         Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_TEMP");
          Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Test_Temp);
       end if;
       Reset_Root;
@@ -75,7 +77,7 @@ separate (Files_Suite.Operations)
          --  Let go before asserting: a failed assertion here would otherwise
          --  wait, leaving the block, for a sweeper blocked on the lock.
          Hostkit.Locks.Release (Held);
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Sweep_State.Finished;
          end loop;
          Assert (Waited, "a registry sweep waits while another holds the registry's lock");

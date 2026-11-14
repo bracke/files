@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.History)
    procedure Test_History_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -62,8 +63,8 @@ separate (Files_Suite.History)
                   Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
                   Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
                   if Recent then
-                     Files.Settings.Note_Recent (Settings, Source_A);
-                     Files.Settings.Note_Recent (Settings, Source_B);
+                     Files.Settings.Path_References.Note_Recent (Settings, Source_A);
+                     Files.Settings.Path_References.Note_Recent (Settings, Source_B);
                      Step := Files.Operations.Navigate_Recent (Model, Settings);
                   end if;
                   Sources.Append (To_Unbounded_String (Source_A));

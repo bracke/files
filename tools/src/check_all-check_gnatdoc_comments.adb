@@ -4,7 +4,8 @@ separate (Check_All)
       for Tree of String_List'
         [To_Unbounded_String (Root & "/src"),
          To_Unbounded_String (Root & "/tests/tests/src"),
-         To_Unbounded_String (Root & "/tools/src")]
+         To_Unbounded_String (Root & "/tools/src"),
+         To_Unbounded_String (Root & "/tools/i18n_bundle")]
       loop
          for Spec of Project_Tools.Files.List_Tree (To_String (Tree), "*.ads", Generated_Directories) loop
             Check_GNATdoc_In_File (To_String (Spec));

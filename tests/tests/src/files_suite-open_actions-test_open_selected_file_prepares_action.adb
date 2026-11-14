@@ -1,4 +1,5 @@
 with Files.Settings.Testing;
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
    procedure Test_Open_Selected_File_Prepares_Action (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -18,7 +19,7 @@ separate (Files_Suite.Open_Actions)
       Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain+control",
-         Files.Settings.Make_Action (No_Op_Executable, Arguments));
+         Files.Settings.Open_Actions.Make_Action (No_Op_Executable, Arguments));
       Modifiers (Guikit.Input.Control_Key) := True;
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Set_Error (Model, "error.open_action.missing");
@@ -117,7 +118,7 @@ separate (Files_Suite.Open_Actions)
       Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain",
-         Files.Settings.Make_Action (No_Op_Executable, Files.Settings.String_Vectors.Empty_Vector));
+         Files.Settings.Open_Actions.Make_Action (No_Op_Executable, Files.Settings.String_Vectors.Empty_Vector));
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    procedure Test_Transport_Lease_Claims (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,14 +7,14 @@ separate (Files_Suite.Recovery)
       Missing_Lease_Path : Files.Types.UString;
       Missing_Lease_Report : constant String := Join (Root, "missing-lease-transport");
       --  Resets Active and removes the fixture, on failure too.
-      Jobs : Files_Suite.Support.Process_Jobs_Guard (Active'Access);
+      Jobs : Files_Suite.Support.Guards.Process_Jobs_Guard (Active'Access);
    begin
       Reset_Root;
       Files.Process_Jobs.Reserve (Active);
       Active_Path := To_Unbounded_String (Files.Process_Jobs.Path (Active, ""));
 
       Create_Abandoned_Transport (Missing_Lease_Report, Missing_Lease_Path);
-      Files_Suite.Support.Track (Jobs, Missing_Lease_Path);
+      Files_Suite.Support.Guards.Track (Jobs, Missing_Lease_Path);
       declare
          Lease_Path : constant String := Join (To_String (Missing_Lease_Path), ".files-job-owner");
          Identity : constant String := Files.Job_Transports.Recorded_Identity
@@ -102,5 +103,5 @@ separate (Files_Suite.Recovery)
             Remove_Transport_Fixture (Directory);
          end;
       end if;
-      Files_Suite.Support.Release (Jobs);
+      Files_Suite.Support.Guards.Release (Jobs);
    end Test_Transport_Lease_Claims;

@@ -1,16 +1,17 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    --  A volume's trash (.Trash-$uid), its files/ and info/, and what is in
    --  them may not be trashed: they would go into themselves.
    procedure Test_Trash_Refuses_Volume_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Uid : Natural;
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
       --  The freedesktop trash, also on macOS (whose native trash has no
       --  folder of ours to guard).
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-      Files_Suite.Support.Save (Environment, "FILES_TEST_VOLUME_TRASH");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_VOLUME_TRASH");
       Ada.Environment_Variables.Set ("FILES_TEST_VOLUME_TRASH", "on");
       if Hostkit.Host.Current = Hostkit.Host.Windows then
          Files_Suite.Support.Skip ("Test_Trash_Refuses_Volume_Trash", "Windows has no freedesktop volume trash");

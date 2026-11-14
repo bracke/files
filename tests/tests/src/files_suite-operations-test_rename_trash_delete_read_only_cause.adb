@@ -1,7 +1,8 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    procedure Test_Rename_Trash_Delete_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Locked : constant String := Join (Root, "locked");
       Item : constant String := Join (Locked, "item.txt");
       Mutation : Files.File_System.Mutation_Result;

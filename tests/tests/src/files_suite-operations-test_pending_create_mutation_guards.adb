@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    procedure Test_Pending_Create_Mutation_Guards
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -8,7 +9,7 @@ separate (Files_Suite.Operations)
          Create_Symbolic_Link, Create_Hard_Link);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;

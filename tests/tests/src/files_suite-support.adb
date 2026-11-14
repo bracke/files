@@ -2,13 +2,11 @@ with Files.Foreground_Jobs;
 with Files.Window_Polls;
 with Files.File_System;
 with Files.Model.Testing;
-with Files.Refresh_Jobs;
 with Ada.Text_IO;
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Exceptions;
-with Interfaces;
 with Ada.Strings;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
@@ -21,7 +19,6 @@ with AUnit.Assertions;
 with Project_Tools.Files;
 
 with GNAT.OS_Lib;
-with GNAT.CRC32;
 
 with Hostkit.Fs;
 with Hostkit.Host;
@@ -30,78 +27,13 @@ with Hostkit.Process;
 with Files.Paste;
 with Files.Model.Selection;
 
+with Files_Suite.Support.Timing;
+
 package body Files_Suite.Support is
-
-   function Polling
-     (Limit    : Duration := Poll_Limit;
-      Interval : Duration := 0.001)
-      return Poll_Iterators.Forward_Iterator'Class
-   is
-      use type Ada.Real_Time.Time;
-   begin
-      return Poll_Iterator'
-        (Deadline => Ada.Real_Time.Clock + Ada.Real_Time.To_Time_Span (Limit),
-         Interval => Interval);
-   end Polling;
-
-   overriding function Next (Object : Poll_Iterator; Position : Poll_Cursor) return Poll_Cursor is
-      use type Ada.Real_Time.Time;
-   begin
-      delay Object.Interval;
-      return (if Ada.Real_Time.Clock >= Object.Deadline then 0 else Position + 1);
-   end Next;
-
-   function Now return Instant is (Ada.Real_Time.Clock);
-
-   function Elapsed (Since : Instant) return Span is
-      use type Ada.Real_Time.Time;
-   begin
-      return Ada.Real_Time.Clock - Since;
-   end Elapsed;
-
-   function Seconds (Taken : Span) return Duration is (Ada.Real_Time.To_Duration (Taken));
-
-   --  Far beyond any runner worth waiting for; it keeps Scaled clear of
-   --  Duration'Last.
-   Maximum_Time_Scale : constant Duration := 100.0;
-
-   function Time_Scale return Duration is
-      Text : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TIME_SCALE", "");
-      Value : Duration;
-   begin
-      if Text = "" then
-         return 1.0;
-      end if;
-      Value := Duration'Value (Text);
-      return (if Value < 1.0 then 1.0 else Duration'Min (Value, Maximum_Time_Scale));
-   exception
-      when Constraint_Error =>
-         return 1.0;
-   end Time_Scale;
-
-   function Scaled (Bound : Duration) return Span is
-     (Ada.Real_Time.To_Time_Span (Duration (Bound * Time_Scale)));
-
-   procedure Assert_Within (Taken : Span; Limit : Span; Message : String) is
-      use type Ada.Real_Time.Time_Span;
-   begin
-      AUnit.Assertions.Assert
-        (Taken < Limit,
-         Message & " (took" & Duration'Image (Seconds (Taken)) & " s, limit"
-         & Duration'Image (Seconds (Limit)) & " s)");
-   end Assert_Within;
-
-   procedure Assert_Within (Since : Instant; Limit : Span; Message : String) is
-      Taken : constant Span := Elapsed (Since);
-   begin
-      Assert_Within (Taken, Limit, Message);
-   end Assert_Within;
+   use Files_Suite.Support.Timing;
 
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
-   --  Bit masking in Chunk's CRC bytes, and the adapter check in
-   --  Honours_Executable_Bit.
-   use type Interfaces.Unsigned_32;
 
    function Click_Action
      (Snapshot    : Files.Rendering.View_Snapshot;
@@ -417,132 +349,6 @@ package body Files_Suite.Support is
          raise;
    end Write_Filler_File;
 
-   function Byte (Value : Natural) return Character is
-   begin
-      return Character'Val (Value);
-   end Byte;
-
-   function Minimal_Png_Header
-     (Width  : Natural;
-      Height : Natural)
-      return String is
-   begin
-      return
-        Byte (16#89#) & "PNG" & Byte (16#0D#) & Byte (16#0A#) & Byte (16#1A#) & Byte (16#0A#) &
-        Byte (0) & Byte (0) & Byte (0) & Byte (13) & "IHDR" &
-        Byte ((Width / 16#1000000#) mod 256) &
-        Byte ((Width / 16#10000#) mod 256) &
-        Byte ((Width / 16#100#) mod 256) &
-        Byte (Width mod 256) &
-        Byte ((Height / 16#1000000#) mod 256) &
-        Byte ((Height / 16#10000#) mod 256) &
-        Byte ((Height / 16#100#) mod 256) &
-        Byte (Height mod 256) &
-        Byte (8) & Byte (2) & Byte (0) & Byte (0) & Byte (0);
-   end Minimal_Png_Header;
-
-   function Stored_Zlib_Stream
-     (Payload : String)
-      return String
-   is
-      S1 : Natural := 1;
-      S2 : Natural := 0;
-      Len : constant Natural := Payload'Length;
-      NLen : constant Natural := 65_535 - Len;
-   begin
-      for Value of Payload loop
-         S1 := (S1 + Character'Pos (Value)) mod 65_521;
-         S2 := (S2 + S1) mod 65_521;
-      end loop;
-
-      return
-        Byte (16#78#) & Byte (16#01#) &
-        Byte (16#01#) &
-        Byte (Len mod 256) & Byte ((Len / 256) mod 256) &
-        Byte (NLen mod 256) & Byte ((NLen / 256) mod 256) &
-        Payload &
-        Byte ((S2 / 256) mod 256) & Byte (S2 mod 256) &
-        Byte ((S1 / 256) mod 256) & Byte (S1 mod 256);
-   end Stored_Zlib_Stream;
-
-   function Chunk
-     (Kind : String;
-      Data : String)
-      return String
-   is
-      Context : GNAT.CRC32.CRC32;
-      Value   : Interfaces.Unsigned_32;
-   begin
-      GNAT.CRC32.Initialize (Context);
-      GNAT.CRC32.Update (Context, Kind & Data);
-      Value := GNAT.CRC32.Get_Value (Context);
-      return
-        Byte ((Data'Length / 16#1000000#) mod 256) &
-        Byte ((Data'Length / 16#10000#) mod 256) &
-        Byte ((Data'Length / 16#100#) mod 256) &
-        Byte (Data'Length mod 256) &
-        Kind & Data &
-        Byte (Natural (Interfaces.Shift_Right (Value, 24) and 16#FF#)) &
-        Byte (Natural (Interfaces.Shift_Right (Value, 16) and 16#FF#)) &
-        Byte (Natural (Interfaces.Shift_Right (Value, 8) and 16#FF#)) &
-        Byte (Natural (Value and 16#FF#));
-   end Chunk;
-
-   function Minimal_Png_RGB
-     (Width   : Natural;
-      Height  : Natural;
-      Payload : String)
-      return String is
-   begin
-      return
-        Byte (16#89#) & "PNG" & Byte (16#0D#) & Byte (16#0A#) & Byte (16#1A#) & Byte (16#0A#) &
-        Chunk
-          ("IHDR",
-           Byte ((Width / 16#1000000#) mod 256) &
-           Byte ((Width / 16#10000#) mod 256) &
-           Byte ((Width / 16#100#) mod 256) &
-           Byte (Width mod 256) &
-           Byte ((Height / 16#1000000#) mod 256) &
-           Byte ((Height / 16#10000#) mod 256) &
-           Byte ((Height / 16#100#) mod 256) &
-           Byte (Height mod 256) &
-           Byte (8) & Byte (2) & Byte (0) & Byte (0) & Byte (0)) &
-        Chunk ("IDAT", Stored_Zlib_Stream (Payload)) &
-        Chunk ("IEND", "");
-   end Minimal_Png_RGB;
-
-   function Red_Jpeg_8x8 return String is
-      Hex : constant String :=
-           "FFD8FFE000104A46494600010100000100010000FFDB0043000302020302020303030304030304050805050404050A07" &
-           "0706080C0A0C0C0B0A0B0B0D0E12100D0E110E0B0B1016101113141515150C0F171816141812141514FFDB0043010304" &
-           "0405040509050509140D0B0D141414141414141414141414141414141414141414141414141414141414141414141414" &
-           "1414141414141414141414141414FFC00011080008000803011100021101031101FFC400140001000000000000000000" &
-           "00000000000008FFC40014100100000000000000000000000000000000FFC40015010101000000000000000000000000" &
-           "00000709FFC40014110100000000000000000000000000000000FFDA000C03010002110311003F003A03154DFFD9";
-      Bytes : String (1 .. Hex'Length / 2);
-   begin
-      for Index in Bytes'Range loop
-         Bytes (Index) :=
-           Character'Val (Natural'Value ("16#" & Hex (Hex'First + 2 * (Index - 1) .. Hex'First + 2 * Index - 1) & "#"));
-      end loop;
-      return Bytes;
-   end Red_Jpeg_8x8;
-
-   function Minimal_Jpeg_With_Fill
-     (Width  : Natural;
-      Height : Natural)
-      return String is
-   begin
-      return
-        Byte (16#FF#) & Byte (16#D8#) &
-        Byte (16#FF#) & Byte (16#FF#) & Byte (16#C0#) &
-        Byte (0) & Byte (8) & Byte (8) &
-        Byte ((Height / 16#100#) mod 256) &
-        Byte (Height mod 256) &
-        Byte ((Width / 16#100#) mod 256) &
-        Byte (Width mod 256);
-   end Minimal_Jpeg_With_Fill;
-
    function Join (Parent : String; Name : String) return String is
    begin
       return Hostkit.Fs.Join (Parent, Name);
@@ -716,92 +522,6 @@ package body Files_Suite.Support is
       null;
    end Select_Name;
 
-   procedure Save (Guard : in out Environment_Guard; Name : String) is
-   begin
-      if Guard.Count = Guard.Saved'Last then
-         raise Program_Error with "Environment_Guard holds at most" & Guard.Saved'Last'Image & " variables";
-      end if;
-      Guard.Count := Guard.Count + 1;
-      Guard.Saved (Guard.Count) :=
-        (Name  => Ada.Strings.Unbounded.To_Unbounded_String (Name),
-         Value => Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value (Name, "")),
-         Was   => Ada.Environment_Variables.Exists (Name));
-   end Save;
-
-   overriding procedure Finalize (Guard : in out Environment_Guard) is
-   begin
-      for Index in reverse 1 .. Guard.Count loop
-         declare
-            Item : Saved_Variable renames Guard.Saved (Index);
-            Name : constant String := Ada.Strings.Unbounded.To_String (Item.Name);
-         begin
-            if Item.Was then
-               Ada.Environment_Variables.Set (Name, Ada.Strings.Unbounded.To_String (Item.Value));
-            else
-               Ada.Environment_Variables.Clear (Name);
-            end if;
-         end;
-      end loop;
-      Guard.Count := 0;
-   end Finalize;
-
-   overriding procedure Finalize (Guard : in out Shortcut_Guard) is
-      pragma Unreferenced (Guard);
-   begin
-      Files.Commands.Reset_Shortcut_Overrides;
-   exception
-      when Error : others =>
-         Ada.Text_IO.Put_Line
-           (Ada.Text_IO.Standard_Error,
-            "Shortcut_Guard could not clear the shortcut overrides: " & Ada.Exceptions.Exception_Message (Error));
-   end Finalize;
-
-   procedure Release (Guard : in out Paste_Guard) is
-   begin
-      Files.Model.End_Foreground_Job (Guard.Model.all);
-      Files.Refresh_Jobs.Cancel (Guard.Model.all);
-   end Release;
-
-   overriding procedure Finalize (Guard : in out Paste_Guard) is
-   begin
-      Release (Guard);
-   exception
-      when Error : others =>
-         Ada.Text_IO.Put_Line
-           (Ada.Text_IO.Standard_Error,
-            "Paste_Guard could not end the paste execution: " & Ada.Exceptions.Exception_Message (Error));
-   end Finalize;
-
-   procedure Remove_Transport_Fixture (Path : Files.Types.UString) is
-   begin
-      if Length (Path) > 0 and then Ada.Directories.Exists (To_String (Path)) then
-         Project_Tools.Files.Delete_Tree (To_String (Path));
-      end if;
-   end Remove_Transport_Fixture;
-
-   procedure Track (Guard : in out Process_Jobs_Guard; Path : Files.Types.UString) is
-   begin
-      Guard.Fixtures.Append (Path);
-   end Track;
-
-   procedure Release (Guard : in out Process_Jobs_Guard) is
-   begin
-      Files.Process_Jobs.Reset (Guard.Session.all);
-      for Path of Guard.Fixtures loop
-         Remove_Transport_Fixture (Path);
-      end loop;
-   end Release;
-
-   overriding procedure Finalize (Guard : in out Process_Jobs_Guard) is
-   begin
-      Release (Guard);
-   exception
-      when Error : others =>
-         Ada.Text_IO.Put_Line
-           (Ada.Text_IO.Standard_Error,
-            "Process_Jobs_Guard could not restore the job fixtures: " & Ada.Exceptions.Exception_Message (Error));
-   end Finalize;
-
    function Finish_Paste
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model) return Files.Operations.Operation_Result
@@ -816,26 +536,6 @@ package body Files_Suite.Support is
         (not Files.Model.Foreground_Job_Is_Active (Model), "the paste execution finishes");
       return Result;
    end Finish_Paste;
-
-   overriding procedure Initialize (Guard : in out Directory_Guard) is
-   begin
-      Guard.Saved := To_Unbounded_String (Ada.Directories.Current_Directory);
-   end Initialize;
-
-   overriding procedure Finalize (Guard : in out Directory_Guard) is
-   begin
-      if Length (Guard.Saved) > 0 then
-         Ada.Directories.Set_Directory (To_String (Guard.Saved));
-      end if;
-   exception
-      when Error : others =>
-         Ada.Text_IO.Put_Line
-           (Ada.Text_IO.Standard_Error,
-            "Directory_Guard could not return to " & To_String (Guard.Saved) & ": "
-            & Ada.Exceptions.Exception_Message (Error));
-   end Finalize;
-
-   function Saved_Directory (Guard : Directory_Guard) return String is (To_String (Guard.Saved));
 
    procedure Drain_Folder_Sizes (Model : in out Files.Model.Window_Model) is
    begin
@@ -980,11 +680,8 @@ package body Files_Suite.Support is
       end case;
    end Describe;
 
-   function Img (N : Integer) return String is
-     (Ada.Strings.Fixed.Trim (Integer'Image (N), Ada.Strings.Both));
-
    function Numbered_File (Directory : String; N : Positive) return String is
-     (Join (Directory, "f" & Img (N) & ".txt"));
+     (Join (Directory, "f" & Files.Types.Natural_Text (N) & ".txt"));
 
    procedure Arm_Numbered_Paste
      (Model    : in out Files.Model.Window_Model;
@@ -1000,7 +697,7 @@ package body Files_Suite.Support is
       Ada.Directories.Create_Path (Src_Dir);
       Ada.Directories.Create_Path (Dest_Dir);
       for N in 1 .. Count loop
-         Write_File (Numbered_File (Src_Dir, N), "S" & Img (N));
+         Write_File (Numbered_File (Src_Dir, N), "S" & Files.Types.Natural_Text (N));
          Actions.Append
            (Files.Paste.Resolved_Action'
               (Source_Path => Ada.Strings.Unbounded.To_Unbounded_String (Numbered_File (Src_Dir, N)),

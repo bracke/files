@@ -17,6 +17,14 @@ package Files.Environment is
    --  @param Value Its new value.
    procedure Set (Name : String; Value : String);
 
+   --  The locale messages are shown in, as the environment spells it: the
+   --  first of LC_ALL, LC_MESSAGES and LANG that is set, trimmed but not
+   --  normalized, so POSIX modifiers (sr_RS@latin) survive. Hostkit's one
+   --  reading, which a Desktop Entry's localized keys follow too.
+   --
+   --  @return That value, or "" when none of them is set.
+   function Message_Locale return String;
+
    --  Remove Name from this process's environment.
    --
    --  @param Name The variable.

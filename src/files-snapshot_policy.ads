@@ -22,7 +22,7 @@ package Files.Snapshot_Policy with Pure is
    --  @param Same_Rows The model's rows have not changed since but for the
    --    selection (Files.Model.Rows_Revision).
    --  @param Same_Row_Settings The settings the rows read have not changed
-   --    (Files.Settings.Same_Row_Settings): a column drag keeps them.
+   --    (Files.Snapshot_Policy.Settings_Keys.Same_Row_Settings): a column drag keeps them.
    --  @param Pasting A paste is running: its progress (header only) is
    --    redrawn at most once per interval.
    --  @param Paste_Interval_Elapsed The progress interval has passed since

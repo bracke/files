@@ -1,3 +1,4 @@
+with Files.Snapshot_Policy.Settings_Keys;
 separate (Files_Suite.Rendering)
    --  The window reuses its last snapshot while Snapshot_Settings_Key_Of is
    --  unchanged, so a setting Build_Snapshot depends on but the key leaves out
@@ -20,7 +21,8 @@ separate (Files_Suite.Rendering)
       Item_Path : constant String := To_String (Items.First_Element.Full_Path);
       Base      : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Base_View : constant View_Snapshot := Build_Snapshot (Model, Base);
-      Base_Key  : constant Files.Settings.Snapshot_Settings_Key := Files.Settings.Snapshot_Settings_Key_Of (Base);
+      Base_Key  : constant Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key :=
+        Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key_Of (Base);
       Moved     : Natural := 0;
 
       function Changed (Field : Setting_Field) return Files.Settings.Settings_Model is
@@ -108,11 +110,14 @@ separate (Files_Suite.Rendering)
          declare
             Settings       : constant Files.Settings.Settings_Model := Changed (Field);
             Snapshot_Moved : constant Boolean := Build_Snapshot (Model, Settings) /= Base_View;
-            Key_Moved      : constant Boolean := not Files.Settings.Same_Snapshot_Settings (Settings, Base_Key);
+            Key_Moved      : constant Boolean :=
+              not Files.Snapshot_Policy.Settings_Keys.Same_Snapshot_Settings (Settings, Base_Key);
          begin
             --  The comparison is done in place; it must agree with the key.
             Assert
-              (Key_Moved = Files.Settings."/=" (Files.Settings.Snapshot_Settings_Key_Of (Settings), Base_Key),
+              (Key_Moved
+               = Files.Snapshot_Policy.Settings_Keys."/="
+                   (Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key_Of (Settings), Base_Key),
                "comparing in place agrees with comparing keys for " & Field'Image);
             Assert
               (Key_Moved or else not Snapshot_Moved,

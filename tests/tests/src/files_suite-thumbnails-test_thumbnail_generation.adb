@@ -1,6 +1,7 @@
 with Files.File_System.Permissions;
 with Files.File_System.Thumbnails;
 with Files.Images;
+with Files_Suite.Support.Images;
 separate (Files_Suite.Thumbnails)
    procedure Test_Thumbnail_Generation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -108,7 +109,7 @@ separate (Files_Suite.Thumbnails)
       --  pixels can only have come from it.
       declare
          Jpeg_Source : constant String := Join (Root, "red.jpg");
-         Jpeg_Bytes  : constant String := Files_Suite.Support.Red_Jpeg_8x8;
+         Jpeg_Bytes  : constant String := Files_Suite.Support.Images.Red_Jpeg_8x8;
          Decoded     : Files.Images.Decoded_Image;
       begin
          Write_Binary_File (Jpeg_Source, Jpeg_Bytes);

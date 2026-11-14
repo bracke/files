@@ -2,6 +2,7 @@ with Files.File_System.Trash;
 with Ada.Characters.Handling;
 with Hostkit.Fs;
 with Hostkit.Trash;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    procedure Test_Recycle_Bin_Trash_View (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,7 +15,7 @@ separate (Files_Suite.Trash)
       Folder   : constant String := "recycle-bin-folder-" & Stamp;
       Source   : constant String := Join (Root, Name);
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
       Step     : Files.Operations.Operation_Result;
@@ -77,7 +78,7 @@ separate (Files_Suite.Trash)
          Files_Suite.Support.Skip ("Test_Recycle_Bin_Trash_View", "needs the Windows Recycle Bin");
          return;
       end if;
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       Reset_Root;
       Write_File (Source, "recycled");

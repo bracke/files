@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    procedure Test_Environment_Guard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,10 +9,10 @@ separate (Files_Suite.Operations)
       Ada.Environment_Variables.Clear (Unset_Name);
       begin
          declare
-            Environment : Files_Suite.Support.Environment_Guard;
+            Environment : Files_Suite.Support.Guards.Environment_Guard;
          begin
-            Files_Suite.Support.Save (Environment, Set_Name);
-            Files_Suite.Support.Save (Environment, Unset_Name);
+            Files_Suite.Support.Guards.Save (Environment, Set_Name);
+            Files_Suite.Support.Guards.Save (Environment, Unset_Name);
             Ada.Environment_Variables.Set (Set_Name, "changed");
             Ada.Environment_Variables.Set (Unset_Name, "created");
             raise Constraint_Error;

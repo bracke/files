@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files.Operations)
 function Navigate_Recent
   (Model    : in out Files.Model.Window_Model;
@@ -5,7 +6,7 @@ function Navigate_Recent
    return Operation_Result
 is
    Recent : constant Files.Types.String_Vectors.Vector :=
-     Files.Settings.Recent_Paths (Settings);
+     Files.Settings.Path_References.Recent_Paths (Settings);
    Items  : Files.Items.Item_Vectors.Vector;
 begin
    --  Stat each stored path in most-recent-first order, skipping any that no

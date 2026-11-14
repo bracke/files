@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    procedure Test_Unmarked_Transport_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -12,12 +13,12 @@ separate (Files_Suite.Recovery)
       Similar_Path : constant Files.Types.UString := To_Unbounded_String
         (Join (Hostkit.Fs.Temp_Directory, "files-job-not-a-current-transport"));
       --  Resets Active and removes the fixtures, on failure too.
-      Jobs : Files_Suite.Support.Process_Jobs_Guard (Active'Access);
+      Jobs : Files_Suite.Support.Guards.Process_Jobs_Guard (Active'Access);
    begin
-      Files_Suite.Support.Track (Jobs, Before_Lease_Path);
-      Files_Suite.Support.Track (Jobs, Young_Path);
-      Files_Suite.Support.Track (Jobs, Payload_Path);
-      Files_Suite.Support.Track (Jobs, Similar_Path);
+      Files_Suite.Support.Guards.Track (Jobs, Before_Lease_Path);
+      Files_Suite.Support.Guards.Track (Jobs, Young_Path);
+      Files_Suite.Support.Guards.Track (Jobs, Payload_Path);
+      Files_Suite.Support.Guards.Track (Jobs, Similar_Path);
       Reset_Root;
       --  A live job keeps its transport present, as it is during startup recovery.
       Files.Process_Jobs.Reserve (Active);
@@ -40,7 +41,7 @@ separate (Files_Suite.Recovery)
       begin
          Files.Job_Transports.Create
            (After_Lease_Path, Incomplete_Identity, Incomplete_Owner);
-         Files_Suite.Support.Track (Jobs, After_Lease_Path);
+         Files_Suite.Support.Guards.Track (Jobs, After_Lease_Path);
          Ada.Directories.Delete_File
            (Join (To_String (After_Lease_Path), ".files-job-transport"));
          Files.Job_Transports.Release (Incomplete_Owner);
@@ -126,5 +127,5 @@ separate (Files_Suite.Recovery)
                 Files.Job_Transports.Claim_Unrecoverable,
             "a future timestamp cannot keep a pre-lease directory retrying forever");
       end;
-      Files_Suite.Support.Release (Jobs);
+      Files_Suite.Support.Guards.Release (Jobs);
    end Test_Unmarked_Transport_Recovery;

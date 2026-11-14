@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files.Controller)
 function Apply_Settings_Command
   (Id            : Files.Commands.Settings_Command_Id;
@@ -42,9 +43,9 @@ begin
             procedure Set_Favorite (Path : String; Favorited : Boolean) is
             begin
                if Path /= ""
-                 and then Files.Settings.Is_Favorite (Updated, Path) /= Favorited
+                 and then Files.Settings.Path_References.Is_Favorite (Updated, Path) /= Favorited
                then
-                  Files.Settings.Toggle_Favorite_Path (Updated, Path);
+                  Files.Settings.Path_References.Toggle_Favorite_Path (Updated, Path);
                end if;
             end Set_Favorite;
 
@@ -56,7 +57,7 @@ begin
                if Path = "" then
                   return;
                end if;
-               Files.Settings.Toggle_Favorite_Path (Updated, Path);
+               Files.Settings.Path_References.Toggle_Favorite_Path (Updated, Path);
             end Toggle_One;
          begin
             if Selected.Is_Empty then
@@ -76,7 +77,7 @@ begin
                   All_Favorited : Boolean := True;
                begin
                   for Item of Selected loop
-                     if not Files.Settings.Is_Favorite
+                     if not Files.Settings.Path_References.Is_Favorite
                               (Updated, To_String (Item.Full_Path))
                      then
                         All_Favorited := False;
@@ -123,7 +124,7 @@ begin
             Updated : Files.Settings.Settings_Model := Settings;
             Saved   : Controller_Result;
          begin
-            Files.Settings.Clear_Recent (Updated);
+            Files.Settings.Path_References.Clear_Recent (Updated);
             Saved := Apply_Settings_Change (Id, Model, Settings, Updated, Settings_Path);
             --  Rebuild the (now empty) recent view in place so it reflects the
             --  cleared list without leaving the view or touching history.

@@ -1,6 +1,7 @@
 with Files.File_System.Trash;
 with Files.Durability.Testing;
 with Files_Suite.Volumes;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    --  A restore from a trash on another device copies the item back. When
    --  that copy cannot be put on the device, the restore does not happen:
@@ -11,7 +12,7 @@ separate (Files_Suite.Trash)
       Original    : constant String := Join (Root, "restore-synced.txt");
       Trashed     : Files.Types.UString;
       Result      : Files.File_System.Mutation_Result;
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
       Reset_Root;
       Remote.Create ("files-test-restore-sync-");
@@ -19,8 +20,8 @@ separate (Files_Suite.Trash)
          Files_Suite.Support.Skip ("Test_Restore_Keeps_Trash_Until_Synced", Files_Suite.Volumes.No_Other_Volume);
          return;
       end if;
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Remote.Path, "data"));
       Write_Binary_File (Original, "kept");

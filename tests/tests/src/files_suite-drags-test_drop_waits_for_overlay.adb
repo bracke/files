@@ -1,6 +1,7 @@
 with Files.Drop_Events;
 with Files.Model.Command_Palette;
 with Files.Model.Pasting;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Drags)
    --  A file dropped from the desktop while an overlay owns the input is not
    --  lost: it stays queued while the overlay is open, and is imported once
@@ -12,7 +13,7 @@ separate (Files_Suite.Drags)
       Source_Path : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "dropped.txt");
       Destination : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "drop-target");
       Model       : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Queue       : Files.Drop_Events.Drop_Event_Source;
       Paths       : Files.Types.String_Vectors.Vector;
    begin
@@ -39,6 +40,6 @@ separate (Files_Suite.Drags)
       Assert (Ada.Directories.Exists (Files_Suite.Support.Join (Destination, "dropped.txt"))
               or else Files.Model.Foreground_Job_Is_Active (Model),
               "and imported through the paste engine");
-      Files_Suite.Support.Release (Paste);
+      Files_Suite.Support.Guards.Release (Paste);
       Files_Suite.Support.Reset_Root;
    end Test_Drop_Waits_For_Overlay;

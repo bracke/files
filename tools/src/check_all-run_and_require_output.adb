@@ -26,22 +26,16 @@ separate (Check_All)
       Ada.Directories.Set_Directory (Previous);
 
       if not Spawned or else Status /= 0 then
-         Put_Line
-           (Standard_Error,
-            Label & " failed with status" & Integer'Image (Status));
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Label & " failed with status" & Integer'Image (Status));
+         Project_Tools.Files.Delete_File_If_Present (Output_Path);
+         return;
       end if;
 
       Output_Text := Project_Tools.Text.Read_Text_File (Output_Path);
       if not Project_Tools.Text.Contains (To_String (Output_Text), Required_First)
         or else not Project_Tools.Text.Contains (To_String (Output_Text), Required_Second)
       then
-         Put_Line
-           (Standard_Error,
-            Label & " output is missing expected CLI help text");
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Label & " output is missing expected CLI help text");
       end if;
 
       Project_Tools.Files.Delete_File_If_Present (Output_Path);

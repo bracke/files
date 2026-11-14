@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Settings)
    procedure Test_Sort_Favorites_And_Mapping_Authority (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -49,8 +50,8 @@ separate (Files_Suite.Settings)
          Favorites : Files.Settings.Settings_Model :=
            Files.Settings.Default_Settings;
       begin
-         Files.Settings.Toggle_Favorite_Path (Favorites, "/tmp/safe");
-         Files.Settings.Toggle_Favorite_Path
+         Files.Settings.Path_References.Toggle_Favorite_Path (Favorites, "/tmp/safe");
+         Files.Settings.Path_References.Toggle_Favorite_Path
            (Favorites, "/tmp/bad" & Character'Val (0) & "ignored");
          Files_Suite.Support.Assert_Equal
            (Natural (Favorites.Favorite_Paths.Length),

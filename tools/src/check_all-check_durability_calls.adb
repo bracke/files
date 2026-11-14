@@ -11,11 +11,7 @@ separate (Check_All)
             if Ada.Directories.Simple_Name (Path) /= "files-durability.adb"
               and then Ada.Strings.Fixed.Index (Lower, "hostkit.durability.sync_") > 0
             then
-               Put_Line
-                 (Standard_Error,
-                  Path & ": flushes with Hostkit.Durability.Sync_*; use Files.Durability, which tests can fail");
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               raise Program_Error;
+               Report (Path & ": flushes with Hostkit.Durability.Sync_*; use Files.Durability, which tests can fail");
             end if;
          end;
       end loop;

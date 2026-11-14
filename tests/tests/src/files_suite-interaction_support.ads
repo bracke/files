@@ -128,12 +128,6 @@ package Files_Suite.Interaction_Support is
      (Model    : in out Files.Model.Window_Model;
       Settings : in out Files.Settings.Settings_Model);
 
-   --  Format a positive index without the leading space Integer'Image inserts.
-   --
-   --  @param Value The value to format.
-   --  @return The index without a leading space.
-   function Index_Image (Value : Positive) return String;
-
    --  Load a real on-disk directory into a fresh window model, exactly as the
    --  controller does when navigating, so disk-backed menu commands operate on
    --  genuine items.

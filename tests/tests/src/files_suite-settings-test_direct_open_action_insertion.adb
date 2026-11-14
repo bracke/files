@@ -1,25 +1,26 @@
 with Files.Settings.Testing;
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Settings)
    procedure Test_Direct_Open_Action_Insertion (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Manual    : Files.Settings.Settings_Model := Settings_With_Direct_Mappings;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Lookup    : Files.Settings.Action_Lookup_Result;
+      Lookup    : Files.Settings.Open_Actions.Action_Lookup_Result;
       Args      : Files.Types.String_Vectors.Vector;
    begin
       Args.Append (To_Unbounded_String ("{path}"));
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          "text/manual+META+shift+alt+control+shift",
-         Files.Settings.Make_Action ("first", Args));
+         Files.Settings.Open_Actions.Make_Action ("first", Args));
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          " text/manual+control+alt+meta+shift ",
-         Files.Settings.Make_Action ("second", Args));
+         Files.Settings.Open_Actions.Make_Action ("second", Args));
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          " text/spaced-manual + META + shift ",
-         Files.Settings.Make_Action (" spaced-manual ", Args));
+         Files.Settings.Open_Actions.Make_Action (" spaced-manual ", Args));
       Modifiers := Guikit.Input.No_Modifiers;
       Modifiers (Guikit.Input.Meta_Key) := True;
       Modifiers (Guikit.Input.Shift_Key) := True;
@@ -29,7 +30,7 @@ separate (Files_Suite.Settings)
         (Files.Settings.Testing.Modifier_Token (Modifiers),
          "+shift+control+alt+meta",
          "modifier tokens are emitted in stable lookup order");
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/manual", Modifiers);
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Manual, "text/manual", Modifiers);
       Assert (Lookup.Found, "direct open-action insertion normalizes modifiers");
       Files_Suite.Support.Assert_Equal
         (To_String (Lookup.Token),
@@ -42,7 +43,7 @@ separate (Files_Suite.Settings)
       Modifiers := Guikit.Input.No_Modifiers;
       Modifiers (Guikit.Input.Meta_Key) := True;
       Modifiers (Guikit.Input.Shift_Key) := True;
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/spaced-manual", Modifiers);
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Manual, "text/spaced-manual", Modifiers);
       Assert (Lookup.Found, "direct open-action insertion trims filetype before modifiers");
       Files_Suite.Support.Assert_Equal
         (To_String (Lookup.Token),
@@ -59,14 +60,14 @@ separate (Files_Suite.Settings)
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          "text/bad-direct+",
-         Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/bad-direct", Guikit.Input.No_Modifiers);
+         Files.Settings.Open_Actions.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Manual, "text/bad-direct", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores dangling modifier separator");
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          "text/bad-direct+control+",
-         Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action
+         Files.Settings.Open_Actions.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action
         (Manual,
          "text/bad-direct",
          [Guikit.Input.Control_Key => True, others => False]);
@@ -76,8 +77,8 @@ separate (Files_Suite.Settings)
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          "text/bad-direct+control++alt",
-         Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action
+         Files.Settings.Open_Actions.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action
         (Manual,
          "text/bad-direct",
          [Guikit.Input.Control_Key => True, Guikit.Input.Alt_Key => True, others => False]);
@@ -87,14 +88,14 @@ separate (Files_Suite.Settings)
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          "text/bad-direct+custom",
-         Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/bad-direct", Guikit.Input.No_Modifiers);
+         Files.Settings.Open_Actions.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Manual, "text/bad-direct", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores unknown modifiers");
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          "image/svg+xml",
-         Files.Settings.Make_Action ("svg-viewer", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "image/svg+xml", Guikit.Input.No_Modifiers);
+         Files.Settings.Open_Actions.Make_Action ("svg-viewer", Args));
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Manual, "image/svg+xml", Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "direct open-action insertion accepts structured filetype suffixes");
       Files_Suite.Support.Assert_Equal
         (To_String (Lookup.Token),
@@ -103,31 +104,34 @@ separate (Files_Suite.Settings)
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          "text/bad=direct",
-         Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/bad=direct", Guikit.Input.No_Modifiers);
+         Files.Settings.Open_Actions.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Manual, "text/bad=direct", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores unrepresentable filetype keys");
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          """text/quoted-direct""",
-         Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, """text/quoted-direct""", Guikit.Input.No_Modifiers);
+         Files.Settings.Open_Actions.Make_Action ("bad", Args));
+      Lookup :=
+        Files.Settings.Open_Actions.Lookup_Open_Action (Manual, """text/quoted-direct""", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores quoted filetype keys");
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          "[text/bracketed-direct]",
-         Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "[text/bracketed-direct]", Guikit.Input.No_Modifiers);
+         Files.Settings.Open_Actions.Make_Action ("bad", Args));
+      Lookup :=
+        Files.Settings.Open_Actions.Lookup_Open_Action (Manual, "[text/bracketed-direct]", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores bracketed filetype keys");
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          "+control",
-         Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "", Modifiers);
+         Files.Settings.Open_Actions.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Manual, "", Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores modifier-only token");
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          "text/empty-executable",
-         Files.Settings.Make_Action ("   ", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/empty-executable", Guikit.Input.No_Modifiers);
+         Files.Settings.Open_Actions.Make_Action ("   ", Args));
+      Lookup :=
+        Files.Settings.Open_Actions.Lookup_Open_Action (Manual, "text/empty-executable", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores empty executable");
    end Test_Direct_Open_Action_Insertion;

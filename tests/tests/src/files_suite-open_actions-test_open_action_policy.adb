@@ -1,3 +1,4 @@
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
    procedure Test_Open_Action_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,7 +9,7 @@ separate (Files_Suite.Open_Actions)
             Error_Key           => To_Unbounded_String ("error.directory.load"),
             Path                => To_Unbounded_String (Root),
             Action              =>
-              Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
+              Files.Settings.Open_Actions.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
             Execution           =>
               (Attempted => False, Executable_Found => False, Exit_Status_Known => False, Exit_Status => 0));
       begin

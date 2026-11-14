@@ -1,3 +1,4 @@
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Refresh)
    procedure Test_Owed_Reloads (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -10,7 +11,7 @@ separate (Files_Suite.Refresh)
       procedure Await_Job (Job : Files.Process_Jobs.Session; What : String) is
          Finished, Cancelled : Boolean := False;
       begin
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             Files.Process_Jobs.Poll (Job, Finished, Cancelled);
             exit when Finished;
          end loop;

@@ -1,4 +1,5 @@
 with Files.Settings.Testing;
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
    procedure Test_Multi_File_Open_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -24,7 +25,7 @@ separate (Files_Suite.Open_Actions)
          Files.Settings.Testing.Add_Open_Action
            (Preflight_Settings,
             "text/plain",
-            Files.Settings.Make_Action (Marker_Executable, Preflight_Args));
+            Files.Settings.Open_Actions.Make_Action (Marker_Executable, Preflight_Args));
          --  Keep the missing-action preflight deterministic by opting out of
          --  the host opener fallback for the unmapped second selection.
          Preflight_Settings.Use_System_Default_Opener := False;
@@ -75,11 +76,11 @@ separate (Files_Suite.Open_Actions)
          Files.Settings.Testing.Add_Open_Action
            (Preflight_Settings,
             "text/plain",
-            Files.Settings.Make_Action (Marker_Executable, Preflight_Args));
+            Files.Settings.Open_Actions.Make_Action (Marker_Executable, Preflight_Args));
          Files.Settings.Testing.Add_Open_Action
            (Preflight_Settings,
             "text/markdown",
-            Files.Settings.Make_Action (Missing_Executable, Files.Settings.String_Vectors.Empty_Vector));
+            Files.Settings.Open_Actions.Make_Action (Missing_Executable, Files.Settings.String_Vectors.Empty_Vector));
          Files.Model.Selection.Select_Visible (Preflight_Model, 1);
          Files.Model.Selection.Toggle_Visible_Selection (Preflight_Model, 3);
          Preflight_Result := Files.Operations.Open_Selected (Preflight_Model, Preflight_Settings);
@@ -111,11 +112,11 @@ separate (Files_Suite.Open_Actions)
          Files.Settings.Testing.Add_Open_Action
            (Detached_Settings,
             "text/plain",
-            Files.Settings.Make_Action (No_Op_Executable, Files.Settings.String_Vectors.Empty_Vector));
+            Files.Settings.Open_Actions.Make_Action (No_Op_Executable, Files.Settings.String_Vectors.Empty_Vector));
          Files.Settings.Testing.Add_Open_Action
            (Detached_Settings,
             "text/markdown",
-            Files.Settings.Make_Action (Failing_Executable, Files.Settings.String_Vectors.Empty_Vector));
+            Files.Settings.Open_Actions.Make_Action (Failing_Executable, Files.Settings.String_Vectors.Empty_Vector));
          Files.Model.Selection.Select_Visible (Detached_Model, 1);
          Files.Model.Selection.Toggle_Visible_Selection (Detached_Model, 3);
          Detached_Result := Files.Operations.Open_Selected (Detached_Model, Detached_Settings);

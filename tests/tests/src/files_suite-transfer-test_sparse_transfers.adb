@@ -1,4 +1,5 @@
 with Files_Suite.Volumes;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Sparse_Transfers (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -12,14 +13,14 @@ separate (Files_Suite.Transfer)
       Dest : constant String := Join (Parent, "sparse");
       Remote : Files_Suite.Volumes.Remote_Directory;
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Paths : Files.Types.String_Vectors.Vector;
       procedure Cleanup is
       begin
-         Files_Suite.Support.Release (Paste);
+         Files_Suite.Support.Guards.Release (Paste);
       end Cleanup;
       procedure Check (Path : String; Mixed : Interfaces.C.int) is
          Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);

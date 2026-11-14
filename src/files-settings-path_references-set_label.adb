@@ -1,4 +1,4 @@
-separate (Files.Settings)
+separate (Files.Settings.Path_References)
    procedure Set_Label
      (Settings : in out Settings_Model;
       Path     : String;

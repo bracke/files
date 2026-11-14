@@ -1,3 +1,4 @@
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Transport_Protocol_Gaps (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -154,7 +155,7 @@ separate (Files_Suite.Recovery)
       Assert (Hostkit.Spawn.Start
         (Hostkit.Fs.Own_Executable, Arguments, (others => <>), Child) = Hostkit.Spawn.Spawn_Ok,
         "start a creator paused before marker publication");
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (Control & ".started");
       end loop;
       Assert (Ada.Directories.Exists (Control & ".started"), "the creator holds its witness");
@@ -167,7 +168,7 @@ separate (Files_Suite.Recovery)
            "recovery cannot claim a creator still between directory and marker publication");
       end;
       Signal_Release;
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          Found := Hostkit.Spawn.Wait (Child, Hostkit.Spawn.Wait_Poll, Status);
          exit when Found and then Status.State in Hostkit.Spawn.Wait_Exited
            | Hostkit.Spawn.Wait_Signalled | Hostkit.Spawn.Wait_Lost;

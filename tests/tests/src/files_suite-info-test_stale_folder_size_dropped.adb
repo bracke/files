@@ -1,3 +1,5 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Info)
    --  A size measured before its folder changed was kept: the running
    --  helper went on while the new listing asked for the same folder, and a
@@ -19,21 +21,21 @@ separate (Files_Suite.Info)
       Stale    : constant Files.File_System.Directory_Size_Result :=
         (Available => True, Total_Bytes => 999, File_Count => 1, Item_Count => 1, Capped => False);
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       function Listed (Time : Ada.Calendar.Time) return Files.Folder_Size.Target_Vectors.Vector is
         (Files.Folder_Size.Target_Vectors.To_Vector ((Path => To_Unbounded_String (Folder), Listed => Time), 1));
 
       procedure Await_Marker (Message : String) is
       begin
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Ada.Directories.Exists (Marker);
          end loop;
          Assert (Ada.Directories.Exists (Marker), Message);
          Ada.Directories.Delete_File (Marker);
       end Await_Marker;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_FOLDER_SIZES");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_FOLDER_SIZES");
       Reset_Root;
       Ada.Directories.Create_Path (Folder);
       Write_Binary_File (Join (Folder, "data"), "one");
@@ -82,7 +84,7 @@ separate (Files_Suite.Info)
       end;
       Assert
         (not Files.Model.Folder_Sizes.Cached_For (Model, Folder), "a size of an older listing is dropped");
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          Files.Window_Polls.Poll_Folder_Sizes (Model);
          exit when Files.Model.Folder_Sizes.Cached_For (Model, Folder);
       end loop;

@@ -1,5 +1,7 @@
 with Files.Rendering.Testing;
 with Files.Settings.Testing;
+with Files.Settings.Path_References;
+with Files.Snapshot_Policy.Settings_Keys;
 separate (Files_Suite.Rendering)
    --  The window keeps a snapshot's rows while Same_Row_Settings holds
    --  (Snapshot_Policy.Patch_Rows). That is right only if every setting a row
@@ -23,7 +25,9 @@ separate (Files_Suite.Rendering)
          Before : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Base);
       begin
          Changes := Changes + 1;
-         if Files.Settings.Same_Row_Settings (Changed, Files.Settings.Snapshot_Settings_Key_Of (Base)) then
+         if Files.Snapshot_Policy.Settings_Keys.Same_Row_Settings
+           (Changed, Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key_Of (Base))
+         then
             Assert
               (Files.Rendering.Testing.Build_Snapshot_Keeping_Rows (Model, Changed, Before)
                = Files.Rendering.Testing.Build_Snapshot_At (Model, Changed, Before.Now),
@@ -68,7 +72,7 @@ separate (Files_Suite.Rendering)
          declare
             Changed : Files.Settings.Settings_Model := Base;
          begin
-            Files.Settings.Set_Label (Changed, First_Path, Files.Types.Red);
+            Files.Settings.Path_References.Set_Label (Changed, First_Path, Files.Types.Red);
             Check ("a label", Changed);
          end;
          declare

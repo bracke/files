@@ -1,3 +1,5 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Cleanup_Retry_Bound (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -44,16 +46,16 @@ separate (Files_Suite.Recovery)
       Reset_Root;
       declare
          --  Restores the variable before the cleanup, on failure too.
-         Failing : Files_Suite.Support.Environment_Guard;
+         Failing : Files_Suite.Support.Guards.Environment_Guard;
       begin
-         Files_Suite.Support.Save (Failing, Variable);
+         Files_Suite.Support.Guards.Save (Failing, Variable);
          Ada.Environment_Variables.Set (Variable, Marker);
          Files.Process_Jobs.Reserve (Job);
          Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
          Ada.Directories.Create_Directory (Join (To_String (Transport), "stages"));
          Files.Process_Jobs.Reset (Job);
 
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Failure_Count >= 1;
          end loop;
          Assert (Failure_Count >= 1, "the parent launches a cleanup worker");
@@ -61,7 +63,7 @@ separate (Files_Suite.Recovery)
             First_Failure : constant Instant := Now;
             Relaunch      : Duration;
          begin
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when Failure_Count >= 2;
             end loop;
             Files_Suite.Support.Assert_Equal (Failure_Count, 2, "the parent makes its one bounded cleanup relaunch");
@@ -74,7 +76,7 @@ separate (Files_Suite.Recovery)
             --  spawn: wait the larger of the fixed floor and half again the
             --  relaunch this runner just took (so a slow runner waits longer by
             --  itself), and stop early if a third worker does report.
-            for Attempt in Files_Suite.Support.Polling
+            for Attempt in Files_Suite.Support.Timing.Polling
               (Limit    => Duration'Max (Quiet_Seconds, Relaunch * 3 / 2),
                Interval => 0.01)
             loop
@@ -95,9 +97,9 @@ separate (Files_Suite.Recovery)
          Reset_Root;
          declare
             --  Restores the variable before the cleanup, on failure too.
-            Failing : Files_Suite.Support.Environment_Guard;
+            Failing : Files_Suite.Support.Guards.Environment_Guard;
          begin
-            Files_Suite.Support.Save (Failing, Variable);
+            Files_Suite.Support.Guards.Save (Failing, Variable);
             Ada.Environment_Variables.Set (Variable, Marker);
             Files.Process_Jobs.Reserve (Job);
             Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
@@ -108,7 +110,7 @@ separate (Files_Suite.Recovery)
                                       To_String (Transport)),
                "replace a released transport with a dangling link");
             Files.Process_Jobs.Reset (Job);
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when Failure_Count >= 1;
             end loop;
             Assert

@@ -1,12 +1,13 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Open_Actions)
    procedure Test_Detected_Terminal_Helper (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Shell_Path   : constant String := "/bin/sh";
       Missing_Path : constant String := Join (Root, "no-such-terminal-binary");
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "TERMINAL");
+      Files_Suite.Support.Guards.Save (Environment, "TERMINAL");
       Reset_Root;
 
       if Ada.Directories.Exists (Shell_Path) then

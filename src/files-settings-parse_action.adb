@@ -1,3 +1,4 @@
+with Files.Settings.Open_Actions;
 separate (Files.Settings)
    function Parse_Action (Text : String) return Open_Action is
       Clean     : Unbounded_String;
@@ -10,11 +11,11 @@ separate (Files.Settings)
       Program   : Unbounded_String := Null_Unbounded_String;
    begin
       if Text'Length > Max_Settings_Line_Bytes or else Contains_Nul (Text) then
-         return Make_Action ("", Args, False);
+         return Open_Actions.Make_Action ("", Args, False);
       end if;
       Clean := To_Unbounded_String (Trim (Text));
 
-      if Starts_With (Files.Types.To_Lower (To_String (Clean)), "shell:") then
+      if Starts_With (Files.Types.To_Lower_Ascii (To_String (Clean)), "shell:") then
          Use_Shell := True;
          if Length (Clean) > 6 then
             Clean := To_Unbounded_String (Trim (To_String (Clean) (7 .. Length (Clean))));
@@ -24,7 +25,7 @@ separate (Files.Settings)
       end if;
 
       if To_String (Clean) = "" then
-         return Make_Action ("", Args, Use_Shell);
+         return Open_Actions.Make_Action ("", Args, Use_Shell);
       end if;
 
       declare
@@ -35,7 +36,7 @@ separate (Files.Settings)
             Token : constant String := Next_Action_Token (Clean_Text, Position, Last, Found, Valid);
          begin
             if not Valid or else not Found then
-               return Make_Action ("", Args, Use_Shell);
+               return Open_Actions.Make_Action ("", Args, Use_Shell);
             end if;
             Program := To_Unbounded_String (Token);
             Position := Last;
@@ -46,11 +47,11 @@ separate (Files.Settings)
                Token : constant String := Next_Action_Token (Clean_Text, Position, Last, Found, Valid);
             begin
                if not Valid then
-                  return Make_Action ("", Args, Use_Shell);
+                  return Open_Actions.Make_Action ("", Args, Use_Shell);
                end if;
                exit when not Found;
                if Natural (Args.Length) >= Max_Parsed_Action_Arguments then
-                  return Make_Action
+                  return Open_Actions.Make_Action
                     ("", String_Vectors.Empty_Vector, Use_Shell);
                end if;
                Args.Append (To_Unbounded_String (Token));

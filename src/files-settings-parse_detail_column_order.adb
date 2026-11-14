@@ -19,7 +19,7 @@ separate (Files.Settings)
          if Index > Value'Last or else Value (Index) = ',' then
             declare
                Token : constant String :=
-                 Files.Types.To_Lower (Trim (Value (First .. Index - 1)));
+                 Files.Types.To_Lower_Ascii (Trim (Value (First .. Index - 1)));
             begin
                if not Detail_Column_For_Order_Token (Token, Column)
                  or else Seen (Column)
@@ -52,7 +52,7 @@ separate (Files.Settings)
          if Index > Value'Last or else Value (Index) = ',' then
             declare
                Token : constant String :=
-                 Files.Types.To_Lower (Trim (Value (First .. Index - 1)));
+                 Files.Types.To_Lower_Ascii (Trim (Value (First .. Index - 1)));
             begin
                if Detail_Column_For_Order_Token (Token, Column)
                  and then Column /= Files.Types.Name_Column

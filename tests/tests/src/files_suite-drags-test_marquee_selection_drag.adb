@@ -12,7 +12,7 @@ separate (Files_Suite.Drags)
       for Index in 1 .. 6 loop
          Items.Append
            (Files.File_System.Make_Item
-              (Files_Suite.Support.Root, "item-" & Index_Image (Index),
+              (Files_Suite.Support.Root, "item-" & Files.Types.Natural_Text (Index),
                Files.Types.Regular_File_Item, "text/plain"));
       end loop;
       Files.Model.Initialize

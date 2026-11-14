@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Model)
    procedure Test_Root_Discovery_Environment_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,12 +10,12 @@ separate (Files_Suite.Model)
          Found_Drive_Profile : Boolean := False;
          --  Restores HOME, USERPROFILE, HOMEDRIVE and HOMEPATH when the block
          --  ends, on failure too.
-         Environment : Files_Suite.Support.Environment_Guard;
+         Environment : Files_Suite.Support.Guards.Environment_Guard;
       begin
-         Files_Suite.Support.Save (Environment, "HOME");
-         Files_Suite.Support.Save (Environment, "USERPROFILE");
-         Files_Suite.Support.Save (Environment, "HOMEDRIVE");
-         Files_Suite.Support.Save (Environment, "HOMEPATH");
+         Files_Suite.Support.Guards.Save (Environment, "HOME");
+         Files_Suite.Support.Guards.Save (Environment, "USERPROFILE");
+         Files_Suite.Support.Guards.Save (Environment, "HOMEDRIVE");
+         Files_Suite.Support.Guards.Save (Environment, "HOMEPATH");
          Ada.Directories.Create_Path (Drive_Profile_Path);
          Ada.Environment_Variables.Set ("HOMEDRIVE", Root);
          Ada.Environment_Variables.Set ("HOMEPATH", "/drive-profile-root");
@@ -44,12 +45,12 @@ separate (Files_Suite.Model)
          Shared_Profile_Count : Natural := 0;
          --  Restores HOME, USERPROFILE, HOMEDRIVE and HOMEPATH when the block
          --  ends, on failure too.
-         Environment : Files_Suite.Support.Environment_Guard;
+         Environment : Files_Suite.Support.Guards.Environment_Guard;
       begin
-         Files_Suite.Support.Save (Environment, "HOME");
-         Files_Suite.Support.Save (Environment, "USERPROFILE");
-         Files_Suite.Support.Save (Environment, "HOMEDRIVE");
-         Files_Suite.Support.Save (Environment, "HOMEPATH");
+         Files_Suite.Support.Guards.Save (Environment, "HOME");
+         Files_Suite.Support.Guards.Save (Environment, "USERPROFILE");
+         Files_Suite.Support.Guards.Save (Environment, "HOMEDRIVE");
+         Files_Suite.Support.Guards.Save (Environment, "HOMEPATH");
          Ada.Directories.Create_Path (Shared_Profile_Path);
          Shared_Profile_Full := To_Unbounded_String (Ada.Directories.Full_Name (Shared_Profile_Path));
          Ada.Environment_Variables.Set ("HOME", Shared_Profile_Path);

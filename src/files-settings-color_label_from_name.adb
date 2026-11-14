@@ -4,7 +4,7 @@ separate (Files.Settings)
       Label : out Files.Types.Color_Label)
       return Boolean
    is
-      Lower : constant String := Files.Types.To_Lower (Text);
+      Lower : constant String := Files.Types.To_Lower_Ascii (Text);
    begin
       if Lower = "red" then
          Label := Files.Types.Red;

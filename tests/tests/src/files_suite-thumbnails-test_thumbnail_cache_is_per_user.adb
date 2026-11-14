@@ -1,4 +1,5 @@
 with Files.File_System.Thumbnails;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Thumbnails)
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,13 +18,13 @@ separate (Files_Suite.Thumbnails)
             when others               => Join (Cache_Home, ".cache"));
 
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       function Cache_Directory return String is
         (Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Browsed));
    begin
-      Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
-      Files_Suite.Support.Save (Environment, Host_Variable);
+      Files_Suite.Support.Guards.Save (Environment, "XDG_CACHE_HOME");
+      Files_Suite.Support.Guards.Save (Environment, Host_Variable);
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
       Files_Suite.Support.Assert_Equal
         (Cache_Directory,

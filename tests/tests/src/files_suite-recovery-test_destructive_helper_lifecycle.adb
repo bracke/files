@@ -1,3 +1,5 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Destructive_Helper_Lifecycle (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -11,7 +13,7 @@ separate (Files_Suite.Recovery)
       Paths, Sources : Files.Types.String_Vectors.Vector;
       Action : Files.Model.Undo_Entry;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       --  The stalled helper never finishes, so a command that waited for it
       --  would hang; the limit bounds only the launch, a process spawn that
       --  takes about half a second on the slow Windows and macOS Intel runners.
@@ -21,8 +23,8 @@ separate (Files_Suite.Recovery)
          Files.Application.Windows.Release_Window_Jobs (Model, Watch);
       end Release_Jobs;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_OPERATIONS");
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_OPERATIONS");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
       for Job_Kind in Kind loop
          Reset_Root;
          Write_Binary_File (Join (Root, "victim.txt"), "victim bytes");
@@ -80,7 +82,7 @@ separate (Files_Suite.Recovery)
          begin
             Started := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
          end;
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Ada.Directories.Exists (To_String (Started));
          end loop;
          Assert (Ada.Directories.Exists (To_String (Started)), "the destructive helper reaches stalled work");

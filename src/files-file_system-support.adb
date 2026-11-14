@@ -126,7 +126,7 @@ package body Files.File_System.Support is
       Expected : String)
       return Boolean is
    begin
-      return Files.Types.To_Lower (Files.Environment.Value (Name)) = Expected;
+      return Files.Types.To_Lower_Ascii (Files.Environment.Value (Name)) = Expected;
    end Environment_Equals;
 
    function Create_Stage (Parent : String) return String renames Files.Job_Context.Create_Stage;

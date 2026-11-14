@@ -74,9 +74,7 @@ separate (Check_All)
                else Ada.Strings.Fixed.Index (Body_Text (Start .. Body_Text'Last), "end " & Routine & ";"));
          begin
             if Start = 0 or else Stop = 0 or else not Calls_A_Check (Body_Text (Start .. Stop)) then
-               Put_Line (Standard_Error, "the " & Suite & " test " & Routine & " registers but checks nothing");
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               raise Program_Error;
+               Report ("the " & Suite & " test " & Routine & " registers but checks nothing");
             end if;
          end Require_Checks;
       begin
@@ -100,19 +98,15 @@ separate (Check_All)
          --  Exact, not a floor: a test added without the number moving here
          --  hides the next one lost.
          if Count /= Expected then
-            Put_Line
-              (Standard_Error,
-               "the " & Suite & " test suite registers" & Natural'Image (Count)
+            Report ("the " & Suite & " test suite registers" & Natural'Image (Count)
                & " tests, not the" & Positive'Image (Expected) & " expected here");
-            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-            raise Program_Error;
          end if;
       end Require_Tests;
    begin
       --  The exact counts as of the last change to a suite: a lost test, or
       --  one added without its count moving here, fails.
       Require_Tests ("settings", 35);
-      Require_Tests ("startup", 32);
+      Require_Tests ("startup", 31);
       Require_Tests ("commands", 40);
       Require_Tests ("model", 55);
       Require_Tests ("interaction", 34);

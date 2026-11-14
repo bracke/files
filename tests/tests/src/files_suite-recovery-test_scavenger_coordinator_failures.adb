@@ -1,3 +1,5 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Scavenger_Coordinator_Failures (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -12,19 +14,19 @@ separate (Files_Suite.Recovery)
       Delayed_Report  : constant String := Join (Root, "delayed-transport");
       Delayed_Control : constant String := Join (Root, "delayed-scavenge-coordinator");
       --  Each restores its variable, on failure too; Finalize puts it back early once its phase is done.
-      Once_Environment  : Files_Suite.Support.Environment_Guard;
-      Until_Environment : Files_Suite.Support.Environment_Guard;
+      Once_Environment  : Files_Suite.Support.Guards.Environment_Guard;
+      Until_Environment : Files_Suite.Support.Guards.Environment_Guard;
       --  Resets Active and removes the fixtures, on failure too, before the variables come back.
-      Jobs : Files_Suite.Support.Process_Jobs_Guard (Active'Access);
+      Jobs : Files_Suite.Support.Guards.Process_Jobs_Guard (Active'Access);
    begin
-      Files_Suite.Support.Save (Once_Environment, "FILES_TEST_FAIL_SCAVENGER_ONCE");
-      Files_Suite.Support.Save (Until_Environment, "FILES_TEST_FAIL_SCAVENGER_UNTIL");
+      Files_Suite.Support.Guards.Save (Once_Environment, "FILES_TEST_FAIL_SCAVENGER_ONCE");
+      Files_Suite.Support.Guards.Save (Until_Environment, "FILES_TEST_FAIL_SCAVENGER_UNTIL");
       Reset_Root;
       Files.Process_Jobs.Reserve (Active);
       Active_Path := To_Unbounded_String (Files.Process_Jobs.Path (Active, ""));
 
       Create_Abandoned_Transport (Fallback_Report, Fallback_Path);
-      Files_Suite.Support.Track (Jobs, Fallback_Path);
+      Files_Suite.Support.Guards.Track (Jobs, Fallback_Path);
       declare
          Marker : constant String := Join (To_String (Fallback_Path), ".files-job-transport");
          Restricted : constant Boolean :=
@@ -43,7 +45,7 @@ separate (Files_Suite.Recovery)
             Result := Files.File_System.Permissions.Set_Permissions (Marker, 8#600#);
             Assert (Result.Success, "restore fallback marker access");
          end if;
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when not Ada.Directories.Exists (To_String (Fallback_Path));
          end loop;
          Assert
@@ -61,10 +63,10 @@ separate (Files_Suite.Recovery)
       end;
 
       Create_Abandoned_Transport (Retry_Report, Retry_Path);
-      Files_Suite.Support.Track (Jobs, Retry_Path);
+      Files_Suite.Support.Guards.Track (Jobs, Retry_Path);
       Ada.Environment_Variables.Set ("FILES_TEST_FAIL_SCAVENGER_ONCE", Retry_Control);
       Files.Job_Scavenger.Scavenge;
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (Retry_Control)
            and then not Ada.Directories.Exists (To_String (Retry_Path));
       end loop;
@@ -74,13 +76,13 @@ separate (Files_Suite.Recovery)
       Assert
         (not Ada.Directories.Exists (To_String (Retry_Path)),
          "startup recovery observes a failed coordinator and relaunches one bounded retry: the retry recovered");
-      Files_Suite.Support.Finalize (Once_Environment);
+      Files_Suite.Support.Guards.Finalize (Once_Environment);
 
       Create_Abandoned_Transport (Delayed_Report, Delayed_Path);
-      Files_Suite.Support.Track (Jobs, Delayed_Path);
+      Files_Suite.Support.Guards.Track (Jobs, Delayed_Path);
       Ada.Environment_Variables.Set ("FILES_TEST_FAIL_SCAVENGER_UNTIL", Delayed_Control);
       Files.Job_Scavenger.Scavenge;
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (Delayed_Control & ".attempts")
            and then Ada.Strings.Fixed.Count
              (Project_Tools.Files.Read_Raw_File (Delayed_Control & ".attempts"),
@@ -98,18 +100,18 @@ separate (Files_Suite.Recovery)
         (Ada.Directories.Exists (To_String (Delayed_Path)),
          "temporary coordinator failure survives both immediate attempts: transport kept");
       Write_Binary_File (Delayed_Control, "release");
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when not Ada.Directories.Exists (To_String (Delayed_Path));
       end loop;
       Assert
         (not Ada.Directories.Exists (To_String (Delayed_Path)),
          "the idle coordinator retries autonomously after access returns");
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Files.Job_Scavenger.Idle;
       end loop;
       Assert
         (Files.Job_Scavenger.Idle,
          "recovery is quiet again once its retries succeed: " & Files.Job_Scavenger.Testing.Busy_Reason);
-      Files_Suite.Support.Finalize (Until_Environment);
-      Files_Suite.Support.Release (Jobs);
+      Files_Suite.Support.Guards.Finalize (Until_Environment);
+      Files_Suite.Support.Guards.Release (Jobs);
    end Test_Scavenger_Coordinator_Failures;

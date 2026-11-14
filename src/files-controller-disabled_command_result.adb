@@ -1,4 +1,5 @@
 with Files.Commands.Status;
+with Files.Settings.Open_Actions;
 separate (Files.Controller)
    function Disabled_Command_Result
      (Id    : Files.Commands.Command_Id;
@@ -23,6 +24,6 @@ separate (Files.Controller)
            (Status    => Files.Operations.Operation_Disabled,
             Error_Key => To_Unbounded_String (Error_Key),
             Path      => Null_Unbounded_String,
-            Action    => Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
+            Action    => Files.Settings.Open_Actions.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
             others    => <>));
    end Disabled_Command_Result;

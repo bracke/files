@@ -1,8 +1,9 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Commands)
    procedure Test_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Clears the overrides this test sets, on an assertion failure too.
-      Shortcuts : Files_Suite.Support.Shortcut_Guard;
+      Shortcuts : Files_Suite.Support.Guards.Shortcut_Guard;
       pragma Unreferenced (Shortcuts);
       Ctrl       : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Ctrl_Shift : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;

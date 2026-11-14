@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -18,9 +19,9 @@ separate (Files_Suite.Recovery)
       end Run;
 
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       Write_Binary_File (Plain, "not a payload");
       Assert (not Run (Plain), "an ordinary argument is not a recovery command");

@@ -1,4 +1,6 @@
 with Hostkit.Metadata;
+with Files.Settings.Open_Actions;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    --  A desktop entry with Terminal=true runs inside a terminal emulator:
    --  Terminal and Path are read, the launch wraps the program in the
@@ -10,10 +12,10 @@ separate (Files_Suite.Operations)
       Home        : constant String := Join (Root, "terminal-home");
       System_Base : constant String := Join (Root, "terminal-system");
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Apps        : Files.Desktop_Applications.Application_Vectors.Vector;
       Program     : constant Files.Settings.Open_Action :=
-        Files.Settings.Make_Action
+        Files.Settings.Open_Actions.Make_Action
           ("top", Files.Types.String_Vectors."&" (To_Unbounded_String ("-d"), To_Unbounded_String ("1")));
 
       --  Path as a desktop-entry string: a backslash is an escape there, so a
@@ -36,10 +38,10 @@ separate (Files_Suite.Operations)
          return To_String (Result);
       end Arguments_Image;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "XDG_DATA_DIRS");
-      Files_Suite.Support.Save (Environment, "XDG_CURRENT_DESKTOP");
-      Files_Suite.Support.Save (Environment, "TERMINAL");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_DIRS");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_CURRENT_DESKTOP");
+      Files_Suite.Support.Guards.Save (Environment, "TERMINAL");
       Reset_Root;
       Ada.Directories.Create_Path (Join (Home, "applications"));
       Ada.Directories.Create_Path (Join (System_Base, "applications"));

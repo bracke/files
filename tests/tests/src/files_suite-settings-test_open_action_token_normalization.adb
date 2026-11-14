@@ -1,15 +1,16 @@
 with Files.Settings.Testing;
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Settings)
    procedure Test_Open_Action_Token_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Open_Action_Settings_Text);
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Lookup    : Files.Settings.Action_Lookup_Result;
+      Lookup    : Files.Settings.Open_Actions.Action_Lookup_Result;
    begin
       Modifiers := Guikit.Input.No_Modifiers;
       Modifiers (Guikit.Input.Control_Key) := True;
       Modifiers (Guikit.Input.Alt_Key) := True;
-      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/mixed", Modifiers);
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Parsed.Settings, "text/mixed", Modifiers);
       Assert (Lookup.Found, "settings modifier token is normalized on insertion");
       Files_Suite.Support.Assert_Equal
         (To_String (Lookup.Token),
@@ -19,7 +20,7 @@ separate (Files_Suite.Settings)
         (To_String (Lookup.Action.Executable),
          "mixed",
          "normalized settings action is returned");
-      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/spaced", Modifiers);
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Parsed.Settings, "text/spaced", Modifiers);
       Assert (Lookup.Found, "settings modifier token trims spaces around separators");
       Files_Suite.Support.Assert_Equal
         (To_String (Lookup.Token),
@@ -29,7 +30,7 @@ separate (Files_Suite.Settings)
         (To_String (Lookup.Action.Executable),
          "spaced",
          "spaced modifier action is returned");
-      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/duplicate", Modifiers);
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Parsed.Settings, "text/duplicate", Modifiers);
       Assert (Lookup.Found, "duplicate settings modifiers are normalized on insertion");
       Files_Suite.Support.Assert_Equal
         (To_String (Lookup.Token),
@@ -50,7 +51,7 @@ separate (Files_Suite.Settings)
          Files.Settings.Testing.Add_Open_Action
            (Normalized_Draft_Settings,
             "text/plain+control+alt",
-            Files.Settings.Make_Action ("existing", Normalized_Args));
+            Files.Settings.Open_Actions.Make_Action ("existing", Normalized_Args));
          Normalized_Draft := Files.Settings.Make_Draft (Normalized_Draft_Settings);
          Normalized_Draft.Filetype_Extension := To_Unbounded_String (" .TXT ");
          Normalized_Draft.Filetype_Value := To_Unbounded_String ("text/x-overridden");
@@ -69,7 +70,7 @@ separate (Files_Suite.Settings)
             "text-updated",
             "trimmed draft icon key replaces existing row");
          Lookup :=
-           Files.Settings.Lookup_Open_Action
+           Files.Settings.Open_Actions.Lookup_Open_Action
              (Normalized_Load.Settings,
               "text/plain",
               [Guikit.Input.Control_Key | Guikit.Input.Alt_Key => True, others => False]);
@@ -99,7 +100,7 @@ separate (Files_Suite.Settings)
          Normalized_Load := Files.Settings.Apply_Draft (Normalized_Draft_Settings, Normalized_Draft);
          Assert (Normalized_Load.Success, "draft applies structured-suffix modifier action");
          Lookup :=
-           Files.Settings.Lookup_Open_Action
+           Files.Settings.Open_Actions.Lookup_Open_Action
              (Normalized_Load.Settings,
               "application/ld+json",
               [Guikit.Input.Control_Key => True, others => False]);
@@ -117,7 +118,7 @@ separate (Files_Suite.Settings)
       Modifiers := Guikit.Input.No_Modifiers;
       Modifiers (Guikit.Input.Meta_Key) := True;
       Modifiers (Guikit.Input.Shift_Key) := True;
-      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/missing", Modifiers);
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Parsed.Settings, "text/missing", Modifiers);
       Assert (not Lookup.Found, "missing open action is represented as lookup data");
       Files_Suite.Support.Assert_Equal
         (To_String (Lookup.Token),
@@ -129,13 +130,13 @@ separate (Files_Suite.Settings)
          "missing open action reports deterministic diagnostic key");
       Modifiers (Guikit.Input.Control_Key) := True;
       Modifiers (Guikit.Input.Alt_Key) := True;
-      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/missing", Modifiers);
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Parsed.Settings, "text/missing", Modifiers);
       Assert (not Lookup.Found, "missing full-modifier open action is represented as lookup data");
       Files_Suite.Support.Assert_Equal
         (To_String (Lookup.Token),
          "text/missing+shift+control+alt+meta",
          "missing open action records full normalized modifier order");
-      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "   ", Modifiers);
+      Lookup := Files.Settings.Open_Actions.Lookup_Open_Action (Parsed.Settings, "   ", Modifiers);
       Assert (not Lookup.Found, "empty filetype open action lookup is missing");
       Files_Suite.Support.Assert_Equal
         (To_String (Lookup.Token),

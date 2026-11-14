@@ -66,52 +66,6 @@ package body Files.Settings is
          Sort_Ascending => Settings.Sort_Ascending);
    end Listing_Options_Of;
 
-   function Snapshot_Settings_Key_Of
-     (Settings : Settings_Model)
-      return Snapshot_Settings_Key is
-   begin
-      return
-        (Show_File_Extensions => Settings.Show_File_Extensions,
-         Show_Used_Space      => Settings.Show_Used_Space,
-         Show_Space_Bar       => Settings.Show_Space_Bar,
-         Theme                => Settings.Theme,
-         Icon_Theme           => Settings.Icon_Theme,
-         Column_Visible       => Settings.Column_Visible,
-         Column_Widths        => Settings.Column_Widths,
-         Column_Order         => Settings.Column_Order,
-         Group_By             => Settings.Group_By,
-         Favorite_Paths       => Settings.Favorite_Paths,
-         Labels               => Settings.Labels);
-   end Snapshot_Settings_Key_Of;
-
-   function Same_Snapshot_Settings
-     (Settings : Settings_Model;
-      Key      : Snapshot_Settings_Key)
-      return Boolean is
-   begin
-      --  Field by field in place: building a key copies the favorites and
-      --  labels, and this is asked on every frame.
-      return Same_Row_Settings (Settings, Key)
-        and then Settings.Show_Used_Space = Key.Show_Used_Space
-        and then Settings.Show_Space_Bar = Key.Show_Space_Bar
-        and then Files.Types."=" (Settings.Column_Visible, Key.Column_Visible)
-        and then Files.Types."=" (Settings.Column_Widths, Key.Column_Widths)
-        and then Files.Types."=" (Settings.Column_Order, Key.Column_Order);
-   end Same_Snapshot_Settings;
-
-   function Same_Row_Settings
-     (Settings : Settings_Model;
-      Key      : Snapshot_Settings_Key)
-      return Boolean is
-   begin
-      return Settings.Show_File_Extensions = Key.Show_File_Extensions
-        and then Settings.Theme = Key.Theme
-        and then Files.Icon_Themes."=" (Settings.Icon_Theme, Key.Icon_Theme)
-        and then Files.Types."=" (Settings.Group_By, Key.Group_By)
-        and then String_Vectors."=" (Settings.Favorite_Paths, Key.Favorite_Paths)
-        and then Path_Label_Vectors."=" (Settings.Labels, Key.Labels);
-   end Same_Row_Settings;
-
    type Settings_Section is
      (No_Section,
       Filetypes_Section,
@@ -306,11 +260,6 @@ package body Files.Settings is
 
    function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
 
-   function Contains (Text : String; Pattern : String) return Boolean is
-   begin
-      return Ada.Strings.Fixed.Index (Text, Pattern) > 0;
-   end Contains;
-
    function Contains_Line_Break (Text : String) return Boolean is separate;
 
    function Mapping_Key_Is_Valid (Text : String) return Boolean is
@@ -330,24 +279,6 @@ package body Files.Settings is
         and then not Contains_Nul (Text)
         and then not Contains_Line_Break (Text);
    end Mapping_Value_Is_Valid;
-
-   function Is_Whole_Placeholder (Text : String) return Boolean is
-   begin
-      return Text = "{path}"
-        or else Text = "{parent}"
-        or else Text = "{name}"
-        or else Text = "{stem}"
-        or else Text = "{extension}";
-   end Is_Whole_Placeholder;
-
-   function Contains_Known_Placeholder (Text : String) return Boolean is
-   begin
-      return Contains (Text, "{path}")
-        or else Contains (Text, "{parent}")
-        or else Contains (Text, "{name}")
-        or else Contains (Text, "{stem}")
-        or else Contains (Text, "{extension}");
-   end Contains_Known_Placeholder;
 
    function Strip_Quotes (Text : String) return String is separate;
 
@@ -533,293 +464,8 @@ package body Files.Settings is
       return Result;
    end Cycle_Group_By;
 
-   function Is_Favorite
-     (Settings : Settings_Model;
-      Path     : String)
-      return Boolean is
-   begin
-      if not Persistent_Path_Is_Valid (Path) then
-         return False;
-      end if;
-      for Existing of Settings.Favorite_Paths loop
-         if To_String (Existing) = Path then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Is_Favorite;
-
-   procedure Toggle_Favorite_Path
-     (Settings : in out Settings_Model;
-      Path     : String)
-   is
-      Removed : Boolean := False;
-   begin
-      if not Persistent_Path_Is_Valid (Path) then
-         return;
-      end if;
-      --  Every entry for Path goes: one left behind (a settings file with a
-      --  repeat) would keep it a favorite after it was taken off.
-      for Index in reverse
-        Settings.Favorite_Paths.First_Index .. Settings.Favorite_Paths.Last_Index
-      loop
-         if To_String (Settings.Favorite_Paths.Element (Index)) = Path then
-            Settings.Favorite_Paths.Delete (Index);
-            Removed := True;
-         end if;
-      end loop;
-      if not Removed then
-         Settings.Favorite_Paths.Append (To_Unbounded_String (Path));
-      end if;
-   end Toggle_Favorite_Path;
-
-   function Recent_Paths
-     (Settings : Settings_Model)
-      return String_Vectors.Vector is
-   begin
-      return Settings.Recent_Paths_Value;
-   end Recent_Paths;
-
-   procedure Note_Recent
-     (Settings : in out Settings_Model;
-      Path     : String)
- is separate;
-
-   procedure Clear_Recent
-     (Settings : in out Settings_Model) is
-   begin
-      Settings.Recent_Paths_Value.Clear;
-   end Clear_Recent;
-
-   function Label_Of
-     (Settings : Settings_Model;
-      Path     : String)
-      return Files.Types.Color_Label is
-   begin
-      if not Persistent_Path_Is_Valid (Path) then
-         return Files.Types.No_Label;
-      end if;
-      for Entry_Value of Settings.Labels loop
-         if To_String (Entry_Value.Path) = Path then
-            return Entry_Value.Label;
-         end if;
-      end loop;
-      return Files.Types.No_Label;
-   end Label_Of;
-
-   procedure Set_Label
-     (Settings : in out Settings_Model;
-      Path     : String;
-      Label    : Files.Types.Color_Label)
- is separate;
-
-   procedure Set_Labels
-     (Settings : in out Settings_Model;
-      Paths    : String_Vectors.Vector;
-      Label    : Files.Types.Color_Label)
- is separate;
-
-   function Index_Paths
-     (Settings : Settings_Model)
-      return Path_Index
-   is
-      Result : Path_Index;
-   begin
-      --  Is_Favorite and Label_Of skip invalid paths and take the first stored
-      --  entry, so index only valid paths and keep the first of any repeat.
-      for Existing of Settings.Favorite_Paths loop
-         declare
-            Path : constant String := To_String (Existing);
-         begin
-            if Persistent_Path_Is_Valid (Path) and then not Result.Favorites.Contains (Path) then
-               Result.Favorites.Insert (Path);
-            end if;
-         end;
-      end loop;
-      for Entry_Value of Settings.Labels loop
-         declare
-            Path : constant String := To_String (Entry_Value.Path);
-         begin
-            if Persistent_Path_Is_Valid (Path) and then not Result.Labels.Contains (Path) then
-               Result.Labels.Insert (Path, Entry_Value.Label);
-            end if;
-         end;
-      end loop;
-      return Result;
-   end Index_Paths;
-
-   function Is_Favorite
-     (Index : Path_Index;
-      Path  : String)
-      return Boolean is
-   begin
-      return Persistent_Path_Is_Valid (Path) and then Index.Favorites.Contains (Path);
-   end Is_Favorite;
-
-   function Label_Of
-     (Index : Path_Index;
-      Path  : String)
-      return Files.Types.Color_Label
-   is
-      Found : Path_Label_Maps.Cursor;
-   begin
-      if not Persistent_Path_Is_Valid (Path) then
-         return Files.Types.No_Label;
-      end if;
-      Found := Index.Labels.Find (Path);
-      if Path_Label_Maps.Has_Element (Found) then
-         return Path_Label_Maps.Element (Found);
-      end if;
-      return Files.Types.No_Label;
-   end Label_Of;
-
-   procedure Move_Path_References
-     (Settings : in out Settings_Model;
-      From     : String;
-      To       : String;
-      Changed  : out Boolean)
-   is
-      --  Path moved along with From: From itself or an entry inside it.
-      function Moved (Path : String) return String is (Hostkit.Fs.Rebase (Path, From, To));
-
-      --  Each entry moved with From is rewritten. An entry that then repeats
-      --  one listed before it goes (the earlier one stays): a path is a
-      --  favorite, or recent, once.
-      procedure Rewrite (Paths : in out String_Vectors.Vector) is
-         Rewritten, Seen : Path_Sets.Set;
-         Kept            : String_Vectors.Vector;
-      begin
-         for Index in Paths.First_Index .. Paths.Last_Index loop
-            declare
-               Old_Path : constant String := To_String (Paths (Index));
-               New_Path : constant String := Moved (Old_Path);
-            begin
-               if New_Path /= Old_Path then
-                  Paths.Replace_Element (Index, To_Unbounded_String (New_Path));
-                  Rewritten.Include (New_Path);
-                  Changed := True;
-               end if;
-            end;
-         end loop;
-         if Rewritten.Is_Empty then
-            return;
-         end if;
-         for Path of Paths loop
-            if not Rewritten.Contains (To_String (Path)) or else not Seen.Contains (To_String (Path)) then
-               Kept.Append (Path);
-               Seen.Include (To_String (Path));
-            end if;
-         end loop;
-         Paths := Kept;
-      end Rewrite;
-
-      --  The labels' new paths, and the labels that moved there.
-      Label_Targets : Path_Sets.Set;
-      Label_Moved   : array (Settings.Labels.First_Index .. Settings.Labels.Last_Index) of Boolean :=
-        [others => False];
-      Kept_Labels   : Path_Label_Vectors.Vector;
-   begin
-      Changed := False;
-      if From = "" or else To = "" or else From = To then
-         return;
-      end if;
-      Rewrite (Settings.Favorite_Paths);
-      Rewrite (Settings.Recent_Paths_Value);
-      for Index in Settings.Labels.First_Index .. Settings.Labels.Last_Index loop
-         declare
-            Old_Path : constant String := To_String (Settings.Labels (Index).Path);
-            New_Path : constant String := Moved (Old_Path);
-         begin
-            if New_Path /= Old_Path then
-               Settings.Labels.Replace_Element
-                 (Index, (Path => To_Unbounded_String (New_Path), Label => Settings.Labels (Index).Label));
-               Label_Targets.Include (New_Path);
-               Label_Moved (Index) := True;
-               Changed := True;
-            end if;
-         end;
-      end loop;
-      --  A label left at a path a labelled entry moved onto belonged to what
-      --  was there before: the moved entry's label is the one that holds.
-      if not Label_Targets.Is_Empty then
-         for Index in Settings.Labels.First_Index .. Settings.Labels.Last_Index loop
-            if Label_Moved (Index) or else not Label_Targets.Contains (To_String (Settings.Labels (Index).Path)) then
-               Kept_Labels.Append (Settings.Labels (Index));
-            end if;
-         end loop;
-         Settings.Labels := Kept_Labels;
-      end if;
-   end Move_Path_References;
-
-   procedure Forget_Path_References
-     (Settings : in out Settings_Model;
-      Path     : String;
-      Changed  : out Boolean)
-   is
-      --  Path itself or an entry inside the folder Path.
-      function Under (Candidate : String) return Boolean is
-        (Candidate = Path
-         or else (Candidate'Length > Path'Length
-                  and then Candidate (Candidate'First .. Candidate'First + Path'Length - 1) = Path
-                  and then Candidate (Candidate'First + Path'Length) in '/' | GNAT.OS_Lib.Directory_Separator));
-
-      procedure Drop (Paths : in out String_Vectors.Vector) is
-      begin
-         for Index in reverse Paths.First_Index .. Paths.Last_Index loop
-            if Under (To_String (Paths (Index))) then
-               Paths.Delete (Index);
-               Changed := True;
-            end if;
-         end loop;
-      end Drop;
-   begin
-      Changed := False;
-      if Path = "" then
-         return;
-      end if;
-      Drop (Settings.Favorite_Paths);
-      Drop (Settings.Recent_Paths_Value);
-      for Index in reverse Settings.Labels.First_Index .. Settings.Labels.Last_Index loop
-         if Under (To_String (Settings.Labels (Index).Path)) then
-            Settings.Labels.Delete (Index);
-            Changed := True;
-         end if;
-      end loop;
-   end Forget_Path_References;
-
    function Loadable (Settings : Settings_Model) return Boolean is
      (Parse (To_Text (Settings)).Success);
-
-   function Has_Embedded_Placeholder
-     (Argument : String)
-      return Boolean
-   is
-   begin
-      return Contains_Known_Placeholder (Argument)
-        and then not Is_Whole_Placeholder (Argument);
-   end Has_Embedded_Placeholder;
-
-   function Has_Embedded_Placeholder
-     (Action : Open_Action)
-      return Boolean
-   is
-   begin
-      for Argument of Action.Arguments loop
-         if Has_Embedded_Placeholder (To_String (Argument)) then
-            return True;
-         end if;
-      end loop;
-
-      return False;
-   end Has_Embedded_Placeholder;
-
-   function Has_Unsafe_Placeholder_Usage
-     (Action : Open_Action)
-      return Boolean is
-   begin
-      return Contains_Known_Placeholder (To_String (Action.Executable))
-        or else Has_Embedded_Placeholder (Action);
-   end Has_Unsafe_Placeholder_Usage;
 
    function Action_Text_Is_Serializable
      (Action : Open_Action)
@@ -880,7 +526,7 @@ package body Files.Settings is
    end Add_Icon_Mapping;
 
    function Modifier_Name_Is_Known (Name : String) return Boolean is
-      Clean : constant String := Files.Types.To_Lower (Trim (Name));
+      Clean : constant String := Files.Types.To_Lower_Ascii (Trim (Name));
    begin
       return Clean = "shift"
         or else Clean = "control"
@@ -889,7 +535,7 @@ package body Files.Settings is
    end Modifier_Name_Is_Known;
 
    function Structured_Filetype_Suffix_Is_Known (Name : String) return Boolean is
-      Clean : constant String := Files.Types.To_Lower (Trim (Name));
+      Clean : constant String := Files.Types.To_Lower_Ascii (Trim (Name));
    begin
       return Clean = "json"
         or else Clean = "xml"
@@ -976,27 +622,6 @@ package body Files.Settings is
    function Modifier_Token
      (Modifiers : Guikit.Input.Modifier_Set)
       return String
- is separate;
-
-   --  Build an Open_Action that defers to the host system's default opener.
-   --  Returns Found => False when no opener can be located, so callers can
-   --  still surface the original "missing open action" diagnostic.
-   --
-   --  On Linux/Unix the wrapper sidesteps xdg-open's DE-specific routing
-   --  (kde-open5 / kde-open6 fail on Qt6-only systems where qtpaths has been
-   --  superseded by qtpaths6) by doing the MIME → .desktop → launch dance
-   --  itself via xdg-mime + gio launch / gtk-launch, both of which are
-   --  Qt-independent. It falls back to xdg-open only when those aren't
-   --  available.
-   function System_Default_Opener_Action
-     (Filetype : String) return Action_Lookup_Result
- is separate;
-
-   function Lookup_Open_Action
-     (Settings  : Settings_Model;
-      Filetype  : String;
-      Modifiers : Guikit.Input.Modifier_Set)
-      return Action_Lookup_Result
  is separate;
 
    --  Parse a boolean setting value. Target is set on "true"/"false"; Valid is
@@ -1288,29 +913,10 @@ package body Files.Settings is
          if Clean'Length = 1 then
             return "";
          end if;
-         return Files.Types.To_Lower (Trim (Clean (Clean'First + 1 .. Clean'Last)));
+         return Files.Types.To_Lower_Ascii (Trim (Clean (Clean'First + 1 .. Clean'Last)));
       else
-         return Files.Types.To_Lower (Clean);
+         return Files.Types.To_Lower_Ascii (Clean);
       end if;
    end Normalize_Extension;
-
-   function Make_Action
-     (Executable : String;
-      Arguments  : String_Vectors.Vector;
-      Use_Shell  : Boolean := False)
-      return Open_Action is
-   begin
-      return
-        (Executable => To_Unbounded_String (Executable),
-         Arguments  => Arguments,
-         Use_Shell  => Use_Shell,
-         others     => <>);
-   end Make_Action;
-
-   function Expand_Placeholders
-     (Action : Open_Action;
-      Path   : String)
-      return Open_Action
- is separate;
 
 end Files.Settings;

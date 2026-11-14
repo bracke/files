@@ -24,14 +24,10 @@ separate (Check_All)
               Ada.Strings.Fixed.Trim (Line (Line'First .. Equals - 1), Ada.Strings.Both);
          begin
             if Seen.Contains (Key) then
-               Put_Line
-                 (Standard_Error,
-                  Catalog & ":" & Natural'Image (Number) & ": duplicate localization key: " & Key);
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               raise Program_Error;
+               Report (Catalog & ":" & Natural'Image (Number) & ": duplicate localization key: " & Key);
             end if;
 
-            Seen.Insert (Key);
+            Seen.Include (Key);
          end;
       end Check_Line;
    begin

@@ -1,9 +1,11 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Cleanup_Exit_Verification (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Variable  : constant String := "FILES_TEST_SKIP_CLEANUP_ONCE";
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Marker    : constant String := Join (Root, "cleanup-worker-skipped");
       Job       : Files.Process_Jobs.Session;
       Transport : Files.Types.UString;
@@ -18,7 +20,7 @@ separate (Files_Suite.Recovery)
          end if;
       end Clean_Up;
    begin
-      Files_Suite.Support.Save (Environment, Variable);
+      Files_Suite.Support.Guards.Save (Environment, Variable);
       Reset_Root;
       Ada.Environment_Variables.Set (Variable, Marker);
       Files.Process_Jobs.Reserve (Job);
@@ -26,7 +28,7 @@ separate (Files_Suite.Recovery)
       Ada.Directories.Create_Directory (Join (To_String (Transport), "stages"));
       Files.Process_Jobs.Reset (Job);
 
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (Marker);
       end loop;
       Assert
@@ -36,7 +38,7 @@ separate (Files_Suite.Recovery)
         (Ada.Directories.Exists (To_String (Transport)),
          "a zero-exit cleanup helper can leave its transport behind: the transport remains");
 
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when not Ada.Directories.Exists (To_String (Transport));
       end loop;
       Assert

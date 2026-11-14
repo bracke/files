@@ -2,6 +2,7 @@ with Files.Rendering.Testing;
 with Files.Model.Status_Samples;
 with Files.Model.Testing;
 with Guikit.Input;
+with Files.Snapshot_Policy.Settings_Keys;
 separate (Files_Suite.Rendering)
    --  The window keeps a snapshot's rows across a change of the selection
    --  alone (Snapshot_Policy.Patch_Rows). That is right only if every
@@ -104,10 +105,12 @@ separate (Files_Suite.Rendering)
       declare
          Before : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
-         Key    : constant Files.Settings.Snapshot_Settings_Key := Files.Settings.Snapshot_Settings_Key_Of (Settings);
+         Key    : constant Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key :=
+           Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key_Of (Settings);
       begin
          Settings.Column_Widths (Files.Types.Name_Column) := Settings.Column_Widths (Files.Types.Name_Column) + 24;
-         Assert (Files.Settings.Same_Row_Settings (Settings, Key), "a column width is no row setting");
+         Assert
+           (Files.Snapshot_Policy.Settings_Keys.Same_Row_Settings (Settings, Key), "a column width is no row setting");
          Assert
            (Files.Rendering.Testing.Build_Snapshot_Keeping_Rows (Model, Settings, Before)
             = Files.Rendering.Testing.Build_Snapshot_At (Model, Settings, Before.Now),

@@ -1,4 +1,5 @@
 with Files.Settings.Testing;
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
    procedure Test_Open_Executable_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,7 +7,7 @@ separate (Files_Suite.Open_Actions)
       Arguments : Files.Settings.String_Vectors.Vector;
       Model     : Files.Model.Window_Model := Sample_Model;
       Result    : Files.Operations.Operation_Result;
-      Lookup    : Files.Settings.Action_Lookup_Result;
+      Lookup    : Files.Settings.Open_Actions.Action_Lookup_Result;
    begin
       --  Keep the configured-action contracts deterministic; the host opener
       --  fallback would otherwise resolve unmapped lookups in this environment.
@@ -19,7 +20,7 @@ separate (Files_Suite.Open_Actions)
       Files.Settings.Testing.Add_Open_Action
            (Settings,
             "text/plain",
-            Files.Settings.Make_Action (Failing_Executable, Arguments));
+            Files.Settings.Open_Actions.Make_Action (Failing_Executable, Arguments));
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -48,7 +49,7 @@ separate (Files_Suite.Open_Actions)
       Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain",
-         Files.Settings.Make_Action ("/tmp/files_missing_open_action_executable", Arguments));
+         Files.Settings.Open_Actions.Make_Action ("/tmp/files_missing_open_action_executable", Arguments));
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -72,7 +73,7 @@ separate (Files_Suite.Open_Actions)
       Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain",
-         Files.Settings.Make_Action (Root, Arguments));
+         Files.Settings.Open_Actions.Make_Action (Root, Arguments));
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -96,8 +97,9 @@ separate (Files_Suite.Open_Actions)
          Files.Settings.Testing.Add_Open_Action
            (Settings,
             "text/unsafe-argument",
-            Files.Settings.Make_Action (No_Op_Executable, Unsafe_Arguments));
-         Lookup := Files.Settings.Lookup_Open_Action (Settings, "text/unsafe-argument", Guikit.Input.No_Modifiers);
+            Files.Settings.Open_Actions.Make_Action (No_Op_Executable, Unsafe_Arguments));
+         Lookup :=
+           Files.Settings.Open_Actions.Lookup_Open_Action (Settings, "text/unsafe-argument", Guikit.Input.No_Modifiers);
          Assert
            (not Lookup.Found,
             "settings helper rejects embedded placeholders before operation preparation");
@@ -113,8 +115,10 @@ separate (Files_Suite.Open_Actions)
          Files.Settings.Testing.Add_Open_Action
            (Settings,
             "text/unsafe-executable",
-            Files.Settings.Make_Action ("{path}", Files.Types.String_Vectors.Empty_Vector));
-         Lookup := Files.Settings.Lookup_Open_Action (Settings, "text/unsafe-executable", Guikit.Input.No_Modifiers);
+            Files.Settings.Open_Actions.Make_Action ("{path}", Files.Types.String_Vectors.Empty_Vector));
+         Lookup :=
+           Files.Settings.Open_Actions.Lookup_Open_Action
+             (Settings, "text/unsafe-executable", Guikit.Input.No_Modifiers);
          Assert
            (not Lookup.Found,
             "settings helper rejects executable placeholders before operation preparation");

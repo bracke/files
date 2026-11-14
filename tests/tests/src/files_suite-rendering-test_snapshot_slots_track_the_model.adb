@@ -2,6 +2,7 @@ with Ada.Calendar;
 with Ada.Real_Time;
 with Files.Rendering.Testing;
 with Files.Snapshot_Slots;
+with Files.Settings.Path_References;
 separate (Files_Suite.Rendering)
    --  The window's two snapshots: after every kind of change, drawn between
    --  changes or not, the current one is what a rebuild gives, and the one on
@@ -57,7 +58,7 @@ separate (Files_Suite.Rendering)
       end Extensions;
       procedure Label is
       begin
-         Files.Settings.Set_Label
+         Files.Settings.Path_References.Set_Label
            (Settings, To_String (Files.Model.Visible_Item (Model, 2).Full_Path), Files.Types.Green);
       end Label;
    begin

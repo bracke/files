@@ -6,8 +6,8 @@ separate (Files.Operations)
 --  failed mid-batch. Record each incoming path that matches an existing
 --  entry only by case as existing too, so the normal conflict flow applies
 --  and a Replace writes through the filesystem's own case rules.
---  Names fold with Fold_Case, which covers every script: To_Lower knows
---  only ASCII and Latin-1, so ПРИВЕТ.txt slipped past привет.txt.
+--  Names fold with Fold_Case, which covers every script: a fold of ASCII
+--  and Latin-1 alone let ПРИВЕТ.txt slip past привет.txt.
 function With_Case_Aliases
   (Work      : Files.Paste.Work_Item_Vectors.Vector;
    Existing  : Files.Types.String_Vectors.Vector;

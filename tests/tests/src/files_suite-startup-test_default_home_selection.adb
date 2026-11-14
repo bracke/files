@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Startup)
    procedure Test_Default_Home_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,15 +15,15 @@ separate (Files_Suite.Startup)
       Expected_Xdg      : constant String :=
         Hostkit.Fs.Join (Hostkit.Fs.Join (Xdg_Path, "files"), "settings.conf");
       --  Restores every variable the test changes, on failure too.
-      Environment       : Files_Suite.Support.Environment_Guard;
+      Environment       : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_SETTINGS");
-      Files_Suite.Support.Save (Environment, "XDG_CONFIG_HOME");
-      Files_Suite.Support.Save (Environment, "HOME");
-      Files_Suite.Support.Save (Environment, "USERPROFILE");
-      Files_Suite.Support.Save (Environment, "HOMEDRIVE");
-      Files_Suite.Support.Save (Environment, "HOMEPATH");
-      Files_Suite.Support.Save (Environment, "HOMESHARE");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_SETTINGS");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_CONFIG_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "HOME");
+      Files_Suite.Support.Guards.Save (Environment, "USERPROFILE");
+      Files_Suite.Support.Guards.Save (Environment, "HOMEDRIVE");
+      Files_Suite.Support.Guards.Save (Environment, "HOMEPATH");
+      Files_Suite.Support.Guards.Save (Environment, "HOMESHARE");
 
       Assert (Files.Application.Home_Directory /= "", "home directory fallback is never empty");
       Ada.Directories.Create_Path (Join (Root, "profile-home"));

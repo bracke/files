@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Interaction)
    --  Labels following a move that would make the settings file too big to
    --  load are refused whole, like any settings change: the labels stay, the
@@ -10,14 +11,14 @@ separate (Files_Suite.Interaction)
       Followed : Boolean;
    begin
       for Index in 1 .. 3_000 loop
-         Files.Settings.Set_Label (Settings, "/d/f" & Index'Image, Files.Types.Gray);
+         Files.Settings.Path_References.Set_Label (Settings, "/d/f" & Index'Image, Files.Types.Gray);
       end loop;
       Assert (Files.Settings.Loadable (Settings), "3000 labels fit");
       Files.Model.Initialize (Model, "/", Files.Items.Item_Vectors.Empty_Vector, "/");
       Files.Model.Note_Path_Move (Model, "/d", Longer);
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       Assert (not Followed, "a move the settings file cannot hold is not followed");
-      Assert (Files.Settings.Label_Of (Settings, "/d/f" & Integer'(1)'Image) = Files.Types.Gray,
+      Assert (Files.Settings.Path_References.Label_Of (Settings, "/d/f" & Integer'(1)'Image) = Files.Types.Gray,
               "the labels stay where they were");
       Assert (Files.Settings.Loadable (Settings), "the settings still load");
       Files_Suite.Support.Assert_Equal

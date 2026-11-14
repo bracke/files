@@ -35,14 +35,8 @@ separate (Check_All)
          end if;
       end loop;
       if Checked = 0 then
-         Put_Line (Standard_Error, "no locale catalog under share/locales to check against share/files.catalog");
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report ("no locale catalog under share/locales to check against share/files.catalog");
       elsif Failed > 0 then
-         Put_Line
-           (Standard_Error,
-            Natural'Image (Failed) & " locale catalog(s) take other {arguments} than share/files.catalog");
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Natural'Image (Failed) & " locale catalog(s) take other {arguments} than share/files.catalog");
       end if;
    end Check_Locale_Catalog_Arguments;

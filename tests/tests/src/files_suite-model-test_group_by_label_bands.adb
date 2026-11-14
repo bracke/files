@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Model)
    procedure Test_Group_By_Label_Bands (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -13,8 +14,8 @@ separate (Files_Suite.Model)
       Settings.Group_By := Files.Types.Group_By_Label;
       --  Alpha -> Red (band 1), Gamma -> Blue (band 5), Beta stays unlabeled
       --  (band 8, drawn last).
-      Files.Settings.Set_Label (Settings, Join (Root, "Alpha.txt"), Files.Types.Red);
-      Files.Settings.Set_Label (Settings, Join (Root, "Gamma.md"), Files.Types.Blue);
+      Files.Settings.Path_References.Set_Label (Settings, Join (Root, "Alpha.txt"), Files.Types.Red);
+      Files.Settings.Path_References.Set_Label (Settings, Join (Root, "Gamma.md"), Files.Types.Blue);
       --  The window loop does this before every frame.
       Files.Model.Sync_Grouping (Model, Settings);
 

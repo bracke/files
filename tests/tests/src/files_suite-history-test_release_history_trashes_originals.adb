@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    --  A window that closes ends its history: an original a paste replaced,
    --  kept hidden only so Undo could put it back, goes to the system trash
@@ -11,14 +12,14 @@ separate (Files_Suite.History)
       Dest        : constant String := Join (Dest_Dir, "report.txt");
       Actions     : Files.Paste.Resolved_Action_Vectors.Vector;
       Model       : aliased Files.Model.Window_Model;
-      Paste       : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste       : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Step        : Files.Operations.Operation_Result;
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       In_Trash    : Boolean := False;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);

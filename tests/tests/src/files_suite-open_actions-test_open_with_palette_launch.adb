@@ -1,4 +1,5 @@
 with Files.Model.Command_Palette;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Open_Actions)
    procedure Test_Open_With_Palette_Launch (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -62,7 +63,7 @@ separate (Files_Suite.Open_Actions)
                Marker_One,
                "a multi-launch result retains the first target's action metadata: first argument");
 
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when Ada.Directories.Exists (Marker_One)
                  and then Ada.Directories.Exists (Marker_Two);
             end loop;

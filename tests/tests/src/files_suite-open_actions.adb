@@ -24,6 +24,7 @@ with Guikit.Input;
 with Files.Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
+with Files_Suite.Support.Guards;
 
 package body Files_Suite.Open_Actions is
 
@@ -36,6 +37,7 @@ package body Files_Suite.Open_Actions is
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use Files_Suite.Support;
+   use Files_Suite.Support.Guards;
    use Files_Suite.Operations_Support;
 
    type Open_Actions_Test_Case is new AUnit.Test_Cases.Test_Case with null record;

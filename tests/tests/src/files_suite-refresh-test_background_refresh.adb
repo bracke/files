@@ -1,4 +1,6 @@
 with Files.Model.Context_Menu;
+with Files.Settings.Path_References;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Refresh)
    procedure Test_Background_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,7 +11,7 @@ separate (Files_Suite.Refresh)
       Routed : Files.Interaction.Interaction_Result;
       Fault_Name : constant String := "FILES_TEST_REFRESH_RESULT_INCONSISTENT";
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       procedure Await_Refresh (Expected : Boolean) is
       begin
@@ -22,7 +24,7 @@ separate (Files_Suite.Refresh)
          Await_Refresh_Ready (Model, "the stale snapshot is ready before the view changes");
       end Await_Ready;
    begin
-      Files_Suite.Support.Save (Environment, Fault_Name);
+      Files_Suite.Support.Guards.Save (Environment, Fault_Name);
       Ada.Environment_Variables.Clear (Fault_Name);
       Reset_Root;
       Write_Binary_File (Join (Root, "alpha"), "alpha");
@@ -127,7 +129,7 @@ separate (Files_Suite.Refresh)
       Assert (Files.Model.Item_Count (Model) = 0
               and then Files.Model.Current_Path (Model) = Join (Root, "other"),
               "navigation prevents an old directory snapshot from replacing the new view");
-      Files.Settings.Note_Recent (Settings, Join (Root, "alpha"));
+      Files.Settings.Path_References.Note_Recent (Settings, Join (Root, "alpha"));
       Files.Model.Navigate_Recent (Model, Files.Items.Item_Vectors.Empty_Vector);
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_F5, Result => Routed);

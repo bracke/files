@@ -34,9 +34,7 @@ separate (Check_All)
 
       procedure Fail (Message : String) is
       begin
-         Put_Line (Standard_Error, Message);
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Message);
       end Fail;
 
       --  The lint itself, on the shapes it exists for (Refused) and on the

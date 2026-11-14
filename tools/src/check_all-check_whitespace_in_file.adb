@@ -5,11 +5,7 @@ separate (Check_All)
 
       procedure Fail (Message : String) is
       begin
-         Put_Line
-           (Standard_Error,
-            Path & ":" & Natural'Image (Line_Number) & ": " & Message);
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Path & ":" & Natural'Image (Line_Number) & ": " & Message);
       end Fail;
 
       procedure Check_Line (Raw : String; Number : Positive) is
@@ -22,6 +18,7 @@ separate (Check_All)
          for Character_Value of Raw loop
             if Character_Value = ASCII.HT then
                Fail ("tab character is not allowed");
+               exit;
             end if;
          end loop;
 

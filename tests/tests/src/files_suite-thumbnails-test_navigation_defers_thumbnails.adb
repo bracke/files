@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Thumbnails)
    procedure Test_Navigation_Defers_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,7 +8,7 @@ separate (Files_Suite.Thumbnails)
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       function Photo_Has_Thumbnail return Boolean is
       begin
@@ -19,7 +20,7 @@ separate (Files_Suite.Thumbnails)
          return False;
       end Photo_Has_Thumbnail;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_CACHE_HOME");
       Reset_Root;
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Join (Root, "cache-home"));
       Ada.Directories.Create_Path (Photos);

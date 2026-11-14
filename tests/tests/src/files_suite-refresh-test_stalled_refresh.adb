@@ -1,9 +1,11 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Refresh)
    procedure Test_Stalled_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Watch : Files.Refresh_Jobs.Watch_Session;
       Step : Files.Operations.Operation_Result;
@@ -12,7 +14,7 @@ separate (Files_Suite.Refresh)
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Before : Instant;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       procedure Cleanup is
       begin
@@ -23,14 +25,14 @@ separate (Files_Suite.Refresh)
       procedure Await_Stall is
          Job : constant Files.Process_Jobs.Session := Files.Model.Background_Refresh (Model);
       begin
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Ada.Directories.Exists (Files.Process_Jobs.Path (Job, "started"));
          end loop;
          Assert (Ada.Directories.Exists (Files.Process_Jobs.Path (Job, "started")),
                  "the refresh helper has entered deliberately stalled filesystem work");
       end Await_Stall;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_READS");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_READS");
       Reset_Root;
       declare
          Oversized : constant String (1 .. 32 * 1024 + 1) :=

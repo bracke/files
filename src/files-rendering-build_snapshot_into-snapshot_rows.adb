@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files.Rendering.Build_Snapshot_Into)
    --  A row per visible item, in the model's order, and a header row before
    --  each band when the details view is grouped.
@@ -36,7 +37,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
       end Is_Cut_Pending;
       --  Favorites and labels hashed by path once: each item asks both, and
       --  a scan of the two lists per item made a rebuild O(items x labels).
-      Paths : Files.Settings.Path_Index;
+      Paths : Files.Settings.Path_References.Path_Index;
 
       --  Rename fields by item index, read once: searching the fields per
       --  row made renaming a whole large folder quadratic.
@@ -102,12 +103,12 @@ separate (Files.Rendering.Build_Snapshot_Into)
                Rename_Cursor      => Rename.Cursor,
                Is_Group_Header    => False,
                Group_Label        => Null_Unbounded_String,
-               Is_Favorite        => Files.Settings.Is_Favorite (Paths, Full_Path),
-               Label              => Files.Settings.Label_Of (Paths, Full_Path)));
+               Is_Favorite        => Files.Settings.Path_References.Is_Favorite (Paths, Full_Path),
+               Label              => Files.Settings.Path_References.Label_Of (Paths, Full_Path)));
       end Add_Row;
    begin
       Cut_Paths := Build_Cut_Set;
-      Paths := Files.Settings.Index_Paths (Settings);
+      Paths := Files.Settings.Path_References.Index_Paths (Settings);
       Files.Model.Rename.For_Each_Field (Model, Note_Rename'Access);
       Snapshot.Items.Reserve_Capacity (Ada.Containers.Count_Type (Snapshot.Visible_Count) + 1);
       Files.Model.For_Each_Visible_Row (Model, Add_Row'Access);

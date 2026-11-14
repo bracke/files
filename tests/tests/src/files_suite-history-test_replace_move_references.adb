@@ -1,5 +1,7 @@
 with Files.Foreground_Jobs;
 with Files.Interaction;
+with Files.Settings.Path_References;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    --  A move that replaced an existing item left the replaced item's label,
    --  favorite and recent entry on the path, beside the moved item's own:
@@ -16,11 +18,11 @@ separate (Files_Suite.History)
       Source      : constant String := Join (Src_Dir, "report.txt");
       Dest        : constant String := Join (Dest_Dir, "report.txt");
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Actions     : Files.Paste.Resolved_Action_Vectors.Vector;
       Load        : Files.File_System.Directory_Load_Result;
       Model       : aliased Files.Model.Window_Model;
-      Paste       : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste       : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Step        : Files.Operations.Operation_Result;
       Followed    : Boolean;
@@ -52,16 +54,16 @@ separate (Files_Suite.History)
       --  Path is labelled Label once, a favorite once and recent once.
       procedure Assert_Once (Path : String; Label : Files.Types.Color_Label; What : String) is
       begin
-         Assert (Files.Settings.Label_Of (Settings, Path) = Label and then Labels (Path) = 1,
+         Assert (Files.Settings.Path_References.Label_Of (Settings, Path) = Label and then Labels (Path) = 1,
                  What & " has its own label, once:" & Labels (Path)'Image);
          Files_Suite.Support.Assert_Equal (Count (Settings.Favorite_Paths, Path), 1, What & " is a favorite once");
          Files_Suite.Support.Assert_Equal
-           (Count (Files.Settings.Recent_Paths (Settings), Path), 1, What & " is recent once");
+           (Count (Files.Settings.Path_References.Recent_Paths (Settings), Path), 1, What & " is recent once");
       end Assert_Once;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
@@ -71,12 +73,12 @@ separate (Files_Suite.History)
       Ada.Directories.Create_Path (Dest_Dir);
       Write_File (Source, "new");
       Write_File (Dest, "old");
-      Files.Settings.Set_Label (Settings, Source, Files.Types.Blue);
-      Files.Settings.Set_Label (Settings, Dest, Files.Types.Red);
-      Files.Settings.Toggle_Favorite_Path (Settings, Source);
-      Files.Settings.Toggle_Favorite_Path (Settings, Dest);
-      Files.Settings.Note_Recent (Settings, Dest);
-      Files.Settings.Note_Recent (Settings, Source);
+      Files.Settings.Path_References.Set_Label (Settings, Source, Files.Types.Blue);
+      Files.Settings.Path_References.Set_Label (Settings, Dest, Files.Types.Red);
+      Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Source);
+      Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Dest);
+      Files.Settings.Path_References.Note_Recent (Settings, Dest);
+      Files.Settings.Path_References.Note_Recent (Settings, Source);
 
       --  Move report.txt over the one at the destination.
       Actions.Append
@@ -94,9 +96,9 @@ separate (Files_Suite.History)
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       Assert (Followed, "the move changes the settings");
       Assert_Once (Dest, Files.Types.Blue, "the moved item at its new path");
-      Assert (Files.Settings.Label_Of (Settings, Source) = Files.Types.No_Label
-              and then not Files.Settings.Is_Favorite (Settings, Source)
-              and then Count (Files.Settings.Recent_Paths (Settings), Source) = 0,
+      Assert (Files.Settings.Path_References.Label_Of (Settings, Source) = Files.Types.No_Label
+              and then not Files.Settings.Path_References.Is_Favorite (Settings, Source)
+              and then Count (Files.Settings.Path_References.Recent_Paths (Settings), Source) = 0,
               "nothing is left at the moved item's old path");
       Files_Suite.Support.Assert_Equal (Natural (Settings.Labels.Length), 2, "the replaced item keeps its label");
 

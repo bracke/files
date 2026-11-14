@@ -1,9 +1,11 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.History)
    procedure Test_Paste_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
@@ -30,7 +32,7 @@ separate (Files_Suite.History)
                Actions.Append (Files.Paste.Resolved_Action'
                  (To_Unbounded_String (Join (Join (Root, "inbox"), "b.txt")), To_Unbounded_String (B), False, False));
                Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, False);
-               for Attempt in Files_Suite.Support.Polling loop
+               for Attempt in Files_Suite.Support.Timing.Polling loop
                   Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
                   exit when Files.Model.Pasting.Execution_Done (Model) = 1;
                end loop;

@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,7 +6,7 @@ separate (Files_Suite.Transfer)
       Source   : constant String := Join (Root, "native-source");
       Dest     : constant String := Join (Root, "native-dest");
       Model    : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Step     : Files.Operations.Operation_Result;
@@ -18,9 +19,9 @@ separate (Files_Suite.Transfer)
       Registry_Source : constant String := Join (Root, "registry-source");
 
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       declare
          Fake_Stage : constant String := Join (Root, ".files-recovery-900");
@@ -40,9 +41,9 @@ separate (Files_Suite.Transfer)
       Write_Binary_File (Registry_Source, "registry payload");
       declare
          --  FILES_TEST_TEMP comes back as soon as this preserve is done.
-         Test_Temp : Files_Suite.Support.Environment_Guard;
+         Test_Temp : Files_Suite.Support.Guards.Environment_Guard;
       begin
-         Files_Suite.Support.Save (Test_Temp, "FILES_TEST_TEMP");
+         Files_Suite.Support.Guards.Save (Test_Temp, "FILES_TEST_TEMP");
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
          Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Relative_Registry);
          Result := Files.File_System.Preserve_For_Replace (Registry_Source, Backup);

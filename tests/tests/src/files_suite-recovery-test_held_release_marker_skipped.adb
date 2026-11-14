@@ -1,5 +1,6 @@
 with Files.File_System.Trash;
 with Files.Protocol_Names;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    --  A release still running holds its stage's marker as a lease: the
    --  registry sweep (perhaps from `files --list-recoveries` in another
@@ -11,9 +12,9 @@ separate (Files_Suite.Recovery)
       Backup : Files.Types.UString;
       Result : Files.File_System.Mutation_Result;
       Marker : Hostkit.Lease_Files.Lease;
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       --  A native backend keeps a replaced original in a private recovery folder.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");

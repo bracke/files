@@ -18,7 +18,7 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Create_Path (Src_Dir);
       Ada.Directories.Create_Path (Dest_Dir);
       for N in 1 .. Count loop
-         Write_File (Src (N), "S" & Img (N));
+         Write_File (Src (N), "S" & Files.Types.Natural_Text (N));
          Sources.Append (To_Unbounded_String (Src (N)));
       end loop;
 

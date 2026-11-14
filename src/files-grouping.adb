@@ -78,7 +78,7 @@ package body Files.Grouping is
       function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
 
       function Type_Of return Type_Band is
-         Mime : constant String := Files.Types.To_Lower (Filetype);
+         Mime : constant String := Files.Types.To_Lower_Ascii (Filetype);
       begin
          if Kind = Files.Types.Directory_Item then
             return Folders;
@@ -169,7 +169,7 @@ package body Files.Grouping is
          when Files.Types.Group_By_Label =>
             return
               (if Band >= Label_Band_Count then "details.group.unlabeled"
-               else "label.color." & Files.Types.To_Lower (Files.Types.Color_Label'Val (Band)'Image));
+               else "label.color." & Files.Types.To_Lower_Ascii (Files.Types.Color_Label'Val (Band)'Image));
          when Files.Types.No_Grouping =>
             return "";
       end case;

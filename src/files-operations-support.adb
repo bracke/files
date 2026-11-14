@@ -13,6 +13,8 @@ with Files.Leaf_Names;
 with Hostkit.Fs;
 with Files.Model.History;
 with Files.Model.Selection;
+with Files.Settings.Path_References;
+with Files.Settings.Open_Actions;
 
 package body Files.Operations.Support is
    use type Files.Operation_Results.Operation_Status;
@@ -46,7 +48,7 @@ package body Files.Operations.Support is
 
    function Empty_Action return Files.Settings.Open_Action is
    begin
-      return Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector);
+      return Files.Settings.Open_Actions.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector);
    end Empty_Action;
 
    function Exists_Safely (Path : String) return Boolean renames Files.Fs_Primitives.Entry_Exists;
@@ -116,7 +118,7 @@ package body Files.Operations.Support is
          if Files.Model.In_Recent_View (Model) then
             declare
                Recent : constant Files.Types.String_Vectors.Vector :=
-                 Files.Settings.Recent_Paths (Settings);
+                 Files.Settings.Path_References.Recent_Paths (Settings);
                Items  : Files.Items.Item_Vectors.Vector;
             begin
                for Path of Recent loop

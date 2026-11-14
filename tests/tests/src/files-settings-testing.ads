@@ -82,20 +82,4 @@ package Files.Settings.Testing is
    --  @return Default settings file text.
    function Default_Settings_Text return String;
 
-   --  Return whether Argument contains a placeholder embedded in other text.
-   --
-   --  @param Argument Open-action argument to inspect.
-   --  @return True when a known placeholder is not the whole argument.
-   function Has_Embedded_Placeholder
-     (Argument : String)
-      return Boolean;
-
-   --  Return whether any action argument contains an embedded placeholder.
-   --
-   --  @param Action Open action to inspect.
-   --  @return True when any known placeholder is embedded in other text.
-   function Has_Embedded_Placeholder
-     (Action : Open_Action)
-      return Boolean;
-
 end Files.Settings.Testing;

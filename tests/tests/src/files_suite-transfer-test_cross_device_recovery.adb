@@ -1,6 +1,7 @@
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
 with Files_Suite.Volumes;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Cross_Device_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,7 +9,7 @@ separate (Files_Suite.Transfer)
       Tree     : constant String := Join (Root, "recovery-tree");
       Locked   : constant String := Join (Tree, "locked");
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Paths    : Files.Types.String_Vectors.Vector;
       Plans    : Files.File_System.Drop_Import_Result;
       Result   : Files.File_System.Mutation_Result;
@@ -44,8 +45,8 @@ separate (Files_Suite.Transfer)
          Files_Suite.Support.Skip ("Test_Cross_Device_Recovery", Files_Suite.Volumes.No_Other_Volume);
          return;
       end if;
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Prepare_Tree;
       Assert
         (Files.File_System.Permissions.Set_Permissions (Locked, 8#555#).Success,

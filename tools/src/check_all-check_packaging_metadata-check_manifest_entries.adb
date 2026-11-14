@@ -16,29 +16,17 @@ separate (Check_All.Check_Packaging_Metadata)
          if Manifest_Path = "" or else Starts_With (Manifest_Path, "#") then
             return;
          elsif Starts_With (Manifest_Path, "/") or else Contains (Manifest_Path, "..") then
-            Put_Line
-              (Standard_Error,
-               Manifest & ": unsafe packaged resource path: " & Manifest_Path);
-            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-            raise Program_Error;
+            Report (Manifest & ": unsafe packaged resource path: " & Manifest_Path);
          elsif Seen.Contains (Manifest_Path) then
-            Put_Line
-              (Standard_Error,
-               Manifest & ": duplicate packaged resource path: " & Manifest_Path);
-            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-            raise Program_Error;
+            Report (Manifest & ": duplicate packaged resource path: " & Manifest_Path);
          end if;
 
-         Seen.Insert (Manifest_Path);
+         Seen.Include (Manifest_Path);
 
          if Manifest_Path = "bin/files" then
             return;
          elsif not Project_Tools.Files.File_Exists (Root & "/" & Manifest_Path) then
-            Put_Line
-              (Standard_Error,
-               Manifest & ": missing packaged resource: " & Manifest_Path);
-            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-            raise Program_Error;
+            Report (Manifest & ": missing packaged resource: " & Manifest_Path);
          end if;
       end Check_Line;
    begin

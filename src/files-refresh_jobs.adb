@@ -22,6 +22,7 @@ with Files.Model.Command_Palette;
 with Files.Model.Quick_Look;
 with Files.Model.Rename;
 with Files.Model.Selection;
+with Files.Settings.Path_References;
 
 package body Files.Refresh_Jobs is
    use Ada.Strings.Unbounded;
@@ -509,7 +510,7 @@ package body Files.Refresh_Jobs is
    begin
       Work := Read_Request (Hostkit.Fs.Join (Directory, Files.Process_Jobs.Request_File));
       if Work.Recent then
-         for Path of Files.Settings.Recent_Paths (Work.Settings) loop
+         for Path of Files.Settings.Path_References.Recent_Paths (Work.Settings) loop
             declare
                Loaded : constant Files.File_System.Item_Load_Result :=
                  Files.File_System.Load_Item (To_String (Path), Work.Settings);

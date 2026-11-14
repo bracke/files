@@ -1,5 +1,6 @@
 with Files.File_System.Permissions;
 with Hostkit.Metadata;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,7 +8,7 @@ separate (Files_Suite.History)
       Source : constant String := Join (Root, "metadata-source");
       Held : constant String := Join (Root, "held-source");
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
@@ -33,7 +34,7 @@ separate (Files_Suite.History)
             Files.Operations.Operation_Failed,
             "metadata history refuses a replacement without changing its access bits: status");
          Files_Suite.Support.Assert_Equal
-           (Metadata_Mode_Of (Source),
+           (Mode_Of (Source, With_Special_Bits => True),
             8#640#,
             "metadata history refuses a replacement without changing its access bits: access bits");
          Assert (File_Is (Source, "unrelated replacement"),
@@ -78,7 +79,7 @@ separate (Files_Suite.History)
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Assert (Step.Status = Files.Operations.Operation_Success
-                       and then Metadata_Mode_Of (Source) = 8#644#,
+                       and then Mode_Of (Source, With_Special_Bits => True) = 8#644#,
                        "metadata Undo can retry the restored inode, even from mode 000");
                Replace_And_Refuse (True);
                Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));

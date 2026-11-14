@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Trash)
    procedure Test_Recent_Trash_Undo_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,7 +10,7 @@ separate (Files_Suite.Trash)
    begin
       Reset_Root;
       Write_Binary_File (Path, "original recent bytes");
-      Files.Settings.Note_Recent (Settings, Path);
+      Files.Settings.Path_References.Note_Recent (Settings, Path);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Step := Files.Operations.Navigate_Recent (Model, Settings);
       Files.Model.Selection.Select_All_Visible (Model);

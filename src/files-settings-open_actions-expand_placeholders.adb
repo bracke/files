@@ -1,7 +1,7 @@
 with Hostkit.Path_Text;
 with Files.Types;
 
-separate (Files.Settings)
+separate (Files.Settings.Open_Actions)
    function Expand_Placeholders
      (Action : Open_Action;
       Path   : String)
@@ -29,16 +29,19 @@ separate (Files.Settings)
          declare
             Value : constant String := To_String (Argument);
          begin
-            if Value = "{path}" then
-               Result.Arguments.Append (To_Unbounded_String (Path));
-            elsif Value = "{parent}" then
-               Result.Arguments.Append (To_Unbounded_String (Parent));
-            elsif Value = "{name}" then
-               Result.Arguments.Append (To_Unbounded_String (Name));
-            elsif Value = "{stem}" then
-               Result.Arguments.Append (To_Unbounded_String (Stem));
-            elsif Value = "{extension}" then
-               Result.Arguments.Append (To_Unbounded_String (Extension));
+            if Is_Whole_Placeholder (Value) then
+               for Item in Placeholder loop
+                  if Value = Placeholder_Texts (Item).all then
+                     Result.Arguments.Append
+                       (UString'(To_Unbounded_String
+                          (case Item is
+                              when Path_Placeholder      => Path,
+                              when Parent_Placeholder    => Parent,
+                              when Name_Placeholder      => Name,
+                              when Stem_Placeholder      => Stem,
+                              when Extension_Placeholder => Extension)));
+                  end if;
+               end loop;
             else
                Result.Arguments.Append (Argument);
             end if;

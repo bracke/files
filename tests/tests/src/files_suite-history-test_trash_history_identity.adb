@@ -1,10 +1,11 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Trash_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source : constant String := Join (Root, "entry");
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;

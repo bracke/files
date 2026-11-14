@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations_Support)
    procedure With_Desktop_Application_Fixture (Check : not null access procedure) is
       LF         : constant Character := ASCII.LF;
@@ -8,7 +9,7 @@ separate (Files_Suite.Operations_Support)
       System_Apps : constant String := Join (System_Base, "applications");
       Try_Exec    : constant String := Files_Suite.Support.No_Op_Executable;
       --  Restores what Check changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       function Desktop_Escape (Value : String) return String is
          Result : Unbounded_String;
@@ -39,11 +40,11 @@ separate (Files_Suite.Operations_Support)
       end Desktop_Exec_Escape;
 
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "XDG_DATA_DIRS");
-      Files_Suite.Support.Save (Environment, "XDG_CURRENT_DESKTOP");
-      Files_Suite.Support.Save (Environment, "LC_ALL");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_DIRS");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_CURRENT_DESKTOP");
+      Files_Suite.Support.Guards.Save (Environment, "LC_ALL");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
 
       Reset_Root;
       Ada.Directories.Create_Path (Apps_Dir);

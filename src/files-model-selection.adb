@@ -36,7 +36,7 @@ package body Files.Model.Selection is
    --  @param Text Candidate input run.
    --  @return True when Text is one repeated codepoint.
    function Is_Repeated_Single_Codepoint (Text : String) return Boolean is
-      Lower : constant String := Files.Types.To_Lower (Text);
+      Lower : constant String := Files.Types.Fold_Case (Text);
       First : Natural;
       Cursor : Natural := 0;
       Unit   : Natural;

@@ -8,11 +8,7 @@ separate (Check_All)
          if Ada.Strings.Fixed.Trim (Raw, Ada.Strings.Both) = "" then
             Empty_Run := Empty_Run + 1;
             if Empty_Run > 1 then
-               Put_Line
-                 (Standard_Error,
-                  Path & ":" & Natural'Image (Number) & ": multiple consecutive empty lines");
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               raise Program_Error;
+               Report (Path & ":" & Natural'Image (Number) & ": multiple consecutive empty lines");
             end if;
          else
             Empty_Run := 0;

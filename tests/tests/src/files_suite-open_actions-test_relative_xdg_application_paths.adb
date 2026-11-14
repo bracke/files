@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Open_Actions)
    procedure Test_Relative_Xdg_Application_Paths (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,7 +6,7 @@ separate (Files_Suite.Open_Actions)
       System_Base : constant String := Join (Root, "xdg_system");
       System_Apps : constant String := Join (System_Base, "applications");
       --  Puts the working directory back however the test ends.
-      Cwd_Guard : Files_Suite.Support.Directory_Guard;
+      Cwd_Guard : Files_Suite.Support.Guards.Directory_Guard;
 
       function Find
         (Apps : Files.Desktop_Applications.Application_Vectors.Vector;

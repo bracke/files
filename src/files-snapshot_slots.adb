@@ -4,6 +4,8 @@ with Files.Model.Tree_Panel;
 
 package body Files.Snapshot_Slots is
 
+   package Settings_Keys renames Files.Snapshot_Policy.Settings_Keys;
+
    procedure Refresh
      (View     : in out View_Slots;
       Model    : Files.Model.Window_Model;
@@ -17,11 +19,11 @@ package body Files.Snapshot_Slots is
         Files.Snapshot_Policy.Action_For
           (Valid         => View.Snapshot_Valid,
            Same_Revision => View.Cached_Model_Revision = Files.Model.Revision (Model),
-           Same_Settings => Files.Settings.Same_Snapshot_Settings (Settings, View.Cached_Settings_Key),
+           Same_Settings => Settings_Keys.Same_Snapshot_Settings (Settings, View.Cached_Settings_Key),
            Same_Scroll   => View.Cached_Scroll_Revision = Files.Model.Scroll_Revision (Model),
            Same_Minute   => View.Cached_Minute = Minute,
            Same_Rows     => View.Cached_Rows_Revision = Files.Model.Rows_Revision (Model),
-           Same_Row_Settings => Files.Settings.Same_Row_Settings (Settings, View.Cached_Settings_Key),
+           Same_Row_Settings => Settings_Keys.Same_Row_Settings (Settings, View.Cached_Settings_Key),
            Pasting       => Files.Model.Foreground_Job_Is_Active (Model),
            Paste_Interval_Elapsed =>
              Files.Timing.Elapsed (Now, View.Snapshot_Built_At, Paste_Progress_Interval));
@@ -78,7 +80,7 @@ package body Files.Snapshot_Slots is
       View.Cached_Scroll_Revision := Files.Model.Scroll_Revision (Model);
       View.Slot_Model_Rows (View.Current_Slot) := Files.Model.Rows_Revision (Model);
       View.Cached_Model_Revision := Files.Model.Revision (Model);
-      View.Cached_Settings_Key := Files.Settings.Snapshot_Settings_Key_Of (Settings);
+      View.Cached_Settings_Key := Settings_Keys.Snapshot_Settings_Key_Of (Settings);
       View.Snapshot_Built_At := Now;
       View.Cached_Minute := Minute;
       View.Snapshot_Valid := True;

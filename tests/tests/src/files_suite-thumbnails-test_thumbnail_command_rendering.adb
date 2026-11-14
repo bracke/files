@@ -1,4 +1,5 @@
 with Files.Rendering.Text;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Thumbnails)
    procedure Test_Thumbnail_Command_Rendering (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,10 +8,10 @@ separate (Files_Suite.Thumbnails)
       Model    : Files.Model.Window_Model;
       Routed   : Files.Controller.Controller_Result;
       Cache_Home : constant String := Join (Root, "cache-home");
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
       Reset_Root;
-      Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_CACHE_HOME");
       --  Directory listings read the thumbnail cache, so keep it inside the fixture.
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
 

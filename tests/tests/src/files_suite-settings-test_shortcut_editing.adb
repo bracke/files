@@ -1,4 +1,5 @@
 with Files.Model.Settings_Pane;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Settings)
    --  Files.Settings_Form maps the draft to typed panel fields and applies the
    --  panel's emitted changes: paging (Prev/Next) moves the selected mapping
@@ -11,7 +12,7 @@ separate (Files_Suite.Settings)
    procedure Test_Shortcut_Editing (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Clears the overrides this test sets, on an assertion failure too.
-      Shortcuts : Files_Suite.Support.Shortcut_Guard;
+      Shortcuts : Files_Suite.Support.Guards.Shortcut_Guard;
       pragma Unreferenced (Shortcuts);
       package SP renames Guikit.Settings_Panel;
       use type SP.Field_Kind;

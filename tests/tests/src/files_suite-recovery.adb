@@ -63,6 +63,8 @@ with Files.Transfer_Jobs.Testing;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files.Job_Scavenger.Testing;
+with Files_Suite.Support.Timing;
+with Files_Suite.Support.Guards;
 
 package body Files_Suite.Recovery is
 
@@ -83,6 +85,8 @@ package body Files_Suite.Recovery is
    use type Files.Types.String_Vectors.Vector;
    use type Files.Types.Search_Scope;
    use Files_Suite.Support;
+   use Files_Suite.Support.Guards;
+   use Files_Suite.Support.Timing;
    use Files_Suite.Operations_Support;
 
    type Recovery_Test_Case is new AUnit.Test_Cases.Test_Case with null record;

@@ -1,4 +1,4 @@
-separate (Files.Settings)
+separate (Files.Settings.Open_Actions)
    function Lookup_Open_Action
      (Settings  : Settings_Model;
       Filetype  : String;

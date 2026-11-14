@@ -65,4 +65,16 @@ separate (Files_Suite.Startup)
         (Files.Localization.Normalize_Locale ("en--US"),
          "en",
          "an empty locale component falls back to English");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale (" pt-br "), "pt-BR", "blanks go and a hyphen separates as well");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("_DE"), "en", "a locale without a language falls back to English");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("de_"), "en", "a trailing separator falls back to English");
+      --  I18N's canonical form, its CLDR language aliases included: the
+      --  catalogs are named by the current codes.
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("iw_IL.UTF-8"), "he-IL", "a retired language code is replaced");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("sh_RS"), "sr-Latn-RS", "Serbo-Croatian is Serbian in Latin script");
    end Test_Locale_Normalization;

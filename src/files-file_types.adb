@@ -1,3 +1,4 @@
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Hostkit.Path_Text;
@@ -80,20 +81,20 @@ package body Files.File_Types is
       return String
    is
       Clean : constant String := Leaf_Name (Name);
-      Dot : Natural := 0;
+      --  Files.Types' one rule for where an extension starts.
+      Dot   : constant Natural := Files.Types.Extension_Start (Clean);
    begin
-      for Index in reverse Clean'Range loop
-         if Clean (Index) = '.' then
-            Dot := Index;
-            exit;
-         end if;
-      end loop;
-
-      if Dot = 0 or else (Dot = Clean'First and then not Dotfiles) or else Dot = Clean'Last then
-         return "";
+      if Dot /= 0 then
+         return Files.Settings.Normalize_Extension (Clean (Dot + 1 .. Clean'Last));
+      elsif Dotfiles
+        and then Clean'Length > 1
+        and then Clean (Clean'First) = '.'
+        and then Ada.Strings.Fixed.Index (Clean (Clean'First + 1 .. Clean'Last), ".") = 0
+      then
+         --  ".gitignore": its only dot leads, which the rule counts as name.
+         return Files.Settings.Normalize_Extension (Clean (Clean'First + 1 .. Clean'Last));
       end if;
-
-      return Files.Settings.Normalize_Extension (Clean (Dot + 1 .. Clean'Last));
+      return "";
    end Extension_Of;
 
    function Filetype_For_Name
@@ -103,6 +104,9 @@ package body Files.File_Types is
    is
       Clean : constant String := Leaf_Name (Name);
    begin
+      --  Every dot that could start an extension under Files.Types' rule
+      --  (Extension_Start: neither the first character nor the last), the
+      --  first one first, so "archive.tar.gz" is tar.gz before gz.
       for Index in Clean'Range loop
          if Clean (Index) = '.'
            and then Index > Clean'First

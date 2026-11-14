@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Settings)
    --  Labelling a selection at once gives what labelling it one path at a
    --  time gives: new labels appended in order, existing ones changed in
@@ -12,9 +13,9 @@ separate (Files_Suite.Settings)
          At_Once    : Files.Settings.Settings_Model := Base;
       begin
          for Name of Names loop
-            Files.Settings.Set_Label (One_By_One, To_String (Name), Label);
+            Files.Settings.Path_References.Set_Label (One_By_One, To_String (Name), Label);
          end loop;
-         Files.Settings.Set_Labels (At_Once, Names, Label);
+         Files.Settings.Path_References.Set_Labels (At_Once, Names, Label);
          Assert (Files.Settings.Path_Label_Vectors."=" (One_By_One.Labels, At_Once.Labels),
                  What & ": labelling at once matches labelling one at a time");
          Base := At_Once;

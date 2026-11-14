@@ -1,3 +1,5 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Startup_Transport_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,9 +11,9 @@ separate (Files_Suite.Recovery)
       Pre_Lease_Report : constant String := Join (Root, "pre-lease-transport");
       Scavenge_Control : constant String := Join (Root, "scavenge-coordinator");
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       --  Resets Active and removes the fixtures, on failure too.
-      Jobs : Files_Suite.Support.Process_Jobs_Guard (Active'Access);
+      Jobs : Files_Suite.Support.Guards.Process_Jobs_Guard (Active'Access);
 
       procedure Restore is
       begin
@@ -20,13 +22,13 @@ separate (Files_Suite.Recovery)
          then
             Write_Binary_File (Scavenge_Control & ".release", "release");
          end if;
-         Files_Suite.Support.Release (Jobs);
+         Files_Suite.Support.Guards.Release (Jobs);
       end Restore;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_SCAVENGER");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_SCAVENGER");
       --  A scan or retry left by an earlier test would reclaim this test's
       --  fixtures before its own coordinator could.
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Files.Job_Scavenger.Idle;
       end loop;
       Assert
@@ -37,9 +39,9 @@ separate (Files_Suite.Recovery)
       Active_Path := To_Unbounded_String (Files.Process_Jobs.Path (Active, ""));
 
       Create_Abandoned_Transport (Report_Path, Abandoned_Path);
-      Files_Suite.Support.Track (Jobs, Abandoned_Path);
+      Files_Suite.Support.Guards.Track (Jobs, Abandoned_Path);
       Create_Abandoned_Transport (Pre_Lease_Report, Pre_Lease_Path);
-      Files_Suite.Support.Track (Jobs, Pre_Lease_Path);
+      Files_Suite.Support.Guards.Track (Jobs, Pre_Lease_Path);
       Assert
         (Ada.Directories.Exists (To_String (Abandoned_Path)),
          "abnormal exits leave their transports for startup recovery: the abandoned transport");
@@ -129,7 +131,7 @@ separate (Files_Suite.Recovery)
 
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_SCAVENGER", Scavenge_Control);
       Files.Job_Scavenger.Scavenge;
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (Scavenge_Control & ".started");
       end loop;
       Assert
@@ -156,8 +158,8 @@ separate (Files_Suite.Recovery)
             Write_Binary_File (Scavenge_Control & ".second-returned", "returned");
          end Second_Scan;
       begin
-         for Attempt in Files_Suite.Support.Polling
-           (Limit => Files_Suite.Support.Seconds (Files_Suite.Support.Scaled (0.5)))
+         for Attempt in Files_Suite.Support.Timing.Polling
+           (Limit => Files_Suite.Support.Timing.Seconds (Files_Suite.Support.Timing.Scaled (0.5)))
          loop
             exit when Ada.Directories.Exists (Scavenge_Control & ".second-returned");
          end loop;
@@ -179,7 +181,7 @@ separate (Files_Suite.Recovery)
             Write_Binary_File (Scavenge_Control & ".release", "release");
             raise;
       end;
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when not Ada.Directories.Exists (To_String (Abandoned_Path));
       end loop;
       Assert
@@ -196,7 +198,7 @@ separate (Files_Suite.Recovery)
       Restore;
       --  The repeated scan runs once the first coordinator ends; it is this
       --  test's to wait out, not the next one's.
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Files.Job_Scavenger.Idle;
       end loop;
       Assert

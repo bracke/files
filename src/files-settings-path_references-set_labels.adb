@@ -1,6 +1,6 @@
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
-separate (Files.Settings)
+separate (Files.Settings.Path_References)
    procedure Set_Labels
      (Settings : in out Settings_Model;
       Paths    : String_Vectors.Vector;

@@ -22,6 +22,8 @@ with Hostkit.Fs;
 with Hostkit.Metadata;
 with Guikit.Input;
 with Files_Suite.Support;
+with Files_Suite.Support.Timing;
+with Files_Suite.Support.Images;
 
 package body Files_Suite.Operations_Support is
 
@@ -29,6 +31,8 @@ package body Files_Suite.Operations_Support is
    use AUnit.Assertions;
    use type Files.Events.Input_Action_Kind;
    use Files_Suite.Support;
+   use Files_Suite.Support.Images;
+   use Files_Suite.Support.Timing;
 
    function Complete_Operation
      (Model : in out Files.Model.Window_Model;
@@ -114,7 +118,7 @@ package body Files_Suite.Operations_Support is
       Applied  : out Boolean) is
    begin
       Applied := False;
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
          exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
       end loop;
@@ -153,16 +157,8 @@ package body Files_Suite.Operations_Support is
       Files_Suite.Support.Assert_Equal (Applied, Expected, What);
    end Await_Refresh_Applied;
 
-   function Metadata_Mode_Of (Path : String) return Natural is
-      Available : Boolean;
-      Mode : constant Natural := Files.File_System.Permissions.Permission_Bits_Of (Path, Available);
-   begin
-      Assert (Available, "metadata mode is available");
-      return Mode;
-   end Metadata_Mode_Of;
-
    function Is_Owner_Only (Path : String) return Boolean is
-      Mode  : constant Natural := Metadata_Mode_Of (Path);
+      Mode  : constant Natural := Mode_Of (Path);
       Owner : constant Natural := (Mode / 8#100#) mod 8;
    begin
       if not Hostkit.Metadata.Mode_Bits_Are_Native then
@@ -171,12 +167,12 @@ package body Files_Suite.Operations_Support is
       return Owner in 6 | 7 and then Mode mod 8#100# = 0;
    end Is_Owner_Only;
 
-   function Mode_Of (Path : String) return Natural is
+   function Mode_Of (Path : String; With_Special_Bits : Boolean := False) return Natural is
       Available : Boolean := False;
       Bits      : constant Natural := Files.File_System.Permissions.Permission_Bits_Of (Path, Available);
    begin
       Assert (Available, "permission bits are readable for " & Path);
-      return Bits mod 8#1000#;
+      return (if With_Special_Bits then Bits else Bits mod 8#1000#);
    end Mode_Of;
 
    procedure Confirm_Pick

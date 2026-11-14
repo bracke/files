@@ -1,3 +1,5 @@
+with Files.Settings.Open_Actions;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Open_Actions)
    procedure Test_Backslash_Executable_Lookup (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,7 +10,7 @@ separate (Files_Suite.Open_Actions)
          declare
             Tool : constant String := Join (Root, "tool\name");
             Action : constant Files.Settings.Open_Action :=
-              Files.Settings.Make_Action
+              Files.Settings.Open_Actions.Make_Action
                 ("tool\name", Files.Types.String_Vectors.Empty_Vector);
             Available : Boolean := False;
          begin
@@ -17,9 +19,9 @@ separate (Files_Suite.Open_Actions)
             Assert (Mutation.Success, "the fixture tool can be made executable");
             declare
                --  Puts PATH back before the check, on failure too.
-               Environment : Files_Suite.Support.Environment_Guard;
+               Environment : Files_Suite.Support.Guards.Environment_Guard;
             begin
-               Files_Suite.Support.Save (Environment, "PATH");
+               Files_Suite.Support.Guards.Save (Environment, "PATH");
                Ada.Environment_Variables.Set ("PATH", Root);
                Available :=
                  Files.Operations.Open_Action_Executable_Is_Available (Action);

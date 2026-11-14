@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    --  A file with extended attributes copies onto a volume that holds none
    --  (vfat, exFAT, an NFS export): the file arrives, its attributes do not,
@@ -15,7 +16,7 @@ separate (Files_Suite.Transfer)
       Source      : constant String := Join (Root, "tagged.txt");
       Copy        : constant String := Join (Root, "tagged-copy.txt");
       Mutation    : Files.File_System.Mutation_Result;
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       --  A copy of a file with named streams (on Linux, user.* attributes)
       --  onto the FAT or exFAT volume named by FILES_TEST_STREAMLESS_VOLUME.
@@ -79,7 +80,7 @@ separate (Files_Suite.Transfer)
       begin
          Assert (Prepare_Native (Name'Address, 0) = 1, "the source carries extended attributes and an ACL");
       end;
-      Files_Suite.Support.Save (Environment, "FILES_TEST_XATTR_UNSUPPORTED");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_XATTR_UNSUPPORTED");
       declare
          Refused_Before : constant Interfaces.C.long_long := Xattr_Refusals;
       begin

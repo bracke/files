@@ -62,9 +62,7 @@ separate (Check_All)
 
       procedure Refuse (Message : String) is
       begin
-         Put_Line (Standard_Error, Message);
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Message);
       end Refuse;
 
       function Word_At (Toks : Token_List; Index : Natural; Text : String) return Boolean is

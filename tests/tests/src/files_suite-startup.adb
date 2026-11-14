@@ -35,8 +35,8 @@ with Files.Localization;
 with Files.Model;
 with Files.Settings;
 with Files.Types;
-with Files_Suite.Repository;
 with Files_Suite.Support;
+with Files_Suite.Support.Images;
 
 package body Files_Suite.Startup is
 
@@ -49,6 +49,7 @@ package body Files_Suite.Startup is
    use type Files.File_System.Drop_Import_Mode;
    use type Files.Application.Run_Mode;
    use Files_Suite.Support;
+   use Files_Suite.Support.Images;
 
    type Startup_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
 
@@ -82,7 +83,6 @@ package body Files_Suite.Startup is
    procedure Test_Detected_Locale_Catalogs (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Host_Locale_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Desktop_Runtime_Wiring (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Desktop_Packaging_Contents (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Smoke_Gate_Outcome (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Timing_At_Clock_Ends (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Smoke_Scenarios_Verdict (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -159,9 +159,6 @@ package body Files_Suite.Startup is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Desktop_Runtime_Wiring'Access, "desktop runtime wiring and capability report");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Desktop_Packaging_Contents'Access,
-         "desktop packaging ships its metadata, documentation and manifest entries");
-      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Live_Smoke_Gate_Outcome'Access, "live smoke gate outcome taxonomy");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Timing_At_Clock_Ends'Access,
@@ -229,8 +226,6 @@ package body Files_Suite.Startup is
    procedure Test_Host_Locale_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Desktop_Runtime_Wiring (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
-
-   procedure Test_Desktop_Packaging_Contents (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Live_Smoke_Gate_Outcome (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

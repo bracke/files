@@ -1,5 +1,6 @@
 with Files.File_System.Trash;
 with Files.Protocol_Names;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    --  A registered stage with no payload and no restore or release marker may
    --  be one Preserve has registered but not yet filled -- perhaps in another
@@ -10,9 +11,9 @@ separate (Files_Suite.Recovery)
       Dest   : constant String := Join (Root, "being-replaced.txt");
       Backup : Files.Types.UString;
       Result : Files.File_System.Mutation_Result;
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       --  A native backend keeps a replaced original in a private recovery folder.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");

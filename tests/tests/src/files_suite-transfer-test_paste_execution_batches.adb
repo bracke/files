@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Paste_Execution_Batches (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,7 +7,7 @@ separate (Files_Suite.Transfer)
       Dest_Dir : constant String := Join (Root, "exec-dest");
       Count    : constant := 5;
       Model    : aliased Files.Model.Window_Model;
-      Paste    : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Step     : Files.Operations.Operation_Result;
 

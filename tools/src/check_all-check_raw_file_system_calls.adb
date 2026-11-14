@@ -116,12 +116,8 @@ separate (Check_All)
 
          procedure Refuse (Name : String; Why : String) is
          begin
-            Put_Line
-              (Standard_Error,
-               Path & ": " & Why & " " & Name & ", which GNAT refuses past 260 characters on Windows;"
+            Report (Path & ": " & Why & " " & Name & ", which GNAT refuses past 260 characters on Windows;"
                & " use Files.Fs_Primitives or Hostkit");
-            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-            raise Program_Error;
          end Refuse;
 
          --  Name, and Name with its unit spelled as each of the unit's aliases.

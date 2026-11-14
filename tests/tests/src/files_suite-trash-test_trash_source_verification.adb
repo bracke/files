@@ -1,5 +1,6 @@
 with Files.File_System.Testing;
 with Files_Suite.Volumes;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    procedure Test_Trash_Source_Verification (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -10,14 +11,14 @@ separate (Files_Suite.Trash)
       function Trigger return String is
         (Join (Remote.Path, "data/Trash/files/" & Files.Protocol_Names.Work_Stage_Prefix));
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       procedure Cleanup is
       begin
-         Files_Suite.Support.Release (Paste);
+         Files_Suite.Support.Guards.Release (Paste);
          Files.File_System.Testing.Stop_Changing_Source;
          Ada.Environment_Variables.Clear ("FILES_TEST_TRASH_TRIGGER");
          Ada.Environment_Variables.Clear ("FILES_TEST_TRASH_SOURCE");
@@ -29,8 +30,8 @@ separate (Files_Suite.Trash)
          Files_Suite.Support.Skip ("Test_Trash_Source_Verification", Files_Suite.Volumes.No_Other_Volume);
          return;
       end if;
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Remote.Path, "data"));
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       --  Once the copy into the trash is complete, the source changes: set

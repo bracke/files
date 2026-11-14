@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Recorded_Restore_Targets (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,21 +6,21 @@ separate (Files_Suite.History)
       Source : constant String := Join (Root, "entry");
       Redirected : constant String := Join (Root, "redirected");
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Paths : Files.Types.String_Vectors.Vector;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Selected : Boolean;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       procedure Restore is
       begin
-         Files_Suite.Support.Release (Paste);
+         Files_Suite.Support.Guards.Release (Paste);
       end Restore;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       for Background in Boolean loop
          for Scenario in 1 .. 3 loop
             for Fault in 1 .. 3 loop

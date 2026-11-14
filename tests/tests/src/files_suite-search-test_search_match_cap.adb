@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Search)
    --  Reaching the match cap shows the first matches with the truncated
    --  notice instead of failing the search, in a helper too. Exactly as many
@@ -7,7 +8,7 @@ separate (Files_Suite.Search)
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;

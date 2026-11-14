@@ -331,12 +331,14 @@ package Files.Types is
    --  @return Next search scope in the cycle.
    function Next_Scope (Scope : Search_Scope) return Search_Scope;
 
-   --  Return Text converted to lower case using simple Ada character folding
-   --  plus common UTF-8 Latin-1 uppercase letters.
+   --  Text with its ASCII letters lower-cased and every other byte kept, so
+   --  UTF-8 passes through untouched: for what is ASCII by definition --
+   --  tokens, keys, MIME types, extensions. Text a person reads or types
+   --  (names, labels) folds with Fold_Case, which knows every script.
    --
-   --  @param Text Text to normalize.
-   --  @return Lower-case version of Text.
-   function To_Lower (Text : String) return String;
+   --  @param Text Text to lower-case.
+   --  @return Text with A .. Z lower-cased.
+   function To_Lower_Ascii (Text : String) return String;
 
    --  @param Text Text to inspect.
    --  @param Prefix Bytes Text must begin with.

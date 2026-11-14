@@ -4,9 +4,7 @@ separate (Check_All)
         (Path    : String;
          Message : String) is
       begin
-         Put_Line (Standard_Error, Path & ": " & Message);
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Path & ": " & Message);
       end Fail_Icon;
 
       function Try_Parse_Natural

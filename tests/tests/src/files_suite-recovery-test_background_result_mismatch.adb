@@ -1,9 +1,10 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    procedure Test_Background_Result_Mismatch (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
@@ -21,9 +22,9 @@ separate (Files_Suite.Recovery)
       declare
          --  The fault is injected for this duplicate only; the guard puts
          --  the variable back before the checks, on failure too.
-         Fault : Files_Suite.Support.Environment_Guard;
+         Fault : Files_Suite.Support.Guards.Environment_Guard;
       begin
-         Files_Suite.Support.Save (Fault, "FILES_TEST_OPERATION_RESULT_KIND_MISMATCH");
+         Files_Suite.Support.Guards.Save (Fault, "FILES_TEST_OPERATION_RESULT_KIND_MISMATCH");
          Ada.Environment_Variables.Set
            ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "1");
          Step := Files.Operations.Duplicate_Selected (Model, Settings);
@@ -57,9 +58,9 @@ separate (Files_Suite.Recovery)
       declare
          --  The fault is injected for this duplicate only; the guard puts
          --  the variable back before the checks, on failure too.
-         Fault : Files_Suite.Support.Environment_Guard;
+         Fault : Files_Suite.Support.Guards.Environment_Guard;
       begin
-         Files_Suite.Support.Save (Fault, "FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH");
+         Files_Suite.Support.Guards.Save (Fault, "FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH");
          Ada.Environment_Variables.Set
            ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "1");
          Step := Files.Operations.Duplicate_Selected (Model, Settings);

@@ -3,12 +3,7 @@ separate (Files_Suite.Startup)
       pragma Unreferenced (T);
    begin
       --  The window's wiring (drops, icon, waiting, the folder watch) is
-      --  checked in its own code by check_all's Check_Desktop_Runtime_Contract:
-      --  a name found anywhere in src passed even when the hookup was gone.
-      Assert
-        (Files_Suite.Repository.Source_Contains ("Root_Network_Mount")
-         and then Files_Suite.Repository.File_Contains ("share/files.catalog", "en.root.network_mount = "),
-         "root discovery includes network-specific root handling");
+      --  checked in its own code by check_all's Check_Desktop_Runtime_Contract.
       declare
          Display_Available : constant Boolean := Files.Application.Windows.Live_Display_Available;
          Vulkan_Available  : constant Boolean := Files.Application.Windows.Vulkan_Runtime_Available;

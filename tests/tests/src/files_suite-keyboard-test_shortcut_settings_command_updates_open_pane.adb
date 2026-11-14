@@ -1,11 +1,12 @@
 with Files.Model.Settings_Pane;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Keyboard)
    --  A settings command run by its shortcut, with the settings pane open,
    --  updates the pane as a click does, so the pane's next save keeps it.
    procedure Test_Shortcut_Settings_Command_Updates_Open_Pane (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Clears the override this test sets, on an assertion failure too.
-      Shortcuts : Files_Suite.Support.Shortcut_Guard;
+      Shortcuts : Files_Suite.Support.Guards.Shortcut_Guard;
       pragma Unreferenced (Shortcuts);
       Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;

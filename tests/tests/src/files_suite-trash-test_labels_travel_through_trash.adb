@@ -1,3 +1,5 @@
+with Files.Settings.Path_References;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    procedure Test_Labels_Travel_Through_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -10,7 +12,7 @@ separate (Files_Suite.Trash)
       Step       : Files.Operations.Operation_Result;
       Followed   : Boolean;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       function Mode (Background : Boolean) return String is
         (if Background then " (background)" else "");
@@ -33,8 +35,8 @@ separate (Files_Suite.Trash)
       function Labeled_Anywhere return Boolean is
         (for some Entry_Label of Settings.Labels => Entry_Label.Label = Files.Types.Purple);
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
       for Background in Boolean loop
@@ -42,18 +44,18 @@ separate (Files_Suite.Trash)
          Project_Tools.Files.Delete_Tree (Trash_Home);
          Settings := Files.Settings.Default_Settings;
          Write_Binary_File (Photo, "x");
-         Files.Settings.Set_Label (Settings, Photo, Files.Types.Purple);
+         Files.Settings.Path_References.Set_Label (Settings, Photo, Files.Types.Purple);
 
          Trash_Photo (Background);
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Label_Of (Settings, Photo),
+           (Files.Settings.Path_References.Label_Of (Settings, Photo),
             Files.Types.No_Label,
             "the label went into the trash with the file" & Mode (Background) & ": the old path has no label");
          Assert (Labeled_Anywhere,
                  "the label went into the trash with the file" & Mode (Background) & ": the label is still stored");
          Write_Binary_File (Photo, "a new file at the old path");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Label_Of (Settings, Photo),
+           (Files.Settings.Path_References.Label_Of (Settings, Photo),
             Files.Types.No_Label,
             "a new file at the old path inherits no label");
          Ada.Directories.Delete_File (Photo);
@@ -64,7 +66,7 @@ separate (Files_Suite.Trash)
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "restoring moves the stored label back" & Mode (Background));
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Label_Of (Settings, Photo),
+           (Files.Settings.Path_References.Label_Of (Settings, Photo),
             Files.Types.Purple,
             "restoring brings the label back" & Mode (Background));
 

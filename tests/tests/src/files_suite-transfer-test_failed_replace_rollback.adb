@@ -1,6 +1,7 @@
 with Files.File_System.Permissions;
 with Files.Items;
 with Files_Suite.Volumes;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Failed_Replace_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -10,16 +11,16 @@ separate (Files_Suite.Transfer)
       Locked   : constant String := Join (Tree, "locked");
       function Dest return String is (Join (Remote.Path, "replace-target"));
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Model    : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Step     : Files.Operations.Operation_Result;
       Result   : Files.File_System.Mutation_Result;
 
       procedure Cleanup is
       begin
-         Files_Suite.Support.Release (Paste);
+         Files_Suite.Support.Guards.Release (Paste);
          Result := Files.File_System.Permissions.Set_Permissions (Root, 8#755#);
          Result := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
       end Cleanup;
@@ -30,7 +31,7 @@ separate (Files_Suite.Transfer)
          Files_Suite.Support.Skip ("Test_Failed_Replace_Rollback", Files_Suite.Volumes.No_Other_Volume);
          return;
       end if;
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       Actions.Append (Files.Paste.Resolved_Action'
                         (To_Unbounded_String (Tree), To_Unbounded_String (Dest), False, True));

@@ -345,9 +345,7 @@ separate (Check_All)
 
       procedure Refuse (Message : String) is
       begin
-         Put_Line (Standard_Error, Message);
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Message);
       end Refuse;
 
       --  The resolution itself, on every shape it exists for: if it stopped

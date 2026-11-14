@@ -1,11 +1,13 @@
+with Files.Settings.Path_References;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Archives)
    procedure Test_Recent_Archive_Destinations (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Puts the working directory back however the test ends.
-      Cwd_Guard : Files_Suite.Support.Directory_Guard;
+      Cwd_Guard : Files_Suite.Support.Guards.Directory_Guard;
       Settings : Files.Settings.Settings_Model;
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
@@ -26,8 +28,8 @@ separate (Files_Suite.Archives)
          Write_Binary_File (Join (Two, "note.txt"), "note bytes");
          Write_Binary_File (Join (Cwd, "keep"), "working directory bytes");
          Settings := Files.Settings.Default_Settings;
-         Files.Settings.Note_Recent (Settings, Join (One, "report.txt"));
-         Files.Settings.Note_Recent (Settings, Join (Two, "note.txt"));
+         Files.Settings.Path_References.Note_Recent (Settings, Join (One, "report.txt"));
+         Files.Settings.Path_References.Note_Recent (Settings, Join (Two, "note.txt"));
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
@@ -56,8 +58,8 @@ separate (Files_Suite.Archives)
          Mutation := Files.File_System.Copy_Tree (Zip, Copy_Zip);
          Assert (Mutation.Success, "prepare an archive in another source directory");
          Ada.Directories.Create_Path (Join (Two, "note"));
-         Files.Settings.Note_Recent (Settings, Zip);
-         Files.Settings.Note_Recent (Settings, Copy_Zip);
+         Files.Settings.Path_References.Note_Recent (Settings, Zip);
+         Files.Settings.Path_References.Note_Recent (Settings, Copy_Zip);
          Archives.Clear;
          Loaded := Files.File_System.Load_Item (Zip, Settings);
          Archives.Append (Loaded.Item);

@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Refresh)
    procedure Test_Refresh_Error_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -109,7 +110,7 @@ separate (Files_Suite.Refresh)
         (Files.Model.Last_Error_Key (Model),
          "error.directory.load",
          "cancelling a retry does not clear an unconfirmed load error");
-      Files.Settings.Note_Recent (Settings, Join (View, "alpha"));
+      Files.Settings.Path_References.Note_Recent (Settings, Join (View, "alpha"));
       Files.Model.Navigate_Recent (Model, Files.Items.Item_Vectors.Empty_Vector);
       for Operation_Error in Boolean loop
          Files.Model.Set_Error

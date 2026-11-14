@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files.Interaction)
    procedure Apply_Input_Action
      (Model             : in out Files.Model.Window_Model;
@@ -74,7 +75,7 @@ separate (Files.Interaction)
                declare
                   Updated : Files.Settings.Settings_Model := Settings;
                begin
-                  Files.Settings.Toggle_Favorite_Path (Updated, Files.Model.Current_Path (Model));
+                  Files.Settings.Path_References.Toggle_Favorite_Path (Updated, Files.Model.Current_Path (Model));
                   Files.Controller.Commit_Settings
                     (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
                end;

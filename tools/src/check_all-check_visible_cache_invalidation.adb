@@ -72,12 +72,8 @@ separate (Check_All)
             if Length (Name) > 0 and then Ada.Strings.Fixed.Index (Text, "invalidate_visible") = 0 then
                for Write of Writes loop
                   if Ada.Strings.Fixed.Index (Text, To_String (Write)) > 0 then
-                     Put_Line
-                       (Standard_Error,
-                        Path & ": " & To_String (Name) & " writes '" & To_String (Write)
+                     Report (Path & ": " & To_String (Name) & " writes '" & To_String (Write)
                         & "' without Invalidate_Visible: the visible-row cache would serve old rows");
-                     Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-                     raise Program_Error;
                   end if;
                end loop;
             end if;

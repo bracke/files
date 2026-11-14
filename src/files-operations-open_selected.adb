@@ -1,3 +1,4 @@
+with Files.Settings.Open_Actions;
 separate (Files.Operations)
 function Open_Selected
   (Model     : in out Files.Model.Window_Model;
@@ -25,8 +26,9 @@ begin
          end if;
          for Item of Items loop
             Actions.Append
-              (Files.Settings.Expand_Placeholders
-                 (Files.Settings.Lookup_Open_Action (Settings, To_String (Item.Filetype), Modifiers).Action,
+              (Files.Settings.Open_Actions.Expand_Placeholders
+                 (Files.Settings.Open_Actions.Lookup_Open_Action
+                    (Settings, To_String (Item.Filetype), Modifiers).Action,
                   To_String (Item.Full_Path)));
             Paths.Append (Item.Full_Path);
          end loop;

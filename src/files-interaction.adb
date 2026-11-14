@@ -10,6 +10,7 @@ with Files.Model.Command_Palette;
 with Files.Model.Context_Menu;
 with Files.Model.Label_Picker;
 with Files.Model.Settings_Pane;
+with Files.Settings.Path_References;
 
 package body Files.Interaction is
 
@@ -117,7 +118,7 @@ package body Files.Interaction is
    is
       Updated : Files.Settings.Settings_Model := Settings;
    begin
-      Files.Settings.Set_Labels (Updated, Files.Model.Selection.Selected_Paths (Model), Label);
+      Files.Settings.Path_References.Set_Labels (Updated, Files.Model.Selection.Selected_Paths (Model), Label);
       Files.Model.Label_Picker.Close (Model);
       Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
    end Apply_Label;
@@ -138,9 +139,9 @@ package body Files.Interaction is
          begin
             case Move.Kind is
                when Files.Types.Removed =>
-                  Files.Settings.Forget_Path_References (Updated, To_String (Move.From), Followed);
+                  Files.Settings.Path_References.Forget_Path_References (Updated, To_String (Move.From), Followed);
                when Files.Types.Moved =>
-                  Files.Settings.Move_Path_References
+                  Files.Settings.Path_References.Move_Path_References
                     (Updated, To_String (Move.From), To_String (Move.To), Followed);
             end case;
             Changed := Changed or else Followed;
@@ -179,7 +180,7 @@ package body Files.Interaction is
          Accepted : Boolean;
       begin
          for Path of Opened loop
-            Files.Settings.Note_Recent (Updated, To_String (Path));
+            Files.Settings.Path_References.Note_Recent (Updated, To_String (Path));
          end loop;
          Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted);
          --  Added to, not overwritten: a refused recent list must not hide

@@ -7,6 +7,7 @@ with Files.Localization;
 with Hostkit.Desktop_Entries;
 with Hostkit.Fs;
 with Hostkit.Process;
+with Files.Settings.Open_Actions;
 
 --  The reading of the entries is Hostkit.Desktop_Entries'; what is here is
 --  files' side of it: where to look, in which locale, which entries the
@@ -27,7 +28,7 @@ package body Files.Desktop_Applications is
    --  against: the interface's own message locale as its variable spells it
    --  (POSIX modifiers kept), else the host's, in desktop-entry spelling.
    function Message_Locale_Candidates return Hostkit.String_Vectors.Vector is
-      Raw : Unbounded_String := To_Unbounded_String (Files.Localization.Message_Locale_Variable);
+      Raw : Unbounded_String := To_Unbounded_String (Files.Environment.Message_Locale);
    begin
       if Raw = "" then
          Raw := To_Unbounded_String (Files.Localization.System_Locale);
@@ -58,7 +59,7 @@ package body Files.Desktop_Applications is
          Command      => Command,
          Target_Field => Target_Field)
       then
-         return Files.Settings.Make_Action ("", Files.Types.String_Vectors.Empty_Vector);
+         return Files.Settings.Open_Actions.Make_Action ("", Files.Types.String_Vectors.Empty_Vector);
       end if;
 
       for Position in Command.First_Index + 1 .. Command.Last_Index loop
@@ -69,7 +70,7 @@ package body Files.Desktop_Applications is
       if not Target_Field then
          Arguments.Append_Vector (Targets);
       end if;
-      return Files.Settings.Make_Action (To_String (Command.First_Element), Arguments);
+      return Files.Settings.Open_Actions.Make_Action (To_String (Command.First_Element), Arguments);
    end Build_Open_Action;
 
    function Build_Open_Actions
@@ -197,9 +198,9 @@ package body Files.Desktop_Applications is
 
    function Comes_Before (Left, Right : Application) return Boolean is
       Left_Name  : constant String :=
-        Files.Types.To_Lower (To_String (Left.Name));
+        Files.Types.Fold_Case (To_String (Left.Name));
       Right_Name : constant String :=
-        Files.Types.To_Lower (To_String (Right.Name));
+        Files.Types.Fold_Case (To_String (Right.Name));
    begin
       if Left_Name /= Right_Name then
          return Left_Name < Right_Name;

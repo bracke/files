@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Interaction)
    procedure Test_Record_Open_Persists_Recent (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -32,7 +33,7 @@ separate (Files_Suite.Interaction)
 
       declare
          Recent : constant Files.Types.String_Vectors.Vector :=
-           Files.Settings.Recent_Paths (Settings);
+           Files.Settings.Path_References.Recent_Paths (Settings);
       begin
          Assert (not Recent.Is_Empty, "opening an item records it in the recent list");
          Files_Suite.Support.Assert_Equal

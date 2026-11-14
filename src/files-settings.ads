@@ -1,5 +1,4 @@
 with Ada.Containers.Indefinite_Hashed_Maps;
-with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Containers.Vectors;
 with Ada.Strings.Hash;
 
@@ -145,28 +144,6 @@ package Files.Settings is
       then Left = Right
       else (Left with delta Persistence_Refused => Right.Persistence_Refused) = Right);
 
-   --  The exact subset of the settings that Build_Snapshot reads. The render
-   --  layer caches this and reuses the cached view snapshot while it still
-   --  matches, so the snapshot rebuilds automatically on a theme, column,
-   --  visibility, favorite or label change without any explicit invalidation.
-   --  Keep this in step with the Settings.* reads in build_snapshot.adb.
-   type Snapshot_Settings_Key is record
-      Show_File_Extensions : Boolean := False;
-      Show_Used_Space      : Boolean := False;
-      Show_Space_Bar       : Boolean := False;
-      Theme                : Theme_Choice := Theme_Dark;
-      Icon_Theme           : Files.Icon_Themes.Icon_Theme := Files.Icon_Themes.Basic;
-      Column_Visible       : Files.Types.Detail_Column_Visibility :=
-        Files.Types.Default_Detail_Column_Visibility;
-      Column_Widths        : Files.Types.Detail_Column_Widths :=
-        Files.Types.Default_Detail_Column_Widths;
-      Column_Order         : Files.Types.Detail_Column_Order :=
-        Files.Types.Default_Detail_Column_Order;
-      Group_By             : Files.Types.Group_Mode := Files.Types.No_Grouping;
-      Favorite_Paths       : String_Vectors.Vector;
-      Labels               : Path_Label_Vectors.Vector;
-   end record;
-
    --  The listing policy (hidden entries, sort field and direction) the
    --  settings ask a directory load for.
    --
@@ -175,39 +152,6 @@ package Files.Settings is
    function Listing_Options_Of
      (Settings : Settings_Model)
       return Files.Types.Listing_Options;
-
-   --  Capture the snapshot-relevant settings for caching.
-   --
-   --  @param Settings Settings model to read.
-   --  @return The snapshot-input key for Settings.
-   function Snapshot_Settings_Key_Of
-     (Settings : Settings_Model)
-      return Snapshot_Settings_Key;
-
-   --  Whether the settings a snapshot's rows read (favorites, labels, the
-   --  grouping, how names and icons show) are still those in Key: the detail
-   --  columns' widths, order and visibility and the free-space display are
-   --  drawn from the snapshot's header, so a column drag keeps the rows.
-   --
-   --  @param Settings Settings model to test.
-   --  @param Key Previously captured snapshot-input key.
-   --  @return True when the row inputs equal Key's.
-   function Same_Row_Settings
-     (Settings : Settings_Model;
-      Key      : Snapshot_Settings_Key)
-      return Boolean;
-
-   --  Whether Settings still yields the snapshot-input key Key, i.e. nothing the
-   --  view snapshot depends on has changed. Compares in place without building a
-   --  new key, so it is cheap enough for the per-frame render reuse check.
-   --
-   --  @param Settings Settings model to test.
-   --  @param Key Previously captured snapshot-input key.
-   --  @return True when Settings's snapshot inputs equal Key.
-   function Same_Snapshot_Settings
-     (Settings : Settings_Model;
-      Key      : Snapshot_Settings_Key)
-      return Boolean;
 
    type Settings_Parse_Result is record
       Success   : Boolean := True;
@@ -220,14 +164,6 @@ package Files.Settings is
       Durable   : Boolean := True;
       Path      : UString;
       Error_Key : UString;
-   end record;
-
-   type Action_Lookup_Result is record
-      Found            : Boolean := False;
-      Action           : Open_Action;
-      Token            : UString;
-      Error_Key        : UString;
-      System_Fallback  : Boolean := False;
    end record;
 
    --  The scalar (single key = value) settings of the [settings] section, in
@@ -374,167 +310,6 @@ package Files.Settings is
      (Settings : Settings_Model)
       return Settings_Model;
 
-   --  Report whether Path is currently stored in the favorites list.
-   --
-   --  @param Settings Settings model to query.
-   --  @param Path Full item or folder path to test.
-   --  @return True when Path is a stored favorite, False otherwise.
-   function Is_Favorite
-     (Settings : Settings_Model;
-      Path     : String)
-      return Boolean;
-
-   --  Toggle Path in the favorites list, adding it when absent and removing
-   --  every entry for it when present. The empty path is ignored.
-   --
-   --  @param Settings Settings model updated in place.
-   --  @param Path Full item or folder path to add or remove.
-   procedure Toggle_Favorite_Path
-     (Settings : in out Settings_Model;
-      Path     : String);
-
-   --  Return the recently-opened paths, most-recent-first. The list is capped at
-   --  Max_Recent_Items and never contains duplicates or the empty path.
-   --
-   --  @param Settings Settings model to query.
-   --  @return Ordered recent paths, freshest first.
-   function Recent_Paths
-     (Settings : Settings_Model)
-      return String_Vectors.Vector;
-
-   --  Record Path as the most recently opened item: move it to the front,
-   --  removing any earlier occurrence, and drop the oldest entries once the list
-   --  exceeds Max_Recent_Items. The empty path is ignored. Records both files and
-   --  folders.
-   --
-   --  @param Settings Settings model updated in place.
-   --  @param Path Full item or folder path that was just opened.
-   procedure Note_Recent
-     (Settings : in out Settings_Model;
-      Path     : String);
-
-   --  Clear the entire recently-opened list.
-   --
-   --  @param Settings Settings model updated in place.
-   procedure Clear_Recent
-     (Settings : in out Settings_Model);
-
-   --  Return the color label stored for Path.
-   --
-   --  @param Settings Settings model to query.
-   --  @param Path Full item or folder path to look up.
-   --  @return The stored color label, or No_Label when Path has none.
-   function Label_Of
-     (Settings : Settings_Model;
-      Path     : String)
-      return Files.Types.Color_Label;
-
-   --  Assign Label to Path, replacing any existing label. Passing No_Label
-   --  clears Path's label by removing its stored entry. The empty path is
-   --  ignored.
-   --
-   --  @param Settings Settings model updated in place.
-   --  @param Path Full item or folder path to label.
-   --  @param Label Color label to assign, or No_Label to clear.
-   procedure Set_Label
-     (Settings : in out Settings_Model;
-      Path     : String;
-      Label    : Files.Types.Color_Label);
-
-   --  Set_Label for each of Paths, in one pass over the stored labels: the
-   --  same result as calling it per path, without a search of every label
-   --  per path (labelling a large selection was quadratic).
-   --
-   --  @param Settings Settings model updated in place.
-   --  @param Paths Full item or folder paths to label.
-   --  @param Label Color label to assign, or No_Label to clear.
-   procedure Set_Labels
-     (Settings : in out Settings_Model;
-      Paths    : String_Vectors.Vector;
-      Label    : Files.Types.Color_Label);
-
-   --  Path-keyed color labels, as indexed by Index_Paths.
-   package Path_Label_Maps is new Ada.Containers.Indefinite_Hashed_Maps
-     (Key_Type        => String,
-      Element_Type    => Files.Types.Color_Label,
-      Hash            => Ada.Strings.Hash,
-      Equivalent_Keys => "=",
-      "="             => Files.Types."=");
-
-   --  Favorite paths, as indexed by Index_Paths.
-   package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-     (Element_Type        => String,
-      Hash                => Ada.Strings.Hash,
-      Equivalent_Elements => "=");
-
-   --  The favorites and labels of one settings model, hashed by path so a
-   --  caller that asks about many paths (one view snapshot asks once per
-   --  listed item) pays one lookup per path instead of a scan of both lists.
-   --  It is a copy: build it again after the settings change.
-   type Path_Index is record
-      Favorites : Path_Sets.Set;
-      Labels    : Path_Label_Maps.Map;
-   end record;
-
-   --  Index the favorites and labels of Settings by path.
-   --
-   --  @param Settings Settings model to index.
-   --  @return Index answering exactly as Is_Favorite and Label_Of on Settings do.
-   function Index_Paths
-     (Settings : Settings_Model)
-      return Path_Index;
-
-   --  Report whether Path is a stored favorite, as Is_Favorite on the indexed
-   --  settings would.
-   --
-   --  @param Index Index built by Index_Paths.
-   --  @param Path Full item or folder path to test.
-   --  @return True when Path is a stored favorite, False otherwise.
-   function Is_Favorite
-     (Index : Path_Index;
-      Path  : String)
-      return Boolean;
-
-   --  Return the color label stored for Path, as Label_Of on the indexed
-   --  settings would.
-   --
-   --  @param Index Index built by Index_Paths.
-   --  @param Path Full item or folder path to look up.
-   --  @return The stored color label, or No_Label when Path has none.
-   function Label_Of
-     (Index : Path_Index;
-      Path  : String)
-      return Files.Types.Color_Label;
-
-   --  Follow a rename or move: every label, favorite and recent path that is
-   --  From, or lies inside the folder From, is rewritten to the same place
-   --  under To, so a label stays with its item and a new item at the old path
-   --  does not inherit it. A rewritten favorite or recent path already listed
-   --  is not listed twice, and a label left at a path a labelled entry moved
-   --  onto goes: the moved entry's label holds there.
-   --
-   --  @param Settings Settings model updated in place.
-   --  @param From Old full path of the moved item.
-   --  @param To New full path of the moved item.
-   --  @param Changed True when any stored path was rewritten.
-   procedure Move_Path_References
-     (Settings : in out Settings_Model;
-      From     : String;
-      To       : String;
-      Changed  : out Boolean);
-
-   --  Forget an item that is gone for good: every label, favorite and recent
-   --  path that is Path, or lies inside the folder Path, is dropped, so a new
-   --  item later created there does not inherit them.
-   --
-   --  @param Settings Settings model updated in place.
-   --  @param Path Full path of the removed item.
-   --  @param Changed True when any stored path was dropped.
-   procedure Forget_Path_References
-     (Settings : in out Settings_Model;
-      Path     : String;
-      Changed  : out Boolean);
-
    --  Whether Settings, once written, would load again: Parse bounds the file
    --  (size and entry count) against hostile input, so an edit that grows it
    --  past those bounds -- thousands of labels -- must be refused, not saved.
@@ -562,18 +337,6 @@ package Files.Settings is
      (Settings : Settings_Model;
       Filetype : String)
       return String;
-
-   --  Lookup an open action using full filetype-plus-modifier fallback rules.
-   --
-   --  @param Settings Settings model to inspect.
-   --  @param Filetype Filetype identifier.
-   --  @param Modifiers Active modifier set.
-   --  @return Lookup result with selected action or localized error key.
-   function Lookup_Open_Action
-     (Settings  : Settings_Model;
-      Filetype  : String;
-      Modifiers : Guikit.Input.Modifier_Set)
-      return Action_Lookup_Result;
 
    --  Parse settings text into a settings model.
    --
@@ -677,36 +440,14 @@ package Files.Settings is
      (Extension : String)
       return String;
 
-   --  Build an open action value.
-   --
-   --  @param Executable Executable path or command name.
-   --  @param Arguments Action arguments.
-   --  @param Use_Shell Whether explicit shell execution is requested.
-   --  @return Open action value.
-   function Make_Action
-     (Executable : String;
-      Arguments  : String_Vectors.Vector;
-      Use_Shell  : Boolean := False)
-      return Open_Action;
-
-   --  Return whether an action uses placeholders outside safe argument slots.
-   --
-   --  @param Action Open action to inspect.
-   --  @return True when the executable contains a placeholder or any argument embeds one.
-   function Has_Unsafe_Placeholder_Usage
-     (Action : Open_Action)
-      return Boolean;
-
-   --  Substitute whole-argument placeholders for a selected file path.
-   --
-   --  @param Action Open action to expand.
-   --  @param Path Full selected file path.
-   --  @return Expanded action arguments.
-   function Expand_Placeholders
-     (Action : Open_Action;
-      Path   : String)
-      return Open_Action;
 private
+
+   --  Whether Path can be stored: not empty, and without a NUL or a line
+   --  break, which the line-oriented settings file cannot round-trip.
+   --
+   --  @param Path Path to test.
+   --  @return True when Path can be persisted.
+   function Persistent_Path_Is_Valid (Path : String) return Boolean;
 
    --  Return the settings-file key of a scalar setting.
    --
@@ -788,21 +529,5 @@ private
    --
    --  @return Default settings file text.
    function Default_Settings_Text return String;
-
-   --  Return whether Argument contains a placeholder embedded in other text.
-   --
-   --  @param Argument Open-action argument to inspect.
-   --  @return True when a known placeholder is not the whole argument.
-   function Has_Embedded_Placeholder
-     (Argument : String)
-      return Boolean;
-
-   --  Return whether any action argument contains an embedded placeholder.
-   --
-   --  @param Action Open action to inspect.
-   --  @return True when any known placeholder is embedded in other text.
-   function Has_Embedded_Placeholder
-     (Action : Open_Action)
-      return Boolean;
 
 end Files.Settings;

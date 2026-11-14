@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
    procedure Test_Labels_Forget_Deleted_And_Follow_Background (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -30,10 +31,10 @@ separate (Files_Suite.Operations)
          Write_Binary_File (Gone, "x");
          Write_Binary_File (Inner, "y");
          Write_Binary_File (Kept, "z");
-         Files.Settings.Set_Label (Settings, Gone, Files.Types.Red);
-         Files.Settings.Set_Label (Settings, Inner, Files.Types.Blue);
-         Files.Settings.Set_Label (Settings, Kept, Files.Types.Green);
-         Files.Settings.Toggle_Favorite_Path (Settings, Folder);
+         Files.Settings.Path_References.Set_Label (Settings, Gone, Files.Types.Red);
+         Files.Settings.Path_References.Set_Label (Settings, Inner, Files.Types.Blue);
+         Files.Settings.Path_References.Set_Label (Settings, Kept, Files.Types.Green);
+         Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Folder);
 
          Show_Root (Background);
          Select_Name (Model, "gone.txt");
@@ -45,11 +46,11 @@ separate (Files_Suite.Operations)
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "deleting a labeled file changes the stored labels" & Mode (Background));
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Label_Of (Settings, Gone),
+           (Files.Settings.Path_References.Label_Of (Settings, Gone),
             Files.Types.No_Label,
             "a permanently deleted file's label is forgotten, others kept" & Mode (Background) & ": forgotten");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Label_Of (Settings, Kept),
+           (Files.Settings.Path_References.Label_Of (Settings, Kept),
             Files.Types.Green,
             "a permanently deleted file's label is forgotten, others kept" & Mode (Background) & ": kept");
 
@@ -63,10 +64,10 @@ separate (Files_Suite.Operations)
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "deleting a labeled folder changes the stored labels" & Mode (Background));
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Label_Of (Settings, Inner),
+           (Files.Settings.Path_References.Label_Of (Settings, Inner),
             Files.Types.No_Label,
             "deleting a folder forgets the labels inside it and its favorite" & Mode (Background) & ": inner label");
-         Assert (not Files.Settings.Is_Favorite (Settings, Folder),
+         Assert (not Files.Settings.Path_References.Is_Favorite (Settings, Folder),
                  "deleting a folder forgets the labels inside it and its favorite" & Mode (Background) & ": favorite");
 
          --  A rename in the window, then its Undo in the helper.
@@ -79,7 +80,7 @@ separate (Files_Suite.Operations)
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "the rename moves the stored label");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Label_Of (Settings, Renamed),
+           (Files.Settings.Path_References.Label_Of (Settings, Renamed),
             Files.Types.Green,
             "the label follows the rename");
          Files.Model.Set_Background_Transfers (Model, Background);
@@ -89,11 +90,11 @@ separate (Files_Suite.Operations)
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "undoing the rename moves the stored label" & Mode (Background));
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Label_Of (Settings, Kept),
+           (Files.Settings.Path_References.Label_Of (Settings, Kept),
             Files.Types.Green,
             "Undo carries the label back" & Mode (Background) & ": original name labeled");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Label_Of (Settings, Renamed),
+           (Files.Settings.Path_References.Label_Of (Settings, Renamed),
             Files.Types.No_Label,
             "Undo carries the label back" & Mode (Background) & ": renamed name unlabeled");
       end loop;

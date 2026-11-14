@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    procedure Test_Reserve_Exception_Safety (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,10 +18,10 @@ separate (Files_Suite.Recovery)
          --  The temporary directory's variables come back when this block
          --  ends, on failure too. POSIX reads TMPDIR; Windows' GetTempPathW
          --  reads TMP, then TEMP.
-         Environment : Files_Suite.Support.Environment_Guard;
+         Environment : Files_Suite.Support.Guards.Environment_Guard;
       begin
          for Name of Temp_Variables loop
-            Files_Suite.Support.Save (Environment, Name.all);
+            Files_Suite.Support.Guards.Save (Environment, Name.all);
             Ada.Environment_Variables.Set (Name.all, Invalid_Temp);
          end loop;
          begin

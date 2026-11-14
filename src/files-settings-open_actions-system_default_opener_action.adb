@@ -1,5 +1,5 @@
 with Hostkit.Process;
-separate (Files.Settings)
+separate (Files.Settings.Open_Actions)
    function System_Default_Opener_Action
      (Filetype : String) return Action_Lookup_Result
    is

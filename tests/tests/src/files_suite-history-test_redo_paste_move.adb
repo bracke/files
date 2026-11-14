@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Redo_Paste_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,7 +10,7 @@ separate (Files_Suite.History)
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Load     : Files.File_System.Directory_Load_Result;
       Model    : aliased Files.Model.Window_Model;
-      Paste    : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Step     : Files.Operations.Operation_Result;
    begin

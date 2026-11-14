@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    --  Undo's restore names the item it trashed, and then moves it the way a
    --  plain restore does: something else now under that trash name stays.
@@ -7,10 +8,10 @@ separate (Files_Suite.Trash)
       Source      : constant String := Join (Root, "named.txt");
       Trashed     : Files.Types.UString;
       Result      : Files.File_System.Mutation_Result;
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);

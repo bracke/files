@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
    --  Every settings change has one policy: what the file cannot hold is
    --  refused, an unchanged one writes nothing, and a save that fails is
@@ -36,7 +37,7 @@ separate (Files_Suite.Operations)
          for Batch in 0 .. 1_000 loop
             exit when not Files.Settings.Loadable (Updated);
             for Index in Batch * 100 + 1 .. Batch * 100 + 100 loop
-               Files.Settings.Toggle_Favorite_Path (Updated, "/nowhere/" & Index'Image);
+               Files.Settings.Path_References.Toggle_Favorite_Path (Updated, "/nowhere/" & Index'Image);
             end loop;
          end loop;
          Assert (not Files.Settings.Loadable (Updated), "the settings file has an entry bound");

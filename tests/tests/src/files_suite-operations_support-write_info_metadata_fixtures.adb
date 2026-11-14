@@ -50,17 +50,13 @@ separate (Files_Suite.Operations_Support)
          "procedure Unit is" & ASCII.LF & "begin" & ASCII.LF & "null;" & ASCII.LF & "end;");
       Write_File (Join (Root, "zdata.json"), "{""ok"":true}");
       Write_File (Join (Root, "zdoc.xml"), "<root/>");
-      Write_Binary_File
-        (Join (Root, "zheader.png"),
-         Byte (16#89#) & "PNG" & Byte (16#0D#) & Byte (16#0A#) &
-         Byte (16#1A#) & Byte (16#0A#) & Byte (0) & Byte (0) & Byte (0) &
-         Byte (13) & "IHDR" & Byte (0) & Byte (0) & Byte (0) & Byte (32) &
-         Byte (0) & Byte (0) & Byte (0) & Byte (16));
-      Write_Binary_File
-        (Join (Root, "zbad.png"),
-         Byte (16#89#) & "PNG" & Byte (16#0D#) & Byte (16#0A#) &
-         Byte (16#1A#) & Byte (16#0A#) & Byte (0) & Byte (0) & Byte (0) &
-         Byte (13) & "NOPE" & Byte (0) & Byte (0) & Byte (0) & Byte (32) &
-         Byte (0) & Byte (0) & Byte (0) & Byte (16));
+      Write_Binary_File (Join (Root, "zheader.png"), Minimal_Png_Header (32, 16));
+      --  The same header with its first chunk misnamed: no IHDR to read.
+      declare
+         Bad : String := Minimal_Png_Header (32, 16);
+      begin
+         Bad (Bad'First + 12 .. Bad'First + 15) := "NOPE";
+         Write_Binary_File (Join (Root, "zbad.png"), Bad);
+      end;
       Write_Late_JPEG (Join (Root, "zlate.jpg"));
    end Write_Info_Metadata_Fixtures;

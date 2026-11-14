@@ -1,3 +1,4 @@
+with Files.Settings.Open_Actions;
 separate (Files.Settings)
    procedure Add_Open_Action
      (Settings : in out Settings_Model;
@@ -13,7 +14,7 @@ separate (Files.Settings)
         or else not Open_Action_Base_Key_Is_Valid ((if Plus = 0 then Key else Key (Key'First .. Plus - 1)))
         or else not Action_Token_Modifiers_Are_Known (Token)
         or else Trim (To_String (Action.Executable)) = ""
-        or else Has_Unsafe_Placeholder_Usage (Action)
+        or else Open_Actions.Has_Unsafe_Placeholder_Usage (Action)
         or else not Action_Text_Is_Serializable (Action)
       then
          return;

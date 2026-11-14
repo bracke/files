@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Settings)
    --  Resetting a command whose built-in secondary another command now holds
    --  leaves that chord with its new owner: Redo gets Ctrl+Shift+Z back, not
@@ -5,7 +6,7 @@ separate (Files_Suite.Settings)
    procedure Test_Shortcut_Reset_Keeps_Taken_Secondary (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Clears the overrides this test sets, on an assertion failure too.
-      Shortcuts : Files_Suite.Support.Shortcut_Guard;
+      Shortcuts : Files_Suite.Support.Guards.Shortcut_Guard;
       pragma Unreferenced (Shortcuts);
       use type Files.Commands.Shortcut;
       Ctrl : constant Guikit.Input.Modifier_Set := [Guikit.Input.Control_Key => True, others => False];

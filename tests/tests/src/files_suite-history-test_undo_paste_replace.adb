@@ -1,14 +1,15 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Undo_Paste_Replace (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings    : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Trash_Home  : constant String := Root & "_replace_xdg";
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
       --  Sandbox the trash so Import_Replacing can trash the overwritten
@@ -27,7 +28,7 @@ separate (Files_Suite.History)
          Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
          Load     : Files.File_System.Directory_Load_Result;
          Model    : aliased Files.Model.Window_Model;
-         Paste    : Files_Suite.Support.Paste_Guard (Model'Access);
+         Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
          pragma Unreferenced (Paste);
          Step     : Files.Operations.Operation_Result;
       begin
@@ -77,7 +78,7 @@ separate (Files_Suite.History)
          Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
          Load     : Files.File_System.Directory_Load_Result;
          Model    : aliased Files.Model.Window_Model;
-         Paste    : Files_Suite.Support.Paste_Guard (Model'Access);
+         Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
          pragma Unreferenced (Paste);
          Step     : Files.Operations.Operation_Result;
       begin

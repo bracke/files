@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    procedure Test_Recovery_Registry_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,7 +7,7 @@ separate (Files_Suite.Recovery)
       --  recovery registry.
       Test_Temp : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TEMP", Root & "_temp");
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Registry : constant String :=
         Join (Join (Join (Test_Temp, "data"), "files"), "recovery-index");
       Victim   : constant String := Join (Root, "created.txt");
@@ -33,7 +34,7 @@ separate (Files_Suite.Recovery)
       Before : Natural;
    begin
       if not Ada.Environment_Variables.Exists ("FILES_TEST_TEMP") then
-         Files_Suite.Support.Save (Environment, "FILES_TEST_TEMP");
+         Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_TEMP");
          Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Test_Temp);
       end if;
       Reset_Root;

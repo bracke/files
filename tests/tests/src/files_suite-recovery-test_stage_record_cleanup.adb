@@ -1,5 +1,6 @@
 with Files.File_System.Permissions;
 with Files.Job_Helpers.Testing;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -232,7 +233,7 @@ separate (Files_Suite.Recovery)
          Ada.Directories.Delete_File (Join (To_String (Stage), ".files-owner"));
          Ada.Directories.Delete_Directory (To_String (Stage));
          Ada.Directories.Rename (Saved, To_String (Stage));
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when not Ada.Directories.Exists (To_String (Stage))
               and then not Ada.Directories.Exists (To_String (Owner_Directory));
          end loop;
@@ -240,7 +241,7 @@ separate (Files_Suite.Recovery)
                  and then not Ada.Directories.Exists (To_String (Owner_Directory)),
                  "idle foreground cleanup retries its durable record and removes its transport");
          if Ada.Directories.Exists ("/proc/thread-self/children") then
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children") =
                  To_String (Children_Before);
             end loop;
@@ -264,7 +265,7 @@ separate (Files_Suite.Recovery)
          null;
       end;
       Files.Process_Jobs.Reset (Transport_Job);
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when not Ada.Directories.Exists (Transport);
       end loop;
       Assert

@@ -1,4 +1,5 @@
 with Files.Model.Clipboard;
+with Files.Settings.Path_References;
 separate (Files_Suite.Context_Menu)
    procedure Test_Sequence_Cut_Paste_Into_Subdir (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -15,7 +16,7 @@ separate (Files_Suite.Context_Menu)
       Files_Suite.Support.Reset_Root;
       Ada.Directories.Create_Path (Sub);
       Files_Suite.Support.Write_File (Source, "payload");
-      Files.Settings.Set_Label (Settings, Source, Files.Types.Red);
+      Files.Settings.Path_References.Set_Label (Settings, Source, Files.Types.Red);
 
       --  Step 1: cut a file from the source directory.
       Model := Loaded_Model (Src_Dir);
@@ -45,7 +46,7 @@ separate (Files_Suite.Context_Menu)
          for Item of Load.Items loop
             if Ada.Strings.Unbounded.To_String (Item.Name) = "movable.txt" then
                Kept := Files.Types."="
-                 (Files.Settings.Label_Of (Settings, Ada.Strings.Unbounded.To_String (Item.Full_Path)),
+                 (Files.Settings.Path_References.Label_Of (Settings, Ada.Strings.Unbounded.To_String (Item.Full_Path)),
                   Files.Types.Red);
             end if;
          end loop;

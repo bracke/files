@@ -3,6 +3,8 @@ separate (Check_All)
       Content : constant String := To_String (Project_Tools.Text.Read_Text_File (Path));
       Line    : Natural := 1;
       Column  : Natural := 0;
+      --  The line already reported, so a long line is one problem.
+      Reported : Natural := 0;
    begin
       for Char of Content loop
          if Char = ASCII.LF then
@@ -13,13 +15,10 @@ separate (Check_All)
          --  character its lead byte began.
          elsif Character'Pos (Char) not in 16#80# .. 16#BF# then
             Column := Column + 1;
-            if Column > Max_Line_Length then
-               Put_Line
-                 (Standard_Error,
-                  Path & ":" & Natural'Image (Line) & ": line exceeds"
+            if Column > Max_Line_Length and then Reported /= Line then
+               Reported := Line;
+               Report (Path & ":" & Natural'Image (Line) & ": line exceeds"
                   & Natural'Image (Max_Line_Length) & " characters");
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               raise Program_Error;
             end if;
          end if;
       end loop;

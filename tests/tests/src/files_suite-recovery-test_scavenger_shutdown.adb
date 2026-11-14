@@ -1,10 +1,12 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Scavenger_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Active          : Files.Process_Jobs.Session;
       Shutdown_Control : constant String := Join (Root, "shutdown-coordinator");
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       procedure Restore is
       begin
@@ -16,10 +18,10 @@ separate (Files_Suite.Recovery)
          Files.Process_Jobs.Reset (Active);
       end Restore;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_SCAVENGER");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_SCAVENGER");
       --  A scan or retry left by an earlier test would reclaim this test's
       --  fixtures before its own coordinator could.
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Files.Job_Scavenger.Idle;
       end loop;
       Assert
@@ -34,7 +36,7 @@ separate (Files_Suite.Recovery)
          "scavenging reports completion when only a live claimed transport remains");
 
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_SCAVENGER", Shutdown_Control);
-      for Attempt in Files_Suite.Support.Polling (Interval => 0.05) loop
+      for Attempt in Files_Suite.Support.Timing.Polling (Interval => 0.05) loop
          Files.Job_Scavenger.Scavenge;
          exit when Ada.Directories.Exists (Shutdown_Control & ".started");
       end loop;

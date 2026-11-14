@@ -26,6 +26,7 @@ with Hostkit.Lease_Files;
 with Hostkit.Process;
 with Hostkit.Signals;
 with Hostkit.Spawn;
+with Files_Suite.Support.Timing;
 
 package body Test_Helpers is
 
@@ -38,7 +39,8 @@ package body Test_Helpers is
    --  Scaled by FILES_TEST_TIME_SCALE like the tests' waits, so it stays
    --  beyond them on a slow runner too.
    function Helper_Hold_Limit return Duration is
-     (Files_Suite.Support.Seconds (Files_Suite.Support.Scaled (4 * Files_Suite.Support.Poll_Limit)));
+     (Files_Suite.Support.Timing.Seconds
+        (Files_Suite.Support.Timing.Scaled (4 * Files_Suite.Support.Timing.Poll_Limit)));
 
    --  Publish a file another process waits for in one step: write Content
    --  beside Path, then rename it into place, so a reader that sees Path
@@ -139,7 +141,7 @@ package body Test_Helpers is
             end if;
          elsif Mode = Hold_Before_Marker then
             Publish (Ada.Command_Line.Argument (3) & ".started");
-            for Attempt in Files_Suite.Support.Polling (Limit => Helper_Hold_Limit, Interval => 0.01) loop
+            for Attempt in Files_Suite.Support.Timing.Polling (Limit => Helper_Hold_Limit, Interval => 0.01) loop
                exit when Ada.Directories.Exists (Ada.Command_Line.Argument (3) & ".release");
             end loop;
             --  Never released: the test that held it is gone.
@@ -337,7 +339,7 @@ package body Test_Helpers is
          then
             Hostkit.Process.End_Now (1);
          end if;
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Ada.Directories.Exists (Ada.Command_Line.Argument (3));
          end loop;
          Hostkit.Process.End_Now
@@ -362,7 +364,7 @@ package body Test_Helpers is
          end if;
          Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Ada.Command_Line.Argument (3));
          Ada.Text_IO.Close (File);
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Ada.Directories.Exists (Ada.Command_Line.Argument (4));
          end loop;
          Hostkit.Process.End_Now
@@ -405,7 +407,7 @@ package body Test_Helpers is
          Directory := Ada.Strings.Unbounded.To_Unbounded_String
            (Files.Process_Jobs.Path (Job, ""));
          Files.Process_Jobs.Launch (Job, "--files-test-blocked");
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Ada.Directories.Exists
               (Ada.Strings.Unbounded.To_String (Directory) & "/started");
          end loop;
@@ -463,7 +465,7 @@ package body Test_Helpers is
            Ada.Environment_Variables.Value ("FILES_TEST_STALL_SCAVENGER");
       begin
          Publish (Control & ".started", Integer'Image (Hostkit.Host.Own_Process_Id));
-         for Attempt in Files_Suite.Support.Polling (Limit => Helper_Hold_Limit, Interval => 0.01) loop
+         for Attempt in Files_Suite.Support.Timing.Polling (Limit => Helper_Hold_Limit, Interval => 0.01) loop
             exit when Ada.Directories.Exists (Control & ".release");
          end loop;
          if not Ada.Directories.Exists (Control & ".release") then
@@ -550,7 +552,7 @@ package body Test_Helpers is
          end if;
          --  Held until the test cancels or kills it; the bound only ends a
          --  helper whose test has died without doing either.
-         for Attempt in Files_Suite.Support.Polling (Limit => Helper_Hold_Limit, Interval => 0.1) loop
+         for Attempt in Files_Suite.Support.Timing.Polling (Limit => Helper_Hold_Limit, Interval => 0.1) loop
             if Mode = Operation_Helper
               and then Files.Process_Jobs.Cancellation_Requested
                 (Ada.Command_Line.Argument (2))
@@ -657,7 +659,7 @@ package body Test_Helpers is
          Release   : constant String := Directory & "/release-cleanup-worker";
       begin
          Publish (Started);
-         for Attempt in Files_Suite.Support.Polling (Limit => Helper_Hold_Limit, Interval => 0.01) loop
+         for Attempt in Files_Suite.Support.Timing.Polling (Limit => Helper_Hold_Limit, Interval => 0.01) loop
             exit when Ada.Directories.Exists (Release);
          end loop;
          if not Ada.Directories.Exists (Release) then

@@ -6,12 +6,10 @@ separate (Check_All)
       Share_Body   : constant String := Root & "/src/files-application-windows-share_settings_from.adb";
       Jobs_Body    : constant String := Root & "/src/files-operation_jobs.adb";
 
-      --  Report Message and fail check_all, as the Require_ guards do.
-      procedure Fail (Message : String) with No_Return is
+      --  Report Message: check_all fails once every check has run.
+      procedure Fail (Message : String) is
       begin
-         Put_Line (Standard_Error, Message);
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Message);
       end Fail;
 
       --  How many times Code names Name as a whole name: not as part of a
@@ -93,6 +91,7 @@ separate (Check_All)
       begin
          if not Project_Tools.Files.File_Exists (Base_Path) then
             Fail ("guarded file is missing: " & Base_Path & " (looking for the body of " & Name & ")");
+            return "";
          end if;
          Look_In (Base_Path);
          Ada.Directories.Start_Search

@@ -1,4 +1,5 @@
 with Files.Settings.Testing;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Thumbnails)
    procedure Test_Directory_Load_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,10 +7,10 @@ separate (Files_Suite.Thumbnails)
       Load     : Files.File_System.Directory_Load_Result;
       Decoded_Png_Source : constant String := Join (Root, "decoded-picture.png");
       Cache_Home : constant String := Join (Root, "cache-home");
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
       Reset_Root;
-      Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_CACHE_HOME");
       Write_Binary_File
         (Decoded_Png_Source,
          Minimal_Png_RGB

@@ -1,5 +1,7 @@
 with Hostkit.Locks;
 with Files.Protocol_Names;
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    --  A job's transport is a private temporary folder of protocol files: the
    --  last release hands it to the orphan reaper, which removes it without a
@@ -10,14 +12,14 @@ separate (Files_Suite.Recovery)
       pragma Unreferenced (T);
       use type Hostkit.Locks.Lock_Outcome;
       Test_Temp   : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TEMP", Root & "_temp");
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Registry    : constant String := Join (Join (Join (Test_Temp, "data"), "files"), "recovery-index");
       Held        : Hostkit.Locks.Lock;
       Job         : Files.Process_Jobs.Session;
       Transport   : Unbounded_String;
    begin
       if not Ada.Environment_Variables.Exists ("FILES_TEST_TEMP") then
-         Files_Suite.Support.Save (Environment, "FILES_TEST_TEMP");
+         Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_TEMP");
          Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Test_Temp);
       end if;
       Reset_Root;
@@ -32,7 +34,7 @@ separate (Files_Suite.Recovery)
       Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
       Write_Binary_File (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Result_File), "result");
       Files.Process_Jobs.Reset (Job);
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when not Ada.Directories.Exists (To_String (Transport));
       end loop;
       Assert (not Ada.Directories.Exists (To_String (Transport)),

@@ -1,5 +1,6 @@
 with Files.Foreground_Jobs;
 with Files_Suite.Volumes;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Move_Commit_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,14 +8,14 @@ separate (Files_Suite.Transfer)
       Source : constant String := Join (Root, "inbox/entry");
       Remote : Files_Suite.Volumes.Remote_Directory;
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       procedure Cleanup is
       begin
-         Files_Suite.Support.Release (Paste);
+         Files_Suite.Support.Guards.Release (Paste);
       end Cleanup;
    begin
       --  The same-device half runs everywhere; the cross-device half needs a
@@ -50,9 +51,9 @@ separate (Files_Suite.Transfer)
                   declare
                      --  The fault is injected for this move only; the guard
                      --  puts the variable back before the Undo, on failure too.
-                     Fault : Files_Suite.Support.Environment_Guard;
+                     Fault : Files_Suite.Support.Guards.Environment_Guard;
                   begin
-                     Files_Suite.Support.Save (Fault, "FILES_TEST_TRANSFER_RESULT_LOSS");
+                     Files_Suite.Support.Guards.Save (Fault, "FILES_TEST_TRANSFER_RESULT_LOSS");
                      Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS", "source-replacement");
                      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
                      Step := Complete_Operation

@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
    procedure Test_Recent_View_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -26,9 +27,9 @@ separate (Files_Suite.Operations)
 
       --  Seed the recent list: folder, then file, then a now-missing path. The
       --  missing entry must be skipped when the view materializes.
-      Files.Settings.Note_Recent (Settings, Ada.Directories.Full_Name (Dir));
-      Files.Settings.Note_Recent (Settings, Ada.Directories.Full_Name (File_Name));
-      Files.Settings.Note_Recent (Settings, Missing);
+      Files.Settings.Path_References.Note_Recent (Settings, Ada.Directories.Full_Name (Dir));
+      Files.Settings.Path_References.Note_Recent (Settings, Ada.Directories.Full_Name (File_Name));
+      Files.Settings.Path_References.Note_Recent (Settings, Missing);
 
       --  Start from an ordinary directory so entering the view records history.
       Items.Append (Files.File_System.Make_Item (Root, "recent-dir", Files.Types.Directory_Item, "inode/directory"));
@@ -72,7 +73,7 @@ separate (Files_Suite.Operations)
         (Files.Model.Item_Count (Model),
          2,
          "re-entering the recent view relists the items");
-      Files.Settings.Clear_Recent (Settings);
+      Files.Settings.Path_References.Clear_Recent (Settings);
       Result := Files.Operations.Navigate_Recent (Model, Settings);
       Assert (Files.Model.In_Recent_View (Model), "the view stays active after clearing");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 0, "clearing empties the recent listing");

@@ -1,4 +1,5 @@
 with Files.Model.Tree_Panel;
+with Files.Settings.Path_References;
 separate (Files_Suite.Tree)
    --  Favorites are folder-tree roots: starring or unstarring one with the
    --  tree shown reseeds it, so the tree never lists a stale set of roots.
@@ -73,7 +74,7 @@ separate (Files_Suite.Tree)
       declare
          Shared : Files.Settings.Settings_Model := Settings;
       begin
-         Files.Settings.Toggle_Favorite_Path (Shared, Item);
+         Files.Settings.Path_References.Toggle_Favorite_Path (Shared, Item);
          Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
          Assert (Tree_Has_Root (Item), "a favorite another window added is a root of the shown tree");
       end;

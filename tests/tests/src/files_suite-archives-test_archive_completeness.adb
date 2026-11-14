@@ -1,9 +1,11 @@
+with Files.Settings.Path_References;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Archives)
    procedure Test_Archive_Completeness (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
@@ -41,8 +43,8 @@ separate (Files_Suite.Archives)
          Write_Binary_File (Join (Join (Root, "one"), "same.txt"), "first source");
          Write_Binary_File (Join (Join (Root, "two"), "same.txt"), "second source");
          Settings := Files.Settings.Default_Settings;
-         Files.Settings.Note_Recent (Settings, Join (Join (Root, "one"), "same.txt"));
-         Files.Settings.Note_Recent (Settings, Join (Join (Root, "two"), "same.txt"));
+         Files.Settings.Path_References.Note_Recent (Settings, Join (Join (Root, "one"), "same.txt"));
+         Files.Settings.Path_References.Note_Recent (Settings, Join (Join (Root, "two"), "same.txt"));
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);

@@ -6,6 +6,7 @@ with Files.Model.Quick_Look;
 with Files.Model.Settings_Pane;
 with Files.Model.Sort_Menu;
 with Files.Model.Tree_Panel;
+with Files.Settings.Path_References;
 separate (Files_Suite.Text_Input)
    procedure Test_Text_Entry_Contained_By_Overlays
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -33,7 +34,7 @@ separate (Files_Suite.Text_Input)
          Reduced       : Files.Interaction.Interaction_Result;
          Path_Before   : constant String := Files.Model.Current_Path (Model);
          Favorite_Before : constant Boolean :=
-           Files.Settings.Is_Favorite (Settings, Path_Before);
+           Files.Settings.Path_References.Is_Favorite (Settings, Path_Before);
          Scope_Before : constant Files.Types.Search_Scope :=
            Files.Model.Search_Scope_Of (Model);
       begin
@@ -82,7 +83,7 @@ separate (Files_Suite.Text_Input)
             (Kind => Files.Events.Path_Favorite_Toggle_Input_Action),
             Guikit.Input.No_Modifiers, Reduced);
          Assert
-           (Files.Settings.Is_Favorite (Settings, Path_Before) = Favorite_Before
+           (Files.Settings.Path_References.Is_Favorite (Settings, Path_Before) = Favorite_Before
             and then not Reduced.Settings_Changed,
             Name & " rejects a delayed path-star click");
 

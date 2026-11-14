@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Private_Copy_Stages (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,7 +9,7 @@ separate (Files_Suite.Transfer)
       Plans : Files.File_System.Drop_Import_Plan_Vectors.Vector;
       Mutation : Files.File_System.Mutation_Result;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       function Observe return Boolean is
       begin
          if Ada.Directories.Exists (Join (Stage, "payload/secret")) then
@@ -18,7 +19,7 @@ separate (Files_Suite.Transfer)
          return False;
       end Observe;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       if not Files.File_System.Permissions.Supports_Permissions then
          Files_Suite.Support.Skip ("Test_Private_Copy_Stages", "this host has no POSIX permissions to set");
          return;

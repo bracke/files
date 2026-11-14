@@ -1,5 +1,6 @@
 with Files.Window_Polls;
 with Files.Extra_Info_Reader;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Info)
    procedure Test_Item_Details_Off_The_UI_Thread (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -21,7 +22,7 @@ separate (Files_Suite.Info)
       Assert (Files.Model.Selected_Item_Needs_Extra (Model), "a window does not read the details while it waits");
 
       --  ...but asked of the reader and taken once read.
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          Files.Window_Polls.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (401));
          exit when not Files.Model.Selected_Item_Needs_Extra (Model);
       end loop;

@@ -1,5 +1,6 @@
 with Files.Foreground_Jobs;
 with Files_Suite.Volumes;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Move_Ownership (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,13 +15,13 @@ separate (Files_Suite.Transfer)
       Remote : Files_Suite.Volumes.Remote_Directory;
       Expected : Interfaces.C.long_long;
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       procedure Cleanup is
       begin
-         Files_Suite.Support.Release (Paste);
+         Files_Suite.Support.Guards.Release (Paste);
       end Cleanup;
       procedure Prepare (Path : String) is
          Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);

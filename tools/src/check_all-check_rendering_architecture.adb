@@ -32,6 +32,17 @@ separate (Check_All)
           To_Unbounded_String ("Drop_Import_Mode"),
           To_Unbounded_String ("Directory_Size_Result")],
          "rendering must not list, write or validate files");
+      --  Of the paths the settings keep, only what they say: no favorite,
+      --  recent or label is changed while a frame is drawn.
+      Require_Only_Names_From
+        ("files-rendering",
+         "Files.Settings.Path_References",
+         [To_Unbounded_String ("Index_Paths"),
+          To_Unbounded_String ("Path_Index"),
+          To_Unbounded_String ("Is_Favorite"),
+          To_Unbounded_String ("Label_Of"),
+          To_Unbounded_String ("Recent_Paths")],
+         "rendering must not change favorites, recents or labels");
       --  Of permissions and ownership, only whether the host supports them.
       Require_Only_Names_From
         ("files-rendering",
@@ -142,6 +153,7 @@ separate (Check_All)
             To_Unbounded_String ("Files.Rendering.Layouts"),
             To_Unbounded_String ("Files.Root_Labels"),
             To_Unbounded_String ("Files.Settings"),
+            To_Unbounded_String ("Files.Settings.Path_References"),
             To_Unbounded_String ("Files.Timing"),
             To_Unbounded_String ("Files.Types"),
             To_Unbounded_String ("Files.UI")];
@@ -234,12 +246,8 @@ separate (Check_All)
             Count : constant Natural := Ada.Strings.Fixed.Count (Text, [1 => ASCII.LF]);
          begin
             if Count > Lines then
-               Put_Line
-                 (Standard_Error,
-                  Name & " has" & Count'Image & " lines, over its ceiling of" & Lines'Image
+               Report (Name & " has" & Count'Image & " lines, over its ceiling of" & Lines'Image
                   & ": move the new code into a subunit");
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               raise Program_Error;
             end if;
          end Require_At_Most;
       begin

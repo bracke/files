@@ -1,5 +1,6 @@
 with Files.File_System.Trash;
 with Files_Suite.Volumes;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    --  An item on another volume than the home trash goes to that volume's own
    --  freedesktop trash ($topdir/.Trash-$uid): a rename there, not a copy of
@@ -12,7 +13,7 @@ separate (Files_Suite.Trash)
       Data_Home : constant String := Root & "_volume_trash_data";
       Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Volume_Base : Unbounded_String;
 
       --  Remote removes the volume trash it saw appear.
@@ -21,9 +22,9 @@ separate (Files_Suite.Trash)
          Project_Tools.Files.Delete_Tree (Data_Home);
       end Clean;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TEST_VOLUME_TRASH");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_VOLUME_TRASH");
       if Hostkit.Host.Current = Hostkit.Host.Windows then
          Files_Suite.Support.Skip ("Test_Volume_Trash", "Windows has no freedesktop volume trash");
          return;

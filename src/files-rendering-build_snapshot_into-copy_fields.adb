@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files.Rendering.Build_Snapshot_Into)
    --  The header, status and pane fields: copied straight from the model
    --  and the settings.
@@ -5,7 +6,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
    begin
       Snapshot.Current_Path := To_Unbounded_String (Files.Model.Current_Path (Model));
       Snapshot.Current_Path_Is_Favorite :=
-        Files.Settings.Is_Favorite (Settings, Files.Model.Current_Path (Model));
+        Files.Settings.Path_References.Is_Favorite (Settings, Files.Model.Current_Path (Model));
       Snapshot.In_Recent_View := Files.Model.In_Recent_View (Model);
       Snapshot.View_Mode := Files.Model.View_Mode_Of (Model);
       Snapshot.Sort_Field := Files.Model.Sort_Field_Of (Model);

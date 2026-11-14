@@ -1,4 +1,5 @@
 with Files.File_System.Thumbnails;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Thumbnails)
    procedure Test_Explicit_Thumbnail_Survives_The_Listing (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,9 +10,9 @@ separate (Files_Suite.Thumbnails)
       Listed     : Files.File_System.Directory_Load_Result;
       Found      : Boolean := False;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_CACHE_HOME");
 
       Reset_Root;
       Write_File (Not_Image, "just text, no image anywhere in it");

@@ -166,13 +166,6 @@ package body Files_Suite.Interaction_Support is
       Files.Model.Set_Main_View_Scroll_Lines (Model, 0);
    end Replay_Targeted_Scroll;
 
-   --  Format a positive index without the leading space Integer'Image inserts.
-   function Index_Image (Value : Positive) return String is
-      Raw : constant String := Integer'Image (Value);
-   begin
-      return Raw (Raw'First + 1 .. Raw'Last);
-   end Index_Image;
-
    --  Load a real on-disk directory into a fresh window model, exactly as the
    --  controller does when navigating, so disk-backed menu commands operate on
    --  genuine items.

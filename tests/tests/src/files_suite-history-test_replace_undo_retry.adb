@@ -1,13 +1,14 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Replace_Undo_Retry (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       type Scenario_Kind is (Copy_Replace, Move_Replace, Recovery_Only);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       for Native in Boolean loop
          for Scenario in Scenario_Kind loop
             Reset_Root;

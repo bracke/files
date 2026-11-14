@@ -1,3 +1,4 @@
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    --  A foreground stage removed from outside, rather than discarded, used
    --  to stay on the job context's list of stages awaiting their discard,
@@ -76,7 +77,7 @@ separate (Files_Suite.Recovery)
       Assert (Files.Job_Context.Discard_Stage (To_String (Second)), "the second stage is discarded");
       Assert (not Ada.Directories.Exists (To_String (Second)), "and is gone");
       Files_Suite.Support.Assert_Equal (Record_Count, 0, "the removed stage's record goes with the discarded one's");
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when not Ada.Directories.Exists (To_String (Transport));
       end loop;
       Assert (not Ada.Directories.Exists (To_String (Transport)),

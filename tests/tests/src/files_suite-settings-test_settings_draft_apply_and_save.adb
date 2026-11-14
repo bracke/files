@@ -1,4 +1,5 @@
 with Files.Controller.Testing;
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Settings)
    procedure Test_Settings_Draft_Apply_And_Save (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -37,7 +38,7 @@ separate (Files_Suite.Settings)
          Draft_Model : Files.Model.Window_Model := Sample_Model;
          Draft_Settings : Files.Settings.Settings_Model := Loaded.Settings;
          Controller_Result : Files.Controller.Controller_Result;
-         Lookup : Files.Settings.Action_Lookup_Result;
+         Lookup : Files.Settings.Open_Actions.Action_Lookup_Result;
       begin
          Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files_Suite.Support.Assert_Equal
@@ -92,7 +93,7 @@ separate (Files_Suite.Settings)
             "text",
             "draft applies icon mapping");
          Lookup :=
-           Files.Settings.Lookup_Open_Action
+           Files.Settings.Open_Actions.Lookup_Open_Action
              (Draft_Load.Settings,
               "application/ld+json",
               [Guikit.Input.Alt_Key => True, others => False]);
@@ -118,7 +119,7 @@ separate (Files_Suite.Settings)
             "text",
             "saved draft persists icon mapping");
          Lookup :=
-           Files.Settings.Lookup_Open_Action
+           Files.Settings.Open_Actions.Lookup_Open_Action
              (Draft_Load.Settings,
               "application/ld+json",
               [Guikit.Input.Alt_Key => True, others => False]);

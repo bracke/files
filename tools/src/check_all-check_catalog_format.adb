@@ -8,11 +8,7 @@ separate (Check_All)
         (Message : String)
       is
       begin
-         Put_Line
-           (Standard_Error,
-            Catalog & ":" & Natural'Image (Line_Number) & ": " & Message);
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Catalog & ":" & Natural'Image (Line_Number) & ": " & Message);
       end Fail;
 
       function Is_Key_Character
@@ -72,12 +68,16 @@ separate (Check_All)
             return;
          elsif Equals = 0 then
             Fail ("localization catalog entry must contain an equals sign");
+            return;
          elsif Equals = Line'First then
             Fail ("localization catalog entry must contain a key before the equals sign");
+            return;
          elsif Line (Equals - 1) /= ' ' then
             Fail ("localization catalog entry must use ' = ' between key and value");
+            return;
          elsif Equals < Line'Last and then Line (Equals + 1) /= ' ' then
             Fail ("localization catalog entry must use ' = ' between key and value");
+            return;
          end if;
 
          declare

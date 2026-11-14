@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Replace_Trash_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,7 +7,7 @@ separate (Files_Suite.Transfer)
       Dest     : constant String := Join (Root, "replacement-original");
       Blocker  : constant String := Join (Root, "trash-blocker");
       Model    : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
@@ -20,10 +21,10 @@ separate (Files_Suite.Transfer)
       Write_Binary_File (Blocker, "not a directory");
       declare
          --  The trash sandbox ends with this block: the identity check below runs in the real environment.
-         Environment : Files_Suite.Support.Environment_Guard;
+         Environment : Files_Suite.Support.Guards.Environment_Guard;
       begin
-         Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-         Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+         Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+         Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Blocker);
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Actions.Append (Files.Paste.Resolved_Action'

@@ -1,13 +1,14 @@
 with Files.File_System.Thumbnails;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Thumbnails)
    procedure Test_Thumbnail_Cache_Entries (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Cache_Home : constant String := Join (Root, "cache-home");
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
       Reset_Root;
-      Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_CACHE_HOME");
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
 
       --  The cache key now includes the source revision, but an artifact

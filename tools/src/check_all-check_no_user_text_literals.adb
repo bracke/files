@@ -38,13 +38,9 @@ separate (Check_All)
                  and then not Item.Is_Character
                  and then Looks_Like_User_Text (To_String (Item.Text))
                then
-                  Put_Line
-                    (Standard_Error,
-                     Path & ":" & Natural'Image (Item.Line)
+                  Report (Path & ":" & Natural'Image (Item.Line)
                      & ": hard-coded user-visible text literal: "
                      & To_String (Item.Text));
-                  Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-                  raise Program_Error;
                end if;
             end;
             Index := Index + 1;

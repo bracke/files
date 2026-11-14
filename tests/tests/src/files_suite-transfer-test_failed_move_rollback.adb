@@ -1,9 +1,10 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Failed_Move_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
@@ -12,7 +13,7 @@ separate (Files_Suite.Transfer)
       Source_Parent : constant String := Join (Root, "source");
       Destination : constant String := Join (Root, "destination");
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       procedure Restore is
       begin
          Files_Suite.Support.Allow_Deletion (Join (Source_Parent, "item.txt"));
@@ -21,7 +22,7 @@ separate (Files_Suite.Transfer)
          end if;
       end Restore;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
       for Background in Boolean loop
          for Replace in Boolean loop
             Reset_Root;

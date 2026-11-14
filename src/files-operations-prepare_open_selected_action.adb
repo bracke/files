@@ -1,3 +1,4 @@
+with Files.Settings.Open_Actions;
 separate (Files.Operations)
 function Prepare_Open_Selected_Action
   (Model     : in out Files.Model.Window_Model;
@@ -32,8 +33,8 @@ begin
 
          for Item of Items loop
             declare
-               Lookup : constant Files.Settings.Action_Lookup_Result :=
-                 Files.Settings.Lookup_Open_Action (Settings, To_String (Item.Filetype), Modifiers);
+               Lookup : constant Files.Settings.Open_Actions.Action_Lookup_Result :=
+                 Files.Settings.Open_Actions.Lookup_Open_Action (Settings, To_String (Item.Filetype), Modifiers);
             begin
                if Length (First_Path) = 0 then
                   First_Path := Item.Full_Path;
@@ -46,13 +47,13 @@ begin
                       (Operation_Missing_Open_Action,
                        To_String (Lookup.Error_Key),
                        To_String (Item.Full_Path));
-               elsif Files.Settings.Has_Unsafe_Placeholder_Usage (Lookup.Action) then
+               elsif Files.Settings.Open_Actions.Has_Unsafe_Placeholder_Usage (Lookup.Action) then
                   return Unsafe_Open_Action (Model, To_String (Item.Full_Path));
                end if;
 
                if not First_Action_Recorded then
                   First_Action :=
-                    Files.Settings.Expand_Placeholders (Lookup.Action, To_String (Item.Full_Path));
+                    Files.Settings.Open_Actions.Expand_Placeholders (Lookup.Action, To_String (Item.Full_Path));
                   First_Action_Recorded := True;
                end if;
             end;
@@ -72,8 +73,8 @@ begin
       end if;
 
       declare
-         Lookup : constant Files.Settings.Action_Lookup_Result :=
-           Files.Settings.Lookup_Open_Action (Settings, To_String (Item.Filetype), Modifiers);
+         Lookup : constant Files.Settings.Open_Actions.Action_Lookup_Result :=
+           Files.Settings.Open_Actions.Lookup_Open_Action (Settings, To_String (Item.Filetype), Modifiers);
       begin
          if not Lookup.Found then
             Files.Model.Set_Error (Model, To_String (Lookup.Error_Key));
@@ -82,13 +83,13 @@ begin
                 (Operation_Missing_Open_Action,
                  To_String (Lookup.Error_Key),
                  To_String (Item.Full_Path));
-         elsif Files.Settings.Has_Unsafe_Placeholder_Usage (Lookup.Action) then
+         elsif Files.Settings.Open_Actions.Has_Unsafe_Placeholder_Usage (Lookup.Action) then
             return Unsafe_Open_Action (Model, To_String (Item.Full_Path));
          end if;
 
          declare
             Action : constant Files.Settings.Open_Action :=
-              Files.Settings.Expand_Placeholders (Lookup.Action, To_String (Item.Full_Path));
+              Files.Settings.Open_Actions.Expand_Placeholders (Lookup.Action, To_String (Item.Full_Path));
          begin
             Files.Model.Set_Error (Model, "");
             return Make_Result (Operation_Success, Path => To_String (Item.Full_Path), Action => Action);

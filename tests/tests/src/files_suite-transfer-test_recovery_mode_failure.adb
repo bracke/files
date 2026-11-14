@@ -2,6 +2,7 @@ with Files.Foreground_Jobs;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
 with Files.File_System.Testing;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Recovery_Mode_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,16 +10,16 @@ separate (Files_Suite.Transfer)
       Backup : Unbounded_String;
       Mutation : Files.File_System.Mutation_Result;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       procedure Cleanup is
       begin
          Files.File_System.Testing.Stop_Failing_Directory_Restore;
          Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#755#);
       end Cleanup;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
-      Files_Suite.Support.Save (Environment, "FILES_TEST_DIRECTORY_RESTORE_FAULT");
-      Files_Suite.Support.Save (Environment, "FILES_TEST_DIRECTORY_RESTORE_BLOCK");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_DIRECTORY_RESTORE_FAULT");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_DIRECTORY_RESTORE_BLOCK");
       --  Where the bits are rendered from an ACL, setting them would replace
       --  the folder's ACL: recovery leaves the mode alone there.
       if not Hostkit.Metadata.Mode_Bits_Are_Native then
@@ -55,7 +56,7 @@ separate (Files_Suite.Transfer)
               (File_Has_Bytes (Join (Source, "child"), "original bytes"),
                "a failed restoration rolls back the complete original and its mode: original bytes restored");
             Assert
-              (Metadata_Mode_Of (Source) = 8#555#,
+              (Mode_Of (Source, With_Special_Bits => True) = 8#555#,
                "a failed restoration rolls back the complete original and its mode: mode restored");
          end if;
          Files.File_System.Testing.Stop_Failing_Directory_Restore;
@@ -89,7 +90,9 @@ separate (Files_Suite.Transfer)
             Assert
               (File_Has_Bytes (Join (Source, "child"), "original bytes"),
                "retry restores the original bytes and mode: bytes restored");
-            Assert (Metadata_Mode_Of (Source) = 8#555#, "retry restores the original bytes and mode: mode restored");
+            Assert
+              (Mode_Of (Source, With_Special_Bits => True) = 8#555#,
+               "retry restores the original bytes and mode: mode restored");
          end if;
          Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#755#);
       end loop;
@@ -97,7 +100,7 @@ separate (Files_Suite.Transfer)
          declare
             Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
             Model : aliased Files.Model.Window_Model;
-            Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+            Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
             pragma Unreferenced (Paste);
             Actions : Files.Paste.Resolved_Action_Vectors.Vector;
             Step : Files.Operations.Operation_Result;
@@ -139,7 +142,9 @@ separate (Files_Suite.Transfer)
             Assert
               (File_Has_Bytes (Join (Source, "child"), "original bytes"),
                "Undo recovers the retained original and mode: bytes restored");
-            Assert (Metadata_Mode_Of (Source) = 8#555#, "Undo recovers the retained original and mode: mode restored");
+            Assert
+              (Mode_Of (Source, With_Special_Bits => True) = 8#555#,
+               "Undo recovers the retained original and mode: mode restored");
             Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#755#);
          end;
       end loop;

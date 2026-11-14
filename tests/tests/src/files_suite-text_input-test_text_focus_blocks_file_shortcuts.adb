@@ -1,4 +1,5 @@
 with Files.Model.Command_Palette;
+with Files.Settings.Path_References;
 separate (Files_Suite.Text_Input)
    procedure Test_Text_Focus_Blocks_File_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -48,7 +49,7 @@ separate (Files_Suite.Text_Input)
       Files_Suite.Support.Select_Name (Model, "keep.txt");
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_B, Ctrl, Result);
-      Assert (Files.Settings.Is_Favorite (Settings, Ada.Directories.Full_Name (Victim)),
+      Assert (Files.Settings.Path_References.Is_Favorite (Settings, Ada.Directories.Full_Name (Victim)),
               "Ctrl+B favourites the selection through the keyboard path");
       Assert (Result.Settings_Changed and then Result.Clear_Pending_Text,
               "a settings shortcut reports the change and drops its character event");
@@ -59,7 +60,7 @@ separate (Files_Suite.Text_Input)
            Files.Controller.Handle_Key (Model, Settings, "", Guikit.Input.Key_B, Ctrl);
       begin
          Assert (Outcome.Command = Files.Commands.Toggle_Favorite_Command
-                 and then not Files.Settings.Is_Favorite (Settings, Ada.Directories.Full_Name (Victim)),
+                 and then not Files.Settings.Path_References.Is_Favorite (Settings, Ada.Directories.Full_Name (Victim)),
                  "the settings-aware controller applies Ctrl+B once");
       end;
 

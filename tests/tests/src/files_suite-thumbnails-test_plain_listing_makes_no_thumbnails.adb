@@ -1,4 +1,5 @@
 with Files.File_System.Thumbnails;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Thumbnails)
    procedure Test_Plain_Listing_Makes_No_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,14 +7,14 @@ separate (Files_Suite.Thumbnails)
       Photo    : constant String := Join (Root, "plain-listing-photo.png");
       Load     : Files.File_System.Directory_Load_Result;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       function Cache_File return String is
         (Files.File_System.Thumbnails.Thumbnail_Path_For
            (Photo, Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Root), 64));
    begin
       Reset_Root;
-      Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_CACHE_HOME");
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Join (Root, "plain-cache-home"));
       Write_Binary_File
         (Photo,

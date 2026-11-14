@@ -3,6 +3,7 @@ with Ada.Real_Time;
 with Files.Model;
 with Files.Rendering;
 with Files.Settings;
+with Files.Snapshot_Policy.Settings_Keys;
 
 --  A window's two view snapshots and the bookkeeping that keeps them current
 --  cheaply: Snapshots (Current_Slot) is the model as it is now, for the render
@@ -50,7 +51,7 @@ package Files.Snapshot_Slots is
       --  labels) the current snapshot was built with. With the model revision
       --  these are the whole of Build_Snapshot's inputs, so the snapshot is
       --  reused only while both still match -- no explicit invalidation.
-      Cached_Settings_Key  : Files.Settings.Snapshot_Settings_Key;
+      Cached_Settings_Key  : Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key;
       --  The wall-clock minute the current snapshot shows (its Now).
       Cached_Minute        : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
    end record;

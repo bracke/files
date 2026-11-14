@@ -1,6 +1,7 @@
 with Files.Undo_Recording;
 with Files.File_System.Trash;
 with Project_Tools.Files;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Model)
    procedure Test_History_Retire_Drain (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -13,10 +14,10 @@ separate (Files_Suite.Model)
       Result   : Files.File_System.Mutation_Result;
       Recorded : Boolean;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);

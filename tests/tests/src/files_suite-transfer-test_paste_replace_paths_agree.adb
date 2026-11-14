@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    --  The in-process paste and the transfer helper run one replace routine:
    --  a replace target that vanished after planning has nothing to preserve
@@ -8,7 +9,7 @@ separate (Files_Suite.Transfer)
       Source   : constant String := Join (Root, "agree-source");
       Dest     : constant String := Join (Root, "agree-vanished");
       Model    : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;

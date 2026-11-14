@@ -1,5 +1,6 @@
 with Ada.Strings.Unbounded;
 
+with Hostkit.Desktop_Entries;
 with Hostkit.Environment;
 with Hostkit.Process;
 
@@ -24,6 +25,8 @@ package body Files.Environment is
    begin
       Hostkit.Environment.Set (Name, Value);
    end Set;
+
+   function Message_Locale return String renames Hostkit.Desktop_Entries.Message_Locale;
 
    procedure Clear (Name : String) is
    begin

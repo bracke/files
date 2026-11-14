@@ -15,9 +15,7 @@ separate (Check_All)
                      (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => True),
                       Pattern) = 0
          then
-            Put_Line (Standard_Error, Path & ": " & Message);
-            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-            raise Program_Error;
+            Report (Path & ": " & Message);
          end if;
       end Require_In_Code;
    begin
@@ -101,7 +99,11 @@ separate (Check_All)
       --  way to the environment fallbacks.
       Require_Registered_Routine
         ("Test_Host_Locale_Fallbacks",
-         "the test of asking the host for its locale");
+         "the test of the environment and KDE locale fallbacks");
+      Require_In_Code
+        (Localization,
+         "Hostkit.Host.Native_Locale",
+         "the system locale is asked of the host (Hostkit.Host.Native_Locale), not detected per OS here");
       Require_Registered_Routine
         ("Test_Localization_Pane_Labels",
          "the test of pane, status and landmark labels");

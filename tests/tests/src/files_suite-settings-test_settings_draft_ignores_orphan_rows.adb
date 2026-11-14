@@ -1,10 +1,11 @@
 with Files.Settings.Testing;
 with Files.Model.Settings_Pane;
+with Files.Settings.Open_Actions;
 separate (Files_Suite.Settings)
    procedure Test_Settings_Draft_Ignores_Orphan_Rows (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Loaded : constant Files.Settings.Settings_Parse_Result := Load_Saved_Details_Settings;
-      Lookup : Files.Settings.Action_Lookup_Result;
+      Lookup : Files.Settings.Open_Actions.Action_Lookup_Result;
    begin
       declare
          Empty_Settings : Files.Settings.Settings_Model := Loaded.Settings;
@@ -31,7 +32,7 @@ separate (Files_Suite.Settings)
             "",
             "ignored empty-list icon edit is not saved");
          Lookup :=
-           Files.Settings.Lookup_Open_Action
+           Files.Settings.Open_Actions.Lookup_Open_Action
              (Empty_Load.Settings,
               "text/x-ghost",
               Guikit.Input.No_Modifiers);
@@ -66,7 +67,7 @@ separate (Files_Suite.Settings)
          Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Pane.Draft_Of (Empty_Model));
          Assert (Empty_Load.Success, "repaired misaligned open-action draft validates");
          Lookup :=
-           Files.Settings.Lookup_Open_Action
+           Files.Settings.Open_Actions.Lookup_Open_Action
              (Empty_Load.Settings,
               "text/x-orphan",
               Guikit.Input.No_Modifiers);

@@ -1,7 +1,8 @@
+with Files.Settings.Path_References;
 separate (Files_Suite.Model)
    --  Build_Snapshot looks favorites and labels up in a hashed index of the
    --  settings rather than scanning both lists per item. It must answer as
-   --  Files.Settings.Is_Favorite and Label_Of do -- exact path equality, no
+   --  Files.Settings.Path_References.Is_Favorite and Label_Of do -- exact path equality, no
    --  case folding or separator trimming, and the first of repeated labels.
    procedure Test_Snapshot_Labels_And_Favorites_At_Scale (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -27,16 +28,16 @@ separate (Files_Suite.Model)
 
       for Index in 1 .. Count loop
          if Index mod 3 = 0 then
-            Files.Settings.Toggle_Favorite_Path (Settings, Join (Root, Name_Of (Index)));
+            Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Join (Root, Name_Of (Index)));
          end if;
          if Index mod 5 = 0 then
-            Files.Settings.Set_Label (Settings, Join (Root, Name_Of (Index)), Color_For (Index));
+            Files.Settings.Path_References.Set_Label (Settings, Join (Root, Name_Of (Index)), Color_For (Index));
          end if;
       end loop;
       --  Paths that only resemble an item's: another case, a trailing
       --  separator. Neither names item 1 or 2 for the settings.
-      Files.Settings.Toggle_Favorite_Path (Settings, Join (Root, "ITEM_1.TXT"));
-      Files.Settings.Set_Label (Settings, Join (Root, Name_Of (2)) & "/", Files.Types.Green);
+      Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Join (Root, "ITEM_1.TXT"));
+      Files.Settings.Path_References.Set_Label (Settings, Join (Root, Name_Of (2)) & "/", Files.Types.Green);
       --  A repeated entry, as a hand-edited settings file can hold: the first
       --  one is the label.
       Settings.Labels.Append
@@ -54,9 +55,9 @@ separate (Files_Suite.Model)
             begin
                Files_Suite.Support.Assert_Equal
                  (Item.Is_Favorite,
-                  Files.Settings.Is_Favorite (Settings, Path),
+                  Files.Settings.Path_References.Is_Favorite (Settings, Path),
                   Name & " is a favorite exactly when the settings say so");
-               Assert (Item.Label = Files.Settings.Label_Of (Settings, Path),
+               Assert (Item.Label = Files.Settings.Path_References.Label_Of (Settings, Path),
                        Name & " carries exactly the label the settings store for it");
                if Item.Is_Favorite then
                   Favorites := Favorites + 1;

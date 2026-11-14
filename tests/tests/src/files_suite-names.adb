@@ -25,6 +25,7 @@ with Files.Settings;
 with Files.Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
+with Files_Suite.Support.Images;
 
 package body Files_Suite.Names is
 
@@ -35,6 +36,7 @@ package body Files_Suite.Names is
    use type Files.Operations.Operation_Status;
    use type Files.Types.Search_Scope;
    use Files_Suite.Support;
+   use Files_Suite.Support.Images;
    use Files_Suite.Operations_Support;
 
    type Names_Test_Case is new AUnit.Test_Cases.Test_Case with null record;

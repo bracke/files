@@ -1,3 +1,4 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    --  A background helper hands its history back through a journal that may
    --  leave entries out (too old, or too large, for its caps). The window
@@ -158,7 +159,7 @@ separate (Files_Suite.Operations)
            Files.File_System.Load_Directory (Root, Settings);
          Job_Window : aliased Files.Model.Window_Model;
          --  Ends the job when the block is left, on failure too.
-         Paste      : Files_Suite.Support.Paste_Guard (Job_Window'Access);
+         Paste      : Files_Suite.Support.Guards.Paste_Guard (Job_Window'Access);
          pragma Unreferenced (Paste);
          Step       : Files.Operations.Operation_Result;
       begin

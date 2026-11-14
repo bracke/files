@@ -29,6 +29,7 @@ with Guikit.Settings_Panel;
 with Guikit.Input;
 with Files.Types;
 with Files_Suite.Support;
+with Files.Settings.Open_Actions;
 
 package body Files_Suite.Settings is
 
@@ -263,19 +264,19 @@ package body Files_Suite.Settings is
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          "text/manual+META+shift+alt+control+shift",
-         Files.Settings.Make_Action ("first", Args));
+         Files.Settings.Open_Actions.Make_Action ("first", Args));
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          " text/manual+control+alt+meta+shift ",
-         Files.Settings.Make_Action ("second", Args));
+         Files.Settings.Open_Actions.Make_Action ("second", Args));
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          " text/spaced-manual + META + shift ",
-         Files.Settings.Make_Action (" spaced-manual ", Args));
+         Files.Settings.Open_Actions.Make_Action (" spaced-manual ", Args));
       Files.Settings.Testing.Add_Open_Action
         (Manual,
          "image/svg+xml",
-         Files.Settings.Make_Action ("svg-viewer", Args));
+         Files.Settings.Open_Actions.Make_Action ("svg-viewer", Args));
       return Manual;
    end Settings_With_Direct_Insertions;
 

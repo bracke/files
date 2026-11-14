@@ -1,5 +1,7 @@
 with Files.File_System.Testing;
 with Files.Protocol_Names;
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    --  A sweep reads and changes the registry under its lock, but lets it go
    --  for the work a record leads to -- putting a stopped release's payload
@@ -9,7 +11,7 @@ separate (Files_Suite.Recovery)
    procedure Test_Sweep_Leaves_Registry_Open (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Test_Temp   : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TEMP", Root & "_temp");
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Dest        : constant String := Join (Root, "swept.txt");
       Other       : constant String := Join (Root, "registered.txt");
       Backup      : Files.Types.UString;
@@ -57,9 +59,9 @@ separate (Files_Suite.Recovery)
          Hostkit.Lease_Files.Release (Marker);
       end Leave_Marker;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       if not Ada.Environment_Variables.Exists ("FILES_TEST_TEMP") then
-         Files_Suite.Support.Save (Environment, "FILES_TEST_TEMP");
+         Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_TEMP");
          Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Test_Temp);
       end if;
       Reset_Root;
@@ -92,7 +94,7 @@ separate (Files_Suite.Recovery)
                   State.Finish_Sweep;
             end Sweeper;
          begin
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when Files.File_System.Testing.Sweep_Work_Paused;
             end loop;
             Assert (Files.File_System.Testing.Sweep_Work_Paused, "the sweep reaches its work on the payload");
@@ -113,8 +115,8 @@ separate (Files_Suite.Recovery)
                --  Far shorter than the hold (Pause_Sweep_Work's 120 s): a
                --  Register that waits for the held sweep's lock cannot finish
                --  in time, so a sweep that keeps the lock fails the test.
-               for Attempt in Files_Suite.Support.Polling
-                 (Limit => Files_Suite.Support.Seconds (Files_Suite.Support.Scaled (Register_Wait)))
+               for Attempt in Files_Suite.Support.Timing.Polling
+                 (Limit => Files_Suite.Support.Timing.Seconds (Files_Suite.Support.Timing.Scaled (Register_Wait)))
                loop
                   exit when State.Register_Finished;
                end loop;
@@ -128,7 +130,7 @@ separate (Files_Suite.Recovery)
                   Assert (Sweep_Still_Held, "the sweep was still at its work then");
                end;
             end;
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when State.Sweep_Finished;
             end loop;
             Assert (State.Sweep_Finished, "the sweep finishes once its work goes on");

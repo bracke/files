@@ -17,6 +17,7 @@ with Files.Resources;
 
 with Hostkit.Host;
 with Humanize.Catalogs;
+with I18N.Locales;
 
 package body Files.Localization is
    use Ada.Strings.Unbounded;
@@ -80,12 +81,8 @@ package body Files.Localization is
    procedure Ensure_Initialized;
 
    function Normalize_Locale (Value : String) return String is
-      Raw    : constant String := Ada.Strings.Fixed.Trim (Value, Ada.Strings.Both);
-      Last   : Natural := Raw'Last;
-      Result : Unbounded_String;
-      --  The language's length in Result, and whether a script follows it.
-      Language_Length : Natural := 0;
-      Has_Script      : Boolean := False;
+      Raw  : constant String := Ada.Strings.Fixed.Trim (Value, Ada.Strings.Both);
+      Last : Natural := Raw'Last;
 
       --  The @modifier (sr_RS.UTF-8@latin), lower case, or "".
       function Modifier return String is
@@ -114,52 +111,17 @@ package body Files.Localization is
       function Modifier_Variant return String is
         (if Modifier = "valencia" then "valencia" else "");
 
-      function Is_Ascii_Alphanumeric (Item : Character) return Boolean is
-        (Item in 'a' .. 'z' or else Item in 'A' .. 'Z' or else Item in '0' .. '9');
-
-      function Is_Ascii_Letter (Item : Character) return Boolean is
-        (Item in 'a' .. 'z' or else Item in 'A' .. 'Z');
-
-      function Is_Ascii_Digit (Item : Character) return Boolean is
-        (Item in '0' .. '9');
-
-      procedure Append_Component
-        (Component : String;
-         First     : Boolean)
-      is
-         Is_Script : constant Boolean :=
-           not First
-           and then Component'Length = 4
-           and then (for all Item of Component => Is_Ascii_Letter (Item));
-         Is_Region : constant Boolean :=
-           not First
-           and then
-             ((Component'Length = 2
-               and then (for all Item of Component => Is_Ascii_Letter (Item)))
-              or else
-                (Component'Length = 3
-                 and then (for all Item of Component => Is_Ascii_Digit (Item))));
-      begin
-         if not First then
-            Append (Result, '-');
-         end if;
-
-         if Is_Script then
-            Has_Script := True;
-         end if;
-         for Index in Component'Range loop
-            if Is_Script and then Index = Component'First then
-               Append (Result, Ada.Characters.Handling.To_Upper (Component (Index)));
-            elsif Is_Region then
-               Append (Result, Ada.Characters.Handling.To_Upper (Component (Index)));
-            else
-               Append (Result, Ada.Characters.Handling.To_Lower (Component (Index)));
-            end if;
-         end loop;
-         if First then
-            Language_Length := Length (Result);
-         end if;
-      end Append_Component;
+      --  A name that can only be a locale's: subtags of ASCII letters and
+      --  digits, none empty, separated by '_' or '-'.
+      function Well_Formed (Base : String) return Boolean is
+        (Base'Length > 0
+         and then Base (Base'First) not in '_' | '-'
+         and then Base (Base'Last) not in '_' | '-'
+         and then (for all Index in Base'Range =>
+                     Base (Index) in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9'
+                     or else (Base (Index) in '_' | '-'
+                              and then Index < Base'Last
+                              and then Base (Index + 1) not in '_' | '-')));
    begin
       --  The normalized value is retained and is also embedded in a locale
       --  catalog pathname. Keep it a small locale identifier, never an
@@ -168,6 +130,7 @@ package body Files.Localization is
          return "en";
       end if;
 
+      --  The codeset (.UTF-8) and the modifier (@latin) are no subtags.
       for Index in Raw'Range loop
          if Raw (Index) = '.' or else Raw (Index) = '@' then
             Last := Index - 1;
@@ -175,62 +138,37 @@ package body Files.Localization is
          end if;
       end loop;
 
-      if Last < Raw'First then
-         return "en";
-      end if;
-
       declare
          Base : constant String := Raw (Raw'First .. Last);
-         Component_First : Natural := Base'First;
-         First_Component : Boolean := True;
       begin
-         if Base = "C" or else Base = "POSIX" then
+         if Base = "C" or else Base = "POSIX" or else not Well_Formed (Base) then
             return "en";
          end if;
 
-         for Index in Base'Range loop
-            if Base (Index) = '_' or else Base (Index) = '-' then
-               if Index = Component_First then
-                  return "en";
-               end if;
-
-               Append_Component
-                 (Base (Component_First .. Index - 1), First_Component);
-               First_Component := False;
-               Component_First := Index + 1;
-            elsif not Is_Ascii_Alphanumeric (Base (Index)) then
-               return "en";
-            end if;
-         end loop;
-
-         if Component_First > Base'Last then
-            return "en";
-         end if;
-
-         Append_Component
-           (Base (Component_First .. Base'Last), First_Component);
+         declare
+            --  I18N's canonical form: hyphens, BCP 47 casing, CLDR's language
+            --  aliases (iw is he, sh is sr-Latn).
+            Canonical : constant String := I18N.Locales.Canonicalize (Base);
+            Language  : constant Natural :=
+              (if Ada.Strings.Fixed.Index (Canonical, "-") = 0 then Canonical'Last
+               else Ada.Strings.Fixed.Index (Canonical, "-") - 1);
+            Rest      : constant String := Canonical (Language + 1 .. Canonical'Last);
+            --  Whether the subtag after the language is a script (Latn).
+            Has_Script : constant Boolean :=
+              Rest'Length >= 5
+              and then (Rest'Length = 5 or else Rest (Rest'First + 5) = '-')
+              and then (for all C of Rest (Rest'First + 1 .. Rest'First + 4) => C in 'A' .. 'Z' | 'a' .. 'z');
+            --  A modifier naming a script or a variant is kept, as the
+            --  catalogs spell it (sr_RS@latin is sr-Latn-RS, ca_ES@valencia
+            --  ca-ES-valencia); the others (euro, say) say nothing a catalog
+            --  differs by.
+            Script  : constant String :=
+              (if Has_Script or else Modifier_Script = "" then "" else "-" & Modifier_Script);
+            Variant : constant String := (if Modifier_Variant = "" then "" else "-" & Modifier_Variant);
+         begin
+            return Canonical (Canonical'First .. Language) & Script & Rest & Variant;
+         end;
       end;
-
-      if Length (Result) = 0 then
-         return "en";
-      end if;
-
-      --  A modifier naming a script or a variant is kept, as the catalogs
-      --  spell it (sr_RS@latin is sr-Latn-RS, ca_ES@valencia ca-ES-valencia);
-      --  the others (euro, say) say nothing a catalog differs by.
-      declare
-         Script  : constant String := Modifier_Script;
-         Variant : constant String := Modifier_Variant;
-      begin
-         if Script /= "" and then not Has_Script then
-            Insert (Result, Language_Length + 1, "-" & Script);
-         end if;
-         if Variant /= "" then
-            Append (Result, "-" & Variant);
-         end if;
-      end;
-
-      return To_String (Result);
    end Normalize_Locale;
 
    function System_Locale return String is
@@ -258,21 +196,9 @@ package body Files.Localization is
       end;
    end System_Locale;
 
-   --  System_Locale's answer worked out afresh from the environment.
-   function Message_Locale_Variable return String is
-      function Set (Name : String) return String is
-        (Ada.Strings.Fixed.Trim (Files.Environment.Value (Name), Ada.Strings.Both));
-      LC_All      : constant String := Set ("LC_ALL");
-      LC_Messages : constant String := Set ("LC_MESSAGES");
-   begin
-      return
-        (if LC_All /= "" then LC_All
-         elsif LC_Messages /= "" then LC_Messages
-         else Set ("LANG"));
-   end Message_Locale_Variable;
-
    function Resolve_System_Locale return String is
-      Variable : constant String := Message_Locale_Variable;
+      --  System_Locale's answer worked out afresh from the environment.
+      Variable : constant String := Files.Environment.Message_Locale;
    begin
       if Variable /= "" then
          return Normalize_Locale (Variable);

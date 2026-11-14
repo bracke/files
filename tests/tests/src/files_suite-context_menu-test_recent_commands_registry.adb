@@ -1,5 +1,6 @@
 with Files.Items;
 with Files.Commands.Status;
+with Files.Settings.Path_References;
 separate (Files_Suite.Context_Menu)
    procedure Test_Recent_Commands_Registry (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -28,7 +29,7 @@ separate (Files_Suite.Context_Menu)
               "Clear Recent appears in the command palette");
 
       --  Seed a recent path, then enter the recent view through the real reducer.
-      Files.Settings.Note_Recent (Settings, Ada.Directories.Full_Name (Dir));
+      Files.Settings.Path_References.Note_Recent (Settings, Ada.Directories.Full_Name (Dir));
       Items.Append
         (Files.File_System.Make_Item
            (Files_Suite.Support.Root, "reg-recent-dir", Files.Types.Directory_Item, "inode/directory"));
@@ -65,8 +66,8 @@ separate (Files_Suite.Context_Menu)
       --  Missing recent paths are intentionally omitted from the listing, but
       --  they still need a usable Clear Recent command so stale persisted state
       --  is not trapped behind an empty view.
-      Files.Settings.Clear_Recent (Settings);
-      Files.Settings.Note_Recent
+      Files.Settings.Path_References.Clear_Recent (Settings);
+      Files.Settings.Path_References.Note_Recent
         (Settings, Files_Suite.Support.Join (Files_Suite.Support.Root, "missing-recent"));
       declare
          Rebuilt : constant Files.Operations.Operation_Result :=
@@ -89,7 +90,7 @@ separate (Files_Suite.Context_Menu)
             Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
          Assert
-           (Files.Settings.Recent_Paths (Settings).Is_Empty
+           (Files.Settings.Path_References.Recent_Paths (Settings).Is_Empty
             and then Result.Settings_Changed,
             "Clear Recent removes stale persisted paths from an empty virtual view");
       end;

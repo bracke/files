@@ -1,5 +1,6 @@
 with Files.File_System.Trash;
 with Files.File_System.Testing;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,10 +10,10 @@ separate (Files_Suite.Recovery)
       Backup     : Files.Types.UString;
       Result     : Files.File_System.Mutation_Result;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
       --  Where the Recycle Bin is reachable (Windows) it is made to refuse,
       --  as an unreachable one would; elsewhere it is unreachable anyway.
       Files.File_System.Testing.Refuse_Native_Trash (True);

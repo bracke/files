@@ -1,5 +1,6 @@
 with Files.File_System.Trash;
 with Files.Commands.Status;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    procedure Test_Empty_Trash_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -10,14 +11,14 @@ separate (Files_Suite.Trash)
       Source_A     : constant String := Join (Root, "empty-a.txt");
       Source_B     : constant String := Join (Root, "empty-b.txt");
       --  Restores what the test changes, on failure too.
-      Environment  : Files_Suite.Support.Environment_Guard;
+      Environment  : Files_Suite.Support.Guards.Environment_Guard;
       Load         : Files.File_System.Directory_Load_Result;
       Model        : Files.Model.Window_Model;
       Result       : Files.Controller.Controller_Result;
    begin
-      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "HOME");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
 
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);

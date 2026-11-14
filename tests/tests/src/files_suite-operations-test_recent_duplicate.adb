@@ -1,8 +1,10 @@
+with Files.Settings.Path_References;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    procedure Test_Recent_Duplicate (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Puts the working directory back however the test ends.
-      Cwd_Guard : Files_Suite.Support.Directory_Guard;
+      Cwd_Guard : Files_Suite.Support.Guards.Directory_Guard;
       Dir_A : constant String := Join (Root, "recent-duplicate-a");
       Dir_B : constant String := Join (Root, "recent-duplicate-b");
       Cwd : constant String := Join (Root, "unrelated-cwd");
@@ -84,10 +86,10 @@ separate (Files_Suite.Operations)
             Write_Binary_File (Join (Bundle, "payload.txt"), "bundle bytes");
             Write_Binary_File (Unselected, "unselected bytes");
             Write_Binary_File (Join (Cwd, "keep.txt"), "unrelated cwd bytes");
-            Files.Settings.Note_Recent (Settings, Source_A);
-            Files.Settings.Note_Recent (Settings, Source_B);
-            Files.Settings.Note_Recent (Settings, Bundle);
-            Files.Settings.Note_Recent (Settings, Unselected);
+            Files.Settings.Path_References.Note_Recent (Settings, Source_A);
+            Files.Settings.Path_References.Note_Recent (Settings, Source_B);
+            Files.Settings.Path_References.Note_Recent (Settings, Bundle);
+            Files.Settings.Path_References.Note_Recent (Settings, Unselected);
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Step := Files.Operations.Navigate_Recent (Model, Settings);
             Files.Model.Selection.Select_All_Visible (Model);

@@ -1,4 +1,5 @@
 with Files.Model.Label_Picker;
+with Files.Settings.Path_References;
 separate (Files_Suite.Keyboard)
    procedure Test_Color_Label_Picker_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -43,7 +44,7 @@ separate (Files_Suite.Keyboard)
         (Model, Settings, "", Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Result);
       Assert (not Files.Model.Label_Picker.Is_Open (Model), "Enter closes the picker");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Label_Of (Settings, One),
+        (Files.Settings.Path_References.Label_Of (Settings, One),
          Files.Types.Green,
          "Enter applies the highlighted color to the selection");
    end Test_Color_Label_Picker_Keyboard;

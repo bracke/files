@@ -1,8 +1,10 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Autonomous_Cleanup_Worker (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Job       : Files.Process_Jobs.Session;
       Transport : Files.Types.UString;
       Before    : Instant;
@@ -26,7 +28,7 @@ separate (Files_Suite.Recovery)
       begin
          if Length (Transport) > 0 and then Ada.Directories.Exists (To_String (Transport)) then
             Touch (Item ("release-cleanup-worker"));
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when not Ada.Directories.Exists (To_String (Transport));
             end loop;
          end if;
@@ -35,7 +37,7 @@ separate (Files_Suite.Recovery)
          end if;
       end Release_Transport;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_CLEANUP_WORKER");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_CLEANUP_WORKER");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_CLEANUP_WORKER", "1");
       Files.Process_Jobs.Reserve (Job);
       Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
@@ -49,7 +51,7 @@ separate (Files_Suite.Recovery)
       --  transport gone.
       Assert (Ada.Directories.Exists (To_String (Transport)),
               "disposal hands the transport to the cleanup worker instead of removing it itself");
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (Item ("cleanup-worker-started"));
       end loop;
       Assert
@@ -58,7 +60,7 @@ separate (Files_Suite.Recovery)
          "the stalled worker remains owned after disposal returns");
 
       Touch (Item ("release-cleanup-worker"));
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when not Ada.Directories.Exists (To_String (Transport));
       end loop;
       Assert
@@ -78,7 +80,7 @@ separate (Files_Suite.Recovery)
             Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
             Ada.Directories.Create_Directory (Item ("stages"));
             Files.Process_Jobs.Reset (Job);
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when Ada.Directories.Exists (Item ("cleanup-worker-started"));
             end loop;
             Assert
@@ -91,7 +93,7 @@ separate (Files_Suite.Recovery)
             --  The worker stops itself straight after publishing; wait until
             --  the kernel reports it stopped, so the reaper is seen to handle a
             --  stopped worker rather than racing one that is still running.
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when Files_Suite.Support.Process_State (Launcher_Id) = 'T';
             end loop;
             Assert_Equal
@@ -102,7 +104,7 @@ separate (Files_Suite.Recovery)
             Assert (Resumed, "the stopped cleanup worker remains resumable");
             --  Reaped, not merely finished: an exited child nobody waited for
             --  stays in /proc as a zombie until it is collected.
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when not Ada.Directories.Exists (To_String (Transport))
                  and then Files_Suite.Support.Process_State (Launcher_Id) = ' ';
             end loop;

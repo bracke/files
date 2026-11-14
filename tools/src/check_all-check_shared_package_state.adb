@@ -35,12 +35,8 @@ separate (Check_All)
                     and then Ada.Strings.Fixed.Index (Line, "renames") = 0
                     and then Ada.Strings.Fixed.Index (Line, ":=") /= Colon
                   then
-                     Put_Line
-                       (Standard_Error,
-                        Path & ": a package-level variable is shared by every task that runs this code: "
+                     Report (Path & ": a package-level variable is shared by every task that runs this code: "
                         & Ada.Strings.Fixed.Trim (Line, Ada.Strings.Both));
-                     Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-                     raise Program_Error;
                   end if;
                end;
                Start := Index + 1;
@@ -57,9 +53,7 @@ separate (Check_All)
             Checked.Include (Ada.Directories.Simple_Name (To_String (Item)));
          end loop;
          if Found'Length = 0 then
-            Put_Line (Standard_Error, "src/" & Pattern & ": no source matches; update Check_Shared_Package_State");
-            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-            raise Program_Error;
+            Report ("src/" & Pattern & ": no source matches; update Check_Shared_Package_State");
          end if;
       end Check_All;
    begin
@@ -101,12 +95,8 @@ separate (Check_All)
                  and then not Checked.Contains (Name)
                  and then not Main_Thread_State.Contains (Name)
                then
-                  Put_Line
-                    (Standard_Error,
-                     "src/" & Name & " runs a task: add it to Check_Shared_Package_State,"
+                  Report ("src/" & Name & " runs a task: add it to Check_Shared_Package_State,"
                      & " or say there why its package state is not shared");
-                  Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-                  raise Program_Error;
                end if;
             end;
          end loop;

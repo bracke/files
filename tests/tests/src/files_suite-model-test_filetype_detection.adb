@@ -1,3 +1,5 @@
+with Ada.Strings.Fixed;
+with Files.File_System.Thumbnails;
 with Files.Settings.Testing;
 separate (Files_Suite.Model)
    procedure Test_Filetype_Detection (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -125,6 +127,28 @@ separate (Files_Suite.Model)
         (Files.File_Types.Extension_Of ("name."),
          "",
          "trailing-dot file has no extension");
+      --  One rule (Files.Types.Extension_Start) for every reader of an
+      --  extension: a leading dot is name, unless the badge asks for it.
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of (".profile", Dotfiles => True),
+         "profile",
+         "a dotfile's name is its badge extension");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of (".config.yml", Dotfiles => True),
+         "yml",
+         "a dotfile with a further dot has that extension, as without Dotfiles");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of ("Photo.JPG"),
+         Files.Types.To_Lower_Ascii (Files.Types.Extension_Of ("Photo.JPG")),
+         "File_Types reads the extension Files.Types finds, lower-cased");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (Files.File_System.Thumbnails.Thumbnail_Path_For (Join (Root, ".png"), Root), "thumb_file_") > 0,
+         "a dotfile's thumbnail has no extension, as its filetype has none");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (Files.File_System.Thumbnails.Thumbnail_Path_For (Join (Root, "Shot.PNG"), Root), "thumb_png_") > 0,
+         "a thumbnail is named by the lower-cased extension");
       Files_Suite.Support.Assert_Equal
         (Files.File_Types.Extension_Of (" main.adb "),
          "adb",

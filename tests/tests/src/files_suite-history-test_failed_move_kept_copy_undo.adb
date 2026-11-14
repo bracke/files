@@ -1,6 +1,7 @@
 with Files.Durability.Testing;
 with Files.Items;
 with Files_Suite.Volumes;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    --  A cross-device move whose source could not be removed, and whose copy
    --  then could not be removed either, keeps both: its undo deletes the copy
@@ -17,9 +18,9 @@ separate (Files_Suite.History)
       Moved_Dest   : constant String := Join (Root, "moved-destination");
       function Dest return String is (Join (Remote.Path, "kept-destination"));
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       Model    : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Mixed_Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Step     : Files.Operations.Operation_Result;
@@ -28,7 +29,7 @@ separate (Files_Suite.History)
       begin
          Files.Durability.Testing.Clear;
          Ada.Environment_Variables.Set ("FILES_TEST_STAGE_SYNC_FAULT", "");
-         Files_Suite.Support.Release (Paste);
+         Files_Suite.Support.Guards.Release (Paste);
       end Cleanup;
    begin
       Reset_Root;
@@ -37,7 +38,7 @@ separate (Files_Suite.History)
          Files_Suite.Support.Skip ("Test_Failed_Move_Kept_Copy_Undo", Files_Suite.Volumes.No_Other_Volume);
          return;
       end if;
-      Files_Suite.Support.Save (Environment, "FILES_TEST_STAGE_SYNC_FAULT");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STAGE_SYNC_FAULT");
       Actions.Append (Files.Paste.Resolved_Action'
                         (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, False));
       --  A same-volume rename first (no recovery stage, so it succeeds),

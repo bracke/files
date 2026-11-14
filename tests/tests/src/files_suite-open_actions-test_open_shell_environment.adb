@@ -1,14 +1,16 @@
 with Files.Settings.Testing;
+with Files.Settings.Open_Actions;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Open_Actions)
    procedure Test_Open_Shell_Environment (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
    begin
       declare
          --  Restores what the test changes, on failure too.
-         Environment : Files_Suite.Support.Environment_Guard;
+         Environment : Files_Suite.Support.Guards.Environment_Guard;
       begin
-         Files_Suite.Support.Save (Environment, "COMSPEC");
-         Files_Suite.Support.Save (Environment, "SHELL");
+         Files_Suite.Support.Guards.Save (Environment, "COMSPEC");
+         Files_Suite.Support.Guards.Save (Environment, "SHELL");
          Ada.Environment_Variables.Clear ("COMSPEC");
          Ada.Environment_Variables.Set ("SHELL", "/bin/custom-sh");
          if Hostkit.Host.Current = Hostkit.Host.Windows then
@@ -58,13 +60,13 @@ separate (Files_Suite.Open_Actions)
 
       declare
          --  Restores what the test changes, on failure too.
-         Environment : Files_Suite.Support.Environment_Guard;
+         Environment : Files_Suite.Support.Guards.Environment_Guard;
          Missing_Shell_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Missing_Shell_Model    : Files.Model.Window_Model := Sample_Model;
          Missing_Shell_Action   : Files.Operations.Operation_Result;
       begin
-         Files_Suite.Support.Save (Environment, "COMSPEC");
-         Files_Suite.Support.Save (Environment, "SHELL");
+         Files_Suite.Support.Guards.Save (Environment, "COMSPEC");
+         Files_Suite.Support.Guards.Save (Environment, "SHELL");
          --  The host decides which variable names the shell: COMSPEC on
          --  Windows, SHELL elsewhere. Point the host's own one at nothing.
          if Hostkit.Host.Current = Hostkit.Host.Windows then
@@ -76,7 +78,8 @@ separate (Files_Suite.Open_Actions)
          Files.Settings.Testing.Add_Open_Action
            (Missing_Shell_Settings,
             "text/plain",
-            Files.Settings.Make_Action ("cd", Files.Settings.String_Vectors.Empty_Vector, Use_Shell => True));
+            Files.Settings.Open_Actions.Make_Action
+              ("cd", Files.Settings.String_Vectors.Empty_Vector, Use_Shell => True));
          Files.Model.Selection.Select_Visible (Missing_Shell_Model, 1);
          Missing_Shell_Action := Files.Operations.Open_Selected (Missing_Shell_Model, Missing_Shell_Settings);
          if Hostkit.Host.Current = Hostkit.Host.Windows then

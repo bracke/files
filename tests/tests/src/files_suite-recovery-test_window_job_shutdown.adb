@@ -1,10 +1,12 @@
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Window_Job_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Closing, Remaining : aliased Files.Model.Window_Model;
-      Closing_Paste : Files_Suite.Support.Paste_Guard (Closing'Access);
-      Remaining_Paste : Files_Suite.Support.Paste_Guard (Remaining'Access);
+      Closing_Paste : Files_Suite.Support.Guards.Paste_Guard (Closing'Access);
+      Remaining_Paste : Files_Suite.Support.Guards.Paste_Guard (Remaining'Access);
       pragma Unreferenced (Closing_Paste, Remaining_Paste);
       Closing_Watch, Remaining_Watch : Files.Refresh_Jobs.Watch_Session;
       Empty : Files.Process_Jobs.Session;
@@ -14,7 +16,7 @@ separate (Files_Suite.Recovery)
       Step : Files.Operations.Operation_Result;
       Finished, Cancelled : Boolean;
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       type Scenario_Kind is (Operation_Job, Transfer_Job, Refresh_Job);
 
       procedure Cleanup is
@@ -25,7 +27,7 @@ separate (Files_Suite.Recovery)
 
       procedure Await_Started (Path : String) is
       begin
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Ada.Directories.Exists (Path);
          end loop;
          Assert (Ada.Directories.Exists (Path), "the helper enters stalled work before window closure: " & Path);
@@ -42,8 +44,8 @@ separate (Files_Suite.Recovery)
          Files.Process_Jobs.Reset (Job); --  The window is now its helper's only owner.
       end Attach_Operation;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_READS");
-      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_TRANSFERS");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_READS");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_TRANSFERS");
       for Scenario in Scenario_Kind loop
          Reset_Root;
          Write_Binary_File (Join (Root, "source.txt"), "source bytes");
@@ -112,7 +114,7 @@ separate (Files_Suite.Recovery)
               (Ada.Directories.Exists (To_String (Other_Started)),
                "closing one window leaves the surviving window and its helper active: surviving helper still running");
          end;
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             Files.Process_Jobs.Poll (Empty, Finished, Cancelled);
             exit when not Ada.Directories.Exists (To_String (Started));
          end loop;
@@ -122,7 +124,7 @@ separate (Files_Suite.Recovery)
                  and then not Ada.Directories.Exists (Join (Root, "destination.txt")),
                  "a stopped stalled transfer never writes after its window closes");
          Files.Application.Windows.Release_Window_Jobs (Remaining, Remaining_Watch);
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             Files.Process_Jobs.Poll (Empty, Finished, Cancelled);
             exit when not Ada.Directories.Exists (To_String (Other_Started));
          end loop;

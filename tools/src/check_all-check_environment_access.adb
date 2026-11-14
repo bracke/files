@@ -77,21 +77,14 @@ separate (Check_All)
    begin
       for Index in Reads'Range loop
          if not Reads_Environment (Tokens_Of (To_String (Reads (Index)))) then
-            Put_Line
-              (Standard_Error,
-               "check_all's Check_Environment_Access no longer sees the read in its sample" & Natural'Image (Index));
-            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-            raise Program_Error;
+            Report
+              ("check_all's Check_Environment_Access no longer sees the read in its sample" & Natural'Image (Index));
          end if;
       end loop;
       for Index in Quiet'Range loop
          if Reads_Environment (Tokens_Of (To_String (Quiet (Index)))) then
-            Put_Line
-              (Standard_Error,
-               "check_all's Check_Environment_Access takes the mention in its quiet sample" & Natural'Image (Index)
+            Report ("check_all's Check_Environment_Access takes the mention in its quiet sample" & Natural'Image (Index)
                & " for a read");
-            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-            raise Program_Error;
          end if;
       end loop;
 
@@ -102,9 +95,7 @@ separate (Check_All)
             if Ada.Directories.Simple_Name (Path) not in "files-environment.adb" | "files-environment.ads"
               and then Reads_Environment (Tokens_Of (To_String (Project_Tools.Text.Read_Text_File (Path))))
             then
-               Put_Line (Standard_Error, Path & ": reads the environment directly; use Files.Environment");
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               raise Program_Error;
+               Report (Path & ": reads the environment directly; use Files.Environment");
             end if;
          end;
       end loop;

@@ -1,4 +1,6 @@
 with Files.Helper_Modes;
+with Files_Suite.Support.Guards;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Unsafe_Recovery_Report (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,12 +8,12 @@ separate (Files_Suite.Recovery)
       Young_Path : constant Files.Types.UString := To_Unbounded_String
         (Join (Hostkit.Fs.Temp_Directory, "files-job-22222222222222222222222222222222"));
       --  Resets Active and removes the fixture, on failure too.
-      Jobs : Files_Suite.Support.Process_Jobs_Guard (Active'Access);
+      Jobs : Files_Suite.Support.Guards.Process_Jobs_Guard (Active'Access);
    begin
-      Files_Suite.Support.Track (Jobs, Young_Path);
+      Files_Suite.Support.Guards.Track (Jobs, Young_Path);
       --  A scan or retry left by an earlier test would reclaim this test's
       --  fixtures before its own coordinator could.
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Files.Job_Scavenger.Idle;
       end loop;
       Assert
@@ -28,7 +30,7 @@ separate (Files_Suite.Recovery)
       begin
          Create_Abandoned_Transport (Join (Root, "report-setup-transport"), Abandoned);
          Files.Job_Scavenger.Scavenge;
-         for Attempt in Files_Suite.Support.Polling loop
+         for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when not Ada.Directories.Exists (To_String (Abandoned));
          end loop;
       end;
@@ -141,5 +143,5 @@ separate (Files_Suite.Recovery)
                raise;
          end;
       end;
-      Files_Suite.Support.Release (Jobs);
+      Files_Suite.Support.Guards.Release (Jobs);
    end Test_Unsafe_Recovery_Report;

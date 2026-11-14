@@ -1,12 +1,13 @@
 with Files.File_System.Permissions;
 with Hostkit.Metadata;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Live_Metadata_History (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source : constant String := Join (Root, "live-source");
       Model : aliased Files.Model.Window_Model;
-      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
@@ -35,15 +36,17 @@ separate (Files_Suite.History)
             Step := (if Toggle then Files.Operations.Toggle_Permission_Bit (Model, 8, Settings)
                      else Files.Operations.Testing.Set_Permissions_For (Model, 8#750#, Settings));
             Assert (Step.Status = Files.Operations.Operation_Success
-                    and then Metadata_Mode_Of (Source) =
+                    and then Mode_Of (Source, With_Special_Bits => True) =
                       (if Hostkit.Metadata.Mode_Bits_Are_Native
                        then (if Toggle then 8#601# else 8#750#)
                        else (if Toggle then 8#600# else 8#640#)),
                     "permission changes and toggles use current mode bits");
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success and then Metadata_Mode_Of (Source) = 8#600#,
-                    "Undo restores the live previous mode instead of stale directory metadata");
+            Assert
+              (Step.Status = Files.Operations.Operation_Success
+               and then Mode_Of (Source, With_Special_Bits => True) = 8#600#,
+               "Undo restores the live previous mode instead of stale directory metadata");
          end loop;
          if Files.File_System.Permissions.Supports_Ownership then
             Reset_Root;

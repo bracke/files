@@ -1,4 +1,5 @@
 with Files.Protocol_Names;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    --  A restore that put the original back but could not remove its stage
    --  keeps the registry record, and the next sweep of the registry finishes
@@ -10,7 +11,7 @@ separate (Files_Suite.Recovery)
       Dest   : constant String := Join (Root, "restored.txt");
       Backup : Files.Types.UString;
       Result : Files.File_System.Mutation_Result;
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
       --  A marker as a stopped restore or release leaves it: made as a
       --  lease, its holder gone.
       procedure Leave_Marker (Path : String) is
@@ -20,7 +21,7 @@ separate (Files_Suite.Recovery)
          Hostkit.Lease_Files.Release (Marker);
       end Leave_Marker;
    begin
-      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       --  A native backend keeps a replaced original in a private recovery folder.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");

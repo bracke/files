@@ -17,8 +17,6 @@ separate (Check_All.Check_Packaging_Metadata)
       For_Each_Line (Content, Check_Line'Access);
 
       if not Found then
-         Put_Line (Standard_Error, Message);
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         raise Program_Error;
+         Report (Message);
       end if;
    end Require_Manifest_Entry;

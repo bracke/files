@@ -23,9 +23,7 @@ separate (Check_All)
             Check_Ada_Only_Tooling_File (Name, Full);
             --  The Python scan covers the source trees, not the root itself.
             if Ends_With (Ada.Characters.Handling.To_Lower (Name), ".py") then
-               Put_Line (Standard_Error, Full & ": non-Ada helper tooling is not allowed");
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               raise Program_Error;
+               Report (Full & ": non-Ada helper tooling is not allowed");
             end if;
          end;
       end loop;

@@ -1,4 +1,5 @@
 with Files.Model.Settings_Pane;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Settings)
    --  A built-in secondary shortcut is part of the default binding: rebinding
    --  or unbinding the command drops it, and a chord held only by another
@@ -7,7 +8,7 @@ separate (Files_Suite.Settings)
    procedure Test_Secondary_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Clears the overrides this test sets, on an assertion failure too.
-      Shortcuts : Files_Suite.Support.Shortcut_Guard;
+      Shortcuts : Files_Suite.Support.Guards.Shortcut_Guard;
       pragma Unreferenced (Shortcuts);
       package SP renames Guikit.Settings_Panel;
       package GI renames Guikit.Input;

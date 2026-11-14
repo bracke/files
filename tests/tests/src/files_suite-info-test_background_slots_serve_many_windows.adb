@@ -1,4 +1,5 @@
 with Files.Background_Slots;
+with Files_Suite.Support.Timing;
 separate (Files_Suite.Info)
    procedure Test_Background_Slots_Serve_Many_Windows (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -29,7 +30,7 @@ separate (Files_Suite.Info)
       end loop;
       --  Every window keeps its request until it is served: none is evicted
       --  by another's, so none has to ask again.
-      for Attempt in Files_Suite.Support.Polling loop
+      for Attempt in Files_Suite.Support.Timing.Polling loop
          for Window in 1 .. Windows loop
             if not Served (Window) then
                Slots.Take (Slots.Requester (Window), Path_Of (Window), Window, Value, Ready, Asked);

@@ -14,8 +14,8 @@ begin
       return False;
    end if;
 
-   return Starts_With (Files.Types.To_Lower (Filetype), "image/")
-     or else Files.Types.To_Lower (Icon_Id) = "image"
+   return Starts_With (Files.Types.To_Lower_Ascii (Filetype), "image/")
+     or else Files.Types.To_Lower_Ascii (Icon_Id) = "image"
      or else Extension = "png"
      or else Extension = "jpg"
      or else Extension = "jpeg"

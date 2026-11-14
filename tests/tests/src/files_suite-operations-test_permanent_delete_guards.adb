@@ -1,4 +1,5 @@
 with Files.Commands.Status;
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    procedure Test_Permanent_Delete_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,10 +10,10 @@ separate (Files_Suite.Operations)
       Routed   : Files.Controller.Controller_Result;
       Delete_Dir  : constant String := Join (Root, "delete-tree");
       Cache_Home : constant String := Join (Root, "cache-home");
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
       Reset_Root;
-      Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
+      Files_Suite.Support.Guards.Save (Environment, "XDG_CACHE_HOME");
       Ada.Directories.Create_Path (Delete_Dir);
       Write_File (Join (Delete_Dir, "doomed.txt"), "doomed");
       Ada.Directories.Create_Path (Join (Delete_Dir, "nested"));

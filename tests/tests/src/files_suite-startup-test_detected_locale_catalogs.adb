@@ -1,14 +1,15 @@
+with Files_Suite.Support.Guards;
 separate (Files_Suite.Startup)
    procedure Test_Detected_Locale_Catalogs (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      Files_Suite.Support.Save (Environment, "LC_ALL");
-      Files_Suite.Support.Save (Environment, "LC_MESSAGES");
-      Files_Suite.Support.Save (Environment, "LC_TIME");
-      Files_Suite.Support.Save (Environment, "LC_NUMERIC");
-      Files_Suite.Support.Save (Environment, "LANG");
+      Files_Suite.Support.Guards.Save (Environment, "LC_ALL");
+      Files_Suite.Support.Guards.Save (Environment, "LC_MESSAGES");
+      Files_Suite.Support.Guards.Save (Environment, "LC_TIME");
+      Files_Suite.Support.Guards.Save (Environment, "LC_NUMERIC");
+      Files_Suite.Support.Guards.Save (Environment, "LANG");
       --  The environment the precedence walk leaves behind: only LANG set.
       Ada.Environment_Variables.Clear ("LC_MESSAGES");
       Ada.Environment_Variables.Clear ("LC_TIME");

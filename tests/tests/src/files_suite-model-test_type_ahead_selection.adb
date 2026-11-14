@@ -115,6 +115,39 @@ separate (Files_Suite.Model)
       Feed ("d");
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Index (Model), 1, "fifth d wraps back to delta");
 
+      --  The repeated letter is told case-insensitively in every script, as
+      --  the matcher folds (Fold_Case): "Σ" then "σ" cycles on to the next
+      --  item starting with it rather than looking for a "Σσ" prefix.
+      declare
+         --  U+03A3 and U+03C3 in UTF-8.
+         Upper_Sigma : constant String := Character'Val (16#CE#) & Character'Val (16#A3#);
+         Lower_Sigma : constant String := Character'Val (16#CF#) & Character'Val (16#83#);
+         Items : Files.Items.Item_Vectors.Vector;
+      begin
+         Items.Append (Files.File_System.Make_Item (Root, "alpha", Files.Types.Regular_File_Item, "text/plain"));
+         Items.Append
+           (Files.File_System.Make_Item (Root, Lower_Sigma & "ema", Files.Types.Regular_File_Item, "text/plain"));
+         Items.Append
+           (Files.File_System.Make_Item (Root, Upper_Sigma & "akos", Files.Types.Regular_File_Item, "text/plain"));
+         Model := New_Grid_Model;
+         Files.Model.Initialize
+           (Model,
+            Directory_Path    => Root,
+            Items             => Items,
+            Home_Path         => "/home/test",
+            Default_View_Mode => Files.Types.Small_Icons);
+         Feed (Upper_Sigma);
+         declare
+            First_Sigma : constant Natural := Files.Model.Selection.Selected_Index (Model);
+         begin
+            Assert (First_Sigma /= 0, "typing a capital sigma selects an item starting with it");
+            Feed (Lower_Sigma);
+            Assert
+              (Files.Model.Selection.Selected_Index (Model) not in 0 | First_Sigma,
+               "a capital then a small sigma cycles to the next item starting with it");
+         end;
+      end;
+
       --  Reset trigger (arrow key): a fresh keystroke starts a new prefix rather
       --  than extending the stale one.
       Model := New_Grid_Model;
