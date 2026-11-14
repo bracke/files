@@ -21,7 +21,7 @@ separate (Files_Suite.Operations)
          Result : Unbounded_String;
       begin
          for C of Path loop
-            Append (Result, (if C = '\' then "\\" else (1 => C)));
+            Append (Result, (if C = '\' then "\\" else [C]));
          end loop;
          return To_String (Result);
       end Escaped;
