@@ -77,7 +77,7 @@ separate (Files.Application.Windows)
                  Width       => Natural (Frame_W),
                  Height      => Natural (Frame_H),
                  Y_Offset    => Offset,
-                 Line_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
+                 Line_Height => Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
          end;
       end if;
 

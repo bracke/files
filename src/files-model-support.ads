@@ -187,12 +187,9 @@ private package Files.Model.Support is
    --  partitioned into bands, matching the drawn order.
    --
    --  @param Model Model whose items are re-sorted in place.
-   --  @param Field_Sort False to keep the current order and only regroup it.
+   --  @param Field_Sort False to keep the current order and only regroup it,
+   --    which does nothing while the items are still in band order.
    procedure Resort_Items (Model : in out Window_Model; Field_Sort : Boolean := True);
-
-   --  @param Model Model to inspect.
-   --  @return True when the items are already in band order (or ungrouped).
-   function Items_In_Group_Order (Model : Window_Model) return Boolean;
 
    --  Cancel every overlay and edit sub-mode (rename, palette, panes, pickers)
    --  before starting a new edit, so only one is ever active at a time.
@@ -201,41 +198,10 @@ private package Files.Model.Support is
    procedure Clear_Overlay_State_For_Edit
      (Model : in out Window_Model);
 
-   --  The currently focused text input (path, filter, rename, palette,
-   --  settings or ownership field): its text and caret. The palette query
-   --  and a settings value are edited whole, so their caret is at the end.
-   --  The empty field when none is focused.
-   --
-   --  @param Model Model providing the focus target.
-   --  @return The focused input's text and caret.
-   function Focused_Field
-     (Model : Window_Model)
-      return Text_Field_State;
-
-   --  The value of the currently focused text input (Focused_Field's text),
-   --  or "" when none is focused.
-   --
-   --  @param Model Model providing the focus target.
-   --  @return Text of the focused input.
-   function Focused_Text_Value
-     (Model : Window_Model)
-      return String;
-
    --  Reset the panel component and rebuild its field list from the draft.
    --
    --  @param Model Model whose settings panel is rebuilt.
    procedure Reset_Settings_Panel (Model : in out Window_Model);
-
-   --  Return the 1-based index into Rename_Fields for the field shown at
-   --  Visible_Index, or zero when that row has no active rename field.
-   --
-   --  @param Model Model to inspect.
-   --  @param Visible_Index 1-based visible row.
-   --  @return Rename-field index, or 0 when the row has no rename field.
-   function Find_Rename_Field
-     (Model         : Window_Model;
-      Visible_Index : Positive)
-      return Natural;
 
    --  Begin an inline create-file/create-folder edit: clear other overlays, add
    --  the temporary row, and open a rename field pre-filled with Name.
@@ -326,6 +292,17 @@ private package Files.Model.Support is
    function Selected_Item
      (Model : Window_Model)
       return Files.Items.Directory_Item;
+
+   --  Visit the selected items in deterministic loaded-item order, in place.
+   --
+   --  @param Model Model to inspect.
+   --  @param Visit Called once per selected item, excluding transient
+   --    create-file items.
+   --  @param Limit At most this many, the first in that order.
+   procedure For_Each_Selected_Item
+     (Model : Window_Model;
+      Visit : not null access procedure (Item : Files.Items.Directory_Item);
+      Limit : Natural := Natural'Last);
 
    --  Return the selected items in deterministic loaded-item order.
    --

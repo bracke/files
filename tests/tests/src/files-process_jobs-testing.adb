@@ -21,4 +21,9 @@ package body Files.Process_Jobs.Testing is
    begin
       Test_Refuse_Next_Launch := True;
    end Refuse_Next_Launch;
+
+   procedure Clear_Refusal is
+   begin
+      Test_Refuse_Next_Launch := False;
+   end Clear_Refusal;
 end Files.Process_Jobs.Testing;

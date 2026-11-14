@@ -1,114 +1,34 @@
-with Files.Environment;
-with Files.Diagnostics;
-with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 
-with Files.Fs_Primitives;
-with Hostkit.Fs;
-
-with Files.Capped_Files;
+with Files.Diagnostics;
+with Files.Environment;
 with Files.Localization;
+with Hostkit.Desktop_Entries;
+with Hostkit.Fs;
 with Hostkit.Process;
 
+--  The reading of the entries is Hostkit.Desktop_Entries'; what is here is
+--  files' side of it: where to look, in which locale, which entries the
+--  picker can launch, and the open actions that launch them.
 package body Files.Desktop_Applications is
    use Ada.Strings.Unbounded;
 
-   --  Desktop files are discovered automatically from user-controlled XDG
-   --  directories.  Bound each one before Text_IO.Get_Line can allocate an
-   --  arbitrarily large physical line.  Real entries are normally only a few
-   --  KiB; one MiB leaves generous room for localized keys and action groups.
-   Max_Desktop_File_Bytes : constant Natural := 1 * 1024 * 1024;
-   Max_Desktop_Line_Bytes  : constant Natural := 64 * 1024;
-   Max_Desktop_Entries     : constant Natural := 4_096;
-   Max_Desktop_List_Items  : constant Natural := 256;
-   Max_Desktop_Exec_Tokens : constant Natural := 256;
-
-   package Desktop_Id_Sets is new Ada.Containers.Indefinite_Ordered_Sets
-     (Element_Type => String);
-
-   --  Strip a trailing or leading run of desktop-file whitespace from Text.
-   --  Lines are split on LF, so accepting a trailing CR is what makes ordinary
-   --  CRLF desktop files parse the same way as their LF equivalents.
-   function Trim_Blanks (Text : String) return String renames Files.Types.Trim_Blanks;
-
-   procedure Parse_Boolean
-     (Value  : String;
-      Parsed : out Boolean;
-      Valid  : out Boolean)
-   is
-      Trimmed : constant String := Trim_Blanks (Value);
+   function To_Host (Items : Files.Types.String_Vectors.Vector) return Hostkit.String_Vectors.Vector is
+      Result : Hostkit.String_Vectors.Vector;
    begin
-      Valid := Trimmed = "true" or else Trimmed = "false";
-      Parsed := Trimmed = "true";
-   end Parse_Boolean;
-
-   function Is_Valid_Group_Header (Line : String) return Boolean is
-   begin
-      if Line'Length < 3
-        or else Line (Line'First) /= '['
-        or else Line (Line'Last) /= ']'
-      then
-         return False;
-      end if;
-
-      for Index in Line'First + 1 .. Line'Last - 1 loop
-         if Line (Index) = '['
-           or else Line (Index) = ']'
-           or else Character'Pos (Line (Index)) < 32
-           or else Character'Pos (Line (Index)) > 126
-         then
-            return False;
-         end if;
+      for Item of Items loop
+         Result.Append (Item);
       end loop;
-      return True;
-   end Is_Valid_Group_Header;
+      return Result;
+   end To_Host;
 
-   function Strip_Locale_Encoding (Locale : String) return String is
-      Dot      : Natural := 0;
-      Modifier : Natural := 0;
+   --  The locale postfixes localized Name and Icon values are matched
+   --  against: the interface's own message locale as its variable spells it
+   --  (POSIX modifiers kept), else the host's, in desktop-entry spelling.
+   function Message_Locale_Candidates return Hostkit.String_Vectors.Vector is
+      Raw : Unbounded_String := To_Unbounded_String (Files.Localization.Message_Locale_Variable);
    begin
-      for Index in Locale'Range loop
-         if Locale (Index) = '.' and then Dot = 0 then
-            Dot := Index;
-         elsif Locale (Index) = '@' and then Modifier = 0 then
-            Modifier := Index;
-         end if;
-      end loop;
-
-      if Dot = 0 then
-         return Locale;
-      elsif Modifier > Dot then
-         return Locale (Locale'First .. Dot - 1)
-           & Locale (Modifier .. Locale'Last);
-      else
-         return Locale (Locale'First .. Dot - 1);
-      end if;
-   end Strip_Locale_Encoding;
-
-   --  Return locale postfixes in desktop-entry fallback order. Environment
-   --  values retain POSIX modifiers; the host fallback uses the project's
-   --  normalized locale and is converted back to desktop-entry spelling.
-   function Message_Locale_Candidates return Files.Types.String_Vectors.Vector is
-      Raw : Unbounded_String;
-      Result : Files.Types.String_Vectors.Vector;
-
-      procedure Append_Unique (Value : String) is
-      begin
-         if Value = "" then
-            return;
-         end if;
-         for Existing of Result loop
-            if To_String (Existing) = Value then
-               return;
-            end if;
-         end loop;
-         Result.Append (To_Unbounded_String (Value));
-      end Append_Unique;
-   begin
-      --  The variable the interface's own locale comes from, as spelled.
-      Raw := To_Unbounded_String (Files.Localization.Message_Locale_Variable);
-
       if Raw = "" then
          Raw := To_Unbounded_String (Files.Localization.System_Locale);
          for Index in 1 .. Length (Raw) loop
@@ -117,494 +37,40 @@ package body Files.Desktop_Applications is
             end if;
          end loop;
       end if;
-
-      declare
-         Locale    : constant String := Strip_Locale_Encoding
-           (Trim_Blanks (To_String (Raw)));
-         Underline : Natural := 0;
-         Modifier  : Natural := 0;
-      begin
-         for Index in Locale'Range loop
-            if Locale (Index) = '_' and then Underline = 0 then
-               Underline := Index;
-            elsif Locale (Index) = '@' and then Modifier = 0 then
-               Modifier := Index;
-            end if;
-         end loop;
-
-         Append_Unique (Locale);
-         if Underline /= 0 then
-            Append_Unique
-              (Locale
-                 (Locale'First ..
-                    (if Modifier > Underline then Modifier - 1 else Locale'Last)));
-         end if;
-         if Modifier /= 0 then
-            Append_Unique
-              (Locale (Locale'First ..
-                 (if Underline /= 0 then Underline - 1 else Modifier - 1))
-               & Locale (Modifier .. Locale'Last));
-         end if;
-         if Underline /= 0 or else Modifier /= 0 then
-            Append_Unique
-              (Locale
-                 (Locale'First ..
-                    (if Underline /= 0 then Underline - 1
-                     else Modifier - 1)));
-         end if;
-      end;
-      return Result;
+      return Hostkit.Desktop_Entries.Locale_Candidates (To_String (Raw));
    end Message_Locale_Candidates;
-
-   function Localized_Key_Rank
-     (Key        : String;
-      Base_Key   : String;
-      Candidates : Files.Types.String_Vectors.Vector) return Natural
-   is
-      Prefix_Length : constant Natural := Base_Key'Length + 1;
-   begin
-      if Key'Length <= Base_Key'Length + 2
-        or else Key (Key'First .. Key'First + Base_Key'Length) /=
-          Base_Key & "["
-        or else Key (Key'Last) /= ']'
-      then
-         return 0;
-      end if;
-
-      declare
-         Locale : constant String := Strip_Locale_Encoding
-           (Key (Key'First + Prefix_Length .. Key'Last - 1));
-         Rank   : Natural := 1;
-      begin
-         for Candidate of Candidates loop
-            if Locale = To_String (Candidate) then
-               return Rank;
-            end if;
-            Rank := Rank + 1;
-         end loop;
-      end;
-      return 0;
-   end Localized_Key_Rank;
-
-   --  Decode the escapes shared by desktop-entry string, localestring, and
-   --  iconstring values. Invalid escapes make the containing entry unusable.
-   procedure Decode_Value
-     (Value   : String;
-      Decoded : out Unbounded_String;
-      Valid   : out Boolean)
-   is
-      Position : Integer := Value'First;
-   begin
-      Decoded := Null_Unbounded_String;
-      Valid := True;
-      while Position <= Value'Last loop
-         if Value (Position) /= '\' then
-            Append (Decoded, Value (Position));
-         elsif Position = Value'Last then
-            Valid := False;
-            Decoded := Null_Unbounded_String;
-            return;
-         else
-            Position := Position + 1;
-            case Value (Position) is
-               when 's' => Append (Decoded, ' ');
-               when 'n' => Append (Decoded, ASCII.LF);
-               when 't' => Append (Decoded, ASCII.HT);
-               when 'r' => Append (Decoded, ASCII.CR);
-               when '\' => Append (Decoded, '\');
-               when others =>
-                  Valid := False;
-                  Decoded := Null_Unbounded_String;
-                  return;
-            end case;
-         end if;
-         Position := Position + 1;
-      end loop;
-   end Decode_Value;
-
-   --  Decode a desktop-entry string(s) value while retaining escaped
-   --  semicolons inside an item rather than treating them as separators.
-   procedure Parse_String_List
-     (Value  : String;
-      Items  : out Files.Types.String_Vectors.Vector;
-      Valid  : out Boolean)
-   is
-      Current  : Unbounded_String;
-      Position : Integer := Value'First;
-   begin
-      Items.Clear;
-      Valid := True;
-      while Position <= Value'Last loop
-         if Value (Position) = ';' then
-            if Natural (Items.Length) >= Max_Desktop_List_Items then
-               Valid := False;
-               Items.Clear;
-               return;
-            end if;
-            Items.Append (Current);
-            Current := Null_Unbounded_String;
-         elsif Value (Position) /= '\' then
-            Append (Current, Value (Position));
-         elsif Position = Value'Last then
-            Valid := False;
-            Items.Clear;
-            return;
-         else
-            Position := Position + 1;
-            case Value (Position) is
-               when 's' => Append (Current, ' ');
-               when 'n' => Append (Current, ASCII.LF);
-               when 't' => Append (Current, ASCII.HT);
-               when 'r' => Append (Current, ASCII.CR);
-               when '\' => Append (Current, '\');
-               when ';' => Append (Current, ';');
-               when others =>
-                  Valid := False;
-                  Items.Clear;
-                  return;
-            end case;
-         end if;
-         Position := Position + 1;
-      end loop;
-
-      if Length (Current) > 0
-        or else (Value'Length > 0 and then Value (Value'Last) /= ';')
-      then
-         if Natural (Items.Length) >= Max_Desktop_List_Items then
-            Valid := False;
-            Items.Clear;
-            return;
-         end if;
-         Items.Append (Current);
-      end if;
-   end Parse_String_List;
-
-   function List_Contains
-     (List : Files.Types.String_Vectors.Vector;
-      Item : String) return Boolean
-   is
-   begin
-      if Item = "" then
-         return False;
-      end if;
-      for Existing of List loop
-         if To_String (Existing) = Item then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end List_Contains;
-
-   function Lists_Overlap
-     (Left, Right : Files.Types.String_Vectors.Vector) return Boolean
-   is
-   begin
-      for Item of Left loop
-         if Item /= "" and then List_Contains (Right, To_String (Item)) then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Lists_Overlap;
-
-   --  Apply OnlyShowIn/NotShowIn to each desktop name in the colon-separated
-   --  XDG_CURRENT_DESKTOP value. Desktop identifiers are case-sensitive.
-   function Desktop_Environment_Allows
-     (Only_Show_In     : Files.Types.String_Vectors.Vector;
-      Have_Only        : Boolean;
-      Not_Show_In      : Files.Types.String_Vectors.Vector;
-      Have_Not         : Boolean) return Boolean
-   is
-      Current : constant String := Files.Environment.Value ("XDG_CURRENT_DESKTOP");
-      First   : Integer := Current'First;
-      Last    : Integer;
-      Only_Matched : Boolean := False;
-   begin
-      --  Both keys may be present, but one desktop name cannot occur in both.
-      if Have_Only and then Have_Not
-        and then Lists_Overlap (Only_Show_In, Not_Show_In)
-      then
-         return False;
-      end if;
-
-      while First <= Current'Last loop
-         Last := First;
-         while Last <= Current'Last and then Current (Last) /= ':' loop
-            Last := Last + 1;
-         end loop;
-         declare
-            Desktop : constant String := Current (First .. Last - 1);
-         begin
-            --  An exclusion applies to the complete current-desktop set and
-            --  must not be bypassed by an earlier OnlyShowIn match. Keep the
-            --  positive match while scanning, but decide it only after every
-            --  desktop name has had a chance to exclude the entry.
-            if Have_Not and then List_Contains (Not_Show_In, Desktop) then
-               return False;
-            end if;
-            Only_Matched :=
-              Only_Matched
-              or else (Have_Only
-                       and then List_Contains (Only_Show_In, Desktop));
-         end;
-         First := Last + 1;
-      end loop;
-
-      --  An unmatched OnlyShowIn hides the entry. An unmatched NotShowIn does
-      --  not restrict it.
-      return not Have_Only or else Only_Matched;
-   end Desktop_Environment_Allows;
-
-   --  Desktop Exec values are argument vectors, not shell command lines. Quotes
-   --  and backslashes group characters, but are removed before the vector is
-   --  passed to the process API. Field codes inside quotes are invalid by the
-   --  desktop-entry specification; rejecting them also avoids silently changing
-   --  their argument boundaries.
-   procedure Parse_Exec
-     (Text   : String;
-      Tokens : out Files.Types.String_Vectors.Vector;
-      Valid  : out Boolean)
-   is
-      Current   : Unbounded_String;
-      Position  : Integer := Text'First;
-      In_Quotes : Boolean := False;
-      Started   : Boolean := False;
-
-      procedure Finish_Token is
-      begin
-         if Started then
-            if Natural (Tokens.Length) >= Max_Desktop_Exec_Tokens then
-               Valid := False;
-               Tokens.Clear;
-               return;
-            end if;
-            Tokens.Append (Current);
-            Current := Null_Unbounded_String;
-            Started := False;
-         end if;
-      end Finish_Token;
-   begin
-      Tokens.Clear;
-      Valid := True;
-
-      if Text'Length > Max_Desktop_Line_Bytes then
-         Valid := False;
-         return;
-      end if;
-
-      while Position <= Text'Last loop
-         if Text (Position) = '\' then
-            if Position = Text'Last then
-               Valid := False;
-               Tokens.Clear;
-               return;
-            end if;
-            Position := Position + 1;
-            Append (Current, Text (Position));
-            Started := True;
-         elsif Text (Position) = '"' then
-            In_Quotes := not In_Quotes;
-            Started := True;
-         elsif (Text (Position) = ' ' or else Text (Position) = ASCII.HT)
-           and then not In_Quotes
-         then
-            Finish_Token;
-            if not Valid then
-               return;
-            end if;
-         elsif In_Quotes and then Text (Position) = '%' then
-            --  Field codes are not allowed inside quotes; an escaped "%%" is.
-            --  Keep both characters (Append_Expanded and Decode_Executable
-            --  collapse the pair) and step over the second, which would
-            --  otherwise be read as the start of a field code.
-            if Position = Text'Last or else Text (Position + 1) /= '%' then
-               Valid := False;
-               Tokens.Clear;
-               return;
-            end if;
-            Append (Current, "%%");
-            Started := True;
-            Position := Position + 1;
-         else
-            Append (Current, Text (Position));
-            Started := True;
-         end if;
-         Position := Position + 1;
-      end loop;
-
-      if In_Quotes then
-         Valid := False;
-         Tokens.Clear;
-         return;
-      end if;
-      Finish_Token;
-   end Parse_Exec;
 
    function Build_Open_Action
      (App     : Application;
       Targets : Files.Types.String_Vectors.Vector)
       return Files.Settings.Open_Action
    is
-      Tokens     : Files.Types.String_Vectors.Vector;
-      Executable : Unbounded_String;
-      Arguments  : Files.Types.String_Vectors.Vector;
-      Valid      : Boolean;
-      Target_Field_Seen : Boolean := False;
-
-      procedure Decode_Executable
-        (Token   : String;
-         Decoded : out Unbounded_String)
-      is
-         Position : Integer := Token'First;
-      begin
-         Decoded := Null_Unbounded_String;
-         while Position <= Token'Last loop
-            if Token (Position) /= '%' then
-               Append (Decoded, Token (Position));
-               Position := Position + 1;
-            elsif Position = Token'Last
-              or else Token (Position + 1) /= '%'
-            then
-               Valid := False;
-               Decoded := Null_Unbounded_String;
-               return;
-            else
-               Append (Decoded, '%');
-               Position := Position + 2;
-            end if;
-         end loop;
-      end Decode_Executable;
-
-      procedure Append_Expanded (Token : String) is
-         Expanded  : Unbounded_String;
-         Position  : Integer := Token'First;
-         Had_Field : Boolean := False;
-
-         procedure Use_Target is
-         begin
-            if Target_Field_Seen then
-               Valid := False;
-               return;
-            end if;
-            Target_Field_Seen := True;
-            if not Targets.Is_Empty then
-               Append (Expanded, To_String (Targets.First_Element));
-            end if;
-         end Use_Target;
-      begin
-         if Token = "%F" or else Token = "%U" then
-            if Target_Field_Seen then
-               Valid := False;
-               return;
-            end if;
-            Target_Field_Seen := True;
-            for Target of Targets loop
-               Arguments.Append (Target);
-            end loop;
-            return;
-         elsif Token = "%i" then
-            if App.Icon /= "" then
-               Arguments.Append (To_Unbounded_String ("--icon"));
-               Arguments.Append (App.Icon);
-            end if;
-            return;
-         end if;
-
-         while Position <= Token'Last loop
-            if Token (Position) /= '%' then
-               Append (Expanded, Token (Position));
-               Position := Position + 1;
-            elsif Position = Token'Last then
-               Valid := False;
-               return;
-            else
-               Had_Field := True;
-               case Token (Position + 1) is
-                  when '%' =>
-                     Append (Expanded, '%');
-                  when 'f' | 'u' =>
-                     Use_Target;
-                  when 'c' =>
-                     Append (Expanded, To_String (App.Name));
-                  when 'k' =>
-                     Append (Expanded, To_String (App.Desktop_File));
-                  when 'd' | 'D' | 'n' | 'N' | 'v' | 'm' =>
-                     null;
-                  when 'F' | 'U' | 'i' =>
-                     --  These codes expand to multiple arguments and are only
-                     --  valid as a complete argument.
-                     Valid := False;
-                     return;
-                  when others =>
-                     Valid := False;
-                     return;
-               end case;
-               Position := Position + 2;
-            end if;
-         end loop;
-
-         if Valid and then (Length (Expanded) > 0 or else not Had_Field) then
-            Arguments.Append (Expanded);
-         end if;
-      end Append_Expanded;
+      Command      : Hostkit.String_Vectors.Vector;
+      Target_Field : Boolean;
+      Arguments    : Files.Types.String_Vectors.Vector;
    begin
-      Parse_Exec (To_String (App.Exec), Tokens, Valid);
-      if not Valid or else Tokens.Is_Empty then
-         return Files.Settings.Make_Action ("", Arguments);
-      end if;
-
-      Decode_Executable (To_String (Tokens.First_Element), Executable);
-      if not Valid or else Index (Executable, "=") /= 0 then
-         return Files.Settings.Make_Action ("", Arguments);
-      end if;
-
-      for Token_Index in 2 .. Natural (Tokens.Length) loop
-         Append_Expanded (To_String (Tokens.Element (Positive (Token_Index))));
-         exit when not Valid;
-      end loop;
-
-      if not Valid then
+      if not Hostkit.Desktop_Entries.Command_For
+        (Exec         => To_String (App.Exec),
+         Name         => To_String (App.Name),
+         Icon         => To_String (App.Icon),
+         Location     => To_String (App.Desktop_File),
+         Targets      => To_Host (Targets),
+         Command      => Command,
+         Target_Field => Target_Field)
+      then
          return Files.Settings.Make_Action ("", Files.Types.String_Vectors.Empty_Vector);
-      elsif not Target_Field_Seen then
-         for Target of Targets loop
-            Arguments.Append (Target);
-         end loop;
       end if;
 
-      return Files.Settings.Make_Action (To_String (Executable), Arguments);
-   end Build_Open_Action;
-
-   function Has_Single_Target_Field (App : Application) return Boolean is
-      Tokens : Files.Types.String_Vectors.Vector;
-      Valid  : Boolean;
-   begin
-      Parse_Exec (To_String (App.Exec), Tokens, Valid);
-      if not Valid or else Tokens.Is_Empty then
-         return False;
-      end if;
-
-      for Token_Index in 2 .. Natural (Tokens.Length) loop
-         declare
-            Token    : constant String :=
-              To_String (Tokens.Element (Positive (Token_Index)));
-            Position : Integer := Token'First;
-         begin
-            while Position <= Token'Last loop
-               if Token (Position) = '%' and then Position < Token'Last then
-                  if Token (Position + 1) = 'f'
-                    or else Token (Position + 1) = 'u'
-                  then
-                     return True;
-                  end if;
-                  Position := Position + 2;
-               else
-                  Position := Position + 1;
-               end if;
-            end loop;
-         end;
+      for Position in Command.First_Index + 1 .. Command.Last_Index loop
+         Arguments.Append (Command (Position));
       end loop;
-      return False;
-   end Has_Single_Target_Field;
+      --  A command with no target field is handed the targets after its own
+      --  arguments, as the file manager hands them to any program.
+      if not Target_Field then
+         Arguments.Append_Vector (Targets);
+      end if;
+      return Files.Settings.Make_Action (To_String (Command.First_Element), Arguments);
+   end Build_Open_Action;
 
    function Build_Open_Actions
      (App     : Application;
@@ -613,7 +79,7 @@ package body Files.Desktop_Applications is
    is
       Result : Open_Action_Vectors.Vector;
    begin
-      if Natural (Targets.Length) > 1 and then Has_Single_Target_Field (App) then
+      if Natural (Targets.Length) > 1 and then Hostkit.Desktop_Entries.Takes_One_Target (To_String (App.Exec)) then
          for Target of Targets loop
             declare
                One_Target : Files.Types.String_Vectors.Vector;
@@ -680,410 +146,6 @@ package body Files.Desktop_Applications is
       end loop;
       return Result;
    end Launch_Actions;
-
-   --  Parse a single .desktop file into an Application, returning whether it is
-   --  a displayable application entry. Any failure leaves Found False.
-   procedure Parse_Desktop_File
-     (Path    : String;
-      Locales : Files.Types.String_Vectors.Vector;
-      Found   : out Boolean;
-      App     : out Application)
-   is
-      --  The desktop group header, assembled from fragments so no single source
-      --  literal mixes letters with a space (which the repository's hard-coded
-      --  text check would otherwise flag).
-      Group_Header : constant String := "[Desktop" & " " & "Entry]";
-      use type Files.Capped_Files.Read_Status;
-      In_Group     : Boolean := False;
-      Have_Group   : Boolean := False;
-      Have_Any_Group : Boolean := False;
-      Groups_Seen  : Desktop_Id_Sets.Set;
-      Keys_Seen    : Desktop_Id_Sets.Set;
-      Is_App       : Boolean := False;
-      No_Display   : Boolean := False;
-      Hidden       : Boolean := False;
-      Name_Value   : Unbounded_String;
-      Localized_Name_Value : Unbounded_String;
-      Exec_Value   : Unbounded_String;
-      Icon_Value   : Unbounded_String;
-      Localized_Icon_Value : Unbounded_String;
-      Try_Exec_Value : Unbounded_String;
-      Terminal_Value : Boolean := False;
-      Path_Value     : Unbounded_String;
-      Only_Show_In : Files.Types.String_Vectors.Vector;
-      Not_Show_In  : Files.Types.String_Vectors.Vector;
-      Have_Type    : Boolean := False;
-      Have_Name    : Boolean := False;
-      Have_Icon    : Boolean := False;
-      Have_Try_Exec : Boolean := False;
-      Have_Only_Show_In : Boolean := False;
-      Have_Not_Show_In  : Boolean := False;
-      Have_Localized_Name : Boolean := False;
-      Have_Localized_Icon : Boolean := False;
-      Any_Localized_Icon  : Boolean := False;
-      Name_Rank   : Natural := Natural'Last;
-      Icon_Rank   : Natural := Natural'Last;
-      Entry_Valid : Boolean := True;
-      Entry_Count : Natural := 0;
-      File_Content : Unbounded_String;
-      Content_Status : Files.Capped_Files.Read_Status;
-
-      procedure Assign_Decoded
-        (Raw    : String;
-         Target : out Unbounded_String)
-      is
-         Valid : Boolean;
-      begin
-         Decode_Value (Raw, Target, Valid);
-         if not Valid then
-            Entry_Valid := False;
-         end if;
-      end Assign_Decoded;
-
-      procedure Assign_Boolean
-        (Raw    : String;
-         Target : out Boolean)
-      is
-         Valid : Boolean;
-      begin
-         Parse_Boolean (Raw, Target, Valid);
-         if not Valid then
-            Entry_Valid := False;
-         end if;
-      end Assign_Boolean;
-
-      procedure Assign_String_List
-        (Raw    : String;
-         Target : out Files.Types.String_Vectors.Vector)
-      is
-         Valid : Boolean;
-      begin
-         Parse_String_List (Raw, Target, Valid);
-         if not Valid then
-            Entry_Valid := False;
-         end if;
-      end Assign_String_List;
-
-      procedure Consider_Localized
-        (Key        : String;
-         Base_Key   : String;
-         Raw        : String;
-         Target     : in out Unbounded_String;
-         Have_Value : in out Boolean;
-         Best_Rank  : in out Natural)
-      is
-         Rank : constant Natural :=
-           Localized_Key_Rank (Key, Base_Key, Locales);
-      begin
-         if Rank > 0 and then Rank < Best_Rank then
-            Assign_Decoded (Raw, Target);
-            Have_Value := True;
-            Best_Rank := Rank;
-         end if;
-      end Consider_Localized;
-
-      procedure Process_Line (Raw_Line : String) is
-         Line   : constant String :=
-           (if Raw_Line'Length <= Max_Desktop_Line_Bytes
-            then Trim_Blanks (Raw_Line)
-            else "");
-         Equals : Natural := 0;
-      begin
-         if Raw_Line'Length > Max_Desktop_Line_Bytes then
-            Entry_Valid := False;
-         elsif Line'Length = 0 or else Line (Line'First) = '#' then
-            null;
-         elsif Entry_Count >= Max_Desktop_Entries then
-            Entry_Valid := False;
-         elsif Line (Line'First) = '[' then
-            Entry_Count := Entry_Count + 1;
-            Keys_Seen.Clear;
-            if not Is_Valid_Group_Header (Line) then
-               Entry_Valid := False;
-               In_Group := False;
-            else
-               declare
-                  Group_Name : constant String :=
-                    Line (Line'First + 1 .. Line'Last - 1);
-               begin
-                  Have_Any_Group := True;
-                  if Groups_Seen.Contains (Group_Name) then
-                     Entry_Valid := False;
-                  else
-                     Groups_Seen.Insert (Group_Name);
-                  end if;
-
-                  In_Group := Line = Group_Header;
-                  if In_Group then
-                     Have_Group := True;
-                  end if;
-               end;
-            end if;
-         else
-            Entry_Count := Entry_Count + 1;
-            for Index in Line'Range loop
-               if Line (Index) = '=' then
-                  Equals := Index;
-                  exit;
-               end if;
-            end loop;
-
-            if not Have_Any_Group or else Equals <= Line'First then
-               Entry_Valid := False;
-            else
-               declare
-                  Key   : constant String :=
-                    Trim_Blanks (Line (Line'First .. Equals - 1));
-                  Value : constant String :=
-                    Trim_Blanks (Line (Equals + 1 .. Line'Last));
-               begin
-                  if Keys_Seen.Contains (Key) then
-                     Entry_Valid := False;
-                  else
-                     Keys_Seen.Insert (Key);
-                     if not In_Group then
-                        null;
-                     elsif Key = "Type" then
-                        Is_App := Value = "Application";
-                        Have_Type := True;
-                     elsif Key = "Name" then
-                        Assign_Decoded (Value, Name_Value);
-                        Have_Name := True;
-                     elsif Key'Length > 5
-                       and then Key (Key'First .. Key'First + 4) = "Name["
-                     then
-                        Consider_Localized
-                          (Key, "Name", Value, Localized_Name_Value,
-                           Have_Localized_Name, Name_Rank);
-                     elsif Key = "Exec" then
-                        Assign_Decoded (Value, Exec_Value);
-                     elsif Key = "Icon" then
-                        Assign_Decoded (Value, Icon_Value);
-                        Have_Icon := True;
-                     elsif Key'Length > 5
-                       and then Key (Key'First .. Key'First + 4) = "Icon["
-                     then
-                        Any_Localized_Icon := True;
-                        Consider_Localized
-                          (Key, "Icon", Value, Localized_Icon_Value,
-                           Have_Localized_Icon, Icon_Rank);
-                     elsif Key = "TryExec" then
-                        Assign_Decoded (Value, Try_Exec_Value);
-                        Have_Try_Exec := True;
-                     elsif Key = "OnlyShowIn" then
-                        Assign_String_List (Value, Only_Show_In);
-                        Have_Only_Show_In := True;
-                     elsif Key = "NotShowIn" then
-                        Assign_String_List (Value, Not_Show_In);
-                        Have_Not_Show_In := True;
-                     elsif Key = "NoDisplay" then
-                        Assign_Boolean (Value, No_Display);
-                     elsif Key = "Hidden" then
-                        Assign_Boolean (Value, Hidden);
-                     elsif Key = "Terminal" then
-                        Assign_Boolean (Value, Terminal_Value);
-                     elsif Key = "Path" then
-                        Assign_Decoded (Value, Path_Value);
-                     end if;
-                  end if;
-               end;
-            end if;
-         end if;
-      end Process_Line;
-   begin
-      Found := False;
-      App :=
-        (Name         => Null_Unbounded_String,
-         Exec         => Null_Unbounded_String,
-         Icon         => Null_Unbounded_String,
-         Desktop_File => Null_Unbounded_String,
-         Terminal     => False,
-         Working_Directory => Null_Unbounded_String);
-
-      --  A file over the cap is not an entry; one that cannot be read is not
-      --  found either way.
-      File_Content := To_Unbounded_String
-        (Files.Capped_Files.Read_Capped
-           (Path, Max_Desktop_File_Bytes, Files.Capped_Files.Follow_Links, Content_Status));
-      if Content_Status /= Files.Capped_Files.Read_Complete then
-         return;
-      end if;
-
-      declare
-         Cursor : Positive := 1;
-         Last   : Natural;
-         Count  : constant Natural := Length (File_Content);
-      begin
-         while Cursor <= Count and then Entry_Valid loop
-            Last := Cursor;
-            while Last <= Count
-              and then Element (File_Content, Last) /= ASCII.LF
-              and then Element (File_Content, Last) /= ASCII.CR
-            loop
-               Last := Last + 1;
-            end loop;
-            Process_Line
-              ((if Last = Cursor then ""
-                else Slice (File_Content, Cursor, Last - 1)));
-            if Last <= Count then
-               declare
-                  First_Mark : constant Character :=
-                    Element (File_Content, Last);
-               begin
-                  Last := Last + 1;
-                  if First_Mark = ASCII.CR and then Last <= Count
-                    and then Element (File_Content, Last) = ASCII.LF
-                  then
-                     Last := Last + 1;
-                  end if;
-               end;
-            end if;
-            Cursor := Last;
-         end loop;
-      end;
-
-      if Have_Localized_Name then
-         Name_Value := Localized_Name_Value;
-      end if;
-      if Have_Localized_Icon then
-         Icon_Value := Localized_Icon_Value;
-      end if;
-
-      if Any_Localized_Icon and then not Have_Icon then
-         Entry_Valid := False;
-      end if;
-
-      if Entry_Valid and then Have_Group and then Have_Type and then Is_App
-        and then Have_Name
-        and then not No_Display and then not Hidden
-        and then Name_Value /= "" and then Exec_Value /= ""
-        and then Desktop_Environment_Allows
-          (Only_Show_In, Have_Only_Show_In,
-           Not_Show_In, Have_Not_Show_In)
-        and then
-          (not Have_Try_Exec or else Hostkit.Process.Is_Runnable (To_String (Try_Exec_Value)))
-      then
-         App :=
-           (Name         => Name_Value,
-            Exec         => Exec_Value,
-            Icon         => Icon_Value,
-            Desktop_File => To_Unbounded_String (Path),
-            Terminal     => Terminal_Value,
-            Working_Directory => Path_Value);
-         declare
-            Action : constant Files.Settings.Open_Action :=
-              Build_Open_Action (App, Files.Types.String_Vectors.Empty_Vector);
-         begin
-            --  A terminal program is offered only where a terminal can run it.
-            Found := To_String (Action.Executable) /= ""
-              and then (not Terminal_Value
-                or else To_String (In_Terminal (Action, Hostkit.Process.Default_Terminal).Executable) /= "");
-         end;
-      end if;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Desktop_Applications");
-         Found := False;
-   end Parse_Desktop_File;
-
-   --  Convert a path relative to an applications directory into the desktop
-   --  file ID used for XDG precedence. For example, foo/bar.desktop and
-   --  foo-bar.desktop have the same ID.
-   function Desktop_File_Id (Relative_Path : String) return String is
-      Result : String := Relative_Path;
-   begin
-      for Index in Result'Range loop
-         --  Scan_Directory constructs relative IDs with '/', on every host.
-         --  A backslash can only survive in a POSIX filename; replacing it
-         --  would make two distinct desktop files claim the same ID.
-         if Result (Index) = '/' then
-            Result (Index) := '-';
-         end if;
-      end loop;
-      return Result;
-   end Desktop_File_Id;
-
-   --  Recursively scan Directory for *.desktop entries. Claimed contains IDs
-   --  already supplied by a higher-priority XDG directory. An entry claims its
-   --  ID even when hidden or malformed, so a lower-priority definition cannot
-   --  unexpectedly make that application visible again.
-   Max_Application_Scan_Depth : constant Natural := 64;
-   Max_Application_Scan_Entries : constant Natural := 100_000;
-
-   procedure Scan_Directory
-     (Directory     : String;
-      Relative_Path : String;
-      Locales       : Files.Types.String_Vectors.Vector;
-      Claimed       : in out Desktop_Id_Sets.Set;
-      Apps          : in out Application_Vectors.Vector;
-      Scanned       : in out Natural;
-      Depth         : Natural := 0)
-   is
-      use type Hostkit.Fs.Entry_Kind;
-
-      procedure Visit (Simple : String; Stop : in out Boolean) is
-         Full     : constant String := Hostkit.Fs.Join (Directory, Simple);
-         Relative : constant String :=
-           (if Relative_Path = "" then Simple
-            else Relative_Path & "/" & Simple);
-      begin
-         if Scanned >= Max_Application_Scan_Entries then
-            Stop := True;
-            return;
-         end if;
-         declare
-            --  Followed through a link, as Ada.Directories' search read it.
-            Kind : constant Hostkit.Fs.Entry_Kind := Hostkit.Fs.Kind_Of (Full);
-         begin
-            --  Only what the search listed counts: ordinary files and folders.
-            if Kind not in Hostkit.Fs.Ordinary_File_Entry | Hostkit.Fs.Directory_Entry then
-               return;
-            end if;
-            Scanned := Scanned + 1;
-            --  Descending through a link can revisit an ancestor forever (or
-            --  scan outside the configured application tree), so a linked
-            --  folder is never a traversal edge here. A linked .desktop file
-            --  is an ordinary entry: Flatpak exports and every NixOS entry are
-            --  links to their package.
-            if Kind = Hostkit.Fs.Directory_Entry and then Hostkit.Fs.Is_Link (Full) then
-               null;
-            elsif Kind = Hostkit.Fs.Directory_Entry then
-               Scan_Directory
-                 (Full, Relative, Locales, Claimed, Apps, Scanned, Depth + 1);
-            elsif Simple'Length > 8
-              and then Simple (Simple'Last - 7 .. Simple'Last) = ".desktop"
-            then
-               declare
-                  Id    : constant String := Desktop_File_Id (Relative);
-                  Found : Boolean;
-                  App   : Application;
-               begin
-                  if not Claimed.Contains (Id) then
-                     Claimed.Insert (Id);
-                     Parse_Desktop_File (Full, Locales, Found, App);
-                     if Found then
-                        Apps.Append (App);
-                     end if;
-                  end if;
-               end;
-            end if;
-         end;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Desktop_Applications");
-      end Visit;
-   begin
-      if Depth > Max_Application_Scan_Depth
-        or else not Files.Fs_Primitives.Exists (Directory)
-      then
-         return;
-      end if;
-
-      Files.Fs_Primitives.For_Each_Name (Directory, Visit'Access);
-   exception
-      when Failure : others =>
-         Files.Diagnostics.Note (Failure, "Files.Desktop_Applications");
-   end Scan_Directory;
 
    --  Return the list of XDG base data directories to scan, most specific first.
    --  Where the desktop keeps its entries: the host's answer, which its
@@ -1152,21 +214,52 @@ package body Files.Desktop_Applications is
      ("<" => Comes_Before);
 
    function Available_Applications return Application_Vectors.Vector is
+      Folders   : Hostkit.String_Vectors.Vector;
       Collected : Application_Vectors.Vector;
-      Claimed   : Desktop_Id_Sets.Set;
-      Scanned   : Natural := 0;
-      Locales   : constant Files.Types.String_Vectors.Vector :=
-        Message_Locale_Candidates;
+      --  The terminal a Terminal=true entry would run in, asked of the host
+      --  (it looks the candidates up) only when such an entry is met.
+      Terminal       : Unbounded_String;
+      Terminal_Asked : Boolean := False;
+
+      --  Whether the picker can launch App: a terminal program is offered
+      --  only where a terminal can run it.
+      function Offered (App : Application) return Boolean is
+      begin
+         if not App.Terminal then
+            return True;
+         end if;
+         if not Terminal_Asked then
+            Terminal := To_Unbounded_String (Hostkit.Process.Default_Terminal);
+            Terminal_Asked := True;
+         end if;
+         declare
+            Wrapped : constant Files.Settings.Open_Action :=
+              In_Terminal (Build_Open_Action (App, Files.Types.String_Vectors.Empty_Vector), To_String (Terminal));
+         begin
+            return To_String (Wrapped.Executable) /= "";
+         end;
+      end Offered;
    begin
       for Base of Data_Directories loop
-         Scan_Directory
-           (Directory     => To_String (Base) & "/applications",
-            Relative_Path => "",
-            Locales       => Locales,
-            Claimed       => Claimed,
-            Apps          => Collected,
-            Scanned       => Scanned);
-         exit when Scanned >= Max_Application_Scan_Entries;
+         Folders.Append (Base & "/applications");
+      end loop;
+
+      for Item of Hostkit.Desktop_Entries.Scan
+        (Folders, Message_Locale_Candidates, Files.Environment.Value ("XDG_CURRENT_DESKTOP"))
+      loop
+         declare
+            App : constant Application :=
+              (Name              => Item.Name,
+               Exec              => Item.Exec,
+               Icon              => Item.Icon,
+               Desktop_File      => Item.Location,
+               Terminal          => Item.Terminal,
+               Working_Directory => Item.Working_Directory);
+         begin
+            if Offered (App) then
+               Collected.Append (App);
+            end if;
+         end;
       end loop;
 
       Application_Sorting.Sort (Collected);

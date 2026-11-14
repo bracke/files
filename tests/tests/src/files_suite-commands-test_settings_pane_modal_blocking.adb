@@ -10,7 +10,7 @@ separate (Files_Suite.Commands)
       Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
-      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
+      Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
@@ -35,12 +35,12 @@ separate (Files_Suite.Commands)
          "closed settings text click does not focus input");
       Files.Model.Command_Palette.Open (Model);
       Files.Model.Selection.Select_Visible (Model, 1);
-      Files.Model.Rename.Toggle_Rename (Model);
+      Files.Model.Rename.Toggle (Model);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane opens from palette state");
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "settings pane opening closes command palette");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "settings pane opening clears active rename state");
+      Assert (not Files.Model.Rename.Is_Active (Model), "settings pane opening clears active rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Settings_Input,

@@ -55,13 +55,6 @@ package body Files.Controller is
       else
          False);
 
-   --  External file drops have no overlay-specific destination, so every
-   --  input-owning overlay blocks them rather than allowing a hidden filesystem
-   --  mutation in the current directory.
-   function Any_Overlay_Owns_Input
-     (Model : Files.Model.Window_Model) return Boolean is
-     (Files.Model.Input_Owning_Overlay_Is_Open (Model));
-
    function Empty_Operation return Files.Operations.Operation_Result is
    begin
       return
@@ -360,7 +353,7 @@ package body Files.Controller is
          when Files.Types.Focus_Filter_Input =>
             Files.Model.Set_Filter (Model, Text);
          when Files.Types.Focus_Rename_Input =>
-            Files.Model.Rename.Set_Rename_Text (Model, Text);
+            Files.Model.Rename.Set_Text (Model, Text);
          when Files.Types.Focus_Command_Palette =>
             Files.Model.Command_Palette.Set_Query (Model, Text);
          when Files.Types.Focus_Settings_Input =>
@@ -389,7 +382,7 @@ package body Files.Controller is
          when Files.Types.Focus_Filter_Input =>
             return Files.Model.Filter_Text (Model);
          when Files.Types.Focus_Rename_Input =>
-            return Files.Model.Rename.Rename_Text (Model);
+            return Files.Model.Rename.Text (Model);
          when Files.Types.Focus_Command_Palette =>
             return Files.Model.Command_Palette.Query (Model);
          when Files.Types.Focus_Settings_Input =>
@@ -1012,8 +1005,11 @@ package body Files.Controller is
       Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result is separate;
 
+   --  External file drops have no overlay-specific destination, so every
+   --  input-owning overlay blocks them rather than allowing a hidden filesystem
+   --  mutation in the current directory.
    function Accepts_Drop_Import (Model : Files.Model.Window_Model) return Boolean is
-     (not Any_Overlay_Owns_Input (Model));
+     (not Files.Model.Input_Owning_Overlay_Is_Open (Model));
 
    function Handle_Drop_Import
      (Model        : in out Files.Model.Window_Model;
@@ -1255,7 +1251,7 @@ package body Files.Controller is
    is
       Old_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);
    begin
-      Files.Model.Selection.Move_Selection_By_Page (Model, Files.Model.Selection.Selection_Page_Rows (Model), Down);
+      Files.Model.Selection.Move_By_Page (Model, Files.Model.Selection.Page_Rows (Model), Down);
       return Changed_Result (Old_Index, Files.Model.Selection.Selected_Index (Model), Controller_Selection_Moved);
    end Page_Selection_Result;
 

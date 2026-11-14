@@ -65,12 +65,6 @@ package body Files.Operations is
       return Hostkit.String_Vectors.Vector
    is separate;
 
-   function Is_Windows_Start_Opener
-     (Executable : String;
-      Arguments  : Hostkit.String_Vectors.Vector)
-      return Boolean
-   is separate;
-
    function Execute_Open_Action
      (Action      : Files.Settings.Open_Action;
       Exit_Status : out Integer;
@@ -417,7 +411,7 @@ package body Files.Operations is
       end Cache_Directory;
    begin
       if Files.Model.Selection.Selected_Count (Model) = 0
-        or else Files.Model.Selection.Selection_Includes_Temporary (Model)
+        or else Files.Model.Selection.Includes_Temporary (Model)
       then
          return Disabled (Model, "error.selection.empty");
       end if;
@@ -643,7 +637,7 @@ package body Files.Operations is
          end if;
       end Poll;
    begin
-      Files.Model.Folder_Sizes.Update_Folder_Scan (Model, Poll'Access);
+      Files.Model.Folder_Sizes.Update_Scan (Model, Poll'Access);
       declare
          Stale : Files.Folder_Size.Measurement_Vectors.Vector;
 
@@ -654,9 +648,9 @@ package body Files.Operations is
             end loop;
          end Measure_Again;
       begin
-         Files.Model.Folder_Sizes.Note_Folder_Sizes (Model, Taken, Stale);
+         Files.Model.Folder_Sizes.Note (Model, Taken, Stale);
          if not Stale.Is_Empty then
-            Files.Model.Folder_Sizes.Update_Folder_Scan (Model, Measure_Again'Access);
+            Files.Model.Folder_Sizes.Update_Scan (Model, Measure_Again'Access);
          end if;
       end;
    end Poll_Folder_Sizes;
@@ -669,7 +663,7 @@ package body Files.Operations is
          Files.Folder_Size.Take_All (Scan, Discarded);
       end Cancel;
    begin
-      Files.Model.Folder_Sizes.Update_Folder_Scan (Model, Cancel'Access);
+      Files.Model.Folder_Sizes.Update_Scan (Model, Cancel'Access);
    end Cancel_Folder_Scan;
 
    procedure Update_Folder_Size
@@ -694,7 +688,7 @@ package body Files.Operations is
             Current := Files.Folder_Size.Targets_Set_For (Scan, Rows, Selection);
          end Check;
       begin
-         Files.Model.Folder_Sizes.Update_Folder_Scan (Model, Check'Access);
+         Files.Model.Folder_Sizes.Update_Scan (Model, Check'Access);
          if Current then
             return;
          end if;
@@ -705,26 +699,26 @@ package body Files.Operations is
       --  the info pane is open -- so both the info pane and the bottom bar's
       --  combined total can count folder contents.
       if Files.Model.Selection.Selected_Count (Model) >= 1
-        and then not Files.Model.Selection.Selection_Includes_Temporary (Model)
+        and then not Files.Model.Selection.Includes_Temporary (Model)
       then
          declare
             Targets : Files.Folder_Size.Path_Vectors.Vector;
             --  When each was listed, so a size measured before it changed
-            --  is told apart (Files.Model.Folder_Sizes.Note_Folder_Sizes).
+            --  is told apart (Files.Model.Folder_Sizes.Note).
             Listed  : Files.Folder_Size.Time_Vectors.Vector;
 
             --  Read in place: a copy of a large selection, on every change.
             procedure Add (Item : Files.Items.Directory_Item) is
             begin
                if Item.Kind = Files.Types.Directory_Item
-                 and then not Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, To_String (Item.Full_Path))
+                 and then not Files.Model.Folder_Sizes.Cached_For (Model, To_String (Item.Full_Path))
                then
                   Targets.Append (Item.Full_Path);
                   Listed.Append (Item.Modified_Time);
                end if;
             end Add;
          begin
-            Files.Model.Folder_Sizes.Prune_Folder_Sizes_To_Selection (Model);
+            Files.Model.Folder_Sizes.Prune_To_Selection (Model);
             Files.Model.Selection.For_Each_Selected_Item (Model, Add'Access);
             declare
                Rows      : constant Natural := Files.Model.Rows_Revision (Model);
@@ -736,12 +730,12 @@ package body Files.Operations is
                   Files.Folder_Size.Note_Targets_Set_For (Scan, Rows, Selection);
                end Retarget;
             begin
-               Files.Model.Folder_Sizes.Update_Folder_Scan (Model, Retarget'Access);
+               Files.Model.Folder_Sizes.Update_Scan (Model, Retarget'Access);
             end;
          end;
       else
          Cancel_Folder_Scan (Model);
-         Files.Model.Folder_Sizes.Clear_Folder_Size (Model);
+         Files.Model.Folder_Sizes.Clear (Model);
       end if;
    end Update_Folder_Size;
 
@@ -820,17 +814,36 @@ package body Files.Operations is
       Succeeded : Boolean) return Operation_Result
    is separate;
 
+   --  Which stack Replay takes its entry from.
+   type Replay_Direction is (Replay_Undo, Replay_Redo);
+
+   --  Undo (apply in reverse) or redo (apply forward) the newest entry of
+   --  one stack, then reload the directory. A fully applied entry moves to
+   --  the other stack -- an undo-only one is consumed -- and a partly
+   --  applied one goes back with its completed steps.
+   --
+   --  @param Model Window model carrying the history to apply.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @param Direction Which stack to take the entry from.
+   --  @return Structured operation result.
+   function Replay
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Direction : Replay_Direction)
+      return Operation_Result
+   is separate;
+
    function Undo_Last
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-   is separate;
+   is (Replay (Model, Settings, Replay_Undo));
 
    function Redo_Last
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-   is separate;
+   is (Replay (Model, Settings, Replay_Redo));
 
    function Try_Record_Undo
      (Model       : in out Files.Model.Window_Model;

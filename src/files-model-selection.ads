@@ -16,14 +16,14 @@ package Files.Model.Selection is
      (Model : Window_Model)
       return Natural;
 
-   --  Whether Move_Selection in Direction would wrap past an edge of the
+   --  Whether Move in Direction would wrap past an edge of the
    --  listing (to the other end, or to the next column). Extending a range
    --  stops at the edge instead.
    --
    --  @param Model Model to inspect.
    --  @param Direction Arrow-key direction.
    --  @return True when the move would wrap.
-   function Selection_Move_Would_Wrap
+   function Move_Would_Wrap
      (Model     : Window_Model;
       Direction : Guikit.Input.Navigation_Direction)
       return Boolean;
@@ -44,7 +44,7 @@ package Files.Model.Selection is
    subtype Visible_Index_List is Visible_Index_Lists.Vector;
 
    --  Select exactly Indexes (out of range ones are skipped, repeats count
-   --  once), the last one primary: what Clear_Selection and a
+   --  once), the last one primary: what Clear and a
    --  Toggle_Visible_Selection per index do, in one pass over the items
    --  rather than one per index (a marquee drag does this on every move).
    --
@@ -87,7 +87,7 @@ package Files.Model.Selection is
    --  Clear the deterministic multi-selection set and primary selection.
    --
    --  @param Model Model to update.
-   procedure Clear_Selection
+   procedure Clear
      (Model : in out Window_Model);
 
    --  Invert the selection across the currently visible loaded items.
@@ -98,7 +98,7 @@ package Files.Model.Selection is
    --  excluded because they do not exist on disk until committed.
    --
    --  @param Model Model to update.
-   procedure Invert_Selection
+   procedure Invert
      (Model : in out Window_Model);
 
    --  Clear the entire selection (deselect all visible items).
@@ -111,7 +111,7 @@ package Files.Model.Selection is
    --
    --  @param Model Model to update.
    --  @param Direction Direction requested by user input.
-   procedure Move_Selection
+   procedure Move
      (Model     : in out Window_Model;
       Direction : Guikit.Input.Navigation_Direction);
 
@@ -144,7 +144,7 @@ package Files.Model.Selection is
    --  @param Model Model to update.
    --  @param Page_Rows Number of grid rows spanned by one page.
    --  @param Down Move toward the last item when True, toward the first when False.
-   procedure Move_Selection_By_Page
+   procedure Move_By_Page
      (Model     : in out Window_Model;
       Page_Rows : Positive;
       Down      : Boolean);
@@ -184,7 +184,7 @@ package Files.Model.Selection is
    --
    --  @param Model Model to update.
    --  @param Columns Number of visible item columns; values below one are ignored.
-   procedure Set_Selection_Grid_Columns
+   procedure Set_Grid_Columns
      (Model   : in out Window_Model;
       Columns : Positive);
 
@@ -193,7 +193,7 @@ package Files.Model.Selection is
    --
    --  @param Model Model to update.
    --  @param Rows Whole item rows in view.
-   procedure Set_Selection_Page_Rows
+   procedure Set_Page_Rows
      (Model : in out Window_Model;
       Rows  : Positive);
 
@@ -201,7 +201,7 @@ package Files.Model.Selection is
    --
    --  @param Model Model to inspect.
    --  @return Rows per page.
-   function Selection_Page_Rows
+   function Page_Rows
      (Model : Window_Model)
       return Positive;
 
@@ -275,7 +275,7 @@ package Files.Model.Selection is
    --  @param Model Model whose selection is replaced.
    --  @param Items Previously selected items to match by full path.
    --  @param Primary_Path Full path of the previous primary item, or empty.
-   procedure Restore_Selection
+   procedure Restore
      (Model        : in out Window_Model;
       Items        : Files.Items.Item_Vectors.Vector;
       Primary_Path : String);
@@ -284,7 +284,7 @@ package Files.Model.Selection is
    --
    --  @param Model Model to inspect.
    --  @return True when the selection includes the pending create-file item.
-   function Selection_Includes_Temporary
+   function Includes_Temporary
      (Model : Window_Model)
       return Boolean;
 

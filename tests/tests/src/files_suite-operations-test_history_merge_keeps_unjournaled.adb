@@ -81,14 +81,14 @@ separate (Files_Suite.Operations)
       --  The oldest entry is too large for the journal: the helper never
       --  sees it, yet the window keeps it under the helper's new record.
       Files.Model.Initialize (Window, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Files.Model.History.Set_History (Window, Stack (Item ("a", Large => True), Item ("b")), Empty);
+      Files.Model.History.Restore (Window, Stack (Item ("a", Large => True), Item ("b")), Empty);
       Start_Job;
       Run_Helper ("c");
-      Assert (Names (Files.Model.History.Undo_History (Helper)) = "b,c",
-              "the helper holds what the journal gave it: " & Names (Files.Model.History.Undo_History (Helper)));
+      Assert (Names (Files.Model.History.Undo_Entries (Helper)) = "b,c",
+              "the helper holds what the journal gave it: " & Names (Files.Model.History.Undo_Entries (Helper)));
       Merge;
-      Assert (Names (Files.Model.History.Undo_History (Window)) = "a,b,c",
-              "the entry left out of the journal stays: " & Names (Files.Model.History.Undo_History (Window)));
+      Assert (Names (Files.Model.History.Undo_Entries (Window)) = "a,b,c",
+              "the entry left out of the journal stays: " & Names (Files.Model.History.Undo_Entries (Window)));
 
       --  What the helper retired goes; what it never saw stays.
       Start_Job;
@@ -103,22 +103,22 @@ separate (Files_Suite.Operations)
       end;
       Files.History_Journal.Save_To (Directory, Helper, Required => True);
       Merge;
-      Assert (Names (Files.Model.History.Undo_History (Window)) = "a,b",
-              "the consumed entry goes, the left-out one stays: " & Names (Files.Model.History.Undo_History (Window)));
+      Assert (Names (Files.Model.History.Undo_Entries (Window)) = "a,b",
+              "the consumed entry goes, the left-out one stays: " & Names (Files.Model.History.Undo_Entries (Window)));
 
       --  A newest entry too large for the journal: the save leaves it out
       --  instead of failing, a helper may not undo it, and it stays in place.
       Files.Model.Initialize (Window, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Files.Model.History.Set_History (Window, Stack (Item ("b"), Item ("x", Large => True)), Empty);
+      Files.Model.History.Restore (Window, Stack (Item ("b"), Item ("x", Large => True)), Empty);
       Assert (not Files.History_Journal.Journals_Newest (Window, Redo => False),
               "a newest entry too large for the journal is not journaled");
       Start_Job;
       Run_Helper ("d");
-      Assert (Names (Files.Model.History.Undo_History (Helper)) = "b,d",
-              "only the oversized entry is left out: " & Names (Files.Model.History.Undo_History (Helper)));
+      Assert (Names (Files.Model.History.Undo_Entries (Helper)) = "b,d",
+              "only the oversized entry is left out: " & Names (Files.Model.History.Undo_Entries (Helper)));
       Merge;
-      Assert (Names (Files.Model.History.Undo_History (Window)) = "b,x,d",
-              "the unjournaled newest entry keeps its place: " & Names (Files.Model.History.Undo_History (Window)));
+      Assert (Names (Files.Model.History.Undo_Entries (Window)) = "b,x,d",
+              "the unjournaled newest entry keeps its place: " & Names (Files.Model.History.Undo_Entries (Window)));
       Assert (Files.History_Journal.Journals_Newest (Window, Redo => False),
               "with a small newest entry the journal holds it");
 
@@ -126,20 +126,20 @@ separate (Files_Suite.Operations)
       --  helper's redo stack when it records something new.
       for Records in Boolean loop
          Files.Model.Initialize (Window, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-         Files.Model.History.Set_History
+         Files.Model.History.Restore
            (Window, Empty, Stack (Item ("r1", Large => True, Redoable => True), Item ("r2", Redoable => True)));
          Start_Job;
          Run_Helper ((if Records then "e" else ""));
          Merge;
          if Records then
-            Assert (Names (Files.Model.History.Redo_History (Window)) = "",
+            Assert (Names (Files.Model.History.Redo_Entries (Window)) = "",
                     "a new record retires every redo entry, also one the helper never saw: "
-                    & Names (Files.Model.History.Redo_History (Window)));
-            Assert (Names (Files.Model.History.Undo_History (Window)) = "e", "the new record is merged");
+                    & Names (Files.Model.History.Redo_Entries (Window)));
+            Assert (Names (Files.Model.History.Undo_Entries (Window)) = "e", "the new record is merged");
          else
-            Assert (Names (Files.Model.History.Redo_History (Window)) = "r1,r2",
+            Assert (Names (Files.Model.History.Redo_Entries (Window)) = "r1,r2",
                     "without a new record the redo entries all stay: "
-                    & Names (Files.Model.History.Redo_History (Window)));
+                    & Names (Files.Model.History.Redo_Entries (Window)));
          end if;
       end loop;
 
@@ -160,7 +160,7 @@ separate (Files_Suite.Operations)
          Step       : Files.Operations.Operation_Result;
       begin
          Files.Model.Initialize (Job_Window, Root, Load.Items, Root);
-         Files.Model.History.Set_History (Job_Window, Stack (Item ("a", Large => True), Item ("b")), Empty);
+         Files.Model.History.Restore (Job_Window, Stack (Item ("a", Large => True), Item ("b")), Empty);
          Files.Model.Set_Background_Transfers (Job_Window, True);
          Files.Model.Selection.Select_All_Visible (Job_Window);
          Step := Files.Operations.Duplicate_Selected (Job_Window, Settings);
@@ -170,9 +170,9 @@ separate (Files_Suite.Operations)
          Step := Files_Suite.Support.Finish_Paste (Job_Window, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operations.Operation_Success, "the background duplicate completes");
-         Assert (Names (Files.Model.History.Undo_History (Job_Window)) = "a,b,item (copy).txt",
+         Assert (Names (Files.Model.History.Undo_Entries (Job_Window)) = "a,b,item (copy).txt",
                  "the job's finish merges the helper's history, keeping what the journal left out: "
-                 & Names (Files.Model.History.Undo_History (Job_Window)));
+                 & Names (Files.Model.History.Undo_Entries (Job_Window)));
       end;
       Reset_Root;
    end Test_History_Merge_Keeps_Unjournaled;

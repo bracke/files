@@ -41,7 +41,8 @@ begin
      and then not Model.Recent_View_Active
    then
       Resort_Items (Model);
-   elsif not Items_In_Group_Order (Model) then
+   else
+      --  Returns at once when the items are already in band order.
       Resort_Items (Model, Field_Sort => False);
    end if;
    Model.Grouping.Synced_Revision := Model.Rows_Revision_Value;

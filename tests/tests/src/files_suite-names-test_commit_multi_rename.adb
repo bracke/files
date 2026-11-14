@@ -16,12 +16,12 @@ separate (Files_Suite.Names)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
-      Files.Model.Rename.Toggle_Rename (Model);
+      Files.Model.Rename.Toggle (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Testing.Rename_Field_Count (Model),
          2,
          "multi-rename opens a field per selected file");
-      Changed := Files.Model.Rename.Rename_Insert_At_Carets (Model, "Z");
+      Changed := Files.Model.Rename.Insert_At_Carets (Model, "Z");
       Assert (Changed, "broadcast insert edits both rename fields");
 
       Result := Files.Operations.Commit_Rename (Model, Settings);
@@ -69,12 +69,12 @@ separate (Files_Suite.Names)
             Files.Model.Selection.Toggle_Visible_Selection (Model, Index);
          end if;
       end loop;
-      Files.Model.Rename.Toggle_Rename (Model);
+      Files.Model.Rename.Toggle (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Testing.Rename_Field_Count (Model),
          2,
          "best-effort rename opens two fields");
-      Changed := Files.Model.Rename.Rename_Insert_At_Carets (Model, "Z");
+      Changed := Files.Model.Rename.Insert_At_Carets (Model, "Z");
       Assert (Changed, "broadcast insert edits both best-effort fields");
 
       Result := Files.Operations.Commit_Rename (Model, Settings);

@@ -72,7 +72,7 @@ separate (Files_Suite.History)
               (Files.Model.History.Undo_Available (Model),
                "the kept copy can be undone, background " & Background'Image);
             Files_Suite.Support.Assert_Equal
-              (Natural (Files.Model.History.Undo_History (Model).Length), 1,
+              (Natural (Files.Model.History.Undo_Entries (Model).Length), 1,
                "the paste is one Undo entry, background " & Background'Image & ", mixed " & Mixed'Image);
             if Mixed then
                Assert (File_Has_Bytes (Moved_Dest, "moved bytes") and then not Ada.Directories.Exists (Moved_Source),

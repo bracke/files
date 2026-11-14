@@ -42,7 +42,7 @@ package body Files.Overlays is
             Accessibility => Accessibility);
       end Draw;
    begin
-      Files.Model.Command_Palette.Visit
+      Files.Model.Command_Palette.With_Panel
         (Model,
          Region.Line_Height,
          Title       =>
@@ -98,7 +98,7 @@ package body Files.Overlays is
          Config.Status := To_Unbounded_String (Files.Localization.Text (To_String (Draft.Error_Key)));
          Config.Status_Is_Error := True;
       end if;
-      Files.Model.Settings_Pane.Visit (Model, Config, Files.Settings_Form.Fields (Model), Draw'Access);
+      Files.Model.Settings_Pane.With_Panel (Model, Config, Files.Settings_Form.Fields (Model), Draw'Access);
    end Build_Settings_Frame;
 
 end Files.Overlays;

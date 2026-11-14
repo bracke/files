@@ -35,9 +35,7 @@ separate (Files.Application.Windows.Render_Window.Present_Frame)
                  Files.Rendering.Initialize_Text
                    (Renderer    => Runtime.Text,
                     Font_Path   => Files.Rendering.Default_Font_Path,
-                    Pixel_Size  => Runtime.Font_Pixel_Size,
-                    Cell_Width  => Cell_Width_For (Runtime.Font_Pixel_Size),
-                    Cell_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
+                    Pixel_Size  => Runtime.Font_Pixel_Size);
             begin
                Runtime.Text_Ready := Status = Files.Rendering.Text_Render_Success;
                Runtime.Glyph_Text_Valid := False;

@@ -181,6 +181,28 @@ procedure Check_All is
 
    procedure Check_CLDR_Importer is separate;
 
+   --  Visit each line of Text, its LF left off, with its number counted from
+   --  1. A last line with no LF after it is visited too; an empty Text has no
+   --  lines, and a final LF starts none.
+   procedure For_Each_Line
+     (Text  : String;
+      Visit : not null access procedure (Line : String; Number : Positive))
+   is
+      Line_Start : Positive := Text'First;
+      Number     : Positive := 1;
+   begin
+      for Index in Text'Range loop
+         if Text (Index) = ASCII.LF then
+            Visit (Text (Line_Start .. Index - 1), Number);
+            Number := Number + 1;
+            Line_Start := Index + 1;
+         end if;
+      end loop;
+      if Text /= "" and then Line_Start <= Text'Last then
+         Visit (Text (Line_Start .. Text'Last), Number);
+      end if;
+   end For_Each_Line;
+
    procedure Check_Line_Lengths_In_File (Path : String) is separate;
 
    procedure Check_Consecutive_Empty_Lines_In_File (Path : String) is separate;
@@ -336,10 +358,15 @@ procedure Check_All is
       --  literal (its contents, quotes and doubling undone), or a delimiter.
       type Token_Kind is (Word, Literal, Symbol);
 
-      --  One token: its kind and its text, lower case.
+      --  One token: its kind; its text, lower case (but a literal's as
+      --  written, when tokenized with Preserve_Case); the line it is on; and,
+      --  for a literal, whether it is a character literal rather than a
+      --  string.
       type Token is record
-         Kind : Token_Kind := Symbol;
-         Text : Unbounded_String;
+         Kind         : Token_Kind := Symbol;
+         Text         : Unbounded_String;
+         Line         : Positive := 1;
+         Is_Character : Boolean := False;
       end record;
 
       package Token_Vectors is new Ada.Containers.Vectors (Index_Type => Positive, Element_Type => Token);
@@ -364,8 +391,27 @@ procedure Check_All is
       --  or ")" is an attribute's tick (String'("x")); any other one with a
       --  character two places on opens a character literal.
       --  @param Source Ada source text.
+      --  @param Preserve_Case Keep the literals' text as written (words are
+      --  lower-cased all the same), for checks of what a literal says.
       --  @return Its tokens, in order.
-      function Tokens_Of (Source : String) return Token_List;
+      function Tokens_Of (Source : String; Preserve_Case : Boolean := False) return Token_List;
+
+      --  Past the prefix of a dotted name starting at From: the index of the
+      --  last name of Files.Hooks.Prefix (that of Prefix); From itself when
+      --  no "." follows the word there.
+      function Past_Name_Prefix (Toks : Token_List; From : Positive) return Positive;
+
+      --  Past the parenthesized group opening at From (a "("), groups nested
+      --  in it included: the index after its closing ")", or past the end.
+      function Past_Parentheses (Toks : Token_List; From : Positive) return Positive;
+
+      --  Where a qualification starting at From starts its operand: past
+      --  "string'" or "standard.string'" (any name, dotted, then a tick)
+      --  when a "(" follows; From itself otherwise.
+      function Past_Qualifier (Toks : Token_List; From : Positive) return Positive;
+
+      --  Past every "(" and qualification from From on.
+      function Past_Openers (Toks : Token_List; From : Positive) return Positive;
    end Tokens;
 
    package body Tokens is separate;
@@ -476,49 +522,23 @@ procedure Check_All is
 
    procedure Check_Ada_Only_Tooling is separate;
 
-   function Is_Source_String_Delimiter
-     (Text  : String;
-      Index : Positive)
-      return Boolean is
-   begin
-      if Text (Index) /= '"' then
-         return False;
-      elsif Index > Text'First and then Text (Index - 1) = ''' then
-         return False;
-      end if;
-
-      return True;
-   end Is_Source_String_Delimiter;
-
    function Looks_Like_User_Text (Literal : String) return Boolean is separate;
 
-   --  The length of a developer-diagnostic pragma header ("pragma
-   --  Compile_Time_Error" and friends) beginning at Content (From), or 0 when
+   --  The length in tokens of a developer-diagnostic pragma header ("pragma
+   --  Compile_Time_Error" and friends) beginning at Toks (From), or 0 when
    --  none does. Their string arguments are compile-time messages for
    --  developers, never localizable user text, so the scanner skips the whole
-   --  statement. GNAT style enforces the casing, so an exact-case match suffices.
-   function Diagnostic_Pragma_Length (Content : String; From : Positive) return Natural is
-      function Header_At (Keyword : String) return Boolean is
-         Full : constant String := "pragma " & Keyword;
-         Stop : constant Natural := From + Full'Length;
-      begin
-         if From > Content'First and then Is_Ada_Identifier_Char (Content (From - 1)) then
-            return False;
-         elsif Stop - 1 > Content'Last then
-            return False;
-         elsif Content (From .. Stop - 1) /= Full then
-            return False;
-         end if;
-
-         return Stop > Content'Last or else not Is_Ada_Identifier_Char (Content (Stop));
-      end Header_At;
+   --  statement.
+   function Diagnostic_Pragma_Length (Toks : Tokens.Token_List; From : Positive) return Natural is
+      use Tokens;
    begin
-      if Header_At ("Compile_Time_Error") then
-         return String'("pragma Compile_Time_Error")'Length;
-      elsif Header_At ("Compile_Time_Warning") then
-         return String'("pragma Compile_Time_Warning")'Length;
-      elsif Header_At ("Assert") then
-         return String'("pragma Assert")'Length;
+      if From + 1 <= Toks.Last_Index
+        and then Is_Word (Toks (From), "pragma")
+        and then (Is_Word (Toks (From + 1), "compile_time_error")
+                  or else Is_Word (Toks (From + 1), "compile_time_warning")
+                  or else Is_Word (Toks (From + 1), "assert"))
+      then
+         return 2;
       end if;
 
       return 0;
@@ -536,25 +556,32 @@ procedure Check_All is
 
    procedure Check_Error_Localization_Test_Coverage is separate;
 
+   --  The namespaces of the catalog's keys: a literal in one of them names a
+   --  localization key.
+   Localization_Namespaces : constant String_List :=
+     [To_Unbounded_String ("accessibility."),
+      To_Unbounded_String ("cli."),
+      To_Unbounded_String ("command."),
+      To_Unbounded_String ("details."),
+      To_Unbounded_String ("dialog."),
+      To_Unbounded_String ("error."),
+      To_Unbounded_String ("info."),
+      To_Unbounded_String ("root."),
+      To_Unbounded_String ("runtime."),
+      To_Unbounded_String ("settings."),
+      To_Unbounded_String ("startup."),
+      To_Unbounded_String ("status.")];
+
+   function In_Localization_Namespace (Key : String) return Boolean is
+     (for some Namespace of Localization_Namespaces => Starts_With (Key, To_String (Namespace)));
+
    function Is_Complete_Localization_Key (Key : String) return Boolean is
    begin
       return
         Key /= ""
         and then Key /= "settings.conf"
         and then Key (Key'Last) /= '.'
-        and then
-          (Starts_With (Key, "accessibility.")
-           or else Starts_With (Key, "cli.")
-           or else Starts_With (Key, "command.")
-           or else Starts_With (Key, "details.")
-           or else Starts_With (Key, "dialog.")
-           or else Starts_With (Key, "error.")
-           or else Starts_With (Key, "info.")
-           or else Starts_With (Key, "root.")
-           or else Starts_With (Key, "runtime.")
-           or else Starts_With (Key, "settings.")
-           or else Starts_With (Key, "startup.")
-           or else Starts_With (Key, "status."));
+        and then In_Localization_Namespace (Key);
    end Is_Complete_Localization_Key;
 
    function Is_Indirect_Localization_Key (Key : String) return Boolean is
@@ -564,19 +591,7 @@ procedure Check_All is
         and then Key (Key'Last) /= '.'
         and then Key /= "settings.conf"
         and then not Contains (Key, "|")
-        and then
-          (Starts_With (Key, "accessibility.")
-           or else Starts_With (Key, "cli.")
-           or else Starts_With (Key, "command.")
-           or else Starts_With (Key, "details.")
-           or else Starts_With (Key, "dialog.")
-           or else Starts_With (Key, "error.")
-           or else Starts_With (Key, "info.")
-           or else Starts_With (Key, "root.")
-           or else Starts_With (Key, "runtime.")
-           or else Starts_With (Key, "settings.")
-           or else Starts_With (Key, "startup.")
-           or else Starts_With (Key, "status."));
+        and then In_Localization_Namespace (Key);
    end Is_Indirect_Localization_Key;
 
    procedure Check_Indirect_Localization_Keys_In_File (Path : String) is separate;
@@ -761,6 +776,26 @@ procedure Check_All is
    --  Windows looks variables up regardless of case.
    procedure Check_Test_Hooks is separate;
 
+   --  A test that arms a process-wide test hook (Refuse_Next_Launch,
+   --  Fail_Stage_Sync, Set_Unavailable (True), ...) disarms it on its failure
+   --  path too: an exception handler of the test (or of the block right after
+   --  the arming) that calls the matching disarm, directly or through a
+   --  procedure of the test's own, or an object of a Limited_Controlled guard
+   --  whose Finalize does. Otherwise a failing assertion leaves the hook armed
+   --  and the tests after it fail for no reason of their own.
+   procedure Check_Test_Hook_Disarms is separate;
+
+   --  A stage made with Files.Job_Context.Create_Stage is removed with
+   --  Discard_Stage, which drops its record with it: a test that deletes one
+   --  with Delete_Permanently or Delete_Tree leaves a record behind for the
+   --  sweep, and the tests after it, to trip over.
+   procedure Check_Test_Stage_Removal is separate;
+
+   --  Every share/locales catalog takes the {arguments} the default
+   --  locale's message takes, checked by messages' catalog_check: a
+   --  placeholder dropped in translation renders without its value.
+   procedure Check_Locale_Catalog_Arguments is separate;
+
    procedure Check_Crate_Structure is separate;
 
    procedure Check_Application_CLI_Surface is separate;
@@ -824,6 +859,8 @@ begin
    Check_Filetype_Detection_Order;
    Check_Event_Translation_Contract;
    Check_Test_Hooks;
+   Check_Test_Hook_Disarms;
+   Check_Test_Stage_Removal;
    Check_Command_And_Overlay_Layers;
    Check_Crate_Structure;
    Check_Application_CLI_Surface;
@@ -832,6 +869,7 @@ begin
    Check_Platform_Bodies;
    Check_Packaging_Metadata;
    Check_CLDR_Importer;
+   Check_Locale_Catalog_Arguments;
    Run ("files build", Root, Alr, [1 => new String'("build")]);
    Check_Executable_CLI_Help;
    Check_Desktop_Runtime_Contract;

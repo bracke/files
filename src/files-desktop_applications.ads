@@ -32,6 +32,10 @@ package Files.Desktop_Applications is
 
    --  Return the installed desktop applications available for "Open With".
    --
+   --  The entries are read and scanned by Hostkit.Desktop_Entries; this
+   --  package chooses the folders and the locale, and keeps the entries the
+   --  picker can launch.
+   --
    --  On Linux the XDG application directories ($XDG_DATA_HOME or
    --  ~/.local/share, plus each entry of $XDG_DATA_DIRS, defaulting to
    --  /usr/local/share:/usr/share) are scanned for *.desktop entries. Relative

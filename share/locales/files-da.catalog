@@ -181,7 +181,6 @@ da.settings.hidden_files = Vis skjulte filer
 da.settings.show_extensions = Vis filendelser
 da.settings.sort = Sortér efter
 da.settings.sort_ascending = Sortér stigende
-da.settings.high_contrast_theme = Høj kontrast
 da.settings.icon_theme = Ikontema
 da.settings.icon_theme.basic = Basis
 da.settings.icon_theme.high_contrast = Høj kontrast

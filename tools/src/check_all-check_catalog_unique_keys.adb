@@ -8,10 +8,8 @@ separate (Check_All)
       Catalog     : constant String := Root & "/share/files.catalog";
       Content     : constant String := To_String (Project_Tools.Text.Read_Text_File (Catalog));
       Seen        : String_Sets.Set;
-      Line_Number : Natural := 1;
-      Line_Start  : Positive := Content'First;
 
-      procedure Check_Line (Raw : String) is
+      procedure Check_Line (Raw : String; Number : Positive) is
          Line   : constant String := Ada.Strings.Fixed.Trim (Raw, Ada.Strings.Both);
          Equals : constant Natural := Ada.Strings.Fixed.Index (Line, "=");
       begin
@@ -28,7 +26,7 @@ separate (Check_All)
             if Seen.Contains (Key) then
                Put_Line
                  (Standard_Error,
-                  Catalog & ":" & Natural'Image (Line_Number) & ": duplicate localization key: " & Key);
+                  Catalog & ":" & Natural'Image (Number) & ": duplicate localization key: " & Key);
                Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
                raise Program_Error;
             end if;
@@ -37,19 +35,5 @@ separate (Check_All)
          end;
       end Check_Line;
    begin
-      if Content = "" then
-         return;
-      end if;
-
-      for Index in Content'Range loop
-         if Content (Index) = ASCII.LF then
-            Check_Line (Content (Line_Start .. Index - 1));
-            Line_Number := Line_Number + 1;
-            Line_Start := Index + 1;
-         end if;
-      end loop;
-
-      if Line_Start <= Content'Last then
-         Check_Line (Content (Line_Start .. Content'Last));
-      end if;
+      For_Each_Line (Content, Check_Line'Access);
    end Check_Catalog_Unique_Keys;

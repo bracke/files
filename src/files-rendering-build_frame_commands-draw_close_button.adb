@@ -37,45 +37,36 @@ separate (Files.Rendering.Build_Frame_Commands)
          Show_Glyph : constant Boolean :=
            Overlay
            or else not Hidden_By_Overlays (Glyph_X, Glyph_Y, Glyph_W, Line_Height);
+
+         --  The button into one layer's rectangles and text.
+         procedure Draw_Into
+           (Rectangles : in out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+            Text       : in out Guikit.Draw.Text_Command_Vectors.Vector) is
+         begin
+            Guikit.Widgets.Draw_Close_Button
+              (Rectangles    => Rectangles,
+               Text          => Text,
+               Clip_Width    => Layout.Width,
+               Clip_Height   => Layout.Height,
+               Button_X      => Btn.X,
+               Button_Y      => Btn.Y,
+               Button_Width  => Btn.Width,
+               Button_Height => Btn.Height,
+               Fill_Color    => Fill_Color,
+               Border_Color  => Border_Color,
+               Glyph_X       => Glyph_X,
+               Glyph_Y       => Glyph_Y,
+               Glyph_Width   => Glyph_W,
+               Glyph_Height  => Line_Height,
+               Glyph         => To_Unbounded_String (Close_Glyph_Text),
+               Glyph_Color   => Text_Color,
+               Show_Glyph    => Show_Glyph);
+         end Draw_Into;
       begin
          if Overlay then
-            Guikit.Widgets.Draw_Close_Button
-              (Rectangles    => Result.Overlay_Rectangles,
-               Text          => Result.Overlay_Text,
-               Clip_Width    => Layout.Width,
-               Clip_Height   => Layout.Height,
-               Button_X      => Btn.X,
-               Button_Y      => Btn.Y,
-               Button_Width  => Btn.Width,
-               Button_Height => Btn.Height,
-               Fill_Color    => Fill_Color,
-               Border_Color  => Border_Color,
-               Glyph_X       => Glyph_X,
-               Glyph_Y       => Glyph_Y,
-               Glyph_Width   => Glyph_W,
-               Glyph_Height  => Line_Height,
-               Glyph         => To_Unbounded_String (Close_Glyph_Text),
-               Glyph_Color   => Text_Color,
-               Show_Glyph    => Show_Glyph);
+            Draw_Into (Result.Overlay_Rectangles, Result.Overlay_Text);
          else
-            Guikit.Widgets.Draw_Close_Button
-              (Rectangles    => Result.Rectangles,
-               Text          => Result.Text,
-               Clip_Width    => Layout.Width,
-               Clip_Height   => Layout.Height,
-               Button_X      => Btn.X,
-               Button_Y      => Btn.Y,
-               Button_Width  => Btn.Width,
-               Button_Height => Btn.Height,
-               Fill_Color    => Fill_Color,
-               Border_Color  => Border_Color,
-               Glyph_X       => Glyph_X,
-               Glyph_Y       => Glyph_Y,
-               Glyph_Width   => Glyph_W,
-               Glyph_Height  => Line_Height,
-               Glyph         => To_Unbounded_String (Close_Glyph_Text),
-               Glyph_Color   => Text_Color,
-               Show_Glyph    => Show_Glyph);
+            Draw_Into (Result.Rectangles, Result.Text);
          end if;
 
          Add_Accessibility_Node

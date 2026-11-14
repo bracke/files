@@ -27,23 +27,23 @@ begin
          begin
             case Key is
                when Guikit.Input.Key_Up =>
-                  Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Up);
+                  Files.Model.Selection.Move (Model, Guikit.Input.Move_Up);
                when Guikit.Input.Key_Down =>
-                  Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Down);
+                  Files.Model.Selection.Move (Model, Guikit.Input.Move_Down);
                when Guikit.Input.Key_Left =>
-                  Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Left);
+                  Files.Model.Selection.Move (Model, Guikit.Input.Move_Left);
                when Guikit.Input.Key_Right =>
-                  Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
+                  Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
                when Guikit.Input.Key_Home =>
                   Files.Model.Selection.Select_First_Visible (Model);
                when Guikit.Input.Key_End =>
                   Files.Model.Selection.Select_Last_Visible (Model);
                when Guikit.Input.Key_Page_Up =>
-                  Files.Model.Selection.Move_Selection_By_Page
-                    (Model, Files.Model.Selection.Selection_Page_Rows (Model), False);
+                  Files.Model.Selection.Move_By_Page
+                    (Model, Files.Model.Selection.Page_Rows (Model), False);
                when Guikit.Input.Key_Page_Down =>
-                  Files.Model.Selection.Move_Selection_By_Page
-                    (Model, Files.Model.Selection.Selection_Page_Rows (Model), True);
+                  Files.Model.Selection.Move_By_Page
+                    (Model, Files.Model.Selection.Page_Rows (Model), True);
                when others =>
                   null;
             end case;

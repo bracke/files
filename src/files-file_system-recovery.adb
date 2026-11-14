@@ -136,14 +136,23 @@ package body Files.File_System.Recovery is
          return "";
    end Registry_Root;
 
-   function Read_Owner
-     (Stage : String; Original, Identity : out UString) return Boolean
+   --  Read a record file -- its magic, a path and an identity token -- held
+   --  as a lease while it is read: a plain file no larger than
+   --  Max_Record_Bytes, with nothing after the identity. Raises when it is
+   --  malformed; the caller's handler clears Path and Identity then.
+   --
+   --  @param Record_Path The record file.
+   --  @param Magic The header the record must carry.
+   --  @param Path The path it records.
+   --  @param Identity The identity token it records, possibly empty.
+   --  @return Whether it was read, carries Magic and records an absolute path.
+   function Read_Record
+     (Record_Path, Magic : String; Path, Identity : out UString) return Boolean
    is
       Input : aliased Files.Lease_Streams.Input_Stream;
-      Magic : UString;
-      Record_Path : constant String := Hostkit.Fs.Join (Stage, Owner_Name);
+      Found : UString;
    begin
-      Original := Null_Unbounded_String;
+      Path := Null_Unbounded_String;
       Identity := Null_Unbounded_String;
       if not Record_Is_Regular (Record_Path) then
          return False;
@@ -155,10 +164,10 @@ package body Files.File_System.Recovery is
          Files.Lease_Streams.Release (Input);
          return False;
       end if;
-      Magic := To_Unbounded_String
+      Found := To_Unbounded_String
         (Files.Bounded_Streams.Input_String
            (Input'Access, Max_Header_Length));
-      Original := To_Unbounded_String
+      Path := To_Unbounded_String
         (Files.Bounded_Streams.Input_String
            (Input'Access, Max_Path_Length));
       Identity := To_Unbounded_String
@@ -168,15 +177,23 @@ package body Files.File_System.Recovery is
          raise Ada.Directories.Use_Error;
       end if;
       Files.Lease_Streams.Release (Input);
-      return To_String (Magic) = Owner_Magic
-        and then Valid_Absolute_Path (To_String (Original))
+      return To_String (Found) = Magic
+        and then Valid_Absolute_Path (To_String (Path));
+   exception
+      when others => Files.Lease_Streams.Release (Input); raise;
+   end Read_Record;
+
+   function Read_Owner
+     (Stage : String; Original, Identity : out UString) return Boolean
+   is
+   begin
+      return Read_Record (Hostkit.Fs.Join (Stage, Owner_Name), Owner_Magic, Original, Identity)
         and then
           (Length (Identity) = 0
            or else Files.File_Identities.Token (Stage) = To_String (Identity));
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
-         Files.Lease_Streams.Release (Input);
          Original := Null_Unbounded_String;
          Identity := Null_Unbounded_String;
          return False;
@@ -346,45 +363,19 @@ package body Files.File_System.Recovery is
    function Read_Registry_Record
      (Directory : String; Payload, Identity : out UString) return Boolean
    is
-      Input : aliased Files.Lease_Streams.Input_Stream;
-      Magic : UString;
-      Record_Path : constant String := Hostkit.Fs.Join (Directory, "record");
    begin
-      Payload := Null_Unbounded_String;
-      Identity := Null_Unbounded_String;
       if Hostkit.Fs.Is_Link (Directory)
         or else not Files.Fs_Primitives.Exists (Directory)
         or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
-        or else not Record_Is_Regular (Record_Path)
       then
+         Payload := Null_Unbounded_String;
+         Identity := Null_Unbounded_String;
          return False;
       end if;
-      if Files.Lease_Streams.Open (Record_Path, Input) /=
-          Hostkit.Lease_Files.Opened
-        or else Files.Lease_Streams.Size (Input) > Max_Record_Bytes
-      then
-         Files.Lease_Streams.Release (Input);
-         return False;
-      end if;
-      Magic := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Header_Length));
-      Payload := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Path_Length));
-      Identity := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Identity_Length));
-      if not Files.Lease_Streams.End_Of_Stream (Input) then
-         raise Ada.Directories.Use_Error;
-      end if;
-      Files.Lease_Streams.Release (Input);
-      return To_String (Magic) = Registry_Magic
-        and then Valid_Absolute_Path (To_String (Payload));
+      return Read_Record (Hostkit.Fs.Join (Directory, "record"), Registry_Magic, Payload, Identity);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
-         Files.Lease_Streams.Release (Input);
          Payload := Null_Unbounded_String;
          Identity := Null_Unbounded_String;
          return False;

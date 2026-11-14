@@ -8,7 +8,7 @@ is
    Items : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
 begin
    if Files.Model.Selection.Selected_Count (Model) = 0
-     or else Files.Model.Selection.Selection_Includes_Temporary (Model)
+     or else Files.Model.Selection.Includes_Temporary (Model)
    then
       return Disabled (Model, "error.selection.empty");
    elsif Items.Is_Empty then

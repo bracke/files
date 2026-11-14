@@ -102,7 +102,7 @@ is
          return Make_Result (Operation_Failed, "error.compress.failed", Directory);
    end Failed;
 begin
-   if Files.Model.Selection.Selection_Includes_Temporary (Model) then
+   if Files.Model.Selection.Includes_Temporary (Model) then
       return Disabled (Model, "error.create.pending");
    elsif Is_Trash_Directory (Files.Model.Current_Path (Model)) then
       return Disabled (Model, "error.compress.failed");

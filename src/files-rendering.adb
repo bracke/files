@@ -1322,8 +1322,8 @@ package body Files.Rendering is
    function Initialize_Text
      (Renderer     : in out Text_Renderer;
       Font_Path    : String;
-      Pixel_Size   : Positive := 16;
-      Cell_Width   : Positive := 10;
+      Pixel_Size   : Positive;
+      Cell_Width   : Positive;
       Cell_Height  : Positive;
       Atlas_Width  : Positive := 1024;
       Atlas_Height : Positive := 1024)

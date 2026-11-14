@@ -97,7 +97,7 @@ separate (Files_Suite.Model)
         (Files.Model.Selection.Selected_Count (Model),
          0,
          "selection becomes empty when no items are visible");
-      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Down);
+      Files.Model.Selection.Move (Model, Guikit.Input.Move_Down);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),
          0,

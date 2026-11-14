@@ -23,7 +23,7 @@ separate (Files_Suite.Model)
          3,
          "selected items excludes the transient create-file item");
       Assert
-        (Files.Model.Selection.Selection_Includes_Temporary (Mixed_Model),
+        (Files.Model.Selection.Includes_Temporary (Mixed_Model),
          "model identifies temporary item inside mixed selection");
       Assert
         (not Files.Model.Testing.Selected_Item_Is_Temporary (Mixed_Model),

@@ -10,4 +10,8 @@ package Files.Process_Jobs.Testing is
 
    --  Make the next Launch fail as a refused spawn does (a process limit).
    procedure Refuse_Next_Launch;
+
+   --  Disarm a refusal that no Launch consumed, so it cannot leak into the
+   --  next test.
+   procedure Clear_Refusal;
 end Files.Process_Jobs.Testing;

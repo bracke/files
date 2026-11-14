@@ -14,4 +14,6 @@ package body Files.Folder_Size.Testing is
       Test_Unreadable_Results := Count;
    end Fail_Result_Reads;
 
+   function Helper_Starts return Natural is (Test_Helper_Starts);
+
 end Files.Folder_Size.Testing;

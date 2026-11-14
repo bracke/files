@@ -5,36 +5,15 @@ separate (Files_Suite.Transfer)
       Src_Dir  : constant String := Join (Root, "exec-src");
       Dest_Dir : constant String := Join (Root, "exec-dest");
       Count    : constant := 5;
-      Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Model    : aliased Files.Model.Window_Model;
       Paste    : Files_Suite.Support.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
-      Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
-      function Img (N : Integer) return String is
-      begin
-         return Ada.Strings.Fixed.Trim (Integer'Image (N), Ada.Strings.Both);
-      end Img;
 
-      function Src (N : Positive) return String is (Join (Src_Dir, "f" & Img (N) & ".txt"));
-      function Dest (N : Positive) return String is (Join (Dest_Dir, "f" & Img (N) & ".txt"));
+      function Src (N : Positive) return String is (Numbered_File (Src_Dir, N));
+      function Dest (N : Positive) return String is (Numbered_File (Dest_Dir, N));
    begin
-      Reset_Root;
-      Ada.Directories.Create_Path (Src_Dir);
-      Ada.Directories.Create_Path (Dest_Dir);
-      for N in 1 .. Count loop
-         Write_File (Src (N), "S" & Img (N));
-         Actions.Append
-           (Files.Paste.Resolved_Action'
-              (Source_Path => To_Unbounded_String (Src (N)),
-               Dest_Path   => To_Unbounded_String (Dest (N)),
-               Skip        => False,
-               Replaced    => False));
-      end loop;
-
-      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
-      Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
-      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+      Arm_Numbered_Paste (Model, Settings, Src_Dir, Dest_Dir, Count);
       Assert (Files.Model.Pasting.Execution_Is_Active (Model), "arming a paste execution activates it");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Pasting.Execution_Total (Model),

@@ -58,7 +58,7 @@ separate (Files_Suite.Commands)
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Deselect_All_Command, Model),
          "deselect-all enabled with a non-empty selection");
-      Files.Model.Selection.Clear_Selection (Model);
+      Files.Model.Selection.Clear (Model);
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Undo_Command, Model),
          "undo disabled with no recorded history");

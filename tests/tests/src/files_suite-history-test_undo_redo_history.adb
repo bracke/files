@@ -17,8 +17,8 @@ separate (Files_Suite.History)
          Step : Files.Operations.Operation_Result;
       begin
          Select_Name (Model, From_Name);
-         Files.Model.Rename.Toggle_Rename (Model);
-         Files.Model.Rename.Set_Rename_Text (Model, To_Name);
+         Files.Model.Rename.Toggle (Model);
+         Files.Model.Rename.Set_Text (Model, To_Name);
          Step := Files.Operations.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
@@ -155,8 +155,8 @@ separate (Files_Suite.History)
             begin
                Files.History_Journal.Save_Stacks
                  (Write_Directory,
-                  Files.Model.History.Undo_History (Model),
-                  Files.Model.History.Redo_History (Model),
+                  Files.Model.History.Undo_Entries (Model),
+                  Files.Model.History.Redo_Entries (Model),
                   Required => True);
             exception
                when Ada.Directories.Use_Error =>

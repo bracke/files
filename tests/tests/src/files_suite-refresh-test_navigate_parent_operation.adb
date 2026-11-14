@@ -185,8 +185,8 @@ separate (Files_Suite.Refresh)
                  (Trash_Result.Status,
                   Files.Operations.Operation_Disabled,
                   "direct link creation cannot create an orphaned trash payload");
-               Files.Model.Rename.Toggle_Rename (Trash_Model);
-               Files.Model.Rename.Set_Rename_Text (Trash_Model, "renamed-payload");
+               Files.Model.Rename.Toggle (Trash_Model);
+               Files.Model.Rename.Set_Text (Trash_Model, "renamed-payload");
                Trash_Result := Files.Operations.Commit_Rename (Trash_Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Trash_Result.Status,

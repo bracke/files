@@ -7,7 +7,7 @@ is
    Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
 begin
    return Files.Model.Selection.Selected_Count (Model) = 1
-     and then not Files.Model.Selection.Selection_Includes_Temporary (Model)
+     and then not Files.Model.Selection.Includes_Temporary (Model)
      and then
        (case What is
            when Ownership_Metadata   =>

@@ -27,10 +27,15 @@ separate (Files_Suite.Transfer)
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Files.Process_Jobs.Testing.Refuse_Next_Launch;
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+      Files.Process_Jobs.Testing.Clear_Refusal;
       Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "the paste ends instead of staying armed");
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operations.Operation_Failed, "and reports the failure");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model), "error.drop.failed", "with an error the window shows");
       Assert (not Ada.Directories.Exists (Join (Dest_Dir, "refused-source")), "nothing was written");
+   exception
+      when others =>
+         Files.Process_Jobs.Testing.Clear_Refusal;
+         raise;
    end Test_Paste_Helper_Refused;

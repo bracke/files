@@ -122,7 +122,7 @@ separate (Files_Suite.Model)
       Feed ("u");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Index (Model), 3, "du selects dune before the reset");
-      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Down);
+      Files.Model.Selection.Move (Model, Guikit.Input.Move_Down);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Type_Ahead_Buffer (Model),
          "",

@@ -25,7 +25,7 @@ separate (Files_Suite.Operations)
             Files.Model.Begin_Create_File (Model, "pending.txt");
             Files.Model.Selection.Toggle_Visible_Selection (Model, 1);
             Assert
-              (Files.Model.Selection.Selection_Includes_Temporary (Model)
+              (Files.Model.Selection.Includes_Temporary (Model)
                and then Files.Model.Selection.Selected_Count (Model) = 2,
                "prepare a real-plus-temporary mixed selection");
 

@@ -185,12 +185,12 @@ jobs:
           }
           clone_at project_tools 5ed5f4dcfa10301345933d45e5f78ac0573d8cff
           clone_at i18n 21d4d191f1d90a16248b71dfc54b4384502cf658
-          clone_at messages 1a3434a6796e1017cd10ede2a8a338c9cfdb0e5c
+          clone_at messages 6d092f9590c6b0cb0d7704ce20c33b3ac76b8d14
           clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
           clone_at zlib e2a66961dc1ebb9d90433160a43f78f52f8db9e1
           clone_at guikit c42c04fd83e5d22c02f950354e0da6b0862623cc
-          clone_at hostkit 2301cbdee2b3c9f41168b34be098a6832f0bdeb4
+          clone_at hostkit b3943559fd6045659d4799488abd24d563b2b77a
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
@@ -198,12 +198,12 @@ jobs:
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
-          clone_at httpclient 8191254695b1072b010ba23c6c6b29b0644f5277
+          clone_at httpclient 4a6847ee9ba01888d945bb77274cbf5bb536cd13
           clone_at ssllib b1637fa14a30ab60b7ef6800533a88aed5a549bf
-          clone_at truststores a6c86d29dd5f4ac0110425aa30d1a742ffc8a4d5
+          clone_at truststores 90ce36a625ce8687685e0bf98ce279ee0f39c697
           clone_at tarlib 1a6f22ae04e89a2e634d00f283527d337e3d3b1b
-          clone_at awklib 1ff50d0d729f403c1eb7cde7fdadad3e4e24c09c
-          clone_at regexp 075f7e0dadde859b79e0026e9bbd715c7c753ad6
+          clone_at awklib 648bd7466e3b36112027c2116326b146224b2e21
+          clone_at regexp f660333a314f3c610bb255478ac86656e2fd0c4c
 
       - name: Compute an OS-stable i18n upstream cache key
         id: cldr_key
@@ -1542,3 +1542,16 @@ jobs:
           alr --non-interactive build
           ./bin/catalog_check ../../../files/share/files.catalog \
             --verbatim=files
+          # Each locale ships in a file of its own, so the line above never
+          # sees one: check every share/locales catalogue against the default
+          # locale's for the {arguments} each message takes -- a placeholder
+          # dropped in translation renders without the value it was about.
+          failed=0
+          for locale in ../../../files/share/locales/files-*.catalog; do
+            if ! ./bin/catalog_check "$locale" \
+                   --base=../../../files/share/files.catalog --arguments-only > /dev/null; then
+              echo "::error file=share/locales/${locale##*/}::its {arguments} differ from share/files.catalog"
+              failed=1
+            fi
+          done
+          test "$failed" -eq 0

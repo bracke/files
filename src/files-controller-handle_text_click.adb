@@ -18,7 +18,7 @@ separate (Files.Controller)
       then
          return Make_Result (Controller_Ignored);
       elsif Target = Files.Types.Focus_Rename_Input
-        and then not Files.Model.Rename.Rename_Is_Active (Model)
+        and then not Files.Model.Rename.Is_Active (Model)
       then
          return Make_Result (Controller_Ignored);
       end if;
@@ -63,7 +63,7 @@ separate (Files.Controller)
       --  A rename click moves only the clicked field's caret, keeping the
       --  other synchronized carets in place.
       if Target = Files.Types.Focus_Rename_Input then
-         Files.Model.Rename.Set_Rename_Caret (Model, Item_Index, Cursor_Position);
+         Files.Model.Rename.Set_Caret (Model, Item_Index, Cursor_Position);
          return Make_Result (Controller_Text_Updated);
       end if;
 

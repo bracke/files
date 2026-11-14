@@ -88,7 +88,7 @@ separate (Files_Suite.Operations)
         (Files.Operations.Testing.Undo_Records, 2,
          "the duplicate records its entry at its first item and at its end, not once per item");
       Files_Suite.Support.Assert_Equal
-        (Natural (Files.Model.History.Undo_History (Model).Length), 1, "the duplicate is one Undo entry");
+        (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "the duplicate is one Undo entry");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_From_Paths (Model).Length), Count, "the entry covers every copy");
       Assert (Files.Model.Last_Error_Key (Model) = "", "a recorded Undo shows no notice");
@@ -107,7 +107,7 @@ separate (Files_Suite.Operations)
         (Files.Operations.Testing.Undo_Records, 3,
          "a second passing mid-batch adds exactly one record");
       Files_Suite.Support.Assert_Equal
-        (Natural (Files.Model.History.Undo_History (Model).Length), 1, "the slower duplicate is one Undo entry");
+        (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "the slower duplicate is one Undo entry");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_From_Paths (Model).Length), Count, "that entry covers every copy");
       Step := Files.Operations.Undo_Last (Model, Settings);
@@ -129,7 +129,7 @@ separate (Files_Suite.Operations)
         (Files.Operations.Testing.Undo_Records, 2,
          "the trash batch records its entry at its first item and at its end");
       Files_Suite.Support.Assert_Equal
-        (Natural (Files.Model.History.Undo_History (Model).Length), 1, "the trash batch is one Undo entry");
+        (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "the trash batch is one Undo entry");
       Step := Files.Operations.Undo_Last (Model, Settings);
       Assert (Step.Status = Files.Operations.Operation_Success, "the trash batch undoes");
       for Index in 1 .. Count loop

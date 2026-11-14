@@ -157,7 +157,7 @@ package Files.Model.Command_Palette is
    --  @param Close_Label Its close button's accessible name, in the current
    --    language.
    --  @param Draw Draws the palette.
-   procedure Visit
+   procedure With_Panel
      (Model       : in out Window_Model;
       Line_Height : Positive;
       Title       : String;

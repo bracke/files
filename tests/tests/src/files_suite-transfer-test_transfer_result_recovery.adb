@@ -50,7 +50,7 @@ separate (Files_Suite.Transfer)
                   (Mode = Files.File_System.Drop_Copy),
                   "recovery recognizes whether the source move committed");
                if Fault = 4 then
-                  Assert (Files.Model.History.Undo_History (Model).Last_Element.Created_Identities.First_Element
+                  Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Created_Identities.First_Element
                           = Files.File_Identities.Token (Dest & "-saved"),
                           "recovery retains the published identity without recapturing a replacement");
                   Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));

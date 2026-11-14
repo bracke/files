@@ -2,7 +2,6 @@ separate (Check_All)
    procedure Check_Whitespace_In_File (Path : String) is
       Content     : constant String := To_String (Project_Tools.Text.Read_Text_File (Path));
       Line_Number : Natural := 1;
-      Line_Start  : Positive := Content'First;
 
       procedure Fail (Message : String) is
       begin
@@ -13,8 +12,9 @@ separate (Check_All)
          raise Program_Error;
       end Fail;
 
-      procedure Check_Line (Raw : String) is
+      procedure Check_Line (Raw : String; Number : Positive) is
       begin
+         Line_Number := Number;
          if Raw'Length = 0 then
             return;
          end if;
@@ -30,19 +30,5 @@ separate (Check_All)
          end if;
       end Check_Line;
    begin
-      if Content = "" then
-         return;
-      end if;
-
-      for Index in Content'Range loop
-         if Content (Index) = ASCII.LF then
-            Check_Line (Content (Line_Start .. Index - 1));
-            Line_Number := Line_Number + 1;
-            Line_Start := Index + 1;
-         end if;
-      end loop;
-
-      if Line_Start <= Content'Last then
-         Check_Line (Content (Line_Start .. Content'Last));
-      end if;
+      For_Each_Line (Content, Check_Line'Access);
    end Check_Whitespace_In_File;

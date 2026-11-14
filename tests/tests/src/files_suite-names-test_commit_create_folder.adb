@@ -30,7 +30,7 @@ separate (Files_Suite.Names)
          "successful create-folder clears stale error state");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "create-folder commit clears temporary state");
       Assert (not Files.Model.Temporary_Item_Is_Directory (Model), "create-folder commit clears directory flag");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "create-folder commit clears rename state");
+      Assert (not Files.Model.Rename.Is_Active (Model), "create-folder commit clears rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),
          1,

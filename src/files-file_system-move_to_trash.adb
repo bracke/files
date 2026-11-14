@@ -156,6 +156,12 @@ is
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
    end Delete_Info_File_If_Present;
+
+   function Send_To_Recycle_Bin return Mutation_Result is separate;
+   function Send_To_Finder_Trash return Mutation_Result is separate;
+   procedure Prepare_Directories is separate;
+   procedure Write_Info_File is separate;
+   function Move_Item return Mutation_Result is separate;
 begin
    Files.Io_Errors.Reset;
    Trashed_Path := Null_Unbounded_String;
@@ -163,90 +169,15 @@ begin
       return Preflight;
    end if;
 
-   --  The Recycle Bin says where the item went -- its $R path, beside the $I
-   --  record of where it came from -- so that is the trashed path, and Undo
-   --  and the trash view restore from it as from the freedesktop trash. The
-   --  record names the item's real place; Recorded_Path is for a trash whose
-   --  record is ours to write.
    if Backend = Trash_Windows_Recycle_Bin then
-      declare
-         Request : constant Native_Trash_Request :=
-           (Backend                 => Backend,
-            Path                    => To_Unbounded_String (Path),
-            Requires_Native_Api     => True,
-            Can_Use_Current_Process => True);
-         Evaluation : constant Native_Trash_Result := Evaluate_Native_Trash (Request);
-         Recycled, Ignored_Info : Files.Types.UString;
-         Outcome : Hostkit.Trash.Recycle_Outcome;
-      begin
-         if not Evaluation.Supported then
-            return (Success => False, Error_Key => Evaluation.Error_Key);
-         elsif Native_Trash_Refused then
-            return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
-         end if;
-         Outcome := Hostkit.Trash.Move_To_Recycle_Bin (Path, Recycled, Ignored_Info);
-         case Outcome is
-            when Hostkit.Trash.Recycled =>
-               Trashed_Path := Recycled;
-               return (Success => True, Error_Key => Null_Unbounded_String);
-            when Hostkit.Trash.Recycle_Unsupported =>
-               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.native_unavailable"));
-            when Hostkit.Trash.Recycle_Volume_Unavailable =>
-               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.volume_unavailable"));
-            when Hostkit.Trash.Recycle_Bin_Missing | Hostkit.Trash.Recycle_Bin_Newer_Format =>
-               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.recycle_bin_unusable"));
-            when Hostkit.Trash.Recycle_Refused =>
-               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
-         end case;
-      end;
+      return Send_To_Recycle_Bin;
    end if;
 
-   --  Hand the item to the Finder's trash. These backends were written and
-   --  then never called: everything went down the freedesktop path.
-   --
-   --  The Finder owns the item afterwards, so there is no path to hand back --
-   --  which is also why an undo cannot restore it, and says so.
    if Backend = Trash_Macos_Native then
-      declare
-         Request : constant Native_Trash_Request :=
-           (Backend                 => Backend,
-            Path                    => To_Unbounded_String (Path),
-            Requires_Native_Api     => True,
-            Can_Use_Current_Process => True);
-
-         Native : constant Native_Trash_Result := Trash_Natively (Request);
-      begin
-         if Native.Completed then
-            return (Success => True, Error_Key => Null_Unbounded_String);
-         end if;
-
-         return
-           (Success   => False,
-            Error_Key =>
-              (if Native.Error_Key = Null_Unbounded_String
-               then To_Unbounded_String ("error.trash.failed")
-               else Native.Error_Key));
-      end;
+      return Send_To_Finder_Trash;
    end if;
 
-   --  Create only the generic parent with the process umask. The trash root
-   --  and both payload directories are owner-only before any name or
-   --  metadata is placed in them.
-   begin
-      Files.Io_Errors.Clear_Os_Error;
-      Files.Fs_Primitives.Create_Path (Files.Fs_Primitives.Parent_Directory (Base));
-   exception
-      when others =>
-         Files.Io_Errors.Capture;
-         raise;
-   end;
-   Files.Private_Directories.Ensure (Base);
-   if Files_Dir /= Base then
-      Files.Private_Directories.Ensure (Files_Dir);
-   end if;
-   if Info_Dir /= "" then
-      Files.Private_Directories.Ensure (Info_Dir);
-   end if;
+   Prepare_Directories;
 
    Name := To_Unbounded_String
      (Unique_Trash_Name (Files_Dir, Info_Dir, Files.Fs_Primitives.Leaf_Text (Path)));
@@ -254,96 +185,14 @@ begin
 
    if not Macos_Home then
       Info_Path := To_Unbounded_String (Hostkit.Fs.Join (Info_Dir, To_String (Name) & ".trashinfo"));
-      declare
-         Metadata : constant String :=
-           "[Trash Info]" & ASCII.LF
-           & "Path=" & Trash_Info_Path_Value (Info_Path_Text)
-           & ASCII.LF & "DeletionDate=" & Trash_Deletion_Date (Ada.Calendar.Clock) & ASCII.LF;
-         --  Created last, so nothing runs between a refusal and Capture.
-         Descriptor : GNAT.OS_Lib.File_Descriptor :=
-           Hostkit.Regular_Files.Create_New (To_String (Info_Path), 8#666#);
-         Written : Integer;
-         Next    : Positive := Metadata'First;
-         Closed  : Boolean;
-      begin
-         if Descriptor = GNAT.OS_Lib.Invalid_FD then
-            Files.Io_Errors.Capture;
-            raise Ada.Directories.Use_Error;
-         end if;
-         Info_Owned := True;
-         Files.Private_Directories.Make_File_Private (Descriptor);
-         while Next <= Metadata'Last loop
-            Written := GNAT.OS_Lib.Write (Descriptor, Metadata (Next)'Address, Metadata'Last - Next + 1);
-            if Written <= 0 then
-               Files.Io_Errors.Capture;
-               raise Ada.Directories.Use_Error;
-            end if;
-            Next := Next + Written;
-         end loop;
-         GNAT.OS_Lib.Close (Descriptor, Closed);
-         Descriptor := GNAT.OS_Lib.Invalid_FD;
-         if not Closed then
-            Files.Io_Errors.Capture;
-            raise Ada.Directories.Use_Error;
-         end if;
-         --  On the device before the item moves in: a crash must not leave
-         --  an item in the trash with an empty info file, which the trash
-         --  view could neither list nor restore.
-         if Hostkit.Durability."=" (Files.Durability.Sync_File (To_String (Info_Path)), Hostkit.Durability.Failed)
-           or else Hostkit.Durability."=" (Files.Durability.Sync_Directory (Info_Dir), Hostkit.Durability.Failed)
-         then
-            raise Ada.Directories.Use_Error;
-         end if;
-      exception
-         when others =>
-            if Descriptor /= GNAT.OS_Lib.Invalid_FD then
-               GNAT.OS_Lib.Close (Descriptor);
-            end if;
-            raise;
-      end;
+      Write_Info_File;
    end if;
 
    declare
-      use type Hostkit.Fs.Move_Outcome;
-      Outcome : Hostkit.Fs.Move_Outcome := Hostkit.Fs.Move_Refused;
+      Moved : constant Mutation_Result := Move_Item;
    begin
-      begin
-         Outcome := Support.Move_No_Replace_Outcome (Path, To_String (Target));
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.File_System");
-            Outcome := Hostkit.Fs.Move_Refused;
-      end;
-      if Outcome /= Hostkit.Fs.Moved and then not Support.Copy_May_Replace_Move (Outcome) then
-         --  Refused for a reason a copy would meet too: no copy and delete.
-         declare
-            Failed : constant Mutation_Result :=
-              (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.failed"));
-         begin
-            Delete_Info_File_If_Present;
-            return Failed;
-         end;
-      elsif Outcome /= Hostkit.Fs.Moved then
-         --  Cross-device (EXDEV): rename cannot move across filesystems, so
-         --  the home trash is on a different mount than the file. Fall back
-         --  to copy-then-delete into the trash.
-         declare
-            Identity, Revision : UString;
-            Copy_Kept : Boolean;
-            Moved : constant Mutation_Result :=
-              Recovery.Move_By_Copy (Path, To_String (Target), "error.trash.failed", Identity, Revision, Copy_Kept);
-         begin
-            if not Moved.Success then
-               --  A copy left in the trash keeps its info file, so it stays
-               --  listed and restorable.
-               if Copy_Kept then
-                  Trashed_Path := Target;
-               else
-                  Delete_Info_File_If_Present;
-               end if;
-               return Moved;
-            end if;
-         end;
+      if not Moved.Success then
+         return Moved;
       end if;
    end;
 

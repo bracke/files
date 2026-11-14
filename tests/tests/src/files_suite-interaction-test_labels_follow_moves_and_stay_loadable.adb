@@ -19,8 +19,8 @@ separate (Files_Suite.Interaction)
       procedure Rename (Name, New_Name : String) is
       begin
          Files_Suite.Support.Select_Name (Model, Name);
-         Files.Model.Rename.Toggle_Rename (Model);
-         Files.Model.Rename.Set_Rename_Text (Model, New_Name);
+         Files.Model.Rename.Toggle (Model);
+         Files.Model.Rename.Set_Text (Model, New_Name);
          Op := Files.Operations.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Op.Status,

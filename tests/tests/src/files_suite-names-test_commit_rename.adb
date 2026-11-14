@@ -113,9 +113,9 @@ separate (Files_Suite.Names)
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "old.txt");
-      Files.Model.Rename.Toggle_Rename (Model);
+      Files.Model.Rename.Toggle (Model);
       Files.Model.Set_Error (Model, "error.rename.failed");
-      Files.Model.Rename.Set_Rename_Text (Model, "old.txt");
+      Files.Model.Rename.Set_Text (Model, "old.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -130,14 +130,14 @@ separate (Files_Suite.Names)
          "",
          "same-name rename clears stale error state");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "same-name rename leaves source in place");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "same-name rename clears edit state");
+      Assert (not Files.Model.Rename.Is_Active (Model), "same-name rename clears edit state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Name (Model),
          "old.txt",
          "same-name rename keeps selected source");
 
-      Files.Model.Rename.Toggle_Rename (Model);
-      Files.Model.Rename.Set_Rename_Text (Model, "taken.txt");
+      Files.Model.Rename.Toggle (Model);
+      Files.Model.Rename.Set_Text (Model, "taken.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -159,9 +159,9 @@ separate (Files_Suite.Names)
       Assert
         (Ada.Strings.Fixed.Index (Project_Tools.Files.Read_Raw_File (Taken), "destination") > 0,
          "failed rename preserves destination");
-      Assert (Files.Model.Rename.Rename_Is_Active (Model), "failed rename keeps rename mode active");
+      Assert (Files.Model.Rename.Is_Active (Model), "failed rename keeps rename mode active");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename.Rename_Text (Model),
+        (Files.Model.Rename.Text (Model),
          "taken.txt",
          "failed rename keeps attempted name");
       Files_Suite.Support.Assert_Equal
@@ -170,7 +170,7 @@ separate (Files_Suite.Names)
          "failed rename keeps selected source");
 
       Ada.Directories.Delete_File (Join (Root, "old.txt"));
-      Files.Model.Rename.Set_Rename_Text (Model, "missing-result.txt");
+      Files.Model.Rename.Set_Text (Model, "missing-result.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -188,9 +188,9 @@ separate (Files_Suite.Names)
         (Files.Model.Last_Error_Key (Model),
          "error.rename.source_missing",
          "disappeared source records source-missing error");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "source-missing rename clears stale rename mode");
+      Assert (not Files.Model.Rename.Is_Active (Model), "source-missing rename clears stale rename mode");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename.Rename_Text (Model),
+        (Files.Model.Rename.Text (Model),
          "",
          "source-missing rename clears stale attempted name");
       Files_Suite.Support.Assert_Equal
@@ -207,9 +207,9 @@ separate (Files_Suite.Names)
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "same-missing.txt");
-      Files.Model.Rename.Toggle_Rename (Model);
+      Files.Model.Rename.Toggle (Model);
       Ada.Directories.Delete_File (Join (Root, "same-missing.txt"));
-      Files.Model.Rename.Set_Rename_Text (Model, "same-missing.txt");
+      Files.Model.Rename.Set_Text (Model, "same-missing.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -224,15 +224,15 @@ separate (Files_Suite.Names)
          "error.rename.source_missing",
          "same-name disappeared source records source-missing error");
       Assert
-        (not Files.Model.Rename.Rename_Is_Active (Model),
+        (not Files.Model.Rename.Is_Active (Model),
          "same-name disappeared source clears stale rename mode");
 
       Write_File (Join (Root, "missing-parent-source.txt"));
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "missing-parent-source.txt");
-      Files.Model.Rename.Toggle_Rename (Model);
-      Files.Model.Rename.Set_Rename_Text (Model, "new.txt");
+      Files.Model.Rename.Toggle (Model);
+      Files.Model.Rename.Set_Text (Model, "new.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -248,14 +248,14 @@ separate (Files_Suite.Names)
          Join (Root, "new.txt"),
          "rename commit returns renamed path");
       Assert (not Ada.Directories.Exists (Join (Root, "missing-parent-source.txt")), "rename removes old path");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "rename commit clears edit state");
+      Assert (not Files.Model.Rename.Is_Active (Model), "rename commit clears edit state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Name (Model),
          "new.txt",
          "renamed item is selected after reload");
 
-      Files.Model.Rename.Toggle_Rename (Model);
-      Files.Model.Rename.Set_Rename_Text (Model, Utf8_Target);
+      Files.Model.Rename.Toggle (Model);
+      Files.Model.Rename.Set_Text (Model, Utf8_Target);
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

@@ -27,7 +27,7 @@ separate (Files.Application.Windows)
 
          declare
             Line_Height : constant Positive :=
-              Cell_Height_For (Runtime.Font_Pixel_Size);
+              Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
 
             function Capacity_For
               (Snapshot : Files.Rendering.View_Snapshot)

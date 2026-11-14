@@ -2,7 +2,7 @@ with Files.Overlays;
 separate (Files.Application.Windows.Render_Window)
    procedure Build_Overlays is
       Snapshot    : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Drawn_Slot);
-      Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+      Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
    begin
       if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Command_Palette_Overlay) then
          declare

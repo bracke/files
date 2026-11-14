@@ -226,6 +226,11 @@ package body Files.File_System.Testing is
       end Wait_Open;
    end Sweep_Gate;
 
+   --  How long Hold_Sweep holds a sweep at most: far above any wait a test
+   --  makes for something that must not wait for the held sweep, so such a
+   --  wait cannot pass merely because the hold ran out.
+   Sweep_Hold_Limit : constant Duration := 120.0;
+
    --  The During_Sweep_Work hook Pause_Sweep_Work installs.
    procedure Hold_Sweep (Payload : String) is
       pragma Unreferenced (Payload);
@@ -234,7 +239,7 @@ package body Files.File_System.Testing is
       select
          Sweep_Gate.Wait_Open;
       or
-         delay 30.0;
+         delay Sweep_Hold_Limit;
       end select;
    end Hold_Sweep;
 

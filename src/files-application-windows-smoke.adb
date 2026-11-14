@@ -1,4 +1,3 @@
-with Files.Diagnostics;
 with Files.Items;
 with Ada.Strings;
 with Ada.Strings.Fixed;
@@ -28,50 +27,52 @@ package body Files.Application.Windows.Smoke is
      (Index_Type   => Positive,
       Element_Type => Scenario_Base_State);
 
-   function Headless_Smoke_Test
-     (Startup : Startup_Result)
-      return Boolean is
+   function Check_Window_Frame
+     (Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Width    : Natural;
+      Height   : Natural)
+      return Window_Frame_Check
+   is
+      Snapshot  : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
+      Frame     : constant Files.Rendering.Frame_Commands :=
+        Files.Rendering.Build_Frame_Commands
+          (Snapshot    => Snapshot,
+           Width       => Width,
+           Height      => Height,
+           Line_Height => Guikit.Layout.Reference_Line_Height,
+           Pointer => (Hover_X => 5, Hover_Y => 5, Has_Hover => Width > 0 and then Height > 0, others => <>));
+      Text      : Files.Rendering.Text_Renderer;
+      Font_Path : constant String := Files.Rendering.Default_Font_Path;
+      Status    : constant Files.Rendering.Text_Render_Status :=
+        Files.Rendering.Initialize_Text
+          (Renderer   => Text,
+           Font_Path  => Font_Path,
+           Pixel_Size => Files.Settings.Default_Font_Pixel_Size);
+      Glyphs    : constant Files.Rendering.Text_Render_Result := Files.Rendering.Build_Text_Glyphs (Text, Frame);
+      Batch     : constant Guikit.Vulkan.Submission_Batch :=
+        Guikit.Vulkan.Build_Submission
+          (Rectangles         => Frame.Rectangles,
+           Triangles          => Frame.Triangles,
+           Icons              => Frame.Icons,
+           Overlay_Rectangles => Frame.Overlay_Rectangles,
+           Layout             => Frame.Layout,
+           Theme              => Frame.Theme_Palette,
+           Text               => Glyphs);
    begin
-      for Startup_Window of Startup.Windows loop
-         declare
-            Snapshot : constant Files.Rendering.View_Snapshot :=
-              Files.Rendering.Build_Snapshot (Startup_Window.Model, Startup.Settings);
-            Frame    : constant Files.Rendering.Frame_Commands :=
-              Files.Rendering.Build_Frame_Commands
-                (Snapshot    => Snapshot,
-                 Width       => 320,
-                 Height      => 240,
-                 Line_Height => Guikit.Layout.Reference_Line_Height);
-            Text     : Files.Rendering.Text_Renderer;
-            Text_Status : constant Files.Rendering.Text_Render_Status :=
-              Files.Rendering.Initialize_Text
-                (Renderer    => Text,
-                 Font_Path   => Files.Rendering.Default_Font_Path,
-                 Pixel_Size  => 16,
-                 Cell_Width  => 12,
-                 Cell_Height => 20);
-            Glyphs : constant Files.Rendering.Text_Render_Result :=
-              Files.Rendering.Build_Text_Glyphs (Text, Frame);
-         begin
-            if Frame.Layout.Width /= 320
-              or else Frame.Layout.Height /= 240
-              or else Frame.Rectangles.Is_Empty
-              or else Text_Status /= Files.Rendering.Text_Render_Success
-              or else Glyphs.Status /= Files.Rendering.Text_Render_Success
-              or else Glyphs.Glyphs.Is_Empty
-              or else To_String (Snapshot.Current_Path) = ""
-            then
-               return False;
-            end if;
-         end;
-      end loop;
-
-      return True;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Application.Windows.Smoke");
-         return False;
-   end Headless_Smoke_Test;
+      return
+        (Size_Matches   => Frame.Layout.Width = Width and then Frame.Layout.Height = Height,
+         Has_Path       => Length (Snapshot.Current_Path) > 0,
+         Rectangles     => Natural (Frame.Rectangles.Length),
+         Glyphs         => Natural (Glyphs.Glyphs.Length),
+         Missing_Glyphs => Glyphs.Missing_Glyph_Count,
+         Vertices       => Natural (Batch.Vertices.Length),
+         Text_Rendered  =>
+           Status = Files.Rendering.Text_Render_Success
+           and then Glyphs.Status = Files.Rendering.Text_Render_Success
+           and then not Glyphs.Glyphs.Is_Empty,
+         Font_Path      => To_Unbounded_String (Font_Path));
+   end Check_Window_Frame;
 
    function Headless_Render_Quality_Report
      (Startup : Startup_Result;
@@ -322,53 +323,15 @@ package body Files.Application.Windows.Smoke is
      (Plan : Live_Smoke_Plan)
       return Live_Smoke_Result is
    begin
+      --  Nothing was attempted either way: only why differs.
       if not Plan.Can_Run then
-         return
-           (Attempted          => False,
-            Window_Created     => False,
-            Frame_Rendered     => False,
-            Frames_Attempted   => 0,
-            Frames_Presented   => 0,
-            Input_Polled       => False,
-            Closed_Cleanly     => False,
-            Skipped_By_Plan    => True,
-            Last_Status        => Guikit.Vulkan.Vulkan_Not_Initialized,
-            Last_Vk_Result     => 0,
-            Framebuffer_Readback_Ready => False,
-            Last_Framebuffer_Hash => 0,
-            Last_Framebuffer_Bytes => 0,
-            Framebuffer_Analysis => (others => <>),
-            Framebuffer_Passed => False,
-            Vulkan_Device_Ready => False,
-            Scenario_Results   => [others => <>],
-            Loop_Failures      => 0,
-            Loop_Drew_Input    => False,
-            Resize_Drawn       => False,
-            Error_Key          => Plan.Reason_Key);
+         return (Skipped_By_Plan => True, Error_Key => Plan.Reason_Key, others => <>);
       end if;
 
       return
-        (Attempted          => False,
-         Window_Created     => False,
-         Frame_Rendered     => False,
-         Frames_Attempted   => 0,
-         Frames_Presented   => 0,
-         Input_Polled       => False,
-         Closed_Cleanly     => False,
-         Skipped_By_Plan    => False,
-         Last_Status        => Guikit.Vulkan.Vulkan_Not_Initialized,
-         Last_Vk_Result     => 0,
-         Framebuffer_Readback_Ready => False,
-         Last_Framebuffer_Hash => 0,
-         Last_Framebuffer_Bytes => 0,
-         Framebuffer_Analysis => (others => <>),
-         Framebuffer_Passed => False,
-         Vulkan_Device_Ready => False,
-         Scenario_Results   => [others => <>],
-         Loop_Failures      => 0,
-         Loop_Drew_Input    => False,
-         Resize_Drawn       => False,
-         Error_Key          => To_Unbounded_String ("runtime.smoke.requires_live_harness"));
+        (Skipped_By_Plan => False,
+         Error_Key       => To_Unbounded_String ("runtime.smoke.requires_live_harness"),
+         others          => <>);
    end Evaluate_Live_Window_Smoke;
 
    function Run_Live_Window_Smoke

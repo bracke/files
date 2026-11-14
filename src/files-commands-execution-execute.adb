@@ -27,7 +27,7 @@ separate (Files.Commands.Execution)
             Files.Model.Focus_Path_Input (Model);
             Files.Model.Set_Error (Model, "");
          when Rename_Selected_Items_Command =>
-            Files.Model.Rename.Toggle_Rename (Model);
+            Files.Model.Rename.Toggle (Model);
          when Focus_Filter_Input_Command =>
             Files.Model.Focus_Filter_Input (Model);
             Files.Model.Set_Error (Model, "");
@@ -39,7 +39,7 @@ separate (Files.Commands.Execution)
          when Select_All_Command =>
             Files.Model.Selection.Select_All_Visible (Model);
          when Invert_Selection_Command =>
-            Files.Model.Selection.Invert_Selection (Model);
+            Files.Model.Selection.Invert (Model);
          when Deselect_All_Command =>
             Files.Model.Selection.Deselect_All (Model);
          when Copy_Path_Command =>

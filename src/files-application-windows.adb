@@ -48,13 +48,6 @@ package body Files.Application.Windows is
 
    function Key_Repeats (Key : Guikit.Input.Key_Code) return Boolean renames Files.Window_Policy.Key_Repeats;
 
-   --  The text cell width is the advance every layout measures labels with,
-   --  taken from the same line height. Derived separately (Size * 3 / 4) it
-   --  came out a pixel wider at some sizes, so labels sized to fit lost their
-   --  last character and large fonts read "Klei", "Gro", "hom".
-   function Cell_Width_For  (Size : Positive) return Positive is
-     (Guikit.Layout.Caret_Advance_Width (Cell_Height_For (Size)));
-
    --  How long a window whose text failed to load waits before trying again.
    Text_Retry_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (5);
    File_Watch_Poll_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
@@ -254,15 +247,16 @@ package body Files.Application.Windows is
             Layout    : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H),
-                 Cell_Height_For (Runtime.Font_Pixel_Size));
+                 Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
             Main_View : constant Files.Rendering.Main_View_Layout :=
               Files.Rendering.Calculate_Main_View_Layout
-                (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size));
+                (Snapshot, Layout, Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
          begin
-            Files.Model.Selection.Set_Selection_Grid_Columns (Runtime.Model, Main_View.Columns);
-            Files.Model.Selection.Set_Selection_Page_Rows
+            Files.Model.Selection.Set_Grid_Columns (Runtime.Model, Main_View.Columns);
+            Files.Model.Selection.Set_Page_Rows
               (Runtime.Model,
-               Files.Rendering.Main_View_Page_Rows (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size)));
+               Files.Rendering.Main_View_Page_Rows
+                 (Snapshot, Layout, Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size)));
          end Apply;
       begin
          --  Runs before every key fire, auto-repeat included; the current
@@ -812,7 +806,7 @@ package body Files.Application.Windows is
               Width       => Natural (Frame_W),
               Height      => Natural (Frame_H),
               Modifiers   => Modifiers,
-              Line_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
+              Line_Height => Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
       begin
          if Action.Kind = Files.Events.Item_Click_Input_Action then
             Action.Item_Index := Current_Item_Index (Runtime, Slot, Action.Item_Index);
@@ -1058,7 +1052,7 @@ package body Files.Application.Windows is
          Origin_Width => Runtime.Column_Resize.Origin_W,
          Current_X    => Scale_Coordinate (Cursor_X, Window_W, Frame_W),
          Result       => Result,
-         Line_Height  => Cell_Height_For (Runtime.Font_Pixel_Size));
+         Line_Height  => Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
       if Result.Settings_Changed then
          Runtime.Column_Resize.Changed := True;
       end if;

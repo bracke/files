@@ -566,7 +566,7 @@ package Files.Model is
       Settings   : Files.Settings.Settings_Model;
       Reclassify : Boolean);
 
-   --  Navigate to a directory and push the previous path onto back history.
+   --  Navigate to a directory and push the previous path onto the back navigation history.
    --
    --  @param Model Model to update.
    --  @param Directory_Path Destination directory path.
@@ -578,7 +578,7 @@ package Files.Model is
 
    --  Enter the virtual recent-items view, showing Items in place of an ordinary
    --  directory listing. The first entry into the view pushes the current path
-   --  onto back history so Back leaves the view; re-entering while already in the
+   --  onto the back navigation history so Back leaves the view; re-entering while already in the
    --  view (a refresh or clear) simply replaces the listing. The current path is
    --  cleared because the view is synthetic and has no backing directory.
    --
@@ -650,7 +650,7 @@ package Files.Model is
    --  Return whether back navigation is available.
    --
    --  @param Model Model to inspect.
-   --  @return True when the back-history stack is not empty.
+   --  @return True when the back navigation history is not empty.
    function Can_Go_Back
      (Model : Window_Model)
       return Boolean;
@@ -658,35 +658,35 @@ package Files.Model is
    --  Return whether forward navigation is available.
    --
    --  @param Model Model to inspect.
-   --  @return True when the forward-history stack is not empty.
+   --  @return True when the forward navigation history is not empty.
    function Can_Go_Forward
      (Model : Window_Model)
       return Boolean;
 
-   --  Navigate backward if history is available.
+   --  Navigate backward if the navigation history allows it.
    --
    --  @param Model Model to update.
    procedure Go_Back
      (Model : in out Window_Model);
 
-   --  Navigate forward if history is available.
+   --  Navigate forward if the navigation history allows it.
    --
    --  @param Model Model to update.
    procedure Go_Forward
      (Model : in out Window_Model);
 
-   --  Where a window is in its history: its view, the recent view or not,
-   --  and both history stacks.
+   --  Where a window is in its navigation history: its view, the recent view
+   --  or not, and both navigation stacks.
    type Navigation_Mark is private;
 
    --  Mark where Model is, to return there when a move fails.
    --
    --  @param Model Model to inspect.
-   --  @return Its view and history.
+   --  @return Its view and navigation history.
    function Mark_Navigation (Model : Window_Model) return Navigation_Mark;
 
    --  Return Model to Mark: the view, whether it is the recent view, and the
-   --  history as it was -- not a move the other way, which from the recent
+   --  navigation history as it was -- not a move the other way, which from the recent
    --  view (never in history) lands somewhere else.
    --
    --  @param Model Model to update.
@@ -1264,91 +1264,8 @@ package Files.Model is
       Total_Bytes : Long_Long_Integer := 0;
    end record;
 
-   --  How long a volume-space sample stays current before the window layer
-   --  samples again, so the readout follows a delete, a paste or another
-   --  process rather than sticking until the user navigates away.
-   Volume_Space_Refresh_Interval : constant Duration := 3.0;
-
-   --  Record a volume-space sample. The window layer takes it (a statvfs);
-   --  Build_Snapshot only reads it, so building a snapshot touches no disk.
-   --  Bumps the revision only when what would be shown changed.
-   --
-   --  @param Model Model to update.
-   --  @param Path Directory the sample was taken for.
-   --  @param Space The sampled free and total bytes.
-   --  @param Sampled When it was taken.
-   procedure Set_Volume_Space
-     (Model   : in out Window_Model;
-      Path    : String;
-      Space   : Volume_Space;
-      Sampled : Ada.Calendar.Time);
-
-   --  @param Model Model to inspect.
-   --  @param Now The current time.
-   --  @return True when the sample is for the current directory and younger
-   --    than Volume_Space_Refresh_Interval.
-   function Volume_Space_Is_Current
-     (Model : Window_Model;
-      Now   : Ada.Calendar.Time)
-      return Boolean;
-
-   --  @param Model Model to inspect.
-   --  @return The last sample, or an unknown space when it was taken for
-   --    another directory.
-   function Volume_Space_Of
-     (Model : Window_Model)
-      return Volume_Space;
-
    --  Which numeric account an owner name belongs to: a user id or a group id.
    type Account_Kind is (User_Account, Group_Account);
-
-   --  Record the name of a user or group id. The window layer resolves it (an
-   --  NSS lookup); Build_Snapshot only reads it, so building a snapshot asks
-   --  the OS nothing. Bumps the revision only when the recorded name changed.
-   --
-   --  @param Model Model to update.
-   --  @param Kind Whether Id is a user id or a group id.
-   --  @param Id Numeric user or group id.
-   --  @param Name Resolved name, or "" when the id has none.
-   procedure Set_Account_Name
-     (Model : in out Window_Model;
-      Kind  : Account_Kind;
-      Id    : Files.Types.Account_Id;
-      Name  : String);
-
-   --  @param Model Model to inspect.
-   --  @param Kind Whether Id is a user id or a group id.
-   --  @param Id Numeric user or group id.
-   --  @return True when a name (possibly "") was recorded for Id.
-   function Account_Name_Known
-     (Model : Window_Model;
-      Kind  : Account_Kind;
-      Id    : Files.Types.Account_Id)
-      return Boolean;
-
-   --  @param Model Model to inspect.
-   --  @param Kind Whether Id is a user id or a group id.
-   --  @param Id Numeric user or group id.
-   --  @return The recorded name, or "" when none was recorded.
-   function Account_Name
-     (Model : Window_Model;
-      Kind  : Account_Kind;
-      Id    : Files.Types.Account_Id)
-      return String;
-
-   --  Note that the account names the info pane needs were sampled at the
-   --  current revision, so the window layer can skip sampling until the model
-   --  changes again. Does not bump the revision.
-   --
-   --  @param Model Model to update.
-   procedure Note_Account_Names_Sampled
-     (Model : in out Window_Model);
-
-   --  @param Model Model to inspect.
-   --  @return True when Note_Account_Names_Sampled ran at the current revision.
-   function Account_Names_Current
-     (Model : Window_Model)
-      return Boolean;
 
    --  Record a recoverable error key, and the path its message names.
    --
@@ -1441,7 +1358,7 @@ private
    --  Cache of recursive folder-size measurements, keyed by absolute path. Holds
    --  one entry per measured selected directory so a multi-item selection can
    --  show each folder's size; pruned to the selection by
-   --  Prune_Folder_Sizes_To_Selection.
+   --  Folder_Sizes.Prune_To_Selection.
    use type Files.File_System.Directory_Size_Result;
    package Folder_Size_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => UString,
@@ -1561,7 +1478,7 @@ private
    end record;
 
    --  The undo history: the two stacks, the work owed to the operations
-   --  layer (Take_Retired_History) -- payloads of retired entries to delete,
+   --  layer (History.Take_Retired) -- payloads of retired entries to delete,
    --  payloads of a released history to send to the trash -- whether the
    --  history changed since it was last saved, and what its journal holds
    --  besides the stacks. Every default is the empty history.
@@ -1686,6 +1603,8 @@ private
       Sort_Field_Value     : Files.Types.Sort_Field := Files.Types.Sort_Name;
       Sort_Ascending       : Boolean := True;
       Sort_Menu            : Sort_Menu_State;
+      --  The navigation history (Go_Back, Go_Forward); the undo history is
+      --  History below.
       Back_History         : Files.Types.String_Vectors.Vector;
       Forward_History      : Files.Types.String_Vectors.Vector;
       Focus_Value          : Files.Types.Focus_Target := Files.Types.Focus_None;

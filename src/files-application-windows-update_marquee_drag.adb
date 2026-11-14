@@ -61,7 +61,7 @@ separate (Files.Application.Windows)
       --  the current one (normally the frame just drawn).
       Refresh_Snapshot (Runtime);
       declare
-         Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+         Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
 
          Layout    : Files.Rendering.Layout_Metrics :=
            Files.Rendering.Calculate_Layout

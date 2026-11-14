@@ -40,7 +40,7 @@ separate (Files_Suite.Operations)
       declare
          Payload : constant String :=
            To_String
-             (Files.Model.History.Undo_History (Model).Last_Element.To.First_Element);
+             (Files.Model.History.Undo_Entries (Model).Last_Element.To.First_Element);
          First_Separator : constant Natural :=
            Ada.Strings.Fixed.Index
              (Payload, String'(1 => Ada.Characters.Latin_1.NUL));

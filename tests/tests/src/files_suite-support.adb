@@ -26,6 +26,7 @@ with Hostkit.Host;
 with Hostkit.Metadata;
 with Hostkit.Process;
 with Files.Model.Pasting;
+with Files.Paste;
 with Files.Model.Selection;
 
 package body Files_Suite.Support is
@@ -977,5 +978,39 @@ package body Files_Suite.Support is
          when Media_Kind        => return "media.kind|" & V;
       end case;
    end Describe;
+
+   function Img (N : Integer) return String is
+     (Ada.Strings.Fixed.Trim (Integer'Image (N), Ada.Strings.Both));
+
+   function Numbered_File (Directory : String; N : Positive) return String is
+     (Join (Directory, "f" & Img (N) & ".txt"));
+
+   procedure Arm_Numbered_Paste
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Src_Dir  : String;
+      Dest_Dir : String;
+      Count    : Positive)
+   is
+      Actions : Files.Paste.Resolved_Action_Vectors.Vector;
+      Load    : Files.File_System.Directory_Load_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      for N in 1 .. Count loop
+         Write_File (Numbered_File (Src_Dir, N), "S" & Img (N));
+         Actions.Append
+           (Files.Paste.Resolved_Action'
+              (Source_Path => Ada.Strings.Unbounded.To_Unbounded_String (Numbered_File (Src_Dir, N)),
+               Dest_Path   => Ada.Strings.Unbounded.To_Unbounded_String (Numbered_File (Dest_Dir, N)),
+               Skip        => False,
+               Replaced    => False));
+      end loop;
+
+      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+      Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
+      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+   end Arm_Numbered_Paste;
 
 end Files_Suite.Support;

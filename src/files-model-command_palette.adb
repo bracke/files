@@ -41,7 +41,7 @@ package body Files.Model.Command_Palette is
       Model.Command_Palette.Open_With_Targets.Clear;
       Model.Command_Palette.Open_With_Applications.Clear;
       Claim_Overlay_Input (Model);
-      --  At the reference line height; Visit sets the window's
+      --  At the reference line height; With_Panel sets the window's
       --  real one.
       Guikit.Command_Palette.Set_Configuration
         (Model.Command_Palette.View, Palette_Config (Guikit.Layout.Reference_Line_Height));
@@ -173,7 +173,7 @@ package body Files.Model.Command_Palette is
       end if;
    end Focus_Input;
 
-   procedure Visit
+   procedure With_Panel
      (Model       : in out Window_Model;
       Line_Height : Positive;
       Title       : String;
@@ -190,6 +190,6 @@ package body Files.Model.Command_Palette is
          Model.Command_Palette.Listed_Revision := Model.Revision_Value;
       end if;
       Draw (Model.Command_Palette.View);
-   end Visit;
+   end With_Panel;
 
 end Files.Model.Command_Palette;

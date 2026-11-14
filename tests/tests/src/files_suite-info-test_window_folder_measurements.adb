@@ -57,13 +57,13 @@ separate (Files_Suite.Info)
          Files.Operations.Poll_Folder_Sizes (Other);
          exit when not Files.Model.Testing.Folder_Scan_Is_Active (Other);
       end loop;
-      Assert (Files.Model.Folder_Sizes.Folder_Size_Value (Other, Folder).Total_Bytes = 3
+      Assert (Files.Model.Folder_Sizes.Value (Other, Folder).Total_Bytes = 3
               and then Files.Model.Testing.Folder_Scan_Is_Active (Model),
               "a surviving window measures normally while another window's scan remains stalled");
       Write_Binary_File (Join (Folder, "data"), "longer contents");
       Step := Files.Operations.Refresh (Other, Settings);
       Assert
-        (not Files.Model.Folder_Sizes.Folder_Size_Cached_For (Other, Folder),
+        (not Files.Model.Folder_Sizes.Cached_For (Other, Folder),
          "a successful refresh discards stale totals");
       Files.Operations.Update_Folder_Size (Other, Settings);
       for Attempt in Files_Suite.Support.Polling loop
@@ -71,7 +71,7 @@ separate (Files_Suite.Info)
          exit when not Files.Model.Testing.Folder_Scan_Is_Active (Other);
       end loop;
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Folder_Sizes.Folder_Size_Value (Other, Folder).Total_Bytes,
+        (Files.Model.Folder_Sizes.Value (Other, Folder).Total_Bytes,
          15,
          "refresh remeasures descendant changes even when parent entries were unchanged");
       Files.Operations.Cancel_Folder_Scan (Model);
@@ -80,7 +80,7 @@ separate (Files_Suite.Info)
          exit when not Ada.Directories.Exists (To_String (Started));
       end loop;
       Assert (not Ada.Directories.Exists (To_String (Started))
-              and then Files.Model.Folder_Sizes.Folder_Size_Value (Other, Folder).Total_Bytes = 15,
+              and then Files.Model.Folder_Sizes.Value (Other, Folder).Total_Bytes = 15,
               "closing the stalled window terminates only its measurement and preserves the other's cache");
       Files.Model.Set_Background_Transfers (Other, True);
       Step := Files.Operations.Refresh (Other, Settings);
@@ -90,7 +90,7 @@ separate (Files_Suite.Info)
               and then not Files.Model.Testing.Folder_Scan_Is_Active (Other),
               "size results cannot invalidate a pending listing request by changing its captured revision");
       Await_View (Other, Settings);
-      Assert (not Files.Model.Folder_Sizes.Folder_Size_Cached_For (Other, Folder),
+      Assert (not Files.Model.Folder_Sizes.Cached_For (Other, Folder),
               "a completed background refresh also invalidates the prior size");
       Files.Operations.Update_Folder_Size (Other, Settings);
       for Attempt in Files_Suite.Support.Polling loop
@@ -98,7 +98,7 @@ separate (Files_Suite.Info)
          exit when not Files.Model.Testing.Folder_Scan_Is_Active (Other);
       end loop;
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Folder_Sizes.Folder_Size_Value (Other, Folder).Total_Bytes,
+        (Files.Model.Folder_Sizes.Value (Other, Folder).Total_Bytes,
          15,
          "measurement resumes normally after the asynchronous listing was applied");
       Restore;

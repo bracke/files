@@ -65,14 +65,14 @@ separate (Files_Suite.History)
          State.Unjournaled.Append (Sequence);
       end loop;
       Files.Model.Initialize (Window, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Files.Model.History.Set_History (Window, Undo, Files.Model.Undo_Entry_Vectors.Empty_Vector, State);
+      Files.Model.History.Restore (Window, Undo, Files.Model.Undo_Entry_Vectors.Empty_Vector, State);
       Files.History_Journal.Save_To (Directory, Window, Required => True);
 
       --  The helper carries the dropped markers on into its own journal.
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.History_Journal.Restore (Directory, Helper), "the helper reads the window's journal");
       declare
-         Helper_State : constant Files.Model.History_Journal_State := Files.Model.History.History_State (Helper);
+         Helper_State : constant Files.Model.History_Journal_State := Files.Model.History.Journal_State (Helper);
       begin
          Assert (Helper_State.Dropped.Contains (1) and then Helper_State.Dropped.Contains (2),
                  "the journal names the entries its cap dropped");
@@ -84,13 +84,13 @@ separate (Files_Suite.History)
       Files.History_Journal.Save_To (Directory, Helper, Required => True);
 
       Assert (Files.History_Journal.Merge (Directory, Window), "the window merges the helper's journal");
-      Assert (Names (Files.Model.History.Undo_History (Window)) = "c,d",
-              "the dropped entries leave the history: " & Names (Files.Model.History.Undo_History (Window)));
+      Assert (Names (Files.Model.History.Undo_Entries (Window)) = "c,d",
+              "the dropped entries leave the history: " & Names (Files.Model.History.Undo_Entries (Window)));
       declare
          Discarded, Released : Files.Types.String_Vectors.Vector;
          Dirty : Boolean;
       begin
-         Files.Model.History.Take_Retired_History (Window, Discarded, Released, Dirty);
+         Files.Model.History.Take_Retired (Window, Discarded, Released, Dirty);
          Assert (Holds (Released, "stage-a") and then Holds (Released, "stage-b"),
                  "the originals they preserved go to the system trash");
          Assert (not Holds (Discarded, "stage-a") and then not Holds (Discarded, "stage-b"),
@@ -99,7 +99,7 @@ separate (Files_Suite.History)
                  "the journaled entry keeps its original");
          Assert (Dirty, "the merged history is saved again");
       end;
-      Assert (Files.Model.History.History_State (Window).Dropped.Is_Empty, "the merge forgets the dropped list");
+      Assert (Files.Model.History.Journal_State (Window).Dropped.Is_Empty, "the merge forgets the dropped list");
 
       --  A version 2 journal, written before the dropped list, still reads.
       declare
@@ -117,8 +117,8 @@ separate (Files_Suite.History)
       end;
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.History_Journal.Restore (Directory, Helper), "a version 2 journal reads");
-      Assert (Files.Model.History.History_State (Helper).Unjournaled.Contains (3),
+      Assert (Files.Model.History.Journal_State (Helper).Unjournaled.Contains (3),
               "with its left-out list");
-      Assert (Files.Model.History.History_State (Helper).Dropped.Is_Empty, "and no dropped list");
+      Assert (Files.Model.History.Journal_State (Helper).Dropped.Is_Empty, "and no dropped list");
       Reset_Root;
    end Test_Journal_Cap_Retires_Dropped;

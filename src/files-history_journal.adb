@@ -232,7 +232,7 @@ package body Files.History_Journal is
    --  or costing the others their place. The window keeps
    --  the whole history in memory, the journal only what a crash could
    --  recover; Left_Out gains the Sequence of each entry left out, so a
-   --  window merging a helper's journal keeps them (Files.Model.History.Merge_History).
+   --  window merging a helper's journal keeps them (Files.Model.History.Merge).
    procedure Fit
      (Undo, Redo : in out Files.Model.Undo_Entry_Vectors.Vector;
       Header     : Natural;
@@ -326,7 +326,7 @@ package body Files.History_Journal is
    --  than failing the save, which a job's start and its checkpoints
    --  require: each one gone is added to Dropped, which the journal carries
    --  so the window retires those entries on merge, releasing what they
-   --  preserved (Files.Model.History.Merge_History).
+   --  preserved (Files.Model.History.Merge).
    function Pruned_Left_Out
      (Left_Out   : Files.Model.Sequence_Vectors.Vector;
       Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
@@ -413,10 +413,10 @@ package body Files.History_Journal is
    end Pruned_Dropped;
 
    function Journals_Newest (Model : Files.Model.Window_Model; Redo : Boolean) return Boolean is
-      Undo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Undo_History (Model);
-      Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Redo_History (Model);
+      Undo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Undo_Entries (Model);
+      Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Redo_Entries (Model);
       Original   : constant Files.Model.Undo_Entry_Vectors.Vector := (if Redo then Redo_Stack else Undo_Stack);
-      Left_Out   : Files.Model.Sequence_Vectors.Vector := Files.Model.History.History_State (Model).Unjournaled;
+      Left_Out   : Files.Model.Sequence_Vectors.Vector := Files.Model.History.Journal_State (Model).Unjournaled;
    begin
       if Original.Is_Empty then
          return True;
@@ -533,8 +533,8 @@ package body Files.History_Journal is
    procedure Save_To (Directory : String; Model : Files.Model.Window_Model; Required : Boolean := False) is
    begin
       Save_Stacks
-        (Directory, Files.Model.History.Undo_History (Model),
-         Files.Model.History.Redo_History (Model), Required, Files.Model.History.History_State (Model));
+        (Directory, Files.Model.History.Undo_Entries (Model),
+         Files.Model.History.Redo_Entries (Model), Required, Files.Model.History.Journal_State (Model));
    end Save_To;
 
    --  When the journal was last written by Checkpoint.
@@ -551,8 +551,8 @@ package body Files.History_Journal is
       if not Force and then Ada.Real_Time.Clock < Last_Checkpoint + Checkpoint_Interval then
          return;
       end if;
-      Undo_Stack := Files.Model.History.Undo_History (Model);
-      Redo_Stack := Files.Model.History.Redo_History (Model);
+      Undo_Stack := Files.Model.History.Undo_Entries (Model);
+      Redo_Stack := Files.Model.History.Redo_Entries (Model);
       if Redo then
          Redo_Stack.Append (Action);
       else
@@ -560,7 +560,7 @@ package body Files.History_Journal is
       end if;
       Save_Stacks
         (Files.Job_Context.Directory, Undo_Stack, Redo_Stack,
-         Required => True, State => Files.Model.History.History_State (Model));
+         Required => True, State => Files.Model.History.Journal_State (Model));
       Last_Checkpoint := Ada.Real_Time.Clock;
    end Checkpoint;
 
@@ -641,7 +641,7 @@ package body Files.History_Journal is
       if not Read_Journal (Directory, Undo, Redo, State) then
          return False;
       end if;
-      Files.Model.History.Set_History (Model, Undo, Redo, State);
+      Files.Model.History.Restore (Model, Undo, Redo, State);
       return True;
    exception
       when Swallowed : others =>
@@ -656,7 +656,7 @@ package body Files.History_Journal is
       if not Read_Journal (Directory, Undo, Redo, State) then
          return False;
       end if;
-      Files.Model.History.Merge_History (Model, Undo, Redo, State);
+      Files.Model.History.Merge (Model, Undo, Redo, State);
       return True;
    exception
       when Swallowed : others =>

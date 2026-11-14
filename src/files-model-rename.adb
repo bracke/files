@@ -8,6 +8,35 @@ package body Files.Model.Rename is
    use type Files.Types.Focus_Target;
    use type Guikit.Input.Navigation_Direction;
 
+   --  The 1-based index into the rename fields for the field shown at
+   --  Visible_Index, or zero when that row has no active rename field.
+   function Find_Rename_Field
+     (Model         : Window_Model;
+      Visible_Index : Positive)
+      return Natural
+   is
+      Loaded : constant Natural := Visible_To_Item_Index (Model, Visible_Index);
+      Target : Natural;
+   begin
+      if Loaded = 0 then
+         if Temporary_Is_Visible (Model) and then Visible_Index = Visible_Count (Model) then
+            Target := 0;
+         else
+            return 0;
+         end if;
+      else
+         Target := Loaded;
+      end if;
+
+      for Index in Model.Rename.Fields.First_Index .. Model.Rename.Fields.Last_Index loop
+         if Model.Rename.Fields.Element (Index).Item_Index = Target then
+            return Index;
+         end if;
+      end loop;
+
+      return 0;
+   end Find_Rename_Field;
+
    --  Return the first rename field's text, or an empty string when inactive.
    --
    --  @param Model Model to inspect.
@@ -110,12 +139,12 @@ package body Files.Model.Rename is
       end if;
    end Sync_Temporary_From_Field;
 
-   function Rename_Is_Enabled
+   function Is_Enabled
      (Model : Window_Model)
       return Boolean is
      (Selected_Count (Model) >= 1 and then not Selection_Includes_Temporary (Model));
 
-   procedure Toggle_Rename
+   procedure Toggle
      (Model : in out Window_Model) is
    begin
       Touch (Model);
@@ -131,7 +160,7 @@ package body Files.Model.Rename is
          if Model.Focus_Value = Files.Types.Focus_Rename_Input then
             Model.Focus_Value := Files.Types.Focus_None;
          end if;
-      elsif Rename_Is_Enabled (Model) then
+      elsif Is_Enabled (Model) then
          Clear_Overlay_State_For_Edit (Model);
          Model.Rename.Fields.Clear;
          declare
@@ -155,19 +184,19 @@ package body Files.Model.Rename is
             Model.Focus_Value := Files.Types.Focus_Rename_Input;
          end if;
       end if;
-   end Toggle_Rename;
+   end Toggle;
 
-   function Rename_Is_Active
+   function Is_Active
      (Model : Window_Model)
       return Boolean is
      (Model.Rename.Active);
 
-   function Rename_Text
+   function Text
      (Model : Window_Model)
       return String is
      (First_Rename_Value (Model));
 
-   procedure Set_Rename_Text
+   procedure Set_Text
      (Model : in out Window_Model;
       Text  : String) is
    begin
@@ -183,9 +212,9 @@ package body Files.Model.Rename is
             Sync_Temporary_From_Field (Model, Field);
          end;
       end if;
-   end Set_Rename_Text;
+   end Set_Text;
 
-   function Rename_Insert_At_Carets
+   function Insert_At_Carets
      (Model : in out Window_Model;
       Text  : String)
       return Boolean
@@ -213,9 +242,9 @@ package body Files.Model.Rename is
       end loop;
 
       return Changed;
-   end Rename_Insert_At_Carets;
+   end Insert_At_Carets;
 
-   function Rename_Delete
+   function Delete
      (Model    : in out Window_Model;
       Backward : Boolean;
       By_Word  : Boolean := False)
@@ -247,9 +276,9 @@ package body Files.Model.Rename is
          Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       end if;
       return Changed;
-   end Rename_Delete;
+   end Delete;
 
-   function Rename_Move_All_Carets
+   function Move_All_Carets
      (Model     : in out Window_Model;
       Direction : Guikit.Input.Navigation_Direction;
       By_Word   : Boolean := False)
@@ -290,9 +319,9 @@ package body Files.Model.Rename is
          Touch (Model);
       end if;
       return Changed;
-   end Rename_Move_All_Carets;
+   end Move_All_Carets;
 
-   function Rename_Set_All_Carets_Home
+   function Set_All_Carets_Home
      (Model : in out Window_Model)
       return Boolean
    is
@@ -312,9 +341,9 @@ package body Files.Model.Rename is
       end loop;
 
       return Changed;
-   end Rename_Set_All_Carets_Home;
+   end Set_All_Carets_Home;
 
-   function Rename_Set_All_Carets_End
+   function Set_All_Carets_End
      (Model : in out Window_Model)
       return Boolean
    is
@@ -335,9 +364,9 @@ package body Files.Model.Rename is
       end loop;
 
       return Changed;
-   end Rename_Set_All_Carets_End;
+   end Set_All_Carets_End;
 
-   procedure Set_Rename_Caret
+   procedure Set_Caret
      (Model         : in out Window_Model;
       Visible_Index : Natural;
       Position      : Natural) is
@@ -359,9 +388,9 @@ package body Files.Model.Rename is
             end;
          end if;
       end;
-   end Set_Rename_Caret;
+   end Set_Caret;
 
-   procedure For_Each_Rename_Field
+   procedure For_Each_Field
      (Model : Window_Model;
       Visit : not null access procedure (Item_Index : Natural; Value : UString; Cursor : Natural)) is
    begin
@@ -370,13 +399,13 @@ package body Files.Model.Rename is
             Visit (Field.Item_Index, Field.Edit.Text, Field.Edit.Cursor);
          end loop;
       end if;
-   end For_Each_Rename_Field;
+   end For_Each_Field;
 
-   function Rename_Targets
+   function Targets
      (Model : Window_Model)
-      return Rename_Target_Vectors.Vector
+      return Target_Vectors.Vector
    is
-      Result : Rename_Target_Vectors.Vector;
+      Result : Target_Vectors.Vector;
    begin
       for Field of Model.Rename.Fields loop
          if Field.Item_Index in 1 .. Natural (Model.Items.Last_Index) then
@@ -395,15 +424,15 @@ package body Files.Model.Rename is
       end loop;
 
       return Result;
-   end Rename_Targets;
+   end Targets;
 
-   procedure Resume_Rename
+   procedure Resume
      (Model : in out Window_Model;
       Text  : String) is
    begin
       Touch (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-      if not Rename_Is_Enabled (Model) then
+      if not Is_Enabled (Model) then
          return;
       end if;
 
@@ -415,6 +444,6 @@ package body Files.Model.Rename is
             Edit       => (Text => To_Unbounded_String (Text), Cursor => Text'Length)));
       Model.Rename.Active := True;
       Model.Focus_Value := Files.Types.Focus_Rename_Input;
-   end Resume_Rename;
+   end Resume;
 
 end Files.Model.Rename;

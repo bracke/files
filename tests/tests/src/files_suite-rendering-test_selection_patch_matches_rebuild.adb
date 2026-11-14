@@ -1,3 +1,4 @@
+with Files.Model.Status_Samples;
 with Files.Model.Testing;
 with Guikit.Input;
 separate (Files_Suite.Rendering)
@@ -28,12 +29,12 @@ separate (Files_Suite.Rendering)
       end Check;
 
       procedure First is begin Files.Model.Selection.Select_Visible (Model, 1); end First;
-      procedure Down is begin Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Down); end Down;
+      procedure Down is begin Files.Model.Selection.Move (Model, Guikit.Input.Move_Down); end Down;
       procedure Toggle is begin Files.Model.Selection.Toggle_Visible_Selection (Model, 3); end Toggle;
       procedure Span is begin Files.Model.Selection.Select_Visible_Range (Model, 1, 2); end Span;
       procedure All_Rows is begin Files.Model.Selection.Select_All_Visible (Model); end All_Rows;
-      procedure Invert is begin Files.Model.Selection.Invert_Selection (Model); end Invert;
-      procedure Clear is begin Files.Model.Selection.Clear_Selection (Model); end Clear;
+      procedure Invert is begin Files.Model.Selection.Invert (Model); end Invert;
+      procedure Clear is begin Files.Model.Selection.Clear (Model); end Clear;
       procedure Last is begin Files.Model.Selection.Select_Last_Visible (Model); end Last;
       procedure By_Name is begin Files_Suite.Support.Select_Name (Model, "Beta.txt"); end By_Name;
    begin
@@ -83,10 +84,10 @@ separate (Files_Suite.Rendering)
               (Model, Selected, (Available => True, Total_Bytes => 4096, File_Count => 2, Item_Count => 3,
                                  Capped => False));
          end Size;
-         procedure Unsize is begin Files.Model.Folder_Sizes.Clear_Folder_Size (Model); end Unsize;
+         procedure Unsize is begin Files.Model.Folder_Sizes.Clear (Model); end Unsize;
          procedure Space is
          begin
-            Files.Model.Set_Volume_Space
+            Files.Model.Status_Samples.Set_Volume_Space
               (Model, Files.Model.Current_Path (Model), (Known => True, Free_Bytes => 1_000, Total_Bytes => 5_000),
                Ada.Calendar.Clock);
          end Space;
@@ -120,7 +121,7 @@ separate (Files_Suite.Rendering)
       begin
          Files.Model.Selection.Select_Visible (Model, 1);
          Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
-         Files.Model.Rename.Toggle_Rename (Model);
+         Files.Model.Rename.Toggle (Model);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Testing.Rename_Field_Count (Model), 2, "the multi-rename opens two fields");
          declare
@@ -137,7 +138,7 @@ separate (Files_Suite.Rendering)
                  = Files.Rendering.Build_Snapshot (Model, Settings),
                "a selection change during a multi-rename keeps the rows only as a rebuild draws them");
          end;
-         Files.Model.Rename.Toggle_Rename (Model);
+         Files.Model.Rename.Toggle (Model);
       end;
 
       --  And a change a row shows moves it: the filter hides rows.

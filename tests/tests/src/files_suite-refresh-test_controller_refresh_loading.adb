@@ -31,7 +31,7 @@ separate (Files_Suite.Refresh)
          "refresh operation reports current path");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "refresh loads newly created item");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "refresh clears temporary create state");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "refresh clears rename state");
+      Assert (not Files.Model.Rename.Is_Active (Model), "refresh clears rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_None,

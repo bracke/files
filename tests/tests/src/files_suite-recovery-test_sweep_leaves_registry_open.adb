@@ -14,6 +14,8 @@ separate (Files_Suite.Recovery)
       Other       : constant String := Join (Root, "registered.txt");
       Backup      : Files.Types.UString;
       Result      : Files.File_System.Mutation_Result;
+      --  How long a Register may take while the sweep is held at its work.
+      Register_Wait : constant Duration := 10.0;
 
       protected State is
          procedure Finish_Sweep;
@@ -108,7 +110,12 @@ separate (Files_Suite.Recovery)
                      State.Finish_Register (False, Files.Types.UString'(Null_Unbounded_String));
                end Registrar;
             begin
-               for Attempt in Files_Suite.Support.Polling loop
+               --  Far shorter than the hold (Pause_Sweep_Work's 120 s): a
+               --  Register that waits for the held sweep's lock cannot finish
+               --  in time, so a sweep that keeps the lock fails the test.
+               for Attempt in Files_Suite.Support.Polling
+                 (Limit => Files_Suite.Support.Seconds (Files_Suite.Support.Scaled (Register_Wait)))
+               loop
                   exit when State.Register_Finished;
                end loop;
                --  Assert only once both tasks can end, whatever the outcome.

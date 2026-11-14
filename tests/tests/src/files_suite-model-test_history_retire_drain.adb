@@ -59,7 +59,7 @@ separate (Files_Suite.Model)
          Assert (not Recorded, "an entry without paths is not recorded");
       end;
       Files_Suite.Support.Assert_Equal
-        (Natural (Files.Model.History.Undo_History (Model).Length), 200,
+        (Natural (Files.Model.History.Undo_Entries (Model).Length), 200,
          "the model trims its undo stack to the depth cap");
       Assert (Ada.Directories.Exists (To_String (Backup)),
               "a model-only history mutation leaves the retired payload on disk");

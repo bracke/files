@@ -11,8 +11,8 @@ function Navigate_History
 is
    Had_Temporary  : constant Boolean := Files.Model.Temporary_Item_Is_Active (Model);
    Temporary_Name : constant String := Files.Model.Temporary_Item_Name (Model);
-   Had_Rename     : constant Boolean := Files.Model.Rename.Rename_Is_Active (Model);
-   Rename_Text    : constant String := Files.Model.Rename.Rename_Text (Model);
+   Had_Rename     : constant Boolean := Files.Model.Rename.Is_Active (Model);
+   Rename_Text    : constant String := Files.Model.Rename.Text (Model);
    Rename_Source  : constant String := Files.Model.Selection.Selected_Name (Model);
    Origin         : constant Files.Model.Navigation_Mark := Files.Model.Mark_Navigation (Model);
    Available      : constant Boolean :=
@@ -55,7 +55,7 @@ begin
             begin
                null;
             end;
-            Files.Model.Rename.Resume_Rename (Model, Rename_Text);
+            Files.Model.Rename.Resume (Model, Rename_Text);
          end if;
       end if;
 

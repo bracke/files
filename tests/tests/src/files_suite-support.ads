@@ -647,6 +647,35 @@ package Files_Suite.Support is
    --  @return Its description, "" for none.
    function Describe (Extra : Files.Extra_Info.Info) return String;
 
+   --  Decimal text of N, without the blank Integer'Image puts before it.
+   --
+   --  @param N Number to show.
+   --  @return Its digits, with a minus sign when negative.
+   function Img (N : Integer) return String;
+
+   --  The N-th file of a numbered paste fixture (Arm_Numbered_Paste).
+   --
+   --  @param Directory Directory the fixture's files are in.
+   --  @param N Number of the file.
+   --  @return The path of "f<N>.txt" in Directory.
+   function Numbered_File (Directory : String; N : Positive) return String;
+
+   --  A paste execution over Count numbered files, armed and not yet
+   --  advanced: the root reset, files f1.txt .. in Src_Dir (holding S1 ..),
+   --  Model opened on the empty Dest_Dir, and a copy of each into it.
+   --
+   --  @param Model Window model to open on Dest_Dir.
+   --  @param Settings Settings the destination is listed with.
+   --  @param Src_Dir Directory the sources are written to.
+   --  @param Dest_Dir Directory they are copied into.
+   --  @param Count Number of files.
+   procedure Arm_Numbered_Paste
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Src_Dir  : String;
+      Dest_Dir : String;
+      Count    : Positive);
+
 private
 
    type Poll_Iterator is new Poll_Iterators.Forward_Iterator with record

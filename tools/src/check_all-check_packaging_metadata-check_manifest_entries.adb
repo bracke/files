@@ -9,7 +9,8 @@ separate (Check_All.Check_Packaging_Metadata)
       Content  : constant String := To_String (Project_Tools.Text.Read_Text_File (Manifest));
       Seen     : Manifest_Path_Sets.Set;
 
-      procedure Check_Line (Raw : String) is
+      procedure Check_Line (Raw : String; Number : Positive) is
+         pragma Unreferenced (Number);
          Manifest_Path : constant String := Ada.Strings.Fixed.Trim (Raw, Ada.Strings.Both);
       begin
          if Manifest_Path = "" or else Starts_With (Manifest_Path, "#") then
@@ -41,22 +42,5 @@ separate (Check_All.Check_Packaging_Metadata)
          end if;
       end Check_Line;
    begin
-      if Content = "" then
-         return;
-      end if;
-
-      declare
-         Line_Start : Positive := Content'First;
-      begin
-         for Index in Content'Range loop
-            if Content (Index) = ASCII.LF then
-               Check_Line (Content (Line_Start .. Index - 1));
-               Line_Start := Index + 1;
-            end if;
-         end loop;
-
-         if Line_Start <= Content'Last then
-            Check_Line (Content (Line_Start .. Content'Last));
-         end if;
-      end;
+      For_Each_Line (Content, Check_Line'Access);
    end Check_Manifest_Entries;

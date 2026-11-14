@@ -11,13 +11,8 @@ separate (Files_Suite.Transfer)
       Routed   : Files.Controller.Controller_Result;
       Step     : Files.Operations.Operation_Result;
 
-      function Img (N : Integer) return String is
-      begin
-         return Ada.Strings.Fixed.Trim (Integer'Image (N), Ada.Strings.Both);
-      end Img;
-
-      function Src (N : Positive) return String is (Join (Src_Dir, "f" & Img (N) & ".txt"));
-      function Dest (N : Positive) return String is (Join (Dest_Dir, "f" & Img (N) & ".txt"));
+      function Src (N : Positive) return String is (Numbered_File (Src_Dir, N));
+      function Dest (N : Positive) return String is (Numbered_File (Dest_Dir, N));
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Src_Dir);

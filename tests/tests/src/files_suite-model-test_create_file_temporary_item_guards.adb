@@ -43,7 +43,7 @@ separate (Files_Suite.Model)
          "untitled 2.txt",
          "temporary selection exposes pending name");
       Assert (Files.Model.Testing.Selected_Item_Is_Temporary (Model), "model identifies selected temporary item");
-      Assert (not Files.Model.Rename.Rename_Is_Enabled (Model), "temporary item is not a real rename target");
+      Assert (not Files.Model.Rename.Is_Enabled (Model), "temporary item is not a real rename target");
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
          "active temporary rename can still be cancelled through the command");

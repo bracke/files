@@ -1236,6 +1236,23 @@ package Files.Rendering is
    --  @return Font path, or an empty string when no known font is present.
    function Default_Font_Path return String;
 
+   --  The text line height for a font pixel size.
+   --
+   --  @param Size Font pixel size.
+   --  @return Line height, the text cell height, in pixels.
+   function Cell_Height_For (Size : Positive) return Positive is
+     (Positive'Max (1, Size * 5 / 4));
+
+   --  The text cell width is the advance every layout measures labels with,
+   --  taken from the same line height. Derived separately (Size * 3 / 4) it
+   --  came out a pixel wider at some sizes, so labels sized to fit lost their
+   --  last character and large fonts read "Klei", "Gro", "hom".
+   --
+   --  @param Size Font pixel size.
+   --  @return Text cell width in pixels.
+   function Cell_Width_For (Size : Positive) return Positive is
+     (Guikit.Layout.Caret_Advance_Width (Cell_Height_For (Size)));
+
    --  Load the text renderer font and initialize the textrender atlas.
    --
    --  @param Renderer Renderer state to initialize.
@@ -1249,12 +1266,29 @@ package Files.Rendering is
    function Initialize_Text
      (Renderer     : in out Text_Renderer;
       Font_Path    : String;
-      Pixel_Size   : Positive := 16;
-      Cell_Width   : Positive := 10;
+      Pixel_Size   : Positive;
+      Cell_Width   : Positive;
       Cell_Height  : Positive;
       Atlas_Width  : Positive := 1024;
       Atlas_Height : Positive := 1024)
       return Text_Render_Status;
+
+   --  Load the text renderer font with the text cell the layouts use for
+   --  Pixel_Size (Cell_Width_For, Cell_Height_For).
+   --
+   --  @param Renderer Renderer state to initialize.
+   --  @param Font_Path TrueType font path.
+   --  @param Pixel_Size Glyph rasterization size in pixels.
+   --  @return Text render initialization status.
+   function Initialize_Text
+     (Renderer   : in out Text_Renderer;
+      Font_Path  : String;
+      Pixel_Size : Positive)
+      return Text_Render_Status is
+     (Initialize_Text
+        (Renderer, Font_Path, Pixel_Size,
+         Cell_Width  => Cell_Width_For (Pixel_Size),
+         Cell_Height => Cell_Height_For (Pixel_Size)));
 
    --  Whether glyphs built earlier for Renderer still index the atlas its
    --  renderer holds now. Renderers are shared by windows of one size, and

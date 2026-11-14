@@ -45,11 +45,17 @@ separate (Files_Suite.Info)
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Marker);
       Files.Folder_Size.Set_Targets (Scan, Paths, Listed (Earlier));
       Await_Marker ("the measurement is under way");
-      Files.Folder_Size.Set_Targets (Scan, Paths, Listed (Earlier));
-      delay 0.2;
-      Assert (not Ada.Directories.Exists (Marker), "the same listing keeps the running measurement");
-      Files.Folder_Size.Set_Targets (Scan, Paths, Listed (Later));
-      Await_Marker ("a newer listing of the folder restarts it");
+      declare
+         Started : constant Natural := Files.Folder_Size.Testing.Helper_Starts;
+      begin
+         Files.Folder_Size.Set_Targets (Scan, Paths, Listed (Earlier));
+         Files_Suite.Support.Assert_Equal
+           (Files.Folder_Size.Testing.Helper_Starts, Started, "the same listing keeps the running measurement");
+         Files.Folder_Size.Set_Targets (Scan, Paths, Listed (Later));
+         Files_Suite.Support.Assert_Equal
+           (Files.Folder_Size.Testing.Helper_Starts, Started + 1, "a newer listing of the folder restarts it");
+      end;
+      Await_Marker ("and the restarted helper runs");
       Assert (Files.Folder_Size.Testing.Target (Scan) = Folder, "for the same folder");
       Files.Folder_Size.Cancel (Scan);
       Ada.Environment_Variables.Clear ("FILES_TEST_STALL_FOLDER_SIZES");
@@ -72,19 +78,19 @@ separate (Files_Suite.Info)
             end loop;
          end Measure_Again;
       begin
-         Files.Model.Folder_Sizes.Note_Folder_Sizes (Model, Measured, Again);
+         Files.Model.Folder_Sizes.Note (Model, Measured, Again);
          Assert (Natural (Again.Length) = 1, "the stale folder is handed back to be measured again");
-         Files.Model.Folder_Sizes.Update_Folder_Scan (Model, Measure_Again'Access);
+         Files.Model.Folder_Sizes.Update_Scan (Model, Measure_Again'Access);
       end;
       Assert
-        (not Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Folder), "a size of an older listing is dropped");
+        (not Files.Model.Folder_Sizes.Cached_For (Model, Folder), "a size of an older listing is dropped");
       for Attempt in Files_Suite.Support.Polling loop
          Files.Operations.Poll_Folder_Sizes (Model);
-         exit when Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Folder);
+         exit when Files.Model.Folder_Sizes.Cached_For (Model, Folder);
       end loop;
-      Assert (Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Folder), "the folder is measured again");
+      Assert (Files.Model.Folder_Sizes.Cached_For (Model, Folder), "the folder is measured again");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Folder_Sizes.Folder_Size_Value (Model, Folder).Total_Bytes, 3, "as it is now");
+        (Files.Model.Folder_Sizes.Value (Model, Folder).Total_Bytes, 3, "as it is now");
 
       --  One for the listing in view is taken as it is.
       Measured.Clear;
@@ -92,9 +98,9 @@ separate (Files_Suite.Info)
         (Files.Folder_Size.Measurement'
            (Path => To_Unbounded_String (Folder), Result => Stale,
             Listed => Files.Model.Selection.Selected_Item (Model).Modified_Time));
-      Files.Model.Folder_Sizes.Note_Folder_Sizes (Model, Measured);
+      Files.Model.Folder_Sizes.Note (Model, Measured);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Folder_Sizes.Folder_Size_Value (Model, Folder).Total_Bytes, 999,
+        (Files.Model.Folder_Sizes.Value (Model, Folder).Total_Bytes, 999,
          "a size of the listing in view is kept");
       Files.Operations.Cancel_Folder_Scan (Model);
    exception

@@ -28,10 +28,10 @@ separate (Files_Suite.Info)
       --  frame loop's Poll_Window_Workers would.
       Drain_Folder_Sizes (Model);
 
-      Assert (Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Dir_A)
-                and then Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Dir_B),
+      Assert (Files.Model.Folder_Sizes.Cached_For (Model, Dir_A)
+                and then Files.Model.Folder_Sizes.Cached_For (Model, Dir_B),
               "each selected folder has its own cached size");
-      Assert (Files.Model.Folder_Sizes.Folder_Size_Value (Model, Dir_A).Total_Bytes = 5
-                and then Files.Model.Folder_Sizes.Folder_Size_Value (Model, Dir_B).Total_Bytes = 10,
+      Assert (Files.Model.Folder_Sizes.Value (Model, Dir_A).Total_Bytes = 5
+                and then Files.Model.Folder_Sizes.Value (Model, Dir_B).Total_Bytes = 10,
               "per-folder sizes are the recursive totals of each folder");
    end Test_Folder_Size_Multi_Selection;

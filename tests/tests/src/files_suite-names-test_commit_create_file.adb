@@ -24,7 +24,7 @@ separate (Files_Suite.Names)
          "",
          "successful create clears stale error state");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "create commit clears temporary state");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "create commit clears rename state");
+      Assert (not Files.Model.Rename.Is_Active (Model), "create commit clears rename state");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "create commit reloads the directory model");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Name (Model),
@@ -39,8 +39,8 @@ separate (Files_Suite.Names)
          Files.Operations.Operation_Disabled,
          "direct terminal launch is rejected before resolving an empty recent-view path");
       Files.Model.Selection.Select_Visible (Model, 1);
-      Files.Model.Rename.Toggle_Rename (Model);
-      Files.Model.Rename.Set_Rename_Text (Model, "recent-renamed-must-not-write-7f62b1");
+      Files.Model.Rename.Toggle (Model);
+      Files.Model.Rename.Set_Text (Model, "recent-renamed-must-not-write-7f62b1");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

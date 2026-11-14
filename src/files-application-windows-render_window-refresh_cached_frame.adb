@@ -3,7 +3,7 @@ separate (Files.Application.Windows.Render_Window)
    is
       Hover_X  : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Width);
       Hover_Y  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Height);
-      Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+      Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
       Has_Hover_Now : constant Boolean :=
         Width > 0 and then Height > 0
         and then Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H);

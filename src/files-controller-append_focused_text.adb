@@ -40,7 +40,7 @@ separate (Files.Controller)
       if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
          return
            Make_Result
-             (if Files.Model.Rename.Rename_Insert_At_Carets (Model, Text)
+             (if Files.Model.Rename.Insert_At_Carets (Model, Text)
               then Controller_Text_Updated
               else Controller_Ignored);
       end if;

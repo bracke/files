@@ -90,9 +90,9 @@ separate (Files_Suite.Transfer)
             declare
                Recorded : constant String :=
                  (if Files.Model.History.Undo_Available (Model)
-                    and then not Files.Model.History.Undo_History (Model).Last_Element.Created_Identities.Is_Empty
+                    and then not Files.Model.History.Undo_Entries (Model).Last_Element.Created_Identities.Is_Empty
                   then To_String
-                    (Files.Model.History.Undo_History (Model).Last_Element.Created_Identities.First_Element)
+                    (Files.Model.History.Undo_Entries (Model).Last_Element.Created_Identities.First_Element)
                   else "<none>");
             begin
                Assert (Files.Model.History.Undo_Available (Model)

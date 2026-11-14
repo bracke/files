@@ -268,7 +268,7 @@ package body Files.Refresh_Jobs is
       then
          return (Status => Files.Operations.Operation_Success, others => <>);
       elsif not Force
-        and then (Files.Model.Rename.Rename_Is_Active (Model) or else Files.Model.Temporary_Item_Is_Active (Model)
+        and then (Files.Model.Rename.Is_Active (Model) or else Files.Model.Temporary_Item_Is_Active (Model)
                   or else Files.Model.Command_Palette.Is_Open (Model))
       then
          --  Replacing the items now would drop the edit or close the palette:
@@ -378,7 +378,7 @@ package body Files.Refresh_Jobs is
          Cancel (Model);
          return False;
       elsif Files.Model.Command_Palette.Is_Open (Model)
-        or else Files.Model.Rename.Rename_Is_Active (Model)
+        or else Files.Model.Rename.Is_Active (Model)
         or else Files.Model.Temporary_Item_Is_Active (Model)
       then
          --  Replacing the items would close the palette or drop the edit the
@@ -441,7 +441,7 @@ package body Files.Refresh_Jobs is
                   null;
                end;
             else
-               Files.Model.Selection.Restore_Selection
+               Files.Model.Selection.Restore
                  (Model, Previous_Selection, To_String (Previous_Primary));
             end if;
             if not Work.Recent then

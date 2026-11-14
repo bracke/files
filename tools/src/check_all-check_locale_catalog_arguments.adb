@@ -1,0 +1,48 @@
+separate (Check_All)
+   procedure Check_Locale_Catalog_Arguments is
+      --  The messages crate's catalog checker, from the sibling checkout the
+      --  build pins (alire.toml: messages = { path = "../messages" }).
+      Tool_Dir : constant String := Root & "/../messages/tools/catalog_check";
+      Tool     : constant String := Tool_Dir & "/bin/catalog_check";
+      Base     : constant String := Root & "/share/files.catalog";
+      Output   : Unbounded_String;
+      Failed   : Natural := 0;
+      Checked  : Natural := 0;
+   begin
+      Run ("catalog_check build", Tool_Dir, Alr, [new String'("--non-interactive"), new String'("build")]);
+      for Locale of Project_Tools.Files.List_Tree (Root & "/share/locales", "files-*.catalog", Generated_Directories)
+      loop
+         Checked := Checked + 1;
+         --  Its findings go to standard error; the summary it prints on
+         --  standard output is kept in Output, and shown only on a failure.
+         if Project_Tools.Processes.Run_Status
+              (Label   => "catalog_check " & Ada.Directories.Simple_Name (To_String (Locale)),
+               Dir     => Tool_Dir,
+               Program => Tool,
+               Args    =>
+                 GNAT.OS_Lib.Argument_List'
+                   [new String'(To_String (Locale)),
+                    new String'("--base=" & Base),
+                    new String'("--arguments-only")],
+               Output  => Output,
+               Quiet   => True) /= 0
+         then
+            Put_Line
+              (Standard_Error,
+               To_String (Locale) & ": its {arguments} differ from share/files.catalog's (findings above) "
+               & To_String (Output));
+            Failed := Failed + 1;
+         end if;
+      end loop;
+      if Checked = 0 then
+         Put_Line (Standard_Error, "no locale catalog under share/locales to check against share/files.catalog");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      elsif Failed > 0 then
+         Put_Line
+           (Standard_Error,
+            Natural'Image (Failed) & " locale catalog(s) take other {arguments} than share/files.catalog");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      end if;
+   end Check_Locale_Catalog_Arguments;

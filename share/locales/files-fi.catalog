@@ -181,7 +181,6 @@ fi.settings.hidden_files = Näytä piilotetut tiedostot
 fi.settings.show_extensions = Näytä tiedostopäätteet
 fi.settings.sort = Lajitteluperuste
 fi.settings.sort_ascending = Lajittele nousevasti
-fi.settings.high_contrast_theme = Suuri kontrasti
 fi.settings.icon_theme = Kuvaketeema
 fi.settings.icon_theme.basic = Perus
 fi.settings.icon_theme.high_contrast = Suuri kontrasti

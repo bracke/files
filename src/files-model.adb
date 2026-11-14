@@ -546,7 +546,7 @@ package body Files.Model is
       Model.Reveal_Pending := False;
    end Clear_Reveal;
 
-   --  Cap on the back-navigation history so a session that keeps navigating does
+   --  Cap on the back navigation history so a session that keeps navigating does
    --  not grow it without bound. Forward history is already bounded (cleared on
    --  every forward navigation); this bounds the back list the same way a
    --  browser does, dropping the oldest (least likely to be revisited) entry.
@@ -564,12 +564,21 @@ package body Files.Model is
       Settings   : Files.Settings.Settings_Model;
       Reclassify : Boolean) is separate;
 
-   procedure Push_Back_History (Model : in out Window_Model) is
+   --  Add the current path to the back navigation history, dropping the
+   --  oldest entries past Max_Back_History.
+   procedure Append_Back_History (Model : in out Window_Model) is
    begin
       Model.Back_History.Append (Model.Current_Path_Value);
       while Natural (Model.Back_History.Length) > Max_Back_History loop
          Model.Back_History.Delete_First;
       end loop;
+   end Append_Back_History;
+
+   --  A new navigation: the current path goes onto the back navigation
+   --  history and the forward one ends.
+   procedure Push_Back_History (Model : in out Window_Model) is
+   begin
+      Append_Back_History (Model);
       Model.Forward_History.Clear;
    end Push_Back_History;
 
@@ -681,10 +690,7 @@ package body Files.Model is
       Model.Forward_History.Delete_Last;
       --  The synthetic recent view is never preserved in back history.
       if not Model.Recent_View_Active then
-         Model.Back_History.Append (Model.Current_Path_Value);
-         while Natural (Model.Back_History.Length) > Max_Back_History loop
-            Model.Back_History.Delete_First;
-         end loop;
+         Append_Back_History (Model);
       end if;
       Model.Recent_View_Active := False;
       Leave_View (Model, Next);
@@ -754,6 +760,45 @@ package body Files.Model is
      (Model : Window_Model)
       return Boolean is
      (Model.Ownership_Input.Editing_Group);
+
+   --  The currently focused text input (path, filter, rename, palette,
+   --  settings or ownership field): its text and caret. The palette query
+   --  and a settings value are edited whole, so their caret is at the end.
+   --  The empty field when none is focused.
+   function Focused_Field
+     (Model : Window_Model)
+      return Text_Field_State
+   is
+      --  A field edited as a whole value: the caret sits at its end.
+      function At_End (Text : String) return Text_Field_State is
+        ((Text => To_Unbounded_String (Text), Cursor => Text'Length));
+   begin
+      case Model.Focus_Value is
+         when Files.Types.Focus_Path_Input =>
+            return Model.Path_Input.Edit;
+         when Files.Types.Focus_Filter_Input =>
+            return Model.Filter;
+         when Files.Types.Focus_Rename_Input =>
+            return (if Model.Rename.Fields.Is_Empty then (others => <>) else Model.Rename.Fields.First_Element.Edit);
+         when Files.Types.Focus_Command_Palette =>
+            --  The palette query has no separate caret.
+            return At_End (Guikit.Command_Palette.Query (Model.Command_Palette.View));
+         when Files.Types.Focus_Settings_Input =>
+            --  The panel edits whole values.
+            return At_End (Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View));
+         when Files.Types.Focus_Ownership_Input =>
+            return Model.Ownership_Input.Edit;
+         when Files.Types.Focus_None =>
+            return (others => <>);
+      end case;
+   end Focused_Field;
+
+   --  The value of the currently focused text input (Focused_Field's text),
+   --  or "" when none is focused.
+   function Focused_Text_Value
+     (Model : Window_Model)
+      return String is
+     (To_String (Focused_Field (Model).Text));
 
    function Text_Cursor_Position
      (Model : Window_Model)
@@ -1021,94 +1066,5 @@ package body Files.Model is
    function Last_Error_Notice
      (Model : Window_Model)
       return String is (To_String (Model.Last_Error_Notice_Key));
-
-   procedure Set_Volume_Space
-     (Model   : in out Window_Model;
-      Path    : String;
-      Space   : Volume_Space;
-      Sampled : Ada.Calendar.Time) is
-   begin
-      --  The bar and the free-space text are header: no row changes.
-      if Model.Volume_Sample.Space /= Space or else To_String (Model.Volume_Sample.Path) /= Path then
-         Support.Touch_Header (Model);
-      end if;
-      Model.Volume_Sample := (Space => Space, Path => To_Unbounded_String (Path), Sampled => Sampled);
-   end Set_Volume_Space;
-
-   function Volume_Space_Is_Current
-     (Model : Window_Model;
-      Now   : Ada.Calendar.Time)
-      return Boolean is
-   begin
-      return Length (Model.Volume_Sample.Path) > 0
-        and then To_String (Model.Volume_Sample.Path) = Current_Path (Model)
-        --  A clock set back since the sample is no reason to keep it.
-        and then Now >= Model.Volume_Sample.Sampled
-        and then Now <= Model.Volume_Sample.Sampled + Volume_Space_Refresh_Interval;
-   end Volume_Space_Is_Current;
-
-   function Volume_Space_Of
-     (Model : Window_Model)
-      return Volume_Space is
-     (if To_String (Model.Volume_Sample.Path) = Current_Path (Model) then Model.Volume_Sample.Space
-      else (others => <>));
-
-   procedure Set_Account_Name
-     (Model : in out Window_Model;
-      Kind  : Account_Kind;
-      Id    : Files.Types.Account_Id;
-      Name  : String)
-   is
-      --  Ids on one host are few, but bound the table so a long session over
-      --  many foreign volumes cannot grow it without limit.
-      Max_Account_Names : constant := 4096;
-      Names : Account_Name_Maps.Map renames Model.Account_Names.Names (Kind);
-      Found : constant Account_Name_Maps.Cursor := Names.Find (Id);
-   begin
-      if Account_Name_Maps.Has_Element (Found) then
-         if To_String (Account_Name_Maps.Element (Found)) /= Name then
-            Names.Replace_Element (Found, To_Unbounded_String (Name));
-            Support.Touch (Model);
-         end if;
-         return;
-      end if;
-      if Natural (Names.Length) >= Max_Account_Names then
-         Names.Clear;
-      end if;
-      Names.Insert (Id, To_Unbounded_String (Name));
-      Support.Touch (Model);
-   end Set_Account_Name;
-
-   function Account_Name_Known
-     (Model : Window_Model;
-      Kind  : Account_Kind;
-      Id    : Files.Types.Account_Id)
-      return Boolean is
-     (Model.Account_Names.Names (Kind).Contains (Id));
-
-   function Account_Name
-     (Model : Window_Model;
-      Kind  : Account_Kind;
-      Id    : Files.Types.Account_Id)
-      return String
-   is
-      Found : constant Account_Name_Maps.Cursor := Model.Account_Names.Names (Kind).Find (Id);
-   begin
-      if Account_Name_Maps.Has_Element (Found) then
-         return To_String (Account_Name_Maps.Element (Found));
-      end if;
-      return "";
-   end Account_Name;
-
-   procedure Note_Account_Names_Sampled
-     (Model : in out Window_Model) is
-   begin
-      Model.Account_Names.Sampled := Model.Revision_Value;
-   end Note_Account_Names_Sampled;
-
-   function Account_Names_Current
-     (Model : Window_Model)
-      return Boolean is
-     (Model.Account_Names.Sampled = Model.Revision_Value);
 
 end Files.Model;

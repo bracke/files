@@ -11,7 +11,7 @@ begin
       return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Restore);
    end if;
    if Files.Model.Selection.Selected_Count (Model) = 0
-     or else Files.Model.Selection.Selection_Includes_Temporary (Model)
+     or else Files.Model.Selection.Includes_Temporary (Model)
    then
       return Disabled (Model, "error.selection.empty");
    end if;

@@ -42,8 +42,8 @@ separate (Files_Suite.Names)
       --  The inline rename a user types into goes the same way.
       Files.Model.Initialize (Model, Root, Files.File_System.Load_Directory (Root, Settings).Items, Root);
       Select_Name (Model, "source.txt");
-      Files.Model.Rename.Toggle_Rename (Model);
-      Assert (Files.Model.Rename.Rename_Insert_At_Carets (Model, [1 .. 300 => 'n']), "the typed name is entered");
+      Files.Model.Rename.Toggle (Model);
+      Assert (Files.Model.Rename.Insert_At_Carets (Model, [1 .. 300 => 'n']), "the typed name is entered");
       Committed := Files.Operations.Commit_Rename (Model, Settings);
       Assert (Committed.Status /= Files.Operations.Operation_Success, "inline rename: a 300-byte name is refused");
       Files_Suite.Support.Assert_Equal

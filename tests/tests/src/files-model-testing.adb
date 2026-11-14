@@ -29,9 +29,20 @@ package body Files.Model.Testing is
       Value         : out UString;
       Cursor        : out Natural)
    is
-      Field_Index : constant Natural :=
-        (if Model.Rename.Active then Find_Rename_Field (Model, Visible_Index) else 0);
+      --  The item the row shows; zero for the pending create row.
+      Loaded      : constant Natural := Visible_To_Item_Index (Model, Visible_Index);
+      Shown       : constant Boolean :=
+        Loaded /= 0 or else (Temporary_Is_Visible (Model) and then Visible_Index = Visible_Count (Model));
+      Field_Index : Natural := 0;
    begin
+      if Model.Rename.Active and then Shown then
+         for Index in Model.Rename.Fields.First_Index .. Model.Rename.Fields.Last_Index loop
+            if Model.Rename.Fields.Element (Index).Item_Index = Loaded then
+               Field_Index := Index;
+               exit;
+            end if;
+         end loop;
+      end if;
       if Field_Index = 0 then
          Active := False;
          Value  := Null_Unbounded_String;

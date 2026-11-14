@@ -17,43 +17,6 @@ separate (Check_All)
       Override_Home : constant String := Root & "/src/files-file_system-trash_location_for_environment.adb";
       Override_Homes : constant Project_Tools.Files.Path_List := [1 => To_Unbounded_String (Override_Home)];
 
-      --  Where a qualification ending at From starts its operand: past
-      --  "string'" or "standard.string'" (any name, dotted, then a tick)
-      --  when a "(" follows; From itself otherwise.
-      function Past_Qualifier (Toks : Token_List; From : Positive) return Positive is
-         Next : Positive := From;
-      begin
-         while Next + 1 <= Toks.Last_Index
-           and then Toks (Next).Kind = Word
-           and then Is_Symbol (Toks (Next + 1), ".")
-         loop
-            Next := Next + 2;
-         end loop;
-         if Next + 2 <= Toks.Last_Index
-           and then Toks (Next).Kind = Word
-           and then Is_Symbol (Toks (Next + 1), "'")
-           and then Is_Symbol (Toks (Next + 2), "(")
-         then
-            return Next + 2;
-         end if;
-         return From;
-      end Past_Qualifier;
-
-      --  Past every "(" and qualification from From on.
-      function Past_Openers (Toks : Token_List; From : Positive) return Positive is
-         Next : Positive := From;
-      begin
-         loop
-            if Next <= Toks.Last_Index and then Is_Symbol (Toks (Next), "(") then
-               Next := Next + 1;
-            elsif Next <= Toks.Last_Index and then Past_Qualifier (Toks, Next) /= Next then
-               Next := Past_Qualifier (Toks, Next);
-            else
-               return Next;
-            end if;
-         end loop;
-      end Past_Openers;
-
       --  The literal value every known string name stands for: one a unit
       --  declares, keyed by the unit's path, a NUL and the name; any unit's,
       --  keyed by the name (the first unit to declare a name gives it).
@@ -99,7 +62,7 @@ separate (Check_All)
                   loop
                      Result.Delete_Last (Count => 2);
                   end loop;
-                  Result.Append (Token'(Kind => Literal, Text => Value));
+                  Result.Append (Token'(Kind => Literal, Text => Value, Line => Item.Line, Is_Character => False));
                else
                   Result.Append (Item);
                end if;
@@ -133,7 +96,8 @@ separate (Check_All)
                      Append (Value, Toks (Scan).Text);
                      Next := Scan + 1;
                   end loop;
-                  Result.Append (Token'(Kind => Literal, Text => Value));
+                  Result.Append
+                    (Token'(Kind => Literal, Text => Value, Line => Toks (Index).Line, Is_Character => False));
                   Index := Next;
                end;
             else
@@ -197,28 +161,14 @@ separate (Check_All)
                      if Next <= Toks.Last_Index and then Is_Word (Toks (Next), "constant") then
                         Next := Next + 1;
                      end if;
-                     while Next + 1 <= Toks.Last_Index
-                       and then Toks (Next).Kind = Word
-                       and then Is_Symbol (Toks (Next + 1), ".")
-                     loop
-                        Next := Next + 2;
-                     end loop;
+                     Next := Past_Name_Prefix (Toks, Next);
                      if Next <= Toks.Last_Index and then Is_Word (Toks (Next), "string") then
                         Is_String := True;
                         Next := Next + 1;
                      end if;
                      --  A constraint: (1 .. 8).
                      if Is_String and then Next <= Toks.Last_Index and then Is_Symbol (Toks (Next), "(") then
-                        loop
-                           exit when Next > Toks.Last_Index;
-                           if Is_Symbol (Toks (Next), "(") then
-                              Depth := Depth + 1;
-                           elsif Is_Symbol (Toks (Next), ")") then
-                              Depth := Depth - 1;
-                           end if;
-                           Next := Next + 1;
-                           exit when Depth = 0;
-                        end loop;
+                        Next := Past_Parentheses (Toks, Next);
                      end if;
                      if Is_String and then Next <= Toks.Last_Index and then Is_Symbol (Toks (Next), ":=") then
                         --  The value, to the ";" (or the ")" that closes a
@@ -239,13 +189,7 @@ separate (Check_All)
                         end loop;
                         Has_Value := True;
                      elsif Is_String and then Next <= Toks.Last_Index and then Is_Word (Toks (Next), "renames") then
-                        Next := Next + 1;
-                        while Next + 1 <= Toks.Last_Index
-                          and then Toks (Next).Kind = Word
-                          and then Is_Symbol (Toks (Next + 1), ".")
-                        loop
-                           Next := Next + 2;
-                        end loop;
+                        Next := Past_Name_Prefix (Toks, Next + 1);
                         if Next <= Toks.Last_Index and then Toks (Next).Kind = Word then
                            Renamed := Toks (Next).Text;
                            Has_Value := True;

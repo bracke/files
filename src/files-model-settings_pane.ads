@@ -160,7 +160,7 @@ package Files.Model.Settings_Pane is
    --  @param Config The panel's configuration this frame.
    --  @param Fields The form's fields this frame.
    --  @param Draw Draws the panel.
-   procedure Visit
+   procedure With_Panel
      (Model  : in out Window_Model;
       Config : Guikit.Settings_Panel.Configuration;
       Fields : Guikit.Settings_Panel.Field_Vectors.Vector;

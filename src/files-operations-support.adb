@@ -128,7 +128,7 @@ package body Files.Operations.Support is
                end loop;
                Files.Model.Navigate_Recent (Model, Items);
                if Preserve_Selection and then Select_Name = "" then
-                  Files.Model.Selection.Restore_Selection
+                  Files.Model.Selection.Restore
                     (Model, Previous_Selection, Previous_Primary);
                end if;
                Files.Model.Set_Error (Model, "");
@@ -156,7 +156,7 @@ package body Files.Operations.Support is
                   null;
                end;
             elsif Preserve_Selection then
-               Files.Model.Selection.Restore_Selection
+               Files.Model.Selection.Restore
                  (Model, Previous_Selection, Previous_Primary);
             end if;
             Files.Model.Set_Error (Model, "");

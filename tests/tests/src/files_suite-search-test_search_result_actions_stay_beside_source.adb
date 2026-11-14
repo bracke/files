@@ -41,8 +41,8 @@ separate (Files_Suite.Search)
       Write_File (Join (Deep, "report.txt"), "deep");
 
       Search ("report");
-      Files.Model.Rename.Toggle_Rename (Model);
-      Files.Model.Rename.Set_Rename_Text (Model, "summary.txt");
+      Files.Model.Rename.Toggle (Model);
+      Files.Model.Rename.Set_Text (Model, "summary.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "the search result renames");
       Assert (Path_Exists (Join (Deep, "summary.txt")) and then not Path_Exists (Join (Root, "summary.txt")),
@@ -107,8 +107,8 @@ separate (Files_Suite.Search)
       end;
       Search ("summary (copy).txt");
       Files.Model.Clear_Filter (Model);
-      Files.Model.Rename.Toggle_Rename (Model);
-      Files.Model.Rename.Set_Rename_Text (Model, "notes.txt");
+      Files.Model.Rename.Toggle (Model);
+      Files.Model.Rename.Set_Text (Model, "notes.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Assert (Path_Exists (Join (Deep, "notes.txt")) and then not Path_Exists (Join (Root, "notes.txt")),
               "a result still listed after Clear Filter renames in its own folder");

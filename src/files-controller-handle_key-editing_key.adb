@@ -14,13 +14,13 @@ procedure Editing_Key (Handled : out Boolean; Result : out Controller_Result) is
            Make_Result
              (if (case Move is
                     when Word_Left  =>
-                      Files.Model.Rename.Rename_Move_All_Carets (Model, Guikit.Input.Move_Left, By_Word => True),
+                      Files.Model.Rename.Move_All_Carets (Model, Guikit.Input.Move_Left, By_Word => True),
                     when Word_Right =>
-                      Files.Model.Rename.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right, By_Word => True),
-                    when Char_Left  => Files.Model.Rename.Rename_Move_All_Carets (Model, Guikit.Input.Move_Left),
-                    when Char_Right => Files.Model.Rename.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right),
-                    when To_Home    => Files.Model.Rename.Rename_Set_All_Carets_Home (Model),
-                    when To_End     => Files.Model.Rename.Rename_Set_All_Carets_End (Model))
+                      Files.Model.Rename.Move_All_Carets (Model, Guikit.Input.Move_Right, By_Word => True),
+                    when Char_Left  => Files.Model.Rename.Move_All_Carets (Model, Guikit.Input.Move_Left),
+                    when Char_Right => Files.Model.Rename.Move_All_Carets (Model, Guikit.Input.Move_Right),
+                    when To_Home    => Files.Model.Rename.Set_All_Carets_Home (Model),
+                    when To_End     => Files.Model.Rename.Set_All_Carets_End (Model))
               then Controller_Text_Updated
               else Controller_Ignored);
       end if;
@@ -163,7 +163,7 @@ begin
       end if;
    elsif Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
       if Files.Model.Focus (Model) = Files.Types.Focus_None
-        and then not Files.Model.Rename.Rename_Is_Active (Model)
+        and then not Files.Model.Rename.Is_Active (Model)
         and then not Files.Model.Temporary_Item_Is_Active (Model)
       then
          if Files.Model.Settings_Pane.Is_Open (Model) then

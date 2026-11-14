@@ -36,7 +36,7 @@ separate (Files_Suite.Refresh)
          "error.path.missing",
          "failed home records path error");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed home preserves temporary create state");
-      Assert (Files.Model.Rename.Rename_Is_Active (Model), "failed home preserves rename state");
+      Assert (Files.Model.Rename.Is_Active (Model), "failed home preserves rename state");
       Assert (Files.Model.Command_Palette.Is_Open (Model), "failed home preserves command palette");
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Initialize (Model, First, Load.Items, First);
@@ -52,7 +52,7 @@ separate (Files_Suite.Refresh)
          Ada.Directories.Full_Name (First),
          "home operation reports normalized home path");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "home clears temporary create state");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "home clears rename state");
+      Assert (not Files.Model.Rename.Is_Active (Model), "home clears rename state");
       Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_None, "home clears rename focus");
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "home clears command palette");
    end Test_Controller_Home_Loading;

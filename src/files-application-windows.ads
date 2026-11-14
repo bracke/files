@@ -262,10 +262,6 @@ private
    --  always is (subtracting Never instead would overflow the Time_Span).
    Never : constant Ada.Real_Time.Time := Ada.Real_Time.Time_First;
 
-   --  The text line height for a font pixel size.
-   function Cell_Height_For (Size : Positive) return Positive is
-     (Positive'Max (1, Size * 5 / 4));
-
    --  A window keeps two view snapshots (see Files.Snapshot_Slots).
    subtype Snapshot_Slot is Files.Snapshot_Slots.Snapshot_Slot;
    use type Snapshot_Slot;

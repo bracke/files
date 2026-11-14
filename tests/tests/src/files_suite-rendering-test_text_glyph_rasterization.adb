@@ -11,9 +11,7 @@ separate (Files_Suite.Rendering)
         (Initialize_Text
            (Renderer    => Renderer,
             Font_Path   => Files.Fonts.Default_Font_Path,
-            Pixel_Size  => 16,
-            Cell_Width  => 10,
-            Cell_Height => 20) = Guikit.Draw.Text_Render_Success,
+            Pixel_Size  => 16) = Guikit.Draw.Text_Render_Success,
          "the text renderer loads the default font");
       Result := Build_Text_Glyphs (Renderer, Frame);
       Assert (Result.Status = Guikit.Draw.Text_Render_Success, "frame text rasterizes through textrender");

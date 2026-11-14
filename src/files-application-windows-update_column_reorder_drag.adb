@@ -24,7 +24,7 @@ begin
 
    if Mouse_Down then
       if abs (X_Frame - Runtime.Column_Reorder.Origin_X)
-        > Guikit.Layout.Scaled (Column_Reorder_Threshold, Cell_Height_For (Runtime.Font_Pixel_Size))
+        > Guikit.Layout.Scaled (Column_Reorder_Threshold, Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size))
       then
          Runtime.Column_Reorder.Started := True;
       end if;
@@ -46,7 +46,7 @@ begin
    if Runtime.Column_Reorder.Started then
       declare
          Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-         Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+         Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
          Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
          Layout   : constant Files.Rendering.Layout_Metrics :=
            Files.Rendering.Calculate_Layout
@@ -70,7 +70,7 @@ begin
    elsif Runtime.Column_Reorder.Sort /= Files.Commands.No_Command then
       declare
          Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-         Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+         Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
          Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
          Layout   : constant Files.Rendering.Layout_Metrics :=
            Files.Rendering.Calculate_Layout

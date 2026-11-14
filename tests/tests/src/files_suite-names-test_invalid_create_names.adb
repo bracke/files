@@ -52,7 +52,7 @@ separate (Files_Suite.Names)
          "create invalid name records error");
       Assert (not Path_Exists (Join (Root, "bad")), "invalid create does not create directories");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid create keeps temporary item active");
-      Assert (Files.Model.Rename.Rename_Is_Active (Model), "invalid create keeps rename active");
+      Assert (Files.Model.Rename.Is_Active (Model), "invalid create keeps rename active");
 
       --  Backslash, colon, wildcard, and trailing-dot names are rejected only
       --  under Windows rules; on a POSIX host they are ordinary filenames, so

@@ -1,3 +1,4 @@
+with Files.Model.Status_Samples;
 separate (Files_Suite.Model)
    --  Owner and group names reach the info pane through the model: the window
    --  layer samples them (Files.Application.Sample_Account_Names) and
@@ -39,10 +40,10 @@ separate (Files_Suite.Model)
            (To_String (Info.Group_Name), "", "an unsampled group has no name, so the pane shows the id");
          Files_Suite.Support.Assert_Equal (Info.Owner_Id, 0, "the pane still carries the owner id");
       end;
-      Assert (not Files.Model.Account_Names_Current (Model), "nothing has been sampled yet");
+      Assert (not Files.Model.Status_Samples.Account_Names_Current (Model), "nothing has been sampled yet");
 
       Files.Application.Sample_Account_Names (Model);
-      Assert (Files.Model.Account_Names_Current (Model), "the sample covers the model as it is");
+      Assert (Files.Model.Status_Samples.Account_Names_Current (Model), "the sample covers the model as it is");
       declare
          Info : constant Files.Rendering.Info_Snapshot := Shown_Info;
       begin
@@ -58,13 +59,13 @@ separate (Files_Suite.Model)
 
       --  An unchanged name is not a change; a new one is, and is shown.
       Revision := Files.Model.Revision (Model);
-      Files.Model.Set_Account_Name
+      Files.Model.Status_Samples.Set_Account_Name
         (Model, Files.Model.User_Account, 0, Files.File_System.User_Name_For_Id (0));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Revision (Model), Revision, "recording the same name leaves the revision alone");
-      Files.Model.Set_Account_Name (Model, Files.Model.User_Account, 0, "renamed_owner");
+      Files.Model.Status_Samples.Set_Account_Name (Model, Files.Model.User_Account, 0, "renamed_owner");
       Assert (Files.Model.Revision (Model) /= Revision, "a changed name bumps the revision so the view rebuilds");
       Files_Suite.Support.Assert_Equal
         (To_String (Shown_Info.Owner_Name), "renamed_owner", "the pane shows the newly recorded name");
-      Assert (not Files.Model.Account_Names_Current (Model), "a changed model asks for a new sample");
+      Assert (not Files.Model.Status_Samples.Account_Names_Current (Model), "a changed model asks for a new sample");
    end Test_Snapshot_Owner_Names_From_Model;

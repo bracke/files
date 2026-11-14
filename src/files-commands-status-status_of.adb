@@ -40,7 +40,7 @@ separate (Files.Commands.Status)
       --  selected but has no file behind it yet.
       function Real_Selection return Command_Status is
         (if Files.Model.Selection.Selected_Count (Model) = 0 then Disabled (Selection_Empty_Reason)
-         elsif Files.Model.Selection.Selection_Includes_Temporary (Model) then Disabled (Create_Pending_Reason)
+         elsif Files.Model.Selection.Includes_Temporary (Model) then Disabled (Create_Pending_Reason)
          else Enabled);
 
       --  Exactly one real item is selected (a multi-selection says nothing).
@@ -145,7 +145,7 @@ separate (Files.Commands.Status)
               All_Of
                 (Ordinary_View,
                  Require
-                   (Files.Model.Rename.Rename_Is_Enabled (Model) or else Files.Model.Rename.Rename_Is_Active (Model),
+                   (Files.Model.Rename.Is_Enabled (Model) or else Files.Model.Rename.Is_Active (Model),
                     Rename_Unavailable_Reason));
          when Close_Command_Palette_Command =>
             --  Nothing open to close: Escape just does nothing.
@@ -156,7 +156,7 @@ separate (Files.Commands.Status)
                  Require
                    (Files.Model.Escape_Overlay (Model, Overlay)
                     or else Files.Model.Focus (Model) /= Files.Types.Focus_None
-                    or else Files.Model.Rename.Rename_Is_Active (Model));
+                    or else Files.Model.Rename.Is_Active (Model));
             end;
          when Open_Selected_Root_Command =>
             return Require (Valid_Root_Selected, Root_Unselected_Reason);
@@ -191,7 +191,7 @@ separate (Files.Commands.Status)
             return
               All_Of
                 (Ordinary_View,
-                 Require (not Files.Model.Selection.Selection_Includes_Temporary (Model), Create_Pending_Reason),
+                 Require (not Files.Model.Selection.Includes_Temporary (Model), Create_Pending_Reason),
                  Require
                    (Files.Model.Selection.Selected_Count (Model) > 0 or else Files.Model.Current_Path (Model) /= ""));
          when Navigate_Trash_Command =>

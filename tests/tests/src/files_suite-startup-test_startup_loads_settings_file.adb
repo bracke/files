@@ -66,9 +66,17 @@ separate (Files_Suite.Startup)
         (Files.Model.Item_Count (Startup.Windows.Element (1).Model),
          4,
          "hidden-file setting affects startup load");
-      Assert
-        (Files.Application.Windows.Smoke.Headless_Smoke_Test (Startup),
-         "startup windows with Unicode and fallback filenames pass headless render smoke test");
+      --  Through --runtime-smoke's own render of a window.
+      for Window of Startup.Windows loop
+         declare
+            Check : constant Files.Application.Windows.Smoke.Window_Frame_Check :=
+              Files.Application.Windows.Smoke.Check_Window_Frame (Window.Model, Startup.Settings, 320, 240);
+         begin
+            Assert
+              (Check.Size_Matches and then Check.Has_Path and then Check.Rectangles > 0 and then Check.Text_Rendered,
+               "startup windows with Unicode and fallback filenames pass headless render smoke test");
+         end;
+      end loop;
 
       Args.Clear;
       Args.Append (To_Unbounded_String (Dir));

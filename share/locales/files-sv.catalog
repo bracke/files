@@ -181,7 +181,6 @@ sv.settings.hidden_files = Visa dolda filer
 sv.settings.show_extensions = Visa filändelser
 sv.settings.sort = Sortera efter
 sv.settings.sort_ascending = Sortera stigande
-sv.settings.high_contrast_theme = Hög kontrast
 sv.settings.icon_theme = Ikontema
 sv.settings.icon_theme.basic = Grundläggande
 sv.settings.icon_theme.high_contrast = Hög kontrast

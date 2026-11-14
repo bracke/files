@@ -6,7 +6,7 @@ package Files.Model.Rename is
    --
    --  @param Model Model to inspect.
    --  @return True when at least one non-temporary item is selected.
-   function Rename_Is_Enabled
+   function Is_Enabled
      (Model : Window_Model)
       return Boolean;
 
@@ -16,14 +16,14 @@ package Files.Model.Rename is
    --  item, each with its caret placed before the file extension.
    --
    --  @param Model Model to update.
-   procedure Toggle_Rename
+   procedure Toggle
      (Model : in out Window_Model);
 
    --  Return whether rename mode is active.
    --
    --  @param Model Model to inspect.
    --  @return True when rename mode is active.
-   function Rename_Is_Active
+   function Is_Active
      (Model : Window_Model)
       return Boolean;
 
@@ -31,7 +31,7 @@ package Files.Model.Rename is
    --
    --  @param Model Model to inspect.
    --  @return First field's rename text, or an empty string.
-   function Rename_Text
+   function Text
      (Model : Window_Model)
       return String;
 
@@ -39,7 +39,7 @@ package Files.Model.Rename is
    --
    --  @param Model Model to update.
    --  @param Text New rename text for the first field.
-   procedure Set_Rename_Text
+   procedure Set_Text
      (Model : in out Window_Model;
       Text  : String);
 
@@ -48,7 +48,7 @@ package Files.Model.Rename is
    --  @param Model Model to update.
    --  @param Text UTF-8 text to insert.
    --  @return True when any field changed.
-   function Rename_Insert_At_Carets
+   function Insert_At_Carets
      (Model : in out Window_Model;
       Text  : String)
       return Boolean;
@@ -60,7 +60,7 @@ package Files.Model.Rename is
    --  @param Backward Delete before the caret; otherwise at it.
    --  @param By_Word A word rather than one character.
    --  @return True when any field changed (the revision moves only then).
-   function Rename_Delete
+   function Delete
      (Model    : in out Window_Model;
       Backward : Boolean;
       By_Word  : Boolean := False)
@@ -72,7 +72,7 @@ package Files.Model.Rename is
    --  @param Direction Left/Up moves back, Right/Down moves forward.
    --  @param By_Word To the next word boundary rather than the next character.
    --  @return True when any caret moved (the revision moves only then).
-   function Rename_Move_All_Carets
+   function Move_All_Carets
      (Model     : in out Window_Model;
       Direction : Guikit.Input.Navigation_Direction;
       By_Word   : Boolean := False)
@@ -82,7 +82,7 @@ package Files.Model.Rename is
    --
    --  @param Model Model to update.
    --  @return True when any caret moved.
-   function Rename_Set_All_Carets_Home
+   function Set_All_Carets_Home
      (Model : in out Window_Model)
       return Boolean;
 
@@ -90,7 +90,7 @@ package Files.Model.Rename is
    --
    --  @param Model Model to update.
    --  @return True when any caret moved.
-   function Rename_Set_All_Carets_End
+   function Set_All_Carets_End
      (Model : in out Window_Model)
       return Boolean;
 
@@ -99,7 +99,7 @@ package Files.Model.Rename is
    --  @param Model Model to update.
    --  @param Visible_Index One-based visible row index of the clicked field.
    --  @param Position Byte offset of the new caret (clamped to a boundary).
-   procedure Set_Rename_Caret
+   procedure Set_Caret
      (Model         : in out Window_Model;
       Visible_Index : Natural;
       Position      : Natural);
@@ -114,7 +114,7 @@ package Files.Model.Rename is
    --  @param Item_Index The field's item index; zero for the pending create row.
    --  @param Value Its text.
    --  @param Cursor Its caret byte offset.
-   procedure For_Each_Rename_Field
+   procedure For_Each_Field
      (Model : Window_Model;
       Visit : not null access procedure (Item_Index : Natural; Value : UString; Cursor : Natural));
 
@@ -125,7 +125,7 @@ package Files.Model.Rename is
       New_Name      : UString;
    end record;
 
-   package Rename_Target_Vectors is new Ada.Containers.Vectors
+   package Target_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Rename_Target);
 
@@ -133,15 +133,15 @@ package Files.Model.Rename is
    --
    --  @param Model Model to inspect.
    --  @return One target per real rename field (temporary fields excluded).
-   function Rename_Targets
+   function Targets
      (Model : Window_Model)
-      return Rename_Target_Vectors.Vector;
+      return Target_Vectors.Vector;
 
    --  Resume single-item rename mode for the currently selected item.
    --
    --  @param Model Model to update.
    --  @param Text Rename text to restore.
-   procedure Resume_Rename
+   procedure Resume
      (Model : in out Window_Model;
       Text  : String);
 

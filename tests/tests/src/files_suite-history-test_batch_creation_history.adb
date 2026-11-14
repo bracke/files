@@ -53,7 +53,7 @@ separate (Files_Suite.History)
                   (if Partial then Files.Operations.Operation_Failed else Files.Operations.Operation_Success),
                   "successful and partial batches add one action without replacing prior history: status");
                Files_Suite.Support.Assert_Equal
-                 (Natural (Files.Model.History.Undo_History (Model).Length),
+                 (Natural (Files.Model.History.Undo_Entries (Model).Length),
                   2,
                   "successful and partial batches add one action without replacing prior history: history length");
                Files_Suite.Support.Assert_Equal

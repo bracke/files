@@ -12,25 +12,25 @@ separate (Files_Suite.Model)
       Shift (Guikit.Input.Shift_Key) := True;
       Ctrl_Shift (Guikit.Input.Control_Key) := True;
       Ctrl_Shift (Guikit.Input.Shift_Key) := True;
-      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
+      Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Index (Model),
          1,
          "first movement selects first visible item");
-      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Left);
+      Files.Model.Selection.Move (Model, Guikit.Input.Move_Left);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Index (Model), 3, "left from first wraps to last");
-      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
+      Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Index (Model), 1, "right from last wraps to first");
-      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Up);
+      Files.Model.Selection.Move (Model, Guikit.Input.Move_Up);
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Index (Model), 3, "up from first wraps to last");
-      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
+      Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Index (Model),
          1,
          "right from last wraps to first after up wrap");
-      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Down);
+      Files.Model.Selection.Move (Model, Guikit.Input.Move_Down);
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Index (Model), 2, "down advances selection");
       declare
          Grid_Items : Files.Items.Item_Vectors.Vector := Sample_Items;
@@ -46,24 +46,24 @@ separate (Files_Suite.Model)
             Items             => Grid_Items,
             Home_Path         => "/home/test",
             Default_View_Mode => Files.Types.Small_Icons);
-         Files.Model.Selection.Set_Selection_Grid_Columns (Grid_Model, 2);
+         Files.Model.Selection.Set_Grid_Columns (Grid_Model, 2);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Testing.Selection_Grid_Columns (Grid_Model),
             2,
             "model records rendered grid columns");
          Files.Model.Selection.Select_Visible (Grid_Model, 1);
-         Files.Model.Selection.Move_Selection (Grid_Model, Guikit.Input.Move_Down);
+         Files.Model.Selection.Move (Grid_Model, Guikit.Input.Move_Down);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Selection.Selected_Index (Grid_Model),
             3,
             "down moves to same column in next grid row");
-         Files.Model.Selection.Move_Selection (Grid_Model, Guikit.Input.Move_Up);
+         Files.Model.Selection.Move (Grid_Model, Guikit.Input.Move_Up);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Selection.Selected_Index (Grid_Model),
             1,
             "up moves to same column in previous grid row");
          Files.Model.Selection.Select_Visible (Grid_Model, 5);
-         Files.Model.Selection.Move_Selection (Grid_Model, Guikit.Input.Move_Down);
+         Files.Model.Selection.Move (Grid_Model, Guikit.Input.Move_Down);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Selection.Selected_Index (Grid_Model),
             1,
@@ -99,7 +99,7 @@ separate (Files_Suite.Model)
         (Files.Model.Selection.Selected_Index (Model),
          1,
          "primary selection falls back to remaining selected item");
-      Files.Model.Selection.Clear_Selection (Model);
+      Files.Model.Selection.Clear (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),
          0,
@@ -180,7 +180,7 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Selection.Is_Selected (Model, 1), "reverse range selection includes target");
       Assert (Files.Model.Selection.Is_Selected (Model, 2), "reverse range selection includes middle item");
       Assert (Files.Model.Selection.Is_Selected (Model, 3), "reverse range selection includes anchor");
-      Files.Model.Selection.Clear_Selection (Model);
+      Files.Model.Selection.Clear (Model);
       Files.Model.Selection.Select_All_Visible (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),
@@ -210,13 +210,13 @@ separate (Files_Suite.Model)
         (Files.Model.Selection.Selected_Count (Model),
          3,
          "Control+A selects all visible loaded items");
-      Files.Model.Selection.Clear_Selection (Model);
+      Files.Model.Selection.Clear (Model);
       Files.Model.Selection.Select_Visible (Model, 1);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),
          1,
          "invert test starts with a single selection");
-      Files.Model.Selection.Invert_Selection (Model);
+      Files.Model.Selection.Invert (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),
          2,
@@ -224,7 +224,7 @@ separate (Files_Suite.Model)
       Assert (not Files.Model.Selection.Is_Selected (Model, 1), "invert unselects the previously selected item");
       Assert (Files.Model.Selection.Is_Selected (Model, 2), "invert selects a previously unselected item");
       Assert (Files.Model.Selection.Is_Selected (Model, 3), "invert selects the remaining unselected item");
-      Files.Model.Selection.Invert_Selection (Model);
+      Files.Model.Selection.Invert (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),
          1,
@@ -232,8 +232,8 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Selection.Is_Selected (Model, 1), "second invert restores the original selected item");
       Assert (not Files.Model.Selection.Is_Selected (Model, 2), "second invert clears the intermediate selection");
       Files.Model.Set_Filter (Model, "alpha");
-      Files.Model.Selection.Clear_Selection (Model);
-      Files.Model.Selection.Invert_Selection (Model);
+      Files.Model.Selection.Clear (Model);
+      Files.Model.Selection.Invert (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),
          1,

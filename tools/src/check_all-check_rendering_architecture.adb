@@ -101,6 +101,7 @@ separate (Check_All)
             To_Unbounded_String ("Files.Model.Root_Selector"),
             To_Unbounded_String ("Files.Model.Selection"),
             To_Unbounded_String ("Files.Model.Sort_Menu"),
+            To_Unbounded_String ("Files.Model.Status_Samples"),
             To_Unbounded_String ("Files.Model.Tree_Panel"),
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Root_Labels"),
@@ -207,6 +208,6 @@ separate (Check_All)
       begin
          Require_At_Most ("files-rendering.adb", 1_451);
          Require_At_Most ("files-rendering-build_frame_commands.adb", 908);
-         Require_At_Most ("files-application-windows.adb", 1_482);
+         Require_At_Most ("files-application-windows.adb", 1_476);
       end;
    end Check_Rendering_Architecture;

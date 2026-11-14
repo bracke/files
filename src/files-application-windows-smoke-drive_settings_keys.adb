@@ -186,7 +186,7 @@ separate (Files.Application.Windows.Smoke)
       declare
          function Selected_Shown return Boolean is
             Frame_W, Frame_H : Glfw.Size := 0;
-            Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+            Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
          begin
             Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
             declare
@@ -208,7 +208,7 @@ separate (Files.Application.Windows.Smoke)
          --  Visible_Index, through the window's own mouse step.
          procedure Press_Item (Visible_Index : Positive) is
             Window_W, Window_H, Frame_W, Frame_H : Glfw.Size := 0;
-            Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+            Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
          begin
             Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
             Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);

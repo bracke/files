@@ -181,7 +181,6 @@ nb.settings.hidden_files = Vis skjulte filer
 nb.settings.show_extensions = Vis filendelser
 nb.settings.sort = Sortér etter
 nb.settings.sort_ascending = Sorter stigende
-nb.settings.high_contrast_theme = Høy kontrast
 nb.settings.icon_theme = Ikontema
 nb.settings.icon_theme.basic = Grunnleggende
 nb.settings.icon_theme.high_contrast = Høy kontrast

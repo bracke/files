@@ -6,7 +6,7 @@ separate (Files.Application.Windows.Smoke)
       Frame_H  : Natural)
       return Region_Rect
    is
-      Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+      Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
       Snapshot    : constant Files.Rendering.View_Snapshot :=
         Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
       Layout      : constant Files.Rendering.Layout_Metrics :=

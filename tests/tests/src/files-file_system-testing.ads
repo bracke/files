@@ -69,7 +69,8 @@ package Files.File_System.Testing is
 
    --  From now on, hold every recovery-registry sweep just before it works
    --  on a payload (after it has let the registry lock go), as a slow trash
-   --  move would, until Resume_Sweep_Work; at most 30 seconds each.
+   --  move would, until Resume_Sweep_Work; at most 120 seconds each, far
+   --  above a test's wait for work that must not wait for the sweep.
    procedure Pause_Sweep_Work;
 
    --  @return Whether a sweep has reached the pause since Pause_Sweep_Work.

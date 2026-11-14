@@ -202,15 +202,15 @@ package body Files.Operation_Jobs is
          return (Status => Files.Operations.Operation_Disabled,
                  Error_Key => To_Unbounded_String ("error.filter.empty"), others => <>);
       end if;
-      if (Kind = Undo and then Files.Model.History.Undo_History (Model).Is_Empty)
-        or else (Kind = Redo and then Files.Model.History.Redo_History (Model).Is_Empty)
+      if (Kind = Undo and then Files.Model.History.Undo_Entries (Model).Is_Empty)
+        or else (Kind = Redo and then Files.Model.History.Redo_Entries (Model).Is_Empty)
       then
          Files.Model.Set_Error (Model, "error.undo.failed");
          return (Status => Files.Operations.Operation_Failed,
                  Error_Key => To_Unbounded_String ("error.undo.failed"), others => <>);
       end if;
       if Kind not in Search_Names | Search_Contents | Undo | Redo | Empty_Trash
-        and then (Work.Selected.Is_Empty or else Files.Model.Selection.Selection_Includes_Temporary (Model))
+        and then (Work.Selected.Is_Empty or else Files.Model.Selection.Includes_Temporary (Model))
       then
          declare
             Key : constant String :=
@@ -317,8 +317,8 @@ package body Files.Operation_Jobs is
       procedure Recover_Undo is
          Destinations, Sources, Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
          Untracked, Untracked_Identities, Untracked_Tree_Revisions : Files.Types.String_Vectors.Vector;
-         Undo_Stack : constant Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Undo_History (Model);
-         Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Redo_History (Model);
+         Undo_Stack : constant Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Undo_Entries (Model);
+         Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Redo_Entries (Model);
          --  Every path the undo history already records as created.
          Recorded : Files.Settings.Path_Sets.Set;
       begin
@@ -358,7 +358,7 @@ package body Files.Operation_Jobs is
                   end;
                end loop;
                Redo_Stack.Replace_Element (Redo_Stack.Last_Index, Action);
-               Files.Model.History.Set_History (Model, Undo_Stack, Redo_Stack);
+               Files.Model.History.Restore (Model, Undo_Stack, Redo_Stack);
             end;
          elsif Work.Kind in Duplicate | Compress_Zip | Compress_Seven_Zip | Extract then
             for Action of Undo_Stack loop

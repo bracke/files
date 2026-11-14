@@ -4,11 +4,11 @@ package Files.Model.History is
 
    --  @param Model Window whose history to snapshot.
    --  @return Undo stack, oldest first.
-   function Undo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector;
+   function Undo_Entries (Model : Window_Model) return Undo_Entry_Vectors.Vector;
 
    --  @param Model Window whose history to snapshot.
    --  @return Redo stack, oldest first.
-   function Redo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector;
+   function Redo_Entries (Model : Window_Model) return Undo_Entry_Vectors.Vector;
 
    --  Restore checkpointed history after filtering structurally unusable
    --  actions and completion markers. Identity snapshots are retained without
@@ -19,14 +19,14 @@ package Files.Model.History is
    --  @param Undo Undo stack, oldest first.
    --  @param Redo Redo stack, oldest first.
    --  @param State The journal's state; Redo_Retired starts over as False.
-   procedure Set_History
+   procedure Restore
      (Model : in out Window_Model;
       Undo, Redo : Undo_Entry_Vectors.Vector;
       State : History_Journal_State := (others => <>));
 
    --  @param Model Window whose journal state to read.
    --  @return The journal state to write beside its stacks.
-   function History_State (Model : Window_Model) return History_Journal_State;
+   function Journal_State (Model : Window_Model) return History_Journal_State;
 
    --  Take back the history a background helper journaled, merging it into
    --  the window's own instead of replacing it: an entry the journal does
@@ -39,13 +39,13 @@ package Files.Model.History is
    --  helper retired. Redo entries the
    --  helper never saw are retired here when its new record retired its redo
    --  stack, and the merged undo stack keeps the depth cap; payloads of what
-   --  is retired here are queued for Take_Retired_History.
+   --  is retired here are queued for Take_Retired.
    --
    --  @param Model Window whose history to merge into.
    --  @param Undo Journaled undo stack, oldest first.
    --  @param Redo Journaled redo stack, oldest first.
    --  @param State The journal's state.
-   procedure Merge_History
+   procedure Merge
      (Model : in out Window_Model;
       Undo, Redo : Undo_Entry_Vectors.Vector;
       State : History_Journal_State);
@@ -72,7 +72,7 @@ package Files.Model.History is
    --  are retired. Redo payloads are queued for deletion; payloads of entries
    --  past the cap, and of an Action that records nothing, are queued for
    --  release to the system trash. Both, and the journal save, wait for
-   --  Take_Retired_History; nothing touches the filesystem here.
+   --  Take_Retired; nothing touches the filesystem here.
    --
    --  @param Model  Model whose history is updated.
    --  @param Action Verified entry; an empty From records nothing.
@@ -90,7 +90,7 @@ package Files.Model.History is
    --  @param Discarded     Restore_Trash payloads no entry references any more.
    --  @param Released      Restore_Trash payloads of a released history.
    --  @param Journal_Dirty True when the history journal must be saved.
-   procedure Take_Retired_History
+   procedure Take_Retired
      (Model         : in out Window_Model;
       Discarded     : out Files.Types.String_Vectors.Vector;
       Released      : out Files.Types.String_Vectors.Vector;
@@ -98,14 +98,14 @@ package Files.Model.History is
 
    --  End the history with its window: originals a paste replaced, kept in a
    --  hidden recovery folder only so Undo could put them back, are queued to
-   --  go to the system trash under their own names (Take_Retired_History).
+   --  go to the system trash under their own names (Take_Retired).
    --
    --  @param Model Model to update.
-   procedure Release_History
+   procedure Release
      (Model : in out Window_Model);
 
    --  Forget the entire undo and redo history, queueing the retired recovery
-   --  payloads and the journal save for Take_Retired_History.
+   --  payloads and the journal save for Take_Retired.
    --
    --  @param Model Model to update.
    procedure Clear_Undo
@@ -148,7 +148,7 @@ package Files.Model.History is
       Found  : out Boolean);
 
    --  Push an action onto the redo stack (after a successful undo), queueing
-   --  the journal save for Take_Retired_History.
+   --  the journal save for Take_Retired.
    --
    --  @param Model  Model to update.
    --  @param Action Action to push.
@@ -158,7 +158,7 @@ package Files.Model.History is
 
    --  Push an action back onto the undo stack (after a successful redo),
    --  leaving the redo stack untouched and queueing the journal save for
-   --  Take_Retired_History.
+   --  Take_Retired.
    --
    --  @param Model  Model to update.
    --  @param Action Action to push.

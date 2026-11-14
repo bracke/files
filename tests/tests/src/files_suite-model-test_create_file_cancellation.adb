@@ -21,7 +21,7 @@ separate (Files_Suite.Model)
          Files.Commands.Rename_Selected_Items_Command,
          "F2 routes temporary rename cancel");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "F2 cancels pending temporary item");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "F2 clears temporary rename state");
+      Assert (not Files.Model.Rename.Is_Active (Model), "F2 clears temporary rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model), 0, "F2 clears temporary selection");
       Files_Suite.Support.Assert_Equal
@@ -55,14 +55,14 @@ separate (Files_Suite.Model)
          Files.Types.Focus_None,
          "Escape clears path focus during create");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "Escape cancels temporary item after path focus");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "Escape clears create rename after path focus");
+      Assert (not Files.Model.Rename.Is_Active (Model), "Escape clears create rename after path focus");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Visible_Count (Model),
          0,
          "path-focus Escape removes temporary item from projection");
 
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
-      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Down);
+      Files.Model.Selection.Move (Model, Guikit.Input.Move_Down);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
@@ -73,7 +73,7 @@ separate (Files_Suite.Model)
          Files.Operations.Operation_Success,
          "create Escape reports successful state-only cancel");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "Escape cancels temporary item");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "Escape clears temporary rename state");
+      Assert (not Files.Model.Rename.Is_Active (Model), "Escape clears temporary rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model), 0, "Escape clears temporary selection");
       Files_Suite.Support.Assert_Equal

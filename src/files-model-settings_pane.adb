@@ -206,7 +206,7 @@ package body Files.Model.Settings_Pane is
       Guikit.Settings_Panel.Set_Captured_Shortcut (Model.Settings_Panel_View, Text);
    end Set_Captured_Shortcut;
 
-   procedure Visit
+   procedure With_Panel
      (Model  : in out Window_Model;
       Config : Guikit.Settings_Panel.Configuration;
       Fields : Guikit.Settings_Panel.Field_Vectors.Vector;
@@ -215,7 +215,7 @@ package body Files.Model.Settings_Pane is
       Guikit.Settings_Panel.Set_Configuration (Model.Settings_Panel_View, Config);
       Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Fields);
       Draw (Model.Settings_Panel_View);
-   end Visit;
+   end With_Panel;
 
    function Panel_Capturing (Model : Window_Model) return Boolean is
      (Guikit.Settings_Panel.Is_Capturing (Model.Settings_Panel_View));

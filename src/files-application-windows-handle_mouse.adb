@@ -21,13 +21,14 @@ separate (Files.Application.Windows)
             Layout   : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H),
-                 Cell_Height_For (Runtime.Font_Pixel_Size));
+                 Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
             Item_Layout : constant Files.Rendering.Item_Layout_Vectors.Vector :=
               Files.Rendering.Calculate_Item_Layout
-                (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size));
+                (Snapshot, Layout, Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
             Menu : constant Files.Rendering.Context_Menu_Layout :=
               Files.Rendering.Calculate_Context_Menu_Layout
-                (Snapshot, Natural (Frame_W), Natural (Frame_H), Cell_Height_For (Runtime.Font_Pixel_Size));
+                (Snapshot, Natural (Frame_W), Natural (Frame_H),
+                 Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
             --  The menu is drawn over the view: the item beneath it is not
             --  what a right-click on it meant.
             On_Menu : constant Boolean :=
@@ -44,7 +45,7 @@ separate (Files.Application.Windows)
             In_Details_Header : constant Boolean :=
               In_Main
               and then Files.Rendering.Hit.Details_Header_Cell_At
-                (Snapshot, Layout, X, Y, Cell_Height_For (Runtime.Font_Pixel_Size)).Present;
+                (Snapshot, Layout, X, Y, Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size)).Present;
             Result : Files.Interaction.Interaction_Result;
          begin
             --  Scale_Coordinate deliberately returns the framebuffer extent for
@@ -84,7 +85,7 @@ separate (Files.Application.Windows)
                Menu     : constant Files.Rendering.Context_Menu_Layout :=
                  Files.Rendering.Calculate_Context_Menu_Layout
                    (Snapshot, Natural (Frame_W), Natural (Frame_H),
-                    Cell_Height_For (Runtime.Font_Pixel_Size));
+                    Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
                Row      : constant Natural := Files.Rendering.Hit.Context_Menu_Row_At (Menu, X, Y);
                Modifiers : constant Guikit.Input.Modifier_Set := Event.Modifiers;
                Command  : constant Files.Commands.Command_Id :=

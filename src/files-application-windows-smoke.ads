@@ -138,13 +138,41 @@ package Files.Application.Windows.Smoke is
       Error_Key           : UString;
    end record;
 
-   --  Validate startup window models through the render pipeline without opening native windows.
+   --  What one window's frame came to when --runtime-smoke rendered it.
+   type Window_Frame_Check is record
+      Size_Matches   : Boolean := False;
+      --  True when the frame was laid out at the requested size.
+      Has_Path       : Boolean := False;
+      --  True when the snapshot names the window's folder.
+      Rectangles     : Natural := 0;
+      --  Rectangles the frame draws.
+      Glyphs         : Natural := 0;
+      --  Glyphs its text rasterized to.
+      Missing_Glyphs : Natural := 0;
+      --  Characters no font could draw.
+      Vertices       : Natural := 0;
+      --  Vertices of the frame's Vulkan submission.
+      Text_Rendered  : Boolean := False;
+      --  True when the font loaded and the frame's text produced glyphs.
+      Font_Path      : UString;
+      --  The font the text was drawn with.
+   end record;
+
+   --  Render one window model through the snapshot, frame, text and Vulkan
+   --  submission stages without opening a native window, as --runtime-smoke
+   --  does for each startup window.
    --
-   --  @param Startup Startup result containing window models to validate.
-   --  @return True when each startup window can produce a non-empty frame.
-   function Headless_Smoke_Test
-     (Startup : Startup_Result)
-      return Boolean;
+   --  @param Model Window model to render.
+   --  @param Settings Settings the window is drawn with.
+   --  @param Width Framebuffer width used for frame construction.
+   --  @param Height Framebuffer height used for frame construction.
+   --  @return What the frame came to.
+   function Check_Window_Frame
+     (Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Width    : Natural;
+      Height   : Natural)
+      return Window_Frame_Check;
 
    --  Validate render quality gates without opening native windows.
    --

@@ -5,23 +5,23 @@ package body Files.Model.Folder_Sizes is
    use Files.Model.Support;
    use Ada.Strings.Unbounded;
 
-   procedure Update_Folder_Scan
+   procedure Update_Scan
      (Model  : in out Window_Model;
       Change : not null access procedure (Scan : in out Files.Folder_Size.Session)) is
    begin
       Change (Model.Folder_Scan);
-   end Update_Folder_Scan;
+   end Update_Scan;
 
-   procedure Note_Folder_Sizes
+   procedure Note
      (Model    : in out Window_Model;
       Measured : Files.Folder_Size.Measurement_Vectors.Vector)
    is
       Ignored : Files.Folder_Size.Measurement_Vectors.Vector;
    begin
-      Note_Folder_Sizes (Model, Measured, Ignored);
-   end Note_Folder_Sizes;
+      Note (Model, Measured, Ignored);
+   end Note;
 
-   procedure Note_Folder_Sizes
+   procedure Note
      (Model    : in out Window_Model;
       Measured : Files.Folder_Size.Measurement_Vectors.Vector;
       Stale    : out Files.Folder_Size.Measurement_Vectors.Vector)
@@ -60,13 +60,13 @@ package body Files.Model.Folder_Sizes is
          end if;
       end loop;
       Support.Touch_Header (Model);
-   end Note_Folder_Sizes;
+   end Note;
 
-   procedure Clear_Folder_Size
+   procedure Clear
      (Model : in out Window_Model)
      renames Files.Model.Support.Clear_Folder_Size;
 
-   procedure Prune_Folder_Sizes_To_Selection
+   procedure Prune_To_Selection
      (Model : in out Window_Model) is
       use type Files.Types.Item_Kind;
       Kept : Folder_Size_Maps.Map;
@@ -89,17 +89,17 @@ package body Files.Model.Folder_Sizes is
          Touch_Header (Model);
          Model.Folder_Sizes := Kept;
       end if;
-   end Prune_Folder_Sizes_To_Selection;
+   end Prune_To_Selection;
 
-   function Folder_Size_Cached_For
+   function Cached_For
      (Model : Window_Model;
       Path  : String)
       return Boolean is
    begin
       return Model.Folder_Sizes.Contains (To_Unbounded_String (Path));
-   end Folder_Size_Cached_For;
+   end Cached_For;
 
-   function Folder_Size_Value
+   function Value
      (Model : Window_Model;
       Path  : String)
       return Files.File_System.Directory_Size_Result is
@@ -110,6 +110,6 @@ package body Files.Model.Folder_Sizes is
       else
          return (others => <>);
       end if;
-   end Folder_Size_Value;
+   end Value;
 
 end Files.Model.Folder_Sizes;

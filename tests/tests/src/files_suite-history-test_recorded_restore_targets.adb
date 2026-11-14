@@ -49,8 +49,8 @@ separate (Files_Suite.History)
                   Step := Complete_Operation
                     (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
                   Await_View (Model, Settings);
-                  Paths := Files.Model.History.Undo_History (Model).Last_Element.Restore_Trash;
-                  Assert (Files.Model.History.Undo_History (Model).Last_Element.Restore_Targets.First_Element
+                  Paths := Files.Model.History.Undo_Entries (Model).Last_Element.Restore_Trash;
+                  Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Restore_Targets.First_Element
                           = To_Unbounded_String (Source), "paste history retains the preserved original destination");
                end if;
                Assert (Step.Status = Files.Operations.Operation_Success and then not Paths.Is_Empty,

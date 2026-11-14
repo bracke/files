@@ -70,9 +70,9 @@ separate (Files_Suite.Open_Actions)
          "",
          "directory open clears stale error state");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "directory open clears temporary create state");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "directory open clears rename state");
+      Assert (not Files.Model.Rename.Is_Active (Model), "directory open clears rename state");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename.Rename_Text (Model), "", "directory open clears stale rename text");
+        (Files.Model.Rename.Text (Model), "", "directory open clears stale rename text");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Temporary_Item_Name (Model),
          "",

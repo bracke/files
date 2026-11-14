@@ -43,7 +43,7 @@ is
         (Model, Settings, "error.duplicate.failed", Directory, Wrote_Some => not Progress.From.Is_Empty);
    end Failed;
 begin
-   if Files.Model.Selection.Selection_Includes_Temporary (Model) then
+   if Files.Model.Selection.Includes_Temporary (Model) then
       return Disabled (Model, "error.create.pending");
    elsif Is_Trash_Directory (Directory) then
       return Disabled (Model, "error.duplicate.failed");

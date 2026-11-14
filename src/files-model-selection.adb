@@ -244,12 +244,12 @@ package body Files.Model.Selection is
         or else Natural (Anchor_Index) > Count
         or else Natural (Target_Index) > Count
       then
-         Clear_Selection (Model);
+         Clear (Model);
          return;
       end if;
 
       --  The range's fixed end stays its anchor, though a cursor move on the
-      --  way here (Move_Selection) noted the target as the anchor.
+      --  way here (Move) noted the target as the anchor.
       Note_Range_Anchor (Model, Anchor_Index);
       First := Natural'Min (Natural (Anchor_Index), Natural (Target_Index));
       Last := Natural'Max (Natural (Anchor_Index), Natural (Target_Index));
@@ -314,7 +314,7 @@ package body Files.Model.Selection is
       Reconcile_Rename_With_Selection (Model);
    end Select_All_Visible;
 
-   procedure Clear_Selection
+   procedure Clear
      (Model : in out Window_Model) is
    begin
       Touch_Selection (Model);
@@ -324,9 +324,9 @@ package body Files.Model.Selection is
       Model.Range_Anchor_Path := Null_Unbounded_String;
       Model.Info_Pane_Scroll := 0;
       Reconcile_Rename_With_Selection (Model);
-   end Clear_Selection;
+   end Clear;
 
-   procedure Invert_Selection
+   procedure Invert
      (Model : in out Window_Model)
    is
       Primary : Natural := 0;
@@ -368,16 +368,16 @@ package body Files.Model.Selection is
       Model.Selected_Item_Index := Primary;
       Model.Info_Pane_Scroll := 0;
       Reconcile_Rename_With_Selection (Model);
-   end Invert_Selection;
+   end Invert;
 
    procedure Deselect_All
      (Model : in out Window_Model) is
    begin
       Touch (Model);
-      Clear_Selection (Model);
+      Clear (Model);
    end Deselect_All;
 
-   procedure Move_Selection
+   procedure Move
      (Model     : in out Window_Model;
       Direction : Guikit.Input.Navigation_Direction)
    is
@@ -402,7 +402,7 @@ package body Files.Model.Selection is
    begin
       Touch_Selection (Model);
       if Count = 0 then
-         Clear_Selection (Model);
+         Clear (Model);
          return;
       elsif Current = 0 then
          Select_Visible (Model, 1);
@@ -441,7 +441,7 @@ package body Files.Model.Selection is
       end case;
 
       Select_Visible (Model, Positive (Next));
-   end Move_Selection;
+   end Move;
 
    procedure Select_First_Visible
      (Model : in out Window_Model)
@@ -450,7 +450,7 @@ package body Files.Model.Selection is
    begin
       Touch_Selection (Model);
       if Count = 0 then
-         Clear_Selection (Model);
+         Clear (Model);
       else
          Select_Visible (Model, 1);
       end if;
@@ -463,13 +463,13 @@ package body Files.Model.Selection is
    begin
       Touch_Selection (Model);
       if Count = 0 then
-         Clear_Selection (Model);
+         Clear (Model);
       else
          Select_Visible (Model, Positive (Count));
       end if;
    end Select_Last_Visible;
 
-   procedure Move_Selection_By_Page
+   procedure Move_By_Page
      (Model     : in out Window_Model;
       Page_Rows : Positive;
       Down      : Boolean)
@@ -483,7 +483,7 @@ package body Files.Model.Selection is
    begin
       Touch_Selection (Model);
       if Count = 0 then
-         Clear_Selection (Model);
+         Clear (Model);
          return;
       elsif Current = 0 then
          Select_Visible (Model, 1);
@@ -505,9 +505,9 @@ package body Files.Model.Selection is
       end if;
 
       Select_Visible (Model, Positive (Next));
-   end Move_Selection_By_Page;
+   end Move_By_Page;
 
-   procedure Set_Selection_Grid_Columns
+   procedure Set_Grid_Columns
      (Model   : in out Window_Model;
       Columns : Positive) is
    begin
@@ -518,7 +518,7 @@ package body Files.Model.Selection is
       end if;
       Touch (Model);
       Model.Selection_Columns := Columns;
-   end Set_Selection_Grid_Columns;
+   end Set_Grid_Columns;
 
    function Is_Selected
      (Model         : Window_Model;
@@ -548,18 +548,8 @@ package body Files.Model.Selection is
 
    function Selected_Name
      (Model : Window_Model)
-      return String
-   is
-      Item_Index : constant Natural := Effective_Selected_Item_Index (Model);
-   begin
-      if Selected_Count (Model) = 0 then
-         return "";
-      elsif Item_Index = Temporary_Item_Index then
-         return To_String (Model.Temporary.Name);
-      end if;
-
-      return To_String (Model.Items.Element (Positive (Item_Index)).Name);
-   end Selected_Name;
+      return String is
+     (To_String (Selected_Item (Model).Name));
 
    function Selected_Item
      (Model : Window_Model)
@@ -574,30 +564,18 @@ package body Files.Model.Selection is
 
    procedure For_Each_Selected_Item
      (Model : Window_Model;
-      Visit : not null access procedure (Item : Files.Items.Directory_Item))
-   is
+      Visit : not null access procedure (Item : Files.Items.Directory_Item)) is
    begin
-      if Selected_Count (Model) = 0 or else Model.Items.Is_Empty then
-         return;
-      end if;
-      declare
-         Selected : constant Selection_Flags := Selected_Flags (Model);
-      begin
-         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-            if Selected (Index) then
-               Visit (Model.Items (Index));
-            end if;
-         end loop;
-      end;
+      Files.Model.Support.For_Each_Selected_Item (Model, Visit);
    end For_Each_Selected_Item;
 
-   procedure Restore_Selection
+   procedure Restore
      (Model        : in out Window_Model;
       Items        : Files.Items.Item_Vectors.Vector;
       Primary_Path : String)
      renames Files.Model.Support.Restore_Selection;
 
-   function Selection_Includes_Temporary
+   function Includes_Temporary
      (Model : Window_Model)
       return Boolean
      renames Files.Model.Support.Selection_Includes_Temporary;
@@ -633,12 +611,12 @@ package body Files.Model.Selection is
       return False;
    end Select_By_Name;
 
-   procedure Set_Selection_Page_Rows (Model : in out Window_Model; Rows : Positive) is
+   procedure Set_Page_Rows (Model : in out Window_Model; Rows : Positive) is
    begin
       Model.Selection_Page_Rows_Value := Rows;
-   end Set_Selection_Page_Rows;
+   end Set_Page_Rows;
 
-   function Selection_Page_Rows (Model : Window_Model) return Positive is
+   function Page_Rows (Model : Window_Model) return Positive is
      (Model.Selection_Page_Rows_Value);
 
    procedure Select_Visible_Set
@@ -692,7 +670,7 @@ package body Files.Model.Selection is
       if Natural_Vectors."=" (Chosen, Model.Selected_Item_Indexes) and then Primary = Model.Selected_Item_Index then
          return;
       end if;
-      Clear_Selection (Model);
+      Clear (Model);
       Model.Selected_Item_Indexes := Chosen;
       Model.Selected_Item_Index := Primary;
       Reconcile_Rename_With_Selection (Model);
@@ -712,14 +690,14 @@ package body Files.Model.Selection is
       return Selected_Index (Model);
    end Range_Anchor;
 
-   function Selection_Move_Would_Wrap
+   function Move_Would_Wrap
      (Model     : Window_Model;
       Direction : Guikit.Input.Navigation_Direction)
       return Boolean
    is
       Count   : constant Natural := Visible_Count (Model);
       Current : constant Natural := Selected_Index (Model);
-      --  As Move_Selection steps a row.
+      --  As Move steps a row.
       Stride  : constant Natural :=
         Natural'Max (1, Natural'Min (Natural (Model.Selection_Columns), Natural'Max (1, Count)));
    begin
@@ -732,6 +710,6 @@ package body Files.Model.Selection is
          when Guikit.Input.Move_Up    => return Current <= Stride;
          when Guikit.Input.Move_Down  => return Current + Stride > Count;
       end case;
-   end Selection_Move_Would_Wrap;
+   end Move_Would_Wrap;
 
 end Files.Model.Selection;

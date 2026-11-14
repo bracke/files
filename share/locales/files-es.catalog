@@ -181,7 +181,6 @@ es.settings.hidden_files = Mostrar archivos ocultos
 es.settings.show_extensions = Mostrar extensiones de archivo
 es.settings.sort = Ordenar por
 es.settings.sort_ascending = Orden ascendente
-es.settings.high_contrast_theme = Tema de alto contraste
 es.settings.icon_theme = Tema de iconos
 es.settings.icon_theme.basic = Básico
 es.settings.icon_theme.high_contrast = Alto contraste

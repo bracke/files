@@ -14,4 +14,8 @@ package Files.Folder_Size.Testing is
    --  @param Count How many reads fail; 0 ends the fault.
    procedure Fail_Result_Reads (Count : Natural);
 
+   --  @return How many folder-size helpers have started (launches that did
+   --  not fail) since the program began; compare two readings.
+   function Helper_Starts return Natural;
+
 end Files.Folder_Size.Testing;

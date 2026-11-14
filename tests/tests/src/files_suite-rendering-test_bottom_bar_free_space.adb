@@ -1,3 +1,4 @@
+with Files.Model.Status_Samples;
 separate (Files_Suite.Rendering)
    --  The grouping field (index 9) is laid out as two rows: a label row and a
    --  dedicated segment row spanning the full content width. The five option
@@ -50,23 +51,24 @@ separate (Files_Suite.Rendering)
          Assert
            (not Build_Snapshot (Model, Settings).Free_Space_Known,
             "building a snapshot does not query the disk: an unsampled model shows no free space");
-         Files.Model.Set_Volume_Space (Model, Path, Space, Now);
+         Files.Model.Status_Samples.Set_Volume_Space (Model, Path, Space, Now);
          Files_Suite.Support.Assert_Equal
            (Build_Snapshot (Model, Settings).Free_Space_Bytes,
             100,
             "the snapshot shows the sampled free space");
-         Assert (Files.Model.Volume_Space_Is_Current (Model, Now), "a fresh sample is current");
+         Assert (Files.Model.Status_Samples.Volume_Space_Is_Current (Model, Now), "a fresh sample is current");
          Assert
-           (not Files.Model.Volume_Space_Is_Current (Model, Now + 2.0 * Files.Model.Volume_Space_Refresh_Interval),
+           (not Files.Model.Status_Samples.Volume_Space_Is_Current
+              (Model, Now + 2.0 * Files.Model.Status_Samples.Volume_Space_Refresh_Interval),
             "a sample goes stale after the refresh interval");
          Revision := Files.Model.Revision (Model);
-         Files.Model.Set_Volume_Space (Model, Path, Space, Now + 1.0);
+         Files.Model.Status_Samples.Set_Volume_Space (Model, Path, Space, Now + 1.0);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Revision (Model), Revision, "an unchanged sample does not force a snapshot rebuild");
-         Files.Model.Set_Volume_Space (Model, Path & "/different", Space, Now);
+         Files.Model.Status_Samples.Set_Volume_Space (Model, Path & "/different", Space, Now);
          Assert
-           (not Files.Model.Volume_Space_Of (Model).Known
-            and then not Files.Model.Volume_Space_Is_Current (Model, Now),
+           (not Files.Model.Status_Samples.Volume_Space_Of (Model).Known
+            and then not Files.Model.Status_Samples.Volume_Space_Is_Current (Model, Now),
             "a sample for another directory is not shown for this one");
       end;
    end Test_Bottom_Bar_Free_Space;

@@ -41,7 +41,7 @@ separate (Files_Suite.History)
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operations.Operation_Success, "a large batch succeeds");
          Files_Suite.Support.Assert_Equal
-           (Natural (Files.Model.History.Undo_History (Model).Length), 1, "a large batch records one Undo entry");
+           (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "a large batch records one Undo entry");
          Created := Files.Model.History.Undo_From_Paths (Model);
          Files_Suite.Support.Assert_Equal
            (Natural (Created.Length), Count, "the entry a large batch ends with covers every item");

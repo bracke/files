@@ -8,7 +8,7 @@ separate (Files_Suite.Rendering)
       Batch    : Guikit.Vulkan.Submission_Batch;
    begin
       Assert
-        (Initialize_Text (Renderer, Files.Fonts.Default_Font_Path, 16, 10, 20) = Guikit.Draw.Text_Render_Success,
+        (Initialize_Text (Renderer, Files.Fonts.Default_Font_Path, 16) = Guikit.Draw.Text_Render_Success,
          "the text renderer initialises for submission");
       Text  := Build_Text_Glyphs (Renderer, Frame);
       Batch := Guikit.Vulkan.Build_Submission

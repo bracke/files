@@ -181,7 +181,6 @@ nl.settings.hidden_files = Verborgen bestanden tonen
 nl.settings.show_extensions = Bestandsextensies tonen
 nl.settings.sort = Sorteren op
 nl.settings.sort_ascending = Oplopend sorteren
-nl.settings.high_contrast_theme = Hoog contrast
 nl.settings.icon_theme = Pictogramthema
 nl.settings.icon_theme.basic = Basis
 nl.settings.icon_theme.high_contrast = Hoog contrast

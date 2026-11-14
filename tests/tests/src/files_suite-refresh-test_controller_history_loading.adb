@@ -51,7 +51,7 @@ separate (Files_Suite.Refresh)
          "back restores first path");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 3, "back loads first path items");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "back clears temporary create state");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "back clears rename state");
+      Assert (not Files.Model.Rename.Is_Active (Model), "back clears rename state");
       Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_None, "back clears rename focus");
       Files.Model.Begin_Create_File (Model, "forward-history-pending.txt");
       Files.Model.Selection.Select_Visible (Model, 3);
@@ -71,7 +71,7 @@ separate (Files_Suite.Refresh)
          "forward restores second path");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "forward loads second path items");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "forward clears temporary create state");
-      Assert (not Files.Model.Rename.Rename_Is_Active (Model), "forward clears rename state");
+      Assert (not Files.Model.Rename.Is_Active (Model), "forward clears rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_None,
@@ -98,7 +98,7 @@ separate (Files_Suite.Refresh)
          "failed back records load error");
       Assert (Files.Model.Can_Go_Back (Model), "failed back preserves back history");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed back preserves temporary create state");
-      Assert (Files.Model.Rename.Rename_Is_Active (Model), "failed back preserves rename state");
+      Assert (Files.Model.Rename.Is_Active (Model), "failed back preserves rename state");
       Ada.Directories.Create_Path (First);
       Write_File (Join (First, "one.txt"));
       Write_File (Join (First, "fresh.txt"));
@@ -110,17 +110,17 @@ separate (Files_Suite.Refresh)
          "second back operation succeeds");
       Project_Tools.Files.Delete_Tree (Second);
       Files.Model.Selection.Select_Visible (Model, 1);
-      Files.Model.Rename.Toggle_Rename (Model);
-      Files.Model.Rename.Set_Rename_Text (Model, "one-renamed.txt");
+      Files.Model.Rename.Toggle (Model);
+      Files.Model.Rename.Set_Text (Model, "one-renamed.txt");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Failed,
          "failed forward preserves rename result");
-      Assert (Files.Model.Rename.Rename_Is_Active (Model), "failed forward preserves normal rename state");
+      Assert (Files.Model.Rename.Is_Active (Model), "failed forward preserves normal rename state");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename.Rename_Text (Model),
+        (Files.Model.Rename.Text (Model),
          "one-renamed.txt",
          "failed forward preserves rename text");
       Files_Suite.Support.Assert_Equal
@@ -149,7 +149,7 @@ separate (Files_Suite.Refresh)
          "failed forward records load error");
       Assert (Files.Model.Can_Go_Forward (Model), "failed forward preserves forward history");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed forward preserves temporary create state");
-      Assert (Files.Model.Rename.Rename_Is_Active (Model), "failed forward preserves rename state");
+      Assert (Files.Model.Rename.Is_Active (Model), "failed forward preserves rename state");
       Ada.Directories.Create_Path (Second);
       Write_File (Join (Second, "two.txt"));
       Files.Model.Testing.Cancel_Create_File (Model);
@@ -162,16 +162,16 @@ separate (Files_Suite.Refresh)
          "second forward operation succeeds");
       Project_Tools.Files.Delete_Tree (First);
       Files.Model.Selection.Select_Visible (Model, 1);
-      Files.Model.Rename.Toggle_Rename (Model);
-      Files.Model.Rename.Set_Rename_Text (Model, "two-renamed.txt");
+      Files.Model.Rename.Toggle (Model);
+      Files.Model.Rename.Set_Text (Model, "two-renamed.txt");
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Failed,
          "failed back preserves rename result");
-      Assert (Files.Model.Rename.Rename_Is_Active (Model), "failed back preserves normal rename state");
+      Assert (Files.Model.Rename.Is_Active (Model), "failed back preserves normal rename state");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename.Rename_Text (Model),
+        (Files.Model.Rename.Text (Model),
          "two-renamed.txt",
          "failed back preserves rename text");
       Files_Suite.Support.Assert_Equal

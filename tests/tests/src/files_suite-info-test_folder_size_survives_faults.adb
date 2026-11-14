@@ -55,6 +55,7 @@ separate (Files_Suite.Info)
       Files.Process_Jobs.Testing.Refuse_Next_Launch;
       Files.Folder_Size.Set_Targets (Scan, Folders (300));
       Measure_All (300, Measured, Unmeasured, "after a refused launch");
+      Files.Process_Jobs.Testing.Clear_Refusal;
       Files_Suite.Support.Assert_Equal (Unmeasured, 256, "the refused helper's batch is answered unmeasured");
       Files_Suite.Support.Assert_Equal (Measured, 44, "the folders after it are measured");
 
@@ -74,6 +75,7 @@ separate (Files_Suite.Info)
       Files.Folder_Size.Cancel (Scan);
    exception
       when others =>
+         Files.Process_Jobs.Testing.Clear_Refusal;
          Files.Folder_Size.Testing.Fail_Result_Reads (0);
          Files.Folder_Size.Cancel (Scan);
          raise;

@@ -24,9 +24,9 @@ with Files.Localization;
 with Files.Operations;
 with Files.Rendering;
 with Guikit.Frame_Analysis;
-with Guikit.Layout;
 with Guikit.Vulkan;
 with Files.Model.Selection;
+with Files.Model.Status_Samples;
 
 package body Files.Application is
 
@@ -42,7 +42,6 @@ package body Files.Application is
 
    use Ada.Strings.Unbounded;
    use type Files.File_System.Path_Status;
-   use type Files.Rendering.Text_Render_Status;
 
    function Parse_Run_Configuration
      (Arguments : String_Vectors.Vector)
@@ -371,13 +370,13 @@ package body Files.Application is
          --  A view with no folder of its own (Recent) is on no volume: a
          --  capacity query for "" fails here and on Windows may answer for
          --  the working directory's drive. An unchanged unknown touches nothing.
-         Files.Model.Set_Volume_Space (Model, "", (others => <>), Now);
-      elsif not Files.Model.Volume_Space_Is_Current (Model, Now) then
+         Files.Model.Status_Samples.Set_Volume_Space (Model, "", (others => <>), Now);
+      elsif not Files.Model.Status_Samples.Volume_Space_Is_Current (Model, Now) then
          declare
             Path     : constant String := Files.Model.Current_Path (Model);
             Capacity : constant Hostkit.Metadata.Volume_Capacity := Hostkit.Metadata.Volume_Capacity_Of (Path);
          begin
-            Files.Model.Set_Volume_Space
+            Files.Model.Status_Samples.Set_Volume_Space
               (Model,
                Path,
                (Known       => Capacity.Available,
@@ -397,17 +396,17 @@ package body Files.Application is
          if not Item.Ownership_Available then
             return;
          end if;
-         if not Files.Model.Account_Name_Known (Model, Files.Model.User_Account, Item.Owner_Id) then
-            Files.Model.Set_Account_Name
+         if not Files.Model.Status_Samples.Account_Name_Known (Model, Files.Model.User_Account, Item.Owner_Id) then
+            Files.Model.Status_Samples.Set_Account_Name
               (Model, Files.Model.User_Account, Item.Owner_Id, Files.File_System.User_Name_For_Id (Item.Owner_Id));
          end if;
-         if not Files.Model.Account_Name_Known (Model, Files.Model.Group_Account, Item.Group_Id) then
-            Files.Model.Set_Account_Name
+         if not Files.Model.Status_Samples.Account_Name_Known (Model, Files.Model.Group_Account, Item.Group_Id) then
+            Files.Model.Status_Samples.Set_Account_Name
               (Model, Files.Model.Group_Account, Item.Group_Id, Files.File_System.Group_Name_For_Id (Item.Group_Id));
          end if;
       end Sample;
    begin
-      if Files.Model.Account_Names_Current (Model) then
+      if Files.Model.Status_Samples.Account_Names_Current (Model) then
          return;
       end if;
       --  The same items Build_Snapshot lists in the info pane.
@@ -425,7 +424,7 @@ package body Files.Application is
          end;
       end if;
       --  After any Set_Account_Name above, so its revision bump is covered.
-      Files.Model.Note_Account_Names_Sampled (Model);
+      Files.Model.Status_Samples.Note_Account_Names_Sampled (Model);
    end Sample_Account_Names;
 
    function With_Host_Samples
@@ -654,36 +653,10 @@ package body Files.Application is
 
       for Window of Result.Windows loop
          declare
-            Snapshot      : constant Files.Rendering.View_Snapshot :=
-              Files.Rendering.Build_Snapshot
-                (With_Host_Samples (Files.Model.Grouped (Window.Model, Result.Settings)), Result.Settings);
-            Frame         : constant Files.Rendering.Frame_Commands :=
-              Files.Rendering.Build_Frame_Commands
-                (Snapshot    => Snapshot,
-                 Width       => Width,
-                 Height      => Height,
-                 Line_Height => Guikit.Layout.Reference_Line_Height,
-                 Pointer => (Hover_X => 5, Hover_Y => 5, Has_Hover => Width > 0 and then Height > 0, others => <>));
-            Text_Renderer : Files.Rendering.Text_Renderer;
-            Frame_Font_Path : constant String := Files.Rendering.Default_Font_Path;
-            Text_Status   : constant Files.Rendering.Text_Render_Status :=
-              Files.Rendering.Initialize_Text
-                (Renderer    => Text_Renderer,
-                 Font_Path   => Frame_Font_Path,
-                 Pixel_Size  => 16,
-                 Cell_Width  => 12,
-                 Cell_Height => 20);
-            Glyphs        : constant Files.Rendering.Text_Render_Result :=
-              Files.Rendering.Build_Text_Glyphs (Text_Renderer, Frame);
-            Batch         : constant Guikit.Vulkan.Submission_Batch :=
-              Guikit.Vulkan.Build_Submission
-                (Rectangles         => Frame.Rectangles,
-                 Triangles          => Frame.Triangles,
-                 Icons              => Frame.Icons,
-                 Overlay_Rectangles => Frame.Overlay_Rectangles,
-                 Layout             => Frame.Layout,
-                 Theme              => Frame.Theme_Palette,
-                 Text               => Glyphs);
+            Check : constant Files.Application.Windows.Smoke.Window_Frame_Check :=
+              Files.Application.Windows.Smoke.Check_Window_Frame
+                (With_Host_Samples (Files.Model.Grouped (Window.Model, Result.Settings)), Result.Settings,
+                 Width, Height);
          begin
             Append_Line
               (Files.Localization.Text ("runtime.smoke.window", Locale)
@@ -692,28 +665,25 @@ package body Files.Application is
                & "  "
                & Files.Localization.Text ("runtime.smoke.rectangles", Locale)
                & ": "
-               & Natural_Text (Natural (Frame.Rectangles.Length))
+               & Natural_Text (Check.Rectangles)
                & "  "
                & Files.Localization.Text ("runtime.smoke.glyphs", Locale)
                & ": "
-               & Natural_Text (Natural (Glyphs.Glyphs.Length))
+               & Natural_Text (Check.Glyphs)
                & "  "
                & Files.Localization.Text ("runtime.smoke.missing_glyphs", Locale)
                & ": "
-               & Natural_Text (Glyphs.Missing_Glyph_Count)
+               & Natural_Text (Check.Missing_Glyphs)
                & "  "
                & Files.Localization.Text ("runtime.smoke.font", Locale)
                & ": "
-               & Frame_Font_Path
+               & To_String (Check.Font_Path)
                & "  "
                & Files.Localization.Text ("runtime.smoke.vertices", Locale)
                & ": "
-               & Natural_Text (Natural (Batch.Vertices.Length)));
+               & Natural_Text (Check.Vertices));
 
-            if Text_Status /= Files.Rendering.Text_Render_Success
-              or else Glyphs.Status /= Files.Rendering.Text_Render_Success
-              or else Glyphs.Glyphs.Is_Empty
-            then
+            if not Check.Text_Rendered then
                Append_Line (Files.Localization.Text ("runtime.smoke.text_failed", Locale));
             end if;
          end;

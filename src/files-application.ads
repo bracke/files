@@ -116,8 +116,8 @@ package Files.Application is
       return Startup_Result;
 
    --  Resolve the owner and group names of the items the info pane lists into
-   --  Model (Files.Model.Set_Account_Name), so the snapshot shows names without
-   --  an NSS lookup of its own. Does nothing while the model is unchanged
+   --  Model (Files.Model.Status_Samples.Set_Account_Name), so the snapshot
+   --  shows names without an NSS lookup of its own. Does nothing while the model is unchanged
    --  since the last sample, or when the info pane shows no item.
    --
    --  @param Model Window model whose info-pane items are sampled.
@@ -180,8 +180,8 @@ package Files.Application is
    function Run return Ada.Command_Line.Exit_Status;
 
    --  Sample the current directory's volume space into Model when its last
-   --  sample is stale (Files.Model.Volume_Space_Is_Current), so the snapshot
-   --  shows it without querying the disk itself.
+   --  sample is stale (Files.Model.Status_Samples.Volume_Space_Is_Current),
+   --  so the snapshot shows it without querying the disk itself.
    --
    --  @param Model Window model whose current directory is sampled.
    procedure Sample_Volume_Space

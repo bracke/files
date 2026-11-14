@@ -24,17 +24,17 @@ separate (Files_Suite.Info)
          Assert (Files.Model.Testing.Folder_Scan_Is_Active (Model)
                  and then Files.Model.Testing.Folder_Scan_Target (Model) = Path,
                  "selecting a folder requests its size");
-         Assert (not Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Path),
+         Assert (not Files.Model.Folder_Sizes.Cached_For (Model, Path),
                  "folder size is not computed synchronously on the input path");
 
          --  Advancing the background scan to completion publishes the
          --  measurement, which matches the synchronous reference.
          Drain_Folder_Sizes (Model);
-         Assert (Files.Model.Folder_Sizes.Folder_Size_Cached_For (Model, Path),
+         Assert (Files.Model.Folder_Sizes.Cached_For (Model, Path),
                  "folder size is published once the background scan finishes");
          declare
             Measured : constant Files.File_System.Directory_Size_Result :=
-              Files.Model.Folder_Sizes.Folder_Size_Value (Model, Path);
+              Files.Model.Folder_Sizes.Value (Model, Path);
          begin
             Files_Suite.Support.Assert_Equal
               (Measured.Available, Reference.Available, "background folder size matches Directory_Size: availability");

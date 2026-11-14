@@ -8,9 +8,9 @@ separate (Files_Suite.Model)
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
       --  Start from an open info pane with nothing selected.
-      Files.Model.Selection.Move_Selection (Model, Guikit.Input.Move_Right);
+      Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
-      Files.Model.Selection.Clear_Selection (Model);
+      Files.Model.Selection.Clear (Model);
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_2, Ctrl);
       Files_Suite.Support.Assert_Equal

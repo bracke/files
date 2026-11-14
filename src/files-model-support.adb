@@ -459,6 +459,9 @@ package body Files.Model.Support is
          return Natural (Index_Maps.Element (Found));
       end Index_Of;
    begin
+      if not Field_Sort and then Items_In_Group_Order (Model) then
+         return;
+      end if;
       Touch (Model);
       for Item_Index of Model.Selected_Item_Indexes loop
          if Item_Index in 1 .. Natural (Model.Items.Last_Index) then
@@ -553,72 +556,12 @@ package body Files.Model.Support is
       Guikit.Command_Palette.Reset (Model.Command_Palette.View);
    end Clear_Overlay_State_For_Edit;
 
-   function Focused_Field
-     (Model : Window_Model)
-      return Text_Field_State
-   is
-      --  A field edited as a whole value: the caret sits at its end.
-      function At_End (Text : String) return Text_Field_State is
-        ((Text => To_Unbounded_String (Text), Cursor => Text'Length));
-   begin
-      case Model.Focus_Value is
-         when Files.Types.Focus_Path_Input =>
-            return Model.Path_Input.Edit;
-         when Files.Types.Focus_Filter_Input =>
-            return Model.Filter;
-         when Files.Types.Focus_Rename_Input =>
-            return (if Model.Rename.Fields.Is_Empty then (others => <>) else Model.Rename.Fields.First_Element.Edit);
-         when Files.Types.Focus_Command_Palette =>
-            --  The palette query has no separate caret.
-            return At_End (Guikit.Command_Palette.Query (Model.Command_Palette.View));
-         when Files.Types.Focus_Settings_Input =>
-            --  The panel edits whole values.
-            return At_End (Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View));
-         when Files.Types.Focus_Ownership_Input =>
-            return Model.Ownership_Input.Edit;
-         when Files.Types.Focus_None =>
-            return (others => <>);
-      end case;
-   end Focused_Field;
-
-   function Focused_Text_Value
-     (Model : Window_Model)
-      return String is
-     (To_String (Focused_Field (Model).Text));
-
    procedure Reset_Settings_Panel (Model : in out Window_Model) is
    begin
       Touch (Model);
       Guikit.Settings_Panel.Reset (Model.Settings_Panel_View);
       Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Files.Settings_Form.Fields (Model));
    end Reset_Settings_Panel;
-
-   function Find_Rename_Field
-     (Model         : Window_Model;
-      Visible_Index : Positive)
-      return Natural
-   is
-      Loaded : constant Natural := Visible_To_Item_Index (Model, Visible_Index);
-      Target : Natural;
-   begin
-      if Loaded = 0 then
-         if Temporary_Is_Visible (Model) and then Visible_Index = Visible_Count (Model) then
-            Target := 0;
-         else
-            return 0;
-         end if;
-      else
-         Target := Loaded;
-      end if;
-
-      for Index in Model.Rename.Fields.First_Index .. Model.Rename.Fields.Last_Index loop
-         if Model.Rename.Fields.Element (Index).Item_Index = Target then
-            return Index;
-         end if;
-      end loop;
-
-      return 0;
-   end Find_Rename_Field;
 
    procedure Begin_Create_Temporary
       (Model        : in out Window_Model;
@@ -782,28 +725,43 @@ package body Files.Model.Support is
       return Model.Items.Element (Positive (Item_Index));
    end Selected_Item;
 
-   function Selected_Items
+   procedure For_Each_Selected_Item
      (Model : Window_Model;
+      Visit : not null access procedure (Item : Files.Items.Directory_Item);
       Limit : Natural := Natural'Last)
-      return Files.Items.Item_Vectors.Vector
    is
-      Result : Files.Items.Item_Vectors.Vector;
+      Visited : Natural := 0;
    begin
       if Selected_Count (Model) = 0 or else Model.Items.Is_Empty then
-         return Result;
+         return;
       end if;
 
       declare
          Selected : constant Selection_Flags := Selected_Flags (Model);
       begin
          for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-            exit when Natural (Result.Length) >= Limit;
+            exit when Visited >= Limit;
             if Selected (Index) then
-               Result.Append (Model.Items (Index));
+               Visit (Model.Items (Index));
+               Visited := Visited + 1;
             end if;
          end loop;
       end;
+   end For_Each_Selected_Item;
 
+   function Selected_Items
+     (Model : Window_Model;
+      Limit : Natural := Natural'Last)
+      return Files.Items.Item_Vectors.Vector
+   is
+      Result : Files.Items.Item_Vectors.Vector;
+
+      procedure Add (Item : Files.Items.Directory_Item) is
+      begin
+         Result.Append (Item);
+      end Add;
+   begin
+      For_Each_Selected_Item (Model, Add'Access, Limit);
       return Result;
    end Selected_Items;
 

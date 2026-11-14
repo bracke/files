@@ -15,8 +15,8 @@ separate (Files_Suite.History)
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "orig.txt");
-      Files.Model.Rename.Toggle_Rename (Model);
-      Files.Model.Rename.Set_Rename_Text (Model, "renamed.txt");
+      Files.Model.Rename.Toggle (Model);
+      Files.Model.Rename.Set_Text (Model, "renamed.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

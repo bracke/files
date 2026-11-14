@@ -66,7 +66,7 @@ is
       end if;
    end Link_Marker;
 begin
-   if Files.Model.Selection.Selection_Includes_Temporary (Model) then
+   if Files.Model.Selection.Includes_Temporary (Model) then
       return Disabled (Model, "error.create.pending");
    elsif Directory = ""
      or else Files.Model.In_Recent_View (Model)

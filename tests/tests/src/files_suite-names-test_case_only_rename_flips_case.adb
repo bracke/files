@@ -92,8 +92,8 @@ separate (Files_Suite.Names)
          Load := Files.File_System.Load_Directory (Folder, Settings);
          Files.Model.Initialize (Model, Folder, Load.Items, Root);
          Select_Name (Model, "report.txt");
-         Files.Model.Rename.Toggle_Rename (Model);
-         Files.Model.Rename.Set_Rename_Text (Model, "Report.txt");
+         Files.Model.Rename.Toggle (Model);
+         Files.Model.Rename.Set_Text (Model, "Report.txt");
          Step := Files.Operations.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
@@ -116,8 +116,8 @@ separate (Files_Suite.Names)
          Load := Files.File_System.Load_Directory (Folder, Settings);
          Files.Model.Initialize (Model, Folder, Load.Items, Root);
          Select_Name (Model, Lower_Cyrillic);
-         Files.Model.Rename.Toggle_Rename (Model);
-         Files.Model.Rename.Set_Rename_Text (Model, Upper_Cyrillic);
+         Files.Model.Rename.Toggle (Model);
+         Files.Model.Rename.Set_Text (Model, Upper_Cyrillic);
          Step := Files.Operations.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,

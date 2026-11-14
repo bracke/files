@@ -170,13 +170,13 @@ separate (Files.Controller)
                     (if Action.Extend then Files.Model.Selection.Range_Anchor (Model) else Old_Index);
                begin
                   if Action.Extend
-                    and then Files.Model.Selection.Selection_Move_Would_Wrap (Model, Action.Direction)
+                    and then Files.Model.Selection.Move_Would_Wrap (Model, Action.Direction)
                   then
                      --  Extending a range stops at the edge: wrapping would
                      --  reach across the listing and select all between.
                      return Make_Result (Controller_Ignored);
                   end if;
-                  Files.Model.Selection.Move_Selection (Model, Action.Direction);
+                  Files.Model.Selection.Move (Model, Action.Direction);
                   if Action.Extend then
                      declare
                         New_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);

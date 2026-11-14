@@ -181,7 +181,6 @@ fr.settings.hidden_files = Afficher les fichiers cachés
 fr.settings.show_extensions = Afficher les extensions de fichier
 fr.settings.sort = Trier par
 fr.settings.sort_ascending = Tri ascendant
-fr.settings.high_contrast_theme = Thème à fort contraste
 fr.settings.icon_theme = Thème d'icônes
 fr.settings.icon_theme.basic = Basique
 fr.settings.icon_theme.high_contrast = Fort contraste

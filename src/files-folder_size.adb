@@ -195,6 +195,7 @@ package body Files.Folder_Size is
       Write_Request (File'Access, Scan.Batch);
       Files.Exclusive_Streams.Close (File);
       Files.Process_Jobs.Launch (Scan.Job, Files.Helper_Modes.Flag (Files.Helper_Modes.Folder_Size));
+      Test_Helper_Starts := (if Test_Helper_Starts = Natural'Last then 0 else Test_Helper_Starts + 1);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Folder_Size");

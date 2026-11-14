@@ -98,13 +98,13 @@ separate (Files_Suite.Names)
             Original_Content,
             "failed create leaves existing file content unchanged");
          Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed create keeps temporary item active");
-         Assert (Files.Model.Rename.Rename_Is_Active (Model), "failed create keeps rename mode active");
+         Assert (Files.Model.Rename.Is_Active (Model), "failed create keeps rename mode active");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Temporary_Item_Name (Model),
             "existing.txt",
             "failed create keeps attempted name");
 
-         Files.Model.Rename.Set_Rename_Text (Model, "retry.txt");
+         Files.Model.Rename.Set_Text (Model, "retry.txt");
          Result := Files.Operations.Commit_Create_File (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Status,

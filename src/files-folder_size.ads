@@ -132,6 +132,10 @@ private
    --  yet does. Read and written only by the thread that steps sessions.
    Test_Unreadable_Results : Natural := 0;
 
+   --  Test seam: how many helpers the sessions have started (each a launch that
+   --  did not fail). Read and written only by the thread that steps sessions.
+   Test_Helper_Starts : Natural := 0;
+
    type Session is record
       Job : Files.Process_Jobs.Session;
       --  The running helper's directories, in its order, and the index of

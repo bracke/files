@@ -8,6 +8,8 @@ function Execute_Open_Action
 is
    Executable : constant String := To_String (Action.Executable);
    Arguments  : constant Hostkit.String_Vectors.Vector := Host_Arguments (Action.Arguments);
+   --  The file the Windows opener's command names, when it is that command.
+   Start_Path : UString;
 begin
    Exit_Status := -1;
    Failure_Key := Null_Unbounded_String;
@@ -16,8 +18,13 @@ begin
       return False;
    end if;
 
-   if not Action.Use_Shell and then Is_Windows_Start_Opener (Executable, Arguments) then
-      case Hostkit.Process.Open_Native_Outcome (To_String (Arguments (4))) is
+   --  The Windows default opener is written as `cmd /c start "" {path}`. cmd
+   --  re-parses that command line, so a file named `x&calc` would also run
+   --  calc, and %VAR% expands even inside quotes. That command (saved
+   --  settings files carry it too) opens its file through the shell's own
+   --  association instead, where nothing is parsed.
+   if not Action.Use_Shell and then Hostkit.Process.Shell_Start_Target (Executable, Arguments, Start_Path) then
+      case Hostkit.Process.Open_Native_Outcome (To_String (Start_Path)) is
          when Hostkit.Process.Opened =>
             Exit_Status := 0;
             return True;

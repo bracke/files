@@ -48,8 +48,8 @@ separate (Files_Suite.Rendering)
          Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
          Files.Model.Set_View_Mode (Model, Files.Types.Details);
          Files.Model.Selection.Select_Visible (Model, 1);
-         Files.Model.Selection.Set_Selection_Page_Rows (Model, 23);
-         Files.Model.Selection.Move_Selection_By_Page (Model, Files.Model.Selection.Selection_Page_Rows (Model), True);
+         Files.Model.Selection.Set_Page_Rows (Model, 23);
+         Files.Model.Selection.Move_By_Page (Model, Files.Model.Selection.Page_Rows (Model), True);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Selection.Selected_Index (Model),
             24,

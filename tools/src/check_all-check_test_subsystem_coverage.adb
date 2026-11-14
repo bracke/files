@@ -115,7 +115,12 @@ separate (Check_All)
       Require_Tests ("startup", 32);
       Require_Tests ("commands", 39);
       Require_Tests ("model", 55);
-      Require_Tests ("interaction", 96);
+      Require_Tests ("interaction", 34);
+      Require_Tests ("context_menu", 20);
+      Require_Tests ("drags", 8);
+      Require_Tests ("tree", 15);
+      Require_Tests ("keyboard", 14);
+      Require_Tests ("text_input", 5);
       Require_Tests ("rendering", 101);
       Require_Tests ("operations", 48);
       Require_Tests ("transfer", 55);

@@ -20,9 +20,9 @@ package body Files.Model.History is
    --  newest, so the reachable history is unaffected.
    Max_Undo_Depth : constant := 200;
 
-   function Undo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.History.Undo_Stack);
+   function Undo_Entries (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.History.Undo_Stack);
 
-   function Redo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.History.Redo_Stack);
+   function Redo_Entries (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.History.Redo_Stack);
 
    function Same_Length
      (Left, Right : Files.Types.String_Vectors.Vector) return Boolean is
@@ -277,7 +277,7 @@ package body Files.Model.History is
       end loop;
    end Sanitize_History;
 
-   procedure Set_History
+   procedure Restore
      (Model : in out Window_Model;
       Undo, Redo : Undo_Entry_Vectors.Vector;
       State : History_Journal_State := (others => <>))
@@ -305,7 +305,7 @@ package body Files.Model.History is
          end if;
       end loop;
       --  The entries the journal's cap left out of that list stay named, so
-      --  the next journal tells the window to retire them (Merge_History).
+      --  the next journal tells the window to retire them (Merge).
       for Sequence of State.Dropped loop
          if Sequence < Next
            and then not Held.Contains (Sequence)
@@ -321,11 +321,11 @@ package body Files.Model.History is
       Model.History.Journal :=
         (Next_Sequence => Next, Unjournaled => Left_Out, Redo_Retired => False, Dropped => Dropped);
       Support.Touch (Model);
-   end Set_History;
+   end Restore;
 
-   function History_State (Model : Window_Model) return History_Journal_State is (Model.History.Journal);
+   function Journal_State (Model : Window_Model) return History_Journal_State is (Model.History.Journal);
 
-   procedure Merge_History
+   procedure Merge
      (Model : in out Window_Model;
       Undo, Redo : Undo_Entry_Vectors.Vector;
       State : History_Journal_State)
@@ -448,7 +448,7 @@ package body Files.Model.History is
          Dropped       => Sequence_Vectors.Empty_Vector);
       Model.History.Journal_Dirty := True;
       Support.Touch (Model);
-   end Merge_History;
+   end Merge;
 
    procedure Retire_Payloads
      (Pending : in out Files.Types.String_Vectors.Vector;
@@ -492,7 +492,7 @@ package body Files.Model.History is
       Numbered : Undo_Entry := Action;
    begin
       --  Payloads are queued only once their entry has left both stacks; the
-      --  operations layer deletes them when it drains Take_Retired_History.
+      --  operations layer deletes them when it drains Take_Retired.
       Retire_Payloads (Model.History.Retired_Discards, Model.History.Redo_Stack);
       Model.History.Redo_Stack.Clear;
       --  Redo entries a background helper's journal left out go too.
@@ -523,7 +523,7 @@ package body Files.Model.History is
       return True;
    end Commit_Undo_Record;
 
-   procedure Take_Retired_History
+   procedure Take_Retired
      (Model         : in out Window_Model;
       Discarded     : out Files.Types.String_Vectors.Vector;
       Released      : out Files.Types.String_Vectors.Vector;
@@ -535,9 +535,9 @@ package body Files.Model.History is
       Model.History.Retired_Discards.Clear;
       Model.History.Retired_Releases.Clear;
       Model.History.Journal_Dirty := False;
-   end Take_Retired_History;
+   end Take_Retired;
 
-   procedure Release_History
+   procedure Release
      (Model : in out Window_Model) is
    begin
       Retire_Payloads (Model.History.Retired_Releases, Model.History.Undo_Stack);
@@ -545,7 +545,7 @@ package body Files.Model.History is
       Model.History.Undo_Stack.Clear;
       Model.History.Redo_Stack.Clear;
       Touch (Model);
-   end Release_History;
+   end Release;
 
    procedure Clear_Undo
      (Model : in out Window_Model) is

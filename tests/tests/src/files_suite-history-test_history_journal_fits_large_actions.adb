@@ -32,9 +32,9 @@ separate (Files_Suite.History)
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.History_Journal.Restore (History_Directory, Model), "the journal is saved and reads back");
       Files_Suite.Support.Assert_Equal
-        (Natural (Files.Model.History.Undo_History (Model).Length), 1, "with the newest action, the older left out");
+        (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "with the newest action, the older left out");
       Assert (Ada.Strings.Fixed.Index
-                (To_String (Files.Model.History.Undo_History (Model).First_Element.From.First_Element), "/newer") = 1,
+                (To_String (Files.Model.History.Undo_Entries (Model).First_Element.From.First_Element), "/newer") = 1,
               "the one kept is the newest");
       Reset_Root;
    end Test_History_Journal_Fits_Large_Actions;

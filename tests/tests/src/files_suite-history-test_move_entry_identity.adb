@@ -57,7 +57,7 @@ separate (Files_Suite.History)
                else
                   Select_Name (Model, "original");
                   Files_Suite.Support.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
-                  Files.Model.Rename.Set_Rename_Text (Model, "renamed");
+                  Files.Model.Rename.Set_Text (Model, "renamed");
                   Step := Files.Operations.Commit_Rename (Model, Settings);
                end if;
                Step := Complete_Operation (Model, Settings, Step);

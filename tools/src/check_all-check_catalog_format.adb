@@ -3,7 +3,6 @@ separate (Check_All)
       Catalog     : constant String := Root & "/share/files.catalog";
       Content     : constant String := To_String (Project_Tools.Text.Read_Text_File (Catalog));
       Line_Number : Natural := 1;
-      Line_Start  : Positive := Content'First;
 
       procedure Fail
         (Message : String)
@@ -64,10 +63,11 @@ separate (Check_All)
          return True;
       end Is_Localized_Key;
 
-      procedure Check_Line (Raw : String) is
+      procedure Check_Line (Raw : String; Number : Positive) is
          Line   : constant String := Ada.Strings.Fixed.Trim (Raw, Ada.Strings.Both);
          Equals : constant Natural := Ada.Strings.Fixed.Index (Line, "=");
       begin
+         Line_Number := Number;
          if Line = "" or else Starts_With (Line, "#") then
             return;
          elsif Equals = 0 then
@@ -92,19 +92,5 @@ separate (Check_All)
          end;
       end Check_Line;
    begin
-      if Content = "" then
-         return;
-      end if;
-
-      for Index in Content'Range loop
-         if Content (Index) = ASCII.LF then
-            Check_Line (Content (Line_Start .. Index - 1));
-            Line_Number := Line_Number + 1;
-            Line_Start := Index + 1;
-         end if;
-      end loop;
-
-      if Line_Start <= Content'Last then
-         Check_Line (Content (Line_Start .. Content'Last));
-      end if;
+      For_Each_Line (Content, Check_Line'Access);
    end Check_Catalog_Format;

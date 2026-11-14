@@ -80,7 +80,7 @@ separate (Files_Suite.Interaction)
          "the setup removes the current-folder favorite");
       Files.Model.Begin_Create_File (Model, "untitled.txt");
       Assert
-        (Files.Model.Selection.Selection_Includes_Temporary (Model),
+        (Files.Model.Selection.Includes_Temporary (Model),
          "the pending create row is selected before the favorite command");
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Toggle_Favorite_Command, Model),

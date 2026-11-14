@@ -6,29 +6,15 @@ separate (Check_All.Check_Packaging_Metadata)
       Content  : constant String := To_String (Project_Tools.Text.Read_Text_File (Manifest));
       Found    : Boolean := False;
 
-      procedure Check_Line (Raw : String) is
+      procedure Check_Line (Raw : String; Number : Positive) is
+         pragma Unreferenced (Number);
       begin
          if Ada.Strings.Fixed.Trim (Raw, Ada.Strings.Both) = Path then
             Found := True;
          end if;
       end Check_Line;
    begin
-      if Content /= "" then
-         declare
-            Line_Start : Positive := Content'First;
-         begin
-            for Index in Content'Range loop
-               if Content (Index) = ASCII.LF then
-                  Check_Line (Content (Line_Start .. Index - 1));
-                  Line_Start := Index + 1;
-               end if;
-            end loop;
-
-            if Line_Start <= Content'Last then
-               Check_Line (Content (Line_Start .. Content'Last));
-            end if;
-         end;
-      end if;
+      For_Each_Line (Content, Check_Line'Access);
 
       if not Found then
          Put_Line (Standard_Error, Message);

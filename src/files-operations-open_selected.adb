@@ -12,7 +12,7 @@ is
      (Index_Type => Positive, Element_Type => Files.Settings.Open_Action, "=" => Files.Settings."=");
 begin
    if Files.Model.Selection.Selected_Count (Model) = 0
-     or else Files.Model.Selection.Selection_Includes_Temporary (Model)
+     or else Files.Model.Selection.Includes_Temporary (Model)
    then
       return Disabled (Model, "error.selection.empty");
    elsif Natural (Items.Length) > 1 then

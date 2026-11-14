@@ -55,7 +55,7 @@ separate (Files_Suite.Rendering)
       end if;
 
       Assert
-        (Initialize_Text (Renderer, Files.Fonts.Default_Font_Path, 16, 10, 20)
+        (Initialize_Text (Renderer, Files.Fonts.Default_Font_Path, 16)
          = Guikit.Draw.Text_Render_Success,
          "the text renderer initialises");
 

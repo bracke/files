@@ -17,6 +17,11 @@ with Files_Suite.Refresh;
 with Files_Suite.Open_Actions;
 with Files_Suite.Rendering;
 with Files_Suite.Interaction;
+with Files_Suite.Context_Menu;
+with Files_Suite.Drags;
+with Files_Suite.Tree;
+with Files_Suite.Keyboard;
+with Files_Suite.Text_Input;
 
 package body Files_Suite is
 
@@ -41,6 +46,11 @@ package body Files_Suite is
       Result.Add_Test (Files_Suite.Open_Actions.Suite);
       Result.Add_Test (Files_Suite.Rendering.Suite);
       Result.Add_Test (Files_Suite.Interaction.Suite);
+      Result.Add_Test (Files_Suite.Context_Menu.Suite);
+      Result.Add_Test (Files_Suite.Drags.Suite);
+      Result.Add_Test (Files_Suite.Tree.Suite);
+      Result.Add_Test (Files_Suite.Keyboard.Suite);
+      Result.Add_Test (Files_Suite.Text_Input.Suite);
       return Result;
    end Suite;
 
