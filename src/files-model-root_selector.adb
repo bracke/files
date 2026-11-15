@@ -40,8 +40,7 @@ package body Files.Model.Root_Selector is
       end if;
       Model.Root_Selector.Selected := (if Model.Root_Selector.Open then 1 else 0);
       Model.Settings_Pane_Open := False;
-      Model.Command_Palette.Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
+      Hide_Command_Palette (Model);
       Model.Focus_Value := Files.Types.Focus_None;
    end Open;
 

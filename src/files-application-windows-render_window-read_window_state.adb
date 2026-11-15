@@ -9,9 +9,11 @@ separate (Files.Application.Windows.Render_Window)
          Ratio : constant Float :=
            Files.Window_Policy.Pixel_Ratio (Natural (Width), Natural (Window_W), Runtime.Pixel_Ratio);
       begin
-         --  The size can move here two ways: this window's scale changed, or
-         --  another window's zoom reached these settings through
-         --  Share_Settings_From, which keeps no glyphs of its own.
+         --  The one place the live size follows the settings: this window's
+         --  scale changed, its own zoom or settings save changed the size, or
+         --  another window's reached these settings (Share_Settings_From).
+         --  The glyphs and the frame are rebuilt; the snapshot holds nothing
+         --  sized by the font.
          if Ratio /= Runtime.Pixel_Ratio
            or else Scaled_Font_Size (Runtime) /= Runtime.Font_Pixel_Size
          then
@@ -19,7 +21,6 @@ separate (Files.Application.Windows.Render_Window)
             Runtime.Font_Pixel_Size := Scaled_Font_Size (Runtime);
             Files.Rendering.Text.Invalidate (Runtime.Text);
             Runtime.Frame_Cache_Valid := False;
-            Runtime.View.Snapshot_Valid := False;
          end if;
       end;
       Glfw.Windows.Get_Cursor_Pos (As_Window (Runtime.Handle), Cursor_X, Cursor_Y);

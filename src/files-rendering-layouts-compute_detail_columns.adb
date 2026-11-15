@@ -1,4 +1,19 @@
-separate (Files.Rendering.Geometry)
+separate (Files.Rendering.Layouts)
+   --  Lay out the visible detail columns left to right across the row content
+   --  area. The mandatory name column starts after the icon gutter and absorbs
+   --  whatever width the visible fixed-width columns leave behind; each
+   --  toggleable column takes its customized width (clamped to the minimum) or a
+   --  proportional default. The sticky header, the header hit-test, and every
+   --  item row share this function so their columns always align.
+   --
+   --  @param Visible Per-column visibility flags.
+   --  @param Widths Per-column customized widths (zero means default).
+   --  @param Order Left-to-right permutation of the columns (name pinned first).
+   --  @param Content_X Left edge of the detail content area.
+   --  @param Content_W Width of the detail content area.
+   --  @param Line_Height Text line height in pixels.
+   --  @param Pad Row content padding applied before the icon gutter.
+   --  @return Per-column geometry for the visible columns.
    function Compute_Detail_Columns
      (Visible     : Files.Types.Detail_Column_Visibility;
       Widths      : Files.Types.Detail_Column_Widths;

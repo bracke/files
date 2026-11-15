@@ -11,10 +11,11 @@
 --  with Cancel_Capture.
 package Files.Model.Settings_Pane is
 
-   --  Toggle settings pane visibility.
+   --  Close the settings pane, handing back its focus. It opens only through
+   --  Begin_Edit, with a draft of the settings.
    --
    --  @param Model Model to update.
-   procedure Toggle
+   procedure Close
      (Model : in out Window_Model);
 
    --  Return whether the settings pane is visible.

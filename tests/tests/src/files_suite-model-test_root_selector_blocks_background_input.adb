@@ -1,5 +1,5 @@
 with Files.Rendering.Testing;
-with Files.Controller.Testing;
+with Files.Rendering.Layouts;
 with Files.Model.Command_Palette;
 with Files.Model.Root_Selector;
 with Files.Model.Settings_Pane;
@@ -46,28 +46,24 @@ separate (Files_Suite.Model)
         (Files.Model.Focus (Model),
          Files.Types.Focus_None,
          "blocked text focus leaves focus clear");
-      Result := Files.Controller.Testing.Handle_Scroll (Model, Lines => 3);
-      Files_Suite.Support.Assert_Equal
-        (Result.Status,
-         Files.Controller.Controller_Ignored,
-         "root selector blocks background wheel scroll");
+      --  The wheel over the main view, through the real translator, is
+      --  swallowed by the selector on top.
+      declare
+         Over     : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
+         Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Layouts.Calculate_Layout (Over, 1200, 800, 20);
+      begin
+         Files_Suite.Support.Assert_Equal
+           (Files.Events.Translate_Scroll_At
+              (Over, Layout.Main_X + Layout.Main_Width / 2, Layout.Main_Y + Layout.Main_Height / 2,
+               1200, 800, Y_Offset => -1, Line_Height => 20).Kind,
+            Files.Events.No_Input_Action,
+            "root selector blocks background wheel scroll");
+      end;
       Files_Suite.Support.Assert_Equal
         (Files.Model.Main_View_Scroll_Lines (Model),
          0,
          "blocked root selector scroll leaves main view still");
-      Result :=
-        Files.Controller.Handle_Targeted_Scroll
-          (Model,
-           Files.Events.Scroll_Auto,
-           Lines => 3);
-      Files_Suite.Support.Assert_Equal
-        (Result.Status,
-         Files.Controller.Controller_Ignored,
-         "root selector blocks targeted auto scroll");
-      Files_Suite.Support.Assert_Equal
-        (Files.Model.Main_View_Scroll_Lines (Model),
-         0,
-         "blocked root auto scroll leaves main view still");
       Result :=
         Files.Controller.Handle_Targeted_Scroll
           (Model,

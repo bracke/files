@@ -41,28 +41,18 @@ package Files.Controller.Testing is
       Settings_Path : String)
       return Controller_Result;
 
-   --  Flip the Show_Used_Space setting and persist it, so the status bar's
-   --  disk-space field switches between showing free and used space. Display
+   --  Cycle the status bar's disk-space field through free space, used space
+   --  and a bar (Show_Used_Space, Show_Space_Bar) and persist it. Display
    --  only: the item list is unchanged and the directory is not reloaded.
    --
    --  @param Model Window model to update.
-   --  @param Settings Live settings model whose free/used flag is flipped.
+   --  @param Settings Live settings model whose space-display flags change.
    --  @param Settings_Path Central settings file path.
    --  @return Controller result with persistence operation details.
    function Toggle_Free_Space_Display
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String)
-      return Controller_Result;
-
-   --  Handle a scroll-wheel action for overlays that accept vertical movement.
-   --
-   --  @param Model Window model to update.
-   --  @param Lines Positive values scroll down; negative values scroll up.
-   --  @return Controller result describing whether visible state changed.
-   function Handle_Scroll
-     (Model : in out Files.Model.Window_Model;
-      Lines : Integer)
       return Controller_Result;
 
 end Files.Controller.Testing;

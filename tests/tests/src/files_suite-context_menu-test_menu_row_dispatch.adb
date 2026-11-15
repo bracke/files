@@ -10,27 +10,12 @@ separate (Files_Suite.Context_Menu)
       Result   : Files.Interaction.Interaction_Result;
       X, Y     : Natural;
       Found    : Boolean;
-      In_Main  : Boolean;
-      Index    : Natural;
    begin
       --  Open the item context menu through the real right-click path so the
       --  menu rows come from the live snapshot.
-      declare
-         Snapshot : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Model, Settings);
-         Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Items    : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
-           Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
-      begin
-         Item_Center (Model, 2, X, Y, Found);
-         Assert (Found, "a layout cell exists for the menu-anchor item");
-         In_Main :=
-           X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
-           and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
-         Index := Files.Rendering.Hit.Item_At (Items, X, Y);
-         Files.Interaction.Apply_Right_Click (Model, Settings, In_Main, Index, X, Y, Result);
-      end;
+      Item_Center (Model, 2, X, Y, Found);
+      Assert (Found, "a layout cell exists for the menu-anchor item");
+      Right_Click_At (Model, Settings, X, Y, Result);
       Assert (Files.Model.Context_Menu.Is_Open (Model), "context menu is open before the row click");
 
       --  Resolve the Copy row from the real menu layout (rule a) and dispatch it.
@@ -52,13 +37,13 @@ separate (Files_Suite.Context_Menu)
 
          Row_X := Menu.X + Menu.Width / 2;
          Row_Y :=
-           Files.Rendering.Testing.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
+           Files.Rendering.Layouts.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
          Files_Suite.Support.Assert_Equal
            (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Row_X, Row_Y),
             Target_Row,
             "the derived coordinate hit-tests back to the copy row");
 
-         Files.Interaction.Apply_Context_Menu_Command
+         Run_Menu_Command
            (Model             => Model,
             Settings          => Settings,
             Settings_Path     => "",
@@ -83,7 +68,7 @@ separate (Files_Suite.Context_Menu)
       --  Replaying that row after its menu has closed must not execute it
       --  against whatever selection exists at reduction time.
       Files.Model.Clipboard.Clear (Model);
-      Files.Interaction.Apply_Context_Menu_Command
+      Run_Menu_Command
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
@@ -103,7 +88,7 @@ separate (Files_Suite.Context_Menu)
       --  A click that misses every menu row still closes the menu and must not
       --  leak follow-up flags from an earlier result stored in the same object.
       Files.Model.Context_Menu.Open (Model, X, Y, Files.Types.Context_Menu_Empty);
-      Files.Interaction.Apply_Context_Menu_Command
+      Run_Menu_Command
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
@@ -121,10 +106,8 @@ separate (Files_Suite.Context_Menu)
          "an item-only command is rejected by the open empty-area menu (command executed)");
 
       Result.Settings_Changed := True;
-      Result.Font_Size_Changed := True;
-      Result.Needs_Glyph_Rebuild := True;
       Result.Clear_Pending_Text := True;
-      Files.Interaction.Apply_Context_Menu_Command
+      Run_Menu_Command
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
@@ -141,12 +124,6 @@ separate (Files_Suite.Context_Menu)
       Assert
         (not Result.Settings_Changed,
          "a missed menu row returns only its own context-menu follow-up (settings changed)");
-      Assert
-        (not Result.Font_Size_Changed,
-         "a missed menu row returns only its own context-menu follow-up (font size changed)");
-      Assert
-        (not Result.Needs_Glyph_Rebuild,
-         "a missed menu row returns only its own context-menu follow-up (needs glyph rebuild)");
       Assert
         (not Result.Clear_Pending_Text,
          "a missed menu row returns only its own context-menu follow-up (clear pending text)");

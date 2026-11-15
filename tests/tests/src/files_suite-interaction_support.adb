@@ -10,7 +10,6 @@ with Files.Model.Selection;
 with Files.Settings.Path_References;
 with Files.Rendering;
 with Files.Rendering.Hit;
-with Files.Rendering.Testing;
 with Files.Types;
 with Guikit.Draw;
 with Files_Suite.Support;
@@ -212,7 +211,7 @@ package body Files_Suite.Interaction_Support is
 
    --  Open the item context menu by right-clicking the cell of the first
    --  selected item, deriving the coordinate from the real item layout (rule a)
-   --  and driving the real Apply_Right_Click (rule d).
+   --  and driving the real translator and dispatch (rule d).
    procedure Open_Item_Context_Menu
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
@@ -226,8 +225,6 @@ package body Files_Suite.Interaction_Support is
       Items    : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
         Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
       X, Y     : Natural := 0;
-      In_Main  : Boolean;
-      Index    : Natural;
    begin
       Assert (Visible > 0, "a selected item exists to anchor the context menu");
       for Cell of Items loop
@@ -236,11 +233,7 @@ package body Files_Suite.Interaction_Support is
             Y := Cell.Y + Cell.Height / 2;
          end if;
       end loop;
-      In_Main :=
-        X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
-        and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
-      Index := Files.Rendering.Hit.Item_At (Items, X, Y);
-      Files.Interaction.Apply_Right_Click (Model, Settings, In_Main, Index, X, Y, Result);
+      Right_Click_At (Model, Settings, X, Y, Result);
    end Open_Item_Context_Menu;
 
    --  Open the empty-area context menu by right-clicking the center of the main
@@ -254,14 +247,82 @@ package body Files_Suite.Interaction_Support is
         Files.Rendering.Build_Snapshot (Model, Settings);
       Layout   : constant Files.Rendering.Layout_Metrics :=
         Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-      Items    : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
-        Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
-      X : constant Natural := Layout.Main_X + Layout.Main_Width / 2;
-      Y : constant Natural := Layout.Main_Y + Layout.Main_Height / 2;
-      Index : constant Natural := Files.Rendering.Hit.Item_At (Items, X, Y);
    begin
-      Files.Interaction.Apply_Right_Click (Model, Settings, True, Index, X, Y, Result);
+      Right_Click_At
+        (Model, Settings, Layout.Main_X + Layout.Main_Width / 2, Layout.Main_Y + Layout.Main_Height / 2, Result);
    end Open_Empty_Context_Menu;
+
+   procedure Dispatch
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Action   : Files.Events.Input_Action;
+      Result   : out Files.Interaction.Interaction_Result)
+   is
+      Live : Files.Settings.Settings_Model := Settings;
+   begin
+      Files.Interaction.Apply_Input_Action
+        (Model         => Model,
+         Settings      => Live,
+         Settings_Path => "",
+         Action        => Action,
+         Modifiers     => Guikit.Input.No_Modifiers,
+         Result        => Result);
+   end Dispatch;
+
+   procedure Right_Click_At
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      X        : Natural;
+      Y        : Natural;
+      Result   : out Files.Interaction.Interaction_Result)
+   is
+      Snapshot : constant Files.Rendering.View_Snapshot :=
+        Files.Rendering.Build_Snapshot (Model, Settings);
+   begin
+      Dispatch
+        (Model, Settings, Files.Events.Translate_Right_Click (Snapshot, X, Y, Window_W, Window_H, Line), Result);
+   end Right_Click_At;
+
+   procedure Dispatch_Right_Click
+     (Model             : in out Files.Model.Window_Model;
+      Settings          : Files.Settings.Settings_Model;
+      In_Main           : Boolean;
+      Item_Index        : Natural;
+      X                 : Natural;
+      Y                 : Natural;
+      Result            : out Files.Interaction.Interaction_Result;
+      In_Details_Header : Boolean := False;
+      On_Context_Menu   : Boolean := False) is
+   begin
+      Dispatch
+        (Model,
+         Settings,
+         (Kind         => Files.Events.Right_Click_Input_Action,
+          Menu_X       => X,
+          Menu_Y       => Y,
+          In_Main_View => In_Main,
+          Target_Item  => Item_Index,
+          On_Header    => In_Details_Header,
+          Over_Menu    => On_Context_Menu),
+         Result);
+   end Dispatch_Right_Click;
+
+   procedure Run_Menu_Command
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Command       : Files.Commands.Command_Id;
+      Modifiers     : Guikit.Input.Modifier_Set;
+      Result        : out Files.Interaction.Interaction_Result) is
+   begin
+      Files.Interaction.Apply_Input_Action
+        (Model         => Model,
+         Settings      => Settings,
+         Settings_Path => Settings_Path,
+         Action        => (Kind => Files.Events.Context_Menu_Command_Input_Action, Menu_Command => Command),
+         Modifiers     => Modifiers,
+         Result        => Result);
+   end Run_Menu_Command;
 
    --  Resolve a command from the live context-menu layout (rule a), assert the
    --  derived coordinate hit-tests back to that row, then click it through the
@@ -294,7 +355,7 @@ package body Files_Suite.Interaction_Support is
       end if;
       Row_X := Menu.X + Menu.Width / 2;
       Row_Y :=
-        Files.Rendering.Testing.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
+        Files.Rendering.Layouts.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
       Files_Suite.Support.Assert_Equal
         (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Row_X, Row_Y),
          Target_Row,

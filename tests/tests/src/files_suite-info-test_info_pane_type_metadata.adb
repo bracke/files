@@ -19,7 +19,7 @@ separate (Files_Suite.Info)
       --  localized extra.
       for Idx in 1 .. Files.Model.Visible_Count (Model) loop
          Files.Model.Selection.Select_Visible (Model, Idx);
-         Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
+         Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       end loop;
       Files.Model.Selection.Select_All_Visible (Model);
       Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);

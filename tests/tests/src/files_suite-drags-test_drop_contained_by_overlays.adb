@@ -60,9 +60,9 @@ separate (Files_Suite.Drags)
       Sources.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/tmp/files-overlay-drop-source"));
 
       Seed_Type_Ahead;
-      Files.Model.Settings_Pane.Toggle (Model);
+      Files.Model.Settings_Pane.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
       Assert_Contained ("the settings pane");
-      Files.Model.Settings_Pane.Toggle (Model);
+      Files.Model.Settings_Pane.Close (Model);
 
       Seed_Type_Ahead;
       Files.Model.Command_Palette.Open (Model);

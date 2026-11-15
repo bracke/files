@@ -87,8 +87,7 @@ separate (Files.Application.Windows.Smoke)
             Bases.Append
               (Scenario_Base_State'
                  (Model    => Runtime.Model,
-                  Settings => Runtime.Settings,
-                  Font     => Runtime.Font_Pixel_Size));
+                  Settings => Runtime.Settings));
          end loop;
 
          --  Render every scenario in order within the one window/device, taking

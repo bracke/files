@@ -1,3 +1,4 @@
+with Files_Suite.Interaction_Support;
 with Files.Operation_Results;
 with Files.Model.Context_Menu;
 with Files.Settings.Path_References;
@@ -75,13 +76,13 @@ separate (Files_Suite.Refresh)
       Assert (Files.Model.Item_Count (Model) = 2
               and then Files.Model.Last_Error_Key (Model) = "error.directory.load",
               "an inconsistent helper outcome is rejected without replacing the listing");
-      Files.Interaction.Apply_Right_Click
+      Files_Suite.Interaction_Support.Dispatch_Right_Click
         (Model, Settings, In_Main => True, Item_Index => 0,
          X => 0, Y => 0, Result => Routed);
       Assert
         (Files.Model.Context_Menu.Is_Open (Model),
          "the refresh recovery path opens the empty-area context menu");
-      Files.Interaction.Apply_Context_Menu_Command
+      Files_Suite.Interaction_Support.Run_Menu_Command
         (Model, Settings, "", Files.Commands.Refresh_Directory_Command, Guikit.Input.No_Modifiers, Routed);
       Await_Refresh (True);
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);

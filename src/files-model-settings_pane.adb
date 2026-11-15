@@ -83,9 +83,9 @@ package body Files.Model.Settings_Pane is
          Draft.Open_Action_Command);
    end Normalize_Settings_Draft;
 
-   procedure Toggle
+   procedure Close
      (Model : in out Window_Model)
-     renames Files.Model.Support.Toggle_Settings_Pane;
+     renames Files.Model.Support.Close_Settings_Pane;
 
    function Is_Open
      (Model : Window_Model)
@@ -105,8 +105,7 @@ package body Files.Model.Settings_Pane is
       Claim_Overlay_Input (Model);
       Clear_Edit_State (Model);
       Clear_Root_Selector_State (Model);
-      Model.Command_Palette.Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
+      Hide_Command_Palette (Model);
       Reset_Settings_Panel (Model);
       Model.Focus_Value := Files.Types.Focus_Settings_Input;
    end Begin_Edit;

@@ -335,12 +335,11 @@ package body Files.Rendering.Hit is
       Input_H  : constant Natural := Toolbar_Input_Height (Line_Height);
       Toolbar_H : constant Natural := Layouts.Toolbar_Height (Line_Height);
    begin
+      --  Only the left section's buttons: the path and filter fields are
+      --  focused by a click on their drawn boxes alone (Toolbar_Click, with
+      --  the caret placed), never by the margins around them.
       if Width = 0 or else Y >= Toolbar_H then
          return Files.Commands.No_Command;
-      elsif Within_Rect (X, Y, Toolbar.Middle_X, Input_Y, Toolbar.Middle_Width, Input_H) then
-         return Files.Commands.Focus_Path_Input_Command;
-      elsif Within_Rect (X, Y, Toolbar.Right_X, Input_Y, Toolbar.Right_Width, Input_H) then
-         return Files.Commands.Focus_Filter_Input_Command;
       elsif not Within (X, Toolbar.Left_X, Toolbar.Left_Width) then
          return Files.Commands.No_Command;
       end if;

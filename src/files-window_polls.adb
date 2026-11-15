@@ -19,7 +19,7 @@ package body Files.Window_Polls is
 
    procedure Ensure_Selected_Item_Extra
      (Model       : in out Files.Model.Window_Model;
-      Show_Hidden : Boolean := True) is
+      Show_Hidden : Boolean) is
    begin
       if not Files.Model.Background_Transfers (Model)
         and then Files.Model.Selected_Item_Needs_Extra (Model)

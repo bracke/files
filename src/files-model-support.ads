@@ -211,7 +211,15 @@ private package Files.Model.Support is
    procedure Claim_Overlay_Input
      (Model : in out Window_Model);
 
-   --  Close the command palette.
+   --  Hide the command palette and reset it (commands mode, no Open With
+   --  targets), leaving focus to the caller: what an overlay or field that
+   --  takes the palette's place does.
+   --
+   --  @param Model Model to update.
+   procedure Hide_Command_Palette
+     (Model : in out Window_Model);
+
+   --  Close the command palette, handing focus back to what it covered.
    --
    --  @param Model Model to update.
    procedure Close_Command_Palette
@@ -260,10 +268,11 @@ private package Files.Model.Support is
    procedure End_Tree_Pick
      (Model : in out Window_Model);
 
-   --  Toggle settings pane visibility.
+   --  Close the settings pane, handing back its focus; the next open
+   --  (Settings_Pane.Begin_Edit) starts from a fresh draft.
    --
    --  @param Model Model to update.
-   procedure Toggle_Settings_Pane
+   procedure Close_Settings_Pane
      (Model : in out Window_Model);
 
    --  An idle process session, to release a held one by assignment.

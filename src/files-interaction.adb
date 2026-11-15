@@ -68,27 +68,18 @@ package body Files.Interaction is
       Result.Status := Outcome.Status;
    end Observe_Controller_Outcome;
 
-   --  Record the UI follow-ups of a settings command the controller applied:
-   --  whether it changed the settings (by what they hold now, not by which
-   --  command ran: a save of an unchanged draft or a favourite toggle with
-   --  nothing to toggle changes nothing) and a live font-size change.
+   --  Record whether a settings command the controller applied changed the
+   --  settings, by what they hold now, not by which command ran: a save of an
+   --  unchanged draft or a favourite toggle with nothing to toggle changes
+   --  nothing.
    procedure Observe_Settings_Command
-     (Command  : Files.Commands.Command_Id;
-      Before   : Files.Settings.Settings_Model;
+     (Before   : Files.Settings.Settings_Model;
       Settings : Files.Settings.Settings_Model;
       Result   : in out Interaction_Result) is
    begin
+      --  A font size changed here is taken up by the window's next frame
+      --  (Read_Window_State), as a zoom is.
       Result.Settings_Changed := not Files.Settings.Same_Content (Before, Settings);
-      --  Apply a font-size change made in the settings pane live, the same
-      --  way Ctrl+scroll / Ctrl+= zoom does: signal the shell to sync the
-      --  runtime size and invalidate the glyph cache so text re-rasterizes
-      --  now rather than only on the next launch.
-      if Command in Files.Commands.Save_Settings_Command | Files.Commands.Reset_Settings_Command
-        and then Settings.Font_Pixel_Size /= Before.Font_Pixel_Size
-      then
-         Result.Font_Size_Changed := True;
-         Result.Needs_Glyph_Rebuild := True;
-      end if;
    end Observe_Settings_Command;
 
    procedure Apply_Zoom
@@ -102,8 +93,6 @@ package body Files.Interaction is
          Files.Controller.Commit_Settings
            (Model, Settings, (Settings with delta Font_Pixel_Size => New_Size), Settings_Path,
             Accepted => Result.Settings_Changed);
-         Result.Font_Size_Changed   := Result.Settings_Changed;
-         Result.Needs_Glyph_Rebuild := Result.Settings_Changed;
       end if;
    end Apply_Zoom;
 
@@ -333,7 +322,7 @@ package body Files.Interaction is
       Result            : in out Interaction_Result) is
    begin
       if Observe then
-         Observe_Settings_Command (Command, Before, Settings, Result);
+         Observe_Settings_Command (Before, Settings, Result);
       end if;
       if Files.Commands.Persists_Global_Ui_State (Command)
         and then Sync_Global_UI_State (Model, Settings, Settings_Path)
@@ -386,9 +375,10 @@ package body Files.Interaction is
    end Execute_Command;
 
    --  What every key and action dispatch ends with: any item opened folded
-   --  into the recent list, the
-   --  folder-size targets (at once when the items and selection stand), and
-   --  the selected item's lazily computed extra info.
+   --  into the recent list, and the selected item's lazily computed extra
+   --  info. The folder-size targets follow on the window's poll
+   --  (Poll_Window_Workers), which retargets once the items or the selection
+   --  have moved.
    procedure Finish_Dispatch
      (Model                 : in out Files.Model.Window_Model;
       Settings              : in out Files.Settings.Settings_Model;
@@ -396,7 +386,6 @@ package body Files.Interaction is
       Result                : in out Interaction_Result) is
    begin
       Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
-      Files.Window_Polls.Update_Folder_Size (Model);
       Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
    end Finish_Dispatch;
 
@@ -431,10 +420,11 @@ package body Files.Interaction is
    begin
       Result := (others => <>);
 
-      --  The shell resolves a row and dispatches it in separate steps. Reject
-      --  an action if its menu has already closed, is no longer on top, or
-      --  its command does not belong to the menu that is open now; otherwise a delayed item-menu
-      --  click could execute against a newer empty/header menu or selection.
+      --  A row's command is resolved from a frame and applied later (a queued
+      --  click, a screen-reader request). Reject it if its menu has already
+      --  closed, is no longer on top, or its command does not belong to the
+      --  menu open now; otherwise a delayed item-menu click could execute
+      --  against a newer empty/header menu or selection.
       if not Files.Model.Context_Menu.Is_Open (Model)
         or else not Files.Model.Topmost_Overlay (Model, Top)
         or else Top /= Files.Types.Context_Menu_Overlay
@@ -463,12 +453,11 @@ package body Files.Interaction is
 
       Files.Model.Context_Menu.Close (Model);
       if Command /= Files.Commands.No_Command then
+         --  An item opened through the menu's Open entry joins the recent list
+         --  in the caller's Finish_Dispatch, as for every other dispatch.
          Execute_Command
            (Model, Settings, Settings_Path, Command,
             Modifiers, Result);
-         --  Fold any item opened via the context menu's Open entry into the
-         --  persisted recent list.
-         Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
       end if;
    end Apply_Context_Menu_Command;
 

@@ -1,4 +1,3 @@
-with Files.Controller.Testing;
 with Files.Model.Settings_Pane;
 separate (Files_Suite.Model)
    procedure Test_Main_View_Scroll_And_Settings_Block (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -43,7 +42,7 @@ separate (Files_Suite.Model)
            Model,
            Settings);
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane opens over main view");
-      Result := Files.Controller.Testing.Handle_Scroll (Model, Lines => 3);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Settings_Pane, 3);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -52,15 +51,15 @@ separate (Files_Suite.Model)
         (Files.Model.Main_View_Scroll_Lines (Model),
          0,
          "settings wheel scroll leaves main view still");
-      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Auto, 10);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.No_Scroll_Target, 10);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Controller.Controller_Command_Executed,
-         "auto scroll reaches the settings pane");
+         Files.Controller.Controller_Ignored,
+         "a wheel step over no scrollable region moves nothing");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Main_View_Scroll_Lines (Model),
          0,
-         "settings auto scroll leaves main view still");
+         "an untargeted wheel step leaves main view still");
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, 10);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

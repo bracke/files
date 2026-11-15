@@ -27,8 +27,8 @@ separate (Files.Interaction)
       --  Keyboard zoom is handled on this pure seam, not in the controller: the
       --  live font size is the shell's, not the model's. Ctrl+'=' / Ctrl+'+'
       --  grows, Ctrl+'-' shrinks, and Ctrl+0 resets it, through Apply_Zoom as
-      --  Ctrl+wheel does. The shell's font-size sync and glyph rebuild then run
-      --  through Apply_Interaction_Result.
+      --  Ctrl+wheel does. The window's next frame takes up the new size
+      --  (Read_Window_State).
       if Zoom_Chord and then Zoom_Allowed then
          declare
             Old_Size : constant Positive := Settings.Font_Pixel_Size;

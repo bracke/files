@@ -54,7 +54,7 @@ separate (Files_Suite.Interaction)
          end if;
       end loop;
       Assert (Found, "a click on a settings control is dispatched to the panel");
-      Files.Model.Settings_Pane.Toggle (Model);
+      Files.Model.Settings_Pane.Close (Model);
 
       --  The palette: a row whose command changes a setting.
       Files.Model.Command_Palette.Open (Model);

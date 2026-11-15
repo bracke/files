@@ -16,7 +16,7 @@ separate (Files_Suite.Context_Menu)
       Files.Model.Selection.Select_All_Visible (Model);
       Item_Center (Model, 1, X, Y, Found);
       Assert (Found, "a layout cell exists for the first item");
-      Files.Interaction.Apply_Right_Click (Model, Settings, True, 1, X, Y, Result);
+      Dispatch_Right_Click (Model, Settings, True, 1, X, Y, Result);
       Assert (Files.Model.Context_Menu.Is_Open (Model), "a right-click on a selected item opens the menu");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model), Files.Model.Visible_Count (Model),
@@ -24,8 +24,8 @@ separate (Files_Suite.Context_Menu)
 
       Item_Center (Model, 2, X, Y, Found);
       Files.Model.Context_Menu.Close (Model);
-      Files.Interaction.Apply_Right_Click (Model, Settings, True, 1, X, Y, Result);
-      Files.Interaction.Apply_Right_Click (Model, Settings, True, 2, X + 1, Y + 1, Result, On_Context_Menu => True);
+      Dispatch_Right_Click (Model, Settings, True, 1, X, Y, Result);
+      Dispatch_Right_Click (Model, Settings, True, 2, X + 1, Y + 1, Result, On_Context_Menu => True);
       Assert (Files.Model.Context_Menu.Is_Open (Model), "a right-click on the menu leaves it open");
       Files_Suite.Support.Assert_Equal (Files.Model.Context_Menu.X (Model), X, "where it was");
       Files_Suite.Support.Assert_Equal

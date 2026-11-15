@@ -9,8 +9,6 @@ with Guikit.Draw;
 --  same.
 package Files.Rendering.Text is
 
-   type Text_Renderer is private;
-
    --  Text rasterization outcome and glyph/atlas result, Guikit.Draw's.
    subtype Text_Render_Status is Guikit.Draw.Text_Render_Status;
 
@@ -20,66 +18,6 @@ package Files.Rendering.Text is
      renames Guikit.Draw.Text_Render_Success;
 
    subtype Text_Render_Result is Guikit.Draw.Text_Render_Result;
-
-   --  Load the text renderer font and initialize the textrender atlas.
-   --
-   --  @param Renderer Renderer state to initialize.
-   --  @param Font_Path TrueType font path.
-   --  @param Pixel_Size Glyph rasterization size in pixels.
-   --  @param Cell_Width Monospace cell width in pixels.
-   --  @param Cell_Height Monospace cell height in pixels.
-   --  @param Atlas_Width Glyph atlas width in pixels.
-   --  @param Atlas_Height Glyph atlas height in pixels.
-   --  @return Text render initialization status.
-   function Initialize_Text
-     (Renderer     : in out Text_Renderer;
-      Font_Path    : String;
-      Pixel_Size   : Positive;
-      Cell_Width   : Positive;
-      Cell_Height  : Positive;
-      Atlas_Width  : Positive := 1024;
-      Atlas_Height : Positive := 1024)
-      return Text_Render_Status;
-
-   --  Load the text renderer font with the text cell the layouts use for
-   --  Pixel_Size (Cell_Width_For, Cell_Height_For).
-   --
-   --  @param Renderer Renderer state to initialize.
-   --  @param Font_Path TrueType font path.
-   --  @param Pixel_Size Glyph rasterization size in pixels.
-   --  @return Text render initialization status.
-   function Initialize_Text
-     (Renderer   : in out Text_Renderer;
-      Font_Path  : String;
-      Pixel_Size : Positive)
-      return Text_Render_Status is
-     (Initialize_Text
-        (Renderer, Font_Path, Pixel_Size,
-         Cell_Width  => Cell_Width_For (Pixel_Size),
-         Cell_Height => Cell_Height_For (Pixel_Size)));
-
-   --  Whether glyphs built earlier for Renderer still index the atlas its
-   --  renderer holds now. Renderers are shared by windows of one size, and
-   --  another window's text can grow, empty or reload the atlas: glyphs from
-   --  before then point at an atlas that is gone, so they are built again.
-   --
-   --  @param Renderer The window's text renderer.
-   --  @param Glyphs Glyphs Build_Text_Glyphs returned for it.
-   --  @return True when Glyphs may be drawn and uploaded as they are.
-   function Text_Glyphs_Current (Renderer : Text_Renderer; Glyphs : Text_Render_Result) return Boolean;
-
-   --  Rasterize frame text commands into glyph draw commands.
-   --
-   --  This uses textrender glyph metrics and atlas coordinates. Text commands
-   --  are decoded from UTF-8 before glyph lookup.
-   --
-   --  @param Renderer Initialized text renderer.
-   --  @param Frame Frame command list containing text commands.
-   --  @return Glyph draw commands and atlas state.
-   function Build_Text_Glyphs
-     (Renderer : in out Text_Renderer;
-      Frame    : Frame_Commands)
-      return Text_Render_Result;
 
    --  How long a window waits before loading its text again after a load
    --  failed at its size: not on every frame, nor never.
@@ -141,13 +79,9 @@ package Files.Rendering.Text is
 
 private
 
-   --  Whether Renderer has its fonts: False after an initialization, or a
-   --  reload when its pooled renderer went to another size, failed.
-   --
-   --  @param Renderer The window's text renderer.
-   --  @return True when Build_Text_Glyphs can draw with it.
-   function Text_Loaded (Renderer : Text_Renderer) return Boolean;
-
+   --  A window's handle on a pooled text renderer (fonts and glyph atlas of
+   --  one configuration), reached by the window only through Window_Text;
+   --  tests reach it through Files.Rendering.Text.Testing.
    type Text_Renderer is record
       Loaded       : Boolean := False;
       --  The pooled renderer it draws with, and the configuration that
@@ -161,6 +95,73 @@ private
       Atlas_Width  : Positive := 1024;
       Atlas_Height : Positive := 1024;
    end record;
+
+   --  Load the text renderer font and initialize the textrender atlas.
+   --
+   --  @param Renderer Renderer state to initialize.
+   --  @param Font_Path TrueType font path.
+   --  @param Pixel_Size Glyph rasterization size in pixels.
+   --  @param Cell_Width Monospace cell width in pixels.
+   --  @param Cell_Height Monospace cell height in pixels.
+   --  @param Atlas_Width Glyph atlas width in pixels.
+   --  @param Atlas_Height Glyph atlas height in pixels.
+   --  @return Text render initialization status.
+   function Initialize_Text
+     (Renderer     : in out Text_Renderer;
+      Font_Path    : String;
+      Pixel_Size   : Positive;
+      Cell_Width   : Positive;
+      Cell_Height  : Positive;
+      Atlas_Width  : Positive := 1024;
+      Atlas_Height : Positive := 1024)
+      return Text_Render_Status;
+
+   --  Load the text renderer font with the text cell the layouts use for
+   --  Pixel_Size (Cell_Width_For, Cell_Height_For).
+   --
+   --  @param Renderer Renderer state to initialize.
+   --  @param Font_Path TrueType font path.
+   --  @param Pixel_Size Glyph rasterization size in pixels.
+   --  @return Text render initialization status.
+   function Initialize_Text
+     (Renderer   : in out Text_Renderer;
+      Font_Path  : String;
+      Pixel_Size : Positive)
+      return Text_Render_Status is
+     (Initialize_Text
+        (Renderer, Font_Path, Pixel_Size,
+         Cell_Width  => Cell_Width_For (Pixel_Size),
+         Cell_Height => Cell_Height_For (Pixel_Size)));
+
+   --  Whether glyphs built earlier for Renderer still index the atlas its
+   --  renderer holds now. Renderers are shared by windows of one size, and
+   --  another window's text can grow, empty or reload the atlas: glyphs from
+   --  before then point at an atlas that is gone, so they are built again.
+   --
+   --  @param Renderer The window's text renderer.
+   --  @param Glyphs Glyphs Build_Text_Glyphs returned for it.
+   --  @return True when Glyphs may be drawn and uploaded as they are.
+   function Text_Glyphs_Current (Renderer : Text_Renderer; Glyphs : Text_Render_Result) return Boolean;
+
+   --  Rasterize frame text commands into glyph draw commands.
+   --
+   --  This uses textrender glyph metrics and atlas coordinates. Text commands
+   --  are decoded from UTF-8 before glyph lookup.
+   --
+   --  @param Renderer Initialized text renderer.
+   --  @param Frame Frame command list containing text commands.
+   --  @return Glyph draw commands and atlas state.
+   function Build_Text_Glyphs
+     (Renderer : in out Text_Renderer;
+      Frame    : Frame_Commands)
+      return Text_Render_Result;
+
+   --  Whether Renderer has its fonts: False after an initialization, or a
+   --  reload when its pooled renderer went to another size, failed.
+   --
+   --  @param Renderer The window's text renderer.
+   --  @return True when Build_Text_Glyphs can draw with it.
+   function Text_Loaded (Renderer : Text_Renderer) return Boolean;
 
    type Window_Text is record
       Renderer    : Text_Renderer;

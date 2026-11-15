@@ -4,8 +4,10 @@ with Files.Types;
 
 --  Raster images decoded to RGBA pixels, from a file (Quick Look and the
 --  thumbnail writers) or from bytes in memory (colour emoji inside a font).
---  PNG (Files.Images.Png) and Netpbm (Files.Images.Netpbm) are decoded in
---  Ada; every other format goes to gdk-pixbuf, which this package binds.
+--  The thumbnail writers decode PNG (Files.Images.Png) and Netpbm
+--  (Files.Images.Netpbm) in Ada; Decode_Image_To_Pixels (Quick Look) and
+--  Decode_Image_Bytes hand every format, PNG included, to gdk-pixbuf, which
+--  this package binds.
 package Files.Images is
 
    --  The largest source that is decoded: a side, and a pixel count.
@@ -61,11 +63,11 @@ package Files.Images is
 
    --  A decoded raster image: RGBA bytes (row-major, 4 bytes/pixel, from
    --  Pixels.First_Index) -- the one raster layout the decoders produce and
-   --  the thumbnail writer reads -- scaled to
-   --  fit within a target box while preserving aspect ratio. Available is False
-   --  when the image could not be decoded; Extent_Refused says it was not
-   --  even handed to a decoder, its header declaring more pixels than a
-   --  file decode accepts.
+   --  the thumbnail writer reads. Decode_Image_To_Pixels scales it to fit a
+   --  target box (aspect ratio kept); Decode_Image_Bytes keeps the source
+   --  size. Available is False when the image could not be decoded;
+   --  Extent_Refused says it was not even handed to a decoder, its header
+   --  declaring more pixels than a file decode accepts.
    type Decoded_Image is record
       Available : Boolean := False;
       Width     : Natural := 0;

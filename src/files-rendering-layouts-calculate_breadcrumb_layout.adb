@@ -8,23 +8,14 @@ separate (Files.Rendering.Layouts)
       Result       : Breadcrumb_Segment_Layout_Vectors.Vector;
       Toolbar      : constant Guikit.Layout.Toolbar_Layout :=
         Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
-      Field_Margin : constant Natural := Toolbar_Field_Margin;
-      Path_X       : constant Natural := Guikit.Layout.Saturating_Add (Toolbar.Middle_X, Field_Margin);
-      Path_W       : constant Natural :=
-        (if Toolbar.Middle_Width > Saturating_Multiply (Field_Margin, 2)
-         then Toolbar.Middle_Width - Saturating_Multiply (Field_Margin, 2)
-         else 0);
+      --  The path field's text extent, as the drawing and the click-to-caret
+      --  mapping read it.
+      Text_Region  : constant Field_Text_Region := Path_Field_Text_Region (Toolbar, Width, Line_Height);
       Input_Y      : constant Natural := Guikit.Layout.Toolbar_Input_Y (Line_Height);
       Input_H      : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
-      Pad          : constant Natural := Field_Padding (Line_Height);
-      Star_Reserve : constant Natural := Path_Bar_Content_Offset (Width, Line_Height);
       Advance      : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
-      Inner_X      : constant Natural :=
-        Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Path_X, Pad), Star_Reserve);
-      Inner_W      : constant Natural :=
-        (if Path_W > Guikit.Layout.Saturating_Add (Saturating_Multiply (Pad, 2), Star_Reserve)
-         then Path_W - Guikit.Layout.Saturating_Add (Saturating_Multiply (Pad, 2), Star_Reserve)
-         else 0);
+      Inner_X      : constant Natural := Text_Region.X;
+      Inner_W      : constant Natural := Text_Region.Width;
       --  Separator occupies three cells: one blank cell, the '>' glyph, one
       --  blank cell -- a full character width of separation on each side.
       Sep_Cells    : constant Natural := 3;

@@ -157,7 +157,7 @@ package Files_Suite.Interaction_Support is
 
    --  Open the item context menu by right-clicking the cell of the first
    --  selected item, deriving the coordinate from the real item layout (rule a)
-   --  and driving the real Apply_Right_Click (rule d).
+   --  and driving the real translator and dispatch (rule d).
    --
    --  @param Model The window model.
    --  @param Settings The window settings.
@@ -177,6 +177,60 @@ package Files_Suite.Interaction_Support is
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
       Result   : out Files.Interaction.Interaction_Result);
+
+   --  Right-click at (X, Y): the real translator (Files.Events.Translate_Right_Click)
+   --  over a fresh snapshot of the test window, then the real dispatch.
+   --
+   --  @param Model The window model.
+   --  @param Settings The window settings.
+   --  @param X Horizontal position in pixels.
+   --  @param Y Vertical position in pixels.
+   --  @param Result What the dispatch did.
+   procedure Right_Click_At
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      X        : Natural;
+      Y        : Natural;
+      Result   : out Files.Interaction.Interaction_Result);
+
+   --  Dispatch the right-click action the translator makes, with fields the
+   --  current layout can no longer give (a queued click from an older layout).
+   --
+   --  @param Model The window model.
+   --  @param Settings The window settings.
+   --  @param In_Main Whether the click landed in the main view.
+   --  @param Item_Index The item drawn there, or 0.
+   --  @param X Horizontal position in pixels.
+   --  @param Y Vertical position in pixels.
+   --  @param Result What the dispatch did.
+   --  @param In_Details_Header Whether the click landed on the details header.
+   --  @param On_Context_Menu Whether the click landed on the open context menu.
+   procedure Dispatch_Right_Click
+     (Model             : in out Files.Model.Window_Model;
+      Settings          : Files.Settings.Settings_Model;
+      In_Main           : Boolean;
+      Item_Index        : Natural;
+      X                 : Natural;
+      Y                 : Natural;
+      Result            : out Files.Interaction.Interaction_Result;
+      In_Details_Header : Boolean := False;
+      On_Context_Menu   : Boolean := False);
+
+   --  Dispatch a context-menu row's command, as a click on that row does.
+   --
+   --  @param Model The window model.
+   --  @param Settings The window settings.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Command The row's command, or No_Command for a click that missed a row.
+   --  @param Modifiers The modifier keys held.
+   --  @param Result What the dispatch did.
+   procedure Run_Menu_Command
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Command       : Files.Commands.Command_Id;
+      Modifiers     : Guikit.Input.Modifier_Set;
+      Result        : out Files.Interaction.Interaction_Result);
 
    --  Resolve a command from the live context-menu layout (rule a), assert the
    --  derived coordinate hit-tests back to that row, then click it through the

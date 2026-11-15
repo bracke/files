@@ -149,11 +149,11 @@ separate (Files.Interaction)
                when Files.Events.No_Conflict_Button =>
                   Outcome := (others => <>);
             end case;
-         when Files.Events.Paste_Cancel_Input_Action =>
-            --  Request cancellation of the in-flight paste, then finalize over
-            --  the items completed so far (already-copied files are kept).
+         when Files.Events.Foreground_Job_Cancel_Input_Action =>
+            --  Request cancellation of the foreground job (a paste or an
+            --  operation), then finalize over what is done (copies are kept).
             Asked := True;
-            Outcome := Files.Controller.Handle_Paste_Cancel (Model, Settings);
+            Outcome := Files.Controller.Handle_Foreground_Job_Cancel (Model, Settings);
          when Files.Events.Search_Scope_Toggle_Input_Action =>
             --  Clicking the filter-bar scope chip cycles the search scope and
             --  re-runs the shared query in the new scope, replacing the view with
@@ -174,8 +174,8 @@ separate (Files.Interaction)
             --  Scrollbar-drag, column-resize, column-reorder, and marquee begin
             --  all update runtime drag state owned by the shell (applied through
             --  Apply_Column_Resize / Apply_Column_Reorder on drop, or
-            --  Apply_Marquee_Selection per frame); the no-op kinds are ignored.
-            --  Nothing to apply here.
+            --  Apply_Marquee_Selection per frame); a selection move comes
+            --  through Handle_Key, and the no-op is ignored.
             null;
       end case;
 

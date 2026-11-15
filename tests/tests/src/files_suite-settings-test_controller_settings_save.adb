@@ -33,7 +33,7 @@ separate (Files_Suite.Settings)
             Draft_Settings.Icon_Mappings := Defaults.Icon_Mappings;
             Draft_Settings.Open_Actions := Defaults.Open_Actions;
          end;
-         Files.Model.Settings_Pane.Toggle (Draft_Model);
+         Files.Model.Settings_Pane.Close (Draft_Model);
          Controller_Result :=
            Files.Controller.Execute_Non_Settings_Command
              (Files.Commands.Toggle_Settings_Pane_Command, Draft_Model, Draft_Settings);

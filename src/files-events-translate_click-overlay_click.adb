@@ -12,7 +12,7 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
       use type Files.Rendering.Dialog_Hit_Kind;
    begin
       if Files.Rendering.Hit.Dialog_Hit_At (Frame, X, Y).Kind = Files.Rendering.Dialog_Hit_Progress_Cancel then
-         return Paste_Cancel_Action;
+         return Foreground_Job_Cancel_Action;
       end if;
       return No_Action;
    end Progress_Click;

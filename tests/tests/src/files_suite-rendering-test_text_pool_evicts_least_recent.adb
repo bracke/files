@@ -1,3 +1,4 @@
+with Files.Rendering.Text.Testing; use Files.Rendering.Text.Testing;
 separate (Files_Suite.Rendering)
    --  Of the pooled text renderers, the one used least recently is reloaded
    --  for a new configuration -- also when the others were only drawn with,

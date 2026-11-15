@@ -236,14 +236,14 @@ package Files.Model is
       Except : Input_Overlay)
       return Boolean;
 
-   --  Return whether an overlay without a text-entry surface owns input, so
-   --  native character input and auto-targeted scrolling must be contained.
-   --  The root selector does not count while the command palette is open
-   --  over it: the palette's query field then owns the keyboard.
+   --  Whether typed characters are contained: the overlay on top
+   --  (Files.Types.Overlay_Stack, which keys, clicks and the wheel follow too)
+   --  takes them only when it is the command palette or the settings pane with
+   --  its own text field focused; any other overlay on top swallows them.
    --
    --  @param Model Model to inspect.
-   --  @return True while a non-text input-owning overlay owns input.
-   function Non_Text_Overlay_Owns_Input
+   --  @return True while an overlay owns input and does not take characters.
+   function Character_Input_Is_Contained
      (Model : Window_Model)
       return Boolean;
 

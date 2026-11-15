@@ -26,10 +26,4 @@ package body Files.Controller.Testing is
       return Controller_Result
      renames Files.Controller.Toggle_Free_Space_Display;
 
-   function Handle_Scroll
-     (Model : in out Files.Model.Window_Model;
-      Lines : Integer)
-      return Controller_Result
-     renames Files.Controller.Handle_Scroll;
-
 end Files.Controller.Testing;

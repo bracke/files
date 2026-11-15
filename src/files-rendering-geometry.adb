@@ -21,13 +21,6 @@ package body Files.Rendering.Geometry is
       return Boolean is
      (Guikit.Layout.Within_Rect (Point_X, Point_Y, X, Y, Box_W, Box_H));
 
-   --  Proportional default width for a toggleable column, scaled to the line
-   --  height so the layout tracks the font size. Applied whenever the settings
-   --  do not pin an explicit width for the column.
-   --
-   --  @param Column Toggleable detail column.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Default column width in pixels.
    --  The widest text a time column can show in the current time locale --
    --  every relative form ("Today", each weekday) with a clock time, and a full
    --  date with two-digit fields -- measured at the advance the renderer draws
@@ -74,6 +67,13 @@ package body Files.Rendering.Geometry is
       return Cached_Time_Width;
    end Time_Column_Width;
 
+   --  Proportional default width for a toggleable column, scaled to the line
+   --  height so the layout tracks the font size. Applied whenever the settings
+   --  do not pin an explicit width for the column.
+   --
+   --  @param Column Toggleable detail column.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Default column width in pixels.
    function Default_Detail_Column_Width
      (Column      : Files.Types.Optional_Detail_Column;
       Line_Height : Positive)
@@ -90,32 +90,6 @@ package body Files.Rendering.Geometry is
             return Saturating_Multiply (Line_Height, 8);
       end case;
    end Default_Detail_Column_Width;
-
-   --  Lay out the visible detail columns left to right across the row content
-   --  area. The mandatory name column starts after the icon gutter and absorbs
-   --  whatever width the visible fixed-width columns leave behind; each
-   --  toggleable column takes its customized width (clamped to the minimum) or a
-   --  proportional default. The sticky header, the header hit-test, and every
-   --  item row share this function so their columns always align.
-   --
-   --  @param Visible Per-column visibility flags.
-   --  @param Widths Per-column customized widths (zero means default).
-   --  @param Order Left-to-right permutation of the columns (name pinned first).
-   --  @param Content_X Left edge of the detail content area.
-   --  @param Content_W Width of the detail content area.
-   --  @param Line_Height Text line height in pixels.
-   --  @param Pad Row content padding applied before the icon gutter.
-   --  @return Per-column geometry for the visible columns.
-   function Compute_Detail_Columns
-     (Visible     : Files.Types.Detail_Column_Visibility;
-      Widths      : Files.Types.Detail_Column_Widths;
-      Order       : Files.Types.Detail_Column_Order;
-      Content_X   : Natural;
-      Content_W   : Natural;
-      Line_Height : Positive;
-      Pad         : Natural)
-      return Detail_Column_Geometry_Array
- is separate;
 
    function Scaled_Down
      (Value       : Natural;
@@ -155,109 +129,6 @@ package body Files.Rendering.Geometry is
          return Left + Integer (Right);
       end if;
    end Saturating_Integer_Add;
-
-   function Main_Content_Rect (Layout : Layout_Metrics) return Content_Rectangle is
-      Padding : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding (Layout), 2)
-           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding (Layout), 2)
-         then Main_Content_Padding (Layout)
-         else 0);
-   begin
-      return
-        (X      => Guikit.Layout.Saturating_Add (Layout.Main_X, Padding),
-         Y      => Guikit.Layout.Saturating_Add (Layout.Main_Y, Padding),
-         Width  => (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
-                    then Layout.Main_Width - Saturating_Multiply (Padding, 2)
-                    else Layout.Main_Width),
-         Height => (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
-                    then Layout.Main_Height - Saturating_Multiply (Padding, 2)
-                    else Layout.Main_Height));
-   end Main_Content_Rect;
-
-   function Details_Header_Height
-     (Content_H   : Natural;
-      Line_Height : Positive)
-      return Natural is
-   begin
-      return
-        Natural'Min
-          (Guikit.Layout.Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding (Line_Height), 2)),
-           Content_H);
-   end Details_Header_Height;
-
-   function Details_Header_Geometry
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Details_Header_Layout
-   is
-      Content  : constant Content_Rectangle := Main_Content_Rect (Layout);
-      Header_H : constant Natural := Details_Header_Height (Content.Height, Line_Height);
-      Pad      : constant Natural := Natural'Min (Details_Row_Padding (Line_Height), Header_H);
-   begin
-      return
-        (Content => Content,
-         Height  => Header_H,
-         Pad     => Pad,
-         Columns =>
-           Compute_Detail_Columns
-             (Snapshot.Detail_Columns_Visible,
-              Snapshot.Detail_Column_Widths,
-              Snapshot.Detail_Column_Order,
-              Content.X,
-              Content.Width,
-              Line_Height,
-              Pad));
-   end Details_Header_Geometry;
-
-   function Context_Menu_Row_Top
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural
- is separate;
-
-   function Context_Menu_Row_Left
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural is
-   begin
-      if Menu.Column_Count > 1 and then Row > Menu.Column_Break_Row then
-         return Guikit.Layout.Saturating_Add (Menu.X, Menu.Column_Width);
-      else
-         return Menu.X;
-      end if;
-   end Context_Menu_Row_Left;
-
-   function Context_Menu_Row_Width
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural is
-   begin
-      if Menu.Column_Count > 1 and then Row > Menu.Column_Break_Row then
-         return
-           (if Menu.Width > Menu.Column_Width
-            then Menu.Width - Menu.Column_Width
-            else 0);
-      else
-         return Menu.Column_Width;
-      end if;
-   end Context_Menu_Row_Width;
-
-   function Path_Bar_Content_Offset
-     (Width       : Natural;
-      Line_Height : Positive)
-      return Natural
-   is
-      Star : constant Path_Favorite_Star_Bounds :=
-        Path_Favorite_Star_Region (Width, Line_Height);
-   begin
-      if not Star.Visible then
-         return 0;
-      end if;
-      --  Star cell width plus one full character cell of separation so the
-      --  breadcrumbs/edit text are clearly detached from the star.
-      return Guikit.Layout.Saturating_Add (Star.Width, Guikit.Layout.Caret_Advance_Width (Line_Height));
-   end Path_Bar_Content_Offset;
 
    function Wrapped_Line_Last
      (Raw          : String;

@@ -38,7 +38,7 @@ separate (Files_Suite.Context_Menu)
       begin
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",
-            (Kind => Files.Events.Paste_Cancel_Input_Action),
+            (Kind => Files.Events.Foreground_Job_Cancel_Input_Action),
             Guikit.Input.No_Modifiers, Result);
          Assert
            (Files.Model.Revision (Model) = Revision,

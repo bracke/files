@@ -16,7 +16,6 @@ separate (Files.Controller)
       --  target that is not its own region is contained, as it contains
       --  clicks and character input. The folder-pick's own region is the tree.
       if Has_Top
-        and then Target /= Files.Events.Scroll_Auto
         and then Target /=
           (case Top is
               when Files.Types.Command_Palette_Overlay => Files.Events.Scroll_Command_Palette,
@@ -28,14 +27,15 @@ separate (Files.Controller)
                  | Files.Types.Sort_Menu_Overlay
                  | Files.Types.Context_Menu_Overlay
                  | Files.Types.Label_Picker_Overlay
-                 | Files.Types.Quick_Look_Overlay        => Files.Events.Scroll_Auto)
+                 | Files.Types.Quick_Look_Overlay        => Files.Events.No_Scroll_Target)
       then
          return Make_Result (Controller_Ignored);
       end if;
 
       case Target is
-         when Files.Events.Scroll_Auto =>
-            return Handle_Scroll (Model, Lines);
+         --  Not over any scrollable region: nothing moves.
+         when Files.Events.No_Scroll_Target =>
+            null;
          when Files.Events.Scroll_Command_Palette =>
             if Files.Model.Command_Palette.Is_Open (Model) then
                if Files.Model.Command_Palette.Result_Count (Model) = 0 then

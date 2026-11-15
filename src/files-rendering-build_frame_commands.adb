@@ -620,9 +620,8 @@ separate (Files.Rendering)
  is separate;
 
       procedure Add_Caret
-        (X       : Natural;
+        (Region  : Files.Rendering.Layouts.Field_Text_Region;
          Y       : Natural;
-         Field_W : Natural;
          Field_H : Natural;
          Text    : UString;
          Cursor  : Natural)

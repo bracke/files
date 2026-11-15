@@ -24,7 +24,7 @@ separate (Files_Suite.Context_Menu)
       begin
          Item_Center (Model, 2, X, Y, Found);
          Assert (Found, "a layout cell exists for the menu-anchor item");
-         Files.Interaction.Apply_Right_Click (Model, Settings, True, 2, X, Y, Result);
+         Dispatch_Right_Click (Model, Settings, True, 2, X, Y, Result);
          Assert (Files.Model.Context_Menu.Is_Open (Model), "the context menu opens");
       end Open_Menu;
 
@@ -77,7 +77,7 @@ separate (Files_Suite.Context_Menu)
             if Menu.Rows (Row).Kind = Files.Commands.Menu_Separator then
                Assert
                  (Click (Menu.X + Menu.Width / 2,
-                         Files.Rendering.Testing.Context_Menu_Row_Top (Menu, Row)).Kind
+                         Files.Rendering.Layouts.Context_Menu_Row_Top (Menu, Row)).Kind
                   = Files.Events.No_Input_Action,
                   "a click on a separator is swallowed");
                exit;

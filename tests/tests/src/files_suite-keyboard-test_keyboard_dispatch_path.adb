@@ -49,9 +49,9 @@ separate (Files_Suite.Keyboard)
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Result   : Files.Interaction.Interaction_Result;
       begin
-         --  Open the pane through the same key seam (Ctrl+, =
-         --  Settings_Pane.Toggle, a non-settings-path command that takes the
-         --  plain controller branch) so the whole scenario stays on the seam.
+         --  Open the pane through the same key seam (Ctrl+, opens it with a
+         --  fresh draft, a non-settings-path command that takes the plain
+         --  controller branch) so the whole scenario stays on the seam.
          Files.Interaction.Handle_Key
            (Model             => Model,
             Settings          => Settings,

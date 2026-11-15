@@ -16,24 +16,6 @@ package body Files.Rendering.Testing is
    function Any_Overlay_Open (Snapshot : View_Snapshot) return Boolean
      renames Files.Rendering.Geometry.Any_Overlay_Open;
 
-   function Context_Menu_Row_Top
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural
-     renames Files.Rendering.Geometry.Context_Menu_Row_Top;
-
-   function Context_Menu_Row_Left
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural
-     renames Files.Rendering.Geometry.Context_Menu_Row_Left;
-
-   function Context_Menu_Row_Width
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural
-     renames Files.Rendering.Geometry.Context_Menu_Row_Width;
-
    function Build_Snapshot_At
      (Model    : Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;

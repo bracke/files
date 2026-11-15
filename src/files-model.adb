@@ -262,7 +262,7 @@ package body Files.Model is
          --  Cancels the pick, closing the tree when the pick opened it.
          when Tree_Pick_Overlay       => End_Tree_Pick (Model);
          --  Closed the way Escape in the pane closes it; reopening starts a fresh draft.
-         when Settings_Pane_Overlay   => Toggle_Settings_Pane (Model);
+         when Settings_Pane_Overlay   => Close_Settings_Pane (Model);
       end case;
    end Close_Overlay;
 
@@ -279,20 +279,31 @@ package body Files.Model is
       return False;
    end Other_Input_Owning_Overlay_Is_Open;
 
-   function Non_Text_Overlay_Owns_Input
+   function Character_Input_Is_Contained
      (Model : Window_Model)
-      return Boolean is
+      return Boolean
+   is
+      Top : Input_Overlay;
    begin
-      for Overlay in Input_Overlay loop
-         if Overlay not in Text_Input_Overlay
-           and then Overlay_Is_Open (Model, Overlay)
-           and then not (Overlay = Root_Selector_Overlay and then Model.Command_Palette.Open)
-         then
+      if not Topmost_Overlay (Model, Top) then
+         return False;
+      end if;
+      case Top is
+         when Command_Palette_Overlay =>
+            return Model.Focus_Value /= Files.Types.Focus_Command_Palette;
+         when Settings_Pane_Overlay =>
+            return Model.Focus_Value /= Files.Types.Focus_Settings_Input;
+         when Root_Selector_Overlay
+            | Sort_Menu_Overlay
+            | Context_Menu_Overlay
+            | Label_Picker_Overlay
+            | Quick_Look_Overlay
+            | Tree_Pick_Overlay
+            | Paste_Conflict_Overlay
+            | Foreground_Job_Overlay =>
             return True;
-         end if;
-      end loop;
-      return False;
-   end Non_Text_Overlay_Owns_Input;
+      end case;
+   end Character_Input_Is_Contained;
 
    --  Every change of directory goes through here: it starts a new view
    --  incarnation. Whether the new directory is the trash takes a disk check,
@@ -358,8 +369,7 @@ package body Files.Model is
       Model.Main_View_Scroll := 0;
       Clear_Root_Selector_State (Model);
       Reset_Quick_Look (Model);
-      Model.Command_Palette.Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
+      Hide_Command_Palette (Model);
       Reset_Rename_State (Model);
       Model.Temporary := (others => <>);
       Model.Last_Error := Null_Unbounded_String;
@@ -652,8 +662,7 @@ package body Files.Model is
       Model.Filter.Text := Null_Unbounded_String;
       Support.Invalidate_Visible (Model);
       Model.Filter.Cursor := 0;
-      Model.Command_Palette.Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
+      Hide_Command_Palette (Model);
       Model.Focus_Value := Files.Types.Focus_None;
       Reset_Quick_Look (Model);
    end Leave_View;
@@ -1059,8 +1068,7 @@ package body Files.Model is
       if Model.Focus_Value = Files.Types.Focus_Rename_Input then
          Model.Focus_Value := Files.Types.Focus_None;
       end if;
-      Model.Command_Palette.Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
+      Hide_Command_Palette (Model);
       if Model.Focus_Value = Files.Types.Focus_Command_Palette then
          Model.Focus_Value := Files.Types.Focus_None;
       end if;

@@ -625,10 +625,16 @@ package Files.Rendering.Layouts is
       Line_Height : Positive)
       return Path_Favorite_Star_Bounds;
 
-   --  Inset of the path and filter input boxes inside their toolbar sections.
-   --  Drawing, breadcrumb layout and click-to-caret mapping must all use it,
-   --  or a click lands the caret beside the character it was aimed at.
-   Toolbar_Field_Margin : constant := 6;
+   --  Inset of the path and filter input boxes inside their toolbar sections,
+   --  scaled with the text (guikit's margin, which also spaces the filter box
+   --  from the scope chip). Drawing, breadcrumb layout and click-to-caret
+   --  mapping must all use it, or a click lands the caret beside the
+   --  character it was aimed at.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return The inset in pixels.
+   function Toolbar_Field_Margin (Line_Height : Positive) return Natural
+     renames Guikit.Layout.Toolbar_Field_Margin;
 
    --  Display columns a focused single-line input scrolls off its left edge so
    --  the caret stays visible: typing at the end of a long path used to happen
@@ -970,5 +976,192 @@ package Files.Rendering.Layouts is
       Free_Field_Width : out Natural;
       Free_Region_Width : out Natural;
       Line_Height      : Positive);
+
+   --  Shared by the drawing and the hit tests (Files.Rendering.Hit), so what
+   --  is drawn and what is hit resolve against one geometry.
+
+   --  Horizontal space reserved at the left of the path bar's interior for the
+   --  favorite star, in pixels. Breadcrumbs and the editable path field start
+   --  this many pixels further right so they never overlap the star.
+   --
+   --  @param Width Window width in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Reserved width in pixels, or zero when the star is not shown.
+   function Path_Bar_Content_Offset
+     (Width       : Natural;
+      Line_Height : Positive)
+      return Natural;
+
+   --  Return the top Y coordinate of a menu row, accounting for the smaller
+   --  height of any separator rows above it. Rows have variable heights, so a
+   --  simple row * Row_Height offset is not correct; callers (renderer and
+   --  hit-tests) use this to place and probe rows consistently.
+   --
+   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
+   --  @param Row Row index between 1 and Row_Count.
+   --  @return Top window Y coordinate of the row.
+   function Context_Menu_Row_Top
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural;
+
+   --  Return the left edge of the column containing a menu row.
+   --  Compact menus can split at a group boundary into two columns.
+   --
+   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
+   --  @param Row Row index between 1 and Row_Count.
+   --  @return Left window coordinate of the row's column.
+   function Context_Menu_Row_Left
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural;
+
+   --  Return the width of the column containing a menu row.
+   --
+   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
+   --  @param Row Row index between 1 and Row_Count.
+   --  @return Width of the row's column.
+   function Context_Menu_Row_Width
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural;
+
+   --  Return the height of a menu row: a separator is shorter than a command.
+   --
+   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
+   --  @param Row Row index between 1 and Row_Count.
+   --  @return Height of the row.
+   function Context_Menu_Row_Height
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural
+   is (if Files.Commands."=" (Menu.Rows (Row).Kind, Files.Commands.Menu_Separator)
+       then Menu.Separator_Height
+       else Menu.Row_Height);
+
+   --  The main content rectangle: the main-view region inset on all sides by the
+   --  content padding, dropping the inset when the region is too small to hold
+   --  it. Shared by the item layout, the details header/rows, and their click
+   --  hit-tests so they agree on the drawable content area.
+   type Content_Rectangle is record
+      X      : Natural := 0;
+      Y      : Natural := 0;
+      Width  : Natural := 0;
+      Height : Natural := 0;
+   end record;
+
+   --  The main content rectangle for a window layout.
+   --
+   --  @param Layout High-level window layout metrics.
+   --  @return The padded main-view content rectangle.
+   function Main_Content_Rect (Layout : Layout_Metrics) return Content_Rectangle;
+
+   --  Geometry of one detail-view column: whether it is shown and, when shown,
+   --  its left edge and width in window pixels.
+   type Detail_Column_Geometry is record
+      Visible : Boolean := False;
+      X       : Natural := 0;
+      Width   : Natural := 0;
+   end record;
+
+   type Detail_Column_Geometry_Array is
+     array (Files.Types.Detail_Column) of Detail_Column_Geometry;
+
+   --  Lay out the visible detail columns left to right across the row content
+   --  area (see the body for the sizing rules). The sticky header, the header
+   --  hit-tests, and every item row share it so their columns always align.
+   --
+   --  @param Visible Per-column visibility flags.
+   --  @param Widths Per-column customized widths in reference units (pixels at
+   --  Guikit.Layout.Reference_Line_Height, scaled to Line_Height here; zero
+   --  means default).
+   --  @param Order Left-to-right permutation of the columns (name pinned first).
+   --  @param Content_X Left edge of the detail content area.
+   --  @param Content_W Width of the detail content area.
+   --  @param Line_Height Text line height in pixels.
+   --  @param Pad Row content padding applied before the icon gutter.
+   --  @return Per-column geometry for the visible columns.
+   function Compute_Detail_Columns
+     (Visible     : Files.Types.Detail_Column_Visibility;
+      Widths      : Files.Types.Detail_Column_Widths;
+      Order       : Files.Types.Detail_Column_Order;
+      Content_X   : Natural;
+      Content_W   : Natural;
+      Line_Height : Positive;
+      Pad         : Natural)
+      return Detail_Column_Geometry_Array;
+
+   --  Height of the details-view sticky column header: one text line plus the
+   --  row padding above and below, clamped to the content height. The header
+   --  drawing, its click hit-tests, and the main-view scroll viewport share it.
+   --
+   --  @param Content_H Height of the main content rectangle.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Header height in pixels.
+   function Details_Header_Height
+     (Content_H   : Natural;
+      Line_Height : Positive)
+      return Natural;
+
+   --  Geometry of the details-view sticky column header: the content rectangle
+   --  it spans the top of, its height and inner padding, and the column layout
+   --  its cells (and every item row) align to.
+   type Details_Header_Layout is record
+      Content : Content_Rectangle;
+      Height  : Natural := 0;
+      Pad     : Natural := 0;
+      Columns : Detail_Column_Geometry_Array;
+   end record;
+
+   --  The details header geometry for a snapshot and window layout. The header
+   --  renderer and the header hit-tests (cell, drop slot, separator) all derive
+   --  their rectangles from this one function so they cannot drift apart.
+   --
+   --  @param Snapshot View snapshot holding the detail-column settings.
+   --  @param Layout High-level window layout metrics.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The header's content rectangle, height, padding, and columns.
+   function Details_Header_Geometry
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Details_Header_Layout;
+
+   --  Whether a detail column defines a sort and, when it does, the field a
+   --  header click on it sorts by.
+   type Detail_Column_Sort is record
+      Sortable : Boolean := False;
+      Field    : Files.Types.Sort_Field := Files.Types.Sort_Name;
+   end record;
+
+   --  The one mapping from a detail column to its sort field. The header label
+   --  (which column shows the direction indicator) and the header click
+   --  hit-test both read it. The permissions column defines no sort.
+   Detail_Column_Sorts : constant array (Files.Types.Detail_Column) of Detail_Column_Sort :=
+     [Files.Types.Name_Column        => (Sortable => True, Field => Files.Types.Sort_Name),
+      Files.Types.Modified_Column    => (Sortable => True, Field => Files.Types.Sort_Changed),
+      Files.Types.Size_Column        => (Sortable => True, Field => Files.Types.Sort_Size),
+      Files.Types.Filetype_Column    => (Sortable => True, Field => Files.Types.Sort_Type),
+      Files.Types.Created_Column     => (Sortable => True, Field => Files.Types.Sort_Created),
+      Files.Types.Permissions_Column => (Sortable => False, Field => Files.Types.Sort_Name)];
+
+   --  Zero-based index of a left-toolbar button, left to right.
+   subtype Toolbar_Button_Index is Natural range 0 .. Guikit.Layout.Toolbar_Button_Count - 1;
+
+   --  The command each left-toolbar button triggers, by button index. The
+   --  toolbar renderer and the toolbar click hit-test share this one table.
+   Toolbar_Button_Commands : constant array (Toolbar_Button_Index) of Files.Commands.Registered_Command_Id :=
+     [Files.Commands.Select_Drive_Command,
+      Files.Commands.Navigate_Home_Command,
+      Files.Commands.Navigate_Back_Command,
+      Files.Commands.Navigate_Forward_Command,
+      Files.Commands.Navigate_Parent_Command,
+      Files.Commands.Create_File_Command,
+      Files.Commands.Delete_Selected_Items_Command];
+
+   --  The first button of the file-action group (create/delete); the buttons
+   --  before it form the navigation group. The renderer widens the padding on
+   --  both sides of this boundary and draws a divider at its left edge.
+   First_File_Action_Button : constant Toolbar_Button_Index := 5;
 
 end Files.Rendering.Layouts;

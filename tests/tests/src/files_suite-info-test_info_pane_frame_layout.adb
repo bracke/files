@@ -14,7 +14,7 @@ separate (Files_Suite.Info)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "meta.txt");
       Files.Model.Toggle_Info_Pane (Model);
-      Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
+      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       --  Tall enough that every info-pane row (now including the owner/group
       --  fields) stays within the visible pane rather than being clipped.

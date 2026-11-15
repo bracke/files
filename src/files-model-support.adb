@@ -554,8 +554,7 @@ package body Files.Model.Support is
    begin
       Touch (Model);
       Clear_Root_Selector_State (Model);
-      Model.Command_Palette.Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
+      Hide_Command_Palette (Model);
    end Clear_Overlay_State_For_Edit;
 
    procedure Reset_Settings_Panel (Model : in out Window_Model) is
@@ -593,15 +592,21 @@ package body Files.Model.Support is
       Model.Type_Ahead_Buffer_Value := Null_Unbounded_String;
    end Claim_Overlay_Input;
 
-   procedure Close_Command_Palette
+   procedure Hide_Command_Palette
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
       Model.Command_Palette.Open := False;
       Model.Command_Palette.Mode := Palette_Commands;
       Model.Command_Palette.Open_With_Targets.Clear;
       Model.Command_Palette.Open_With_Applications.Clear;
       Guikit.Command_Palette.Reset (Model.Command_Palette.View);
+   end Hide_Command_Palette;
+
+   procedure Close_Command_Palette
+     (Model : in out Window_Model) is
+   begin
+      Touch (Model);
+      Hide_Command_Palette (Model);
       if Model.Focus_Value = Files.Types.Focus_Command_Palette then
          --  Settings intentionally remains open beneath the palette.  Return
          --  keyboard focus to that revealed input surface when the palette
@@ -672,23 +677,18 @@ package body Files.Model.Support is
       Model.Tree_Pick.Opened_Panel := False;
    end End_Tree_Pick;
 
-   procedure Toggle_Settings_Pane
+   procedure Close_Settings_Pane
      (Model : in out Window_Model) is
    begin
+      if not Model.Settings_Pane_Open then
+         return;
+      end if;
       Touch (Model);
-      Model.Settings_Pane_Open := not Model.Settings_Pane_Open;
-      if Model.Settings_Pane_Open then
-         Claim_Overlay_Input (Model);
-         Clear_Edit_State (Model);
-         Clear_Root_Selector_State (Model);
-         Model.Command_Palette.Open := False;
-         Guikit.Command_Palette.Reset (Model.Command_Palette.View);
-         Reset_Settings_Panel (Model);
-         Model.Focus_Value := Files.Types.Focus_Settings_Input;
-      elsif Model.Focus_Value = Files.Types.Focus_Settings_Input then
+      Model.Settings_Pane_Open := False;
+      if Model.Focus_Value = Files.Types.Focus_Settings_Input then
          Model.Focus_Value := Files.Types.Focus_None;
       end if;
-   end Toggle_Settings_Pane;
+   end Close_Settings_Pane;
 
    function Released_Transfer return Files.Transfer_Jobs.Session is
       Idle : Files.Transfer_Jobs.Session;

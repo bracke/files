@@ -94,22 +94,6 @@ package body Files.Application.Windows is
    --  clear it. A no-op when no request is pending.
    procedure Flush_System_Clipboard (Runtime : in out Runtime_Window);
 
-   --  Consume the GPU/GLFW/timing follow-up an interaction asks the shell to
-   --  perform. Everything touching Runtime_Window's GPU/cache/input state stays
-   --  here; Files.Interaction performs the model/settings mutation itself.
-   procedure Apply_Interaction_Result
-     (Runtime : in out Runtime_Window;
-      Result  : Files.Interaction.Interaction_Result) is
-   begin
-      if Result.Font_Size_Changed then
-         Runtime.Font_Pixel_Size := Scaled_Font_Size (Runtime);
-      end if;
-      if Result.Needs_Glyph_Rebuild then
-         Files.Rendering.Text.Invalidate (Runtime.Text);
-      end if;
-      Flush_System_Clipboard (Runtime);
-   end Apply_Interaction_Result;
-
    function As_Window
      (Handle : Window_Access)
       return Glfw.Windows.Window_Reference is
@@ -421,6 +405,7 @@ package body Files.Application.Windows is
       end loop;
    end For_Each_Window;
 
+   --  Handle_Keyboard for every window.
    procedure Handle_All_Keyboard
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
@@ -459,6 +444,7 @@ package body Files.Application.Windows is
       Files.Controller.Import_Pending_Drops (Runtime.Model, Runtime.Settings, Runtime.Handle.Drop_Source);
    end Handle_Drop_Input;
 
+   --  Import the files dropped on every window.
    procedure Handle_All_Drop_Input
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
@@ -542,6 +528,7 @@ package body Files.Application.Windows is
       end;
    end Handle_File_Watch_Poll;
 
+   --  Poll every window's watched directory for changes.
    procedure Handle_All_File_Watch_Poll
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
@@ -592,6 +579,7 @@ package body Files.Application.Windows is
      (Runtime : in out Runtime_Window)
  is separate;
 
+   --  Apply every window's pending scroll.
    procedure Handle_All_Scroll_Input
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
@@ -732,7 +720,7 @@ package body Files.Application.Windows is
          Action            => Action,
          Modifiers         => Modifiers,
          Result            => Result);
-      Apply_Interaction_Result (Runtime, Result);
+      Flush_System_Clipboard (Runtime);
    end Dispatch_Click_Action;
 
    --  The snapshot to hit-test pointer input against: the one the frame on
@@ -1091,7 +1079,7 @@ package body Files.Application.Windows is
 
       Runtime.Drag_Source_Index := 0;
       if not Keep_Tree_Scrollbar then
-         Runtime.Scrollbar_Drag_Target := Files.Events.Scroll_Auto;
+         Runtime.Scrollbar_Drag_Target := Files.Events.No_Scroll_Target;
          Runtime.Scrollbar_Drag_Anchor := 0;
       end if;
       End_Column_Resize_Drag (Runtime);

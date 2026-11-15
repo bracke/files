@@ -105,7 +105,7 @@ separate (Files.Controller)
       --  open overlay takes every key, a focused field takes editing keys --
       --  and Result is then the whole answer; a key no owner takes falls
       --  through to the command it is bound to.
-      procedure Paste_Progress_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
+      procedure Foreground_Job_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
       procedure Paste_Conflict_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
       procedure Quick_Look_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
       procedure Palette_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
@@ -143,7 +143,7 @@ separate (Files.Controller)
             return;
          end if;
          case Top is
-            when Files.Types.Foreground_Job_Overlay  => Paste_Progress_Key (Handled, Result);
+            when Files.Types.Foreground_Job_Overlay  => Foreground_Job_Key (Handled, Result);
             when Files.Types.Paste_Conflict_Overlay  => Paste_Conflict_Key (Handled, Result);
             when Files.Types.Command_Palette_Overlay => Palette_Key (Handled, Result);
             when Files.Types.Context_Menu_Overlay    => Context_Menu_Key (Handled, Result);
@@ -227,9 +227,9 @@ separate (Files.Controller)
                        Controller_Selection_Moved);
                end;
             end if;
-         when Files.Events.Scroll_Input_Action =>
-            return Handle_Scroll (Model, Action.Scroll_Lines);
+         --  The wheel is pointer input (Translate_Scroll_At): no key makes it.
          when Files.Events.No_Input_Action
+            | Files.Events.Scroll_Input_Action
             | Files.Events.Text_Click_Input_Action
             | Files.Events.Settings_Click_Input_Action
             | Files.Events.Item_Click_Input_Action
@@ -250,7 +250,7 @@ separate (Files.Controller)
             | Files.Events.Context_Menu_Command_Input_Action
             | Files.Events.Right_Click_Input_Action
             | Files.Events.Search_Scope_Toggle_Input_Action
-            | Files.Events.Paste_Cancel_Input_Action =>
+            | Files.Events.Foreground_Job_Cancel_Input_Action =>
             null;
       end case;
 

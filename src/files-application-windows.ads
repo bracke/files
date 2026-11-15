@@ -359,7 +359,7 @@ private
       --  Where the left button last went down, in framebuffer pixels: a
       --  control is drawn pressed only where the press began.
       Press_X, Press_Y : Natural := 0;
-      Scrollbar_Drag_Target : Files.Events.Scroll_Target := Files.Events.Scroll_Auto;
+      Scrollbar_Drag_Target : Files.Events.Scroll_Target := Files.Events.No_Scroll_Target;
       Scrollbar_Drag_Anchor : Integer := 0;
       --  The three drags the shell owns besides the scrollbar's.
       Column_Resize   : Column_Resize_Drag;
@@ -455,22 +455,6 @@ private
    --  Drain one window's queued key presses and typed text.
    procedure Handle_Keyboard
      (Runtime : in out Runtime_Window);
-
-   --  Handle_Keyboard for every window.
-   procedure Handle_All_Keyboard
-     (Runtime_Windows : in out Runtime_Window_Vectors.Vector);
-
-   --  Import the files dropped on every window.
-   procedure Handle_All_Drop_Input
-     (Runtime_Windows : in out Runtime_Window_Vectors.Vector);
-
-   --  Poll every window's watched directory for changes.
-   procedure Handle_All_File_Watch_Poll
-     (Runtime_Windows : in out Runtime_Window_Vectors.Vector);
-
-   --  Apply every window's pending scroll.
-   procedure Handle_All_Scroll_Input
-     (Runtime_Windows : in out Runtime_Window_Vectors.Vector);
 
    --  Dispatch a click's input action to a window.
    procedure Dispatch_Click_Action

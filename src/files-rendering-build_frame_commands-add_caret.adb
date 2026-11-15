@@ -1,20 +1,21 @@
 separate (Files.Rendering.Build_Frame_Commands)
    procedure Add_Caret
-     (X       : Natural;
+     (Region  : Files.Rendering.Layouts.Field_Text_Region;
       Y       : Natural;
-      Field_W : Natural;
       Field_H : Natural;
       Text    : UString;
       Cursor  : Natural)
    is
-      Char_W : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
-      Raw    : constant String := To_String (Text);
-      Raw_X  : constant Natural :=
+      Char_W  : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
+      Raw     : constant String := To_String (Text);
+      --  From the text's own origin (padding and any star reserve already
+      --  taken, as the click-to-caret mapping reads them), clamped inside the box.
+      Raw_X   : constant Natural :=
         Guikit.Layout.Saturating_Add
-          (Guikit.Layout.Saturating_Add (X, Files.Rendering.Layouts.Field_Padding (Line_Height)),
-           Saturating_Multiply
-             (Guikit.Utf8.Display_Units_Before (Raw, Cursor), Char_W));
-      Max_X  : constant Natural := (if Field_W > 2 then Guikit.Layout.Saturating_Add (X, Field_W - 2) else X);
+          (Region.X, Saturating_Multiply (Guikit.Utf8.Display_Units_Before (Raw, Cursor), Char_W));
+      Field_W : constant Natural := Region.Field_Width;
+      Max_X   : constant Natural :=
+        (if Field_W > 2 then Guikit.Layout.Saturating_Add (Region.Field_X, Field_W - 2) else Region.Field_X);
       --  The caret height tracks the font: a fixed fraction of the line
       --  height (so it scales linearly with the font size), clamped to the
       --  field, and centered vertically. Using Line_Height minus fixed

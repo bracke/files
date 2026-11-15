@@ -41,7 +41,7 @@ package body Files.Events is
          Conflict_Button => Button);
    end Conflict_Action;
 
-   function Paste_Cancel_Action return Input_Action is (Kind => Paste_Cancel_Input_Action);
+   function Foreground_Job_Cancel_Action return Input_Action is (Kind => Foreground_Job_Cancel_Input_Action);
 
    --  Build a label-picker swatch-choice action (No_Label clears the label).
    function Label_Choice_Action
@@ -220,7 +220,7 @@ package body Files.Events is
          return No_Action;
       end if;
 
-      return Scroll_Action (Scroll_Auto, Lines);
+      return Scroll_Action (No_Scroll_Target, Lines);
    end Translate_Scroll;
 
    function Translate_Scroll_At

@@ -27,7 +27,7 @@ package Files.Events is
       Permission_Toggle_Input_Action,
       Ownership_Edit_Input_Action,
       Conflict_Click_Input_Action,
-      Paste_Cancel_Input_Action,
+      Foreground_Job_Cancel_Input_Action,
       Search_Scope_Toggle_Input_Action,
       Label_Picker_Choice_Input_Action,
       Context_Menu_Command_Input_Action,
@@ -46,8 +46,10 @@ package Files.Events is
    --  execute, 8 the owner's read.
    subtype Permission_Bit is Natural range 0 .. 8;
 
+   --  The region a wheel step or a scrollbar drag moves. No_Scroll_Target is
+   --  over no scrollable region, and for the window's drag state, no drag.
    type Scroll_Target is
-     (Scroll_Auto,
+     (No_Scroll_Target,
       Scroll_Main_View,
       Scroll_Info_Pane,
       Scroll_Tree_Panel,
@@ -65,7 +67,7 @@ package Files.Events is
             Extend    : Boolean := False;
          when Scroll_Input_Action | Scrollbar_Drag_Begin_Input_Action =>
             Scroll_Lines       : Integer := 0;
-            Scroll_Area        : Scroll_Target := Scroll_Auto;
+            Scroll_Area        : Scroll_Target := No_Scroll_Target;
             --  Where on the thumb a scrollbar drag took hold.
             Scroll_Drag_Anchor : Integer := 0;
          when Column_Resize_Begin_Input_Action | Column_Reorder_Begin_Input_Action | Marquee_Begin_Input_Action =>
@@ -128,7 +130,7 @@ package Files.Events is
          when No_Input_Action
             | Path_Favorite_Toggle_Input_Action
             | Tree_Pick_Confirm_Input_Action
-            | Paste_Cancel_Input_Action
+            | Foreground_Job_Cancel_Input_Action
             | Search_Scope_Toggle_Input_Action =>
             null;
       end case;

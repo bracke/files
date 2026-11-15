@@ -22,7 +22,6 @@ package body Files.Application.Windows.Smoke is
    type Scenario_Base_State is record
       Model    : Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Font     : Positive := 16;
    end record;
 
    package Scenario_Base_Vectors is new Ada.Containers.Vectors
@@ -279,8 +278,9 @@ package body Files.Application.Windows.Smoke is
  is separate;
 
    --  Reset a runtime window to a captured baseline and apply one scenario.
-   --  Rendering caches and the font renderer are invalidated so the next frame
-   --  is rebuilt from the scenario state.
+   --  The frame caches are invalidated so the next frame is rebuilt from the
+   --  scenario state; a font size the scenario changed is taken up there
+   --  (Render_Window.Read_Window_State), as for any settings change.
    procedure Prepare_Scenario
      (Runtime  : in out Runtime_Window;
       Base     : Scenario_Base_State;
@@ -289,8 +289,6 @@ package body Files.Application.Windows.Smoke is
       Runtime.Model := Base.Model;
       Runtime.Settings := Base.Settings;
       Runtime.Synced_Settings_Revision := Files.Model.Settings_Revision (Runtime.Model);
-      Runtime.Font_Pixel_Size := Base.Font;
-      Files.Rendering.Text.Invalidate (Runtime.Text);
       Runtime.Frame_Cache_Valid := False;
       Runtime.View.Snapshot_Valid := False;
       Apply_Scenario (Runtime, Scenario);

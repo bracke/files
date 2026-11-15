@@ -44,7 +44,7 @@ separate (Files.Application.Windows)
                      Runtime.Zoom_Unsaved := True;
                      Runtime.Zoom_At := Ada.Real_Time.Clock;
                   end if;
-                  Apply_Interaction_Result (Runtime, Zoomed);
+                  Flush_System_Clipboard (Runtime);
                end;
             end if;
             return;
@@ -91,6 +91,6 @@ separate (Files.Application.Windows)
             Action            => Action,
             Modifiers         => To_Modifiers (As_Window (Runtime.Handle)),
             Result            => Result);
-         Apply_Interaction_Result (Runtime, Result);
+         Flush_System_Clipboard (Runtime);
       end if;
    end Handle_Scroll_Input;

@@ -1,3 +1,4 @@
+with Files.Rendering.Text.Testing; use Files.Rendering.Text.Testing;
 separate (Files_Suite.Rendering)
    procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

@@ -65,7 +65,7 @@ begin
                Column        => Runtime.Column_Reorder.Target,
                To_Index      => Drop,
                Result        => Result);
-            Apply_Interaction_Result (Runtime, Result);
+            Flush_System_Clipboard (Runtime);
          end if;
       end;
    elsif Runtime.Column_Reorder.Sort /= Files.Commands.No_Command then

@@ -51,9 +51,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
             Add_Border (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Border_Color);
             Add_Focus_Ring (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H);
             Add_Caret
-              (Filter_X,
+              (Text_Region,
                Toolbar_Input_Y,
-               Filter_W,
                Toolbar_Input_H,
                Filter_Shown,
                (if Snapshot.Text_Cursor_Position > Filter_Skip
@@ -125,9 +124,9 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          end if;
       end;
       Add_Command_Tooltip
-        (Toolbar.Right_X,
+        (Filter_Field_Text_Region (Toolbar, Line_Height).Field_X,
          Toolbar_Input_Y,
-         Toolbar.Right_Width,
+         Filter_Field_Text_Region (Toolbar, Line_Height).Field_Width,
          Toolbar_Input_H,
          Files.Commands.Focus_Filter_Input_Command);
       --  The field's own box, not its whole toolbar section: a screen

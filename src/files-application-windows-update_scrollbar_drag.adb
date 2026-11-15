@@ -13,11 +13,11 @@ separate (Files.Application.Windows)
 
       procedure Cancel_Drag is
       begin
-         Runtime.Scrollbar_Drag_Target := Files.Events.Scroll_Auto;
+         Runtime.Scrollbar_Drag_Target := Files.Events.No_Scroll_Target;
          Runtime.Scrollbar_Drag_Anchor := 0;
       end Cancel_Drag;
    begin
-      if Runtime.Scrollbar_Drag_Target = Files.Events.Scroll_Auto then
+      if Runtime.Scrollbar_Drag_Target = Files.Events.No_Scroll_Target then
          return;
       elsif not Mouse_Down
         or else Window_W = 0 or else Window_H = 0

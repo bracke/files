@@ -6,10 +6,11 @@ separate (Files.Rendering.Layouts)
       return Field_Text_Region
    is
       Padding      : constant Natural := Field_Padding (Line_Height);
-      Field_X      : constant Natural := Guikit.Layout.Saturating_Add (Toolbar.Middle_X, Toolbar_Field_Margin);
+      Margin       : constant Natural := Toolbar_Field_Margin (Line_Height);
+      Field_X      : constant Natural := Guikit.Layout.Saturating_Add (Toolbar.Middle_X, Margin);
       Field_W      : constant Natural :=
-        (if Toolbar.Middle_Width > Saturating_Multiply (Toolbar_Field_Margin, 2)
-         then Toolbar.Middle_Width - Saturating_Multiply (Toolbar_Field_Margin, 2)
+        (if Toolbar.Middle_Width > Saturating_Multiply (Margin, 2)
+         then Toolbar.Middle_Width - Saturating_Multiply (Margin, 2)
          else 0);
       Star_Reserve : constant Natural := Path_Bar_Content_Offset (Width, Line_Height);
       Used         : constant Natural := Guikit.Layout.Saturating_Add (Saturating_Multiply (Padding, 2), Star_Reserve);

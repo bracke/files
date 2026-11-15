@@ -102,14 +102,14 @@ separate (Files_Suite.Text_Input)
       Sources.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/tmp/source"));
 
       Prepare_Background;
-      Files.Model.Settings_Pane.Toggle (Model);
+      Files.Model.Settings_Pane.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_None,
          "the settings pane can remain open after focus is cancelled");
       Assert_Contained ("an unfocused settings pane");
-      Files.Model.Settings_Pane.Toggle (Model);
+      Files.Model.Settings_Pane.Close (Model);
 
       Prepare_Background;
       Files.Model.Command_Palette.Open (Model);
@@ -121,7 +121,7 @@ separate (Files_Suite.Text_Input)
       Assert_Contained ("an unfocused command palette");
       Files.Model.Command_Palette.Close (Model);
 
-      Files.Model.Settings_Pane.Toggle (Model);
+      Files.Model.Settings_Pane.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Settings_Input,
@@ -136,7 +136,7 @@ separate (Files_Suite.Text_Input)
         (Files.Model.Focus (Model),
          Files.Types.Focus_Settings_Input,
          "closing the command palette restores settings focus");
-      Files.Model.Settings_Pane.Toggle (Model);
+      Files.Model.Settings_Pane.Close (Model);
 
       Prepare_Background;
       Files.Model.Root_Selector.Open (Model, Roots);

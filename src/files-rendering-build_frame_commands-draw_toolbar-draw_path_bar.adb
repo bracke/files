@@ -5,7 +5,6 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
       declare
          Star         : constant Path_Favorite_Star_Bounds :=
            Path_Favorite_Star_Region (Width, Line_Height);
-         Star_Reserve : constant Natural := Path_Bar_Content_Offset (Width, Line_Height);
          Text_Region  : constant Field_Text_Region := Path_Field_Text_Region (Toolbar, Width, Line_Height);
          --  The box, as the click zone hit-tests it.
          Path_X       : constant Natural := Text_Region.Field_X;
@@ -156,9 +155,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          if Snapshot.Focus = Files.Types.Focus_Path_Input then
             Add_Focus_Ring (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H);
             Add_Caret
-              (Guikit.Layout.Saturating_Add (Path_X, Star_Reserve),
+              (Text_Region,
                Toolbar_Input_Y,
-               (if Path_W > Star_Reserve then Path_W - Star_Reserve else 0),
                Toolbar_Input_H,
                Path_Shown,
                (if Snapshot.Text_Cursor_Position > Path_Skip
@@ -166,9 +164,9 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          end if;
       end;
       Add_Command_Tooltip
-        (Toolbar.Middle_X,
+        (Path_Field_Text_Region (Toolbar, Width, Line_Height).Field_X,
          Toolbar_Input_Y,
-         Toolbar.Middle_Width,
+         Path_Field_Text_Region (Toolbar, Width, Line_Height).Field_Width,
          Toolbar_Input_H,
          Files.Commands.Focus_Path_Input_Command);
       --  The field's own box, not its whole toolbar section: a screen

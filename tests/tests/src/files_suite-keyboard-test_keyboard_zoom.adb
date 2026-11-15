@@ -25,7 +25,6 @@ separate (Files_Suite.Keyboard)
 
       Zoom (Guikit.Input.Key_Equal, Ctrl);
       Files_Suite.Support.Assert_Equal (Settings.Font_Pixel_Size, 17, "Ctrl+Equal grows the font size by one");
-      Assert (Result.Font_Size_Changed, "the growing zoom reports a font-size change");
       Assert (Result.Settings_Changed, "the growing zoom reports a settings change");
 
       Zoom (Guikit.Input.Key_Equal, Ctrl_Shift);
@@ -43,7 +42,7 @@ separate (Files_Suite.Keyboard)
         (Settings.Font_Pixel_Size,
          Files.Settings.Default_Font_Pixel_Size,
          "Ctrl+0 resets to the default size");
-      Assert (Result.Font_Size_Changed, "the reset reports a font-size change");
+      Assert (Result.Settings_Changed, "the reset reports a settings change");
 
       --  Clamp at the maximum: growing past the ceiling makes no change.
       Settings.Font_Pixel_Size := Files.Settings.Max_Font_Pixel_Size;
@@ -52,7 +51,7 @@ separate (Files_Suite.Keyboard)
         (Settings.Font_Pixel_Size,
          Files.Settings.Max_Font_Pixel_Size,
          "Ctrl+Equal clamps at the maximum font size");
-      Assert (not Result.Font_Size_Changed, "a no-op zoom at the ceiling reports no font-size change");
+      Assert (not Result.Settings_Changed, "a no-op zoom at the ceiling reports no settings change");
 
       --  Clamp at the minimum: shrinking past the floor makes no change.
       Settings.Font_Pixel_Size := Files.Settings.Min_Font_Pixel_Size;
@@ -61,7 +60,7 @@ separate (Files_Suite.Keyboard)
         (Settings.Font_Pixel_Size,
          Files.Settings.Min_Font_Pixel_Size,
          "Ctrl+Minus clamps at the minimum font size");
-      Assert (not Result.Font_Size_Changed, "a no-op zoom at the floor reports no font-size change");
+      Assert (not Result.Settings_Changed, "a no-op zoom at the floor reports no settings change");
 
       --  Zoom is background UI state and must obey the same ownership rule as
       --  scrolling, clicks, and drops while a modal overlay is open.
@@ -74,13 +73,7 @@ separate (Files_Suite.Keyboard)
          "an input-owning overlay blocks keyboard zoom behind it");
       Assert
         (not Result.Settings_Changed,
-         "blocked keyboard zoom reports no settings or glyph change (settings changed)");
-      Assert
-        (not Result.Font_Size_Changed,
-         "blocked keyboard zoom reports no settings or glyph change (font size changed)");
-      Assert
-        (not Result.Needs_Glyph_Rebuild,
-         "blocked keyboard zoom reports no settings or glyph change (needs glyph rebuild)");
+         "blocked keyboard zoom reports no settings change");
       Assert
         (Result.Clear_Pending_Text,
          "a blocked zoom chord still consumes its parallel character event");
@@ -100,8 +93,6 @@ separate (Files_Suite.Keyboard)
                  (Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "not-a-folder"), "settings.conf"));
          Files_Suite.Support.Assert_Equal
            (Settings.Font_Pixel_Size, Before + 1, "an unsaved zoom still changes the font size");
-         Assert (Result.Font_Size_Changed and then Result.Needs_Glyph_Rebuild,
-                 "an unsaved zoom still rebuilds the glyphs");
          Assert (Result.Settings_Changed, "and still reports the settings change");
       end;
    end Test_Keyboard_Zoom;

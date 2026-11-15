@@ -8,6 +8,5 @@ begin
    Model.Tree_Panel.Keyboard := False;
    Model.Filter.Cursor := Length (Model.Filter.Text);
    Clear_Root_Selector_State (Model);
-   Model.Command_Palette.Open := False;
-   Guikit.Command_Palette.Reset (Model.Command_Palette.View);
+   Hide_Command_Palette (Model);
 end Focus_Filter_Input;

@@ -59,8 +59,8 @@ separate (Files.Application.Windows)
 
       --  Ctrl + Plus / Ctrl + Minus / Ctrl + 0 keyboard zoom flows through the
       --  shared key seam (Files.Interaction.Handle_Key adjusts the font size in
-      --  the settings model and reports Font_Size_Changed); the shell's
-      --  Apply_Interaction_Result then syncs the live size and rebuilds glyphs.
+      --  the settings model); the next frame's Read_Window_State takes up the
+      --  live size and rebuilds the glyphs.
       Refresh_Selection_Grid_Columns (Runtime);
       declare
          Result : Files.Interaction.Interaction_Result;
@@ -77,7 +77,7 @@ separate (Files.Application.Windows)
             Modifiers         => Modifiers,
             Result            => Result,
             Tree_Page_Rows    => Tree_Page_Rows);
-         Apply_Interaction_Result (Runtime, Result);
+         Flush_System_Clipboard (Runtime);
          Consumed := Result.Clear_Pending_Text;
       end;
    end Fire_Key;

@@ -34,8 +34,6 @@ separate (Files_Suite.Interaction)
          "the interaction layer applies the settings command once per call");
 
       --  The group command advances the persisted grouping mode.
-      Result.Font_Size_Changed := True;
-      Result.Needs_Glyph_Rebuild := True;
       Result.Clear_Pending_Text := True;
       Files.Interaction.Execute_Command
         (Model             => Model,
@@ -47,12 +45,6 @@ separate (Files_Suite.Interaction)
         (Settings.Group_By,
          Files.Types.Group_By_Type,
          "the group-by command advances the grouping mode");
-      Assert
-        (not Result.Font_Size_Changed,
-         "direct command execution clears unrelated follow-up flags (font size changed)");
-      Assert
-        (not Result.Needs_Glyph_Rebuild,
-         "direct command execution clears unrelated follow-up flags (needs glyph rebuild)");
       Assert
         (not Result.Clear_Pending_Text,
          "direct command execution clears unrelated follow-up flags (clear pending text)");

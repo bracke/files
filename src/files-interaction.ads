@@ -33,10 +33,6 @@ package Files.Interaction is
       --  (Files.Settings.Same_Content), not merely ran a settings command:
       --  written now, or, for a column-resize or wheel-zoom step, held in
       --  memory for one write when the gesture ends.
-      Font_Size_Changed    : Boolean := False;
-      --  True when a saved settings change altered the live font pixel size.
-      Needs_Glyph_Rebuild  : Boolean := False;
-      --  True when the shell must invalidate its rasterized glyph cache.
       Clear_Pending_Text   : Boolean := False;
       --  True when the shell must drop any buffered character input.
    end record;
@@ -97,9 +93,11 @@ package Files.Interaction is
       Result            : out Interaction_Result;
       Tree_Page_Rows    : Natural := 0);
 
-   --  Apply a translated input action to the model and settings: every
-   --  Files.Events action kind but the scrollbar drags and the no-op, which
-   --  the shell keeps because it owns the scrollbar-drag runtime state.
+   --  Apply a translated input action to the model and settings. The drag
+   --  begins (scrollbar, column resize and reorder, marquee) are ignored here:
+   --  the shell owns their runtime state and applies them on drop or per
+   --  frame. A Selection_Input_Action (the arrow keys) arrives through
+   --  Handle_Key instead, and the no-op is ignored.
    --
    --  @param Model Window model to update.
    --  @param Settings Live settings model, updated in place when an action persists state.
@@ -114,51 +112,6 @@ package Files.Interaction is
       Action            : Files.Events.Input_Action;
       Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result);
-
-   --  Apply a chosen context-menu row command: close the menu, then execute the
-   --  command when it is not No_Command.
-   --
-   --  @param Model Window model to update.
-   --  @param Settings Live settings model, updated in place when the command persists state.
-   --  @param Settings_Path Central settings file path (empty disables persistence).
-   --  @param Command Resolved menu-row command, or No_Command when the click missed a row.
-   --  @param Modifiers Active modifier keys.
-   --  @param Result Follow-up flags describing what the command did.
-   procedure Apply_Context_Menu_Command
-     (Model             : in out Files.Model.Window_Model;
-      Settings          : in out Files.Settings.Settings_Model;
-      Settings_Path     : String;
-      Command           : Files.Commands.Command_Id;
-      Modifiers         : Guikit.Input.Modifier_Set;
-      Result            : out Interaction_Result);
-
-   --  Apply a right-click: select the right-clicked item (matching desktop
-   --  convention) and open the context menu, unless a modal overlay is open, in
-   --  which case the menu is closed. The shell supplies the geometry-derived
-   --  In_Main flag and Item_Index (from Item_At); overlay state is read here. A
-   --  right-click on the details-view column header (In_Details_Header) opens the
-   --  column-configuration menu and takes precedence over the item/empty menus.
-   --
-   --  @param Model Window model to update.
-   --  @param Settings Settings model used by item-click selection.
-   --  @param In_Main True when the click landed inside the main grid region.
-   --  @param Item_Index Visible item index under the cursor, or zero when none.
-   --  @param X Window-space X coordinate of the click.
-   --  @param Y Window-space Y coordinate of the click.
-   --  @param In_Details_Header True when the click landed on the details header.
-   --  @param On_Context_Menu True when the click landed on the open context
-   --  menu: it is ignored, so the item drawn beneath cannot take the selection.
-   --  @param Result Follow-up flags describing the context-menu change.
-   procedure Apply_Right_Click
-     (Model             : in out Files.Model.Window_Model;
-      Settings          : Files.Settings.Settings_Model;
-      In_Main           : Boolean;
-      Item_Index        : Natural;
-      X                 : Natural;
-      Y                 : Natural;
-      Result            : out Interaction_Result;
-      In_Details_Header : Boolean := False;
-      On_Context_Menu   : Boolean := False);
 
    --  Apply one step of a details-header column-resize drag. Sets Column's
    --  width to its width at drag start adjusted by how far the pointer has moved
@@ -244,14 +197,14 @@ package Files.Interaction is
       return Boolean;
 
    --  Zoom to New_Size, from the keyboard or the wheel alike: the change goes
-   --  through the one settings policy (Controller.Commit_Settings) and Result
-   --  carries the font-size and glyph follow-ups Apply_Interaction_Result runs.
+   --  through the one settings policy (Controller.Commit_Settings); the
+   --  window's next frame takes up the new size.
    --
    --  @param Model Window whose error line reports a refused or failed save.
    --  @param Settings Live settings, replaced when the change is taken.
    --  @param Settings_Path Central settings file path (empty disables persistence).
    --  @param New_Size The font pixel size asked for, already clamped.
-   --  @param Result Its follow-ups are set; other fields are left alone.
+   --  @param Result Settings_Changed is set; other fields are left alone.
    procedure Apply_Zoom
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
@@ -285,5 +238,54 @@ package Files.Interaction is
       Hits     : Files.Model.Selection.Visible_Index_List;
       Additive : Boolean;
       Base     : Files.Model.Selection.Visible_Index_List);
+
+private
+
+   --  Apply a chosen context-menu row command: close the menu, then execute the
+   --  command when it is not No_Command. Reached through Apply_Input_Action
+   --  and Handle_Key (Enter on a highlighted row).
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Live settings model, updated in place when the command persists state.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Command Resolved menu-row command, or No_Command when the click missed a row.
+   --  @param Modifiers Active modifier keys.
+   --  @param Result Follow-up flags describing what the command did.
+   procedure Apply_Context_Menu_Command
+     (Model             : in out Files.Model.Window_Model;
+      Settings          : in out Files.Settings.Settings_Model;
+      Settings_Path     : String;
+      Command           : Files.Commands.Command_Id;
+      Modifiers         : Guikit.Input.Modifier_Set;
+      Result            : out Interaction_Result);
+
+   --  Apply a right-click: select the right-clicked item (matching desktop
+   --  convention) and open the context menu, unless a modal overlay is open, in
+   --  which case the menu is closed. Files.Events.Translate_Right_Click
+   --  supplies In_Main and Item_Index from the snapshot; overlay state is read
+   --  here. A right-click on the details-view column header
+   --  (In_Details_Header) opens the column-configuration menu and takes
+   --  precedence over the item/empty menus. Reached through Apply_Input_Action.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used by item-click selection.
+   --  @param In_Main True when the click landed inside the main grid region.
+   --  @param Item_Index Visible item index under the cursor, or zero when none.
+   --  @param X Window-space X coordinate of the click.
+   --  @param Y Window-space Y coordinate of the click.
+   --  @param In_Details_Header True when the click landed on the details header.
+   --  @param On_Context_Menu True when the click landed on the open context
+   --  menu: it is ignored, so the item drawn beneath cannot take the selection.
+   --  @param Result Follow-up flags describing the context-menu change.
+   procedure Apply_Right_Click
+     (Model             : in out Files.Model.Window_Model;
+      Settings          : Files.Settings.Settings_Model;
+      In_Main           : Boolean;
+      Item_Index        : Natural;
+      X                 : Natural;
+      Y                 : Natural;
+      Result            : out Interaction_Result;
+      In_Details_Header : Boolean := False;
+      On_Context_Menu   : Boolean := False);
 
 end Files.Interaction;

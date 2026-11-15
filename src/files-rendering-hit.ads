@@ -229,7 +229,9 @@ package Files.Rendering.Hit is
       Y    : Natural)
       return Natural;
 
-   --  Return the toolbar command at a window position.
+   --  Return the toolbar button's command at a window position: the left
+   --  section's buttons only, since the path and filter fields are focused by
+   --  a click on their drawn boxes (Files.Events.Translate_Click).
    --
    --  @param X Horizontal window coordinate.
    --  @param Y Vertical window coordinate.

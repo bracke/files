@@ -140,35 +140,14 @@ package body Files.Rendering.Layouts is
    function Calculate_Command_Palette_Layout
      (Layout      : Layout_Metrics;
       Line_Height : Positive)
-      return Command_Palette_Layout is
-   begin
-      --  The palette always carries a title, so reserve the title band the
-      --  component renders, or clicks on results would be offset from the
-      --  drawn rows.
-      return Guikit.Layout.Calculate_Palette_Layout
-        (Command_X      => Layout.Command_X,
-         Command_Y      => Layout.Command_Y,
-         Command_Width  => Layout.Command_Width,
-         Command_Height => Layout.Command_Height,
-         Line_Height    => Line_Height,
-         Title_Height   => Guikit.Layout.Palette_Title_Height (Line_Height));
-   end Calculate_Command_Palette_Layout;
+      return Command_Palette_Layout
+ is separate;
 
    procedure Titled_Panel_Title
      (Panel_X, Panel_Y, Panel_W : Natural;
       Line_Height               : Positive;
       Title_X, Title_Y, Title_W : out Natural)
-   is
-      Margin : constant Natural := Titled_Panel_Padding (Line_Height);
-   begin
-      Title_X := Guikit.Layout.Saturating_Add (Panel_X, Margin);
-      Title_Y := Guikit.Layout.Saturating_Add (Panel_Y, Guikit.Layout.Panel_Edge_Inset (Line_Height));
-      --  As the guikit panels title theirs: clear of the close button.
-      Title_W :=
-        (if Panel_W > Guikit.Layout.Saturating_Add (Margin, Guikit.Layout.Close_Button_Reserve (Line_Height))
-         then Panel_W - Margin - Guikit.Layout.Close_Button_Reserve (Line_Height)
-         else 0);
-   end Titled_Panel_Title;
+ is separate;
 
    function Calculate_Quick_Look_Layout
      (Layout      : Layout_Metrics;
@@ -199,29 +178,7 @@ package body Files.Rendering.Layouts is
      (Width       : Natural;
       Line_Height : Positive)
       return Path_Favorite_Star_Bounds
-   is
-      Toolbar      : constant Guikit.Layout.Toolbar_Layout :=
-        Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
-      Field_Margin : constant Natural := Toolbar_Field_Margin;
-      Path_X       : constant Natural := Guikit.Layout.Saturating_Add (Toolbar.Middle_X, Field_Margin);
-      Pad          : constant Natural := Field_Padding (Line_Height);
-      --  Box for the drawn favourite star (a filled/outline vector shape); a
-      --  near-line-height square so the star reads clearly at the input height.
-      Star_W       : constant Positive := Line_Height;
-   begin
-      if Toolbar.Middle_Width
-        <= Guikit.Layout.Saturating_Add
-             (Saturating_Multiply (Field_Margin, 2), Guikit.Layout.Saturating_Add (Star_W, Pad))
-      then
-         return (others => <>);
-      end if;
-      return
-        (X       => Guikit.Layout.Saturating_Add (Path_X, Pad),
-         Y       => Guikit.Layout.Toolbar_Input_Y (Line_Height),
-         Width   => Star_W,
-         Height  => Guikit.Layout.Toolbar_Input_Height (Line_Height),
-         Visible => True);
-   end Path_Favorite_Star_Region;
+ is separate;
 
    function Path_Field_Text_Region
      (Toolbar : Guikit.Layout.Toolbar_Layout; Width : Natural; Line_Height : Positive) return Field_Text_Region
@@ -298,27 +255,7 @@ package body Files.Rendering.Layouts is
      (Panel       : Tree_Panel_Layout;
       Line_Height : Positive)
       return Tree_Pick_Button_Layout
-   is
-      pragma Unreferenced (Line_Height);
-      Height : constant Natural := Panel.Row_Height;
-      Half   : constant Natural := Panel.Width / 2;
-   begin
-      --  Need room for the title band, at least one row, and the button bar.
-      if Panel.Width = 0
-        or else Height = 0
-        or else Panel.Height <= Saturating_Multiply (Height, 2)
-      then
-         return (others => <>);
-      end if;
-
-      return
-        (Visible      => True,
-         Choose_X     => Panel.X,
-         Cancel_X     => Guikit.Layout.Saturating_Add (Panel.X, Half),
-         Y            => Guikit.Layout.Saturating_Add (Panel.Y, Panel.Height - Height),
-         Button_Width => Half,
-         Height       => Height);
-   end Tree_Pick_Buttons;
+ is separate;
 
    function Calculate_Info_Pane_Layout
      (Snapshot    : View_Snapshot;
@@ -395,5 +332,56 @@ package body Files.Rendering.Layouts is
       Free_Region_Width : out Natural;
       Line_Height      : Positive)
    is separate;
+
+   function Compute_Detail_Columns
+     (Visible     : Files.Types.Detail_Column_Visibility;
+      Widths      : Files.Types.Detail_Column_Widths;
+      Order       : Files.Types.Detail_Column_Order;
+      Content_X   : Natural;
+      Content_W   : Natural;
+      Line_Height : Positive;
+      Pad         : Natural)
+      return Detail_Column_Geometry_Array
+ is separate;
+
+   function Main_Content_Rect (Layout : Layout_Metrics) return Content_Rectangle
+ is separate;
+
+   function Details_Header_Height
+     (Content_H   : Natural;
+      Line_Height : Positive)
+      return Natural
+ is separate;
+
+   function Details_Header_Geometry
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Details_Header_Layout
+ is separate;
+
+   function Context_Menu_Row_Top
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural
+ is separate;
+
+   function Context_Menu_Row_Left
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural
+ is separate;
+
+   function Context_Menu_Row_Width
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural
+ is separate;
+
+   function Path_Bar_Content_Offset
+     (Width       : Natural;
+      Line_Height : Positive)
+      return Natural
+ is separate;
 
 end Files.Rendering.Layouts;

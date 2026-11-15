@@ -1,4 +1,3 @@
-with Files.Window_Polls;
 with Files.Foreground_Jobs;
 with Files.Items;
 with Files.Commands.Status;
@@ -35,24 +34,6 @@ package body Files.Controller is
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
    use type Guikit.Input.Navigation_Direction;
-
-   --  Overlays without a text-entry surface own native character input.  This
-   --  predicate lives at the controller boundary because GLFW character and
-   --  file-drop callbacks bypass the ordinary key/click translators.
-   function Non_Text_Overlay_Owns_Input
-     (Model : Files.Model.Window_Model) return Boolean renames Files.Model.Non_Text_Overlay_Owns_Input;
-
-   --  Settings and the command palette accept native character input only while
-   --  their own text surface holds focus.  This also contains characters after
-   --  focus has been cancelled without closing the overlay.
-   function Text_Overlay_Rejects_Character_Input
-     (Model : Files.Model.Window_Model) return Boolean is
-     (if Files.Model.Command_Palette.Is_Open (Model) then
-         Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
-      elsif Files.Model.Settings_Pane.Is_Open (Model) then
-         Files.Model.Focus (Model) /= Files.Types.Focus_Settings_Input
-      else
-         False);
 
    function Empty_Operation return Files.Operation_Results.Operation_Result is
    begin
@@ -606,7 +587,7 @@ package body Files.Controller is
       return Make_Result (Controller_Command_Executed);
    end Handle_Conflict_Apply_All_Toggle;
 
-   function Handle_Paste_Cancel
+   function Handle_Foreground_Job_Cancel
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Controller_Result is
@@ -617,19 +598,7 @@ package body Files.Controller is
       Files.Foreground_Jobs.Cancel (Model);
       return Make_Result
         (Controller_Command_Executed, Operation => Files.Foreground_Jobs.Advance (Model, Settings, 1));
-   end Handle_Paste_Cancel;
-
-   function Select_Root
-     (Model     : in out Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Root_Path : String)
-      return Controller_Result
-   is
-      Operation : constant Files.Operation_Results.Operation_Result :=
-        Files.Operations.Select_Root (Model, Settings, Root_Path);
-   begin
-      return Make_Result (Controller_Command_Executed, Files.Commands.Select_Drive_Command, Operation);
-   end Select_Root;
+   end Handle_Foreground_Job_Cancel;
 
    --  Reveal the single selected item by navigating to its parent directory and
    --  selecting it there, as a file favorite's click does. When the parent is
@@ -947,46 +916,6 @@ package body Files.Controller is
       Files.Model.Scroll_Main_View (Model, Lines);
       return Changed_Result (Old_Lines, Files.Model.Main_View_Scroll_Lines (Model));
    end Scroll_Main_Result;
-
-   function Handle_Scroll
-     (Model : in out Files.Model.Window_Model;
-      Lines : Integer)
-      return Controller_Result
-   is
-      Top : Files.Model.Input_Overlay;
-   begin
-      if Lines = 0 then
-         return Make_Result (Controller_Ignored);
-      elsif Files.Model.Topmost_Overlay (Model, Top) then
-         --  The overlay on top takes the wheel (Files.Types.Overlay_Stack).
-         --  Without cursor geometry only the palette and the settings pane
-         --  have something to scroll; every other overlay contains it,
-         --  matching the pointer translator.
-         case Top is
-            when Files.Types.Command_Palette_Overlay =>
-               if Files.Model.Command_Palette.Result_Count (Model) = 0 then
-                  return Make_Result (Controller_Ignored);
-               end if;
-               Scroll_Palette_Selection (Model, Lines);
-               return Make_Result (Controller_Palette_Updated);
-            when Files.Types.Settings_Pane_Overlay =>
-               return Scroll_Settings_Result (Model, Lines);
-            when Files.Types.Foreground_Job_Overlay
-               | Files.Types.Paste_Conflict_Overlay
-               | Files.Types.Root_Selector_Overlay
-               | Files.Types.Sort_Menu_Overlay
-               | Files.Types.Context_Menu_Overlay
-               | Files.Types.Label_Picker_Overlay
-               | Files.Types.Quick_Look_Overlay
-               | Files.Types.Tree_Pick_Overlay =>
-               return Make_Result (Controller_Ignored);
-         end case;
-      elsif Files.Model.Info_Pane_Is_Open (Model) then
-         return Scroll_Info_Result (Model, Lines);
-      end if;
-
-      return Scroll_Main_Result (Model, Lines);
-   end Handle_Scroll;
 
    function Handle_Targeted_Scroll
      (Model  : in out Files.Model.Window_Model;

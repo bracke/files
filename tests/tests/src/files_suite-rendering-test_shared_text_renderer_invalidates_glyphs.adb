@@ -1,3 +1,4 @@
+with Files.Rendering.Text.Testing; use Files.Rendering.Text.Testing;
 separate (Files_Suite.Rendering)
    --  Windows of one size share a text renderer. Glyphs one window built are
    --  reused while its text is unchanged -- but not once another window's

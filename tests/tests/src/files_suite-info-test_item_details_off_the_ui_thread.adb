@@ -19,7 +19,7 @@ separate (Files_Suite.Info)
 
       --  In a window the details are not read on the UI thread...
       Files.Model.Set_Background_Transfers (Model, True);
-      Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
+      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Assert (Files.Model.Selected_Item_Needs_Extra (Model), "a window does not read the details while it waits");
 
       --  ...but asked of the reader and taken once read.
@@ -40,6 +40,6 @@ separate (Files_Suite.Info)
       Files.Model.Set_Background_Transfers (Model, False);
       Files.Model.Toggle_Info_Pane (Model);
       Assert (Files.Model.Selection.Select_By_Name (Model, "notes.txt"), "the text file is listed again");
-      Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
+      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Assert (not Files.Model.Selected_Item_Needs_Extra (Model), "outside a window the details are read at once");
    end Test_Item_Details_Off_The_UI_Thread;

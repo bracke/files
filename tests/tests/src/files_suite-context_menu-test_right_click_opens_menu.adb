@@ -15,31 +15,11 @@ separate (Files_Suite.Context_Menu)
       X, Y     : Natural;
       Found    : Boolean;
 
-      --  Recompute In_Main / Item_Index from the live layout, as the shell does
-      --  before calling Apply_Right_Click.
+      --  Right-click the centre of the item's cell through the real translator.
       procedure Right_Click (Target : Positive) is
-         Snapshot : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Model, Settings);
-         Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Items    : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
-           Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
-         In_Main  : Boolean;
-         Index    : Natural;
       begin
          Item_Center (Model, Target, X, Y, Found);
-         In_Main :=
-           X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
-           and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
-         Index := Files.Rendering.Hit.Item_At (Items, X, Y);
-         Files.Interaction.Apply_Right_Click
-           (Model      => Model,
-            Settings   => Settings,
-            In_Main    => In_Main,
-            Item_Index => Index,
-            X          => X,
-            Y          => Y,
-            Result     => Result);
+         Right_Click_At (Model, Settings, X, Y, Result);
       end Right_Click;
 
       procedure Assert_Right_Click_Suppressed (Overlay_Name : String) is
@@ -51,8 +31,6 @@ separate (Files_Suite.Context_Menu)
       end Assert_Right_Click_Suppressed;
    begin
       Result.Settings_Changed := True;
-      Result.Font_Size_Changed := True;
-      Result.Needs_Glyph_Rebuild := True;
       Result.Clear_Pending_Text := True;
       Right_Click (2);
       Assert (Found, "a layout cell exists for the right-clicked item");
@@ -62,26 +40,24 @@ separate (Files_Suite.Context_Menu)
         (not Result.Settings_Changed,
          "right-click clears follow-up flags left by an earlier interaction (settings changed)");
       Assert
-        (not Result.Font_Size_Changed,
-         "right-click clears follow-up flags left by an earlier interaction (font size changed)");
-      Assert
-        (not Result.Needs_Glyph_Rebuild,
-         "right-click clears follow-up flags left by an earlier interaction (needs glyph rebuild)");
-      Assert
         (not Result.Clear_Pending_Text,
          "right-click clears follow-up flags left by an earlier interaction (clear pending text)");
 
       --  With that menu still open, a right-click on another, unselected
-      --  item moves the menu there and selects that item alone.
-      Right_Click (3);
+      --  item the menu does not cover (the one before it: the menu opens
+      --  rightwards from the click) moves the menu there and selects it alone.
+      Right_Click (1);
       Assert (Files.Model.Context_Menu.Is_Open (Model), "a second right-click opens the menu again");
-      Assert (Files.Model.Selection.Is_Selected (Model, 3), "it selects the newly right-clicked item");
+      Assert (Files.Model.Selection.Is_Selected (Model, 1), "it selects the newly right-clicked item");
       Assert (not Files.Model.Selection.Is_Selected (Model, 2), "and only that item");
+      --  A right-click on the open menu itself is the menu's, so the item drawn
+      --  under it is not taken; close the menu before right-clicking item 2.
+      Files.Model.Context_Menu.Close (Model);
       Right_Click (2);
 
       --  A queued click can carry an index from an older layout. It must not
       --  open an item menu whose commands would act on the current selection.
-      Files.Interaction.Apply_Right_Click
+      Dispatch_Right_Click
         (Model      => Model,
          Settings   => Settings,
          In_Main    => True,
@@ -99,10 +75,10 @@ separate (Files_Suite.Context_Menu)
       --  With a modal overlay open the same right-click must be swallowed: the
       --  menu stays closed (the shell suppresses it behind modals).
       Files.Model.Context_Menu.Close (Model);
-      Files.Model.Settings_Pane.Toggle (Model);
+      Files.Model.Settings_Pane.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings overlay is open for the suppression case");
       Assert_Right_Click_Suppressed ("Settings");
-      Files.Model.Settings_Pane.Toggle (Model);
+      Files.Model.Settings_Pane.Close (Model);
 
       Files.Model.Label_Picker.Open (Model);
       Assert_Right_Click_Suppressed ("the label picker");

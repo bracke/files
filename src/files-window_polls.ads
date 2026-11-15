@@ -19,11 +19,10 @@ package Files.Window_Polls is
    --
    --  @param Model Window model whose selected item is updated in place.
    --  @param Show_Hidden Whether the listing shows hidden entries
-   --    (Settings.Show_Hidden_Files): a folder's count includes them only
-   --    then. True, for a caller without settings, counts every entry.
+   --    (Settings.Show_Hidden_Files): a folder's count includes them only then.
    procedure Ensure_Selected_Item_Extra
      (Model       : in out Files.Model.Window_Model;
-      Show_Hidden : Boolean := True);
+      Show_Hidden : Boolean);
 
    --  Ensure_Selected_Item_Extra for a window: the details are read by
    --  Files.Extra_Info_Reader's worker, asked for here and taken on a later

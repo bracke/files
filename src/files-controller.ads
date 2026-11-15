@@ -209,26 +209,15 @@ package Files.Controller is
      (Model : in out Files.Model.Window_Model)
       return Controller_Result;
 
-   --  Cancel the running paste and finish over what is done (copies kept).
+   --  Cancel the running foreground job (a paste or an operation,
+   --  Files.Foreground_Jobs) and finish over what is done (copies kept).
    --
    --  @param Model Window model to update.
-   --  @param Settings Settings model used by the paste.
-   --  @return Controller result with the paste's outcome.
-   function Handle_Paste_Cancel
+   --  @param Settings Settings model used by the job.
+   --  @return Controller result with the job's outcome.
+   function Handle_Foreground_Job_Cancel
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
-      return Controller_Result;
-
-   --  Select a root path from the root selector.
-   --
-   --  @param Model Window model to update.
-   --  @param Settings Settings model used by operations.
-   --  @param Root_Path Root path selected by the user.
-   --  @return Controller result with navigation details.
-   function Select_Root
-     (Model     : in out Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Root_Path : String)
       return Controller_Result;
 
    --  Select a root-selector row by index.
@@ -478,28 +467,18 @@ private
       Settings_Path : String)
       return Controller_Result;
 
-   --  Flip the Show_Used_Space setting and persist it, so the status bar's
-   --  disk-space field switches between showing free and used space. Display
+   --  Cycle the status bar's disk-space field through free space, used space
+   --  and a bar (Show_Used_Space, Show_Space_Bar) and persist it. Display
    --  only: the item list is unchanged and the directory is not reloaded.
    --
    --  @param Model Window model to update.
-   --  @param Settings Live settings model whose free/used flag is flipped.
+   --  @param Settings Live settings model whose space-display flags change.
    --  @param Settings_Path Central settings file path.
    --  @return Controller result with persistence operation details.
    function Toggle_Free_Space_Display
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String)
-      return Controller_Result;
-
-   --  Handle a scroll-wheel action for overlays that accept vertical movement.
-   --
-   --  @param Model Window model to update.
-   --  @param Lines Positive values scroll down; negative values scroll up.
-   --  @return Controller result describing whether visible state changed.
-   function Handle_Scroll
-     (Model : in out Files.Model.Window_Model;
-      Lines : Integer)
       return Controller_Result;
 
 end Files.Controller;

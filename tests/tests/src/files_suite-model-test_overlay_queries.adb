@@ -5,14 +5,15 @@ with Files_Suite.Support.Models;
 separate (Files_Suite.Model)
    --  Every "is an overlay open" question reads Files.Model's one list of
    --  input-owning overlays: the overlay's own click handler excludes itself,
-   --  and the root selector stops owning text input once the palette covers it.
+   --  and typed characters reach the palette's query once it covers the
+   --  selector, but nothing while it covers it unfocused.
    procedure Test_Overlay_Queries (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Roots : Files.Types.String_Vectors.Vector;
    begin
       Assert (not Files.Model.Input_Owning_Overlay_Is_Open (Model), "no overlay is open at first");
-      Assert (not Files.Model.Non_Text_Overlay_Owns_Input (Model), "nothing owns native input at first");
+      Assert (not Files.Model.Character_Input_Is_Contained (Model), "nothing owns native input at first");
       for Overlay in Files.Model.Input_Overlay loop
          Assert (not Files.Model.Testing.Overlay_Is_Open (Model, Overlay), "no single overlay is open at first");
       end loop;
@@ -27,13 +28,19 @@ separate (Files_Suite.Model)
       Assert
         (Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Context_Menu_Overlay),
          "the selector blocks a context menu");
-      Assert (Files.Model.Non_Text_Overlay_Owns_Input (Model), "the selector has no text field of its own");
+      Assert (Files.Model.Character_Input_Is_Contained (Model), "the selector has no text field of its own");
 
       Files.Model.Command_Palette.Open (Model);
       Assert
         (Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Root_Selector_Overlay),
          "the palette over the selector blocks the selector's clicks");
       Assert
-        (not Files.Model.Non_Text_Overlay_Owns_Input (Model),
+        (not Files.Model.Character_Input_Is_Contained (Model),
          "the palette's query field owns text input over the selector");
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      if Files.Model.Command_Palette.Is_Open (Model) then
+         Assert
+           (Files.Model.Character_Input_Is_Contained (Model),
+            "an unfocused palette on top contains typed characters");
+      end if;
    end Test_Overlay_Queries;

@@ -1,6 +1,5 @@
 with Files.Operations;
 with Files.File_System.Trash;
-with Files.Rendering.Testing;
 with Files.Items;
 with Ada.Directories;
 with Ada.Environment_Variables;

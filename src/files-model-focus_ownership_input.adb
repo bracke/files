@@ -30,6 +30,5 @@ begin
    end;
    Model.Ownership_Input.Edit.Cursor := Length (Model.Ownership_Input.Edit.Text);
    Clear_Root_Selector_State (Model);
-   Model.Command_Palette.Open := False;
-   Guikit.Command_Palette.Reset (Model.Command_Palette.View);
+   Hide_Command_Palette (Model);
 end Focus_Ownership_Input;

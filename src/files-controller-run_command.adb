@@ -165,7 +165,7 @@ separate (Files.Controller)
             return Close_Top_Or_Cancel (Model);
          when Files.Commands.Toggle_Settings_Pane_Command =>
             if Files.Model.Settings_Pane.Is_Open (Model) then
-               Files.Model.Settings_Pane.Toggle (Model);
+               Files.Model.Settings_Pane.Close (Model);
             else
                Files.Model.Settings_Pane.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
             end if;

@@ -92,7 +92,8 @@ package Files.Commands is
    --  the dispatch and switches over these two subtypes and the remaining ids with
    --  no others choice, so the compiler checks that every id is handled once.
    --
-   --  Commands whose whole effect is window-model state, run by Execute below.
+   --  Commands whose whole effect is window-model state, run by
+   --  Files.Commands.Execution.Execute.
    subtype Pure_Command_Id is Command_Id
      with Static_Predicate =>
        Pure_Command_Id in No_Command

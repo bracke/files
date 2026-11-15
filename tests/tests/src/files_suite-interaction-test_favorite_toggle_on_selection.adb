@@ -46,12 +46,6 @@ separate (Files_Suite.Interaction)
         (not Result.Settings_Changed,
          "a reused interaction result does not retain follow-up flags from the prior action (settings changed)");
       Assert
-        (not Result.Font_Size_Changed,
-         "a reused interaction result does not retain follow-up flags from the prior action (font size changed)");
-      Assert
-        (not Result.Needs_Glyph_Rebuild,
-         "a reused interaction result does not retain follow-up flags from the prior action (needs glyph rebuild)");
-      Assert
         (not Result.Clear_Pending_Text,
          "a reused interaction result does not retain follow-up flags from the prior action (clear pending text)");
 

@@ -164,7 +164,7 @@ package body Files.Operations.Support is
                  (Model, Previous_Selection, Previous_Primary);
             end if;
             Files.Model.Set_Error (Model, "");
-            Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
+            Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
             --  A reload runs after every operation, so it must not decode each
             --  new image in the folder while the UI waits: as on navigation, the
             --  missing thumbnails are left to a background listing, which the

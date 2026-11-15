@@ -23,7 +23,7 @@ separate (Files_Suite.Context_Menu)
          Default_View_Mode => Files.Types.Details);
 
       --  Right-click the details header, deriving the coordinate from the real
-      --  header hit-test (rule a) and driving the real Apply_Right_Click (rule d).
+      --  header hit-test (rule a) and driving the real translator and dispatch (rule d).
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
@@ -34,7 +34,6 @@ separate (Files_Suite.Context_Menu)
          Row      : Files.Rendering.Layouts.Item_Layout;
          Header_X : Natural := 0;
          Header_Y : Natural := 0;
-         In_Main  : Boolean;
       begin
          for Cell of Rows loop
             if Cell.Visible_Index = 1 then
@@ -47,12 +46,7 @@ separate (Files_Suite.Context_Menu)
            (Files.Rendering.Hit.Details_Header_Cell_At
               (Snapshot, Layout, Header_X, Header_Y, Line).Present,
             "the derived coordinate lands on the details header band");
-         In_Main :=
-           Header_X >= Layout.Main_X and then Header_X < Layout.Main_X + Layout.Main_Width
-           and then Header_Y >= Layout.Main_Y and then Header_Y < Layout.Main_Y + Layout.Main_Height;
-         Files.Interaction.Apply_Right_Click
-           (Model, Settings, In_Main, 0, Header_X, Header_Y, Result,
-            In_Details_Header => True);
+         Right_Click_At (Model, Settings, Header_X, Header_Y, Result);
       end;
 
       Assert (Files.Model.Context_Menu.Is_Open (Model), "the header menu opens on the column header");

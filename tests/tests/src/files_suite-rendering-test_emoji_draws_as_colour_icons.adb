@@ -1,3 +1,4 @@
+with Files.Rendering.Text.Testing; use Files.Rendering.Text.Testing;
 separate (Files_Suite.Rendering)
    --  An emoji in a filename draws as a picture, in both layers.
    --

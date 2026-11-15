@@ -9,12 +9,10 @@ separate (Files.Controller)
       New_Text : Unbounded_String;
    begin
       --  Printable characters arrive through GLFW's character callback rather
-      --  than the normal key translator.  Contain them while a non-text overlay
-      --  owns input, including when a field underneath still holds model focus.
-      if Text = ""
-        or else Non_Text_Overlay_Owns_Input (Model)
-        or else Text_Overlay_Rejects_Character_Input (Model)
-      then
+      --  than the normal key translator. The overlay on top contains them
+      --  unless it is a text overlay with its own field focused, even when a
+      --  field underneath still holds model focus.
+      if Text = "" or else Files.Model.Character_Input_Is_Contained (Model) then
          return Make_Result (Controller_Ignored);
       end if;
 
@@ -24,13 +22,12 @@ separate (Files.Controller)
       --  GLFW character callback only emits printable text, so shortcuts stay on
       --  the command path.
       if Files.Model.Focus (Model) = Files.Types.Focus_None then
+         --  The selected item's details follow on the window's next poll
+         --  (Window_Polls.Poll_Selected_Item_Extra), as for every selection.
          declare
             Matched : Boolean;
          begin
             Files.Model.Selection.Type_Ahead_Input (Model, Text, Matched);
-            if Matched then
-               Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
-            end if;
             return Make_Result (if Matched then Controller_Selection_Moved else Controller_Ignored);
          end;
       end if;

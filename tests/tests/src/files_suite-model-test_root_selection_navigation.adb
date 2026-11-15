@@ -1,5 +1,4 @@
 with Files.Operation_Results;
-with Files.File_System.Testing;
 with Files.Model.Root_Selector;
 separate (Files_Suite.Model)
    procedure Test_Root_Selection_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -8,6 +7,7 @@ separate (Files_Suite.Model)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
       Result   : Files.Controller.Controller_Result;
+      Rows     : Files.Types.String_Vectors.Vector;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Target);
@@ -18,17 +18,21 @@ separate (Files_Suite.Model)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector.Is_Open (Model), "drive selector can reopen after palette Escape");
       Files.Model.Begin_Create_File (Model, "root-pending.txt");
-      Files.Model.Root_Selector.Open (Model, Files.File_System.Testing.Available_Roots);
+      --  A row for a root that is gone, and one for Target, picked as a click
+      --  on the row picks it.
+      Rows.Append (To_Unbounded_String (Join (Root, "missing-root")));
+      Rows.Append (To_Unbounded_String (Target));
+      Files.Model.Root_Selector.Open (Model, Rows);
 
-      Result := Files.Controller.Select_Root (Model, Settings, Join (Root, "missing-root"));
+      Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 1);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
          "invalid root selection executes command");
       Files_Suite.Support.Assert_Equal
         (Result.Command,
-         Files.Commands.Select_Drive_Command,
-         "invalid root selection reports drive command");
+         Files.Commands.Open_Selected_Root_Command,
+         "invalid root selection reports the root command");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operation_Results.Operation_Failed,
@@ -55,15 +59,15 @@ separate (Files_Suite.Model)
          "outside root row click is ignored");
       Assert (Files.Model.Root_Selector.Is_Open (Model), "outside root row click keeps selector open");
 
-      Result := Files.Controller.Select_Root (Model, Settings, Target);
+      Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 2);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
          "root selection executes command");
       Files_Suite.Support.Assert_Equal
         (Result.Command,
-         Files.Commands.Select_Drive_Command,
-         "root selection reports drive command");
+         Files.Commands.Open_Selected_Root_Command,
+         "root selection reports the root command");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operation_Results.Operation_Navigated,
