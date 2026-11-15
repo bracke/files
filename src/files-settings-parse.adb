@@ -100,13 +100,13 @@ separate (Files.Settings)
             --  New form: bookmark = "<path>" (path may contain '=' or start with
             --  '#'). The on-disk token stays "bookmark" so files keep loading.
             if Persistent_Path_Is_Valid (Value) then
-               Settings.Paths.Favorites.Append (To_Unbounded_String (Value));
+               Path_References.Add_Favorite (Settings, Value);
             elsif Value /= "" then
                Err := To_Unbounded_String ("error.settings.invalid");
             end if;
          elsif Persistent_Path_Is_Valid (Key) then
             --  Legacy form: the bare path written as the key.
-            Settings.Paths.Favorites.Append (To_Unbounded_String (Key));
+            Path_References.Add_Favorite (Settings, Key);
          elsif Key /= "" then
             Err := To_Unbounded_String ("error.settings.invalid");
          end if;
@@ -156,14 +156,11 @@ separate (Files.Settings)
       begin
          Err := Null_Unbounded_String;
          --  Each entry is written as recent = "<path>" in file order
-         --  (most-recent-first). Append while under the cap so a hand-edited
-         --  overflow load never grows unbounded; the quoted value survives paths
-         --  with '=' or '#'.
-         if Setting_Key = "recent"
-           and then Persistent_Path_Is_Valid (Value)
-           and then Natural (Settings.Paths.Recent.Length) < Max_Recent_Items
-         then
-            Settings.Paths.Recent.Append (To_Unbounded_String (Value));
+         --  (most-recent-first). Add_Recent keeps the cap and leaves out a
+         --  repeat, so a hand-edited file never grows the list or lists an
+         --  item twice; the quoted value survives paths with '=' or '#'.
+         if Setting_Key = "recent" and then Persistent_Path_Is_Valid (Value) then
+            Path_References.Add_Recent (Settings, Value);
          elsif Setting_Key = "recent" and then Value /= ""
            and then not Persistent_Path_Is_Valid (Value)
          then

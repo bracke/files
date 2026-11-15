@@ -35,6 +35,7 @@ separate (Check_All)
          Pair ("file_system", "pause_sweep_work", "resume_sweep_work"),
          Pair ("file_system", "watch_ownership_changes", "stop_watching_ownership_changes"),
          Pair ("folder_size", "fail_result_reads", "fail_result_reads", Off => "0"),
+         Pair ("fs_primitives", "refuse_lookups", "stop_refusing_lookups"),
          Pair ("operation_jobs", "fail_after_merge", "stop_failing_after_merge"),
          Pair ("operations", "fake_checkpoint_clock", "fake_checkpoint_clock", Off => "false"),
          Pair ("process_jobs", "refuse_next_launch", "clear_refusal"),

@@ -471,13 +471,17 @@ package Files.Rendering is
    --  hover highlight and tooltips, the pressed control, a dragged item's
    --  preview -- all at the one pointer position -- and the marquee
    --  rectangle. In framebuffer pixels; Has_Hover says whether the position
-   --  means anything, Marquee_Active whether the rectangle does.
+   --  means anything, Marquee_Active whether the rectangle does. A control
+   --  is drawn pressed only while the pointer is on it and the press began on
+   --  it (Press_X, Press_Y): a drag that crosses buttons presses none.
    type Pointer_State is record
       Hover_X         : Natural := 0;
       Hover_Y         : Natural := 0;
       Has_Hover       : Boolean := False;
-      --  A button is held down at the pointer.
+      --  A button is held down at the pointer, pressed where Press_X/Y say.
       Pressed         : Boolean := False;
+      Press_X         : Natural := 0;
+      Press_Y         : Natural := 0;
       --  An item is being dragged with the pointer: its visible index.
       Dragging        : Boolean := False;
       Drag_Item_Index : Natural := 0;

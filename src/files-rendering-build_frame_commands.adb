@@ -18,6 +18,8 @@ separate (Files.Rendering)
       Hover_Y         : Natural renames Pointer.Hover_Y;
       Has_Hover       : Boolean renames Pointer.Has_Hover;
       Has_Press       : Boolean renames Pointer.Pressed;
+      Press_X         : Natural renames Pointer.Press_X;
+      Press_Y         : Natural renames Pointer.Press_Y;
       Drag_Item_Index : Natural renames Pointer.Drag_Item_Index;
       Has_Drag        : Boolean renames Pointer.Dragging;
       Marquee_Active  : Boolean renames Pointer.Marquee_Active;
@@ -485,7 +487,11 @@ separate (Files.Rendering)
          Box_H : Natural)
          return Boolean is
       begin
-         return Has_Press and then Contains_Point (X, Y, Box_W, Box_H, Hover_X, Hover_Y);
+         --  Under the pointer, and where the press began: a drag (scrollbar,
+         --  column, marquee) that crosses a button does not press it.
+         return Has_Press
+           and then Contains_Point (X, Y, Box_W, Box_H, Hover_X, Hover_Y)
+           and then Contains_Point (X, Y, Box_W, Box_H, Press_X, Press_Y);
       end Is_Pressed;
 
       procedure Add_Border

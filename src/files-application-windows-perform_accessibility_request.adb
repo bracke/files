@@ -16,6 +16,19 @@ separate (Files.Application.Windows)
          return;
       end if;
       declare
+         --  A text field is focused, not clicked at its centre (which may
+         --  lie on a breadcrumb or the search-scope chip).
+         Field : constant Files.Events.Input_Action :=
+           Files.Events.Translate_Field_Request
+             (Item.Bounds.X, Item.Bounds.Y, Item.Bounds.Width, Item.Bounds.Height,
+              Natural (Frame_W), Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
+      begin
+         if Field.Kind /= Files.Events.No_Input_Action then
+            Dispatch_Click_Action (Runtime, Field, Guikit.Input.No_Modifiers);
+            return;
+         end if;
+      end;
+      declare
          --  Node rectangles are framebuffer pixels; the click path takes
          --  window coordinates.
          Centre_X : constant Float := Float (Item.Bounds.X) + Float (Item.Bounds.Width) / 2.0;

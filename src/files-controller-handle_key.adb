@@ -9,6 +9,13 @@ separate (Files.Controller)
    is
       Action : constant Files.Events.Input_Action := Files.Events.Translate_Key (Key, Modifiers);
 
+      --  The key bound to Close_Overlay_Command (Escape unless rebound): every
+      --  owner that closes, cancels or hands the keyboard back answers it,
+      --  never a literal Escape.
+      Is_Close_Key : constant Boolean :=
+        Action.Kind = Files.Events.Command_Input_Action
+        and then Files.Commands."=" (Action.Command, Files.Commands.Close_Overlay_Command);
+
       function Control_Only return Boolean is
       begin
          return Modifiers (Guikit.Input.Control_Key)
@@ -126,8 +133,7 @@ separate (Files.Controller)
          Result := Make_Result (Controller_Ignored);
          if not Files.Model.Topmost_Overlay (Model, Top) then
             return;
-         elsif Action.Kind = Files.Events.Command_Input_Action
-           and then Action.Command = Files.Commands.Close_Overlay_Command
+         elsif Is_Close_Key
            and then Top in Files.Model.Escape_Closable_Overlay
            and then not (Top = Files.Types.Settings_Pane_Overlay
                          and then Files.Model.Settings_Pane.Is_Capturing (Model))

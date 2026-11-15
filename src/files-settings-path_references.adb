@@ -43,25 +43,41 @@ package body Files.Settings.Path_References is
      (Settings : in out Settings_Model;
       Path     : String)
    is
-      Removed : Boolean := False;
    begin
       if not Persistent_Path_Is_Valid (Path) then
          return;
       end if;
-      --  Every entry for Path goes: one left behind (a settings file with a
-      --  repeat) would keep it a favorite after it was taken off.
-      for Index in reverse
-        Settings.Paths.Favorites.First_Index .. Settings.Paths.Favorites.Last_Index
-      loop
+      --  Favorites never repeat (Add_Favorite), so one entry is all there is.
+      for Index in Settings.Paths.Favorites.First_Index .. Settings.Paths.Favorites.Last_Index loop
          if To_String (Settings.Paths.Favorites.Element (Index)) = Path then
             Settings.Paths.Favorites.Delete (Index);
-            Removed := True;
+            return;
          end if;
       end loop;
-      if not Removed then
+      Settings.Paths.Favorites.Append (To_Unbounded_String (Path));
+   end Toggle_Favorite_Path;
+
+   procedure Add_Favorite
+     (Settings : in out Settings_Model;
+      Path     : String) is
+   begin
+      if Persistent_Path_Is_Valid (Path) and then not Settings.Paths.Favorites.Contains (To_Unbounded_String (Path))
+      then
          Settings.Paths.Favorites.Append (To_Unbounded_String (Path));
       end if;
-   end Toggle_Favorite_Path;
+   end Add_Favorite;
+
+   procedure Add_Recent
+     (Settings : in out Settings_Model;
+      Path     : String) is
+   begin
+      if Persistent_Path_Is_Valid (Path)
+        and then Natural (Settings.Paths.Recent.Length) < Max_Recent_Items
+        and then not Settings.Paths.Recent.Contains (To_Unbounded_String (Path))
+      then
+         Settings.Paths.Recent.Append (To_Unbounded_String (Path));
+      end if;
+   end Add_Recent;
 
    function Recent_Paths
      (Settings : Settings_Model)
@@ -115,16 +131,11 @@ package body Files.Settings.Path_References is
    is
       Result : Path_Index;
    begin
-      --  Is_Favorite and Label_Of skip invalid paths and take the first stored
-      --  entry, so index only valid paths and keep the first of any repeat.
+      --  Every stored favorite is valid and none repeats (Add_Favorite,
+      --  Toggle_Favorite_Path, Move_Path_References). Is_Favorite and
+      --  Label_Of take the first stored label, so keep the first of a path's.
       for Existing of Settings.Paths.Favorites loop
-         declare
-            Path : constant String := To_String (Existing);
-         begin
-            if Persistent_Path_Is_Valid (Path) and then not Result.Favorites.Contains (Path) then
-               Result.Favorites.Insert (Path);
-            end if;
-         end;
+         Result.Favorites.Insert (To_String (Existing));
       end loop;
       for Entry_Value of Settings.Paths.Labels loop
          declare

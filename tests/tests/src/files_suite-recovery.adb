@@ -102,6 +102,8 @@ package body Files_Suite.Recovery is
    procedure Test_Stage_Markers_Outlast_Failed_Delete (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Interrupted_Release_Resumes (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Refused_Payload_Lookup_Keeps_Stage (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Refused_Stage_Lookup_Keeps_Record (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Emptied_Stage_Swept (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Unmarked_Stage_Survives_Sweep (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Held_Release_Marker_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -170,6 +172,12 @@ package body Files_Suite.Recovery is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Interrupted_Release_Resumes'Access,
          "an interrupted release is put back or finished, on every host");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Refused_Payload_Lookup_Keeps_Stage'Access,
+         "a refused lookup of a payload never lets its stage be removed or its record forgotten");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Refused_Stage_Lookup_Keeps_Record'Access,
+         "a refused lookup of a staged copy keeps its stage record for a later pass");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Emptied_Stage_Swept'Access,
          "the registry sweep removes a recovery stage whose payload is already gone");
@@ -319,6 +327,8 @@ package body Files_Suite.Recovery is
    procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Interrupted_Release_Resumes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Refused_Payload_Lookup_Keeps_Stage (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Refused_Stage_Lookup_Keeps_Record (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Emptied_Stage_Swept (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -22,10 +22,10 @@ with Ada.Real_Time;
 
 package body Files.Job_Context is
    use Ada.Strings.Unbounded;
-   use type Ada.Directories.File_Kind;
    use type Ada.Streams.Stream_Element_Offset;
    use type Files.Private_Directories.Create_Result;
    use type Hostkit.Durability.Outcome;
+   use type Hostkit.Fs.Entry_Kind;
    use type Hostkit.Lease_Files.Open_Outcome;
 
    Stage_Record_Header : constant String := "files-stage-3";
@@ -145,10 +145,10 @@ package body Files.Job_Context is
       Temporary_Identity : Files.Types.UString;
    begin
       if Hostkit.Fs.Is_Link (Temporary)
-        or else Files.Fs_Primitives.Exists (Temporary)
+        or else not Files.Fs_Primitives.Entry_Is_Absent (Temporary)
         or else Hostkit.Fs.Is_Link (Target)
-        or else (Files.Fs_Primitives.Exists (Target)
-          and then Files.Fs_Primitives.Kind (Target) /= Ada.Directories.Ordinary_File)
+        or else (not Files.Fs_Primitives.Entry_Is_Absent (Target)
+          and then not Files.Fs_Primitives.File_Exists (Target))
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -242,7 +242,7 @@ package body Files.Job_Context is
    begin
       if Record_Directory /= ""
         and then not Hostkit.Fs.Is_Link (Record_Directory)
-        and then Files.Fs_Primitives.Exists (Record_Directory)
+        and then Files.Fs_Primitives.Directory_Exists (Record_Directory)
       then
          Files.Fs_Primitives.Delete_Tree_If_Present (Record_Directory);
       end if;
@@ -323,8 +323,7 @@ package body Files.Job_Context is
    begin
       if Files.Private_Directories.Try_Create (Stages) =
         Files.Private_Directories.Collision
-        and then (Hostkit.Fs.Is_Link (Stages) or else not Files.Fs_Primitives.Exists (Stages)
-          or else Files.Fs_Primitives.Kind (Stages) /= Ada.Directories.Directory)
+        and then (Hostkit.Fs.Is_Link (Stages) or else not Files.Fs_Primitives.Directory_Exists (Stages))
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -405,7 +404,7 @@ package body Files.Job_Context is
                   begin
                      null;
                   end;
-                  if not Files.Fs_Primitives.Entry_Exists (Candidate) then
+                  if Files.Fs_Primitives.Entry_Is_Absent (Candidate) then
                      Remove_Record (To_String (Record_Directory));
                   end if;
                   raise;
@@ -527,8 +526,7 @@ package body Files.Job_Context is
       Entries.Clear;
       if not Valid_Absolute_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Files.Fs_Primitives.Exists (Directory)
-        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Directory_Exists (Directory)
         or else Files.Lease_Streams.Open (Path, Input) /=
           Hostkit.Lease_Files.Opened
       then
@@ -706,7 +704,7 @@ package body Files.Job_Context is
          --  longer waiting for its discard: forgotten here, or the cleanup
          --  below would never run again in this process.
          for Index in reverse Foreground_Paths.First_Index .. Foreground_Paths.Last_Index loop
-            if not Files.Fs_Primitives.Entry_Exists (To_String (Foreground_Paths (Index))) then
+            if Files.Fs_Primitives.Entry_Is_Absent (To_String (Foreground_Paths (Index))) then
                Remove_Record (To_String (Foreground_Records (Index)));
                Foreground_Paths.Delete (Index);
                Foreground_Records.Delete (Index);
@@ -733,7 +731,7 @@ package body Files.Job_Context is
             return False;
          end if;
       end if;
-      if not Files.Fs_Primitives.Entry_Exists (Path) then
+      if Files.Fs_Primitives.Entry_Is_Absent (Path) then
          Removed := True;
          Release_Foreground;
          return True;
@@ -784,14 +782,20 @@ package body Files.Job_Context is
       Reading := Record_Discarded;
       --  No published data means creation stopped before the staging
       --  pathname could be created, so this empty reservation is disposable.
-      if not Files.Fs_Primitives.Exists (Data) then
+      if Files.Fs_Primitives.Entry_Is_Absent (Data) then
+         return;
+      end if;
+      --  There, but the host will not say what it is: that may pass, so
+      --  the record waits for a later pass as an unopenable one does.
+      if not Hostkit.Fs.Is_Link (Data) and then Hostkit.Fs.Kind_Of (Data) = Hostkit.Fs.Missing_Entry then
+         if not Discard_Unreadable then
+            Reading := Record_Kept;
+         end if;
          return;
       end if;
       --  A published record is always an ordinary file. Discard the record
       --  without inspecting an injected object or trusting it as a pathname.
-      if Hostkit.Fs.Is_Link (Data)
-        or else Files.Fs_Primitives.Kind (Data) /= Ada.Directories.Ordinary_File
-      then
+      if Hostkit.Fs.Is_Link (Data) or else not Files.Fs_Primitives.File_Exists (Data) then
          return;
       end if;
       Open_Result := Files.Lease_Streams.Open (Data, Input);
@@ -899,8 +903,7 @@ package body Files.Job_Context is
          Reading        : Record_Reading;
       begin
          if Hostkit.Fs.Is_Link (Record_Directory)
-           or else not Files.Fs_Primitives.Exists (Record_Directory)
-           or else Files.Fs_Primitives.Kind (Record_Directory) /= Ada.Directories.Directory
+           or else not Files.Fs_Primitives.Directory_Exists (Record_Directory)
          then
             return;
          end if;
@@ -916,7 +919,7 @@ package body Files.Job_Context is
          end case;
          if not Valid_Absolute_Path (To_String (Path))
            or else not Nul_Free (To_String (Expected))
-           or else not Files.Fs_Primitives.Entry_Exists (To_String (Path))
+           or else Files.Fs_Primitives.Entry_Is_Absent (To_String (Path))
          then
             Remove_Record (Record_Directory);
             return;
@@ -940,9 +943,7 @@ package body Files.Job_Context is
       if not Files.Job_Transports.Holds (Owner, Directory) then
          return;
       end if;
-      if not Files.Fs_Primitives.Exists (Stages) or else Hostkit.Fs.Is_Link (Stages)
-        or else Files.Fs_Primitives.Kind (Stages) /= Ada.Directories.Directory
-      then
+      if Hostkit.Fs.Is_Link (Stages) or else not Files.Fs_Primitives.Directory_Exists (Stages) then
          return;
       end if;
       Files.Fs_Primitives.For_Each_Name (Stages, Collect'Access);

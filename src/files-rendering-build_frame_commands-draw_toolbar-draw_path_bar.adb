@@ -171,11 +171,14 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          Toolbar.Middle_Width,
          Toolbar_Input_H,
          Files.Commands.Focus_Path_Input_Command);
+      --  The field's own box, not its whole toolbar section: a screen
+      --  reader's request on it is answered by focusing the field
+      --  (Files.Events.Translate_Field_Request matches exactly this box).
       Add_Accessibility_Node
         (Role_Text_Input,
-         Toolbar.Middle_X,
+         Path_Field_Text_Region (Toolbar, Width, Line_Height).Field_X,
          Toolbar_Input_Y,
-         Toolbar.Middle_Width,
+         Path_Field_Text_Region (Toolbar, Width, Line_Height).Field_Width,
          Toolbar_Input_H,
          Localized (Files.Commands.Name_Key (Files.Commands.Focus_Path_Input_Command)),
          Path_Input_Accessible_Description,

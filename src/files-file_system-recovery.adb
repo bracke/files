@@ -77,8 +77,7 @@ package body Files.File_System.Recovery is
    is
    begin
       return not Hostkit.Fs.Is_Link (Path)
-        and then Files.Fs_Primitives.Exists (Path)
-        and then Files.Fs_Primitives.Kind (Path) = Ada.Directories.Ordinary_File
+        and then Files.Fs_Primitives.File_Exists (Path)
         and then Files.Fs_Primitives.Size (Path) <= Ada.Directories.File_Size (Maximum);
    exception
       when Swallowed : others =>
@@ -105,8 +104,8 @@ package body Files.File_System.Recovery is
       begin
          if Hostkit.Fs.Is_Link (Path) then
             raise Ada.Directories.Use_Error;
-         elsif Files.Fs_Primitives.Exists (Path) then
-            if Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Directory then
+         elsif not Files.Fs_Primitives.Entry_Is_Absent (Path) then
+            if not Files.Fs_Primitives.Directory_Exists (Path) then
                raise Ada.Directories.Use_Error;
             end if;
          elsif Parents then
@@ -123,10 +122,7 @@ package body Files.File_System.Recovery is
          Ensure_Directory (Data, Parents => True);
          Ensure_Directory (App);
          Ensure_Directory (Root);
-      elsif not Files.Fs_Primitives.Exists (Root)
-        or else Hostkit.Fs.Is_Link (Root)
-        or else Files.Fs_Primitives.Kind (Root) /= Ada.Directories.Directory
-      then
+      elsif Hostkit.Fs.Is_Link (Root) or else not Files.Fs_Primitives.Directory_Exists (Root) then
          return "";
       end if;
       return Root;
@@ -266,7 +262,7 @@ package body Files.File_System.Recovery is
          when others =>
             --  It exists already (POSIX refuses the create, Windows reports
             --  an error): left by a stopped operation, or held by a live one.
-            if not Files.Fs_Primitives.Entry_Exists (Path) then
+            if Files.Fs_Primitives.Entry_Is_Absent (Path) then
                raise Ada.Directories.Use_Error;
             end if;
             case Hostkit.Lease_Files.Open (Path, Hostkit.Lease_Files.Exclusive, True, Item) is
@@ -363,10 +359,7 @@ package body Files.File_System.Recovery is
      (Directory : String; Payload, Identity : out UString) return Boolean
    is
    begin
-      if Hostkit.Fs.Is_Link (Directory)
-        or else not Files.Fs_Primitives.Exists (Directory)
-        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
-      then
+      if Hostkit.Fs.Is_Link (Directory) or else not Files.Fs_Primitives.Directory_Exists (Directory) then
          Payload := Null_Unbounded_String;
          Identity := Null_Unbounded_String;
          return False;
@@ -635,8 +628,7 @@ package body Files.File_System.Recovery is
    begin
       if Files.Fs_Primitives.Entry_Exists (Path)
         or else Hostkit.Fs.Is_Link (Holder)
-        or else not Files.Fs_Primitives.Exists (Holder)
-        or else Files.Fs_Primitives.Kind (Holder) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Directory_Exists (Holder)
       then
          return Files.Fs_Primitives.Entry_Exists (Path);
       end if;
@@ -698,8 +690,10 @@ package body Files.File_System.Recovery is
       Original : UString;
       Identity : UString;
    begin
-      return not Files.Fs_Primitives.Entry_Exists (Path)
-        and then not Files.Fs_Primitives.Entry_Exists (Holder)
+      --  Absent for sure, not merely unanswered: a refused lookup of the
+      --  payload must never let the stage, original inside, be removed.
+      return Files.Fs_Primitives.Entry_Is_Absent (Path)
+        and then Files.Fs_Primitives.Entry_Is_Absent (Holder)
         and then Files.Fs_Primitives.Leaf_Text (Path) = "payload"
         and then (Has_Marker (Stage, Vacated_Marker) or else Has_Marker (Stage, Releasing_Marker))
         and then Read_Owner (Stage, Original, Identity)
@@ -761,10 +755,10 @@ package body Files.File_System.Recovery is
       --  finish it -- only through the markers it left, which also tells it
       --  from a stage Preserve is still filling (no payload, no marker).
       Resume_Interrupted_Release (Path);
-      if not Files.Fs_Primitives.Entry_Exists (Path) then
+      if Files.Fs_Primitives.Entry_Is_Absent (Path) then
          if Only_Stage_Left (Path)
            and then Finish_Stopped_Stage (Path)
-           and then not Files.Fs_Primitives.Entry_Exists (Stage)
+           and then Files.Fs_Primitives.Entry_Is_Absent (Stage)
          then
             Unregister (Path);
             return (Success => True, Error_Key => Null_Unbounded_String);
@@ -976,8 +970,7 @@ package body Files.File_System.Recovery is
       return Files.Fs_Primitives.Leaf_Text (Path) = "payload"
         and then Starts_With (Files.Fs_Primitives.Leaf_Text (Parent), Files.Protocol_Names.Recovery_Stage_Prefix)
         and then not Hostkit.Fs.Is_Link (Parent)
-        and then Files.Fs_Primitives.Exists (Parent)
-        and then Files.Fs_Primitives.Kind (Parent) = Ada.Directories.Directory
+        and then Files.Fs_Primitives.Directory_Exists (Parent)
         and then Files.Fs_Primitives.Entry_Exists (Path)
         and then Read_Owner (Parent, Original, Identity);
    exception
@@ -997,7 +990,7 @@ package body Files.File_System.Recovery is
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
       end if;
       Delete_Owned_Tree (Parent);
-      if Files.Fs_Primitives.Entry_Exists (Parent) then
+      if not Files.Fs_Primitives.Entry_Is_Absent (Parent) then
          raise Ada.Directories.Use_Error;
       end if;
       Unregister (Path);
@@ -1124,7 +1117,9 @@ package body Files.File_System.Recovery is
          begin
             Files.Exclusive_Streams.Close_Safely (File);
             if Length (Stage) > 0 and then Length (Backup) = 0 then
-               if Files.Fs_Primitives.Entry_Exists (Hostkit.Fs.Join (To_String (Stage), "payload"))
+               --  Unless the payload is surely not there, put it back: the
+               --  tree removal below would take the original with it.
+               if not Files.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (To_String (Stage), "payload"))
                then
                   Backup := To_Unbounded_String (Hostkit.Fs.Join (To_String (Stage), "payload"));
                   return Put_Back;
@@ -1255,7 +1250,7 @@ package body Files.File_System.Recovery is
                then
                   Stopped (Index) := True;
                   Finished (Index) := Finish_Stopped_Stage (Payload)
-                    and then not Files.Fs_Primitives.Entry_Exists (Files.Fs_Primitives.Parent_Directory (Payload));
+                    and then Files.Fs_Primitives.Entry_Is_Absent (Files.Fs_Primitives.Parent_Directory (Payload));
                end if;
             end;
          end loop;
@@ -1416,7 +1411,7 @@ package body Files.File_System.Recovery is
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
       end;
-      if not Files.Fs_Primitives.Entry_Exists (Parent) then
+      if Files.Fs_Primitives.Entry_Is_Absent (Parent) then
          Unregister (Path);
       end if;
       return (Success => True, Error_Key => Null_Unbounded_String);

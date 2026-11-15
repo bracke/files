@@ -240,4 +240,14 @@ package Files.Fs_Primitives is
    --  @raise Ada.Directories.Use_Error when the host will not say.
    function Modification_Time (Path : String) return Ada.Calendar.Time;
 
+private
+
+   --  Test seam (Files.Fs_Primitives.Testing): a path whose existence the
+   --  host is to refuse to say, as a transient EACCES or EIO would -- one
+   --  that has passed by the time the entry is removed. Exists, Entry_Exists,
+   --  File_Exists and Directory_Exists answer as such a refusal does;
+   --  Entry_Is_Absent cannot tell. Null outside the test suite.
+   type Lookup_Refusal is access function (Path : String) return Boolean;
+   Refuse_Lookup : Lookup_Refusal := null;
+
 end Files.Fs_Primitives;

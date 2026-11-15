@@ -21,7 +21,6 @@ with Hostkit.Fs;
 package body Files.Job_Transports is
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
-   use type Ada.Directories.File_Kind;
    use type Ada.Streams.Stream_Element_Array;
    use type Ada.Streams.Stream_Element_Offset;
    use type Hostkit.Lease_Files.Open_Outcome;
@@ -210,8 +209,7 @@ package body Files.Job_Transports is
         or else Length (Identity) = 0
         or else Owner_Token = ""
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Files.Fs_Primitives.Exists (Directory)
-        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Directory_Exists (Directory)
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -341,7 +339,7 @@ package body Files.Job_Transports is
                when others =>
                   Release (Owner);
                   Remove_Failed_Candidate (Candidate);
-                  if not Files.Fs_Primitives.Exists (Candidate) then
+                  if Files.Fs_Primitives.Entry_Is_Absent (Candidate) then
                      Forget_Witness (Candidate, Witness);
                   end if;
                   Directory := Null_Unbounded_String;
@@ -378,11 +376,9 @@ package body Files.Job_Transports is
       if Directory = ""
         or else not Is_Transport_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Files.Fs_Primitives.Exists (Directory)
-        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Directory_Exists (Directory)
         or else Hostkit.Fs.Is_Link (Marker)
-        or else not Files.Fs_Primitives.Exists (Marker)
-        or else Files.Fs_Primitives.Kind (Marker) /= Ada.Directories.Ordinary_File
+        or else not Files.Fs_Primitives.File_Exists (Marker)
       then
          return;
       end if;
@@ -597,11 +593,11 @@ package body Files.Job_Transports is
       declare
          Lease_Path : constant String := Hostkit.Fs.Join (Directory, Lease_Name);
       begin
+         --  Not surely there (gone, or the host will not say) is as unsafe
+         --  as gone: either way no second lease is made.
          if Current
-           and then not Files.Fs_Primitives.Exists
-             (Hostkit.Fs.Join (Directory, Lease_Name))
-           and then not Hostkit.Fs.Is_Link
-             (Hostkit.Fs.Join (Directory, Lease_Name))
+           and then not Files.Fs_Primitives.File_Exists (Lease_Path)
+           and then not Hostkit.Fs.Is_Link (Lease_Path)
          then
             --  The owner might still hold a lock on an unlinked lease inode.
             --  Do not create a second lease and clean a potentially live job.
@@ -669,22 +665,22 @@ package body Files.Job_Transports is
       if Held (Owner)
         or else not Is_Transport_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Files.Fs_Primitives.Exists (Directory)
-        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
-        or else (Files.Fs_Primitives.Exists (Marker_Temp)
+        or else not Files.Fs_Primitives.Directory_Exists (Directory)
+        or else (not Files.Fs_Primitives.Entry_Is_Absent (Marker_Temp)
           and then (Hostkit.Fs.Is_Link (Marker_Temp)
-            or else Files.Fs_Primitives.Kind (Marker_Temp) /= Ada.Directories.Ordinary_File))
+            or else not Files.Fs_Primitives.File_Exists (Marker_Temp)))
       then
          return Claim_Refused;
       end if;
-      if Files.Fs_Primitives.Entry_Exists (Marker_Path) then
+      --  A marker that may be there (the host will not say) defers too.
+      if not Files.Fs_Primitives.Entry_Is_Absent (Marker_Path) then
          return Claim_Deferred;
       end if;
 
       if not Protocol_Only then
          return (if Protocol_Error then Claim_Error else Claim_Refused);
       end if;
-      if not Files.Fs_Primitives.Exists (Witness_Name) then
+      if not Files.Fs_Primitives.File_Exists (Witness_Name) then
          return Claim_Unrecoverable;
       end if;
       declare
@@ -696,7 +692,7 @@ package body Files.Job_Transports is
             return Outcome;
          end if;
       end;
-      if Files.Fs_Primitives.Entry_Exists (Marker_Path) then
+      if not Files.Fs_Primitives.Entry_Is_Absent (Marker_Path) then
          Release (Owner);
          return Claim_Deferred;
       end if;

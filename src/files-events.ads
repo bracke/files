@@ -188,6 +188,29 @@ package Files.Events is
       Line_Height : Positive)
       return Input_Action;
 
+   --  The focus command a screen reader's request on the path or filter
+   --  field asks for. A text field is focused, never clicked: its centre may
+   --  lie on a breadcrumb or the scope chip, which a synthesised click would
+   --  run instead. Node_* are the request's node bounds, in frame pixels; only
+   --  the field boxes the toolbar draws (Layouts.Path_Field_Text_Region and
+   --  Filter_Field_Text_Region, Field_X/Field_Width) match.
+   --
+   --  @param Node_X Left edge of the node.
+   --  @param Node_Y Top edge of the node.
+   --  @param Node_W Width of the node.
+   --  @param Node_H Height of the node.
+   --  @param Width Frame width in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The field's focus command, or No_Input_Action for any other node.
+   function Translate_Field_Request
+     (Node_X      : Natural;
+      Node_Y      : Natural;
+      Node_W      : Natural;
+      Node_H      : Natural;
+      Width       : Natural;
+      Line_Height : Positive)
+      return Input_Action;
+
    --  Translate a vertical scroll-wheel offset at a window coordinate.
    --
    --  @param Snapshot Immutable view snapshot used for overlay and pane hit tests.

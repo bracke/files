@@ -271,8 +271,7 @@ begin
          Error_Key => To_Unbounded_String ("error.name.invalid"));
    elsif (Exists_Safely (To_Path) and then not Is_Case_Only_Rename)
      or else Parent = ""
-     or else not Files.Fs_Primitives.Exists (Parent)
-     or else Files.Fs_Primitives.Kind (Parent) /= Ada.Directories.Directory
+     or else not Files.Fs_Primitives.Directory_Exists (Parent)
    then
       --  The destination exists as a genuinely distinct file (a case-only
       --  rename of the source onto itself is excluded), or its parent is

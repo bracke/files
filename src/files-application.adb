@@ -430,17 +430,6 @@ package body Files.Application is
       Files.Model.Status_Samples.Note_Account_Names_Sampled (Model);
    end Sample_Account_Names;
 
-   function With_Host_Samples
-     (Model : Files.Model.Window_Model)
-      return Files.Model.Window_Model
-   is
-      Sampled : Files.Model.Window_Model := Model;
-   begin
-      Sample_Volume_Space (Sampled);
-      Sample_Account_Names (Sampled);
-      return Sampled;
-   end With_Host_Samples;
-
    function Resolve_Startup_Paths
      (Arguments : String_Vectors.Vector;
       Settings  : Files.Settings.Settings_Model)
@@ -652,45 +641,46 @@ package body Files.Application is
             & Files.Localization.Text ("runtime.smoke.missing_glyphs", Locale)
             & ": "
             & Natural_Text (Quality.Missing_Glyph_Count));
+
+         --  Each window's frame as the verdict above judged it.
+         for Index in Result.Windows.First_Index .. Result.Windows.Last_Index loop
+            declare
+               Window : Startup_Window renames Result.Windows (Index);
+               Check  : constant Files.Application.Windows.Smoke.Window_Frame_Check :=
+                 (if Index <= Quality.Windows.Last_Index then Quality.Windows (Index)
+                  else Files.Application.Windows.Smoke.Window_Frame_Check'(others => <>));
+            begin
+               Append_Line
+                 (Files.Localization.Text ("runtime.smoke.window", Locale)
+                  & ": "
+                  & To_String (Window.Title)
+                  & "  "
+                  & Files.Localization.Text ("runtime.smoke.rectangles", Locale)
+                  & ": "
+                  & Natural_Text (Check.Rectangles)
+                  & "  "
+                  & Files.Localization.Text ("runtime.smoke.glyphs", Locale)
+                  & ": "
+                  & Natural_Text (Check.Glyphs)
+                  & "  "
+                  & Files.Localization.Text ("runtime.smoke.missing_glyphs", Locale)
+                  & ": "
+                  & Natural_Text (Check.Missing_Glyphs)
+                  & "  "
+                  & Files.Localization.Text ("runtime.smoke.font", Locale)
+                  & ": "
+                  & To_String (Check.Font_Path)
+                  & "  "
+                  & Files.Localization.Text ("runtime.smoke.vertices", Locale)
+                  & ": "
+                  & Natural_Text (Check.Vertices));
+
+               if not Check.Text_Rendered then
+                  Append_Line (Files.Localization.Text ("runtime.smoke.text_failed", Locale));
+               end if;
+            end;
+         end loop;
       end;
-
-      for Window of Result.Windows loop
-         declare
-            Check : constant Files.Application.Windows.Smoke.Window_Frame_Check :=
-              Files.Application.Windows.Smoke.Check_Window_Frame
-                (With_Host_Samples (Files.Model.Grouped (Window.Model, Result.Settings)), Result.Settings,
-                 Width, Height);
-         begin
-            Append_Line
-              (Files.Localization.Text ("runtime.smoke.window", Locale)
-               & ": "
-               & To_String (Window.Title)
-               & "  "
-               & Files.Localization.Text ("runtime.smoke.rectangles", Locale)
-               & ": "
-               & Natural_Text (Check.Rectangles)
-               & "  "
-               & Files.Localization.Text ("runtime.smoke.glyphs", Locale)
-               & ": "
-               & Natural_Text (Check.Glyphs)
-               & "  "
-               & Files.Localization.Text ("runtime.smoke.missing_glyphs", Locale)
-               & ": "
-               & Natural_Text (Check.Missing_Glyphs)
-               & "  "
-               & Files.Localization.Text ("runtime.smoke.font", Locale)
-               & ": "
-               & To_String (Check.Font_Path)
-               & "  "
-               & Files.Localization.Text ("runtime.smoke.vertices", Locale)
-               & ": "
-               & Natural_Text (Check.Vertices));
-
-            if not Check.Text_Rendered then
-               Append_Line (Files.Localization.Text ("runtime.smoke.text_failed", Locale));
-            end if;
-         end;
-      end loop;
 
       return To_String (Report);
    end Runtime_Smoke_Report;

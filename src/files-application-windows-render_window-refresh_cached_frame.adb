@@ -21,6 +21,8 @@ separate (Files.Application.Windows.Render_Window)
             Hover_Y         => Hover_Y,
             Has_Hover       => Has_Hover_Now,
             Pressed         => Has_Press_Now,
+            Press_X         => Runtime.Press_X,
+            Press_Y         => Runtime.Press_Y,
             Dragging        => Has_Drag_Now,
             Drag_Item_Index => Runtime.Drag_Source_Index,
             Marquee_Active  => Runtime.Marquee.Active,

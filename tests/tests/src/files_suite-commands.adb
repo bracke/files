@@ -79,6 +79,7 @@ package body Files_Suite.Commands is
    procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Command_Palette_Escape_Priority (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Close_Command_Follows_Its_Binding (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Rebound_Close_Key_Reaches_Every_Owner (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Open_Containing_Folder_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Save_Settings_Applies_Live (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -174,6 +175,9 @@ package body Files_Suite.Commands is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Close_Command_Follows_Its_Binding'Access, "the close command follows its key binding");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Rebound_Close_Key_Reaches_Every_Owner'Access,
+         "a close key rebound with a modifier reaches the tree and both paste dialogs");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Copy_Path_Command'Access, "copy-path joins selection paths for the system clipboard");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Open_Containing_Folder_Command'Access, "open-containing-folder reveals a search result");
@@ -267,6 +271,7 @@ package body Files_Suite.Commands is
    procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Controller_Command_Palette_Escape_Priority (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Close_Command_Follows_Its_Binding (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Rebound_Close_Key_Reaches_Every_Owner (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Open_Containing_Folder_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

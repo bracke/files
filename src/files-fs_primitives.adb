@@ -13,11 +13,18 @@ package body Files.Fs_Primitives is
    use type Hostkit.Fs.Entry_Kind;
    use type Hostkit.Host.Kind;
 
+   --  Whether the test seam refuses lookups of Path.
+   function Refused (Path : String) return Boolean is
+     (Refuse_Lookup /= null and then Refuse_Lookup (Path));
+
    function Exists (Path : String) return Boolean is
-     (Hostkit.Fs.Kind_Of (Path) /= Hostkit.Fs.Missing_Entry);
+     (not Refused (Path) and then Hostkit.Fs.Kind_Of (Path) /= Hostkit.Fs.Missing_Entry);
 
    function Entry_Is_Absent (Path : String) return Boolean is
    begin
+      if Refused (Path) then
+         raise Ada.Directories.Use_Error with Path;
+      end if;
       return Hostkit.Fs.Entry_Is_Absent (Path);
    exception
       when Refused : Ada.Directories.Use_Error =>
@@ -27,7 +34,7 @@ package body Files.Fs_Primitives is
 
    function Entry_Exists (Path : String) return Boolean is
    begin
-      return Path /= "" and then (Exists (Path) or else Hostkit.Fs.Is_Link (Path));
+      return Path /= "" and then not Refused (Path) and then (Exists (Path) or else Hostkit.Fs.Is_Link (Path));
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Fs_Primitives");
@@ -35,10 +42,10 @@ package body Files.Fs_Primitives is
    end Entry_Exists;
 
    function File_Exists (Path : String) return Boolean is
-     (Hostkit.Fs.Kind_Of (Path) = Hostkit.Fs.Ordinary_File_Entry);
+     (not Refused (Path) and then Hostkit.Fs.Kind_Of (Path) = Hostkit.Fs.Ordinary_File_Entry);
 
    function Directory_Exists (Path : String) return Boolean is
-     (Hostkit.Fs.Kind_Of (Path) = Hostkit.Fs.Directory_Entry);
+     (not Refused (Path) and then Hostkit.Fs.Kind_Of (Path) = Hostkit.Fs.Directory_Entry);
 
    function Open_Regular_Read
      (Path : String) return GNAT.OS_Lib.File_Descriptor

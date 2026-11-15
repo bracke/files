@@ -241,6 +241,15 @@ package body Files.Model is
    function Escape_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean is
      (Topmost_Overlay (Model, Overlay) and then Overlay in Escape_Closable_Overlay);
 
+   function Has_Something_To_Close (Model : Window_Model) return Boolean is
+      Overlay : Input_Overlay;
+   begin
+      return Escape_Overlay (Model, Overlay)
+        or else Model.Focus /= Files.Types.Focus_None
+        or else Model.Rename.Active
+        or else Model.Temporary.Active;
+   end Has_Something_To_Close;
+
    procedure Close_Overlay (Model : in out Window_Model; Overlay : Escape_Closable_Overlay) is
    begin
       case Overlay is

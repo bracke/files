@@ -244,4 +244,14 @@ package body Files.Events is
       return Input_Action
    is separate;
 
+   function Translate_Field_Request
+     (Node_X      : Natural;
+      Node_Y      : Natural;
+      Node_W      : Natural;
+      Node_H      : Natural;
+      Width       : Natural;
+      Line_Height : Positive)
+      return Input_Action
+   is separate;
+
 end Files.Events;

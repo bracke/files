@@ -209,6 +209,15 @@ package Files.Model is
    --  @return True when an overlay Escape closes is open.
    function Escape_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean;
 
+   --  Whether the close command (Escape unless rebound) has anything to do:
+   --  an overlay it closes (Escape_Overlay), a focused text field, or a
+   --  rename or new item being edited. The one rule both the command's
+   --  status and running it follow.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when the close command would close or cancel something.
+   function Has_Something_To_Close (Model : Window_Model) return Boolean;
+
    --  Close one overlay, as Escape closes it.
    --
    --  @param Model Model to update.

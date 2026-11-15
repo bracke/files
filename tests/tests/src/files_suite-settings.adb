@@ -78,6 +78,7 @@ package body Files_Suite.Settings is
    procedure Test_Color_Labels (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Set_Labels_Matches_Set_Label (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_Items (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_File_Repeats_Load_Once (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Forget_Follows_The_Move_Rule (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Overrides_Persist (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Editing (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -172,6 +173,9 @@ package body Files_Suite.Settings is
          "labelling a selection at once matches labelling one path at a time");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recent_Items'Access, "recent items note/dedup/cap/clear and round-trip");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_File_Repeats_Load_Once'Access,
+         "a favorite or recent item listed twice in the settings file loads once");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Forget_Follows_The_Move_Rule'Access,
          "forgetting a path drops what a move of it would carry, roots included");
@@ -357,6 +361,7 @@ package body Files_Suite.Settings is
    procedure Test_Set_Labels_Matches_Set_Label (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Recent_Items (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Settings_File_Repeats_Load_Once (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Forget_Follows_The_Move_Rule (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Shortcut_Overrides_Persist (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

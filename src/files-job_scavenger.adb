@@ -591,10 +591,11 @@ package body Files.Job_Scavenger is
                      end if;
                   end;
                elsif Is_Current_Name (Directory) then
-                  if Files.Fs_Primitives.Exists
+                  --  A marker the host will not answer for may be there: it is
+                  --  re-read like a present one, never taken for an
+                  --  unmarked (incomplete, removable) transport.
+                  if not Files.Fs_Primitives.Entry_Is_Absent
                     (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Transport_Marker))
-                    or else Hostkit.Fs.Is_Link
-                      (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Transport_Marker))
                   then
                      --  The marker may have been published after the first
                      --  inspection. Re-read before classifying it as invalid.
@@ -618,7 +619,7 @@ package body Files.Job_Scavenger is
                                   (Directory, To_String (Incomplete_Identity)).Success;
                            begin
                               if not Removed
-                                or else Files.Fs_Primitives.Entry_Exists (Directory)
+                                or else not Files.Fs_Primitives.Entry_Is_Absent (Directory)
                               then
                                  Retry_Needed := True;
                               else

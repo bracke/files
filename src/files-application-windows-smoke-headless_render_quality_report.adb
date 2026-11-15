@@ -1,5 +1,3 @@
-with Ada.Real_Time;
-with Files.Fonts;
 with Files.File_Types;
 with Guikit.Shared_Bytes;
 
@@ -27,6 +25,14 @@ separate (Files.Application.Windows.Smoke)
 
          return False;
       end Has_Toolbar_Icon;
+      --  A window whose frame raised before its check was taken still has
+      --  one, a failed one, so Windows lines up with the startup windows.
+      procedure Note_Failed_Window is
+      begin
+         if Natural (Result.Windows.Length) < Result.Frame_Count then
+            Result.Windows.Append (Window_Frame_Check'(others => <>));
+         end if;
+      end Note_Failed_Window;
    begin
       if Startup.Windows.Is_Empty then
          Result.Error_Key := To_Unbounded_String ("runtime.smoke.no_windows");
@@ -41,20 +47,22 @@ separate (Files.Application.Windows.Smoke)
          --  failed frame too rather than crashing the smoke run.
          begin
             declare
+               --  As the window draws it: grouped, with the host's samples, at
+               --  the settings' font size.
+               Line_Height : constant Positive := Line_Height_For (Startup.Settings);
                Snapshot : constant Files.Rendering.View_Snapshot :=
                  Files.Rendering.Build_Snapshot
-                   (Files.Model.Grouped (Startup_Window.Model, Startup.Settings), Startup.Settings);
+                   (Sampled (Files.Model.Grouped (Startup_Window.Model, Startup.Settings)), Startup.Settings);
                Frame    : constant Files.Rendering.Frame_Commands :=
                  Files.Rendering.Build_Frame_Commands
                    (Snapshot    => Snapshot,
                     Width       => Width,
                     Height      => Height,
-                    Line_Height => Guikit.Layout.Reference_Line_Height);
+                    Line_Height => Line_Height);
                Drag_Snapshot : Files.Rendering.View_Snapshot := Snapshot;
-               --  The window's own text path, as a window draws its frames.
-               Text     : Files.Rendering.Text.Window_Text;
-               Glyphs : Files.Rendering.Text.Text_Render_Result;
+               Check  : constant Window_Frame_Check := Frame_Check (Snapshot, Frame, Startup.Settings, Width, Height);
             begin
+               Result.Windows.Append (Check);
                if Frame.Layout.Width = Width
                  and then Frame.Layout.Height = Height
                  and then not Frame.Rectangles.Is_Empty
@@ -111,7 +119,7 @@ separate (Files.Application.Windows.Smoke)
                       (Snapshot        => Drag_Snapshot,
                        Width           => Width,
                        Height          => Height,
-                       Line_Height     => Guikit.Layout.Reference_Line_Height,
+                       Line_Height     => Line_Height,
                        Pointer =>
                          (Hover_X => Natural'Min (Width, 96),
                           Hover_Y => Natural'Min (Height, 96),
@@ -128,12 +136,8 @@ separate (Files.Application.Windows.Smoke)
                   end if;
                end;
 
-               Files.Rendering.Text.Ensure_Loaded
-                 (Text, Files.Fonts.Default_Font_Path, Files.Settings.Default_Font_Pixel_Size, Ada.Real_Time.Clock);
-               Glyphs := Files.Rendering.Text.Glyphs_For (Text, Frame, Ada.Real_Time.Clock);
-               Result.Missing_Glyph_Count :=
-                 Result.Missing_Glyph_Count + Glyphs.Missing_Glyph_Count;
-               if Glyphs.Status = Files.Rendering.Text.Text_Render_Success and then not Glyphs.Glyphs.Is_Empty then
+               Result.Missing_Glyph_Count := Result.Missing_Glyph_Count + Check.Missing_Glyphs;
+               if Check.Text_Rendered then
                   Result.Text_Glyph_Frames := Result.Text_Glyph_Frames + 1;
                else
                   Result.Failed_Frames := Result.Failed_Frames + 1;
@@ -142,11 +146,13 @@ separate (Files.Application.Windows.Smoke)
                when Swallowed : others =>
                   Files.Diagnostics.Note (Swallowed, "Files.Application.Windows.Smoke");
                   Result.Failed_Frames := Result.Failed_Frames + 1;
+                  Note_Failed_Window;
             end;
          exception
             when Swallowed : others =>
                Files.Diagnostics.Note (Swallowed, "Files.Application.Windows.Smoke");
                Result.Failed_Frames := Result.Failed_Frames + 1;
+               Note_Failed_Window;
          end;
       end loop;
 

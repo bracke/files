@@ -11,8 +11,6 @@ package body Files.Commands.Status is
 
    use Ada.Strings.Unbounded;
 
-   use type Files.Types.Focus_Target;
-
    --  Return whether at least one selected item is a recognized archive.
    function Selection_Has_Archive (Model : Files.Model.Window_Model) return Boolean is
       Found : Boolean := False;

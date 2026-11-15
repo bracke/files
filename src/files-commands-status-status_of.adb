@@ -150,15 +150,7 @@ separate (Files.Commands.Status)
                     Rename_Unavailable_Reason));
          when Close_Overlay_Command =>
             --  Nothing open to close: Escape just does nothing.
-            declare
-               Overlay : Files.Model.Input_Overlay;
-            begin
-               return
-                 Require
-                   (Files.Model.Escape_Overlay (Model, Overlay)
-                    or else Files.Model.Focus (Model) /= Files.Types.Focus_None
-                    or else Files.Model.Rename.Is_Active (Model));
-            end;
+            return Require (Files.Model.Has_Something_To_Close (Model));
          when Open_Selected_Root_Command =>
             return Require (Valid_Root_Selected, Root_Unselected_Reason);
          when Eject_Selected_Root_Command =>

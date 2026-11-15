@@ -33,16 +33,23 @@ separate (Files_Suite.Recovery)
 
       declare
          Attempts_Before : constant Natural := Files.Process_Jobs.Testing.Removal_Attempts;
+         Launches_Before : constant Natural := Files.Process_Jobs.Testing.Cleanup_Launches;
+
+         function Taken_Up return Boolean is
+           (Files.Process_Jobs.Testing.Removal_Attempts /= Attempts_Before
+            or else Files.Process_Jobs.Testing.Cleanup_Launches /= Launches_Before);
       begin
-         --  Releasing the job hands the transport to the reaper, which tries
-         --  the removal itself. Wait for that attempt: it must fail on the
-         --  unreadable transport, so the retry below is a real one.
+         --  Releasing the job hands the transport to the reaper. It cannot
+         --  look into the unreadable transport, so it cannot tell whether
+         --  stage records are there: it removes nothing itself then, but
+         --  either tries the removal or starts a cleanup worker. Wait for
+         --  that: it must fail on the unreadable transport, so the retry
+         --  below is a real one.
          Files.Process_Jobs.Reset (Job);
          for Attempt in Files_Suite.Support.Timing.Polling loop
-            exit when Files.Process_Jobs.Testing.Removal_Attempts /= Attempts_Before;
+            exit when Taken_Up;
          end loop;
-         Assert (Files.Process_Jobs.Testing.Removal_Attempts /= Attempts_Before,
-                 "the reaper tries the released transport's removal");
+         Assert (Taken_Up, "the reaper takes the released transport up");
          Assert (Ada.Directories.Exists (To_String (Transport)),
                  "the initial ordinary transport removal is forced to fail");
       end;

@@ -392,7 +392,10 @@ package body Files.Process_Jobs is
             return;
          end;
       end if;
-      if Files.Fs_Primitives.Exists (Stages) then
+      --  Stage records that may be there (the host will not say) are kept
+      --  as surely as present ones: the transport is the only pointer to
+      --  the staged entries they name.
+      if not Files.Fs_Primitives.Entry_Is_Absent (Stages) then
          if Stopping then
             Destroy (Item);
             return;

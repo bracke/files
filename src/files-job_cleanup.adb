@@ -68,7 +68,7 @@ package body Files.Job_Cleanup is
               (Directory, Claim,
                Discard_Unreadable =>
                  Discard_Unreadable_On_Last_Attempt and then Attempt = Attempt_Limit);
-            if not Files.Fs_Primitives.Exists (Stages) then
+            if Files.Fs_Primitives.Entry_Is_Absent (Stages) then
                begin
                   if not Files.Job_Transports.Retire (Claim, Directory) then
                      return Cleanup_Failed;

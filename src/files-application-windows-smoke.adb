@@ -29,28 +29,36 @@ package body Files.Application.Windows.Smoke is
      (Index_Type   => Positive,
       Element_Type => Scenario_Base_State);
 
-   function Check_Window_Frame
-     (Model    : Files.Model.Window_Model;
+   --  Model with the host's samples taken, as a window takes them before
+   --  each frame (Render_Window): the free-space text and owner names are
+   --  drawn from them.
+   function Sampled (Model : Files.Model.Window_Model) return Files.Model.Window_Model is
+      Result : Files.Model.Window_Model := Model;
+   begin
+      Sample_Volume_Space (Result);
+      Sample_Account_Names (Result);
+      return Result;
+   end Sampled;
+
+   --  The line height a window draws Settings' font size at.
+   function Line_Height_For (Settings : Files.Settings.Settings_Model) return Positive is
+     (Files.Rendering.Cell_Height_For (Settings.Font_Pixel_Size));
+
+   --  What Frame, built from Snapshot, came to: its text drawn through the
+   --  window's own text path (Files.Rendering.Text.Window_Text) at Settings'
+   --  font size, and its Vulkan submission.
+   function Frame_Check
+     (Snapshot : Files.Rendering.View_Snapshot;
+      Frame    : Files.Rendering.Frame_Commands;
       Settings : Files.Settings.Settings_Model;
       Width    : Natural;
       Height   : Natural)
       return Window_Frame_Check
    is
-      Snapshot  : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
-      Frame     : constant Files.Rendering.Frame_Commands :=
-        Files.Rendering.Build_Frame_Commands
-          (Snapshot    => Snapshot,
-           Width       => Width,
-           Height      => Height,
-           Line_Height => Guikit.Layout.Reference_Line_Height,
-           Pointer => (Hover_X => 5, Hover_Y => 5, Has_Hover => Width > 0 and then Height > 0, others => <>));
-      --  The window's own text path (Files.Rendering.Text.Window_Text), as a
-      --  window draws its frames.
       Text      : Files.Rendering.Text.Window_Text;
       Font_Path : constant String := Files.Fonts.Default_Font_Path;
    begin
-      Files.Rendering.Text.Ensure_Loaded
-        (Text, Font_Path, Files.Settings.Default_Font_Pixel_Size, Ada.Real_Time.Clock);
+      Files.Rendering.Text.Ensure_Loaded (Text, Font_Path, Settings.Font_Pixel_Size, Ada.Real_Time.Clock);
       declare
          Glyphs : constant Files.Rendering.Text.Text_Render_Result :=
            Files.Rendering.Text.Glyphs_For (Text, Frame, Ada.Real_Time.Clock);
@@ -76,6 +84,25 @@ package body Files.Application.Windows.Smoke is
               and then not Glyphs.Glyphs.Is_Empty,
             Font_Path      => To_Unbounded_String (Font_Path));
       end;
+   end Frame_Check;
+
+   function Check_Window_Frame
+     (Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Width    : Natural;
+      Height   : Natural)
+      return Window_Frame_Check
+   is
+      Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Sampled (Model), Settings);
+      Frame    : constant Files.Rendering.Frame_Commands :=
+        Files.Rendering.Build_Frame_Commands
+          (Snapshot    => Snapshot,
+           Width       => Width,
+           Height      => Height,
+           Line_Height => Line_Height_For (Settings),
+           Pointer => (Hover_X => 5, Hover_Y => 5, Has_Hover => Width > 0 and then Height > 0, others => <>));
+   begin
+      return Frame_Check (Snapshot, Frame, Settings, Width, Height);
    end Check_Window_Frame;
 
    function Headless_Render_Quality_Report

@@ -57,7 +57,7 @@ package Files.Settings.Path_References is
       return Boolean;
 
    --  Toggle Path in the favorites list, adding it when absent and removing
-   --  every entry for it when present. The empty path is ignored.
+   --  it when present. An invalid path is ignored.
    --
    --  @param Settings Settings model updated in place.
    --  @param Path Full item or folder path to add or remove.
@@ -82,6 +82,26 @@ package Files.Settings.Path_References is
    --  @param Settings Settings model updated in place.
    --  @param Path Full item or folder path that was just opened.
    procedure Note_Recent
+     (Settings : in out Settings_Model;
+      Path     : String);
+
+   --  Add Path as the last favorite, as a settings file lists it: an invalid
+   --  path or one already a favorite is left out, so the favorites never
+   --  repeat.
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param Path Full item or folder path read from the file.
+   procedure Add_Favorite
+     (Settings : in out Settings_Model;
+      Path     : String);
+
+   --  Add Path as the oldest recent item so far, as a settings file lists
+   --  them (freshest first): an invalid path, one already listed, or one past
+   --  Max_Recent_Items is left out.
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param Path Full item or folder path read from the file.
+   procedure Add_Recent
      (Settings : in out Settings_Model;
       Path     : String);
 

@@ -1,3 +1,4 @@
+with Ada.Containers.Vectors;
 with Files.Rendering.Layouts;
 with Guikit.Frame_Analysis;
 with Interfaces;
@@ -124,20 +125,6 @@ package Files.Application.Windows.Smoke is
    --  Live_Smoke_Skip marks an environment that could not run the smoke.
    type Live_Smoke_Gate is (Live_Smoke_Pass, Live_Smoke_Fail, Live_Smoke_Skip);
 
-   type Headless_Render_Quality_Result is record
-      Window_Count        : Natural := 0;
-      Frame_Count         : Natural := 0;
-      Nonblank_Frames     : Natural := 0;
-      Text_Glyph_Frames   : Natural := 0;
-      Icon_Frames         : Natural := 0;
-      Toolbar_Icon_Frames : Natural := 0;
-      Drag_Preview_Frames : Natural := 0;
-      Missing_Glyph_Count : Natural := 0;
-      Failed_Frames       : Natural := 0;
-      Passed              : Boolean := False;
-      Error_Key           : UString;
-   end record;
-
    --  What one window's frame came to when --runtime-smoke rendered it.
    type Window_Frame_Check is record
       Size_Matches   : Boolean := False;
@@ -158,9 +145,33 @@ package Files.Application.Windows.Smoke is
       --  The font the text was drawn with.
    end record;
 
+   package Window_Frame_Check_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Window_Frame_Check);
+
+   type Headless_Render_Quality_Result is record
+      Window_Count        : Natural := 0;
+      Frame_Count         : Natural := 0;
+      Nonblank_Frames     : Natural := 0;
+      Text_Glyph_Frames   : Natural := 0;
+      Icon_Frames         : Natural := 0;
+      Toolbar_Icon_Frames : Natural := 0;
+      Drag_Preview_Frames : Natural := 0;
+      Missing_Glyph_Count : Natural := 0;
+      Failed_Frames       : Natural := 0;
+      --  Each window's frame, in startup order: rendered once, with the
+      --  host's samples (free space, owner names) and the font size the
+      --  settings give, as the window would draw it.
+      Windows             : Window_Frame_Check_Vectors.Vector;
+      Passed              : Boolean := False;
+      Error_Key           : UString;
+   end record;
+
    --  Render one window model through the snapshot, frame, text and Vulkan
    --  submission stages without opening a native window, as --runtime-smoke
-   --  does for each startup window.
+   --  does for each startup window: with the host's samples (free space,
+   --  owner names) taken first, at the line height and font size the settings
+   --  give, as the window draws it.
    --
    --  @param Model Window model to render.
    --  @param Settings Settings the window is drawn with.

@@ -258,15 +258,12 @@ package body Files.Controller is
    is
       Overlay : Files.Model.Input_Overlay;
    begin
-      if Files.Model.Escape_Overlay (Model, Overlay) then
-         Files.Model.Close_Overlay (Model, Overlay);
-      elsif Files.Model.Focus (Model) /= Files.Types.Focus_None
-        or else Files.Model.Rename.Is_Active (Model)
-        or else Files.Model.Temporary_Item_Is_Active (Model)
-      then
-         Files.Model.Cancel_Focus_Or_Edit (Model);
-      else
+      if not Files.Model.Has_Something_To_Close (Model) then
          return Make_Result (Controller_Ignored, Files.Commands.Close_Overlay_Command);
+      elsif Files.Model.Escape_Overlay (Model, Overlay) then
+         Files.Model.Close_Overlay (Model, Overlay);
+      else
+         Files.Model.Cancel_Focus_Or_Edit (Model);
       end if;
       return Successful_Command_Result (Files.Commands.Close_Overlay_Command);
    end Close_Top_Or_Cancel;

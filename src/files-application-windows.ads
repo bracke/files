@@ -356,6 +356,9 @@ private
       Synced_Settings_Revision : Natural := 0;
       Settings_Path   : Ada.Strings.Unbounded.Unbounded_String;
       Drag_Source_Index : Natural := 0;
+      --  Where the left button last went down, in framebuffer pixels: a
+      --  control is drawn pressed only where the press began.
+      Press_X, Press_Y : Natural := 0;
       Scrollbar_Drag_Target : Files.Events.Scroll_Target := Files.Events.Scroll_Auto;
       Scrollbar_Drag_Anchor : Integer := 0;
       --  The three drags the shell owns besides the scrollbar's.

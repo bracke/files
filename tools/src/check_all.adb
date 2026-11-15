@@ -817,6 +817,14 @@ procedure Check_All is
    --  extensions) or Files.Types.Fold_Case (what a person reads), never that.
    procedure Check_Ascii_Lowercasing is separate;
 
+   --  Recovery and job units decide what to remove or forget by whether an
+   --  entry is gone. Hostkit's Kind_Of and Is_Link answer "not there" for a
+   --  lookup the host refused too, so negating Exists or Entry_Exists there
+   --  takes EACCES or EIO for absence and drops the only pointer to a staged
+   --  or preserved entry. They ask Entry_Is_Absent (gone for sure) instead,
+   --  and a kind test (Directory_Exists, File_Exists) for validity.
+   procedure Check_Refused_Is_Not_Absent is separate;
+
    type Check_Procedure is access procedure;
 
    --  A check and the name a run reports it by.
@@ -860,7 +868,8 @@ procedure Check_All is
       Named ("Check_Packaging_Metadata", Check_Packaging_Metadata'Access),
       Named ("Check_CLDR_Importer", Check_CLDR_Importer'Access),
       Named ("Check_Locale_Catalog_Arguments", Check_Locale_Catalog_Arguments'Access),
-      Named ("Check_Ascii_Lowercasing", Check_Ascii_Lowercasing'Access)];
+      Named ("Check_Ascii_Lowercasing", Check_Ascii_Lowercasing'Access),
+      Named ("Check_Refused_Is_Not_Absent", Check_Refused_Is_Not_Absent'Access)];
 
 begin
    if not Project_Tools.Files.File_Exists (Root & "/files.gpr") then
