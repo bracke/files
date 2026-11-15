@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
    --  The cross-window settings sync as the window layer runs it: Share_From
    --  with Files.Settings_Sharing.Adopt_Window as its Adopt, the very call
@@ -48,17 +49,18 @@ separate (Files_Suite.Interaction)
       Windows : Stand_Ins (1 .. 3);
       Result  : Files.Interaction.Interaction_Result;
    begin
-      Files_Suite.Support.Reset_Root;
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Files_Suite.Support.Root, "Alpha.txt"));
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Files_Suite.Support.Root, ".hidden_one"));
+      Files_Suite.Support.Disk.Reset_Root;
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "Alpha.txt"));
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root,
+                                                                          ".hidden_one"));
       for Window of Windows loop
          declare
             Load_Result : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory (Files_Suite.Support.Root, Window.Settings);
+              Files.File_System.Load_Directory (Files_Suite.Support.Disk.Root, Window.Settings);
          begin
             Files.Model.Initialize
               (Window.Model,
-               Directory_Path => Files_Suite.Support.Root,
+               Directory_Path => Files_Suite.Support.Disk.Root,
                Items          => Load_Result.Items,
                Home_Path      => "/home/test");
          end;

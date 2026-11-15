@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Settings)
    procedure Test_Settings_Ensure_And_Save_Text (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -25,8 +26,8 @@ separate (Files_Suite.Settings)
          Linked : constant String := Saved_Path & ".link";
          Result : Files.Settings.Settings_Write_Result;
       begin
-         if not Files_Suite.Support.Create_Symlink (Saved_Path, Linked) then
-            Files_Suite.Support.Link_Not_Made ("Test_Settings_Ensure_And_Save_Text");
+         if not Files_Suite.Support.Disk.Create_Symlink (Saved_Path, Linked) then
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Settings_Ensure_And_Save_Text");
          else
             Result := Files.Settings.Save_Text
               (Linked, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
@@ -108,7 +109,7 @@ separate (Files_Suite.Settings)
          Victim : constant String := Join (Root, "settings-temp-victim");
       begin
          Write_File (Victim, "must stay intact");
-         if Files_Suite.Support.Create_Symlink (Victim, Temp_Path) then
+         if Files_Suite.Support.Disk.Create_Symlink (Victim, Temp_Path) then
             Saved := Files.Settings.Save_Text
               (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
             Assert (Saved.Success, "settings save skips an occupied temp pathname");
@@ -120,7 +121,8 @@ separate (Files_Suite.Settings)
                       and then not Hostkit.Fs.Is_Link (Saved_Path & ".tmp-2"),
                     "settings save removes its alternate temporary file");
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Settings_Ensure_And_Save_Text", Files_Suite.Support.Symbolic_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Settings_Ensure_And_Save_Text",
+                                                    Files_Suite.Support.Disk.Symbolic_Link);
          end if;
       end;
       Write_File (Blocked_Parent, "not a directory");

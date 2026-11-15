@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Transfer)
    --  The in-process paste and the transfer helper run one replace routine:
    --  a replace target that vanished after planning has nothing to preserve
@@ -25,7 +26,7 @@ separate (Files_Suite.Transfer)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, Background);
          Files.Operations.Begin_Paste_Execution (Model, Actions, Mode);
-         Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+         Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
          Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the paste finishes its execution");
       end Run;
    begin

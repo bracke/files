@@ -1,4 +1,5 @@
 with Files.File_System.Testing;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Transfer)
    procedure Test_Destination_Races (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -63,7 +64,7 @@ separate (Files_Suite.Transfer)
                Assert (Result.Success, "the owned collision fixture is cleaned");
             else
                --  Hosts without link privileges may complete this copy or move.
-               Files_Suite.Support.Link_Not_Made ("Test_Destination_Races");
+               Files_Suite.Support.Disk.Link_Not_Made ("Test_Destination_Races");
                if not Ada.Directories.Exists (Source) then
                   Ada.Directories.Rename (Dest, Source);
                elsif Ada.Directories.Exists (Dest) then

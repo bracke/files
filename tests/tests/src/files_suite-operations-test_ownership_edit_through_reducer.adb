@@ -2,6 +2,7 @@ with Files.Operation_Results;
 with Files.File_System.Permissions;
 with Files.Controller.Testing;
 with Hostkit.Metadata;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Operations)
    procedure Test_Ownership_Edit_Through_Reducer (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -61,7 +62,7 @@ separate (Files_Suite.Operations)
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Action : constant Files.Events.Input_Action :=
-           Files_Suite.Support.Click_Action (Snapshot, Owner_X, Owner_Y, Width, Height);
+           Files_Suite.Support.Models.Click_Action (Snapshot, Owner_X, Owner_Y, Width, Height);
          Reduce : Files.Interaction.Interaction_Result;
          Routed : Files.Controller.Controller_Result;
       begin

@@ -1,4 +1,5 @@
 with Files.File_System.Thumbnails;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Thumbnails)
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -92,14 +93,15 @@ separate (Files_Suite.Thumbnails)
          Ada.Directories.Create_Path (Real_Directory);
          Write_File (Kept_File, Filler (4_000));
 
-         if Files_Suite.Support.Create_Symlink (Real_Directory, Linked_Cache) then
+         if Files_Suite.Support.Disk.Create_Symlink (Real_Directory, Linked_Cache) then
             Files.File_System.Thumbnails.Prune_Thumbnail_Cache (Linked_Cache, 0);
             Assert (Hostkit.Fs.Is_Link (Linked_Cache),
                     "cache pruning leaves a linked cache root in place");
             Assert (File_Has_Bytes (Kept_File, Filler (4_000)),
                     "cache pruning never deletes from a linked directory target");
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Thumbnail_Cache_Is_Bounded", Files_Suite.Support.Symbolic_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Thumbnail_Cache_Is_Bounded",
+                                                    Files_Suite.Support.Disk.Symbolic_Link);
          end if;
       end;
    end Test_Thumbnail_Cache_Is_Bounded;

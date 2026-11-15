@@ -100,13 +100,13 @@ separate (Files.Settings)
             --  New form: bookmark = "<path>" (path may contain '=' or start with
             --  '#'). The on-disk token stays "bookmark" so files keep loading.
             if Persistent_Path_Is_Valid (Value) then
-               Settings.Favorite_Paths.Append (To_Unbounded_String (Value));
+               Settings.Paths.Favorites.Append (To_Unbounded_String (Value));
             elsif Value /= "" then
                Err := To_Unbounded_String ("error.settings.invalid");
             end if;
          elsif Persistent_Path_Is_Valid (Key) then
             --  Legacy form: the bare path written as the key.
-            Settings.Favorite_Paths.Append (To_Unbounded_String (Key));
+            Settings.Paths.Favorites.Append (To_Unbounded_String (Key));
          elsif Key /= "" then
             Err := To_Unbounded_String ("error.settings.invalid");
          end if;
@@ -126,7 +126,8 @@ separate (Files.Settings)
             declare
                Bar   : constant Natural :=
                  Ada.Strings.Fixed.Index (Value, "|");
-               Label : Files.Types.Color_Label;
+               --  Left at No_Label by an unknown color, which is skipped.
+               Label : Files.Types.Color_Label := Files.Types.No_Label;
             begin
                if Bar > Value'First and then Bar < Value'Last then
                   declare
@@ -160,9 +161,9 @@ separate (Files.Settings)
          --  with '=' or '#'.
          if Setting_Key = "recent"
            and then Persistent_Path_Is_Valid (Value)
-           and then Natural (Settings.Recent_Paths_Value.Length) < Max_Recent_Items
+           and then Natural (Settings.Paths.Recent.Length) < Max_Recent_Items
          then
-            Settings.Recent_Paths_Value.Append (To_Unbounded_String (Value));
+            Settings.Paths.Recent.Append (To_Unbounded_String (Value));
          elsif Setting_Key = "recent" and then Value /= ""
            and then not Persistent_Path_Is_Valid (Value)
          then

@@ -1,6 +1,7 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Timing;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Refresh)
    procedure Test_Owed_Reloads (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -32,7 +33,7 @@ separate (Files_Suite.Refresh)
       Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
       Await_Job (Files.Model.Background_Operation (Model), "the duplicate helper finishes");
       Files.Model.Set_Error (Model, "error.undo.failed");
-      Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+      Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
       Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                         "the duplicate completes");
       Await_View (Model, Settings);

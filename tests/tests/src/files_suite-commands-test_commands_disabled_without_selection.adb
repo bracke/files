@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files.Commands.Status;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Commands)
    procedure Test_Commands_Disabled_Without_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,7 +10,7 @@ separate (Files_Suite.Commands)
    begin
       Assert (not Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Back_Command, Model),
               "back disabled initially");
-      Files_Suite.Support.Run_Command (Files.Commands.Navigate_Back_Command, Model);
+      Files_Suite.Support.Models.Run_Command (Files.Commands.Navigate_Back_Command, Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
          Root,

@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Commands)
    procedure Test_Multi_Rename_Multibyte_Edits (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -16,10 +17,12 @@ separate (Files_Suite.Commands)
            Guikit.Utf8.Is_Valid (To_String (Target.New_Name)));
    begin
       Items.Append (Files.File_System.Make_Item
-                      (Files_Suite.Support.Root, U8 ("café über.txt"), Files.Types.Regular_File_Item, "text/plain"));
+                      (Files_Suite.Support.Disk.Root, U8 ("café über.txt"), Files.Types.Regular_File_Item,
+                       "text/plain"));
       Items.Append (Files.File_System.Make_Item
-                      (Files_Suite.Support.Root, U8 ("naïve ölig.txt"), Files.Types.Regular_File_Item, "text/plain"));
-      Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
+                      (Files_Suite.Support.Disk.Root, U8 ("naïve ölig.txt"), Files.Types.Regular_File_Item,
+                       "text/plain"));
+      Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
       Files.Model.Selection.Select_All_Visible (Model);
       Files.Model.Rename.Toggle (Model);
       Files_Suite.Support.Assert_Equal

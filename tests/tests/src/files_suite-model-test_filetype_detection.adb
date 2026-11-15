@@ -112,33 +112,33 @@ separate (Files_Suite.Model)
          "application/gzip-tar",
          "compound extension mapping wins over final suffix mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of ("archive.tar.gz"),
+        (Files.File_Types.Normalized_Extension_Of ("archive.tar.gz"),
          "gz",
          "final extension is extracted");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of ("MAIN.ADB"),
+        (Files.File_Types.Normalized_Extension_Of ("MAIN.ADB"),
          "adb",
          "extension extraction normalizes case");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of (".profile"),
+        (Files.File_Types.Normalized_Extension_Of (".profile"),
          "",
          "leading-dot file has no extension");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of ("name."),
+        (Files.File_Types.Normalized_Extension_Of ("name."),
          "",
          "trailing-dot file has no extension");
       --  One rule (Files.Types.Extension_Start) for every reader of an
       --  extension: a leading dot is name, unless the badge asks for it.
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of (".profile", Dotfiles => True),
+        (Files.File_Types.Normalized_Extension_Of (".profile", Dotfiles => True),
          "profile",
          "a dotfile's name is its badge extension");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of (".config.yml", Dotfiles => True),
+        (Files.File_Types.Normalized_Extension_Of (".config.yml", Dotfiles => True),
          "yml",
          "a dotfile with a further dot has that extension, as without Dotfiles");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of ("Photo.JPG"),
+        (Files.File_Types.Normalized_Extension_Of ("Photo.JPG"),
          Files.Types.To_Lower_Ascii (Files.Types.Extension_Of ("Photo.JPG")),
          "File_Types reads the extension Files.Types finds, lower-cased");
       Assert
@@ -150,46 +150,47 @@ separate (Files_Suite.Model)
            (Files.File_System.Thumbnails.Thumbnail_Path_For (Join (Root, "Shot.PNG"), Root), "thumb_png_") > 0,
          "a thumbnail is named by the lower-cased extension");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of (" main.adb "),
+        (Files.File_Types.Normalized_Extension_Of (" main.adb "),
          "adb",
          "extension extraction trims whitespace");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of (ASCII.LF & "main.adb" & ASCII.LF),
+        (Files.File_Types.Normalized_Extension_Of (ASCII.LF & "main.adb" & ASCII.LF),
          "adb",
          "extension extraction trims line-feed whitespace");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of (ASCII.VT & "main.adb" & ASCII.FF),
+        (Files.File_Types.Normalized_Extension_Of (ASCII.VT & "main.adb" & ASCII.FF),
          "adb",
          "extension extraction trims vertical-tab and form-feed whitespace");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of (C1_Break & "main.adb" & C1_Break),
+        (Files.File_Types.Normalized_Extension_Of (C1_Break & "main.adb" & C1_Break),
          "adb",
          "extension extraction trims C1 line-break whitespace");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of (NBSP & "main.adb" & NBSP),
+        (Files.File_Types.Normalized_Extension_Of (NBSP & "main.adb" & NBSP),
          "adb",
          "extension extraction trims UTF-8 NBSP whitespace");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of (Line_Separator & "main.adb" & Line_Separator),
+        (Files.File_Types.Normalized_Extension_Of (Line_Separator & "main.adb" & Line_Separator),
          "adb",
          "extension extraction trims UTF-8 line-separator whitespace");
-      Files_Suite.Support.Assert_Equal (Files.File_Types.Extension_Of ("   "), "", "blank filename has no extension");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of ("/tmp/dir.with.dots/main.adb"),
+        (Files.File_Types.Normalized_Extension_Of ("   "), "", "blank filename has no extension");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Normalized_Extension_Of ("/tmp/dir.with.dots/main.adb"),
          "adb",
          "extension extraction uses the Unix path leaf name");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of ("C:\tmp\dir.with.dots\main.adb"),
+        (Files.File_Types.Normalized_Extension_Of ("C:\tmp\dir.with.dots\main.adb"),
          "adb",
          "extension extraction uses the Windows path leaf name");
       if Hostkit.Host.Current /= Hostkit.Host.Windows then
          Files_Suite.Support.Assert_Equal
-           (Files.File_Types.Extension_Of ("report.txt\raw"),
+           (Files.File_Types.Normalized_Extension_Of ("report.txt\raw"),
             "txt\raw",
             "a POSIX backslash remains part of the extension-bearing filename");
       end if;
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Extension_Of ("/tmp/dir.with.dots/file"),
+        (Files.File_Types.Normalized_Extension_Of ("/tmp/dir.with.dots/file"),
          "",
          "extension extraction ignores dotted directory names");
       Files_Suite.Support.Assert_Equal

@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files.Commands.Status;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Search)
    procedure Test_Content_Search_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -86,7 +87,7 @@ separate (Files_Suite.Search)
          "recursive name search sets the Search_Names scope");
 
       --  Clearing the filter returns to Filter_Here and drops search-results state.
-      Files_Suite.Support.Run_Command (Files.Commands.Clear_Filter_Command, Model);
+      Files_Suite.Support.Models.Run_Command (Files.Commands.Clear_Filter_Command, Model);
       Assert
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Filter_Here,
          "clearing the filter returns to the Filter_Here scope");

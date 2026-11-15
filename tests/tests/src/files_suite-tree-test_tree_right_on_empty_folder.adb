@@ -1,4 +1,6 @@
 with Files.Model.Tree_Panel;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Tree)
    --  Right on an expanded folder steps into its first child; an expanded
    --  folder with no children keeps the highlight instead of handing it to
@@ -8,13 +10,13 @@ separate (Files_Suite.Tree)
       use Ada.Strings.Unbounded;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       CResult  : Files.Controller.Controller_Result;
-      Tree_Dir : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "empty-tree");
-      Alpha    : constant String := Files_Suite.Support.Join (Tree_Dir, "alpha");
-      Beta     : constant String := Files_Suite.Support.Join (Tree_Dir, "beta");
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Tree_Dir : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "empty-tree");
+      Alpha    : constant String := Files_Suite.Support.Disk.Join (Tree_Dir, "alpha");
+      Beta     : constant String := Files_Suite.Support.Disk.Join (Tree_Dir, "beta");
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Seeds    : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Alpha);
       Ada.Directories.Create_Path (Beta);
       Seeds.Append
@@ -43,5 +45,5 @@ separate (Files_Suite.Tree)
       --  Down still reaches the sibling.
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal (Files.Model.Tree_Panel.Cursor (Model), Beta, "Down moves on to the sibling");
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
    end Test_Tree_Right_On_Empty_Folder;

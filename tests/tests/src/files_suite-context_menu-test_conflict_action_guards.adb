@@ -1,4 +1,5 @@
 with Files.Model.Pasting;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Context_Menu)
    procedure Test_Conflict_Action_Guards
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -6,7 +7,7 @@ separate (Files_Suite.Context_Menu)
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Items    : Files.Paste.Work_Item_Vectors.Vector;
       Existing : Files.Types.String_Vectors.Vector;
 

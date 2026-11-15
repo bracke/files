@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Trash)
    procedure Test_Restore_From_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -39,7 +40,7 @@ separate (Files_Suite.Trash)
       Files.Operations.Settle_Current_Is_Trash (Model);
       Assert (Files.Model.Current_Is_Trash (Model), "entering the trash settles that it is the trash");
       Assert
-        (not Files.Model.Current_Is_Trash (Files_Suite.Support.Sample_Model),
+        (not Files.Model.Current_Is_Trash (Files_Suite.Support.Models.Sample_Model),
          "an ordinary directory is not the trash");
       Select_Name (Model, "restore-me.txt");
       Files_Suite.Support.Assert_Equal

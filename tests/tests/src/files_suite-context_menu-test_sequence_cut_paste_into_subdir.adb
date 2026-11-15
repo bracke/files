@@ -1,26 +1,28 @@
 with Files.Model.Clipboard;
 with Files.Settings.Path_References;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Context_Menu)
    procedure Test_Sequence_Cut_Paste_Into_Subdir (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       Found    : Boolean;
-      Src_Dir  : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "cut-seq");
-      Sub      : constant String := Files_Suite.Support.Join (Src_Dir, "sub");
-      Source   : constant String := Files_Suite.Support.Join (Src_Dir, "movable.txt");
-      Pasted   : constant String := Files_Suite.Support.Join (Sub, "movable.txt");
+      Src_Dir  : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "cut-seq");
+      Sub      : constant String := Files_Suite.Support.Disk.Join (Src_Dir, "sub");
+      Source   : constant String := Files_Suite.Support.Disk.Join (Src_Dir, "movable.txt");
+      Pasted   : constant String := Files_Suite.Support.Disk.Join (Sub, "movable.txt");
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Sub);
-      Files_Suite.Support.Write_File (Source, "payload");
+      Files_Suite.Support.Disk.Write_File (Source, "payload");
       Files.Settings.Path_References.Set_Label (Settings, Source, Files.Types.Red);
 
       --  Step 1: cut a file from the source directory.
       Model := Loaded_Model (Src_Dir);
-      Files_Suite.Support.Select_Name (Model, "movable.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "movable.txt");
       Open_Item_Context_Menu (Model, Settings, Result);
       Dispatch_Menu_Command
         (Model, Settings, "", Files.Commands.Cut_Selected_Items_Command, Result, Found);

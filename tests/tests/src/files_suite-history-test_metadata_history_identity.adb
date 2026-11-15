@@ -3,6 +3,7 @@ with Files.Operation_Commands;
 with Files.File_System.Permissions;
 with Hostkit.Metadata;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.History)
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,7 +24,7 @@ separate (Files_Suite.History)
          Assert
            (Retained,
             "retain the metadata history inode"
-            & (if Retained then "" else Files_Suite.Support.Access_Report (Source)));
+            & (if Retained then "" else Files_Suite.Support.Disk.Access_Report (Source)));
          Write_Binary_File (Source, "unrelated replacement");
          Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#640#);
          Assert (Mutation.Success, "give the replacement independent permissions");

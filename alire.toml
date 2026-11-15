@@ -65,8 +65,9 @@ a11y = "^0.1.0"
 [[pins]]
 a11y = { path = "../a11ykit" }
 
-# File-content verification uses cryptolib directly. Alire honours pins only in
-# the root crate, so every root that builds files must pin it too.
+# File-content verification uses cryptolib directly. A root that links files
+# by path (tests/) inherits this pin with the others: Alire applies a linked
+# crate's pins to the root that links it.
 [[pins]]
 cryptolib = { path = "../cryptolib" }
 

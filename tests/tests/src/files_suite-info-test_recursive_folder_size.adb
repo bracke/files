@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Info)
    procedure Test_Recursive_Folder_Size (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,7 +24,7 @@ separate (Files_Suite.Info)
       --  A symlink cycle must not hang or be followed. Measure with the loop
       --  present, then remove the link before any assertion so a failure cannot
       --  leave a self-referential tree that later cleanup cannot delete.
-      if Files_Suite.Support.Create_Symlink (Tree, Join (Tree, "loop")) then
+      if Files_Suite.Support.Disk.Create_Symlink (Tree, Join (Tree, "loop")) then
          declare
             Guarded : constant Files.File_System.Directory_Size_Result :=
               Files.File_System.Directory_Size (Tree);
@@ -36,13 +37,13 @@ separate (Files_Suite.Info)
             Files_Suite.Support.Assert_Equal (Guarded.Total_Bytes, 10, "symlinked directory is not descended into");
          end;
       else
-         Files_Suite.Support.Link_Not_Made ("Test_Recursive_Folder_Size", Files_Suite.Support.Symbolic_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Recursive_Folder_Size", Files_Suite.Support.Disk.Symbolic_Link);
       end if;
 
       declare
          Root_Link : constant String := Join (Root, "size-root-link");
       begin
-         if Files_Suite.Support.Create_Symlink (Tree, Root_Link) then
+         if Files_Suite.Support.Disk.Create_Symlink (Tree, Root_Link) then
             declare
                Guarded : constant Files.File_System.Directory_Size_Result :=
                  Files.File_System.Directory_Size (Root_Link);
@@ -59,7 +60,8 @@ separate (Files_Suite.Info)
                   "folder sizing refuses a symlink supplied as its root: no items");
             end;
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Recursive_Folder_Size", Files_Suite.Support.Symbolic_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Recursive_Folder_Size",
+                                                    Files_Suite.Support.Disk.Symbolic_Link);
          end if;
       end;
 

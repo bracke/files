@@ -1,4 +1,5 @@
 with Files.Extra_Info;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Info)
    procedure Test_Extra_Counts_Mark_Capped (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -42,12 +43,13 @@ separate (Files_Suite.Info)
       Write_Filler_File (Long_Pdf, ' ', Byte_Limit, Page);
       Extra := Extra_Of (Long_Pdf, "application/pdf");
       Files_Suite.Support.Assert_Equal
-        (Files_Suite.Support.Describe (Extra), "document.pdf.pages|0+", "a PDF longer than the scan limit is capped");
+        (Files_Suite.Support.Models.Describe (Extra), "document.pdf.pages|0+",
+         "a PDF longer than the scan limit is capped");
       Ada.Directories.Delete_File (Long_Pdf);
       --  One ending exactly at the limit is read whole.
       Write_Filler_File (Full_Pdf, ' ', Byte_Limit - Page'Length, Page);
       Extra := Extra_Of (Full_Pdf, "application/pdf");
       Files_Suite.Support.Assert_Equal
-        (Files_Suite.Support.Describe (Extra), "document.pdf.pages|1", "a PDF read to its end is exact");
+        (Files_Suite.Support.Models.Describe (Extra), "document.pdf.pages|1", "a PDF read to its end is exact");
       Ada.Directories.Delete_File (Full_Pdf);
    end Test_Extra_Counts_Mark_Capped;

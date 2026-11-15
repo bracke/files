@@ -7,12 +7,13 @@ with Files.Model.Settings_Pane;
 with Files.Model.Sort_Menu;
 with Files.Model.Tree_Panel;
 with Files.Settings.Path_References;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Text_Input)
    procedure Test_Text_Entry_Contained_By_Overlays
      (T : in out AUnit.Test_Cases.Test_Case'Class)
    is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Roots    : Files.Types.String_Vectors.Vector;
       Sources  : Files.Types.String_Vectors.Vector;
@@ -21,7 +22,7 @@ separate (Files_Suite.Text_Input)
       begin
          Files.Model.Set_Filter (Model, "");
          Files.Model.Selection.Reset_Type_Ahead (Model);
-         Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+         Files_Suite.Support.Models.Select_Name (Model, "Alpha.txt");
          --  A retained field focus makes this exercise hidden-field editing as
          --  well as the no-focus grid type-ahead path.
          Files.Model.Focus_Filter_Input (Model);

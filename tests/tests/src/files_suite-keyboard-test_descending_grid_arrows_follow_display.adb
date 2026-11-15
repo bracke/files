@@ -1,10 +1,12 @@
 with Files.Operation_Results;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
    procedure Test_Descending_Grid_Arrows_Follow_Display
      (T : in out AUnit.Test_Cases.Test_Case'Class)
    is
       pragma Unreferenced (T);
-      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "nav-desc-grid");
+      Dir      : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "nav-desc-grid");
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Result   : Files.Interaction.Interaction_Result;
@@ -12,13 +14,13 @@ separate (Files_Suite.Keyboard)
       function Display_Position_Of (Name : String) return Natural is
         (Files_Suite.Interaction_Support.Display_Position_Of (Model, Settings, Name));
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Dir);
       declare
          Names : constant String := "abcdef";
       begin
          for I in Names'Range loop
-            Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, Names (I) & ".txt"));
+            Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, Names (I) & ".txt"));
          end loop;
       end;
       Model := Loaded_Model (Dir);
@@ -43,7 +45,7 @@ separate (Files_Suite.Keyboard)
       end;
       --  Two-column grid: Down should move down a row (two display positions).
       Files.Model.Selection.Set_Grid_Columns (Model, 2);
-      Files_Suite.Support.Select_Name (Model, "c.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "c.txt");
       declare
          Start_Pos : constant Natural := Display_Position_Of ("c.txt");
       begin

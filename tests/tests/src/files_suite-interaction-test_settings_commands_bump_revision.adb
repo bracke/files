@@ -1,4 +1,5 @@
 with Files.Model.Settings_Pane;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
    --  Every way a window changes its settings bumps its settings revision
    --  (Files.Model.Settings_Revision): the cross-window sync shares only what
@@ -11,7 +12,7 @@ separate (Files_Suite.Interaction)
       type Settings_Change is
         (Toggle_Hidden, Settings_Pane_Save, Zoom_In, Zoom_Out, Zoom_Reset, Column_Resize, Sort_Change);
 
-      Path : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "revision.conf");
+      Path : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "revision.conf");
 
       procedure Check (Change : Settings_Change) is
          Model    : Files.Model.Window_Model;
@@ -36,18 +37,20 @@ separate (Files_Suite.Interaction)
                Result        => Result);
          end Press;
       begin
-         Files_Suite.Support.Reset_Root;
-         Files_Suite.Support.Write_File (Files_Suite.Support.Join (Files_Suite.Support.Root, "Alpha.txt"));
-         Files_Suite.Support.Write_File (Files_Suite.Support.Join (Files_Suite.Support.Root, "Beta.txt"));
+         Files_Suite.Support.Disk.Reset_Root;
+         Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root,
+                                                                             "Alpha.txt"));
+         Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root,
+                                                                             "Beta.txt"));
          Items.Append
            (Files.File_System.Make_Item
-              (Files_Suite.Support.Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
+              (Files_Suite.Support.Disk.Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
          Items.Append
            (Files.File_System.Make_Item
-              (Files_Suite.Support.Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
+              (Files_Suite.Support.Disk.Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
          Files.Model.Initialize
            (Model,
-            Directory_Path => Files_Suite.Support.Root,
+            Directory_Path => Files_Suite.Support.Disk.Root,
             Items          => Items,
             Home_Path      => "/home/test");
 

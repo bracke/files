@@ -24,6 +24,8 @@ with Guikit.Input;
 with Files_Suite.Support;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Images;
+with Files_Suite.Support.Models;
+with Files_Suite.Support.Disk;
 
 package body Files_Suite.Operations_Support is
 
@@ -31,6 +33,8 @@ package body Files_Suite.Operations_Support is
    use AUnit.Assertions;
    use type Files.Events.Input_Action_Kind;
    use Files_Suite.Support;
+   use Files_Suite.Support.Models;
+   use Files_Suite.Support.Disk;
    use Files_Suite.Support.Images;
    use Files_Suite.Support.Timing;
 
@@ -42,7 +46,7 @@ package body Files_Suite.Operations_Support is
 
    procedure Await_Item_Details (Model : in out Files.Model.Window_Model) is
    begin
-      for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
+      for Attempt in Polling loop
          Files.Window_Polls.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));
          exit when not Files.Model.Selected_Item_Needs_Extra (Model);
       end loop;
@@ -197,7 +201,7 @@ package body Files_Suite.Operations_Support is
    begin
       Assert (Files.Model.Foreground_Job_Is_Active (Model),
               "a long operation returns with its progress overlay open");
-      Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+      Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
       Assert (not Files.Model.Foreground_Job_Is_Active (Model),
               "the UI collects the helper result without blocking");
       Files_Suite.Support.Assert_Equal

@@ -1,12 +1,13 @@
 with Files.Rendering.Testing;
 with Files.Model.Quick_Look;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Model)
    procedure Test_Quick_Look_Model_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Files.Quick_Look.Content_Kind;
-      Model : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
    begin
-      Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "Alpha.txt");
       Assert (not Files.Model.Quick_Look.Is_Open (Model), "quick look starts closed");
 
       Files.Model.Quick_Look.Toggle (Model);
@@ -41,6 +42,6 @@ separate (Files_Suite.Model)
       --  Reopen, then a selection change closes the now-stale preview.
       Files.Model.Quick_Look.Toggle (Model);
       Assert (Files.Model.Quick_Look.Is_Open (Model), "quick look reopens for the current selection");
-      Files_Suite.Support.Select_Name (Model, "Beta.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "Beta.txt");
       Assert (not Files.Model.Quick_Look.Is_Open (Model), "changing the selection closes quick look");
    end Test_Quick_Look_Model_State;

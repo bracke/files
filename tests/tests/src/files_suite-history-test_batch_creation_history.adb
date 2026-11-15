@@ -1,6 +1,7 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_Batch_Creation_History (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -34,7 +35,8 @@ separate (Files_Suite.History)
                Prior.Clear;
                Prior.Append (To_Unbounded_String (Join (Root, "prior")));
                Files.Undo_Recording.Record_Undo
-                 (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Undo_Items (Prior), Redoable => False);
+                 (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Prior),
+                  Redoable => False);
                Files.Model.Set_Filter (Model, (if Extracting then ".zip" else ".txt"));
                Files.Model.Selection.Select_All_Visible (Model);
                Files.Model.Set_Background_Transfers (Model, Background);

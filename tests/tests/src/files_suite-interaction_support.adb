@@ -7,6 +7,7 @@ with Files.Events;
 with Files.File_System;
 with Files.Model.Root_Selector;
 with Files.Model.Selection;
+with Files.Settings.Path_References;
 with Files.Rendering;
 with Files.Rendering.Hit;
 with Files.Rendering.Testing;
@@ -14,6 +15,8 @@ with Files.Types;
 with Guikit.Draw;
 with Files_Suite.Support;
 with Files.Rendering.Layouts;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 
 package body Files_Suite.Interaction_Support is
 
@@ -126,7 +129,7 @@ package body Files_Suite.Interaction_Support is
    procedure Open_Targeted_Scroll_Fixture (Model : in out Files.Model.Window_Model) is
    begin
       Files.Model.Set_View_Mode (Model, Files.Types.Details);
-      Files_Suite.Support.Select_Name (Model, "Gamma.md");
+      Files_Suite.Support.Models.Select_Name (Model, "Gamma.md");
       Files.Model.Toggle_Info_Pane (Model);
    end Open_Targeted_Scroll_Fixture;
 
@@ -174,7 +177,7 @@ package body Files_Suite.Interaction_Support is
         Files.File_System.Load_Directory (Directory, Files.Settings.Default_Settings);
       Model : Files.Model.Window_Model;
    begin
-      Files.Model.Initialize (Model, Directory, Load.Items, Files_Suite.Support.Root);
+      Files.Model.Initialize (Model, Directory, Load.Items, Files_Suite.Support.Disk.Root);
       return Model;
    end Loaded_Model;
 
@@ -376,7 +379,7 @@ package body Files_Suite.Interaction_Support is
       Path     : String)
       return Boolean is
    begin
-      for P of Settings.Favorite_Paths loop
+      for P of Files.Settings.Path_References.Favorite_Paths (Settings) loop
          if Ada.Strings.Unbounded.To_String (P) = Path then
             return True;
          end if;

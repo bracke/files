@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Rendering)
    procedure Test_Reveal_Scroll_Shows_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -43,9 +44,9 @@ separate (Files_Suite.Rendering)
          for Index in 1 .. 60 loop
             Items.Append
               (Files.File_System.Make_Item
-                 (Files_Suite.Support.Root, "f" & Index'Image, Files.Types.Regular_File_Item, "text/plain"));
+                 (Files_Suite.Support.Disk.Root, "f" & Index'Image, Files.Types.Regular_File_Item, "text/plain"));
          end loop;
-         Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
+         Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
          Files.Model.Set_View_Mode (Model, Files.Types.Details);
          Files.Model.Selection.Select_Visible (Model, 1);
          Files.Model.Selection.Set_Page_Rows (Model, 23);

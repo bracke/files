@@ -1,6 +1,7 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.History)
    procedure Test_Duplicate_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -30,7 +31,7 @@ separate (Files_Suite.History)
                     (Source, GNAT.OS_Lib.GM_Time_Of (2022, 3, 4, 5, 6, 8));
                when others =>
                   if not Hostkit.Fs.Create_Link (Target, Source) then
-                     Files_Suite.Support.Link_Not_Made ("Test_Duplicate_Undo_Identity");
+                     Files_Suite.Support.Disk.Link_Not_Made ("Test_Duplicate_Undo_Identity");
                      return;
                   end if;
             end case;

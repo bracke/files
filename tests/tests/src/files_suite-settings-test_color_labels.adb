@@ -35,7 +35,7 @@ separate (Files_Suite.Settings)
       Files.Settings.Path_References.Set_Label
         (Base, File_Path & Character'Val (0) & "ignored", Files.Types.Red);
       Files_Suite.Support.Assert_Equal
-        (Natural (Base.Labels.Length),
+        (Natural (Files.Settings.Path_References.Path_Labels (Base).Length),
          2,
          "a NUL-containing path cannot create a persisted color label");
 

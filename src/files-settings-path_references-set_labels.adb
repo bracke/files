@@ -15,13 +15,13 @@ separate (Files.Settings.Path_References)
       Stored  : Index_Maps.Map;
       --  Stored labels to clear, dropped at the end so positions hold. A
       --  clear appends nothing, so these are all the positions there are.
-      Drop    : Flags (1 .. Natural (Settings.Labels.Length)) := [others => False];
+      Drop    : Flags (1 .. Natural (Settings.Paths.Labels.Length)) := [others => False];
       Dropped : Boolean := False;
       Kept    : Path_Label_Vectors.Vector;
    begin
-      for Index in Settings.Labels.First_Index .. Settings.Labels.Last_Index loop
-         if not Stored.Contains (To_String (Settings.Labels (Index).Path)) then
-            Stored.Insert (To_String (Settings.Labels (Index).Path), Index);
+      for Index in Settings.Paths.Labels.First_Index .. Settings.Paths.Labels.Last_Index loop
+         if not Stored.Contains (To_String (Settings.Paths.Labels (Index).Path)) then
+            Stored.Insert (To_String (Settings.Paths.Labels (Index).Path), Index);
          end if;
       end loop;
       for Path of Paths loop
@@ -38,19 +38,19 @@ separate (Files.Settings.Path_References)
                   Stored.Delete (Found);
                end if;
             elsif Index_Maps.Has_Element (Found) then
-               Settings.Labels (Index_Maps.Element (Found)).Label := Label;
+               Settings.Paths.Labels (Index_Maps.Element (Found)).Label := Label;
             else
-               Settings.Labels.Append (Path_Label'(Path => Path, Label => Label));
-               Stored.Insert (Name, Settings.Labels.Last_Index);
+               Settings.Paths.Labels.Append (Path_Label'(Path => Path, Label => Label));
+               Stored.Insert (Name, Settings.Paths.Labels.Last_Index);
             end if;
          end;
       end loop;
       if Dropped then
-         for Index in Settings.Labels.First_Index .. Settings.Labels.Last_Index loop
+         for Index in Settings.Paths.Labels.First_Index .. Settings.Paths.Labels.Last_Index loop
             if not Drop (Index) then
-               Kept.Append (Settings.Labels (Index));
+               Kept.Append (Settings.Paths.Labels (Index));
             end if;
          end loop;
-         Settings.Labels.Move (Kept);
+         Settings.Paths.Labels.Move (Kept);
       end if;
    end Set_Labels;

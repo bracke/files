@@ -3,6 +3,7 @@ with Files.File_System.Trash;
 with Files.File_System.Permissions;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Transfer)
    procedure Test_Cross_Device_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -114,7 +115,8 @@ separate (Files_Suite.Transfer)
       Files.Job_Context.Initialize ("");
       Assert (Result.Success, "restoring can retry after a partial copy failure and cancellation: "
               & To_String (Result.Error_Key)
-              & (if Result.Success then "" else Files_Suite.Support.Access_Report (To_String (Trashed), Tree => True)));
+              & (if Result.Success then "" else Files_Suite.Support.Disk.Access_Report (To_String (Trashed),
+                                                                                        Tree => True)));
       Files_Suite.Support.Assert_Equal
         (Project_Tools.Files.Read_Raw_File (Join (Tree, "a.txt")),
          "complete",

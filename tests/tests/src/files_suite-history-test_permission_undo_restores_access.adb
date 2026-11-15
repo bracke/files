@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.History)
    --  A permission edit through the editor's path changes only what its bits
    --  concern, and its undo and redo put back the entry's whole access, not
@@ -69,7 +70,7 @@ separate (Files_Suite.History)
             Files.Operation_Results.Operation_Success,
             "the edit succeeds, " & To_String (Result.Error_Key)
             & (if Result.Status = Files.Operation_Results.Operation_Success then ""
-               else Files_Suite.Support.Access_Report (Target)));
+               else Files_Suite.Support.Disk.Access_Report (Target)));
          Files_Suite.Support.Assert_Equal (Mode_Of (Target), Edited, "the edit changes the one bit");
          declare
             Changed : constant String := Access_Of (Target);

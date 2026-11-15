@@ -1,13 +1,14 @@
 with Files.Overlays;
 with Files.Model.Command_Palette;
 with Files.Rendering.Layouts;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    --  Open the command palette, derive its close (X) button from the real
    --  palette layout, click the button's center through the shell's
    --  Translate_Click -> Apply_Input_Action path, and assert the palette closed.
    procedure Test_Command_Palette_Close_Button_Closes (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
    begin

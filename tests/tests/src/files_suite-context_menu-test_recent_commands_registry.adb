@@ -2,13 +2,14 @@ with Files.Operation_Results;
 with Files.Items;
 with Files.Commands.Status;
 with Files.Settings.Path_References;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Context_Menu)
    procedure Test_Recent_Commands_Registry (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Dir      : constant String :=
-        Files_Suite.Support.Join (Files_Suite.Support.Root, "reg-recent-dir");
+        Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "reg-recent-dir");
       Empty    : constant String :=
-        Files_Suite.Support.Join (Files_Suite.Support.Root, "reg-empty-dir");
+        Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "reg-empty-dir");
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
@@ -17,7 +18,7 @@ separate (Files_Suite.Context_Menu)
         (Kind    => Files.Events.Command_Input_Action,
          Command => Files.Commands.Navigate_Recent_Command);
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Dir);
       Ada.Directories.Create_Path (Empty);
 
@@ -33,8 +34,8 @@ separate (Files_Suite.Context_Menu)
       Files.Settings.Path_References.Note_Recent (Settings, Ada.Directories.Full_Name (Dir));
       Items.Append
         (Files.File_System.Make_Item
-           (Files_Suite.Support.Root, "reg-recent-dir", Files.Types.Directory_Item, "inode/directory"));
-      Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
+           (Files_Suite.Support.Disk.Root, "reg-recent-dir", Files.Types.Directory_Item, "inode/directory"));
+      Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
 
       --  Outside the recent view: Navigate Recent is enabled, Clear Recent is not.
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Recent_Command, Model),
@@ -69,7 +70,7 @@ separate (Files_Suite.Context_Menu)
       --  is not trapped behind an empty view.
       Files.Settings.Path_References.Clear_Recent (Settings);
       Files.Settings.Path_References.Note_Recent
-        (Settings, Files_Suite.Support.Join (Files_Suite.Support.Root, "missing-recent"));
+        (Settings, Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "missing-recent"));
       declare
          Rebuilt : constant Files.Operation_Results.Operation_Result :=
            Files.Operations.Navigate_Recent (Model, Settings);

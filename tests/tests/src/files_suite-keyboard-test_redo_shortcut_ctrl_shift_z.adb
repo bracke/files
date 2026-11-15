@@ -1,17 +1,19 @@
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
    procedure Test_Redo_Shortcut_Ctrl_Shift_Z (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       Found    : Boolean;
-      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "redo-key");
-      Source   : constant String := Files_Suite.Support.Join (Dir, "report.txt");
-      Renamed  : constant String := Files_Suite.Support.Join (Dir, "summary.txt");
+      Dir      : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "redo-key");
+      Source   : constant String := Files_Suite.Support.Disk.Join (Dir, "report.txt");
+      Renamed  : constant String := Files_Suite.Support.Disk.Join (Dir, "summary.txt");
       Model    : Files.Model.Window_Model;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Dir);
-      Files_Suite.Support.Write_File (Source, "payload");
+      Files_Suite.Support.Disk.Write_File (Source, "payload");
       Model := Loaded_Model (Dir);
 
       --  Confirm Ctrl+Shift+Z translates to the redo command, distinct from the
@@ -32,7 +34,7 @@ separate (Files_Suite.Keyboard)
 
       --  Establish an undo/redo state: rename report.txt to summary.txt, then
       --  undo it through the Ctrl+Z seam.
-      Files_Suite.Support.Select_Name (Model, "report.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "report.txt");
       Open_Item_Context_Menu (Model, Settings, Result);
       Dispatch_Menu_Command
         (Model, Settings, "", Files.Commands.Rename_Selected_Items_Command, Result, Found);

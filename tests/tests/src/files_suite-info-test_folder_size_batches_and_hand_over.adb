@@ -76,7 +76,7 @@ separate (Files_Suite.Info)
               (Files.Folder_Size.Testing.Target (Scan), First,
                "a re-target that still wants the running helper's folders keeps it");
          end;
-         for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
+         for Attempt in Polling loop
             Files.Folder_Size.Step (Scan);
             Files.Folder_Size.Take_All (Scan, Taken);
             Note (Taken, Seen, "over several helpers");
@@ -107,7 +107,7 @@ separate (Files_Suite.Info)
          Now   : Ada.Real_Time.Time := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (3_600);
       begin
          Files.Folder_Size.Set_Targets (Scan, Paths);
-         for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
+         for Attempt in Polling loop
             Files.Folder_Size.Step (Scan);
             Files.Folder_Size.Take_Due (Scan, Now, Taken);
             Note (Taken, Seen, "handed over at the interval");

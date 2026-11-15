@@ -1,11 +1,11 @@
 with Ada.Calendar;
 with Files.Grouping;
+with Files.Settings.Path_References;
 separate (Files.Model)
 procedure Sync_Grouping
   (Model    : in out Window_Model;
    Settings : Files.Settings.Settings_Model)
 is
-   use type Files.Settings.Path_Label_Vectors.Vector;
    use type Files.Types.Group_Mode;
    use type Files.Types.View_Mode;
    Mode : constant Files.Types.Group_Mode :=
@@ -17,7 +17,8 @@ is
    Was_Grouped : constant Boolean := Model.Grouping.Mode /= Files.Types.No_Grouping;
    Inputs_Changed : constant Boolean :=
      Mode /= Model.Grouping.Mode
-     or else (Mode = Files.Types.Group_By_Label and then Settings.Labels /= Model.Grouping.Labels)
+     or else (Mode = Files.Types.Group_By_Label
+              and then not Files.Settings.Path_References.Same_Labels (Settings, Model.Grouping.Labels))
      or else Today /= Model.Grouping.Day;
 begin
    if not Inputs_Changed and then Model.Rows_Revision_Value = Model.Grouping.Synced_Revision then
@@ -27,7 +28,7 @@ begin
       Model.Grouping.Mode := Mode;
       Model.Grouping.Day := Today;
       if Mode = Files.Types.Group_By_Label then
-         Model.Grouping.Labels := Settings.Labels;
+         Model.Grouping.Labels := Files.Settings.Path_References.Path_Labels (Settings);
       else
          Model.Grouping.Labels.Clear;
       end if;

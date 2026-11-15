@@ -24,21 +24,50 @@ package body Files.Desktop_Applications is
       return Result;
    end To_Host;
 
+   function Desktop_Entry_Locale (Tag : String) return String is
+      Language : Unbounded_String;
+      Country  : Unbounded_String;
+      Modifier : Unbounded_String;
+      First    : Positive := Tag'First;
+      Part     : Natural := 0;
+   begin
+      for Index in Tag'First .. Tag'Last + 1 loop
+         if Index > Tag'Last or else Tag (Index) in '-' | '_' then
+            declare
+               Subtag : constant String := Tag (First .. Index - 1);
+            begin
+               Part := Part + 1;
+               if Part = 1 then
+                  Language := To_Unbounded_String (Subtag);
+               elsif Subtag'Length = 4 then
+                  --  A script.
+                  Modifier :=
+                    To_Unbounded_String
+                      (if Subtag = "Latn" then "latin"
+                       elsif Subtag = "Cyrl" then "cyrillic"
+                       elsif Subtag = "Deva" then "devanagari"
+                       else "");
+               elsif Subtag'Length in 2 | 3 and then Country = "" then
+                  --  A region: a country code, or an area number.
+                  Country := To_Unbounded_String (Subtag);
+               end if;
+            end;
+            First := Index + 1;
+         end if;
+      end loop;
+      return To_String (Language)
+        & (if Country = "" then "" else "_" & To_String (Country))
+        & (if Modifier = "" then "" else "@" & To_String (Modifier));
+   end Desktop_Entry_Locale;
+
    --  The locale postfixes localized Name and Icon values are matched
    --  against: the interface's own message locale as its variable spells it
    --  (POSIX modifiers kept), else the host's, in desktop-entry spelling.
    function Message_Locale_Candidates return Hostkit.String_Vectors.Vector is
-      Raw : Unbounded_String := To_Unbounded_String (Files.Environment.Message_Locale);
+      Variable : constant String := Files.Environment.Message_Locale;
    begin
-      if Raw = "" then
-         Raw := To_Unbounded_String (Files.Localization.System_Locale);
-         for Index in 1 .. Length (Raw) loop
-            if Element (Raw, Index) = '-' then
-               Replace_Element (Raw, Index, '_');
-            end if;
-         end loop;
-      end if;
-      return Hostkit.Desktop_Entries.Locale_Candidates (To_String (Raw));
+      return Hostkit.Desktop_Entries.Locale_Candidates
+        (if Variable /= "" then Variable else Desktop_Entry_Locale (Files.Localization.System_Locale));
    end Message_Locale_Candidates;
 
    function Build_Open_Action

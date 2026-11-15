@@ -1,4 +1,5 @@
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Operations)
    procedure Test_Rename_Trash_Delete_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -22,7 +23,7 @@ separate (Files_Suite.Operations)
       end if;
       --  On Windows the item keeps DELETE through the ACE it inherited, and
       --  a locked folder alone does not stop it going.
-      Files_Suite.Support.Forbid_Deletion (Item);
+      Files_Suite.Support.Disk.Forbid_Deletion (Item);
       Mutation := Files.File_System.Rename_Item (Item, Join (Locked, "renamed.txt"));
       Assert (not Mutation.Success, "a read-only folder refuses a rename");
       Assert_Equal (To_String (Mutation.Error_Key), "error.io.denied", "the refused rename says permission was denied");
@@ -36,7 +37,7 @@ separate (Files_Suite.Operations)
       Mutation := Files.File_System.Delete_Permanently (Item);
       Assert (not Mutation.Success, "a read-only folder refuses a permanent delete");
       Assert_Equal (To_String (Mutation.Error_Key), "error.io.denied", "the refused delete says permission was denied");
-      Files_Suite.Support.Allow_Deletion (Item);
+      Files_Suite.Support.Disk.Allow_Deletion (Item);
       Unlock_Directory (Locked);
       Assert (File_Is (Item, "item bytes")
               and then not Ada.Directories.Exists (Join (Locked, "renamed.txt")),
@@ -50,7 +51,7 @@ separate (Files_Suite.Operations)
                     "deleting a vanished item says the path is missing, not a rename error");
    exception
       when others =>
-         Files_Suite.Support.Allow_Deletion (Item);
+         Files_Suite.Support.Disk.Allow_Deletion (Item);
          Unlock_Directory (Locked);
          raise;
    end Test_Rename_Trash_Delete_Read_Only_Cause;

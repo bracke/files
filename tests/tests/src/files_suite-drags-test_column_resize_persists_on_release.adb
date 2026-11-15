@@ -1,7 +1,8 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Drags)
    procedure Test_Column_Resize_Persists_On_Release (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Path     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "column-resize.conf");
+      Path     : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "column-resize.conf");
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Result   : Files.Interaction.Interaction_Result;
@@ -13,7 +14,7 @@ separate (Files_Suite.Drags)
          Ada.Directories.Delete_File (Path);
       end if;
       Files.Model.Initialize
-        (Model, Files_Suite.Support.Root, Files.Items.Item_Vectors.Empty_Vector, Files_Suite.Support.Root,
+        (Model, Files_Suite.Support.Disk.Root, Files.Items.Item_Vectors.Empty_Vector, Files_Suite.Support.Disk.Root,
          Default_View_Mode => Files.Types.Details);
 
       --  Several pointer moves of one drag change the width in memory only.

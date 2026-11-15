@@ -28,6 +28,8 @@ package body Files.Environment is
 
    function Message_Locale return String renames Hostkit.Desktop_Entries.Message_Locale;
 
+   function Locale_Variable (Category : String) return String renames Hostkit.Desktop_Entries.Locale_Variable;
+
    procedure Clear (Name : String) is
    begin
       Hostkit.Environment.Clear (Name);

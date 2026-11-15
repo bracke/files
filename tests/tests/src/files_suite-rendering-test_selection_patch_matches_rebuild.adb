@@ -3,6 +3,7 @@ with Files.Model.Status_Samples;
 with Files.Model.Testing;
 with Guikit.Input;
 with Files.Snapshot_Policy.Settings_Keys;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Rendering)
    --  The window keeps a snapshot's rows across a change of the selection
    --  alone (Snapshot_Policy.Patch_Rows). That is right only if every
@@ -12,7 +13,7 @@ separate (Files_Suite.Rendering)
    procedure Test_Selection_Patch_Matches_Rebuild (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
 
       procedure Check (Step : String; Change : not null access procedure) is
          Before : constant Files.Rendering.View_Snapshot :=
@@ -38,7 +39,7 @@ separate (Files_Suite.Rendering)
       procedure Invert is begin Files.Model.Selection.Invert (Model); end Invert;
       procedure Clear is begin Files.Model.Selection.Clear (Model); end Clear;
       procedure Last is begin Files.Model.Selection.Select_Last_Visible (Model); end Last;
-      procedure By_Name is begin Files_Suite.Support.Select_Name (Model, "Beta.txt"); end By_Name;
+      procedure By_Name is begin Files_Suite.Support.Models.Select_Name (Model, "Beta.txt"); end By_Name;
    begin
       for Grouped in Boolean loop
          if Grouped then

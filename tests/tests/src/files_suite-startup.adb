@@ -37,6 +37,7 @@ with Files.Settings;
 with Files.Types;
 with Files_Suite.Support;
 with Files_Suite.Support.Images;
+with Files_Suite.Support.Disk;
 
 package body Files_Suite.Startup is
 
@@ -49,6 +50,7 @@ package body Files_Suite.Startup is
    use type Files.File_System.Drop_Import_Mode;
    use type Files.Application.Run_Mode;
    use Files_Suite.Support;
+   use Files_Suite.Support.Disk;
    use Files_Suite.Support.Images;
 
    type Startup_Test_Case is new AUnit.Test_Cases.Test_Case with null record;

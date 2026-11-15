@@ -3,6 +3,7 @@ with Files.File_System.Permissions;
 with Files.Items;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Transfer)
    procedure Test_Failed_Replace_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -48,7 +49,7 @@ separate (Files_Suite.Transfer)
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
-         Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+         Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
          Result := Files.File_System.Permissions.Set_Permissions (Root, 8#755#);
          Assert (not Files.Model.Foreground_Job_Is_Active (Model)
                  and then Step.Status = Files.Operation_Results.Operation_Failed,

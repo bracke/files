@@ -13,7 +13,7 @@ Preferred validation:
 alr exec -- gnatls --version
 alr build
 (cd tests && alr test)   # the suite lives here; `alr test` at the root runs none
-(cd tools && alr exec -- gprbuild -P files_check_all.gpr)
+(cd tools && alr build)  # builds check_all, cldr_to_catalog and release_check
 tools/bin/release_check
 tools/bin/check_all
 ```

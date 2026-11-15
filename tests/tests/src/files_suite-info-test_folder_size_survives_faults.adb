@@ -31,7 +31,7 @@ separate (Files_Suite.Info)
       begin
          Measured := 0;
          Unmeasured := 0;
-         for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
+         for Attempt in Polling loop
             Files.Folder_Size.Step (Scan);
             Files.Folder_Size.Take_All (Scan, Taken);
             for Done of Taken loop

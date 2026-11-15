@@ -1,6 +1,8 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Transfer)
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -76,7 +78,7 @@ separate (Files_Suite.Transfer)
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-            Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+            Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Success,
@@ -119,7 +121,7 @@ separate (Files_Suite.Transfer)
                "recovery rejects a multiply-linked ownership record");
             Ada.Directories.Delete_File (Owner_Alias);
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Native_Replace_Recovery", Files_Suite.Support.Hard_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Native_Replace_Recovery", Files_Suite.Support.Disk.Hard_Link);
          end if;
          Write_Binary_File (Owner_Path, Owner_Data & "trailing");
          Assert
@@ -179,7 +181,7 @@ separate (Files_Suite.Transfer)
          "rollback never overwrites a collision");
       Paths.Append (Backup);
       Files.Undo_Recording.Record_Undo
-        (Model, Files.Model.Undo_Restore_Trash, Files_Suite.Support.Undo_Items (Paths), Redoable => False);
+        (Model, Files.Model.Undo_Restore_Trash, Files_Suite.Support.Models.Undo_Items (Paths), Redoable => False);
       Ada.Directories.Delete_File (Dest);
       Step := Complete_Operation
                        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));

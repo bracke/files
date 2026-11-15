@@ -1,14 +1,16 @@
 with Files.Overlays;
 with Files.Model.Label_Picker;
 with Files.Model.Settings_Pane;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
    --  Ctrl+Tab / Ctrl+Shift+Tab move between the settings section tabs through the
    --  key seam -- the only keyboard route across sections -- and wrap at the ends.
    procedure Test_Settings_Tab_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Path     : constant String :=
-        Files_Suite.Support.Join (Files_Suite.Support.Root, "tabs.conf");
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+        Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "tabs.conf");
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       Rects    : Guikit.Draw.Rectangle_Command_Vectors.Vector;
@@ -27,7 +29,7 @@ separate (Files_Suite.Keyboard)
             Result => Result);
       end Tab;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
 
       --  Open the pane and lay it out so the sections exist.
       Files.Interaction.Handle_Key

@@ -1,10 +1,12 @@
 with Files.Model.Sort_Menu;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
    --  Ctrl+'=' / Ctrl+'+' grow, Ctrl+'-' shrinks, and Ctrl+0 resets the live
    --  font size, all clamped to the supported range, through the key seam.
    procedure Test_Keyboard_Zoom (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
 
@@ -87,14 +89,15 @@ separate (Files_Suite.Keyboard)
 
       --  A settings file that cannot be written still takes the change: the
       --  window's font follows it (the failed save is reported, not undone).
-      Files_Suite.Support.Reset_Root;
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Files_Suite.Support.Root, "not-a-folder"), "x");
+      Files_Suite.Support.Disk.Reset_Root;
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root,
+                                                                          "not-a-folder"), "x");
       declare
          Before : constant Positive := Settings.Font_Pixel_Size;
       begin
          Zoom (Guikit.Input.Key_Equal, Ctrl,
-               Path => Files_Suite.Support.Join
-                 (Files_Suite.Support.Join (Files_Suite.Support.Root, "not-a-folder"), "settings.conf"));
+               Path => Files_Suite.Support.Disk.Join
+                 (Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "not-a-folder"), "settings.conf"));
          Files_Suite.Support.Assert_Equal
            (Settings.Font_Pixel_Size, Before + 1, "an unsaved zoom still changes the font size");
          Assert (Result.Font_Size_Changed and then Result.Needs_Glyph_Rebuild,

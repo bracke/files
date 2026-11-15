@@ -1,16 +1,17 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
    procedure Test_Bottom_Bar_Sort_Persists (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Files.Types.Sort_Field;
-      Path : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "sort-persist.conf");
+      Path : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "sort-persist.conf");
 
       function Items return Files.Items.Item_Vectors.Vector is
          V : Files.Items.Item_Vectors.Vector;
       begin
          V.Append (Files.File_System.Make_Item
-                     (Files_Suite.Support.Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
+                     (Files_Suite.Support.Disk.Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
          V.Append (Files.File_System.Make_Item
-                     (Files_Suite.Support.Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
+                     (Files_Suite.Support.Disk.Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
          return V;
       end Items;
 
@@ -31,10 +32,10 @@ separate (Files_Suite.Interaction)
             Result            => Result);
       end Dispatch;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Files.Model.Initialize
         (Model,
-         Directory_Path => Files_Suite.Support.Root,
+         Directory_Path => Files_Suite.Support.Disk.Root,
          Items          => Items,
          Home_Path      => "/home/test");
 

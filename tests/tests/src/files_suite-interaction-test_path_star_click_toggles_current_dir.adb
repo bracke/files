@@ -1,11 +1,13 @@
 with Files.Rendering.Layouts;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    procedure Test_Path_Star_Click_Toggles_Current_Dir (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
-      Path     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "path-star.conf");
+      Path     : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "path-star.conf");
       Current  : constant String := Files.Model.Current_Path (Model);
       Star     : constant Files.Rendering.Layouts.Path_Favorite_Star_Bounds :=
         Files.Rendering.Layouts.Path_Favorite_Star_Region (Window_W, Line);
@@ -26,7 +28,7 @@ separate (Files_Suite.Interaction)
               Window_W, Window_H, Line_Height => Line);
       end Star_Action;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Assert (Star.Visible, "the path-bar star is laid out at the default window size");
       Assert (not Has_Favorite (Settings, Current), "the current directory starts unfavorited");
 

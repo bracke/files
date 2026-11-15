@@ -1,5 +1,6 @@
 with Files.Model.Context_Menu;
 with Files.Rendering.Layouts;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Context_Menu)
    procedure Test_Header_Menu_Column_Config (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -10,15 +11,15 @@ separate (Files_Suite.Context_Menu)
       Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       for Index in 1 .. 6 loop
          Items.Append
            (Files.File_System.Make_Item
-              (Files_Suite.Support.Root, "item-" & Files.Types.Natural_Text (Index),
+              (Files_Suite.Support.Disk.Root, "item-" & Files.Types.Natural_Text (Index),
                Files.Types.Regular_File_Item, "text/plain"));
       end loop;
       Files.Model.Initialize
-        (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root,
+        (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root,
          Default_View_Mode => Files.Types.Details);
 
       --  Right-click the details header, deriving the coordinate from the real

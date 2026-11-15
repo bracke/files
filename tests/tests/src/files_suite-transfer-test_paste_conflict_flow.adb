@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files.Model.Clipboard;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Transfer)
    procedure Test_Paste_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -233,6 +234,6 @@ separate (Files_Suite.Transfer)
             "SRC",
             "replace puts the source where the dangling link was");
       else
-         Files_Suite.Support.Link_Not_Made ("Test_Paste_Conflict_Flow", Files_Suite.Support.Symbolic_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Paste_Conflict_Flow", Files_Suite.Support.Disk.Symbolic_Link);
       end if;
    end Test_Paste_Conflict_Flow;

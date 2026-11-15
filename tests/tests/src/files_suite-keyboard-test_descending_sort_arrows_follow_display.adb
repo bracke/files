@@ -1,3 +1,5 @@
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
    --  Bug 15 regression: arrow navigation must always move to the visually
    --  adjacent item as displayed, regardless of sort direction. Drives the real
@@ -7,7 +9,7 @@ separate (Files_Suite.Keyboard)
      (T : in out AUnit.Test_Cases.Test_Case'Class)
    is
       pragma Unreferenced (T);
-      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "nav-desc");
+      Dir      : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "nav-desc");
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Result   : Files.Interaction.Interaction_Result;
@@ -15,13 +17,13 @@ separate (Files_Suite.Keyboard)
       function Display_Position_Of (Name : String) return Natural is
         (Files_Suite.Interaction_Support.Display_Position_Of (Model, Settings, Name));
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Dir);
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "a.txt"));
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "b.txt"));
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "c.txt"));
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "d.txt"));
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "e.txt"));
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "a.txt"));
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "b.txt"));
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "c.txt"));
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "d.txt"));
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "e.txt"));
       Model := Loaded_Model (Dir);
       Files.Model.Set_View_Mode (Model, Files.Types.Details);
 
@@ -37,7 +39,7 @@ separate (Files_Suite.Keyboard)
       Assert (not Files.Model.Sort_Is_Ascending (Model), "the sort command toggles to descending order");
 
       --  Anchor on a middle item and remember where it sits when displayed.
-      Files_Suite.Support.Select_Name (Model, "c.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "c.txt");
       declare
          Start_Pos : constant Natural := Display_Position_Of ("c.txt");
       begin

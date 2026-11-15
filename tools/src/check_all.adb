@@ -300,6 +300,7 @@ procedure Check_All is
    function Is_Whitespace_Checked_File (Name : String) return Boolean is
    begin
       return Name = ".gitignore"
+        or else Ends_With (Name, ".yml")
         or else Ends_With (Name, ".adb")
         or else Ends_With (Name, ".ads")
         or else Ends_With (Name, ".gpr")
@@ -314,10 +315,15 @@ procedure Check_All is
 
    procedure Check_Whitespace_In_File (Path : String) is separate;
 
+   --  Report each line of Path holding a byte above 127: Alire's TOML reader
+   --  takes a manifest to be ASCII.
+   procedure Check_Ascii_Only_In_File (Path : String) is separate;
+
    --  Every text file of the project the line checks read: the text files
    --  (Is_Text_Project_File) of the source, test, tooling, configuration and
    --  share trees, build output skipped, and the manifests, project files and
-   --  ignore lists at the roots of the main, test and tooling crates.
+   --  ignore lists at the roots of the main, test and tooling crates, the
+   --  release manifest and the CI workflow.
    function Project_Text_Files return Project_Tools.Files.Path_List is
       use type Project_Tools.Files.Path_List;
 
@@ -338,6 +344,8 @@ procedure Check_All is
 
       At_Roots : constant Project_Tools.Files.Path_List :=
         [To_Unbounded_String (Root & "/.gitignore"),
+         To_Unbounded_String (Root & "/.github/workflows/ci.yml"),
+         To_Unbounded_String (Root & "/alire.release.toml"),
          To_Unbounded_String (Root & "/alire.toml"),
          To_Unbounded_String (Root & "/files.gpr"),
          To_Unbounded_String (Root & "/tests/.gitignore"),

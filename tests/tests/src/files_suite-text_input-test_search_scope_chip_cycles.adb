@@ -1,7 +1,8 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Text_Input)
    procedure Test_Search_Scope_Chip_Cycles (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "scope-chip");
+      Dir      : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "scope-chip");
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
@@ -25,16 +26,16 @@ separate (Files_Suite.Text_Input)
    begin
       Assert (Chip.Visible, "the scope chip fits and is laid out at the default window width");
 
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Dir);
       --  One file matches by NAME only, one by CONTENT only, so the two search
       --  scopes return visibly different result sets from the same query text.
-      Files_Suite.Support.Write_File
-        (Files_Suite.Support.Join (Dir, "needle-name.txt"), "irrelevant body");
-      Files_Suite.Support.Write_File
-        (Files_Suite.Support.Join (Dir, "plain.txt"), "has a needle inside the body");
+      Files_Suite.Support.Disk.Write_File
+        (Files_Suite.Support.Disk.Join (Dir, "needle-name.txt"), "irrelevant body");
+      Files_Suite.Support.Disk.Write_File
+        (Files_Suite.Support.Disk.Join (Dir, "plain.txt"), "has a needle inside the body");
       Load := Files.File_System.Load_Directory (Dir, Settings);
-      Files.Model.Initialize (Model, Dir, Load.Items, Files_Suite.Support.Root);
+      Files.Model.Initialize (Model, Dir, Load.Items, Files_Suite.Support.Disk.Root);
       Full_Count := Files.Model.Item_Count (Model);
       Files.Model.Set_Filter (Model, "needle");
 

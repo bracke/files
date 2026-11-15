@@ -27,6 +27,8 @@ with Files.Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files_Suite.Support.Images;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 
 package body Files_Suite.Names is
 
@@ -37,6 +39,8 @@ package body Files_Suite.Names is
    use type Files.Operation_Results.Operation_Status;
    use type Files.Types.Search_Scope;
    use Files_Suite.Support;
+   use Files_Suite.Support.Models;
+   use Files_Suite.Support.Disk;
    use Files_Suite.Support.Images;
    use Files_Suite.Operations_Support;
 

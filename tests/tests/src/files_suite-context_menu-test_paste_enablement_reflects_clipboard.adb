@@ -1,18 +1,20 @@
 with Files.Commands.Status;
 with Files.Model.Clipboard;
 with Files.Model.Context_Menu;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Context_Menu)
    procedure Test_Paste_Enablement_Reflects_Clipboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       Found    : Boolean;
-      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "paste-enable");
+      Dir      : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "paste-enable");
       Model    : Files.Model.Window_Model;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Dir);
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "a.txt"), "payload");
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "a.txt"), "payload");
       Model := Loaded_Model (Dir);
 
       --  No clipboard yet: Paste is listed in the empty-area menu but disabled.
@@ -25,7 +27,7 @@ separate (Files_Suite.Context_Menu)
       Files.Model.Context_Menu.Close (Model);
 
       --  Copy a file: Paste becomes enabled.
-      Files_Suite.Support.Select_Name (Model, "a.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "a.txt");
       Open_Item_Context_Menu (Model, Settings, Result);
       Dispatch_Menu_Command
         (Model, Settings, "", Files.Commands.Copy_Selected_Items_Command, Result, Found);

@@ -1,6 +1,7 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Recovery)
    procedure Test_Background_Result_Mismatch (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -30,7 +31,7 @@ separate (Files_Suite.Recovery)
          Ada.Environment_Variables.Set
            ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "1");
          Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
-         Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+         Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
       end;
       Assert
         (not Files.Model.Foreground_Job_Is_Active (Model),
@@ -66,7 +67,7 @@ separate (Files_Suite.Recovery)
          Ada.Environment_Variables.Set
            ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "1");
          Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
-         Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+         Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
       end;
       Assert
         (not Files.Model.Foreground_Job_Is_Active (Model),

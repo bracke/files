@@ -5,6 +5,7 @@ with Files.Quick_Look;
 with Files.Model.Quick_Look;
 with Files_Suite.Support.Images;
 with Files_Suite.Support.Timing;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Thumbnails)
    procedure Test_Quick_Look_Decodes_Off_Thread (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -105,7 +106,7 @@ separate (Files_Suite.Thumbnails)
       begin
          Files.Model.Initialize (Model, Root, Load.Items, Root);
       end;
-      Files_Suite.Support.Select_Name (Model, "first.jpg");
+      Files_Suite.Support.Models.Select_Name (Model, "first.jpg");
       Files.Model.Quick_Look.Open
         (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
       Assert

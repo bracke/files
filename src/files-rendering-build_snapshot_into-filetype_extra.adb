@@ -56,7 +56,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
         (Name : String)
          return String
       is
-         Extension : constant String := Files.File_Types.Extension_Of (Name);
+         Extension : constant String := Files.File_Types.Normalized_Extension_Of (Name);
       begin
          if Extension = "" then
             return Files.Localization.Text ("info.extra.file");

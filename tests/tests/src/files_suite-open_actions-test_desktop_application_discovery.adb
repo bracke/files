@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Open_Actions)
    procedure Test_Desktop_Application_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -61,7 +62,7 @@ separate (Files_Suite.Open_Actions)
                "viewer %F",
                "a linked desktop entry is listed, as Flatpak and NixOS install them");
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Desktop_Application_Discovery");
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Desktop_Application_Discovery");
          end if;
          Files_Suite.Support.Assert_Equal
            (To_String (Find (Apps, "Excessive Exec").Exec),

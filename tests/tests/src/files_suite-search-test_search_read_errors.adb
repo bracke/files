@@ -1,6 +1,7 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Search)
    procedure Test_Search_Read_Errors (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -110,7 +111,7 @@ separate (Files_Suite.Search)
                "preview reads refuse a symbolic link instead of following it");
          end;
       else
-         Files_Suite.Support.Link_Not_Made ("Test_Search_Read_Errors", Files_Suite.Support.Symbolic_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Search_Read_Errors", Files_Suite.Support.Disk.Symbolic_Link);
       end if;
       declare
          Text : constant String := Files.File_System.Read_Preview_Text

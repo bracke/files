@@ -15,7 +15,7 @@ package Files_Suite.Volumes is
      "no writable directory on a device other than the test root's"
      & " (set FILES_TEST_OTHER_VOLUME; /dev/shm is tried on Linux)";
 
-   --  A writable directory on a different device than Files_Suite.Support.Root.
+   --  A writable directory on a different device than Files_Suite.Support.Disk.Root.
    --
    --  Tried in order: the directory FILES_TEST_OTHER_VOLUME names (CI mounts a
    --  RAM disk or a VHD for it), then /dev/shm on Linux. A candidate counts only

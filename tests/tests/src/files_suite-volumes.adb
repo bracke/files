@@ -11,6 +11,7 @@ with Hostkit.Process;
 with Project_Tools.Files;
 
 with Files_Suite.Support;
+with Files_Suite.Support.Disk;
 
 package body Files_Suite.Volumes is
 
@@ -110,7 +111,7 @@ package body Files_Suite.Volumes is
          return False;
       end if;
       declare
-         Root_Device : constant Long_Long_Integer := Device_Of (Files_Suite.Support.Root, Root_Known);
+         Root_Device : constant Long_Long_Integer := Device_Of (Files_Suite.Support.Disk.Root, Root_Known);
          Here_Device : constant Long_Long_Integer := Device_Of (Candidate, Here_Known);
       begin
          if not Root_Known or else not Here_Known or else Root_Device = Here_Device then
@@ -147,7 +148,7 @@ package body Files_Suite.Volumes is
                   Ada.Text_IO.Put_Line
                     (Ada.Text_IO.Standard_Error,
                      "FILES_TEST_OTHER_VOLUME=" & Configured
-                     & " is ignored: not a writable directory on a device other than " & Files_Suite.Support.Root);
+                     & " is ignored: not a writable directory on a device other than " & Files_Suite.Support.Disk.Root);
                end if;
                if Hostkit.Host.Current = Hostkit.Host.Linux and then Qualifies ("/dev/shm") then
                   Found := To_Unbounded_String ("/dev/shm");

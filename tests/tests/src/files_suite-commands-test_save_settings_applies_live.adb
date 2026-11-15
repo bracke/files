@@ -1,15 +1,16 @@
 with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Model.Settings_Pane;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Commands)
    procedure Test_Save_Settings_Applies_Live (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
-      Path     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "save-live.conf");
+      Path     : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "save-live.conf");
       Result   : Files.Controller.Controller_Result;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
 
       --  Sample_Model opens in the small-icons view sorted ascending by name.
       Files_Suite.Support.Assert_Equal

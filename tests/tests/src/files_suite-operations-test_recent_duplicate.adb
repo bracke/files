@@ -2,6 +2,7 @@ with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Operations)
    procedure Test_Recent_Duplicate (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -113,7 +114,7 @@ separate (Files_Suite.Operations)
                Files.Operation_Results.Operation_Success,
                "Recent Duplicate starts or completes successfully");
             if Background then
-               Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+               Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
             end if;
             Files_Suite.Support.Assert_Equal
               (Step.Status,

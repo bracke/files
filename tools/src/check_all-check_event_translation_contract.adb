@@ -138,10 +138,17 @@ separate (Check_All)
          [To_Unbounded_String ("Settings_Model"),
           To_Unbounded_String ("Settings_Draft"),
           To_Unbounded_String ("Path_Label_Vectors"),
+          To_Unbounded_String ("Path_References"),
           To_Unbounded_String ("Path_Sets")],
          "the model reads no disk (settings are loaded and saved elsewhere)",
          --  Settings is also what the model's parameters are called.
          Short_Too => False);
+      --  The labels it groups by, read; changing them is the settings' own.
+      Require_Only_Names_From
+        ("files-model", "Files.Settings.Path_References",
+         [To_Unbounded_String ("Path_Labels"),
+          To_Unbounded_String ("Same_Labels")],
+         "the model only reads the stored labels");
       Require_Only_Names_From
         ("files-model", "Files.Desktop_Applications",
          [To_Unbounded_String ("Application_Vectors")],
@@ -217,6 +224,7 @@ separate (Check_All)
             To_Unbounded_String ("Files.Process_Jobs"),
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Settings"),
+            To_Unbounded_String ("Files.Settings.Path_References"),
             To_Unbounded_String ("Files.Settings_Form"),
             To_Unbounded_String ("Files.Transfer_Jobs"),
             To_Unbounded_String ("Files.Type_Ahead"),

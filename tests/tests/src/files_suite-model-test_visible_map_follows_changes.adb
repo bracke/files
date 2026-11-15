@@ -1,5 +1,6 @@
 with Ada.Characters.Handling;
 with Ada.Strings.Fixed;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Model)
    --  The visible rows are cached; every change that hides, shows or moves a
    --  row must drop the cache. Each step compares the model's rows with a
@@ -16,7 +17,7 @@ separate (Files_Suite.Model)
             if Names (Index) = ' ' or else Index = Names'Last then
                Result.Append
                  (Files.File_System.Make_Item
-                    (Files_Suite.Support.Root,
+                    (Files_Suite.Support.Disk.Root,
                      Names (First .. (if Names (Index) = ' ' then Index - 1 else Index)),
                      Files.Types.Regular_File_Item, "text/plain"));
                First := Index + 1;
@@ -63,7 +64,7 @@ separate (Files_Suite.Model)
       Mixed    : Files.Items.Item_Vectors.Vector := Items_Of ("zeta theta iota");
    begin
       Files.Model.Initialize
-        (Model, Files_Suite.Support.Root, Items_Of ("delta Alpha beta gamma"), Files_Suite.Support.Root);
+        (Model, Files_Suite.Support.Disk.Root, Items_Of ("delta Alpha beta gamma"), Files_Suite.Support.Disk.Root);
       Check ("initial");
       Files.Model.Set_Filter (Model, "a");
       Check ("filter a");
@@ -87,7 +88,7 @@ separate (Files_Suite.Model)
       --  Grouping reorders the items under the filter.
       Mixed.Append
         (Files.File_System.Make_Item
-           (Files_Suite.Support.Root, "atlas-et", Files.Types.Directory_Item, "inode/directory"));
+           (Files_Suite.Support.Disk.Root, "atlas-et", Files.Types.Directory_Item, "inode/directory"));
       Files.Model.Replace_Items (Model, Mixed);
       Check ("a refresh with a folder under the filter");
       Files.Model.Set_View_Mode (Model, Files.Types.Details);
@@ -99,6 +100,6 @@ separate (Files_Suite.Model)
       Check ("ungrouped");
 
       --  Navigation brings a new listing.
-      Files.Model.Navigate_To (Model, Files_Suite.Support.Root, Items_Of ("one two three"));
+      Files.Model.Navigate_To (Model, Files_Suite.Support.Disk.Root, Items_Of ("one two three"));
       Check ("navigated");
    end Test_Visible_Map_Follows_Changes;

@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Model)
    procedure Test_Executable_And_Symlink_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -33,7 +34,7 @@ separate (Files_Suite.Model)
                Permissions : constant String := To_String (Item.Permissions);
             begin
                Found_Run := True;
-               if Files_Suite.Support.Honours_Executable_Bit then
+               if Files_Suite.Support.Disk.Honours_Executable_Bit then
                   Assert
                     (Item.Kind = Files.Types.Executable_Item,
                      "the executable bit affects item kind");
@@ -54,13 +55,13 @@ separate (Files_Suite.Model)
                      "missing creation timestamp keeps deterministic sentinel");
                end if;
                Assert (Permissions'Length = 3, "permission metadata has stable rwx shape");
-               if Files_Suite.Support.Honours_Executable_Bit then
+               if Files_Suite.Support.Disk.Honours_Executable_Bit then
                   Assert (Permissions (3) = 'x', "executable permission is captured");
                end if;
             end;
          elsif To_String (Item.Name) = "run.bat" then
             --  The other meaning of executable: no bit was ever set on this file.
-            if not Files_Suite.Support.Honours_Executable_Bit then
+            if not Files_Suite.Support.Disk.Honours_Executable_Bit then
                Assert
                  (Item.Kind = Files.Types.Executable_Item,
                   "a .bat is an executable on a host that runs by extension");
@@ -105,11 +106,13 @@ separate (Files_Suite.Model)
       if Symlink_Created then
          Assert (Found_Symlink, "symlink item was loaded");
       else
-         Files_Suite.Support.Link_Not_Made ("Test_Executable_And_Symlink_Metadata", Files_Suite.Support.Symbolic_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Executable_And_Symlink_Metadata",
+                                                 Files_Suite.Support.Disk.Symbolic_Link);
       end if;
       if Executable_Symlink_Created then
          Assert (Found_Executable_Symlink, "executable symlink item was loaded");
       else
-         Files_Suite.Support.Link_Not_Made ("Test_Executable_And_Symlink_Metadata", Files_Suite.Support.Symbolic_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Executable_And_Symlink_Metadata",
+                                                 Files_Suite.Support.Disk.Symbolic_Link);
       end if;
    end Test_Executable_And_Symlink_Metadata;

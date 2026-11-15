@@ -1,11 +1,12 @@
 with Files.Model.Tree_Panel;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Commands)
    procedure Test_Range_Edges_And_Picker_Tree (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Shift    : constant Guikit.Input.Modifier_Set :=
         [Guikit.Input.Shift_Key => True, others => False];
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Result   : Files.Controller.Controller_Result;
       pragma Unreferenced (Result);
 

@@ -1,15 +1,17 @@
 with Files.Model.Tree_Panel;
 with Files.Settings.Path_References;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Tree)
    --  Favorites are folder-tree roots: starring or unstarring one with the
    --  tree shown reseeds it, so the tree never lists a stale set of roots.
    procedure Test_Favorite_Toggle_Reseeds_Tree (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
-      Path     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "favorites.conf");
-      Item     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "Alpha.txt");
+      Path     : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "favorites.conf");
+      Item     : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "Alpha.txt");
 
       procedure Run (Command : Files.Commands.Command_Id) is
       begin
@@ -28,12 +30,12 @@ separate (Files_Suite.Tree)
          return False;
       end Tree_Has_Root;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Run (Files.Commands.Toggle_Folder_Tree_Command);
       Assert (Files.Model.Tree_Panel.Is_Seeded (Model), "the tree is shown and seeded");
       Assert (not Tree_Has_Root (Item), "the file is not a tree root before it is a favorite");
 
-      Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "Alpha.txt");
       Run (Files.Commands.Toggle_Favorite_Command);
       Assert (Tree_Has_Root (Item), "starring it adds it to the shown tree's roots");
 
@@ -57,10 +59,10 @@ separate (Files_Suite.Tree)
 
       --  ... a favorite moved or renamed, ...
       declare
-         Moved    : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "Moved.txt");
+         Moved    : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "Moved.txt");
          Followed : Boolean;
       begin
-         Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+         Files_Suite.Support.Models.Select_Name (Model, "Alpha.txt");
          Run (Files.Commands.Toggle_Favorite_Command);
          Assert (Tree_Has_Root (Item), "the file is a tree root again");
          Files.Model.Note_Path_Move (Model, Item, Moved);

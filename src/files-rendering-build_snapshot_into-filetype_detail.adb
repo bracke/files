@@ -21,7 +21,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
       end Upper_Extension;
 
       function Extension_File_Label return UString is
-         Extension : constant String := Files.File_Types.Extension_Of (To_String (Item.Name));
+         Extension : constant String := Files.File_Types.Normalized_Extension_Of (To_String (Item.Name));
       begin
          if Extension = "" then
             return Cached_Text ("info.kind.file");

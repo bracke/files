@@ -1,5 +1,6 @@
 with Files.File_System.Testing;
 with Files_Suite.Volumes;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Transfer)
    --  A read-only file stays read-only when copied, and when moved across
    --  devices -- where the move also syncs the copy, which on Windows means
@@ -51,7 +52,7 @@ separate (Files_Suite.Transfer)
       Assert
         (not Writable (Copy),
          "and its copy is read-only"
-         & (if Writable (Copy) then Files_Suite.Support.Access_Report (Copy) else ""));
+         & (if Writable (Copy) then Files_Suite.Support.Disk.Access_Report (Copy) else ""));
       GNAT.OS_Lib.Set_Writable (Copy);
 
       Remote.Create ("files-test-read-only-");

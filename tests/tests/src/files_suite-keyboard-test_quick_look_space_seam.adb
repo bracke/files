@@ -1,4 +1,5 @@
 with Files.Model.Quick_Look;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
    procedure Test_Quick_Look_Space_Seam (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -21,10 +22,10 @@ separate (Files_Suite.Keyboard)
       --  (1) Single selection, grid focused: Space opens Quick Look, the snapshot
       --  carries it, and the parallel space character is dropped from type-ahead.
       declare
-         Model  : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Model  : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Result : Files.Interaction.Interaction_Result;
       begin
-         Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+         Files_Suite.Support.Models.Select_Name (Model, "Alpha.txt");
          Press_Space (Model, Result);
          Assert (Files.Model.Quick_Look.Is_Open (Model), "Space opens Quick Look for a single selection");
          Assert (Result.Clear_Pending_Text, "the grid Space shortcut drops the parallel type-ahead space");
@@ -54,7 +55,7 @@ separate (Files_Suite.Keyboard)
 
       --  (4) No selection: Space does not open Quick Look.
       declare
-         Model  : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Model  : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Result : Files.Interaction.Interaction_Result;
       begin
          Files.Model.Selection.Deselect_All (Model);
@@ -64,7 +65,7 @@ separate (Files_Suite.Keyboard)
 
       --  (5) Multi-selection: Space does not open Quick Look.
       declare
-         Model  : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Model  : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Result : Files.Interaction.Interaction_Result;
       begin
          Files.Model.Selection.Select_All_Visible (Model);
@@ -78,10 +79,10 @@ separate (Files_Suite.Keyboard)
 
       --  (6) Focused text field: Space types a space rather than opening Quick Look.
       declare
-         Model  : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Model  : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Result : Files.Interaction.Interaction_Result;
       begin
-         Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+         Files_Suite.Support.Models.Select_Name (Model, "Alpha.txt");
          Files.Model.Focus_Filter_Input (Model);
          Press_Space (Model, Result);
          Assert

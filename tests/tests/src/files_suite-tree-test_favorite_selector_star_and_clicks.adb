@@ -1,18 +1,21 @@
+with Files.Settings.Path_References;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Tree)
    procedure Test_Favorite_Selector_Star_And_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model      : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model      : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings   : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result     : Files.Interaction.Interaction_Result;
-      Fav_Folder : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "fav-folder");
-      Fav_File   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "fav-file.txt");
+      Fav_Folder : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "fav-folder");
+      Fav_File   : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "fav-file.txt");
       Found      : Boolean;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Fav_Folder);
-      Files_Suite.Support.Write_File (Fav_File);
-      Settings.Favorite_Paths.Append (Ada.Strings.Unbounded.To_Unbounded_String (Fav_Folder));
-      Settings.Favorite_Paths.Append (Ada.Strings.Unbounded.To_Unbounded_String (Fav_File));
+      Files_Suite.Support.Disk.Write_File (Fav_File);
+      Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Fav_Folder);
+      Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Fav_File);
 
       Open_Favorites_Selector (Model, Settings);
       Assert (Files.Model.Root_Selector.Is_Open (Model), "the selector opens for the favorites test");
@@ -52,7 +55,7 @@ separate (Files_Suite.Tree)
       Assert (Found, "the file favorite row is laid out");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
-         Files_Suite.Support.Root,
+         Files_Suite.Support.Disk.Root,
          "a file favorite navigates to the file's parent directory");
       declare
          Selected  : constant Files.Items.Item_Vectors.Vector :=

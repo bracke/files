@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
    --  Item 8/9: the bottom-bar status area reports the hidden (dot-file) count
    --  and doubles as a clickable Show_Hidden_Files toggle. Derive the click
@@ -6,20 +7,20 @@ separate (Files_Suite.Interaction)
    --  (rule d), asserting semantic outcomes only (rule c).
    procedure Test_Bottom_Bar_Hidden_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Path : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "hidden-toggle.conf");
+      Path : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "hidden-toggle.conf");
 
       function Items_With_Hidden return Files.Items.Item_Vectors.Vector is
          Items : Files.Items.Item_Vectors.Vector;
       begin
          Items.Append
            (Files.File_System.Make_Item
-              (Files_Suite.Support.Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
+              (Files_Suite.Support.Disk.Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
          Items.Append
            (Files.File_System.Make_Item
-              (Files_Suite.Support.Root, ".hidden_one", Files.Types.Regular_File_Item, "text/plain"));
+              (Files_Suite.Support.Disk.Root, ".hidden_one", Files.Types.Regular_File_Item, "text/plain"));
          Items.Append
            (Files.File_System.Make_Item
-              (Files_Suite.Support.Root, ".hidden_two", Files.Types.Regular_File_Item, "text/plain"));
+              (Files_Suite.Support.Disk.Root, ".hidden_two", Files.Types.Regular_File_Item, "text/plain"));
          return Items;
       end Items_With_Hidden;
 
@@ -36,10 +37,10 @@ separate (Files_Suite.Interaction)
       Before   : Boolean;
       Listing     : Natural;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Files.Model.Initialize
         (Model,
-         Directory_Path    => Files_Suite.Support.Root,
+         Directory_Path    => Files_Suite.Support.Disk.Root,
          Items             => Items_With_Hidden,
          Home_Path         => "/home/test");
 

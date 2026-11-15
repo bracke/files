@@ -1,4 +1,5 @@
 with Files.Model.Context_Menu;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Context_Menu)
    --  The context menu is drawn over the view. A right-click on it used to
    --  reach the item drawn beneath: the menu closed, the selection was
@@ -6,7 +7,7 @@ separate (Files_Suite.Context_Menu)
    --  menu. It is ignored now; the menu and the selection stay as they were.
    procedure Test_Right_Click_On_Menu_Is_Ignored (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       X, Y     : Natural;

@@ -7,12 +7,13 @@ with Files.Model.Settings_Pane;
 with Files.Model.Sort_Menu;
 with Files.Model.Tree_Panel;
 with Files.Model.Pasting;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Drags)
    procedure Test_Drop_Contained_By_Overlays
      (T : in out AUnit.Test_Cases.Test_Case'Class)
    is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Roots    : Files.Types.String_Vectors.Vector;
       Sources  : Files.Types.String_Vectors.Vector;
@@ -88,7 +89,7 @@ separate (Files_Suite.Drags)
       Assert_Contained ("the label picker");
       Files.Model.Label_Picker.Close (Model);
 
-      Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "Alpha.txt");
       Seed_Type_Ahead;
       Files.Model.Quick_Look.Toggle (Model);
       Assert (Files.Model.Quick_Look.Is_Open (Model), "Quick Look opens for the drop-containment test");

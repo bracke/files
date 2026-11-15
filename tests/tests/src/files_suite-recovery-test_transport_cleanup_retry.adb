@@ -1,4 +1,5 @@
 with Files_Suite.Support.Timing;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Transport_Cleanup_Retry (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -77,7 +78,7 @@ separate (Files_Suite.Recovery)
                "marker inspection rejects a multiply-linked authority file: transport kept");
             Ada.Directories.Delete_File (Marker_Alias);
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Transport_Cleanup_Retry", Files_Suite.Support.Hard_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Transport_Cleanup_Retry", Files_Suite.Support.Disk.Hard_Link);
          end if;
          Result := Files.File_System.Permissions.Set_Permissions (Marker, 0);
          Assert (Result.Success, "prepare a temporarily unreadable transport marker");

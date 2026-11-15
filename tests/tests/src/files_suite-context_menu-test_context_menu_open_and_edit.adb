@@ -1,5 +1,7 @@
 with Files.Model.Clipboard;
 with Files.Model.Context_Menu;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Context_Menu)
    procedure Test_Context_Menu_Open_And_Edit (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,17 +11,17 @@ separate (Files_Suite.Context_Menu)
    begin
       --  Open on a directory navigates into it.
       declare
-         Dir   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "open-nav");
+         Dir   : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "open-nav");
          Items : Files.Items.Item_Vectors.Vector;
          Model : Files.Model.Window_Model;
       begin
-         Files_Suite.Support.Reset_Root;
+         Files_Suite.Support.Disk.Reset_Root;
          Ada.Directories.Create_Path (Dir);
-         Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "inside.txt"));
+         Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "inside.txt"));
          Items.Append
            (Files.File_System.Make_Item
-              (Files_Suite.Support.Root, "open-nav", Files.Types.Directory_Item, "inode/directory"));
-         Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
+              (Files_Suite.Support.Disk.Root, "open-nav", Files.Types.Directory_Item, "inode/directory"));
+         Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
          Files.Model.Selection.Select_Visible (Model, 1);
 
          Open_Item_Context_Menu (Model, Settings, Result);
@@ -35,17 +37,17 @@ separate (Files_Suite.Context_Menu)
 
       --  Rename, Cut, and Duplicate on a real file, each from a fresh model.
       declare
-         Dir       : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "edit-ops");
-         Source    : constant String := Files_Suite.Support.Join (Dir, "report.txt");
-         Copy_Path : constant String := Files_Suite.Support.Join (Dir, "report (copy).txt");
+         Dir       : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "edit-ops");
+         Source    : constant String := Files_Suite.Support.Disk.Join (Dir, "report.txt");
+         Copy_Path : constant String := Files_Suite.Support.Disk.Join (Dir, "report (copy).txt");
          Model     : Files.Model.Window_Model;
       begin
-         Files_Suite.Support.Reset_Root;
+         Files_Suite.Support.Disk.Reset_Root;
          Ada.Directories.Create_Path (Dir);
-         Files_Suite.Support.Write_File (Source, "payload");
+         Files_Suite.Support.Disk.Write_File (Source, "payload");
 
          Model := Loaded_Model (Dir);
-         Files_Suite.Support.Select_Name (Model, "report.txt");
+         Files_Suite.Support.Models.Select_Name (Model, "report.txt");
          Open_Item_Context_Menu (Model, Settings, Result);
          Dispatch_Menu_Command
            (Model, Settings, "", Files.Commands.Rename_Selected_Items_Command, Result, Found);
@@ -53,7 +55,7 @@ separate (Files_Suite.Context_Menu)
          Assert (Files.Model.Rename.Is_Active (Model), "rename starts inline editing of the selection");
 
          Model := Loaded_Model (Dir);
-         Files_Suite.Support.Select_Name (Model, "report.txt");
+         Files_Suite.Support.Models.Select_Name (Model, "report.txt");
          Open_Item_Context_Menu (Model, Settings, Result);
          Dispatch_Menu_Command
            (Model, Settings, "", Files.Commands.Cut_Selected_Items_Command, Result, Found);
@@ -68,7 +70,7 @@ separate (Files_Suite.Context_Menu)
          Assert (Files.Model.Clipboard.Has_Items (Model), "cut captures the selected item");
 
          Model := Loaded_Model (Dir);
-         Files_Suite.Support.Select_Name (Model, "report.txt");
+         Files_Suite.Support.Models.Select_Name (Model, "report.txt");
          Open_Item_Context_Menu (Model, Settings, Result);
          Dispatch_Menu_Command
            (Model, Settings, "", Files.Commands.Duplicate_Selected_Command, Result, Found);

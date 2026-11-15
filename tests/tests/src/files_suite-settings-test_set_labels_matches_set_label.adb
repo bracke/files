@@ -16,7 +16,8 @@ separate (Files_Suite.Settings)
             Files.Settings.Path_References.Set_Label (One_By_One, To_String (Name), Label);
          end loop;
          Files.Settings.Path_References.Set_Labels (At_Once, Names, Label);
-         Assert (Files.Settings.Path_Label_Vectors."=" (One_By_One.Labels, At_Once.Labels),
+         Assert (Files.Settings.Path_References.Same_Labels (One_By_One,
+                                                             Files.Settings.Path_References.Path_Labels (At_Once)),
                  What & ": labelling at once matches labelling one at a time");
          Base := At_Once;
       end Check;
@@ -43,5 +44,6 @@ separate (Files_Suite.Settings)
       Check ("cleared in the middle", List ("/b", "/e", "/z"), Files.Types.No_Label);
       Check ("cleared twice", List ("/a", "/a"), Files.Types.No_Label);
       Check ("an invalid path among them", List ("/g", "/broken" & ASCII.LF & "name", "/h"), Files.Types.Red);
-      Files_Suite.Support.Assert_Equal (Natural (Base.Labels.Length), 5, "five labels remain");
+      Files_Suite.Support.Assert_Equal (Natural (Files.Settings.Path_References.Path_Labels (Base).Length), 5,
+                                        "five labels remain");
    end Test_Set_Labels_Matches_Set_Label;

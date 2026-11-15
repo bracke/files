@@ -1,4 +1,6 @@
 with Files.Folder_Size;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    --  A settings change in one window reached another by reloading its
    --  folder, which replaced the search results that window showed with the
@@ -9,6 +11,8 @@ separate (Files_Suite.Interaction)
    procedure Test_Shared_Settings_Keep_Search_Results (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use Files_Suite.Support;
+      use Files_Suite.Support.Models;
+      use Files_Suite.Support.Disk;
       Model    : Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Shared   : Files.Settings.Settings_Model;

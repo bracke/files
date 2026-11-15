@@ -38,11 +38,6 @@ separate (Files_Suite.Model)
       --  separator. Neither names item 1 or 2 for the settings.
       Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Join (Root, "ITEM_1.TXT"));
       Files.Settings.Path_References.Set_Label (Settings, Join (Root, Name_Of (2)) & "/", Files.Types.Green);
-      --  A repeated entry, as a hand-edited settings file can hold: the first
-      --  one is the label.
-      Settings.Labels.Append
-        (Files.Settings.Path_Label'
-           (Path => To_Unbounded_String (Join (Root, Name_Of (5))), Label => Files.Types.Green));
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
@@ -70,8 +65,6 @@ separate (Files_Suite.Model)
                elsif Name = Name_Of (2) then
                   Assert (Item.Label = Files.Types.No_Label,
                           "a label stored with a trailing separator does not mark the item");
-               elsif Name = Name_Of (5) then
-                  Assert (Item.Label = Color_For (5), "the first of two stored labels for a path wins");
                end if;
             end;
          end loop;

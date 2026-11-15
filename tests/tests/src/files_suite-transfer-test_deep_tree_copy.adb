@@ -40,16 +40,16 @@ separate (Files_Suite.Transfer)
             Append (Relative, "/d");
             Make_Directory (To_String (Leaf));
          end loop;
-         Write_Long_Path_File (Join (To_String (Leaf), "child"), "deep bytes");
+         Write_Binary_File (Join (To_String (Leaf), "child"), "deep bytes");
          Mutation := Files.File_System.Copy_Tree (Source, Dest);
          if Depth < 3 then
-            Assert (Mutation.Success and then Long_Path_File_Is (Dest & To_String (Relative) & "/child", "deep bytes"),
+            Assert (Mutation.Success and then File_Is (Dest & To_String (Relative) & "/child", "deep bytes"),
                     "copying a valid deep directory tree completes without a stack overflow");
          else
             Assert (not Mutation.Success and then Hostkit.Fs.Kind_Of (Dest) = Hostkit.Fs.Missing_Entry,
                     "exceeding the traversal depth cap fails without publishing an incomplete copy");
          end if;
-         Assert (Long_Path_File_Is (Join (To_String (Leaf), "child"), "deep bytes"),
+         Assert (File_Is (Join (To_String (Leaf), "child"), "deep bytes"),
                  "deep copies preserve their source");
          Load := Files.File_System.Load_Directory (Root, Settings);
          for Item of Load.Items loop
@@ -76,7 +76,7 @@ separate (Files_Suite.Transfer)
                Append (Leaf, "/d");
                Make_Directory (To_String (Leaf));
             end loop;
-            Write_Long_Path_File (Join (To_String (Leaf), "child"), "deep bytes");
+            Write_Binary_File (Join (To_String (Leaf), "child"), "deep bytes");
             Paths.Append (To_Unbounded_String (Source));
             Plans := Files.File_System.Plan_Drop_Import (Paths, Remote.Path, Files.File_System.Drop_Move);
             Moved := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);

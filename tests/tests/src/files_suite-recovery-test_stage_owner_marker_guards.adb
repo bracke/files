@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Stage_Owner_Marker_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -60,7 +61,8 @@ separate (Files_Suite.Recovery)
                "stage cleanup rejects a multiply-linked owner marker");
             Ada.Directories.Delete_File (Owner_Alias);
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Stage_Owner_Marker_Guards", Files_Suite.Support.Hard_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Stage_Owner_Marker_Guards",
+                                                    Files_Suite.Support.Disk.Hard_Link);
          end if;
       end;
       declare

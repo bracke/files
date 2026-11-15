@@ -1,4 +1,5 @@
 with Files.Model.Status_Samples;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Rendering)
    --  The grouping field (index 9) is laid out as two rows: a label row and a
    --  dedicated segment row spanning the full content width. The five option
@@ -41,7 +42,7 @@ separate (Files_Suite.Rendering)
 
       declare
          use type Ada.Calendar.Time;
-         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Path     : constant String := Files.Model.Current_Path (Model);
          Now      : constant Ada.Calendar.Time := Ada.Calendar.Clock;

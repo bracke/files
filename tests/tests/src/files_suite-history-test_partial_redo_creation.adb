@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
+with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_Partial_Redo_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -41,7 +42,7 @@ separate (Files_Suite.History)
                Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
                Files.Undo_Recording.Record_Undo
                  (Model, Files.Model.Undo_Delete_Created,
-                  Files_Suite.Support.Undo_Items (Destinations, Forward => Sources),
+                  Files_Suite.Support.Models.Undo_Items (Destinations, Forward => Sources),
                   Create_Kind => Kind);
                Step := Complete_Operation
                        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));

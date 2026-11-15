@@ -1,8 +1,9 @@
 with Files.Rendering.Layouts;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Text_Input)
    procedure Test_Text_Input_Click_Focuses (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       Toolbar  : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Window_W, Line);

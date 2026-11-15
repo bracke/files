@@ -126,4 +126,14 @@ package Files.Desktop_Applications is
       Terminal : String)
       return Open_Action_Vectors.Vector;
 
+   --  A BCP 47 locale tag as a Desktop Entry spells a locale postfix:
+   --  lang_COUNTRY@MODIFIER. A script that glibc names by a modifier becomes
+   --  it (Latn -> latin, Cyrl -> cyrillic, Deva -> devanagari); any other
+   --  script is left out, as entries name Chinese by country alone (zh-Hant-TW
+   --  -> zh_TW).
+   --
+   --  @param Tag A canonical locale tag ("sr-Latn-RS", "de-AT", "fi").
+   --  @return Its Desktop Entry spelling ("sr_RS@latin", "de_AT", "fi").
+   function Desktop_Entry_Locale (Tag : String) return String;
+
 end Files.Desktop_Applications;

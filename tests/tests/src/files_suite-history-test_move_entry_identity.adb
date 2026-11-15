@@ -1,6 +1,8 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_Move_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -43,7 +45,7 @@ separate (Files_Suite.History)
                      Write_Binary_File (Join (Source, "child"), "owned bytes");
                   when others =>
                      if not Hostkit.Fs.Create_Link (Link_Target, Source) then
-                        Files_Suite.Support.Link_Not_Made ("Test_Move_Entry_Identity");
+                        Files_Suite.Support.Disk.Link_Not_Made ("Test_Move_Entry_Identity");
                         return;
                      end if;
                end case;
@@ -59,7 +61,7 @@ separate (Files_Suite.History)
                   Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
                else
                   Select_Name (Model, "original");
-                  Files_Suite.Support.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
+                  Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
                   Files.Model.Rename.Set_Text (Model, "renamed");
                   Step := Files.Operations.Commit_Rename (Model, Settings);
                end if;

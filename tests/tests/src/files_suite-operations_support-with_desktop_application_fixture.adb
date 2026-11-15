@@ -1,4 +1,5 @@
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Operations_Support)
    procedure With_Desktop_Application_Fixture (Check : not null access procedure) is
       LF         : constant Character := ASCII.LF;
@@ -7,7 +8,7 @@ separate (Files_Suite.Operations_Support)
       Apps_Dir   : constant String := Join (App_Base, "applications");
       System_Base : constant String := Join (Root, "xdg_system");
       System_Apps : constant String := Join (System_Base, "applications");
-      Try_Exec    : constant String := Files_Suite.Support.No_Op_Executable;
+      Try_Exec    : constant String := Files_Suite.Support.Disk.No_Op_Executable;
       --  Restores what Check changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
 
@@ -99,7 +100,7 @@ separate (Files_Suite.Operations_Support)
         (Join (Apps_Dir, "multi-marker.desktop"),
          "[Desktop Entry]" & LF & "Type=Application" & LF
          & "Name=Multi Target Marker" & LF
-         & "Exec=" & Desktop_Exec_Escape (Files_Suite.Support.Marker_Executable)
+         & "Exec=" & Desktop_Exec_Escape (Files_Suite.Support.Disk.Marker_Executable)
          & " %f" & LF);
       Write_File
         (Join (Apps_Dir, "quoted.desktop"),
@@ -263,7 +264,7 @@ separate (Files_Suite.Operations_Support)
       --  become a traversal edge back to an ancestor.
       declare
          Loop_Created : constant Boolean :=
-           Files_Suite.Support.Create_Symlink (Apps_Dir, Join (Apps_Dir, "loop"));
+           Files_Suite.Support.Disk.Create_Symlink (Apps_Dir, Join (Apps_Dir, "loop"));
          pragma Unreferenced (Loop_Created);
       begin
          null;

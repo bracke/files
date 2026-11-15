@@ -75,7 +75,7 @@ package body Files.File_Types is
       return Clean (First .. Clean'Last);
    end Leaf_Name;
 
-   function Extension_Of
+   function Normalized_Extension_Of
      (Name     : String;
       Dotfiles : Boolean := False)
       return String
@@ -95,7 +95,7 @@ package body Files.File_Types is
          return Files.Settings.Normalize_Extension (Clean (Clean'First + 1 .. Clean'Last));
       end if;
       return "";
-   end Extension_Of;
+   end Normalized_Extension_Of;
 
    function Filetype_For_Name
      (Settings : Files.Settings.Settings_Model;
@@ -129,7 +129,7 @@ package body Files.File_Types is
    end Filetype_For_Name;
 
    function Is_Extractable_Archive (Name : String) return Boolean is
-     (Extension_Of (Name) in "zip" | "7z");
+     (Normalized_Extension_Of (Name) in "zip" | "7z");
 
    function Detect_Filetype
      (Settings : Files.Settings.Settings_Model;

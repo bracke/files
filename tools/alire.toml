@@ -9,7 +9,7 @@ licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
 website = ""
 tags = ["tools", "checks"]
 
-executables = ["check_all", "cldr_to_catalog"]
+executables = ["check_all", "cldr_to_catalog", "release_check"]
 
 [[depends-on]]
 gnat_native = "=15.2.1"

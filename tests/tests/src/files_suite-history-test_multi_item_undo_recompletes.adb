@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
+with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_Multi_Item_Undo_Recompletes (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -27,7 +28,7 @@ separate (Files_Suite.History)
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Undo_Recording.Record_Undo
-        (Model, Files.Model.Undo_Move, Files_Suite.Support.Undo_Items (From_V, To => To_V));
+        (Model, Files.Model.Undo_Move, Files_Suite.Support.Models.Undo_Items (From_V, To => To_V));
       Assert (Files.Model.History.Undo_Available (Model), "the multi-item move records an undo entry");
 
       --  Occupy the second item's destination so its move-back cannot apply yet.

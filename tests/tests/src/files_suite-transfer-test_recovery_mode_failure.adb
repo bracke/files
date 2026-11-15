@@ -5,6 +5,7 @@ with Files.File_System.Trash;
 with Files.File_System.Permissions;
 with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Transfer)
    procedure Test_Recovery_Mode_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -83,7 +84,8 @@ separate (Files_Suite.Transfer)
                      "recovery refuses a multiply-linked mode record: source not created");
                   Ada.Directories.Delete_File (Mode_Alias);
                else
-                  Files_Suite.Support.Link_Not_Made ("Test_Recovery_Mode_Failure", Files_Suite.Support.Hard_Link);
+                  Files_Suite.Support.Disk.Link_Not_Made ("Test_Recovery_Mode_Failure",
+                                                          Files_Suite.Support.Disk.Hard_Link);
                end if;
             end;
             Mutation := Files.File_System.Trash.Restore_From_Trash

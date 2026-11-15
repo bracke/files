@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files.Commands.Status;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Commands)
    procedure Test_Clear_Filter_And_No_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -44,7 +45,7 @@ separate (Files_Suite.Commands)
          "enabled clear-filter reports successful state-only operation");
       Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "", "clear-filter command clears filter text");
       Model := Sample_Model;
-      Files_Suite.Support.Run_Command (Files.Commands.No_Command, Model);
+      Files_Suite.Support.Models.Run_Command (Files.Commands.No_Command, Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
          Root,

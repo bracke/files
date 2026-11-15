@@ -4,6 +4,7 @@ with Files.Durability.Testing;
 with Files.Items;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    --  A cross-device move whose source could not be removed, and whose copy
    --  then could not be removed either, keeps both: its undo deletes the copy
@@ -65,7 +66,7 @@ separate (Files_Suite.History)
             Ada.Environment_Variables.Set ("FILES_TEST_STAGE_SYNC_FAULT", "1");
             Files.Operations.Begin_Paste_Execution
               (Model, (if Mixed then Mixed_Actions else Actions), Files.File_System.Drop_Move);
-            Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+            Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
             Cleanup;
             Assert (Step.Status = Files.Operation_Results.Operation_Failed,
                     "the move fails, background " & Background'Image);

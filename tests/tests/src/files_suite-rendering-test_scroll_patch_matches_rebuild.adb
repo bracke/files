@@ -1,4 +1,5 @@
 with Files.Model.Tree_Panel;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Rendering)
    --  The window patches a snapshot's three scroll fields when only a scroll
    --  offset moved (Snapshot_Policy.Patch_Scroll). That is right only if every
@@ -49,9 +50,9 @@ separate (Files_Suite.Rendering)
          for Index in 1 .. 60 loop
             Items.Append
               (Files.File_System.Make_Item
-                 (Files_Suite.Support.Root, "row" & Index'Image, Files.Types.Regular_File_Item, "text/plain"));
+                 (Files_Suite.Support.Disk.Root, "row" & Index'Image, Files.Types.Regular_File_Item, "text/plain"));
          end loop;
-         Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
+         Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
       end;
       --  The info pane and the tree scroll only while open, and the tree only
       --  when it has rows to scroll through.
@@ -63,7 +64,8 @@ separate (Files_Suite.Rendering)
             Roots.Append
               (Files.Folder_Tree.Entry_Seed'
                  (Path =>
-                    To_Unbounded_String (Files_Suite.Support.Join (Files_Suite.Support.Root, "dir" & Index'Image)),
+                    To_Unbounded_String (Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root,
+                                                                        "dir" & Index'Image)),
                   Name => To_Unbounded_String ("dir" & Index'Image)));
          end loop;
          Files.Model.Tree_Panel.Seed (Model, Roots);

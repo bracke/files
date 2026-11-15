@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Transfer_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -86,7 +87,7 @@ separate (Files_Suite.Recovery)
            (Rejected, "transfer result reads refuse a multiply-linked file");
          Ada.Directories.Delete_File (Transfer_Path);
       else
-         Files_Suite.Support.Link_Not_Made ("Test_Transfer_Record_Validation", Files_Suite.Support.Hard_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Transfer_Record_Validation", Files_Suite.Support.Disk.Hard_Link);
       end if;
 
       Transfer_Action :=
@@ -145,6 +146,6 @@ separate (Files_Suite.Recovery)
            (Rejected, "transfer request reads refuse a multiply-linked file");
          Ada.Directories.Delete_File (Transfer_Request_Path);
       else
-         Files_Suite.Support.Link_Not_Made ("Test_Transfer_Record_Validation", Files_Suite.Support.Hard_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Transfer_Record_Validation", Files_Suite.Support.Disk.Hard_Link);
       end if;
    end Test_Transfer_Record_Validation;

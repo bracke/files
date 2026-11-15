@@ -35,7 +35,8 @@ separate (Files_Suite.Trash)
       end Trash_Photo;
 
       function Labeled_Anywhere return Boolean is
-        (for some Entry_Label of Settings.Labels => Entry_Label.Label = Files.Types.Purple);
+        (for some Entry_Label of Files.Settings.Path_References.Path_Labels (Settings) =>
+           Entry_Label.Label = Files.Types.Purple);
    begin
       Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
       Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");

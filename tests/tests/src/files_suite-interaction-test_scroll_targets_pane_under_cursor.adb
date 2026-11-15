@@ -1,8 +1,9 @@
 with Files.Rendering.Layouts;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    procedure Test_Scroll_Targets_Pane_Under_Cursor (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Info_X, Info_Y : Natural;
       Main_X, Main_Y : Natural;

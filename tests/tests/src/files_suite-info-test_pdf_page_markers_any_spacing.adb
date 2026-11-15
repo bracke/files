@@ -1,3 +1,4 @@
+with Files_Suite.Support.Models;
 separate (Files_Suite.Info)
    procedure Test_Pdf_Page_Markers_Any_Spacing (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,7 +8,7 @@ separate (Files_Suite.Info)
          Path : constant String := Join (Root, Name);
       begin
          Write_Binary_File (Path, "%PDF-1.7" & ASCII.LF & Content);
-         return Files_Suite.Support.Describe
+         return Files_Suite.Support.Models.Describe
            (Files.File_System.Extra_Info_Of (Path, Files.Types.Regular_File_Item, "application/pdf"));
       end Pages_Of;
    begin

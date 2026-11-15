@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Names)
    procedure Test_Case_Only_Rename_Is_Safe (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -103,9 +104,9 @@ separate (Files_Suite.Names)
                Assert (File_Has_Bytes (Shared, "shared bytes"),
                        "two entries with one target cannot be mistaken for a no-op rename: target unchanged");
             else
-               Files_Suite.Support.Link_Not_Made
+               Files_Suite.Support.Disk.Link_Not_Made
                  ("Test_Case_Only_Rename_Is_Safe",
-                  (if Symbolic then Files_Suite.Support.Symbolic_Link else Files_Suite.Support.Hard_Link));
+                  (if Symbolic then Files_Suite.Support.Disk.Symbolic_Link else Files_Suite.Support.Disk.Hard_Link));
             end if;
          end;
       end loop;
@@ -121,7 +122,8 @@ separate (Files_Suite.Names)
                Assert (Mutation.Success and then Hostkit.Fs.Is_Link (Case_Link),
                        "case-only rename moves a dangling link on a case-insensitive filesystem");
             else
-               Files_Suite.Support.Link_Not_Made ("Test_Case_Only_Rename_Is_Safe", Files_Suite.Support.Symbolic_Link);
+               Files_Suite.Support.Disk.Link_Not_Made ("Test_Case_Only_Rename_Is_Safe",
+                                                       Files_Suite.Support.Disk.Symbolic_Link);
             end if;
          else
             Write_File (Join (Root, "shared"), "shared bytes");
@@ -142,7 +144,8 @@ separate (Files_Suite.Names)
                        "different links to one target are a collision even when names differ only by case: "
                        & "destination link kept");
             else
-               Files_Suite.Support.Link_Not_Made ("Test_Case_Only_Rename_Is_Safe", Files_Suite.Support.Symbolic_Link);
+               Files_Suite.Support.Disk.Link_Not_Made ("Test_Case_Only_Rename_Is_Safe",
+                                                       Files_Suite.Support.Disk.Symbolic_Link);
             end if;
          end if;
       end;

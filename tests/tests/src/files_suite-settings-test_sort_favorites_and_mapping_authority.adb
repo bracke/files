@@ -26,14 +26,14 @@ separate (Files_Suite.Settings)
          Found_Hash     : Boolean := False;
          Found_File     : Boolean := False;
       begin
-         With_Favorites.Favorite_Paths.Append (To_Unbounded_String ("/data/a=b"));
-         With_Favorites.Favorite_Paths.Append (To_Unbounded_String ("#hashdir"));
+         Files.Settings.Path_References.Toggle_Favorite_Path (With_Favorites, "/data/a=b");
+         Files.Settings.Path_References.Toggle_Favorite_Path (With_Favorites, "#hashdir");
          --  Favorites may reference files as well as folders; the path is
          --  stored verbatim and must survive the round-trip either way.
-         With_Favorites.Favorite_Paths.Append (To_Unbounded_String ("/data/report.txt"));
+         Files.Settings.Path_References.Toggle_Favorite_Path (With_Favorites, "/data/report.txt");
          Round := Files.Settings.Parse (Files.Settings.To_Text (With_Favorites));
          Assert (Round.Success, "settings with tricky favorite paths round-trips");
-         for P of Round.Settings.Favorite_Paths loop
+         for P of Files.Settings.Path_References.Favorite_Paths (Round.Settings) loop
             if To_String (P) = "/data/a=b" then
                Found_Eq := True;
             elsif To_String (P) = "#hashdir" then
@@ -54,7 +54,7 @@ separate (Files_Suite.Settings)
          Files.Settings.Path_References.Toggle_Favorite_Path
            (Favorites, "/tmp/bad" & Character'Val (0) & "ignored");
          Files_Suite.Support.Assert_Equal
-           (Natural (Favorites.Favorite_Paths.Length),
+           (Natural (Files.Settings.Path_References.Favorite_Paths (Favorites).Length),
             1,
             "a NUL-containing path cannot be persisted as a favorite");
       end;

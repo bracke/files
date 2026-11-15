@@ -20,8 +20,11 @@ files = "^0.1.0"
 [[depends-on]]
 hostkit = "^0.1.0"
 
+# files is linked by path, and Alire applies a linked crate's pins to the
+# root that links it: hostkit, guikit, a11y, cryptolib, humanize and the rest
+# of files' siblings resolve through files' own pins. Only what files does not
+# depend on is pinned here.
 [[pins]]
-hostkit = { path = "../../hostkit" }
 files = { path = ".." }
 
 [[depends-on]]
@@ -33,20 +36,8 @@ project_tools = { path = "../../project_tools" }
 [[depends-on]]
 guikit = "^0.1.0"
 
-[[pins]]
-guikit = { path = "../../guikit" }
-
 [[depends-on]]
 a11y = "^0.1.0"
-
-[[pins]]
-a11y = { path = "../../a11ykit" }
-
-# Pins are root-only in Alire: files uses cryptolib and humanize, so this root
-# must pin them.
-[[pins]]
-cryptolib = { path = "../../cryptolib" }
-humanize = { path = "../../humanize" }
 
 [[depends-on]]
 aunit = "=26.0.0"

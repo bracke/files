@@ -37,6 +37,8 @@ with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Images;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 
 package body Files_Suite.Thumbnails is
 
@@ -49,6 +51,8 @@ package body Files_Suite.Thumbnails is
    use type Textrender.Fonts.Load_Result;
    use type Files.Types.View_Mode;
    use Files_Suite.Support;
+   use Files_Suite.Support.Models;
+   use Files_Suite.Support.Disk;
    use Files_Suite.Support.Images;
    use Files_Suite.Support.Timing;
    use Files_Suite.Operations_Support;

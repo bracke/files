@@ -26,7 +26,7 @@ separate (Files_Suite.Info)
 
       Files.Folder_Size.Cancel (Scan);
       Files.Folder_Size.Request (Scan, Tree);
-      for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
+      for Attempt in Polling loop
          Files.Folder_Size.Step (Scan);
          Files.Folder_Size.Take_All (Scan, Taken);
          Available := not Taken.Is_Empty;

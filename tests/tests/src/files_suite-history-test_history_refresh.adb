@@ -1,6 +1,7 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.Settings.Path_References;
+with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_History_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -74,7 +75,7 @@ separate (Files_Suite.History)
                   Destinations.Append (To_Unbounded_String (Dest_A));
                   Destinations.Append (To_Unbounded_String (Dest_B));
                   Files.Undo_Recording.Record_Undo
-                    (Model, Files.Model.Undo_Move, Files_Suite.Support.Undo_Items (Destinations, To => Sources));
+                    (Model, Files.Model.Undo_Move, Files_Suite.Support.Models.Undo_Items (Destinations, To => Sources));
                   Files.Model.Set_Background_Transfers (Model, Background);
                   Step := Complete_Operation
                        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));

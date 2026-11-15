@@ -1,6 +1,7 @@
 with Files.Rendering.Layouts;
 with Files.Model.Command_Palette;
 with Files.Model.Settings_Pane;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    --  The wheel goes to the overlay on top of Files.Types.Overlay_Stack, as
    --  clicks and keys do: a paste dialog over the palette swallows it, the
@@ -8,7 +9,7 @@ separate (Files_Suite.Interaction)
    --  region that is not the top overlay's own is contained.
    procedure Test_Wheel_Follows_Overlay_Stack (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
    begin
       declare

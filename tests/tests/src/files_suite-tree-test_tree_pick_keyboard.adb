@@ -1,4 +1,6 @@
 with Files.Model.Tree_Panel;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Tree)
    procedure Test_Tree_Pick_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,20 +8,20 @@ separate (Files_Suite.Tree)
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       CResult  : Files.Controller.Controller_Result;
-      Tree_Dir : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "pick-tree");
-      Alpha    : constant String := Files_Suite.Support.Join (Tree_Dir, "alpha");
-      Beta     : constant String := Files_Suite.Support.Join (Tree_Dir, "beta");
-      A1       : constant String := Files_Suite.Support.Join (Alpha, "a1");
-      Src_File : constant String := Files_Suite.Support.Join (Tree_Dir, "src.txt");
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Tree_Dir : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "pick-tree");
+      Alpha    : constant String := Files_Suite.Support.Disk.Join (Tree_Dir, "alpha");
+      Beta     : constant String := Files_Suite.Support.Disk.Join (Tree_Dir, "beta");
+      A1       : constant String := Files_Suite.Support.Disk.Join (Alpha, "a1");
+      Src_File : constant String := Files_Suite.Support.Disk.Join (Tree_Dir, "src.txt");
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Seeds    : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
       Sources  : Files.Types.String_Vectors.Vector;
       Rows     : Files.Folder_Tree.Visible_Row_Vectors.Vector;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Beta);
       Ada.Directories.Create_Path (A1);
-      Files_Suite.Support.Write_File (Src_File, "x");
+      Files_Suite.Support.Disk.Write_File (Src_File, "x");
 
       Seeds.Append
         (Files.Folder_Tree.Entry_Seed'
@@ -116,6 +118,6 @@ separate (Files_Suite.Tree)
       Files_Suite.Support.Assert_Equal
         (Result.Status, Files.Controller.Controller_Command_Executed, "Enter reports the copy it started");
       Assert
-        (Ada.Directories.Exists (Files_Suite.Support.Join (Alpha, "src.txt")),
+        (Ada.Directories.Exists (Files_Suite.Support.Disk.Join (Alpha, "src.txt")),
          "Enter copies the source into the highlighted destination");
    end Test_Tree_Pick_Keyboard;

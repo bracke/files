@@ -1,13 +1,14 @@
 with Files.Model.Context_Menu;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Context_Menu)
    procedure Test_Empty_Area_Menu_Contents (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
-      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "empty-contents");
+      Dir      : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "empty-contents");
       Model    : Files.Model.Window_Model;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Dir);
       Model := Loaded_Model (Dir);
 

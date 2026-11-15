@@ -1,12 +1,14 @@
 with Files.Model.Command_Palette;
 with Files.Model.Root_Selector;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Model)
    --  Every "is an overlay open" question reads Files.Model's one list of
    --  input-owning overlays: the overlay's own click handler excludes itself,
    --  and the root selector stops owning text input once the palette covers it.
    procedure Test_Overlay_Queries (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Roots : Files.Types.String_Vectors.Vector;
    begin
       Assert (not Files.Model.Input_Owning_Overlay_Is_Open (Model), "no overlay is open at first");
@@ -15,7 +17,7 @@ separate (Files_Suite.Model)
          Assert (not Files.Model.Testing.Overlay_Is_Open (Model, Overlay), "no single overlay is open at first");
       end loop;
 
-      Roots.Append (Ada.Strings.Unbounded.To_Unbounded_String (Files_Suite.Support.Root));
+      Roots.Append (Ada.Strings.Unbounded.To_Unbounded_String (Files_Suite.Support.Disk.Root));
       Files.Model.Root_Selector.Open (Model, Roots);
       Assert (Files.Model.Testing.Overlay_Is_Open (Model, Files.Types.Root_Selector_Overlay), "the selector is open");
       Assert (Files.Model.Input_Owning_Overlay_Is_Open (Model), "the selector owns input");

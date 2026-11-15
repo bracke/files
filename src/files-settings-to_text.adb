@@ -66,20 +66,20 @@ separate (Files.Settings)
          Append_Line (To_String (Key) & " = " & Action_Text (Settings.Open_Actions.Element (To_String (Key))));
       end loop;
 
-      if not Settings.Favorite_Paths.Is_Empty then
+      if not Settings.Paths.Favorites.Is_Empty then
          Append_Line;
          Append_Line ("[bookmarks]");
-         for Path of Settings.Favorite_Paths loop
+         for Path of Settings.Paths.Favorites loop
             --  Write the path in a quoted value position so paths containing
             --  '=' or starting with '#' (and trailing whitespace) round-trip.
             Append_Line ("bookmark = " & Action_Token_Text (To_String (Path)));
          end loop;
       end if;
 
-      if not Settings.Labels.Is_Empty then
+      if not Settings.Paths.Labels.Is_Empty then
          Append_Line;
          Append_Line ("[labels]");
-         for Entry_Value of Settings.Labels loop
+         for Entry_Value of Settings.Paths.Labels loop
             --  Encode as "<color>|<path>" in a quoted value position so paths
             --  with '=', '|', or leading '#' (and trailing whitespace) survive
             --  the round-trip. The label token itself is space-free.
@@ -91,10 +91,10 @@ separate (Files.Settings)
          end loop;
       end if;
 
-      if not Settings.Recent_Paths_Value.Is_Empty then
+      if not Settings.Paths.Recent.Is_Empty then
          Append_Line;
          Append_Line ("[recent]");
-         for Path of Settings.Recent_Paths_Value loop
+         for Path of Settings.Paths.Recent loop
             --  Write the path in a quoted value position so paths containing
             --  '=' or starting with '#' (and trailing whitespace) round-trip.
             --  The format key is split so the no-user-text-literal rule holds.

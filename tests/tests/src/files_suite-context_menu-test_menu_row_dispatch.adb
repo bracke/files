@@ -1,10 +1,11 @@
 with Files.Model.Clipboard;
 with Files.Model.Context_Menu;
 with Files.Rendering.Layouts;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Context_Menu)
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       X, Y     : Natural;

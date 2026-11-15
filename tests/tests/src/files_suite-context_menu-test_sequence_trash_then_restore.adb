@@ -1,14 +1,16 @@
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Context_Menu)
    procedure Test_Sequence_Trash_Then_Restore (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result      : Files.Interaction.Interaction_Result;
       Found       : Boolean;
-      Trash_Home  : constant String := Files_Suite.Support.Root & "_trash_seq_xdg";
+      Trash_Home  : constant String := Files_Suite.Support.Disk.Root & "_trash_seq_xdg";
       Trash_File  : constant String :=
-        Files_Suite.Support.Join (Files_Suite.Support.Join (Trash_Home, "Trash"), "files");
-      Doomed      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "doomed.txt");
+        Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Join (Trash_Home, "Trash"), "files");
+      Doomed      : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "doomed.txt");
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
       Model       : Files.Model.Window_Model;
@@ -18,7 +20,7 @@ separate (Files_Suite.Context_Menu)
       Files_Suite.Support.Guards.Save (Environment, "HOME");
       Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
 
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
@@ -26,24 +28,24 @@ separate (Files_Suite.Context_Menu)
       Ada.Environment_Variables.Set ("HOME", Trash_Home);
 
       --  Step 1: delete a file to trash via the item menu.
-      Files_Suite.Support.Write_File (Doomed, "payload");
-      Model := Loaded_Model (Files_Suite.Support.Root);
-      Files_Suite.Support.Select_Name (Model, "doomed.txt");
+      Files_Suite.Support.Disk.Write_File (Doomed, "payload");
+      Model := Loaded_Model (Files_Suite.Support.Disk.Root);
+      Files_Suite.Support.Models.Select_Name (Model, "doomed.txt");
       Open_Item_Context_Menu (Model, Settings, Result);
       Dispatch_Menu_Command
         (Model, Settings, "", Files.Commands.Delete_Selected_Items_Command, Result, Found);
       Assert (Found, "the item menu offers the delete command");
       Assert (not Ada.Directories.Exists (Doomed), "delete moves the item out of the directory");
       Assert
-        (Ada.Directories.Exists (Files_Suite.Support.Join (Trash_File, "doomed.txt")),
+        (Ada.Directories.Exists (Files_Suite.Support.Disk.Join (Trash_File, "doomed.txt")),
          "delete stores the payload in the trash files directory");
 
       --  Step 2: navigate into the trash directory and select the trashed item.
       Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Files.Model.Initialize
-        (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Root);
+        (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Disk.Root);
       Files.Operations.Settle_Current_Is_Trash (Model);
-      Files_Suite.Support.Select_Name (Model, "doomed.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "doomed.txt");
       Assert (Files.Model.Selection.Selected_Count (Model) > 0, "the trashed item is selectable in the trash view");
 
       --  Step 3: restore from the item menu returns the file to its origin.
@@ -53,7 +55,7 @@ separate (Files_Suite.Context_Menu)
       Assert (Found, "the item menu offers the restore-from-trash command");
       Assert (Ada.Directories.Exists (Doomed), "restore returns the file to its original path");
       Assert
-        (not Ada.Directories.Exists (Files_Suite.Support.Join (Trash_File, "doomed.txt")),
+        (not Ada.Directories.Exists (Files_Suite.Support.Disk.Join (Trash_File, "doomed.txt")),
          "restore removes the file from the trash directory");
 
       Project_Tools.Files.Delete_Tree (Trash_Home);

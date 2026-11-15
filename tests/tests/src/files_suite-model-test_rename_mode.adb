@@ -2,6 +2,7 @@ with Files.Operation_Results;
 with Files.File_System.Testing;
 with Files.Model.Command_Palette;
 with Files.Model.Root_Selector;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Model)
    procedure Test_Rename_Mode (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -43,7 +44,7 @@ separate (Files_Suite.Model)
       Files.Model.Rename.Toggle (Model);
       Assert (not Files.Model.Rename.Is_Active (Model), "toggling rename again cancels multi rename");
       Files.Model.Selection.Select_Visible (Model, 2);
-      Files_Suite.Support.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
+      Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
       Assert (Files.Model.Rename.Is_Active (Model), "rename command enters rename mode");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Rename.Text (Model),
@@ -57,14 +58,14 @@ separate (Files_Suite.Model)
          "selection change clears stale rename focus");
 
       Files.Model.Selection.Select_Visible (Model, 2);
-      Files_Suite.Support.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
+      Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
       Files.Model.Selection.Toggle_Visible_Selection (Model, 1);
       Assert
         (Files.Model.Rename.Is_Active (Model),
          "extending the selection keeps the still-selected rename field active");
 
       Files.Model.Selection.Select_Visible (Model, 3);
-      Files_Suite.Support.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
+      Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
       Files.Model.Set_Filter (Model, "Alpha");
       Assert (not Files.Model.Rename.Is_Active (Model), "filter hiding rename target cancels rename mode");
       Files_Suite.Support.Assert_Equal
@@ -73,8 +74,8 @@ separate (Files_Suite.Model)
          "filter reconciliation selects visible item");
       Files.Model.Clear_Filter (Model);
       Files.Model.Selection.Select_Visible (Model, 2);
-      Files_Suite.Support.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
-      Files_Suite.Support.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
+      Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
+      Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
       Assert (not Files.Model.Rename.Is_Active (Model), "F2 while renaming cancels rename mode");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);

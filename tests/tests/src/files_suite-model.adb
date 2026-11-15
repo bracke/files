@@ -40,6 +40,8 @@ with Guikit.Input;
 with Files.Types;
 with Files_Suite.Support;
 with Files_Suite.Support.Images;
+with Files_Suite.Support.Models;
+with Files_Suite.Support.Disk;
 
 package body Files_Suite.Model is
 
@@ -57,6 +59,8 @@ package body Files_Suite.Model is
    use type Files.Types.Item_Kind;
    use type Files.Types.View_Mode;
    use Files_Suite.Support;
+   use Files_Suite.Support.Models;
+   use Files_Suite.Support.Disk;
    use Files_Suite.Support.Images;
 
    type Model_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
@@ -282,7 +286,7 @@ package body Files_Suite.Model is
    --  The "extra info" is now computed lazily (not stored on load), so tests
    --  compute it on demand, described compactly.
    function Item_Extra (I : Files.Items.Directory_Item) return String is
-     (Files_Suite.Support.Describe
+     (Files_Suite.Support.Models.Describe
         (Files.File_System.Extra_Info_Of (To_String (I.Full_Path), I.Kind, To_String (I.Filetype))));
 
    procedure Test_Executable_And_Symlink_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

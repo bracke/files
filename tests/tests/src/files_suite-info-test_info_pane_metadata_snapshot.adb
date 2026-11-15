@@ -1,4 +1,5 @@
 with Files.Rendering.Testing;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,7 +10,7 @@ separate (Files_Suite.Info)
 
       --  A fixture's extra info, described compactly.
       function Extra_Of (Name, Filetype : String) return String is
-        (Files_Suite.Support.Describe
+        (Files_Suite.Support.Models.Describe
            (Files.File_System.Extra_Info_Of (Join (Root, Name), Files.Types.Regular_File_Item, Filetype)));
    begin
       Reset_Root;

@@ -1,3 +1,5 @@
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    --  Hiding hidden files from another window deleted the hidden matches
    --  from the search results a window showed, so showing them again could
@@ -7,6 +9,8 @@ separate (Files_Suite.Interaction)
    procedure Test_Shared_Hidden_Toggle_Restores_Results (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use Files_Suite.Support;
+      use Files_Suite.Support.Models;
+      use Files_Suite.Support.Disk;
       Model    : Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Shared   : Files.Settings.Settings_Model;

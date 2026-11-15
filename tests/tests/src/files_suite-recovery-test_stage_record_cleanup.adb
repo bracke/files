@@ -1,6 +1,7 @@
 with Files.File_System.Permissions;
 with Files.Job_Helpers.Testing;
 with Files_Suite.Support.Timing;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -96,7 +97,7 @@ separate (Files_Suite.Recovery)
         (Join (Join (Join (Transport, "stages"), "stage-unrelated"), "data"),
          Record_Alias);
       if not Record_Linked then
-         Files_Suite.Support.Link_Not_Made ("Test_Stage_Record_Cleanup", Files_Suite.Support.Hard_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Stage_Record_Cleanup", Files_Suite.Support.Disk.Hard_Link);
       end if;
       Add_Stage_Record ("stage-unowned", Unowned, Files.File_Identities.Token (Unowned));
       Add_Stage_Record ("stage-absent", Join (Root, Files.Protocol_Names.Work_Stage_Prefix & "8000"), "");
@@ -104,7 +105,7 @@ separate (Files_Suite.Recovery)
       if Linked then
          Add_Stage_Record ("stage-link", Link, Files.File_Identities.Token (Link));
       else
-         Files_Suite.Support.Link_Not_Made ("Test_Stage_Record_Cleanup", Files_Suite.Support.Symbolic_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Stage_Record_Cleanup", Files_Suite.Support.Disk.Symbolic_Link);
       end if;
       Add_Stage_Record ("stage-corrupt", "", "", Corrupt => True);
       Add_Stage_Record ("stage-oversized", "", "", Oversized => True);

@@ -17,6 +17,45 @@ package Files.Settings.Path_References is
       Path     : String)
       return Boolean;
 
+   --  Return the favorites in the order they were starred. Every way in
+   --  (Parse, Toggle_Favorite_Path) refuses a path Persistent_Path_Is_Valid
+   --  rejects, so each entry is one Is_Favorite answers for.
+   --
+   --  @param Settings Settings model to query.
+   --  @return The favorite paths.
+   function Favorite_Paths
+     (Settings : Settings_Model)
+      return String_Vectors.Vector;
+
+   --  Return the color labels, one entry per labelled path.
+   --
+   --  @param Settings Settings model to query.
+   --  @return The path labels.
+   function Path_Labels
+     (Settings : Settings_Model)
+      return Path_Label_Vectors.Vector;
+
+   --  Whether Settings holds exactly Favorites, compared in place (no copy):
+   --  for checks made on every frame.
+   --
+   --  @param Settings Settings model to query.
+   --  @param Favorites Favorite paths to compare with.
+   --  @return True when the favorites equal Favorites, in order.
+   function Same_Favorites
+     (Settings  : Settings_Model;
+      Favorites : String_Vectors.Vector)
+      return Boolean;
+
+   --  Whether Settings holds exactly Labels, compared in place (no copy).
+   --
+   --  @param Settings Settings model to query.
+   --  @param Labels Path labels to compare with.
+   --  @return True when the labels equal Labels, in order.
+   function Same_Labels
+     (Settings : Settings_Model;
+      Labels   : Path_Label_Vectors.Vector)
+      return Boolean;
+
    --  Toggle Path in the favorites list, adding it when absent and removing
    --  every entry for it when present. The empty path is ignored.
    --

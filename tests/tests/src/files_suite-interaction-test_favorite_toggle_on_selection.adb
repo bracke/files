@@ -1,20 +1,22 @@
 with Files.Commands.Status;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
-      Path     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "favorites.conf");
-      Item     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "Alpha.txt");
+      Path     : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "favorites.conf");
+      Item     : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "Alpha.txt");
       Action   : constant Files.Events.Input_Action :=
         (Kind    => Files.Events.Command_Input_Action,
          Command => Files.Commands.Toggle_Favorite_Command);
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
 
       --  Selected file: favoriting stores the item's full path, not the folder.
-      Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "Alpha.txt");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),
          1,

@@ -4,6 +4,7 @@ with Files.Foreground_Jobs;
 with Files.Fs_Primitives;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Transfer)
    procedure Test_Staging_Default_ACL (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -117,7 +118,7 @@ separate (Files_Suite.Transfer)
          Assert
            (Inherits (Dest),
             "the published copy holds the folder's ACE and no OWNER RIGHTS ACE from its stage"
-            & (if Inherits (Dest) then "" else Files_Suite.Support.Access_Report (Dest)));
+            & (if Inherits (Dest) then "" else Files_Suite.Support.Disk.Access_Report (Dest)));
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);

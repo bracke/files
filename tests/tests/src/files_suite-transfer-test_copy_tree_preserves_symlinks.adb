@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Transfer)
    procedure Test_Copy_Tree_Preserves_Symlinks (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -19,13 +20,13 @@ separate (Files_Suite.Transfer)
 
       --  A self-referential link (points at an ancestor) plus a plain file link.
       --  Without symlinks there is nothing to assert; Link_Not_Made says so.
-      if not Files_Suite.Support.Create_Symlink (Tree, Join (Tree, "loop")) then
-         Files_Suite.Support.Link_Not_Made ("Test_Copy_Tree_Preserves_Symlinks");
+      if not Files_Suite.Support.Disk.Create_Symlink (Tree, Join (Tree, "loop")) then
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Copy_Tree_Preserves_Symlinks");
          return;
       end if;
       declare
          Aliased_Link : constant Boolean :=
-           Files_Suite.Support.Create_Symlink (Join (Tree, "a.txt"), Join (Tree, "alias"));
+           Files_Suite.Support.Disk.Create_Symlink (Join (Tree, "a.txt"), Join (Tree, "alias"));
          pragma Unreferenced (Aliased_Link);
       begin
          null;
@@ -37,8 +38,8 @@ separate (Files_Suite.Transfer)
       --  the cleanup and leave symlink-bearing fixtures that Reset_Root then trips
       --  over (a dangling link poisons every later test in the run).
       Copied_Ok  := Result.Success;
-      File_Ok    := Files_Suite.Support.Path_Exists (Join (Dest, "a.txt"));
-      Nested_Ok  := Files_Suite.Support.Path_Exists (Join (Join (Dest, "nested"), "c.txt"));
+      File_Ok    := Files_Suite.Support.Disk.Path_Exists (Join (Dest, "a.txt"));
+      Nested_Ok  := Files_Suite.Support.Disk.Path_Exists (Join (Join (Dest, "nested"), "c.txt"));
       Alias_Link := Hostkit.Fs.Is_Link (Join (Dest, "alias"));
       Loop_Link  := Hostkit.Fs.Is_Link (Join (Dest, "loop"));
 

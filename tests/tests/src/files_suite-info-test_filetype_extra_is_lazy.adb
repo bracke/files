@@ -1,4 +1,5 @@
 with Files.Rendering.Testing;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Info)
    procedure Test_Filetype_Extra_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -28,7 +29,7 @@ separate (Files_Suite.Info)
       --  Info pane closed: the child count is not computed (no subfolder opened).
       Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
       Files_Suite.Support.Assert_Equal
-        (Files_Suite.Support.Describe (Files.Model.Selection.Selected_Item (Model).Filetype_Extra),
+        (Files_Suite.Support.Models.Describe (Files.Model.Selection.Selected_Item (Model).Filetype_Extra),
          "",
          "the folder's child count is not computed while the info pane is closed");
 

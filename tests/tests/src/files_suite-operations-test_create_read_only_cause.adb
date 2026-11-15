@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Operations)
    procedure Test_Create_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -13,11 +14,11 @@ separate (Files_Suite.Operations)
       end if;
       Mutation := Files.File_System.Create_Empty_File (Join (Locked, "new.txt"));
       Assert (not Mutation.Success,
-              "a read-only folder refuses a new file" & Files_Suite.Support.Access_Report (Locked));
+              "a read-only folder refuses a new file" & Files_Suite.Support.Disk.Access_Report (Locked));
       Assert_Equal (To_String (Mutation.Error_Key), "error.io.denied", "the refused file says permission was denied");
       Mutation := Files.File_System.Create_Directory (Join (Locked, "new folder"));
       Assert (not Mutation.Success,
-              "a read-only folder refuses a new folder" & Files_Suite.Support.Access_Report (Locked));
+              "a read-only folder refuses a new folder" & Files_Suite.Support.Disk.Access_Report (Locked));
       Assert_Equal (To_String (Mutation.Error_Key), "error.io.denied", "the refused folder says permission was denied");
       Unlock_Directory (Locked);
       Assert (not Ada.Directories.Exists (Join (Locked, "new.txt"))

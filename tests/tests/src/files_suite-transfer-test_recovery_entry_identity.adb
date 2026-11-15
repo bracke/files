@@ -2,6 +2,7 @@ with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Transfer)
    procedure Test_Recovery_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -139,7 +140,7 @@ separate (Files_Suite.Transfer)
                "created journal I/O refuses a multiply-linked file: victim unchanged");
             Assert (Entries.Is_Empty, "created journal I/O refuses a multiply-linked file");
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Recovery_Entry_Identity", Files_Suite.Support.Hard_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Recovery_Entry_Identity", Files_Suite.Support.Disk.Hard_Link);
          end if;
       end;
       Ada.Directories.Create_Directory (Join (Root, "journal"));

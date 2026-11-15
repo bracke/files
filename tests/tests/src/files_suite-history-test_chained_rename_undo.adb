@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
+with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_Chained_Rename_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,7 +21,7 @@ separate (Files_Suite.History)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Undo_Recording.Record_Undo
         (Model, Files.Model.Undo_Rename,
-         Files_Suite.Support.Undo_Items
+         Files_Suite.Support.Models.Undo_Items
            (From => [To_Unbounded_String (C), To_Unbounded_String (B)],
             To   => [To_Unbounded_String (B), To_Unbounded_String (A)]));
       Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));

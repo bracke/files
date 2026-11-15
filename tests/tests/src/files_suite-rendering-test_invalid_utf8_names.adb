@@ -1,6 +1,7 @@
 with Files.File_System.Testing;
 with Ada.Text_IO;
 with Hostkit.Fs;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Rendering)
    --  A file name need not be text: POSIX names are bytes, and one that is not
    --  valid UTF-8 ("bad\xFF.txt") must list, render (snapshot, frame,
@@ -19,14 +20,14 @@ separate (Files_Suite.Rendering)
         (if Windows
          then "bad" & Character'Val (16#ED#) & Character'Val (16#A0#) & Character'Val (16#80#) & ".txt"
          else "bad" & Character'Val (16#FF#) & Character'Val (16#C3#) & ".txt");
-      Bad_Path : constant String := Files_Suite.Support.Root & "/" & Bad;
-      Good     : constant String := Files_Suite.Support.Root & "/good.txt";
+      Bad_Path : constant String := Files_Suite.Support.Disk.Root & "/" & Bad;
+      Good     : constant String := Files_Suite.Support.Disk.Root & "/good.txt";
       Created  : Boolean := True;
 
       function Exists (Path : String) return Boolean is
         (Hostkit.Fs."/=" (Hostkit.Fs.Kind_Of (Path), Hostkit.Fs.Missing_Entry));
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       declare
          File : Ada.Text_IO.File_Type;
       begin
@@ -46,11 +47,11 @@ separate (Files_Suite.Rendering)
             "this filesystem would not store a name that is not valid UTF-8");
          return;
       end if;
-      Files_Suite.Support.Write_File (Files_Suite.Support.Root & "/plain.txt", "x");
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Root & "/plain.txt", "x");
 
       declare
          Load   : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Files_Suite.Support.Root, Settings);
+           Files.File_System.Load_Directory (Files_Suite.Support.Disk.Root, Settings);
          Listed : Boolean := False;
          Model  : Files.Model.Window_Model;
       begin
@@ -59,7 +60,7 @@ separate (Files_Suite.Rendering)
             Listed := Listed or else Ada.Strings.Unbounded.To_String (Item.Name) = Bad;
          end loop;
          Assert (Listed, "the non-UTF-8 name is listed with its bytes");
-         Files.Model.Navigate_To (Model, Files_Suite.Support.Root, Load.Items);
+         Files.Model.Navigate_To (Model, Files_Suite.Support.Disk.Root, Load.Items);
          declare
             Snapshot : constant View_Snapshot := Build_Snapshot (Model, Settings);
             Frame    : constant Frame_Commands :=
@@ -82,7 +83,7 @@ separate (Files_Suite.Rendering)
       --  Copied and moved into another folder with its name kept: the name
       --  exists, so only what the destination cannot hold is refused.
       declare
-         Into    : constant String := Files_Suite.Support.Root & "/into";
+         Into    : constant String := Files_Suite.Support.Disk.Root & "/into";
          Sources : Files.Types.String_Vectors.Vector;
       begin
          Ada.Directories.Create_Path (Into);
@@ -100,5 +101,5 @@ separate (Files_Suite.Rendering)
       end;
       Assert (Files.File_System.Delete_Permanently (Bad_Path).Success, "a non-UTF-8 name deletes");
       Assert (not Exists (Bad_Path), "the delete removed it");
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
    end Test_Invalid_UTF8_Names;

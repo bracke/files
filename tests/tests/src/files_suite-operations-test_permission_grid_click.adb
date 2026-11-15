@@ -1,3 +1,4 @@
+with Files_Suite.Support.Models;
 separate (Files_Suite.Operations)
    procedure Test_Permission_Grid_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -56,7 +57,7 @@ separate (Files_Suite.Operations)
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Action : constant Files.Events.Input_Action :=
-           Files_Suite.Support.Click_Action (Snapshot, Cell_X, Cell_Y, Width, Height);
+           Files_Suite.Support.Models.Click_Action (Snapshot, Cell_X, Cell_Y, Width, Height);
          Result : Files.Interaction.Interaction_Result;
       begin
          Files_Suite.Support.Assert_Equal

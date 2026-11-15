@@ -1,17 +1,19 @@
 with Files.Model.Command_Palette;
 with Files.Rendering.Layouts;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Tree)
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       Roots    : Files.Types.String_Vectors.Vector;
-      Root_A   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "root-a");
-      Root_B   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "root-b");
+      Root_A   : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "root-a");
+      Root_B   : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "root-b");
       X, Y     : Natural := 0;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Root_A);
       Ada.Directories.Create_Path (Root_B);
       Roots.Append (Ada.Strings.Unbounded.To_Unbounded_String (Root_A));

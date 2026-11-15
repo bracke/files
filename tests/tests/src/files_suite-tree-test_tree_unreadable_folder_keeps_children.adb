@@ -2,6 +2,8 @@ with Files.File_System.Permissions;
 with Hostkit.Host;
 with Hostkit.Metadata;
 with Files.Model.Tree_Panel;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Tree)
    --  Expanding a folder the tree can no longer read keeps the children it
    --  showed and says why: the folder is not passed off as empty, and its
@@ -10,8 +12,8 @@ separate (Files_Suite.Tree)
       pragma Unreferenced (T);
       use Ada.Strings.Unbounded;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
-      Tree_Dir : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "tree");
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
+      Tree_Dir : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "tree");
       Seeds    : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
       Ignored  : Files.Controller.Controller_Result;
    begin
@@ -22,9 +24,9 @@ separate (Files_Suite.Tree)
            ("Test_Tree_Unreadable_Folder_Keeps_Children", "an elevated process ignores mode 0");
          return;
       end if;
-      Files_Suite.Support.Reset_Root;
-      Ada.Directories.Create_Path (Files_Suite.Support.Join (Tree_Dir, "alpha"));
-      Ada.Directories.Create_Path (Files_Suite.Support.Join (Tree_Dir, "beta"));
+      Files_Suite.Support.Disk.Reset_Root;
+      Ada.Directories.Create_Path (Files_Suite.Support.Disk.Join (Tree_Dir, "alpha"));
+      Ada.Directories.Create_Path (Files_Suite.Support.Disk.Join (Tree_Dir, "beta"));
       Seeds.Append
         (Files.Folder_Tree.Entry_Seed'
            (Path => To_Unbounded_String (Tree_Dir), Name => To_Unbounded_String ("tree")));

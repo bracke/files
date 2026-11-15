@@ -1,6 +1,7 @@
 with Files.File_System.Trash;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Trash)
    --  An item on another volume than the home trash goes to that volume's own
    --  freedesktop trash ($topdir/.Trash-$uid): a rename there, not a copy of
@@ -186,7 +187,7 @@ separate (Files_Suite.Trash)
          Ada.Directories.Create_Path (Target);
          Write_File (Kept, "kept");
          Project_Tools.Files.Delete_Tree (Files_Dir);
-         if Files_Suite.Support.Create_Symlink (Target, Files_Dir) then
+         if Files_Suite.Support.Disk.Create_Symlink (Target, Files_Dir) then
             Assert (not Files.File_System.Trash.Is_Volume_Trash_Item (Join (Files_Dir, "kept.txt")),
                     "an item reached through a linked files/ is not a trash item");
             Assert (not Files.File_System.Trash.Delete_Trashed_Item (Join (Files_Dir, "kept.txt")).Success,

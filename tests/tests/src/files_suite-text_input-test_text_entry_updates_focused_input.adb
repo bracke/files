@@ -1,11 +1,12 @@
 with Files.Model.Command_Palette;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Text_Input)
    --  Text entry: the shell's real typed-character path is
    --  Files.Controller.Append_Focused_Text on whatever input is focused (only
    --  fetching the bytes from the OS is GLFW-bound), so it is exercised here.
    procedure Test_Text_Entry_Updates_Focused_Input (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Roots    : Files.Types.String_Vectors.Vector;
    begin

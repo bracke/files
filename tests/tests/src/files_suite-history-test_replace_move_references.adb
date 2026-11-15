@@ -45,7 +45,7 @@ separate (Files_Suite.History)
       function Labels (Path : String) return Natural is
          Result : Natural := 0;
       begin
-         for Item of Settings.Labels loop
+         for Item of Files.Settings.Path_References.Path_Labels (Settings) loop
             if To_String (Item.Path) = Path then
                Result := Result + 1;
             end if;
@@ -58,7 +58,8 @@ separate (Files_Suite.History)
       begin
          Assert (Files.Settings.Path_References.Label_Of (Settings, Path) = Label and then Labels (Path) = 1,
                  What & " has its own label, once:" & Labels (Path)'Image);
-         Files_Suite.Support.Assert_Equal (Count (Settings.Favorite_Paths, Path), 1, What & " is a favorite once");
+         Files_Suite.Support.Assert_Equal (Count (Files.Settings.Path_References.Favorite_Paths (Settings), Path), 1,
+                                           What & " is a favorite once");
          Files_Suite.Support.Assert_Equal
            (Count (Files.Settings.Path_References.Recent_Paths (Settings), Path), 1, What & " is recent once");
       end Assert_Once;
@@ -102,7 +103,8 @@ separate (Files_Suite.History)
               and then not Files.Settings.Path_References.Is_Favorite (Settings, Source)
               and then Count (Files.Settings.Path_References.Recent_Paths (Settings), Source) = 0,
               "nothing is left at the moved item's old path");
-      Files_Suite.Support.Assert_Equal (Natural (Settings.Labels.Length), 2, "the replaced item keeps its label");
+      Files_Suite.Support.Assert_Equal (Natural (Files.Settings.Path_References.Path_Labels (Settings).Length), 2,
+                                        "the replaced item keeps its label");
 
       --  Undo puts both back, each with its own.
       Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
@@ -112,7 +114,8 @@ separate (Files_Suite.History)
       Assert (Followed, "the undo changes the settings");
       Assert_Once (Source, Files.Types.Blue, "the moved item back at its old path");
       Assert_Once (Dest, Files.Types.Red, "the replaced item back at its path");
-      Files_Suite.Support.Assert_Equal (Natural (Settings.Labels.Length), 2, "and no label is left elsewhere");
+      Files_Suite.Support.Assert_Equal (Natural (Files.Settings.Path_References.Path_Labels (Settings).Length), 2,
+                                        "and no label is left elsewhere");
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
    end Test_Replace_Move_References;

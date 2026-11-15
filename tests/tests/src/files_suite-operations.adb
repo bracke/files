@@ -52,6 +52,8 @@ with Files_Suite.Operations_Support;
 with Files.Model.Pasting;
 with Files.Resources.Testing;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 
 package body Files_Suite.Operations is
 
@@ -71,6 +73,8 @@ package body Files_Suite.Operations is
    use type Files.Types.Search_Scope;
    use type Files.Types.View_Mode;
    use Files_Suite.Support;
+   use Files_Suite.Support.Models;
+   use Files_Suite.Support.Disk;
    use Files_Suite.Support.Guards;
    use Files_Suite.Operations_Support;
 

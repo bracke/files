@@ -1,6 +1,8 @@
 with Files.Overlays;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
    --  With a settings Shortcut row armed, the key seam routes the next physical
    --  chord to capture (rebinding the live keymap) rather than acting on it, and
@@ -14,7 +16,7 @@ separate (Files_Suite.Keyboard)
       use type Guikit.Input.Key_Code;
       use type Files.Commands.Shortcut;
       Path : constant String :=
-        Files_Suite.Support.Join (Files_Suite.Support.Root, "capture.conf");
+        Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "capture.conf");
       Cmd  : constant Files.Commands.Command_Id := Files.Commands.Select_Small_Icons_Command;
 
       --  Open the pane, jump to the last (Shortcuts) section, and arm its first
@@ -53,11 +55,11 @@ separate (Files_Suite.Keyboard)
             Key => Key, Modifiers => Mods, Result => Result);
       end Press;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
 
       --  (1) A chord captured while armed rebinds the live keymap.
       declare
-         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       begin
          Files.Commands.Reset_Shortcut_Overrides;
@@ -87,7 +89,7 @@ separate (Files_Suite.Keyboard)
 
       --  (2) Escape cancels capture and leaves the binding untouched.
       declare
-         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       begin
          Files.Commands.Reset_Shortcut_Overrides;
@@ -100,7 +102,7 @@ separate (Files_Suite.Keyboard)
 
       --  (3) Backspace unbinds the command.
       declare
-         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       begin
          Files.Commands.Reset_Shortcut_Overrides;
@@ -112,7 +114,7 @@ separate (Files_Suite.Keyboard)
 
       --  (4) Delete resets a rebound command to its built-in default.
       declare
-         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Is_Set   : Boolean;
       begin

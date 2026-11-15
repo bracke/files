@@ -1,25 +1,27 @@
 with Files.Model.Command_Palette;
 with Files.Settings.Path_References;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Text_Input)
    procedure Test_Text_Focus_Blocks_File_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Dir      : constant String :=
-        Files_Suite.Support.Join (Files_Suite.Support.Root, "text-focus-shortcuts");
-      Victim   : constant String := Files_Suite.Support.Join (Dir, "keep.txt");
+        Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "text-focus-shortcuts");
+      Victim   : constant String := Files_Suite.Support.Disk.Join (Dir, "keep.txt");
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
       Result   : Files.Interaction.Interaction_Result;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Dir);
-      Files_Suite.Support.Write_File (Victim);
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "other.txt"));
+      Files_Suite.Support.Disk.Write_File (Victim);
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "other.txt"));
       Load := Files.File_System.Load_Directory (Dir, Settings);
-      Files.Model.Initialize (Model, Dir, Load.Items, Files_Suite.Support.Root);
+      Files.Model.Initialize (Model, Dir, Load.Items, Files_Suite.Support.Disk.Root);
 
       for Field in 1 .. 2 loop
-         Files_Suite.Support.Select_Name (Model, "keep.txt");
+         Files_Suite.Support.Models.Select_Name (Model, "keep.txt");
          if Field = 1 then
             Files.Model.Focus_Filter_Input (Model);
          else
@@ -46,7 +48,7 @@ separate (Files_Suite.Text_Input)
          "with the grid focused the same shortcut still works");
 
       --  A settings-writing shortcut (Ctrl+B) is applied, not reported and dropped.
-      Files_Suite.Support.Select_Name (Model, "keep.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "keep.txt");
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_B, Ctrl, Result);
       Assert (Files.Settings.Path_References.Is_Favorite (Settings, Ada.Directories.Full_Name (Victim)),
@@ -80,7 +82,7 @@ separate (Files_Suite.Text_Input)
             "the palette query selects the hidden-files command");
          --  Toggle_Hidden_Files saves before it applies, so it needs a real file.
          Files.Interaction.Handle_Key
-           (Model, Settings, Files_Suite.Support.Join (Files_Suite.Support.Root, "palette-settings.conf"),
+           (Model, Settings, Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "palette-settings.conf"),
             Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Result);
          Assert (Settings.Show_Hidden_Files /= Hidden_Before,
                  "Enter in the palette applies a settings command");

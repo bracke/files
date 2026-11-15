@@ -1,9 +1,10 @@
 with Files.Controller.Testing;
 with Files.Model.Sort_Menu;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    procedure Test_Controller_Scroll_Contained_By_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
    begin
       Replay_Targeted_Scroll (Model, Settings);

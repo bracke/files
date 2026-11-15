@@ -1,12 +1,13 @@
 with Files.Settings.Path_References;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
    procedure Test_Record_Open_Persists_Recent (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use Ada.Strings.Unbounded;
       Dir      : constant String :=
-        Files_Suite.Support.Join (Files_Suite.Support.Root, "opened-dir");
+        Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "opened-dir");
       Path     : constant String :=
-        Files_Suite.Support.Join (Files_Suite.Support.Root, "recent.conf");
+        Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "recent.conf");
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
@@ -15,12 +16,12 @@ separate (Files_Suite.Interaction)
         (Kind    => Files.Events.Command_Input_Action,
          Command => Files.Commands.Open_Selected_Items_Command);
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Dir);
       Items.Append
         (Files.File_System.Make_Item
-           (Files_Suite.Support.Root, "opened-dir", Files.Types.Directory_Item, "inode/directory"));
-      Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
+           (Files_Suite.Support.Disk.Root, "opened-dir", Files.Types.Directory_Item, "inode/directory"));
+      Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
       Files.Model.Selection.Select_Visible (Model, 1);
 
       Files.Interaction.Apply_Input_Action

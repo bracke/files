@@ -4,7 +4,7 @@ separate (Files.Rendering.Build_Frame_Commands.Add_Icon)
    --  Only in large-icon view (where Use_Thumbnail is set); skipped for folders
    --  and extensionless names.
    procedure Add_Extension_Badge is
-      Ext : constant String := Files.File_Types.Extension_Of (To_String (Item.Name), Dotfiles => True);
+      Ext : constant String := Files.File_Types.Normalized_Extension_Of (To_String (Item.Name), Dotfiles => True);
    begin
       if Ext = ""
         or else not Use_Thumbnail

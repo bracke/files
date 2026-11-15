@@ -2,6 +2,7 @@ with Files.File_System.Testing;
 with Files.Items;
 with Files.Commands.Status;
 with Files.Model.Root_Selector;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Commands)
    procedure Test_Pure_Command_Execution (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -27,12 +28,12 @@ separate (Files_Suite.Commands)
         (Files.Commands.Open_Selected_Items_Command not in Files.Commands.Pure_Command_Id,
          "open loads the selected items, so it is not a pure command");
       Files.Model.Root_Selector.Open (Model, Files.File_System.Testing.Available_Roots);
-      Files_Suite.Support.Run_Command (Files.Commands.Select_Details_Command, Model);
+      Files_Suite.Support.Models.Run_Command (Files.Commands.Select_Details_Command, Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
          Files.Types.Small_Icons,
          "command execution respects root-selector modal disablement");
-      Files_Suite.Support.Run_Command (Files.Commands.Close_Overlay_Command, Model);
+      Files_Suite.Support.Models.Run_Command (Files.Commands.Close_Overlay_Command, Model);
       Assert
         (not Files.Model.Root_Selector.Is_Open (Model),
          "context cancel can close root selector");
@@ -59,7 +60,7 @@ separate (Files_Suite.Commands)
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
          "rename enabled with one selected item");
-      Files_Suite.Support.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
+      Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Close_Overlay_Command, Model),
          "context cancel enabled while rename is active");

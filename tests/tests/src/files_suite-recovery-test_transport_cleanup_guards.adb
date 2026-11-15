@@ -1,4 +1,5 @@
 with Files.Job_Helpers.Testing;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Transport_Cleanup_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -68,7 +69,8 @@ separate (Files_Suite.Recovery)
                "cleanup never reports a dangling symlink as a removed transport: link kept");
             Ada.Directories.Delete_File (Link_Path);
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Transport_Cleanup_Guards", Files_Suite.Support.Symbolic_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Transport_Cleanup_Guards",
+                                                    Files_Suite.Support.Disk.Symbolic_Link);
          end if;
       end;
 

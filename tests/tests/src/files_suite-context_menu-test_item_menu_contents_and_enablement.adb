@@ -2,20 +2,22 @@ with Files.Commands.Status;
 with Files.Model.Context_Menu;
 with Files.Model.Tree_Panel;
 with Files.Model.Pasting;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Context_Menu)
    procedure Test_Item_Menu_Contents_And_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
-      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "menu-contents");
+      Dir      : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "menu-contents");
       Model    : Files.Model.Window_Model;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Dir);
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "report.txt"), "payload");
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "report.txt"), "payload");
 
       Model := Loaded_Model (Dir);
-      Files_Suite.Support.Select_Name (Model, "report.txt");
+      Files_Suite.Support.Models.Select_Name (Model, "report.txt");
       Open_Item_Context_Menu (Model, Settings, Result);
       Assert (Files.Model.Context_Menu.Is_Open (Model), "the item menu opens on the selected file");
 

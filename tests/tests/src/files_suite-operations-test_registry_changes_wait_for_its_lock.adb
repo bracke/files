@@ -17,19 +17,29 @@ separate (Files_Suite.Operations)
       Registry    : constant String := Join (Join (Join (Test_Temp, "data"), "files"), "recovery-index");
       Held        : Hostkit.Locks.Lock;
 
-      --  Whether the sweep returned, and what it raised if it did not: a
-      --  sweep that raised has not gone ahead.
+      --  Whether the sweeper has started, whether the sweep returned, and what
+      --  it raised if it did not: a sweep that raised has not gone ahead.
       protected Sweep_State is
+         procedure Start;
+         function Started return Boolean;
          procedure Finish;
          procedure Fail (Raised : Ada.Exceptions.Exception_Occurrence);
          function Finished return Boolean;
          function Failure return String;
       private
-         Done   : Boolean := False;
-         Failed : Unbounded_String;
+         Running : Boolean := False;
+         Done    : Boolean := False;
+         Failed  : Unbounded_String;
       end Sweep_State;
 
       protected body Sweep_State is
+         procedure Start is
+         begin
+            Running := True;
+         end Start;
+
+         function Started return Boolean is (Running);
+
          procedure Finish is
          begin
             Done := True;
@@ -63,6 +73,7 @@ separate (Files_Suite.Operations)
 
          task body Sweeper is
          begin
+            Sweep_State.Start;
             Files.File_System.Sweep_Recovery_Registry;
             Sweep_State.Finish;
          exception
@@ -70,9 +81,16 @@ separate (Files_Suite.Operations)
                Sweep_State.Fail (Raised);
          end Sweeper;
 
+         Ran    : Boolean;
          Waited : Boolean;
       begin
-         delay 0.5;
+         --  Time to wait from the moment the sweeper runs, so a sweeper task
+         --  not yet scheduled cannot pass for one that waits on the lock.
+         for Attempt in Files_Suite.Support.Timing.Polling loop
+            exit when Sweep_State.Started;
+         end loop;
+         Ran := Sweep_State.Started;
+         delay Files_Suite.Support.Timing.Seconds (Files_Suite.Support.Timing.Scaled (0.5));
          Waited := not Sweep_State.Finished;
          --  Let go before asserting: a failed assertion here would otherwise
          --  wait, leaving the block, for a sweeper blocked on the lock.
@@ -80,6 +98,7 @@ separate (Files_Suite.Operations)
          for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Sweep_State.Finished;
          end loop;
+         Assert (Ran, "the sweeper task started");
          Assert (Waited, "a registry sweep waits while another holds the registry's lock");
          Assert (Sweep_State.Finished, "and goes ahead once the lock is let go");
          Assert (Sweep_State.Failure = "", "the sweep raised nothing: " & Sweep_State.Failure);

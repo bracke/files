@@ -29,6 +29,8 @@ with Guikit.Input;
 with Files.Types;
 with Guikit.Utf8.Editing;
 with Files_Suite.Support;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 
 package body Files_Suite.Commands is
 
@@ -38,6 +40,8 @@ package body Files_Suite.Commands is
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
    use Files_Suite.Support;
+   use Files_Suite.Support.Models;
+   use Files_Suite.Support.Disk;
 
    type Command_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
 

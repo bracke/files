@@ -1,4 +1,6 @@
 with Files.Model.Context_Menu;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Context_Menu)
    procedure Test_Context_Menu_Empty_Area_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,10 +10,10 @@ separate (Files_Suite.Context_Menu)
    begin
       --  New Folder from the empty-area menu activates a temporary directory item.
       declare
-         Dir   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "empty-area");
+         Dir   : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "empty-area");
          Model : Files.Model.Window_Model;
       begin
-         Files_Suite.Support.Reset_Root;
+         Files_Suite.Support.Disk.Reset_Root;
          Ada.Directories.Create_Path (Dir);
          Model := Loaded_Model (Dir);
 
@@ -28,17 +30,17 @@ separate (Files_Suite.Context_Menu)
       --  Paste from the empty-area menu copies a clipboard item into the
       --  navigated-into subdirectory.
       declare
-         Src_Dir : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "paste-src");
-         Sub     : constant String := Files_Suite.Support.Join (Src_Dir, "sub");
+         Src_Dir : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "paste-src");
+         Sub     : constant String := Files_Suite.Support.Disk.Join (Src_Dir, "sub");
          Model   : Files.Model.Window_Model;
          Load    : Files.File_System.Directory_Load_Result;
       begin
-         Files_Suite.Support.Reset_Root;
+         Files_Suite.Support.Disk.Reset_Root;
          Ada.Directories.Create_Path (Sub);
-         Files_Suite.Support.Write_File (Files_Suite.Support.Join (Src_Dir, "a.txt"), "payload");
+         Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Src_Dir, "a.txt"), "payload");
 
          Model := Loaded_Model (Src_Dir);
-         Files_Suite.Support.Select_Name (Model, "a.txt");
+         Files_Suite.Support.Models.Select_Name (Model, "a.txt");
          Open_Item_Context_Menu (Model, Settings, Result);
          Dispatch_Menu_Command
            (Model, Settings, "", Files.Commands.Copy_Selected_Items_Command, Result, Found);
@@ -50,7 +52,7 @@ separate (Files_Suite.Context_Menu)
          Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Paste_Items_Command, Result, Found);
          Assert (Found, "the empty-area menu offers the paste command");
          Assert
-           (Ada.Directories.Exists (Files_Suite.Support.Join (Sub, "a.txt")),
+           (Ada.Directories.Exists (Files_Suite.Support.Disk.Join (Sub, "a.txt")),
             "paste copies the clipboard item into the current directory");
       end;
    end Test_Context_Menu_Empty_Area_Commands;

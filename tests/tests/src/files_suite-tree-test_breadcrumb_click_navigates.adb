@@ -1,15 +1,16 @@
 with Files.Rendering.Layouts;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Tree)
    procedure Test_Breadcrumb_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use Ada.Strings.Unbounded;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Deep     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "deep");
-      Leaf     : constant String := Files_Suite.Support.Join (Deep, "leaf");
+      Deep     : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "deep");
+      Leaf     : constant String := Files_Suite.Support.Disk.Join (Deep, "leaf");
       Model    : Files.Model.Window_Model;
       Result   : Files.Interaction.Interaction_Result;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Leaf);
       declare
          Load : constant Files.File_System.Directory_Load_Result :=

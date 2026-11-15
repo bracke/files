@@ -1,6 +1,7 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_Replace_Undo_Retry (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -48,7 +49,8 @@ separate (Files_Suite.History)
                Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
                if Scenario = Recovery_Only then
                   Files.Undo_Recording.Record_Undo
-                    (Model, Files.Model.Undo_Restore_Trash, Files_Suite.Support.Undo_Items (Backups, To => To_Paths),
+                    (Model, Files.Model.Undo_Restore_Trash, Files_Suite.Support.Models.Undo_Items (Backups,
+                                                                                                   To => To_Paths),
                      Redoable => False);
                else
                   Files.Undo_Recording.Record_Undo
@@ -56,8 +58,8 @@ separate (Files_Suite.History)
                      (case Scenario is
                          when Move_Replace => Files.Model.Undo_Move,
                          when Copy_Replace | Recovery_Only => Files.Model.Undo_Delete_Created),
-                     Files_Suite.Support.Undo_Items (From_Paths, To => To_Paths), Redoable => False,
-                     Replaced => Files_Suite.Support.Replaced_Originals (Backups));
+                     Files_Suite.Support.Models.Undo_Items (From_Paths, To => To_Paths), Redoable => False,
+                     Replaced => Files_Suite.Support.Models.Replaced_Originals (Backups));
                end if;
                declare
                   Held : constant String := Join (Ada.Directories.Containing_Directory (To_String (Back_B)),

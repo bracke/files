@@ -3,6 +3,7 @@ with Ada.Real_Time;
 with Files.Rendering.Testing;
 with Files.Snapshot_Slots;
 with Files.Settings.Path_References;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Rendering)
    --  The window's two snapshots: after every kind of change, drawn between
    --  changes or not, the current one is what a rebuild gives, and the one on
@@ -64,10 +65,10 @@ separate (Files_Suite.Rendering)
    begin
       for I in 1 .. 60 loop
          Items.Append
-           (Files.File_System.Make_Item (Files_Suite.Support.Root, "item" & I'Image, Files.Types.Regular_File_Item,
+           (Files.File_System.Make_Item (Files_Suite.Support.Disk.Root, "item" & I'Image, Files.Types.Regular_File_Item,
                                          "text/plain"));
       end loop;
-      Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
+      Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
       Files.Model.Set_View_Mode (Model, Files.Types.Details);
       for Draw in Boolean loop
          declare

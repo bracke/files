@@ -2,6 +2,7 @@ with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Archives)
    procedure Test_Archive_Completeness (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -88,8 +89,8 @@ separate (Files_Suite.Archives)
          Reset_Root;
          Ada.Directories.Create_Path (Join (Root, "bag"));
          Write_Binary_File (Join (Join (Root, "bag"), "keep.txt"), "kept");
-         if not Files_Suite.Support.Create_Symlink ("keep.txt", Join (Join (Root, "bag"), "pointer")) then
-            Files_Suite.Support.Link_Not_Made ("Test_Archive_Completeness");
+         if not Files_Suite.Support.Disk.Create_Symlink ("keep.txt", Join (Join (Root, "bag"), "pointer")) then
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Archive_Completeness");
             exit;
          end if;
          Settings := Files.Settings.Default_Settings;

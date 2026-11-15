@@ -1,17 +1,18 @@
 with Files.Model.Label_Picker;
 with Files.Settings.Path_References;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Keyboard)
    procedure Test_Color_Label_Picker_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
-      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "label-kbd");
-      One      : constant String := Files_Suite.Support.Join (Dir, "a.txt");
+      Dir      : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "label-kbd");
+      One      : constant String := Files_Suite.Support.Disk.Join (Dir, "a.txt");
       Model    : Files.Model.Window_Model;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Dir);
-      Files_Suite.Support.Write_File (One, "a");
+      Files_Suite.Support.Disk.Write_File (One, "a");
       Model := Loaded_Model (Dir);
       Files.Model.Selection.Select_All_Visible (Model);
 

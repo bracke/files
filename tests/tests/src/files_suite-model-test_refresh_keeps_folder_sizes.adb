@@ -1,4 +1,5 @@
 with Ada.Calendar;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Model)
    --  A watched folder reloads every two seconds while a file in it grows; a
    --  refresh used to drop every measured folder size (and stop the helper
@@ -7,8 +8,8 @@ separate (Files_Suite.Model)
       pragma Unreferenced (T);
       Model : Files.Model.Window_Model;
       Items : Files.Items.Item_Vectors.Vector;
-      Big   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "big");
-      Small : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "small");
+      Big   : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "big");
+      Small : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "small");
       Sized : constant Files.File_System.Directory_Size_Result :=
         (Available => True, Total_Bytes => 42, File_Count => 1, Item_Count => 1, Capped => False);
       type Name_Array is array (Positive range <>) of Unbounded_String;
@@ -17,14 +18,14 @@ separate (Files_Suite.Model)
          declare
             Item : Files.Items.Directory_Item :=
               Files.File_System.Make_Item
-                (Files_Suite.Support.Root, To_String (Name), Files.Types.Directory_Item, "inode/directory");
+                (Files_Suite.Support.Disk.Root, To_String (Name), Files.Types.Directory_Item, "inode/directory");
          begin
             Item.Modified_Time := Ada.Calendar.Time_Of (2026, 1, 1);
             Item.Modified_Available := True;
             Items.Append (Item);
          end;
       end loop;
-      Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
+      Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
       Files.Model.Selection.Select_All_Visible (Model);
       Files.Model.Testing.Set_Folder_Size (Model, Big, Sized);
       Files.Model.Testing.Set_Folder_Size (Model, Small, Sized);

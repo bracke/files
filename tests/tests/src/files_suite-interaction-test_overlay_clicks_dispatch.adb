@@ -2,14 +2,16 @@ with Files.Command_Palette;
 with Files.Overlays;
 with Files.Model.Command_Palette;
 with Files.Model.Settings_Pane;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    --  A click on the settings panel or on a palette row reaches the controller
    --  through Apply_Input_Action, and a palette row whose command changes
    --  settings runs through the settings path (it is applied and saved).
    procedure Test_Overlay_Clicks_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Path     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "clicks.conf");
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Path     : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "clicks.conf");
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       Rects    : Guikit.Draw.Rectangle_Command_Vectors.Vector;
@@ -30,7 +32,7 @@ separate (Files_Suite.Interaction)
            (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       end Click;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
 
       --  The settings panel: some control on it takes the click.
       Files.Interaction.Handle_Key

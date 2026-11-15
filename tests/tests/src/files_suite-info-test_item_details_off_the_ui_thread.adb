@@ -1,6 +1,7 @@
 with Files.Window_Polls;
 with Files.Extra_Info_Reader;
 with Files_Suite.Support.Timing;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Info)
    procedure Test_Item_Details_Off_The_UI_Thread (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -28,8 +29,8 @@ separate (Files_Suite.Info)
       end loop;
       Assert (not Files.Model.Selected_Item_Needs_Extra (Model), "the window's poll brings the details in");
       Files_Suite.Support.Assert_Equal
-        (Files_Suite.Support.Describe (Files.Model.Selection.Selected_Item (Model).Filetype_Extra),
-         Files_Suite.Support.Describe
+        (Files_Suite.Support.Models.Describe (Files.Model.Selection.Selected_Item (Model).Filetype_Extra),
+         Files_Suite.Support.Models.Describe
            (Files.File_System.Extra_Info_Of (Text, Files.Types.Regular_File_Item, "text/plain")),
          "the details are those read on the spot");
 

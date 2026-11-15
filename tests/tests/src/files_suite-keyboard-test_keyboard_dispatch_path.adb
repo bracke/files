@@ -1,4 +1,6 @@
 with Files.Model.Settings_Pane;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
    --  Drive the GENUINE live key-dispatch seam the shell uses --
    --  Files.Interaction.Handle_Key -- rather than the Translate_Key ->
@@ -9,14 +11,14 @@ separate (Files_Suite.Keyboard)
    procedure Test_Keyboard_Dispatch_Path (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Path : constant String :=
-        Files_Suite.Support.Join (Files_Suite.Support.Root, "interaction-key.conf");
+        Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "interaction-key.conf");
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
 
       --  (1) View shortcut: Ctrl+3 (Shortcut_For (Select_Details)) flows through
       --  the key seam to the details-view command and switches the model view.
       declare
-         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Result   : Files.Interaction.Interaction_Result;
       begin
@@ -43,7 +45,7 @@ separate (Files_Suite.Keyboard)
       --  settings-path-only follow-up (Clear_Pending_Text) and
       --  the persisted file -- which the plain controller branch never produces.
       declare
-         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Result   : Files.Interaction.Interaction_Result;
       begin
@@ -89,11 +91,11 @@ separate (Files_Suite.Keyboard)
       --  selection to be enabled. The key seam toggles the info pane in the model
       --  via the plain controller branch (no settings-path re-route).
       declare
-         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Result   : Files.Interaction.Interaction_Result;
       begin
-         Files_Suite.Support.Select_Name (Model, "Gamma.md");
+         Files_Suite.Support.Models.Select_Name (Model, "Gamma.md");
          Assert
            (not Files.Model.Info_Pane_Is_Open (Model),
             "the info pane starts closed before the toggle key");
@@ -118,7 +120,7 @@ separate (Files_Suite.Keyboard)
       --  key seam, not merely change the model path silently.
       declare
          Child : constant String :=
-           Files_Suite.Support.Join (Files_Suite.Support.Root, "key-nav-child");
+           Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "key-nav-child");
          Model    : Files.Model.Window_Model;
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Result   : Files.Interaction.Interaction_Result;
@@ -129,7 +131,7 @@ separate (Files_Suite.Keyboard)
               Files.File_System.Load_Directory (Child, Settings);
          begin
             Files.Model.Initialize
-              (Model, Child, Load.Items, Files_Suite.Support.Root);
+              (Model, Child, Load.Items, Files_Suite.Support.Disk.Root);
          end;
          Files.Interaction.Handle_Key
            (Model             => Model,
@@ -140,7 +142,7 @@ separate (Files_Suite.Keyboard)
             Result            => Result);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Current_Path (Model),
-            Files_Suite.Support.Root,
+            Files_Suite.Support.Disk.Root,
             "Alt+Up through the key seam navigates to the parent directory");
       end;
    end Test_Keyboard_Dispatch_Path;

@@ -1,4 +1,6 @@
+with Files.Settings.Path_References;
 with Files.Snapshot_Policy.Settings_Keys;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Rendering)
    --  The window reuses its last snapshot while Snapshot_Settings_Key_Of is
    --  unchanged, so a setting Build_Snapshot depends on but the key leaves out
@@ -8,16 +10,17 @@ separate (Files_Suite.Rendering)
    procedure Test_Snapshot_Key_Covers_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
 
-      --  Every field of Files.Settings.Settings_Model; a new field belongs here.
+      --  Every field of Files.Settings.Settings_Model, its Paths by their three
+      --  parts; a new field belongs here.
       type Setting_Field is
         (Extension_Filetypes, Icon_Mappings, Open_Actions, Default_View, Show_Hidden_Files,
          Show_File_Extensions, Show_Used_Space, Show_Space_Bar, Sort_Field_Value, Sort_Ascending,
          Theme, Icon_Theme, Font_Pixel_Size, Window_Width, Window_Height, Info_Pane_Open,
-         Favorite_Paths, Recent_Paths_Value, Labels, Use_System_Default_Opener, Column_Visible,
+         Favorite_Paths, Recent_Paths, Labels, Use_System_Default_Opener, Column_Visible,
          Column_Widths, Column_Order, Group_By, Shortcut_Overrides);
 
-      Model     : constant Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
-      Items     : constant Files.Items.Item_Vectors.Vector := Files_Suite.Support.Sample_Items;
+      Model     : constant Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
+      Items     : constant Files.Items.Item_Vectors.Vector := Files_Suite.Support.Models.Sample_Items;
       Item_Path : constant String := To_String (Items.First_Element.Full_Path);
       Base      : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Base_View : constant View_Snapshot := Build_Snapshot (Model, Base);
@@ -77,13 +80,12 @@ separate (Files_Suite.Rendering)
             when Info_Pane_Open =>
                Result.Info_Pane_Open := not Base.Info_Pane_Open;
             when Favorite_Paths =>
-               Result.Favorite_Paths.Append (To_Unbounded_String (Files.Model.Current_Path (Model)));
-               Result.Favorite_Paths.Append (To_Unbounded_String (Item_Path));
-            when Recent_Paths_Value =>
-               Result.Recent_Paths_Value.Append (To_Unbounded_String (Item_Path));
+               Files.Settings.Path_References.Toggle_Favorite_Path (Result, Files.Model.Current_Path (Model));
+               Files.Settings.Path_References.Toggle_Favorite_Path (Result, Item_Path);
+            when Recent_Paths =>
+               Files.Settings.Path_References.Note_Recent (Result, Item_Path);
             when Labels =>
-               Result.Labels.Append
-                 (Files.Settings.Path_Label'(Path => To_Unbounded_String (Item_Path), Label => Files.Types.Red));
+               Files.Settings.Path_References.Set_Label (Result, Item_Path, Files.Types.Red);
             when Use_System_Default_Opener =>
                Result.Use_System_Default_Opener := not Base.Use_System_Default_Opener;
             when Column_Visible =>

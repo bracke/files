@@ -1,4 +1,5 @@
 with Files.Model.Settings_Pane;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
    --  Two windows share one settings file. A change made in one reaches the
    --  other through Adopt_Shared_Settings: the other's open settings pane
@@ -18,18 +19,19 @@ separate (Files_Suite.Interaction)
 
       procedure Load (Model : in out Files.Model.Window_Model; Settings : Files.Settings.Settings_Model) is
          Load_Result : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Files_Suite.Support.Root, Settings);
+           Files.File_System.Load_Directory (Files_Suite.Support.Disk.Root, Settings);
       begin
          Files.Model.Initialize
            (Model,
-            Directory_Path => Files_Suite.Support.Root,
+            Directory_Path => Files_Suite.Support.Disk.Root,
             Items          => Load_Result.Items,
             Home_Path      => "/home/test");
       end Load;
    begin
-      Files_Suite.Support.Reset_Root;
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Files_Suite.Support.Root, "Alpha.txt"));
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Files_Suite.Support.Root, ".hidden_one"));
+      Files_Suite.Support.Disk.Reset_Root;
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "Alpha.txt"));
+      Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root,
+                                                                          ".hidden_one"));
       Load (First_Window, First_Settings);
       Load (Second_Window, Second_Settings);
       Files_Suite.Support.Assert_Equal

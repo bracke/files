@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
    --  The range anchor is the item the last plain or Ctrl click chose, not an
    --  end of the selection: click 3, Ctrl-click 7, Shift-click 10 selects
@@ -30,11 +31,11 @@ separate (Files_Suite.Interaction)
       for Index in 1 .. 12 loop
          Items.Append
            (Files.File_System.Make_Item
-              (Files_Suite.Support.Root, "item-" & Character'Val (Character'Pos ('a') + Index - 1),
+              (Files_Suite.Support.Disk.Root, "item-" & Character'Val (Character'Pos ('a') + Index - 1),
                Files.Types.Regular_File_Item, "text/plain"));
       end loop;
       Files.Model.Initialize
-        (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root,
+        (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root,
          Default_View_Mode => Files.Types.Details);
 
       Click_Item (3, Guikit.Input.No_Modifiers);

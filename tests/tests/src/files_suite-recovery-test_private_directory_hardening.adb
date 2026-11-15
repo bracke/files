@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Private_Directory_Hardening (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -13,7 +14,7 @@ separate (Files_Suite.Recovery)
          Unexpected_Success : Boolean := False;
       begin
          Ada.Directories.Create_Directory (Real_Directory);
-         if Files_Suite.Support.Create_Symlink (Real_Directory, Linked_Path) then
+         if Files_Suite.Support.Disk.Create_Symlink (Real_Directory, Linked_Path) then
             begin
                Files.Private_Directories.Ensure (Linked_Path);
                Unexpected_Success := True;
@@ -37,7 +38,8 @@ separate (Files_Suite.Recovery)
                null;
             end;
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Private_Directory_Hardening", Files_Suite.Support.Symbolic_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Private_Directory_Hardening",
+                                                    Files_Suite.Support.Disk.Symbolic_Link);
          end if;
          Ada.Directories.Delete_Directory (Real_Directory);
       end;

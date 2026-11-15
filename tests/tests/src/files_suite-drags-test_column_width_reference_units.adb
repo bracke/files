@@ -1,4 +1,5 @@
 with Files.Rendering.Layouts;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Drags)
    --  A details column dragged at a 2x line height is stored in reference
    --  units (half its framebuffer pixels) and drawn back at the pixel width it
@@ -47,11 +48,11 @@ separate (Files_Suite.Drags)
       for Index in 1 .. 4 loop
          Items.Append
            (Files.File_System.Make_Item
-              (Files_Suite.Support.Root, "item-" & Files.Types.Natural_Text (Index),
+              (Files_Suite.Support.Disk.Root, "item-" & Files.Types.Natural_Text (Index),
                Files.Types.Regular_File_Item, "text/plain"));
       end loop;
       Files.Model.Initialize
-        (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root,
+        (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root,
          Default_View_Mode => Files.Types.Details);
 
       --  At 2x: an even pixel target is stored as exactly half and drawn back

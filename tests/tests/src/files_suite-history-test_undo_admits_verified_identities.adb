@@ -1,6 +1,7 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_Undo_Admits_Verified_Identities (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -26,13 +27,14 @@ separate (Files_Suite.History)
          Files.Operations.Clear_Undo (Model);
          Older_Path.Append (To_Unbounded_String (Older));
          Files.Undo_Recording.Record_Undo
-           (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Undo_Items (Older_Path), Redoable => False);
+           (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Older_Path),
+            Redoable => False);
          Paths.Append (To_Unbounded_String (Unverifiable));
          Identities.Append (Null_Unbounded_String);
          Revisions.Append (Null_Unbounded_String);
          Recorded := Files.Undo_Recording.Try_Record_Undo
            (Model, Files.Model.Undo_Delete_Created,
-            Files_Suite.Support.Undo_Items
+            Files_Suite.Support.Models.Undo_Items
               (Paths, Identities => Identities, Tree_Revisions => Revisions,
                Provenance => Files.Model.Published),
             Redoable => False);
@@ -58,7 +60,7 @@ separate (Files_Suite.History)
             Candidate_Revisions.Append (Null_Unbounded_String);
             Recorded := Files.Undo_Recording.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created,
-               Files_Suite.Support.Undo_Items
+               Files_Suite.Support.Models.Undo_Items
                  (Candidate, Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions,
                   Provenance => Files.Model.Published),
                Redoable => False);
@@ -83,7 +85,7 @@ separate (Files_Suite.History)
               (To_Unbounded_String (Files.File_System.Tree_Revision (Prefix)));
             Recorded := Files.Undo_Recording.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created,
-               Files_Suite.Support.Undo_Items
+               Files_Suite.Support.Models.Undo_Items
                  (Candidate, Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions,
                   Provenance => Files.Model.Published),
                Redoable => False);
@@ -96,7 +98,7 @@ separate (Files_Suite.History)
                --  The first member was verified when the record above admitted
                --  it; the appended one only published.
                Items : Files.Model.Recorded_Item_Vectors.Vector :=
-                 Files_Suite.Support.Undo_Items
+                 Files_Suite.Support.Models.Undo_Items
                    (Candidate, Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions,
                     Provenance => Files.Model.Published);
             begin
@@ -125,7 +127,7 @@ separate (Files_Suite.History)
             Candidate_Revisions.Append (Null_Unbounded_String);
             Recorded := Files.Undo_Recording.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created,
-               Files_Suite.Support.Undo_Items
+               Files_Suite.Support.Models.Undo_Items
                  (Candidate, Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions,
                   Provenance => Files.Model.Published),
                Redoable => False);
@@ -137,7 +139,7 @@ separate (Files_Suite.History)
             Candidate_Revisions.Replace_Element (Candidate_Revisions.First_Index, Old_Revision);
             Recorded := Files.Undo_Recording.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created,
-               Files_Suite.Support.Undo_Items
+               Files_Suite.Support.Models.Undo_Items
                  (Candidate, Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions,
                   Provenance => Files.Model.Published),
                Redoable => False);
@@ -154,7 +156,7 @@ separate (Files_Suite.History)
             Candidate_Revisions.Append (Null_Unbounded_String);
             Recorded := Files.Undo_Recording.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created,
-               Files_Suite.Support.Undo_Items
+               Files_Suite.Support.Models.Undo_Items
                  (Candidate, Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions,
                   Provenance => Files.Model.Published),
                Create_Kind => Files.Model.Create_Copy);
@@ -167,7 +169,7 @@ separate (Files_Suite.History)
            (To_Unbounded_String (Files.File_System.Tree_Revision (Verifiable)));
          Recorded := Files.Undo_Recording.Try_Record_Undo
            (Model, Files.Model.Undo_Delete_Created,
-            Files_Suite.Support.Undo_Items
+            Files_Suite.Support.Models.Undo_Items
               (Paths, Identities => Identities, Tree_Revisions => Revisions,
                Provenance => Files.Model.Published),
             Redoable => False);

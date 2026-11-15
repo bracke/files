@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Info)
    procedure Test_Directory_Size_Over_Links (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,14 +18,14 @@ separate (Files_Suite.Info)
       --  A link back to the root of the walk, a dangling link, and links to a
       --  file and a folder outside it. Without symlinks there is nothing to
       --  measure; Link_Not_Made says so.
-      if not Files_Suite.Support.Create_Symlink (Tree, Join (Nested, "up")) then
-         Files_Suite.Support.Link_Not_Made ("Test_Directory_Size_Over_Links");
+      if not Files_Suite.Support.Disk.Create_Symlink (Tree, Join (Nested, "up")) then
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Directory_Size_Over_Links");
          return;
       end if;
       Linked :=
-        Files_Suite.Support.Create_Symlink (Join (Root, "missing"), Join (Tree, "gone"))
-        and then Files_Suite.Support.Create_Symlink (Join (Outside, "big.bin"), Join (Tree, "big"))
-        and then Files_Suite.Support.Create_Symlink (Outside, Join (Tree, "away"));
+        Files_Suite.Support.Disk.Create_Symlink (Join (Root, "missing"), Join (Tree, "gone"))
+        and then Files_Suite.Support.Disk.Create_Symlink (Join (Outside, "big.bin"), Join (Tree, "big"))
+        and then Files_Suite.Support.Disk.Create_Symlink (Outside, Join (Tree, "away"));
 
       Size := Files.File_System.Directory_Size (Tree);
 

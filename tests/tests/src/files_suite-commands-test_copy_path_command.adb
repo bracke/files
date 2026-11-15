@@ -1,6 +1,7 @@
 with Files.Items;
 with Files.Commands.Status;
 with Files.Model.Clipboard;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Commands)
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -42,7 +43,7 @@ separate (Files_Suite.Commands)
       Assert
         (not Files.Model.Clipboard.System_Request_Pending (Model),
          "no clipboard request is pending before copy-path runs");
-      Files_Suite.Support.Run_Command (Files.Commands.Copy_Path_Command, Model);
+      Files_Suite.Support.Models.Run_Command (Files.Commands.Copy_Path_Command, Model);
       Assert
         (Files.Model.Clipboard.System_Request_Pending (Model),
          "copy-path records a pending system-clipboard request");

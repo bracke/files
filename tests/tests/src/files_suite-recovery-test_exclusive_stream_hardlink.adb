@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Exclusive_Stream_Hardlink (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -25,7 +26,8 @@ separate (Files_Suite.Recovery)
                "exclusive transport streams refuse hardlinks without truncating their target");
             Ada.Directories.Delete_File (Alias);
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Exclusive_Stream_Hardlink", Files_Suite.Support.Hard_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Exclusive_Stream_Hardlink",
+                                                    Files_Suite.Support.Disk.Hard_Link);
          end if;
          Ada.Directories.Delete_File (Victim);
       exception

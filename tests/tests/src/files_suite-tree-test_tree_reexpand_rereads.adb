@@ -1,4 +1,6 @@
 with Files.Model.Tree_Panel;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Tree)
    --  A folder expanded again shows what it holds now: a subfolder made and
    --  one removed since it was first expanded. Node indices stay stable: the
@@ -7,8 +9,8 @@ separate (Files_Suite.Tree)
       pragma Unreferenced (T);
       use Ada.Strings.Unbounded;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
-      Tree_Dir : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "tree");
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
+      Tree_Dir : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "tree");
       Seeds    : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
       Ignored  : Files.Controller.Controller_Result;
 
@@ -21,8 +23,8 @@ separate (Files_Suite.Tree)
          return To_String (Result);
       end Names;
    begin
-      Files_Suite.Support.Reset_Root;
-      Ada.Directories.Create_Path (Files_Suite.Support.Join (Tree_Dir, "old"));
+      Files_Suite.Support.Disk.Reset_Root;
+      Ada.Directories.Create_Path (Files_Suite.Support.Disk.Join (Tree_Dir, "old"));
       Seeds.Append
         (Files.Folder_Tree.Entry_Seed'(Path => To_Unbounded_String (Tree_Dir), Name => To_Unbounded_String ("tree")));
       Files.Model.Tree_Panel.Seed (Model, Seeds);
@@ -32,8 +34,8 @@ separate (Files_Suite.Tree)
       Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Files_Suite.Support.Assert_Equal (Names, "tree;old;", "the first expand reads the folder");
 
-      Ada.Directories.Delete_Directory (Files_Suite.Support.Join (Tree_Dir, "old"));
-      Ada.Directories.Create_Path (Files_Suite.Support.Join (Tree_Dir, "new"));
+      Ada.Directories.Delete_Directory (Files_Suite.Support.Disk.Join (Tree_Dir, "old"));
+      Ada.Directories.Create_Path (Files_Suite.Support.Disk.Join (Tree_Dir, "new"));
       Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
       Files_Suite.Support.Assert_Equal (Names, "tree;", "collapsing hides the children");
       Ignored := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
@@ -44,6 +46,6 @@ separate (Files_Suite.Tree)
 
       Seeds.Append
         (Files.Folder_Tree.Entry_Seed'
-           (Path => To_Unbounded_String (Files_Suite.Support.Root), Name => To_Unbounded_String ("root")));
+           (Path => To_Unbounded_String (Files_Suite.Support.Disk.Root), Name => To_Unbounded_String ("root")));
       Assert (not Files.Model.Tree_Panel.Roots_Match (Model, Seeds), "a changed set of roots does not match");
    end Test_Tree_Reexpand_Rereads;

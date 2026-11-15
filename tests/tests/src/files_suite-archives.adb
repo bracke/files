@@ -27,6 +27,8 @@ with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Images;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 
 package body Files_Suite.Archives is
 
@@ -39,6 +41,8 @@ package body Files_Suite.Archives is
    use type Files.Types.Item_Kind;
    use type Files.Types.Search_Scope;
    use Files_Suite.Support;
+   use Files_Suite.Support.Models;
+   use Files_Suite.Support.Disk;
    use Files_Suite.Support.Images;
    use Files_Suite.Support.Guards;
    use Files_Suite.Operations_Support;

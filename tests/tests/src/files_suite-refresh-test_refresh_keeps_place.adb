@@ -53,7 +53,7 @@ separate (Files_Suite.Refresh)
       declare
          Finished, Cancelled : Boolean := False;
       begin
-         for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
+         for Attempt in Polling loop
             Applied := Files.Refresh_Jobs.Advance (Model, Settings);
             Files.Process_Jobs.Poll (Files.Model.Background_Refresh (Model), Finished, Cancelled);
             exit when Finished or else not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));

@@ -1,4 +1,5 @@
 with Files.Operation_Results;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Info)
    procedure Test_Info_Selection_Completion (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -26,14 +27,15 @@ separate (Files_Suite.Info)
          "keyboard selection populates details for the new selection: selection moved");
       Assert (Files.Model.Selection.Selected_Item (Model).Filetype_Extra_Loaded,
               "keyboard selection populates details for the new selection: details loaded");
-      Assert (Files_Suite.Support.Describe (Files.Model.Selection.Selected_Item (Model).Filetype_Extra) /= "",
+      Assert (Files_Suite.Support.Models.Describe (Files.Model.Selection.Selected_Item (Model).Filetype_Extra) /= "",
               "keyboard selection populates details for the new selection: details present");
       Files.Model.Set_Background_Transfers (Model, True);
       Step := Files.Operations.Refresh (Model, Settings);
       Await_View (Model, Settings);
       Await_Item_Details (Model);
       Assert (Files.Model.Selection.Selected_Item (Model).Filetype_Extra_Loaded
-              and then Files_Suite.Support.Describe (Files.Model.Selection.Selected_Item (Model).Filetype_Extra) /= "",
+              and then Files_Suite.Support.Models.Describe
+                (Files.Model.Selection.Selected_Item (Model).Filetype_Extra) /= "",
               "completed refresh repopulates the selected item's details");
       Revision := Files.Model.Revision (Model);
       Files.Window_Polls.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));

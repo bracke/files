@@ -1,5 +1,6 @@
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
    --  A settings command run by its shortcut, with the settings pane open,
    --  updates the pane as a click does, so the pane's next save keeps it.
@@ -8,7 +9,7 @@ separate (Files_Suite.Keyboard)
       --  Clears the override this test sets, on an assertion failure too.
       Shortcuts : Files_Suite.Support.Guards.Shortcut_Guard;
       pragma Unreferenced (Shortcuts);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
    begin

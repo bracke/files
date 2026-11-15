@@ -1,7 +1,8 @@
+with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    procedure Test_Left_Click_Selects (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       X, Y     : Natural;

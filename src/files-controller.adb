@@ -20,6 +20,7 @@ with Files.Model.Pasting;
 with Files.Model.Rename;
 with Files.Model.Selection;
 with Files.Settings.Open_Actions;
+with Files.Settings.Path_References;
 
 package body Files.Controller is
    use Ada.Strings.Unbounded;
@@ -68,11 +69,11 @@ package body Files.Controller is
       Before   : Files.Settings.Settings_Model;
       Settings : Files.Settings.Settings_Model)
    is
-      use type Files.Settings.String_Vectors.Vector;
    begin
       --  Seeding reads the volumes: only for a changed favorites list.
       if Files.Model.Tree_Panel.Is_Seeded (Model)
-        and then Before.Favorite_Paths /= Settings.Favorite_Paths
+        and then not Files.Settings.Path_References.Same_Favorites
+          (Settings, Files.Settings.Path_References.Favorite_Paths (Before))
       then
          Files.Operations.Seed_Tree (Model, Settings);
       end if;

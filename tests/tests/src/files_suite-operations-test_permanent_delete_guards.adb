@@ -1,6 +1,7 @@
 with Files.Operation_Results;
 with Files.Commands.Status;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Operations)
    procedure Test_Permanent_Delete_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -99,7 +100,7 @@ separate (Files_Suite.Operations)
       begin
          Ada.Directories.Create_Path (Link_Target);
          Write_File (Kept_File, "precious");
-         if Files_Suite.Support.Create_Symlink (Link_Target, Dir_Link) then
+         if Files_Suite.Support.Disk.Create_Symlink (Link_Target, Dir_Link) then
             Link_Result := Files.File_System.Delete_Permanently (Dir_Link);
             --  Capture before cleanup so a failure cannot leave fixtures behind.
             Target_Kept  := Ada.Directories.Exists (Link_Target);
@@ -121,7 +122,8 @@ separate (Files_Suite.Operations)
             Assert (Target_Kept, "permanent delete of a symlink does not delete the link target directory");
             Assert (Content_Kept, "permanent delete of a symlink preserves the target's real contents");
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Permanent_Delete_Guards", Files_Suite.Support.Symbolic_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Permanent_Delete_Guards",
+                                                    Files_Suite.Support.Disk.Symbolic_Link);
          end if;
       end;
 

@@ -31,6 +31,8 @@ with Files.Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files_Suite.Support.Timing;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 
 package body Files_Suite.Refresh is
 
@@ -45,6 +47,8 @@ package body Files_Suite.Refresh is
    use type Files.Types.Item_Kind;
    use type Files.Types.View_Mode;
    use Files_Suite.Support;
+   use Files_Suite.Support.Models;
+   use Files_Suite.Support.Disk;
    use Files_Suite.Support.Timing;
    use Files_Suite.Operations_Support;
 

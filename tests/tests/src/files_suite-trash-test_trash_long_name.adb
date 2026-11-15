@@ -42,7 +42,7 @@ separate (Files_Suite.Trash)
          --  Beside Root, where With_Trash_Environment cleans up: not the
          --  user's own trash, and named on every host (Windows sets no HOME).
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Root & "_xdg_data");
-         Write_Long_Path_File (Original, "long");
+         Write_Binary_File (Original, "long");
          Assert (Files.File_System.Trash.Move_To_Trash (Original, Trashed).Success,
                  "a file with a 245-byte name goes to the trash");
          Assert (not Present (Original), "it left its folder");
@@ -66,7 +66,7 @@ separate (Files_Suite.Trash)
          Ada.Environment_Variables.Set ("HOME", Mac_Home);
          Assert (Files.File_System.Trash.Move_To_Trash (Original).Success, "the first goes to the home trash");
          Assert (Present (Join (Join (Mac_Home, ".Trash"), Long_Name)), "under its own name");
-         Write_Long_Path_File (Original, "again");
+         Write_Binary_File (Original, "again");
          Assert (Files.File_System.Trash.Move_To_Trash (Original).Success,
                  "a second of the same long name goes too, cut to make room for its counter");
          Clear_Mac_Home;

@@ -3,6 +3,7 @@ with Guikit.Draw;
 with Files.Model.Context_Menu;
 with Files.Rendering.Layouts;
 with Files.Window_Policy;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Context_Menu)
    --  A press on the open context menu is translated by Files.Events like any
    --  other click: a row runs its command, a separator is swallowed, a click
@@ -13,7 +14,7 @@ separate (Files_Suite.Context_Menu)
       use type Files.Events.Input_Action_Kind;
       use type Guikit.Draw.Accessibility_Role;
       use type Files.Commands.Context_Menu_Row_Kind;
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
 

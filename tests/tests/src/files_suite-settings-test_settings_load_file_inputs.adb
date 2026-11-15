@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Settings)
    procedure Test_Settings_Load_File_Inputs (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -81,13 +82,14 @@ separate (Files_Suite.Settings)
       declare
          Link_Path : constant String := Join (Root, "linked-settings.conf");
       begin
-         if Files_Suite.Support.Create_Symlink (Settings_Path, Link_Path) then
+         if Files_Suite.Support.Disk.Create_Symlink (Settings_Path, Link_Path) then
             Loaded := Files.Settings.Load_File (Link_Path);
             Assert
               (Loaded.Success and then Loaded.Settings.Show_Hidden_Files,
                "settings loading follows a link only to its verified regular-file target");
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Settings_Load_File_Inputs", Files_Suite.Support.Symbolic_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Settings_Load_File_Inputs",
+                                                    Files_Suite.Support.Disk.Symbolic_Link);
          end if;
       end;
       --  /dev/null, or Windows' NUL device.

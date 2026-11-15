@@ -25,6 +25,14 @@ package Files.Environment is
    --  @return That value, or "" when none of them is set.
    function Message_Locale return String;
 
+   --  Which variable decides a locale category: the first of LC_ALL,
+   --  Category and LANG that is set. Hostkit's one reading of POSIX's
+   --  precedence, which Message_Locale follows for LC_MESSAGES.
+   --
+   --  @param Category The category's variable ("LC_TIME", "LC_NUMERIC").
+   --  @return "LC_ALL", Category or "LANG", or "" when none of them is set.
+   function Locale_Variable (Category : String) return String;
+
    --  Remove Name from this process's environment.
    --
    --  @param Name The variable.

@@ -81,6 +81,9 @@ package Files_Suite.Support.Timing is
    --  only runs this long when the test is already failing.
    Poll_Limit : constant Duration := 30.0;
 
+   --  @return Poll_Limit scaled by Time_Scale, in seconds.
+   function Scaled_Poll_Limit return Duration;
+
    type Poll_Cursor is new Natural;
 
    --  @param Position A polling cursor.
@@ -94,11 +97,13 @@ package Files_Suite.Support.Timing is
    --  until the body exits or Limit has passed. The caller asserts the
    --  condition afterwards, as with any bounded wait.
    --
-   --  @param Limit Wall-clock bound on the whole wait.
+   --  @param Limit Bound on the whole wait, on the monotonic clock
+   --  (Ada.Real_Time); by default Poll_Limit scaled by Time_Scale, as every
+   --  other test bound is.
    --  @param Interval Sleep between attempts.
    --  @return An iterator over the attempts.
    function Polling
-     (Limit    : Duration := Poll_Limit;
+     (Limit    : Duration := Scaled_Poll_Limit;
       Interval : Duration := 0.001)
       return Poll_Iterators.Forward_Iterator'Class;
 

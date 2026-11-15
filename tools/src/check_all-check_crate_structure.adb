@@ -120,7 +120,7 @@ separate (Check_All)
          "checker tooling must be a named Alire crate");
       Require_In_Text
         (Tools_Manifest,
-         "executables = [""check_all"", ""cldr_to_catalog""]",
+         "executables = [""check_all"", ""cldr_to_catalog"", ""release_check""]",
          "checker tooling crate must build all Ada helper executables");
       Require_In_Text
         (Tools_Manifest,

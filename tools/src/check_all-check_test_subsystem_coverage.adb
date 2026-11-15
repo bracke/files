@@ -127,5 +127,5 @@ separate (Check_All)
       Require_Tests ("info", 33);
       Require_Tests ("names", 18);
       Require_Tests ("refresh", 16);
-      Require_Tests ("open_actions", 16);
+      Require_Tests ("open_actions", 17);
    end Check_Test_Subsystem_Coverage;

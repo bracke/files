@@ -1,3 +1,4 @@
+with Files_Suite.Support.Models;
 separate (Files_Suite.Model)
    procedure Test_History_Bounds (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,7 +18,7 @@ separate (Files_Suite.Model)
          begin
             From.Append (To_Unbounded_String (History_Path));
             Files.Undo_Recording.Record_Undo
-              (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Undo_Items (From), Redoable => False);
+              (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (From), Redoable => False);
          end;
       end loop;
       declare

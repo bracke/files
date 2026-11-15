@@ -1,4 +1,5 @@
 with Files.Operation_Results;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Model)
    procedure Test_Untitled_Name_Generation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -27,7 +28,8 @@ separate (Files_Suite.Model)
             "untitled 4.txt",
             "untitled name generation skips dangling-link collisions");
       else
-         Files_Suite.Support.Link_Not_Made ("Test_Untitled_Name_Generation", Files_Suite.Support.Symbolic_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Untitled_Name_Generation",
+                                                 Files_Suite.Support.Disk.Symbolic_Link);
       end if;
       Files.Model.Initialize (Model, Root, Items, Root);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);

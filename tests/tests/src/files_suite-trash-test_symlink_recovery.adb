@@ -2,6 +2,8 @@ with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Trash)
    procedure Test_Symlink_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -31,7 +33,7 @@ separate (Files_Suite.Trash)
                 when 3 => Files.File_System.Trash.Trash_Files_Directory,
                 when others => Root), Link)
          then
-            Files_Suite.Support.Link_Not_Made ("Test_Symlink_Recovery");
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Symlink_Recovery");
             return;
          end if;
          Result := Files.File_System.Trash.Move_To_Trash (Link, Trashed);
@@ -125,12 +127,12 @@ separate (Files_Suite.Trash)
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Paths.Append (To_Unbounded_String (Link));
          Files.Undo_Recording.Record_Undo
-           (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Undo_Items (Paths), Redoable => False);
+           (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Paths), Redoable => False);
          Step := Complete_Operation
                        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Hostkit.Fs.Is_Link (Link),
                  "Undo removes a created dangling link");
       else
-         Files_Suite.Support.Link_Not_Made ("Test_Symlink_Recovery", Files_Suite.Support.Symbolic_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Symlink_Recovery", Files_Suite.Support.Disk.Symbolic_Link);
       end if;
    end Test_Symlink_Recovery;

@@ -6,7 +6,10 @@ with Guikit.Input;
 with Files.Icon_Themes;
 with Files.Types;
 
---  Settings loading, validation, and filetype-to-action mapping.
+--  The settings model and its file: loading, validation, saving, and the
+--  settings pane's draft. Open actions and their placeholders live in
+--  Files.Settings.Open_Actions, favorites, recents and labels in
+--  Files.Settings.Path_References.
 package Files.Settings is
    subtype UString is Files.Types.UString;
    package String_Vectors renames Files.Types.String_Vectors;
@@ -65,6 +68,9 @@ package Files.Settings is
    --  directly onto the renderer's palette (Guikit.Draw.Theme_Kind).
    type Theme_Choice is (Theme_Dark, Theme_Light, Theme_High_Contrast);
 
+   --  What the settings keep about paths; see Files.Settings.Path_References.
+   type Path_Store is private;
+
    type Settings_Model is record
       Extension_Filetypes    : String_Maps.Map;
       Icon_Mappings          : String_Maps.Map;
@@ -88,16 +94,10 @@ package Files.Settings is
       Window_Width           : Natural := 0;
       Window_Height          : Natural := 0;
       Info_Pane_Open         : Boolean := False;
-      Favorite_Paths         : String_Vectors.Vector;
-      --  Recently-opened item and folder paths, most-recent-first, capped at
-      --  Max_Recent_Items. Maintained through Note_Recent / Clear_Recent and read
-      --  back through the Recent_Paths accessor; persisted as the [recent]
-      --  section. Kept as a distinct value field so the accessor can expose a
-      --  read-only view without colliding with the function name.
-      Recent_Paths_Value     : String_Vectors.Vector;
-      --  Per-path color labels (tags). Each entry maps a full item or folder
-      --  path to one of the seven swatch colors; No_Label is never stored.
-      Labels                 : Path_Label_Vectors.Vector;
+      --  Favorites, recently opened paths and color labels: reached only
+      --  through Files.Settings.Path_References, which keeps their rules
+      --  (validity, no repeats, the recent cap).
+      Paths                  : Path_Store;
       --  When True (the default) and no per-filetype open action matches, fall
       --  back to the host system's default opener (xdg-open on Linux, open on
       --  macOS, cmd /c start on Windows). Set to False to force explicit
@@ -441,6 +441,17 @@ package Files.Settings is
       return String;
 
 private
+
+   type Path_Store is record
+      --  Favorite item and folder paths, in the order they were starred.
+      Favorites : String_Vectors.Vector;
+      --  Recently-opened item and folder paths, most-recent-first, capped at
+      --  Max_Recent_Items; persisted as the [recent] section.
+      Recent    : String_Vectors.Vector;
+      --  Per-path color labels (tags). Each entry maps a full item or folder
+      --  path to one of the seven swatch colors; No_Label is never stored.
+      Labels    : Path_Label_Vectors.Vector;
+   end record;
 
    --  Whether Path can be stored: not empty, and without a NUL or a line
    --  break, which the line-oriented settings file cannot round-trip.

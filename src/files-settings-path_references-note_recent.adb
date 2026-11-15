@@ -11,19 +11,19 @@ separate (Files.Settings.Path_References)
 
       --  Drop any earlier occurrence so the freshest position wins and the list
       --  stays duplicate-free.
-      Index := Settings.Recent_Paths_Value.First_Index;
-      while Index <= Settings.Recent_Paths_Value.Last_Index loop
-         if To_String (Settings.Recent_Paths_Value.Element (Index)) = Path then
-            Settings.Recent_Paths_Value.Delete (Index);
+      Index := Settings.Paths.Recent.First_Index;
+      while Index <= Settings.Paths.Recent.Last_Index loop
+         if To_String (Settings.Paths.Recent.Element (Index)) = Path then
+            Settings.Paths.Recent.Delete (Index);
          else
             Index := Index + 1;
          end if;
       end loop;
 
-      Settings.Recent_Paths_Value.Prepend (To_Unbounded_String (Path));
+      Settings.Paths.Recent.Prepend (To_Unbounded_String (Path));
 
       --  Enforce the cap by discarding the oldest (tail) entries.
-      while Natural (Settings.Recent_Paths_Value.Length) > Max_Recent_Items loop
-         Settings.Recent_Paths_Value.Delete_Last;
+      while Natural (Settings.Paths.Recent.Length) > Max_Recent_Items loop
+         Settings.Paths.Recent.Delete_Last;
       end loop;
    end Note_Recent;

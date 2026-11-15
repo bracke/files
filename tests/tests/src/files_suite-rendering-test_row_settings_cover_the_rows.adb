@@ -2,6 +2,7 @@ with Files.Rendering.Testing;
 with Files.Settings.Testing;
 with Files.Settings.Path_References;
 with Files.Snapshot_Policy.Settings_Keys;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Rendering)
    --  The window keeps a snapshot's rows while Same_Row_Settings holds
    --  (Snapshot_Policy.Patch_Rows). That is right only if every setting a row
@@ -11,7 +12,7 @@ separate (Files_Suite.Rendering)
    procedure Test_Row_Settings_Cover_The_Rows (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Base       : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model      : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model      : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       function "+" (Text : String) return Files.Types.UString renames To_Unbounded_String;
       type Text_List is array (Positive range <>) of Files.Types.UString;
       Candidates : constant Text_List :=
@@ -78,7 +79,7 @@ separate (Files_Suite.Rendering)
          declare
             Changed : Files.Settings.Settings_Model := Base;
          begin
-            Changed.Favorite_Paths.Append (To_Unbounded_String (First_Path));
+            Files.Settings.Path_References.Toggle_Favorite_Path (Changed, First_Path);
             Check ("a favorite", Changed);
          end;
       end loop;

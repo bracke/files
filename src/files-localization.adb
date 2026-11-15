@@ -243,17 +243,18 @@ package body Files.Localization is
       Raw_Home     : constant String := Files.Environment.Value ("HOME");
       Memo         : Category_Memo renames Category_Memos (Category);
 
+      --  The variables decide by the precedence messages follow too
+      --  (Files.Environment.Locale_Variable), with one difference kept on
+      --  purpose: a portable LANG (C, POSIX) says nothing about dates and
+      --  numbers, so the desktop's configured formats come before it. The
+      --  message locale takes such a LANG as English.
       function Resolve return String is
-         LC_All  : constant String := Environment_Locale ("LC_ALL");
-         Of_Kind : constant String := Environment_Locale (Category_Key);
-         Lang    : constant String := Environment_Locale ("LANG");
+         Decider : constant String := Files.Environment.Locale_Variable (Category_Key);
+         Value   : constant String := (if Decider = "" then "" else Environment_Locale (Decider));
+         Lang    : constant String := (if Decider = "LANG" then Value else "");
       begin
-         if LC_All /= "" then
-            return LC_All;
-         elsif Of_Kind /= "" then
-            return Of_Kind;
-         elsif Lang /= "" and then not Environment_Portable_Locale ("LANG") then
-            return Lang;
+         if Value /= "" and then not (Decider = "LANG" and then Environment_Portable_Locale ("LANG")) then
+            return Value;
          end if;
 
          declare

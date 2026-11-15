@@ -5,7 +5,7 @@ with AUnit.Assertions;
 package body Files_Suite.Support.Timing is
 
    function Polling
-     (Limit    : Duration := Poll_Limit;
+     (Limit    : Duration := Scaled_Poll_Limit;
       Interval : Duration := 0.001)
       return Poll_Iterators.Forward_Iterator'Class
    is
@@ -53,6 +53,8 @@ package body Files_Suite.Support.Timing is
 
    function Scaled (Bound : Duration) return Span is
      (Ada.Real_Time.To_Time_Span (Duration (Bound * Time_Scale)));
+
+   function Scaled_Poll_Limit return Duration is (Seconds (Scaled (Poll_Limit)));
 
    procedure Assert_Within (Taken : Span; Limit : Span; Message : String) is
       use type Ada.Real_Time.Time_Span;

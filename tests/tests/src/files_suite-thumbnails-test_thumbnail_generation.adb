@@ -2,6 +2,7 @@ with Files.File_System.Permissions;
 with Files.File_System.Thumbnails;
 with Files.Images;
 with Files_Suite.Support.Images;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Thumbnails)
    procedure Test_Thumbnail_Generation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -57,7 +58,7 @@ separate (Files_Suite.Thumbnails)
       begin
          Ada.Directories.Delete_File (Cache_Path);
          Write_File (Victim, "must stay intact");
-         if Files_Suite.Support.Create_Symlink (Victim, Cache_Path) then
+         if Files_Suite.Support.Disk.Create_Symlink (Victim, Cache_Path) then
             Thumbnail := Files.File_System.Thumbnails.Generate_Thumbnail
               (Thumbnail_Source, Thumbnail_Cache, Size => 8);
             Assert (Thumbnail.Status = Files.File_System.Thumbnails.Thumbnail_Generated,
@@ -70,7 +71,8 @@ separate (Files_Suite.Thumbnails)
                       and then not Hostkit.Fs.Is_Link (Cache_Path & ".tmp"),
                     "thumbnail publication leaves no temporary cache file");
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Thumbnail_Generation", Files_Suite.Support.Symbolic_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Thumbnail_Generation",
+                                                    Files_Suite.Support.Disk.Symbolic_Link);
          end if;
       end;
 

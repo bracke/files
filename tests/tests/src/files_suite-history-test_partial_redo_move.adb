@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
+with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_Partial_Redo_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -30,7 +31,7 @@ separate (Files_Suite.History)
                (case Scenario is
                    when Move_Action   => Files.Model.Undo_Move,
                    when Rename_Action => Files.Model.Undo_Rename),
-               Files_Suite.Support.Undo_Items (Destinations, To => Sources));
+               Files_Suite.Support.Models.Undo_Items (Destinations, To => Sources));
             Step := Complete_Operation
                        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal

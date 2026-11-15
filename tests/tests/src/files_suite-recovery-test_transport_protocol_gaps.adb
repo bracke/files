@@ -1,4 +1,5 @@
 with Files_Suite.Support.Timing;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Transport_Protocol_Gaps (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -92,7 +93,7 @@ separate (Files_Suite.Recovery)
                "cancellation never truncates through a planted marker hardlink");
             Ada.Directories.Delete_File (Marker);
          else
-            Files_Suite.Support.Link_Not_Made ("Test_Transport_Protocol_Gaps", Files_Suite.Support.Hard_Link);
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Transport_Protocol_Gaps", Files_Suite.Support.Disk.Hard_Link);
          end if;
          Ada.Directories.Delete_File (Victim);
       exception

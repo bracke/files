@@ -1,10 +1,11 @@
+with Files_Suite.Support.Models;
 separate (Files_Suite.Info)
    procedure Test_Folder_Count_Honours_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Box : constant String := Join (Root, "box");
 
       function Count_Of (Show_Hidden : Boolean) return String is
-        (Files_Suite.Support.Describe
+        (Files_Suite.Support.Models.Describe
            (Files.File_System.Extra_Info_Of (Box, Files.Types.Directory_Item, "inode/directory", Show_Hidden)));
    begin
       Reset_Root;

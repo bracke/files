@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Transfer)
    procedure Test_Replace_Trash_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -35,7 +36,7 @@ separate (Files_Suite.Transfer)
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-            Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+            Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
             Assert (not Files.Model.Foreground_Job_Is_Active (Model), "a failed Replace finishes its execution");
             Files_Suite.Support.Assert_Equal
               (Step.Status,

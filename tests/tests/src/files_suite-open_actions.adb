@@ -26,6 +26,8 @@ with Files.Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 
 package body Files_Suite.Open_Actions is
 
@@ -38,6 +40,8 @@ package body Files_Suite.Open_Actions is
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use Files_Suite.Support;
+   use Files_Suite.Support.Models;
+   use Files_Suite.Support.Disk;
    use Files_Suite.Support.Guards;
    use Files_Suite.Operations_Support;
 
@@ -62,6 +66,7 @@ package body Files_Suite.Open_Actions is
    procedure Test_Desktop_Exec_Expansion (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Open_With_Palette_Launch (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Relative_Xdg_Application_Paths (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Desktop_Entry_Locale_Spelling (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Open_Actions_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -107,6 +112,9 @@ package body Files_Suite.Open_Actions is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Relative_Xdg_Application_Paths'Access,
          "application discovery ignores relative XDG data paths");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Desktop_Entry_Locale_Spelling'Access,
+         "a host locale tag is matched against desktop entries in their own spelling");
    end Register_Tests;
 
    procedure Test_Open_Selected_Directory_Loads_Items (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -140,6 +148,8 @@ package body Files_Suite.Open_Actions is
    procedure Test_Open_With_Palette_Launch (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Relative_Xdg_Application_Paths (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Desktop_Entry_Locale_Spelling (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

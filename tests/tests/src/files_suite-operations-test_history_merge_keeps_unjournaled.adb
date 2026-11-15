@@ -1,6 +1,7 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Operations)
    --  A background helper hands its history back through a journal that may
    --  leave entries out (too old, or too large, for its caps). The window
@@ -173,7 +174,7 @@ separate (Files_Suite.Operations)
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "the background duplicate starts");
          Assert (Files.Model.Foreground_Job_Is_Active (Job_Window), "the duplicate runs as a background job");
-         Step := Files_Suite.Support.Finish_Paste (Job_Window, Settings);
+         Step := Files_Suite.Support.Models.Finish_Paste (Job_Window, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "the background duplicate completes");
          Assert (Names (Files.Model.History.Undo_Entries (Job_Window)) = "a,b,item (copy).txt",

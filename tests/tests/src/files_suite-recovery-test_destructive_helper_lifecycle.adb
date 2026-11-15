@@ -2,6 +2,7 @@ with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Recovery)
    procedure Test_Destructive_Helper_Lifecycle (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -40,7 +41,7 @@ separate (Files_Suite.Recovery)
          Paths.Append (To_Unbounded_String (Join (Root, "victim.txt")));
          if Job_Kind = Undo_Job then
             Files.Undo_Recording.Record_Undo
-              (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Undo_Items (Paths, To => Sources),
+              (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Paths, To => Sources),
                Redoable => False);
          elsif Job_Kind = Redo_Job then
             Sources := Paths;
@@ -187,7 +188,7 @@ separate (Files_Suite.Recovery)
       Paths.Append (To_Unbounded_String (Join (Root, "checkpoint-target")));
 
       Files.Undo_Recording.Record_Undo
-        (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Undo_Items (Paths, To => Sources),
+        (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Paths, To => Sources),
          Redoable => False);
       Write_Binary_File (Join (Root, "blocked-transport"), "a file cannot hold a checkpoint");
       Files.Job_Context.Initialize (Join (Root, "blocked-transport"));

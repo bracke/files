@@ -1,10 +1,11 @@
+with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
    --  Home/End/PageUp/PageDown page the file-grid selection through the genuine
    --  key seam (Files.Interaction.Handle_Key) and never navigate: plain Home is
    --  distinct from Alt+Home (navigate home).
    procedure Test_Grid_Nav_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Home_Dir : constant String := Files.Model.Current_Path (Model);
       Last     : constant Positive := Files.Model.Visible_Count (Model);

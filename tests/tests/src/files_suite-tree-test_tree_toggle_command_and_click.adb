@@ -1,11 +1,12 @@
 with Files.Model.Context_Menu;
 with Files.Model.Tree_Panel;
 with Files.Rendering.Layouts;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Tree)
    procedure Test_Tree_Toggle_Command_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use Ada.Strings.Unbounded;
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
    begin

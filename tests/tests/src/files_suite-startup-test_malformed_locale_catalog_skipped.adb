@@ -1,5 +1,6 @@
 with Files.Localization.Testing;
 with Files.Resources;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Startup)
    --  Locale catalogs were loaded strictly into the one runtime: a single
    --  malformed one made the whole runtime invalid, and every text then
@@ -8,19 +9,19 @@ separate (Files_Suite.Startup)
    procedure Test_Malformed_Locale_Catalog_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Base   : constant String := Files.Resources.Share_Path ("files.catalog");
-      Share  : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "share-malformed");
-      Broken : constant String := Files_Suite.Support.Join (Share, "files-da.catalog");
-      Good   : constant String := Files_Suite.Support.Join (Share, "files-da-good.catalog");
+      Share  : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "share-malformed");
+      Broken : constant String := Files_Suite.Support.Disk.Join (Share, "files-da.catalog");
+      Good   : constant String := Files_Suite.Support.Disk.Join (Share, "files-da-good.catalog");
       Loaded : Boolean;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Share);
       --  An ICU message left open, and a line that is no key=value pair.
-      Files_Suite.Support.Write_File
+      Files_Suite.Support.Disk.Write_File
         (Broken,
          "da.command.view.small = {count, plural, one {x}" & ASCII.LF
          & "this line is not a catalog entry" & ASCII.LF);
-      Files_Suite.Support.Write_File (Good, "da.command.view.small = Lille" & ASCII.LF);
+      Files_Suite.Support.Disk.Write_File (Good, "da.command.view.small = Lille" & ASCII.LF);
 
       Files_Suite.Support.Assert_Equal
         (Files.Localization.Testing.Render_With_Shard (Base, Broken, "en", "command.view.small", Loaded),
@@ -38,5 +39,5 @@ separate (Files_Suite.Startup)
          "Lille",
          "a well-formed locale catalog is added as before");
       Assert (Loaded, "and reported loaded");
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
    end Test_Malformed_Locale_Catalog_Skipped;

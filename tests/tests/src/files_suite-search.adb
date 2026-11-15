@@ -20,6 +20,7 @@ with Files.Settings;
 with Files.Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
+with Files_Suite.Support.Disk;
 
 package body Files_Suite.Search is
 
@@ -31,6 +32,7 @@ package body Files_Suite.Search is
    use type Files.Operations.Archive_Format;
    use type Files.Types.Search_Scope;
    use Files_Suite.Support;
+   use Files_Suite.Support.Disk;
    use Files_Suite.Operations_Support;
 
    type Search_Test_Case is new AUnit.Test_Cases.Test_Case with null record;

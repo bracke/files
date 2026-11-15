@@ -29,6 +29,8 @@ with Guikit.Input;
 with Files.Types;
 with Files_Suite.Support;
 with Files.Settings.Open_Actions;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 
 package body Files_Suite.Settings is
 
@@ -40,6 +42,8 @@ package body Files_Suite.Settings is
    use type Guikit.Input.Modifier_Set;
    use type Files.Types.View_Mode;
    use Files_Suite.Support;
+   use Files_Suite.Support.Models;
+   use Files_Suite.Support.Disk;
 
    type Settings_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
 

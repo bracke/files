@@ -1,5 +1,6 @@
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Transfer)
    procedure Test_Failed_Move_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,7 +18,7 @@ separate (Files_Suite.Transfer)
       Environment : Files_Suite.Support.Guards.Environment_Guard;
       procedure Restore is
       begin
-         Files_Suite.Support.Allow_Deletion (Join (Source_Parent, "item.txt"));
+         Files_Suite.Support.Disk.Allow_Deletion (Join (Source_Parent, "item.txt"));
          if Ada.Directories.Exists (Source_Parent) then
             Mutation := Files.File_System.Permissions.Set_Permissions (Source_Parent, 8#755#);
          end if;
@@ -44,7 +45,7 @@ separate (Files_Suite.Transfer)
             Assert (Mutation.Success, "deny source unlink and rename");
             --  A locked folder does not stop its item going on Windows, where
             --  the item keeps DELETE through the ACE it inherited.
-            Files_Suite.Support.Forbid_Deletion (Join (Source_Parent, "item.txt"));
+            Files_Suite.Support.Disk.Forbid_Deletion (Join (Source_Parent, "item.txt"));
             Step := Files.Operations.Begin_Paste
               (Model, Settings, Sources, Files.File_System.Drop_Move, False);
             if Replace then
@@ -53,7 +54,7 @@ separate (Files_Suite.Transfer)
             end if;
             Step := Complete_Operation (Model, Settings, Step);
             Await_View (Model, Settings);
-            Files_Suite.Support.Allow_Deletion (Join (Source_Parent, "item.txt"));
+            Files_Suite.Support.Disk.Allow_Deletion (Join (Source_Parent, "item.txt"));
             Mutation := Files.File_System.Permissions.Set_Permissions (Source_Parent, 8#755#);
             Files_Suite.Support.Assert_Equal
               (Step.Status,

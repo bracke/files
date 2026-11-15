@@ -1,6 +1,7 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Transfer)
    procedure Test_Move_Without_Read_Access (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -46,7 +47,7 @@ separate (Files_Suite.Transfer)
             "same-device paste moves an unreadable entry and retains Undo: status, "
             & To_String (Step.Error_Key)
             & (if Step.Status = Files.Operation_Results.Operation_Success then ""
-               else Files_Suite.Support.Access_Report (Source, Tree => True)));
+               else Files_Suite.Support.Disk.Access_Report (Source, Tree => True)));
          Assert (not Ada.Directories.Exists (Source),
                  "same-device paste moves an unreadable entry and retains Undo: source moved");
          Assert (Ada.Directories.Exists (Destination),

@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Copy_Journal_Validation
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -75,7 +76,7 @@ separate (Files_Suite.Recovery)
             "copy journal reads refuse a multiply-linked file");
          Ada.Directories.Delete_File (Join (Root, "links"));
       else
-         Files_Suite.Support.Link_Not_Made ("Test_Copy_Journal_Validation", Files_Suite.Support.Hard_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Copy_Journal_Validation", Files_Suite.Support.Disk.Hard_Link);
       end if;
 
       Expected.Clear;
@@ -111,7 +112,8 @@ separate (Files_Suite.Recovery)
             null;
          end;
       else
-         Files_Suite.Support.Link_Not_Made ("Test_Copy_Journal_Validation", Files_Suite.Support.Symbolic_Link);
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Copy_Journal_Validation",
+                                                 Files_Suite.Support.Disk.Symbolic_Link);
       end if;
    exception
       when others =>

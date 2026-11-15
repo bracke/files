@@ -38,6 +38,8 @@ with Files.Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files.Model.Pasting;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 
 package body Files_Suite.History is
 
@@ -49,6 +51,8 @@ package body Files_Suite.History is
    use type Files.Operation_Results.Operation_Status;
    use type Files.Model.Undo_Action_Kind;
    use Files_Suite.Support;
+   use Files_Suite.Support.Models;
+   use Files_Suite.Support.Disk;
    use Files_Suite.Operations_Support;
 
    type History_Test_Case is new AUnit.Test_Cases.Test_Case with null record;

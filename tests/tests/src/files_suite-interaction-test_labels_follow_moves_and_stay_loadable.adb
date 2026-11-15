@@ -2,25 +2,28 @@ with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.Model.Label_Picker;
 with Files.Settings.Path_References;
+with Files_Suite.Support.Disk;
+with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    procedure Test_Labels_Follow_Moves_And_Stay_Loadable (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
-      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "label-moves");
-      One      : constant String := Files_Suite.Support.Join (Dir, "one.txt");
-      Renamed  : constant String := Files_Suite.Support.Join (Dir, "first.txt");
-      Sub      : constant String := Files_Suite.Support.Join (Dir, "sub");
-      Inner    : constant String := Files_Suite.Support.Join (Sub, "inner.txt");
-      Sub_Two  : constant String := Files_Suite.Support.Join (Dir, "sub2");
-      Sibling  : constant String := Files_Suite.Support.Join (Files_Suite.Support.Join (Dir, "sub-other"), "x");
+      Dir      : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "label-moves");
+      One      : constant String := Files_Suite.Support.Disk.Join (Dir, "one.txt");
+      Renamed  : constant String := Files_Suite.Support.Disk.Join (Dir, "first.txt");
+      Sub      : constant String := Files_Suite.Support.Disk.Join (Dir, "sub");
+      Inner    : constant String := Files_Suite.Support.Disk.Join (Sub, "inner.txt");
+      Sub_Two  : constant String := Files_Suite.Support.Disk.Join (Dir, "sub2");
+      Sibling  : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Join (Dir, "sub-other"),
+                                                                   "x");
       Model    : Files.Model.Window_Model;
       Op       : Files.Operation_Results.Operation_Result;
       Followed : Boolean;
 
       procedure Rename (Name, New_Name : String) is
       begin
-         Files_Suite.Support.Select_Name (Model, Name);
+         Files_Suite.Support.Models.Select_Name (Model, Name);
          Files.Model.Rename.Toggle (Model);
          Files.Model.Rename.Set_Text (Model, New_Name);
          Op := Files.Operations.Commit_Rename (Model, Settings);
@@ -31,10 +34,10 @@ separate (Files_Suite.Interaction)
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       end Rename;
    begin
-      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Sub);
-      Files_Suite.Support.Write_File (One, "a");
-      Files_Suite.Support.Write_File (Inner, "b");
+      Files_Suite.Support.Disk.Write_File (One, "a");
+      Files_Suite.Support.Disk.Write_File (Inner, "b");
       Files.Settings.Path_References.Set_Label (Settings, One, Files.Types.Green);
       Files.Settings.Path_References.Set_Label (Settings, Inner, Files.Types.Blue);
       Files.Settings.Path_References.Set_Label (Settings, Sibling, Files.Types.Red);
@@ -49,7 +52,7 @@ separate (Files_Suite.Interaction)
 
       Rename ("sub", "sub2");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Path_References.Label_Of (Settings, Files_Suite.Support.Join (Sub_Two, "inner.txt")),
+        (Files.Settings.Path_References.Label_Of (Settings, Files_Suite.Support.Disk.Join (Sub_Two, "inner.txt")),
          Files.Types.Blue,
          "a label inside a renamed folder follows it");
       Assert
@@ -88,7 +91,7 @@ separate (Files_Suite.Interaction)
       end;
       Assert (Files.Settings.Loadable (Settings), "the settings still load just under the bound");
       for Index in 1 .. 20 loop
-         Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "f" & Index'Image), "x");
+         Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "f" & Index'Image), "x");
       end loop;
       Model := Loaded_Model (Dir);
       Files.Model.Selection.Select_All_Visible (Model);
@@ -99,7 +102,8 @@ separate (Files_Suite.Interaction)
           Label      => Files.Types.Purple),
          Guikit.Input.No_Modifiers, Result);
       Assert
-        (Files.Settings.Path_References.Label_Of (Settings, Files_Suite.Support.Join (Dir, "f" & Integer'(1)'Image))
+        (Files.Settings.Path_References.Label_Of (Settings, Files_Suite.Support.Disk.Join (Dir,
+                                                                                           "f" & Integer'(1)'Image))
                 = Files.Types.No_Label
               and then Files.Settings.Loadable (Settings),
               "an edit past the bound is refused and the settings stay loadable");

@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 separate (Files.Operations)
 function Root_Entries_With_Favorites
   (Settings : Files.Settings.Settings_Model)
@@ -5,7 +6,7 @@ function Root_Entries_With_Favorites
 is
    Roots : Files.File_System.Root_Entry_Vectors.Vector := Files.File_System.Available_Root_Entries;
 begin
-   for Path of Settings.Favorite_Paths loop
+   for Path of Files.Settings.Path_References.Favorite_Paths (Settings) loop
       Roots.Append
         (Files.File_System.Root_Entry'
            (Path        => Path,

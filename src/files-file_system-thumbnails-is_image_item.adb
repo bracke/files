@@ -6,7 +6,7 @@ function Is_Image_Item
    Icon_Id  : String)
    return Boolean
 is
-   Extension : constant String := Files.File_Types.Extension_Of (Name);
+   Extension : constant String := Files.File_Types.Normalized_Extension_Of (Name);
 begin
    if Kind = Files.Types.Directory_Item
      or else Kind = Files.Types.Symlink_Item
