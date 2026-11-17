@@ -328,7 +328,7 @@ private
       Origin_Y : Integer := 0;
       Moved    : Boolean := False;
       Additive : Boolean := False;
-      Base     : Files.Rendering.Visible_Index_Vectors.Vector;
+      Base     : Files.Types.String_Vectors.Vector;
       Rect_X   : Natural := 0;
       Rect_Y   : Natural := 0;
       Rect_W   : Natural := 0;
@@ -428,12 +428,6 @@ private
       Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
         Guikit.Vulkan.Vulkan_Not_Initialized;
       Last_Watch_Poll : Ada.Real_Time.Time := Never;
-      --  The model revision and transfer state Update_Folder_Size last ran
-      --  for: the loop wakes about 60 times a second, and the selection's
-      --  targets change only with the model.
-      Folder_Size_Rows      : Natural := Natural'Last;
-      Folder_Size_Selection : Natural := Natural'Last;
-      Folder_Size_Busy     : Boolean := False;
       Watch : Files.Refresh_Jobs.Watch_Session;
       --  How often the watch and the timed re-read may reload the folder.
       Watch_Pacing : Files.Refresh_Jobs.Watch_Pacer;
@@ -503,10 +497,6 @@ private
    --  Apply one window's pending mouse input.
    procedure Handle_Mouse
      (Runtime : in out Runtime_Window);
-
-   --  Handle_Mouse for every window.
-   procedure Handle_All_Mouse
-     (Runtime_Windows : in out Runtime_Window_Vectors.Vector);
 
    --  Release every window and its resources.
    procedure Release_All (Runtime_Windows : in out Runtime_Window_Vectors.Vector);

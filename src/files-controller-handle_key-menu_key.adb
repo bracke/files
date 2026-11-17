@@ -11,8 +11,7 @@ begin
      and then Files.Model.Focus (Model) = Files.Types.Focus_None
    then
       if Files.Model.Selection.Selected_Count (Model) > 0 then
-         Files.Model.Context_Menu.Open
-           (Model, 0, 0, Files.Types.Context_Menu_Item, Files.Model.Selection.Selected_Index (Model));
+         Files.Model.Context_Menu.Open (Model, 0, 0, Files.Types.Context_Menu_Item);
       else
          Files.Model.Context_Menu.Open (Model, 0, 0, Files.Types.Context_Menu_Empty);
       end if;

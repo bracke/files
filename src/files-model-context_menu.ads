@@ -7,15 +7,13 @@ package Files.Model.Context_Menu is
    --  @param Model Model to update.
    --  @param X Window-space X coordinate of the cursor.
    --  @param Y Window-space Y coordinate of the cursor.
-   --  @param Target Whether the menu is anchored on an item, the empty grid, or
-   --    the details-view column header.
-   --  @param Item_Index Visible item index when the menu is anchored on a row.
+   --  @param Target Whether the menu is anchored on the selection, the empty
+   --    grid, or the details-view column header.
    procedure Open
-     (Model      : in out Window_Model;
-      X          : Natural;
-      Y          : Natural;
-      Target     : Context_Menu_Target;
-      Item_Index : Natural := 0);
+     (Model  : in out Window_Model;
+      X      : Natural;
+      Y      : Natural;
+      Target : Context_Menu_Target);
 
    --  Close the right-click context menu.
    --
@@ -54,14 +52,6 @@ package Files.Model.Context_Menu is
    function Target_Of
      (Model : Window_Model)
       return Context_Menu_Target;
-
-   --  Return the item index the menu was anchored to (0 when empty area).
-   --
-   --  @param Model Model to inspect.
-   --  @return The anchored item index, or 0 when opened on the empty area.
-   function Item_Index
-     (Model : Window_Model)
-      return Natural;
 
    --  Set the one-based index of the keyboard-highlighted context-menu row (0
    --  for none). The controller resolves which row is a selectable command via

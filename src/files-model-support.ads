@@ -19,7 +19,8 @@ private package Files.Model.Support is
    --  @return Number of lines to scroll by.
    function Scroll_Step (Lines : Integer) return Natural;
 
-   --  Deactivate rename mode and discard every inline rename field.
+   --  Deactivate rename mode and discard every inline rename field; the
+   --  keyboard leaves the rename field with them.
    --
    --  @param Model Model whose rename state is reset.
    procedure Reset_Rename_State

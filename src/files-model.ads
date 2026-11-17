@@ -547,10 +547,11 @@ package Files.Model is
    --  the view when Settings hides them and come back when it shows them
    --  (the results keep them), and with Reclassify each item's type and icon
    --  are worked out afresh from Settings' mappings (its details with them).
-   --  The items are ordered by the model's sort; the selection, the scroll
-   --  and the info pane's scroll stay, and the view still holds search
-   --  results. Hidden items the search itself left out cannot come back
-   --  without searching again.
+   --  The items are ordered by the model's sort; the selection (less what is
+   --  now hidden), a rename or a new item's name in progress, the palette,
+   --  Quick Look on a still-selected item, the scroll and the info pane's
+   --  scroll stay, and the view still holds search results. Hidden items
+   --  the search itself left out cannot come back without searching again.
    --
    --  @param Model Model to update.
    --  @param Settings The settings now in force.
@@ -1425,7 +1426,6 @@ private
       X          : Natural := 0;
       Y          : Natural := 0;
       Target     : Context_Menu_Target := Files.Types.Context_Menu_None;
-      Item_Index : Natural := 0;
       Highlight  : Natural := 0;
    end record;
 

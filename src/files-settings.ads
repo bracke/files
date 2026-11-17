@@ -153,6 +153,21 @@ package Files.Settings is
      (Settings : Settings_Model)
       return Files.Types.Listing_Options;
 
+   --  Whether two settings list a folder the same way: the listing options,
+   --  and the filetype and icon maps every listed item is classified by; for
+   --  the recent view also the recent paths it lists. A job's listing stays
+   --  valid across any other change (a zoom, a column width, a label, a
+   --  recent path when the view is a folder).
+   --
+   --  @param Left First settings.
+   --  @param Right Second settings.
+   --  @param Recent_View Whether the listing is the recent view.
+   --  @return True when a listing made under Left matches one under Right.
+   function Same_Listing
+     (Left, Right : Settings_Model;
+      Recent_View : Boolean)
+      return Boolean;
+
    type Settings_Parse_Result is record
       Success   : Boolean := True;
       Settings  : Settings_Model;

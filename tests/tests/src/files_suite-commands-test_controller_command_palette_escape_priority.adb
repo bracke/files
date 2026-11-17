@@ -36,8 +36,8 @@ separate (Files_Suite.Commands)
       Assert (Files.Model.Rename.Is_Active (Model), "Escape does not cancel rename while palette is open");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
-         "closed palette clears palette focus");
+         Files.Types.Focus_Rename_Input,
+         "the closed palette hands the keyboard back to the rename it was opened over");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal

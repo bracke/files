@@ -157,9 +157,6 @@ package body Files.Model.Rename is
          end if;
 
          Reset_Rename_State (Model);
-         if Model.Focus_Value = Files.Types.Focus_Rename_Input then
-            Model.Focus_Value := Files.Types.Focus_None;
-         end if;
       elsif Is_Enabled (Model) then
          Clear_Overlay_State_For_Edit (Model);
          Model.Rename.Fields.Clear;

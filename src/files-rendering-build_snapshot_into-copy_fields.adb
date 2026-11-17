@@ -71,7 +71,6 @@ separate (Files.Rendering.Build_Snapshot_Into)
       Snapshot.Context_Menu_X := Files.Model.Context_Menu.X (Model);
       Snapshot.Context_Menu_Y := Files.Model.Context_Menu.Y (Model);
       Snapshot.Context_Menu_Target := Files.Model.Context_Menu.Target_Of (Model);
-      Snapshot.Context_Menu_Item_Index := Files.Model.Context_Menu.Item_Index (Model);
       Snapshot.Paste_Conflict_Open := Files.Model.Pasting.Conflict_Is_Active (Model);
       Snapshot.Paste_Conflict_Name := To_Unbounded_String (Files.Model.Pasting.Conflict_Name (Model));
       Snapshot.Paste_Conflict_Apply_All := Files.Model.Pasting.Conflict_Apply_All (Model);

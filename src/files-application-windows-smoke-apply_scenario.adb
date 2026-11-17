@@ -39,8 +39,7 @@ separate (Files.Application.Windows.Smoke)
                Y          => 96,
                Target     =>
                  (if Has_Item then Files.Types.Context_Menu_Item
-                  else Files.Types.Context_Menu_Empty),
-               Item_Index => (if Has_Item then 1 else 0));
+                  else Files.Types.Context_Menu_Empty));
 
          when Scenario_Palette =>
             Files.Model.Command_Palette.Open (Runtime.Model);

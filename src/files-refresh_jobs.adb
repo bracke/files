@@ -210,9 +210,13 @@ package body Files.Refresh_Jobs is
          Error_Key => (if Previous_Error = "error.directory.load" then Null_Unbounded_String
                        else To_Unbounded_String (Previous_Error)));
    begin
-      if Files.Model.Foreground_Job_Is_Active (Model)
-        or else (not Force and then (Work.Recent or else Files.Model.Search_Results_Are_Active (Model)))
-      then
+      if not Force and then (Work.Recent or else Files.Model.Search_Results_Are_Active (Model)) then
+         return (Status => Files.Operation_Results.Operation_Success, others => <>);
+      elsif Files.Model.Foreground_Job_Is_Active (Model) then
+         --  The modal job's own result may not cover this read (a show-hidden
+         --  change shared from another window while it ran): the reload is
+         --  owed, and Resume_Owed starts it once the job is done.
+         Files.Model.Note_Owed_Refresh (Model, Force => Force, Select_Name => Select_Name);
          return (Status => Files.Operation_Results.Operation_Success, others => <>);
       elsif not Force
         and then (Files.Model.Rename.Is_Active (Model) or else Files.Model.Temporary_Item_Is_Active (Model)
@@ -400,7 +404,7 @@ package body Files.Refresh_Jobs is
       Matching := Work.Root = Files.Model.Current_Path (Model)
         and then Work.Recent = Files.Model.In_Recent_View (Model)
         and then Work.Context_Revision = Files.Model.Listing_Revision (Model)
-        and then Files.Settings.Same_Content (Work.Settings, Settings);
+        and then Files.Settings.Same_Listing (Work.Settings, Settings, Work.Recent);
       if not Matching and then not Cancelled
         and then Work.Root = Files.Model.Current_Path (Model)
       then

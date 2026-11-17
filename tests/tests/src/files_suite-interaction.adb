@@ -51,6 +51,7 @@ package body Files_Suite.Interaction is
    procedure Test_Mouse_Release_Held_For_Bounce (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shared_Settings_Reach_Other_Window (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shared_Settings_Keep_Search_Results (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Shared_Settings_Keep_Edits_And_Order (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shared_Hidden_Toggle_Restores_Results (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Shared_Once_Across_Windows (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Commands_Bump_Revision (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -102,6 +103,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shared_Settings_Keep_Search_Results'Access,
          "settings shared into a window showing search results apply to them in place, and keep folder sizes");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Shared_Settings_Keep_Edits_And_Order'Access,
+         "shared settings keep a rename and Quick Look, reach a folder view's sort, and are not written back stale");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shared_Hidden_Toggle_Restores_Results'Access,
          "hidden files hidden and shown again from another window keep and restore hidden search matches");
@@ -201,6 +205,7 @@ package body Files_Suite.Interaction is
    procedure Test_Shared_Settings_Reach_Other_Window (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Shared_Settings_Keep_Search_Results (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Shared_Settings_Keep_Edits_And_Order (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Shared_Hidden_Toggle_Restores_Results (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

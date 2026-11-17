@@ -35,13 +35,16 @@ package body Files.Model.Root_Selector is
       Touch (Model);
       Model.Root_Selector.Entries := Roots;
       Model.Root_Selector.Open := not Roots.Is_Empty;
+      Model.Root_Selector.Selected := (if Model.Root_Selector.Open then 1 else 0);
+      --  Nothing to choose from opens nothing, and leaves the keyboard, the
+      --  palette and any pane where they were. The selector and the settings
+      --  pane exclude each other: the pane is closed the way it always is.
       if Model.Root_Selector.Open then
          Claim_Overlay_Input (Model);
+         Close_Settings_Pane (Model);
+         Hide_Command_Palette (Model);
+         Model.Focus_Value := Files.Types.Focus_None;
       end if;
-      Model.Root_Selector.Selected := (if Model.Root_Selector.Open then 1 else 0);
-      Model.Settings_Pane_Open := False;
-      Hide_Command_Palette (Model);
-      Model.Focus_Value := Files.Types.Focus_None;
    end Open;
 
    procedure Close

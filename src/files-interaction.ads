@@ -212,32 +212,34 @@ package Files.Interaction is
       New_Size      : Positive;
       Result        : in out Interaction_Result);
 
-   --  Snapshot the currently selected visible items as an ascending set of
-   --  one-based visible indices. The shell captures this at a marquee's press so
-   --  an additive (Ctrl/Shift) marquee can union against the prior selection
-   --  without the per-frame reapply erasing it.
+   --  The selection a marquee starts from, by path: the shell captures it at
+   --  the press so an additive (Ctrl/Shift) marquee can union against the
+   --  prior selection without the per-frame reapply erasing it, and a
+   --  refresh landing mid-drag (rows moving under their numbers) keeps the
+   --  same items.
    --
    --  @param Model Window model to inspect.
-   --  @return Ascending visible indices currently selected.
-   function Selected_Visible_Indices
+   --  @return Full paths of the items selected now.
+   function Marquee_Base
      (Model : Files.Model.Window_Model)
-      return Files.Model.Selection.Visible_Index_List;
+      return Files.Types.String_Vectors.Vector;
 
    --  Apply a rubber-band marquee's per-frame selection to the model. The
    --  selection is cleared and rebuilt from Hits (the items the marquee touches);
    --  when Additive the Base snapshot (the selection captured at the marquee's
-   --  press) is unioned in first so the drag extends rather than replaces it.
+   --  press, by path, so it names the same items whatever rows they are on
+   --  now) is unioned in first so the drag extends rather than replaces it.
    --  Called live each frame while the marquee drags so the selection tracks it.
    --
    --  @param Model Window model to update.
    --  @param Hits Visible indices the current marquee rectangle intersects.
    --  @param Additive True to union Base with Hits (Ctrl/Shift marquee).
-   --  @param Base Selection snapshot captured at the marquee's press.
+   --  @param Base Selection snapshot captured at the marquee's press (Marquee_Base).
    procedure Apply_Marquee_Selection
      (Model    : in out Files.Model.Window_Model;
       Hits     : Files.Model.Selection.Visible_Index_List;
       Additive : Boolean;
-      Base     : Files.Model.Selection.Visible_Index_List);
+      Base     : Files.Types.String_Vectors.Vector);
 
 private
 

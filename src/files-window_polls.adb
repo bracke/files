@@ -204,6 +204,19 @@ package body Files.Window_Polls is
       else
          Cancel_Folder_Scan (Model);
          Files.Model.Folder_Sizes.Clear (Model);
+         declare
+            --  Read after the clear, which moves the revision: nothing to
+            --  measure is a target set too, so the next poll asks for nothing.
+            Rows      : constant Natural := Files.Model.Rows_Revision (Model);
+            Selection : constant Natural := Files.Model.Selection_Revision (Model);
+
+            procedure Note (Scan : in out Files.Folder_Size.Session) is
+            begin
+               Files.Folder_Size.Note_Targets_Set_For (Scan, Rows, Selection);
+            end Note;
+         begin
+            Files.Model.Folder_Sizes.Update_Scan (Model, Note'Access);
+         end;
       end if;
    end Update_Folder_Size;
 

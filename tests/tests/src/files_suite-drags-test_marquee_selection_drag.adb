@@ -40,7 +40,7 @@ separate (Files_Suite.Drags)
          Rect_X, Rect_Y, Rect_W, Rect_H : Natural;
          Empty    : Files.Rendering.Visible_Index_Vectors.Vector;
          Hits     : Files.Rendering.Visible_Index_Vectors.Vector;
-         Base     : Files.Rendering.Visible_Index_Vectors.Vector;
+         Base     : Files.Types.String_Vectors.Vector;
          X, Y     : Natural;
          Found    : Boolean;
       begin
@@ -129,7 +129,7 @@ separate (Files_Suite.Drags)
 
          --  Dragging over items 1 and 2 (non-additive) selects exactly them and
          --  drops the pre-existing selection of item 5.
-         Base := Files.Interaction.Selected_Visible_Indices (Model);
+         Base := Files.Interaction.Marquee_Base (Model);
          Files.Interaction.Apply_Marquee_Selection
            (Model, Hits, Additive => False, Base => Base);
          Assert (Files.Model.Selection.Is_Selected (Model, 1) and then Files.Model.Selection.Is_Selected (Model, 2),
@@ -149,7 +149,7 @@ separate (Files_Suite.Drags)
          --  An additive marquee unions the touched items with the base snapshot.
          Files.Model.Selection.Clear (Model);
          Files.Model.Selection.Select_Visible (Model, 4);
-         Base := Files.Interaction.Selected_Visible_Indices (Model);
+         Base := Files.Interaction.Marquee_Base (Model);
          Files.Interaction.Apply_Marquee_Selection
            (Model, Hits, Additive => True, Base => Base);
          Assert
@@ -179,5 +179,29 @@ separate (Files_Suite.Drags)
          --  A zero-area marquee (a press that never dragged) selects nothing new.
          Empty := Files.Rendering.Hit.Items_In_Rect (Cells, Rect_X, Rect_Y, 0, 0);
          Assert (Empty.Is_Empty, "a zero-area marquee touches no items");
+
+         --  A refresh lands mid-drag: a new item sorts in first, so every row
+         --  moves down one. The additive base still names the items selected
+         --  at the press, not the rows they used to be on.
+         Files.Model.Selection.Clear (Model);
+         Files.Model.Selection.Select_Visible (Model, 2);
+         Files.Model.Selection.Toggle_Visible_Selection (Model, 4);
+         Base := Files.Interaction.Marquee_Base (Model);
+         declare
+            Refreshed : Files.Items.Item_Vectors.Vector := Items;
+         begin
+            Refreshed.Prepend
+              (Files.File_System.Make_Item
+                 (Files_Suite.Support.Disk.Root, "item-0", Files.Types.Regular_File_Item, "text/plain"));
+            Files.Model.Replace_Items (Model, Refreshed);
+         end;
+         Files.Interaction.Apply_Marquee_Selection (Model, Empty, Additive => True, Base => Base);
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selection.Selected_Count (Model), 2, "the base keeps exactly its two items");
+         Assert (Files.Model.Selection.Is_Selected (Model, 3) and then Files.Model.Selection.Is_Selected (Model, 5),
+                 "item-2 and item-4, now on rows 3 and 5, stay selected");
+         Assert (not Files.Model.Selection.Is_Selected (Model, 2)
+                 and then not Files.Model.Selection.Is_Selected (Model, 4),
+                 "the rows they used to be on (now item-1 and item-3) are not selected");
       end;
    end Test_Marquee_Selection_Drag;

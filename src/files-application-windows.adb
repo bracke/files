@@ -548,23 +548,9 @@ package body Files.Application.Windows is
       procedure Poll (Runtime : in out Runtime_Window) is
       begin
          if Runtime.Handle /= null then
-            declare
-               Busy : constant Boolean :=
-                 Files.Model.Foreground_Job_Is_Active (Runtime.Model)
-                 or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Runtime.Model));
-            begin
-               --  Only the items and the selection decide what is measured: a
-               --  measurement arriving (which moves Revision) asks for nothing.
-               if Files.Model.Rows_Revision (Runtime.Model) /= Runtime.Folder_Size_Rows
-                 or else Files.Model.Selection_Revision (Runtime.Model) /= Runtime.Folder_Size_Selection
-                 or else Busy /= Runtime.Folder_Size_Busy
-               then
-                  Files.Window_Polls.Update_Folder_Size (Runtime.Model);
-                  Runtime.Folder_Size_Rows := Files.Model.Rows_Revision (Runtime.Model);
-                  Runtime.Folder_Size_Selection := Files.Model.Selection_Revision (Runtime.Model);
-                  Runtime.Folder_Size_Busy := Busy;
-               end if;
-            end;
+            --  It asks for nothing while the targets it set still stand
+            --  (Targets_Set_For) or a read or job is under way.
+            Files.Window_Polls.Update_Folder_Size (Runtime.Model);
             Files.Window_Polls.Poll_Folder_Sizes (Runtime.Model);
             Files.Window_Polls.Poll_Quick_Look
               (Runtime.Model, Files.Preview_Decoder.Requester (Runtime.A11y_Key));
@@ -705,7 +691,7 @@ package body Files.Application.Windows is
          Runtime.Marquee.Origin_X := Action.Origin_X;
          Runtime.Marquee.Origin_Y := Action.Origin_Y;
          Runtime.Marquee.Additive := Action.Additive;
-         Runtime.Marquee.Base := Files.Interaction.Selected_Visible_Indices (Runtime.Model);
+         Runtime.Marquee.Base := Files.Interaction.Marquee_Base (Runtime.Model);
          Runtime.Marquee.Rect_X := 0;
          Runtime.Marquee.Rect_Y := 0;
          Runtime.Marquee.Rect_W := 0;

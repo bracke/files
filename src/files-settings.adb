@@ -66,6 +66,21 @@ package body Files.Settings is
          Sort_Ascending => Settings.Sort_Ascending);
    end Listing_Options_Of;
 
+   function Same_Listing
+     (Left, Right : Settings_Model;
+      Recent_View : Boolean)
+      return Boolean
+   is
+      use type Files.Types.Listing_Options;
+      use type String_Maps.Map;
+      use type String_Vectors.Vector;
+   begin
+      return Listing_Options_Of (Left) = Listing_Options_Of (Right)
+        and then Left.Extension_Filetypes = Right.Extension_Filetypes
+        and then Left.Icon_Mappings = Right.Icon_Mappings
+        and then (not Recent_View or else Left.Paths.Recent = Right.Paths.Recent);
+   end Same_Listing;
+
    type Settings_Section is
      (No_Section,
       Filetypes_Section,

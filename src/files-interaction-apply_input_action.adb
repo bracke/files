@@ -8,7 +8,8 @@ separate (Files.Interaction)
       Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result)
    is
-      Before  : constant Files.Settings.Settings_Model := Settings;
+      Before    : constant Files.Settings.Settings_Model := Settings;
+      Before_UI : constant UI_State := UI_State_Of (Model);
       --  What a controller entry answered, when one was asked (Asked).
       Outcome : Files.Controller.Controller_Result;
       Asked   : Boolean := False;
@@ -185,7 +186,7 @@ separate (Files.Interaction)
             use type Files.Events.Input_Action_Kind;
             Ran : Boolean;
          begin
-            Conclude (Model, Settings, Settings_Path, Outcome, Before, Result, Ran);
+            Conclude (Model, Settings, Settings_Path, Outcome, Before, Before_UI, Result, Ran);
             --  A settings-pane change saved by its click drops any parallel
             --  character event, as a key that saves does.
             Result.Clear_Pending_Text :=

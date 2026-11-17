@@ -365,14 +365,16 @@ package body Files.Operation_Jobs is
         (if Known_Kind then Failure_Key (Work.Kind) else "error.operation.failed");
 
       --  The view the job started from is still on screen: no navigation since
-      --  (not even away and back), so it may refresh that view and report its
+      --  (not even away and back), and nothing that decides how it lists
+      --  changed (Same_Listing: a zoom, a column or a recent path shared from
+      --  another window does not), so it may refresh that view and report its
       --  diagnostic there even though edits in the view moved its revision.
       function Matches_Current_View
         (Candidate : Request)
          return Boolean is
         (Candidate.Root = Files.Model.Current_Path (Model)
          and then Candidate.Recent = Files.Model.In_Recent_View (Model)
-         and then Files.Settings.Same_Content (Candidate.Settings, Settings)
+         and then Files.Settings.Same_Listing (Candidate.Settings, Settings, Candidate.Recent)
          and then Candidate.View_Incarnation = Files.Model.View_Incarnation (Model));
 
       --  Additionally nothing listing-visible changed since the job started,

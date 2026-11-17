@@ -50,8 +50,9 @@ separate (Files.Interaction)
       end if;
 
       declare
-         Before  : constant Files.Settings.Settings_Model := Settings;
-         Ran     : Boolean;
+         Before    : constant Files.Settings.Settings_Model := Settings;
+         Before_UI : constant UI_State := UI_State_Of (Model);
+         Ran       : Boolean;
          Outcome : constant Files.Controller.Controller_Result :=
            Files.Controller.Handle_Key
              (Model          => Model,
@@ -72,7 +73,7 @@ separate (Files.Interaction)
                --  A view / info-pane change from the keyboard (Ctrl+1..4) has
                --  already run inside Handle_Key; Conclude writes it back, and
                --  applies a settings shortcut (or Enter in the palette).
-               Conclude (Model, Settings, Settings_Path, Outcome, Before, Result, Ran);
+               Conclude (Model, Settings, Settings_Path, Outcome, Before, Before_UI, Result, Ran);
                --  A settings shortcut (or Enter in the palette) ran; the
                --  shell drops any parallel character event.
                Result.Clear_Pending_Text := Ran;

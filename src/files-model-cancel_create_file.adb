@@ -11,7 +11,4 @@ begin
    --  The temporary item owns the only rename field while it is active, so
    --  clearing rename state here discards exactly that field.
    Reset_Rename_State (Model);
-   if Model.Focus_Value = Files.Types.Focus_Rename_Input then
-      Model.Focus_Value := Files.Types.Focus_None;
-   end if;
 end Cancel_Create_File;

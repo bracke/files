@@ -93,6 +93,10 @@ package body Files.Model.Support is
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Model.Rename.Active := False;
       Model.Rename.Fields.Clear;
+      --  A rename that has ended has no field to type into.
+      if Model.Focus_Value = Files.Types.Focus_Rename_Input then
+         Model.Focus_Value := Files.Types.Focus_None;
+      end if;
    end Reset_Rename_State;
 
    function Is_Temporary_Rename
@@ -608,12 +612,13 @@ package body Files.Model.Support is
       Touch (Model);
       Hide_Command_Palette (Model);
       if Model.Focus_Value = Files.Types.Focus_Command_Palette then
-         --  Settings intentionally remains open beneath the palette.  Return
-         --  keyboard focus to that revealed input surface when the palette
-         --  closes instead of leaving the hidden file grid active.
+         --  What the palette was opened over keeps going: the settings pane
+         --  beneath it, or a rename (or a new item's name) in progress, gets
+         --  the keyboard back, its caret where it was, instead of leaving the
+         --  edit drawn but deaf while Enter opens the item.
          Model.Focus_Value :=
-           (if Model.Settings_Pane_Open
-            then Files.Types.Focus_Settings_Input
+           (if Model.Settings_Pane_Open then Files.Types.Focus_Settings_Input
+            elsif Model.Rename.Active then Files.Types.Focus_Rename_Input
             else Files.Types.Focus_None);
       end if;
    end Close_Command_Palette;

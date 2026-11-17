@@ -78,6 +78,7 @@ package body Files_Suite.Commands is
    procedure Test_Multi_Rename_Multibyte_Edits (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Command_Palette_Escape_Priority (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Palette_Over_Rename_Returns_The_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Close_Command_Follows_Its_Binding (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Rebound_Close_Key_Reaches_Every_Owner (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -172,6 +173,9 @@ package body Files_Suite.Commands is
         (T, Test_Controller_Rename_Return'Access, "controller commits rename on Return");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Command_Palette_Escape_Priority'Access, "controller prioritizes palette Escape");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Palette_Over_Rename_Returns_The_Keyboard'Access,
+         "a palette opened over a rename hands the keyboard back, and Return then commits the rename");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Close_Command_Follows_Its_Binding'Access, "the close command follows its key binding");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -270,6 +274,7 @@ package body Files_Suite.Commands is
 
    procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Controller_Command_Palette_Escape_Priority (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Palette_Over_Rename_Returns_The_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Close_Command_Follows_Its_Binding (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Rebound_Close_Key_Reaches_Every_Owner (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

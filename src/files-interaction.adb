@@ -179,48 +179,58 @@ package body Files.Interaction is
       end;
    end Persist_Recent_Opens;
 
-   --  Copy the user-visible global UI state from the model into the settings
-   --  record and persist it. Called whenever a runtime command flips one of the
-   --  persisted toggles. Returns True when a change was written.
+   --  The window's own view of the persisted UI state (view mode, sort,
+   --  info pane), captured before a command runs so what it changed, and only
+   --  that, is written back: a value the window never adopted from another
+   --  window (its view mode, its info pane) must not overwrite the shared one.
+   type UI_State is record
+      View      : Files.Types.View_Mode := Files.Types.Small_Icons;
+      Sort      : Files.Types.Sort_Field := Files.Types.Sort_Name;
+      Ascending : Boolean := True;
+      Info      : Boolean := False;
+   end record;
+
+   function UI_State_Of (Model : Files.Model.Window_Model) return UI_State is
+     (View      => Files.Model.View_Mode_Of (Model),
+      Sort      => Files.Model.Sort_Field_Of (Model),
+      Ascending => Files.Model.Sort_Is_Ascending (Model),
+      Info      => Files.Model.Info_Pane_Is_Open (Model));
+
+   --  Write the global UI state a command changed in the model (against
+   --  Before_UI, the model's state before it ran) into the settings record and
+   --  persist it. Called whenever a runtime command flips one of the persisted
+   --  toggles. Returns True when a change was written.
    function Sync_Global_UI_State
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
-      Settings_Path : String)
+      Settings_Path : String;
+      Before_UI     : UI_State)
       return Boolean
    is
       use type Files.Types.View_Mode;
       use type Files.Types.Sort_Field;
 
-      New_View  : constant Files.Types.View_Mode :=
-        Files.Model.View_Mode_Of (Model);
-      New_Sort  : constant Files.Types.Sort_Field :=
-        Files.Model.Sort_Field_Of (Model);
-      New_Asc   : constant Boolean :=
-        Files.Model.Sort_Is_Ascending (Model);
-      New_Info  : constant Boolean :=
-        Files.Model.Info_Pane_Is_Open (Model);
-      Changed   : constant Boolean :=
-        Settings.Default_View /= New_View
-        or else Settings.Sort_Field_Value /= New_Sort
-        or else Settings.Sort_Ascending /= New_Asc
-        or else Settings.Info_Pane_Open /= New_Info;
+      Now     : constant UI_State := UI_State_Of (Model);
+      Updated : Files.Settings.Settings_Model := Settings;
    begin
-      if not Changed then
+      if Now.View /= Before_UI.View then
+         Updated.Default_View := Now.View;
+      end if;
+      if Now.Sort /= Before_UI.Sort or else Now.Ascending /= Before_UI.Ascending then
+         Updated.Sort_Field_Value := Now.Sort;
+         Updated.Sort_Ascending := Now.Ascending;
+      end if;
+      if Now.Info /= Before_UI.Info then
+         Updated.Info_Pane_Open := Now.Info;
+      end if;
+      if Files.Settings.Same_Content (Updated, Settings) then
          return False;
       end if;
 
       declare
          Accepted : Boolean;
       begin
-         Files.Controller.Commit_Settings
-           (Model, Settings,
-            (Settings with delta
-               Default_View     => New_View,
-               Sort_Field_Value => New_Sort,
-               Sort_Ascending   => New_Asc,
-               Info_Pane_Open   => New_Info),
-            Settings_Path,
-            Accepted);
+         Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted);
          return Accepted;
       end;
    end Sync_Global_UI_State;
@@ -252,7 +262,6 @@ package body Files.Interaction is
       Settings : in out Files.Settings.Settings_Model;
       Shared   : Files.Settings.Settings_Model)
    is
-      use type Files.Types.Listing_Options;
       use type Files.Types.Sort_Field;
       use type Files.Settings.String_Maps.Map;
       Before : constant Files.Settings.Settings_Model := Settings;
@@ -260,9 +269,18 @@ package body Files.Interaction is
       Settings := Shared;
       Refresh_Open_Pane (Model, Before, Settings);
       Files.Controller.Follow_Favorites (Model, Before, Settings);
-      --  Items carry the hidden filter, the order and the type and icon they
-      --  were classified with when the folder was read.
-      if Files.Settings.Listing_Options_Of (Before) = Files.Settings.Listing_Options_Of (Settings)
+      --  The sort is shared like the hidden filter: every window shows the
+      --  order the settings hold, so a later command here never writes an
+      --  order back that another window has since replaced. A sort alone
+      --  needs no read, folder or search results alike.
+      if Before.Sort_Field_Value /= Settings.Sort_Field_Value
+        or else Before.Sort_Ascending /= Settings.Sort_Ascending
+      then
+         Files.Model.Apply_Sort (Model, Settings.Sort_Field_Value, Settings.Sort_Ascending);
+      end if;
+      --  Items carry the hidden filter and the type and icon they were
+      --  classified with when the folder was read.
+      if Before.Show_Hidden_Files = Settings.Show_Hidden_Files
         and then Before.Extension_Filetypes = Settings.Extension_Filetypes
         and then Before.Icon_Mappings = Settings.Icon_Mappings
       then
@@ -270,12 +288,7 @@ package body Files.Interaction is
       elsif Files.Model.Search_Results_Are_Active (Model) then
          --  Search results have no folder to read again (a reload would
          --  replace them with the folder): the new settings apply to them in
-         --  place, a changed order with them.
-         if Before.Sort_Field_Value /= Settings.Sort_Field_Value
-           or else Before.Sort_Ascending /= Settings.Sort_Ascending
-         then
-            Files.Model.Apply_Sort (Model, Settings.Sort_Field_Value, Settings.Sort_Ascending);
-         end if;
+         --  place.
          Files.Model.Reapply_Listing_Settings
            (Model, Settings,
             Reclassify => Before.Extension_Filetypes /= Settings.Extension_Filetypes
@@ -318,6 +331,7 @@ package body Files.Interaction is
       Settings_Path     : String;
       Command           : Files.Commands.Command_Id;
       Before            : Files.Settings.Settings_Model;
+      Before_UI         : UI_State;
       Observe           : Boolean;
       Result            : in out Interaction_Result) is
    begin
@@ -325,7 +339,7 @@ package body Files.Interaction is
          Observe_Settings_Command (Before, Settings, Result);
       end if;
       if Files.Commands.Persists_Global_Ui_State (Command)
-        and then Sync_Global_UI_State (Model, Settings, Settings_Path)
+        and then Sync_Global_UI_State (Model, Settings, Settings_Path, Before_UI)
       then
          Result.Settings_Changed := True;
       end if;
@@ -342,6 +356,7 @@ package body Files.Interaction is
       Settings_Path : String;
       Reported      : Files.Controller.Controller_Result;
       Before        : Files.Settings.Settings_Model;
+      Before_UI     : UI_State;
       Result        : in out Interaction_Result;
       Ran           : out Boolean)
    is
@@ -351,7 +366,7 @@ package body Files.Interaction is
       Ran := Ran_Settings_Command (Outcome.Command, Outcome, Before, Settings);
       Observe_Controller_Outcome (Outcome, Result);
       Finish_Settings_Command
-        (Model, Settings, Settings_Path, Outcome.Command, Before, Observe => Ran, Result => Result);
+        (Model, Settings, Settings_Path, Outcome.Command, Before, Before_UI, Observe => Ran, Result => Result);
    end Conclude;
 
    procedure Execute_Command
@@ -362,15 +377,17 @@ package body Files.Interaction is
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result            : out Interaction_Result)
    is
-      Before : constant Files.Settings.Settings_Model := Settings;
-      Ran    : Boolean;
+      Before    : constant Files.Settings.Settings_Model := Settings;
+      Before_UI : constant UI_State := UI_State_Of (Model);
+      Ran       : Boolean;
    begin
       Result := (others => <>);
       --  The controller refuses a disabled command (it reports why) and
       --  reports a settings command, which Conclude applies with the path.
       Conclude
         (Model, Settings, Settings_Path,
-         Files.Controller.Execute_Non_Settings_Command (Command, Model, Settings, Modifiers), Before, Result, Ran);
+         Files.Controller.Execute_Non_Settings_Command (Command, Model, Settings, Modifiers), Before, Before_UI,
+         Result, Ran);
       Result.Command := Command;
    end Execute_Command;
 
@@ -518,8 +535,7 @@ package body Files.Interaction is
                   Observe_Controller_Outcome (Click_Result, Result);
                end;
             end if;
-            Files.Model.Context_Menu.Open
-              (Model, X, Y, Files.Types.Context_Menu_Item, Item_Index);
+            Files.Model.Context_Menu.Open (Model, X, Y, Files.Types.Context_Menu_Item);
          else
             Files.Model.Context_Menu.Open (Model, X, Y, Files.Types.Context_Menu_Empty);
          end if;
@@ -603,38 +619,41 @@ package body Files.Interaction is
       end if;
    end Apply_Column_Reorder;
 
-   function Selected_Visible_Indices
+   function Marquee_Base
      (Model : Files.Model.Window_Model)
-      return Files.Model.Selection.Visible_Index_List
-   is
-      Result   : Files.Model.Selection.Visible_Index_List;
-      Position : Natural := 0;
-
-      procedure Note (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean) is
-         pragma Unreferenced (Item, Item_Index);
-      begin
-         Position := Position + 1;
-         if Selected then
-            Result.Append (Position);
-         end if;
-      end Note;
-   begin
-      --  One pass over the rows; Is_Selected per index rescans the items.
-      Files.Model.For_Each_Visible_Row (Model, Note'Access);
-      return Result;
-   end Selected_Visible_Indices;
+      return Files.Types.String_Vectors.Vector is
+     (Files.Model.Selection.Selected_Paths (Model));
 
    procedure Apply_Marquee_Selection
      (Model    : in out Files.Model.Window_Model;
       Hits     : Files.Model.Selection.Visible_Index_List;
       Additive : Boolean;
-      Base     : Files.Model.Selection.Visible_Index_List)
+      Base     : Files.Types.String_Vectors.Vector)
    is
       use type Files.Model.Selection.Visible_Index_List;
+      Base_Paths : Files.Settings.Path_References.Path_Sets.Set;
+      Base_Rows  : Files.Model.Selection.Visible_Index_List;
+      Position   : Natural := 0;
+
+      procedure Note (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean) is
+         pragma Unreferenced (Item_Index, Selected);
+      begin
+         Position := Position + 1;
+         if Base_Paths.Contains (To_String (Item.Full_Path)) then
+            Base_Rows.Append (Position);
+         end if;
+      end Note;
    begin
-      --  The base (when additive), then the hits; the model drops repeats and
-      --  indexes a stale base names past the listing's end.
-      Files.Model.Selection.Select_Visible_Set (Model, (if Additive then Base & Hits else Hits));
+      if Additive and then not Base.Is_Empty then
+         for Path of Base loop
+            Base_Paths.Include (To_String (Path));
+         end loop;
+         --  Where the base's items are now: one pass over the rows.
+         Files.Model.For_Each_Visible_Row (Model, Note'Access);
+      end if;
+      --  The base's rows (when additive), then the hits; the model drops
+      --  repeats.
+      Files.Model.Selection.Select_Visible_Set (Model, Base_Rows & Hits);
    end Apply_Marquee_Selection;
 
 end Files.Interaction;

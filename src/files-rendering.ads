@@ -282,7 +282,6 @@ package Files.Rendering is
       Context_Menu_Y                 : Natural := 0;
       Context_Menu_Target            : Files.Types.Context_Menu_Target :=
         Files.Types.Context_Menu_None;
-      Context_Menu_Item_Index        : Natural := 0;
       --  Detail-view column customization mirrored from settings so the pure
       --  layout functions can lay out only the visible columns, honour custom
       --  widths, and insert grouping bands without reaching back into settings.

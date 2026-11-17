@@ -112,6 +112,7 @@ package body Files_Suite.Recovery is
    procedure Test_Held_Release_Marker_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Job_Results_Follow_What_They_Depend_On (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Stale_Background_Results (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Result_Mismatch (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Registry_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -205,6 +206,9 @@ package body Files_Suite.Recovery is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Background_Operations'Access,
          "duplicate, archive, extract and recursive searches use cancellable helpers");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Job_Results_Follow_What_They_Depend_On'Access,
+         "a job's result stands through settings it does not depend on, and a read declined meanwhile is owed");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Stale_Background_Results'Access,
          "a background result never overwrites a newer view, and stays undoable");
@@ -356,6 +360,8 @@ package body Files_Suite.Recovery is
    procedure Test_Sweep_Leaves_Registry_Open (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Job_Results_Follow_What_They_Depend_On (T : in out AUnit.Test_Cases.Test_Case'Class)
+     is separate;
 
    procedure Test_Stale_Background_Results (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

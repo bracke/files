@@ -1065,9 +1065,6 @@ package body Files.Model is
       elsif Model.Rename.Active then
          Reset_Rename_State (Model);
       end if;
-      if Model.Focus_Value = Files.Types.Focus_Rename_Input then
-         Model.Focus_Value := Files.Types.Focus_None;
-      end if;
       Hide_Command_Palette (Model);
       if Model.Focus_Value = Files.Types.Focus_Command_Palette then
          Model.Focus_Value := Files.Types.Focus_None;
