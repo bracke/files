@@ -72,9 +72,21 @@ package Files.Job_Context is
    package Journal_Entry_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Journal_Entry);
 
+   --  Say, before Destination is published from staging, what is about to
+   --  be: a helper stopped between the publication and Record_Created still
+   --  has the entry found (Read_Created), by the identity it carries. Its own
+   --  journal beside the one Record_Created writes, so a journal from before
+   --  intents were kept reads as it always did.
+   --  @param Destination Pathname about to be published.
+   --  @param Source Source pathname, or empty for archives and extraction.
+   --  @param Identity Identity captured in private staging before publication.
+   --  @param Tree_Revision Revision captured in staging before publication.
+   procedure Intend_Created (Destination, Source, Identity, Tree_Revision : String);
+
    --  @param Directory Helper transport directory containing the publication journal.
    --  @return The published entries, in order; those before a damaged record
-   --    when one is.
+   --    when one is. Then each one an intent named (Intend_Created) that was
+   --    published but not yet recorded: Destination carries its identity.
    function Read_Created (Directory : String) return Journal_Entry_Vectors.Vector;
 
    --  Record a move only after its source has been vacated.
@@ -83,9 +95,19 @@ package Files.Job_Context is
    --  @param Identity Destination identity retained from publication.
    procedure Record_Moved (Destination, Source, Identity : String);
 
+   --  Say, before Source is moved to Destination, what is about to move: a
+   --  helper stopped between the move and Record_Moved still has it found
+   --  (Read_Moved). Its own journal, as Intend_Created's is.
+   --  @param Destination Pathname the entry is about to move to.
+   --  @param Source Pathname it moves from.
+   --  @param Identity The entry's identity, which a rename keeps.
+   procedure Intend_Moved (Destination, Source, Identity : String);
+
    --  @param Directory Helper transport directory containing committed moves.
    --  @return The committed moves, in order; those before a damaged record
-   --    when one is.
+   --    when one is. Then each one an intent named (Intend_Moved) that
+   --    happened but was not yet recorded: Destination carries its identity
+   --    and Source is gone for sure.
    function Read_Moved (Directory : String) return Journal_Entry_Vectors.Vector;
 
    --  Remove a stage created by this process after checking the identity stored

@@ -80,6 +80,7 @@ package body Files_Suite.Transfer is
    procedure Test_Copy_Access_Bits (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Cross_Device_Move_Keeps_Setgid (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Journal_Intents_Found (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Without_Read_Access (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Timestamps (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Source_Changes (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -226,6 +227,9 @@ package body Files_Suite.Transfer is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recovery_Entry_Identity'Access, "lost helper metadata retains original creation identities");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Journal_Intents_Found'Access,
+         "a helper stopped between a publication or move and its record still has the entry found");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Move_Without_Read_Access'Access, "same-device moves do not read file contents");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Copy_Timestamps'Access, "copies and cross-device history moves preserve modification times");
@@ -301,6 +305,7 @@ package body Files_Suite.Transfer is
    procedure Test_Cross_Device_Move_Keeps_Setgid (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Recovery_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Journal_Intents_Found (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Move_Without_Read_Access (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -89,9 +89,11 @@ package body Files.Job_Scavenger is
                Files.Environment.Clear (Report_Environment);
             end if;
          end if;
+         --  refusal-safe: a refused report folder is left, not removed
          if Files.Fs_Primitives.Exists (Directory)
            and then not Hostkit.Fs.Is_Link (Directory)
          then
+            --  refusal-safe: a refused report is left, not removed
             if Files.Fs_Primitives.Exists (Target) then
                Files.Fs_Primitives.Delete_File (Target);
             end if;
@@ -203,6 +205,7 @@ package body Files.Job_Scavenger is
               Files.Environment.Value (Report_Environment);
          begin
             if Target_Directory /= ""
+              --  refusal-safe: a refused report folder gets no report
               and then Files.Fs_Primitives.Exists (Target_Directory)
               and then not Hostkit.Fs.Is_Link (Target_Directory)
             then

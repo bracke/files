@@ -35,9 +35,10 @@ begin
             return (Success => False, Error_Key => To_Unbounded_String ("error.drop.into_self"));
          end if;
          --  A destination may have appeared since planning. It belongs to
-         --  someone else and must never be removed by failure cleanup.
+         --  someone else and must never be removed by failure cleanup; one
+         --  the host will not answer for may be such an entry too.
          if Source_Path /= Destination_Path
-           and then Files.Fs_Primitives.Entry_Exists (Destination_Path)
+           and then not Files.Fs_Primitives.Entry_Is_Absent (Destination_Path)
          then
             return (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
          end if;
@@ -52,6 +53,9 @@ begin
                   Outcome  : Hostkit.Fs.Move_Outcome := Hostkit.Fs.Move_Refused;
                begin
                   if Identity /= "" then
+                     --  Named before it moves, so a helper stopped right
+                     --  after still has it found (Files.Job_Context.Read_Moved).
+                     Files.Job_Context.Intend_Moved (Destination_Path, Source_Path, Identity);
                      Outcome := Support.Move_No_Replace_Outcome (Source_Path, Destination_Path);
                   end if;
                   if Identity = ""
@@ -89,7 +93,7 @@ begin
                               --  it so undo covers it. Copy_To_New_Path
                               --  recorded it as created; a vacated source
                               --  makes it a move.
-                              if not Files.Fs_Primitives.Entry_Exists (Source_Path) then
+                              if Files.Fs_Primitives.Entry_Is_Absent (Source_Path) then
                                  Files.Job_Context.Record_Moved
                                    (Destination_Path, Source_Path, To_String (Copied_Identity));
                               end if;

@@ -17,6 +17,23 @@ private package Files.File_System.Recovery is
    --  @return Mutation result with a localized error key on failure.
    function Discard (Path : String) return Mutation_Result;
 
+   --  Take a payload out of its stage on purpose -- moved to where it goes,
+   --  or removed -- so that a stop part way leaves a stage Sweep_Registry
+   --  finishes rather than keeps for good. The stage is marked, durable and
+   --  held, before Leave runs; once the payload has left, the stage and its
+   --  record go. A payload that did not leave keeps its stage, record and
+   --  all, and the marker goes with it whole again.
+   --  @param Path Payload returned by Preserve.
+   --  @param Leave Moves or removes the payload; True when it has left.
+   --  @param Ran Whether Leave was called: False when another operation
+   --    holds the stage or it could not be marked, the payload untouched.
+   --  @return True when the payload left.
+   function Vacate
+     (Path  : String;
+      Leave : not null access function return Boolean;
+      Ran   : out Boolean)
+      return Boolean;
+
    --  Drop the registry record for a payload whose stage was removed by a
    --  caller other than Discard or Restore (which unregister themselves).
    --  @param Payload Payload path returned by Preserve.
@@ -36,9 +53,16 @@ private package Files.File_System.Recovery is
    --  stage is gone and duplicate records, move a stopped release's payload
    --  back, and remove a stage whose payload a restore or release moved out
    --  (it carries their marker). A registered stage with no payload and no
-   --  marker is left alone: Preserve may still be filling it, perhaps in
-   --  another process.
+   --  marker is left alone while Preserve may still be filling it, perhaps
+   --  in another process -- for Unfilled_Stage_Grace after it was made; one
+   --  older than that was abandoned by a Preserve that stopped, and goes.
    procedure Sweep_Registry;
+
+   --  How long after its stage was made a Preserve may still be filling it.
+   --  Preserve moves the original in by a rename beside it, a moment's work;
+   --  an hour leaves room for a stalled disk without keeping an abandoned
+   --  stage for good.
+   Unfilled_Stage_Grace : constant Duration := 3_600.0;
 
    --  @param Path Payload returned by Preserve.
    --  @param Expected_Identity Optional history snapshot verified before restoration.

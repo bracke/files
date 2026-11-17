@@ -38,6 +38,16 @@ package Files.File_System.Testing is
    --  Change no source any more.
    procedure Stop_Changing_Source;
 
+   --  From now on, once a restore from a trash on another device has copied
+   --  the item back, put another file (of "another item") in its place under
+   --  the same name before the trash copy is removed, as emptying the trash
+   --  and trashing something else would. It fires once; arming it again
+   --  rearms it.
+   procedure Change_Trashed_After_Copy;
+
+   --  Put nothing in a restored item's place any more.
+   procedure Stop_Changing_Trashed;
+
    --  From now on, refuse to give a read-only folder back its mode after a
    --  rename that leaves it at Trigger, as a failing chmod would. With a
    --  Block, the first refusal also makes a folder at Block holding a

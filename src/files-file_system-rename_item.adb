@@ -6,27 +6,28 @@ function Rename_Item
    Expected_Identity : String := "")
    return Mutation_Result
 is
-   function Exists_Safely (Path : String) return Boolean renames Files.Fs_Primitives.Entry_Exists;
-
    function Same_Existing_Path return Boolean is
    begin
       if From_Path = "" or else To_Path = "" then
          return False;
       end if;
       if From_Path = To_Path then
-         return Exists_Safely (From_Path);
+         --  refusal-safe: a refused source is no no-op; the rename then decides
+         return Files.Fs_Primitives.Entry_Exists (From_Path);
       end if;
 
       --  A no-op needs the same pathname, not merely the same inode: two
       --  hard links or two links to one target are separate directory entries.
       --  Keep the leaf comparison so a case-only rename reaches its own path.
-      return Exists_Safely (From_Path)
+      --  refusal-safe: a refused source is no no-op; the rename then decides
+      return Files.Fs_Primitives.Entry_Exists (From_Path)
         and then Files.Fs_Primitives.Absolute_Name (From_Path) = Files.Fs_Primitives.Absolute_Name (To_Path)
         and then Mutation_Leaf_Name (From_Path) = Mutation_Leaf_Name (To_Path);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
-         return From_Path = To_Path and then Exists_Safely (From_Path);
+         --  refusal-safe: a refused source is no no-op; the rename then decides
+         return From_Path = To_Path and then Files.Fs_Primitives.Entry_Exists (From_Path);
    end Same_Existing_Path;
 
    --  A case-only rename of a single file: the destination exists but is the
@@ -37,7 +38,8 @@ is
    function Is_Case_Only_Rename return Boolean is
       From_Identity : constant String := Files.File_Identities.Token (From_Path);
    begin
-      return Exists_Safely (To_Path)
+      --  refusal-safe: a refused target is no case-only rename; the no-replace move refuses it
+      return Files.Fs_Primitives.Entry_Exists (To_Path)
         and then Files.Fs_Primitives.Parent_Directory (From_Path)
                  = Files.Fs_Primitives.Parent_Directory (To_Path)
         and then
@@ -95,7 +97,7 @@ is
       --  The scratch name was free when chosen, so an entry there is ours,
       --  whether or not something took the original name meanwhile.
       function Stranded return Boolean is
-        (Temp /= Null_Unbounded_String and then Exists_Safely (To_String (Temp)));
+        (Temp /= Null_Unbounded_String and then not Files.Fs_Primitives.Entry_Is_Absent (To_String (Temp)));
 
       function Stranded_Result return Mutation_Result is
       begin
@@ -104,7 +106,7 @@ is
       end Stranded_Result;
    begin
       for Index in 1 .. Max_Temp_Candidates loop
-         if not Exists_Safely (Temp_Candidate (Index)) then
+         if Files.Fs_Primitives.Entry_Is_Absent (Temp_Candidate (Index)) then
             Temp := To_Unbounded_String (Temp_Candidate (Index));
             exit;
          end if;
@@ -211,23 +213,25 @@ is
          return Failed;
       end if;
       declare
-         Renamed : constant Mutation_Result := Rename_Item (To_String (Backup), To_Path);
+         Renamed : Mutation_Result := Failed;
+
+         --  The payload leaves its stage for the history target, the stage
+         --  marked first (Recovery.Vacate): a stop now leaves a stage the
+         --  sweep finishes, not one kept for good.
+         function Move_Out return Boolean is
+         begin
+            Renamed := Rename_Item (To_String (Backup), To_Path);
+            return Renamed.Success;
+         end Move_Out;
+
+         Ran : Boolean;
       begin
-         if not Renamed.Success then
+         if not Recovery.Vacate (To_String (Backup), Move_Out'Access, Ran) then
             Restore_Source;
             return Failed_By (Renamed);
          end if;
       end;
       Committed := True;
-      declare
-         Stage : constant String := Files.Fs_Primitives.Parent_Directory (To_String (Backup));
-         Removed : constant Mutation_Result := Delete_Permanently (Stage);
-         pragma Unreferenced (Removed);
-      begin
-         if Files.Fs_Primitives.Entry_Is_Absent (Stage) then
-            Recovery.Unregister (To_String (Backup));
-         end if;
-      end;
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when Swallowed : others =>
@@ -253,7 +257,8 @@ begin
          Error_Key => To_Unbounded_String (Files.Io_Errors.Name_Too_Long_Key));
    elsif Expected_Identity /= "" then
       return Rename_Recorded;
-   elsif not Exists_Safely (From_Path) then
+   --  refusal-safe: a refused source fails the rename
+   elsif not Files.Fs_Primitives.Entry_Exists (From_Path) then
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.rename.source_missing"));
@@ -269,7 +274,8 @@ begin
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.name.invalid"));
-   elsif (Exists_Safely (To_Path) and then not Is_Case_Only_Rename)
+   --  refusal-safe: a refused target passes on to the no-replace move, which refuses an occupied one
+   elsif (Files.Fs_Primitives.Entry_Exists (To_Path) and then not Is_Case_Only_Rename)
      or else Parent = ""
      or else not Files.Fs_Primitives.Directory_Exists (Parent)
    then

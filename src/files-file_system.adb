@@ -454,6 +454,13 @@ package body Files.File_System is
 
    function Original_Path (Trashed_Path : String) return String;
 
+   --  Remove Path only while it is still the entry Expected_Identity names
+   --  (and, with Verify_Tree, still holds what Expected_Tree_Revision says).
+   function Delete_Verified_Entry
+     (Path : String;
+      Expected_Identity, Expected_Tree_Revision : String;
+      Verify_Tree : Boolean) return Mutation_Result;
+
    function Restore_From_Trash_Backend
      (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
       return Mutation_Result;

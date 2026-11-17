@@ -35,7 +35,9 @@ begin
       begin
          if Reversed.Contains (Target) then
             null;
-         elsif Exists_Safely (Target)
+         --  A copy the host will not answer for is not taken as gone: the
+         --  step fails and a retry repeats it.
+         elsif not Files.Fs_Primitives.Entry_Is_Absent (Target)
            and then (Identity = ""
              or else Files.File_Identities.Token (Target) /= Identity
              or else not Files.File_System.Delete_Created_Entry (Target, Identity, Tree_Revision).Success)
@@ -82,8 +84,8 @@ begin
          end loop;
 
       when Files.Model.Undo_Delete_Created =>
-         --  Undo a created path by removing it again. Missing paths are
-         --  treated as already undone.
+         --  Undo a created path by removing it again. A path gone for sure
+         --  is already undone; one the host will not answer for is not.
          for Index in Action.Items.First_Index .. Action.Items.Last_Index loop
             if Files.Job_Context.Cancelled then
                return False;
@@ -95,12 +97,12 @@ begin
             begin
                if Reversed.Contains (To_String (Action.Items (Index).From)) then
                   null;
-               elsif Exists_Safely (Target)
+               elsif not Files.Fs_Primitives.Entry_Is_Absent (Target)
                  and then (Expected_Identity = ""
                            or else Files.File_Identities.Token (Target) /= Expected_Identity)
                then
                   Succeeded := False;
-               elsif Exists_Safely (Target)
+               elsif not Files.Fs_Primitives.Entry_Is_Absent (Target)
                  and then not Files.File_System.Delete_Created_Entry
                    (Target, Expected_Identity, Expected_Tree_Revision).Success
                then

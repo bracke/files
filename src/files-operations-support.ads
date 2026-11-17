@@ -15,14 +15,6 @@ private package Files.Operations.Support is
    --  @return An open action with an empty executable and no arguments.
    function Empty_Action return Files.Settings.Open_Action;
 
-   --  Ada.Directories.Exists raises Name_Error on a malformed path rather than
-   --  returning False; this treats any failure as "does not exist" so it cannot
-   --  escape an operation as an unhandled exception.
-   --
-   --  @param Path Filesystem path to test.
-   --  @return True when Path exists, False when it does not or the test failed.
-   function Exists_Safely (Path : String) return Boolean;
-
    --  How many numbered names (" 2", " (copy 3)") a new entry tries before
    --  giving up on a free one.
    Max_Name_Attempts : constant := 9_999;

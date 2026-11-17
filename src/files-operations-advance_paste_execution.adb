@@ -13,6 +13,8 @@ is
    --  a move; otherwise undo must delete the copy, not move it back.
    function Source_Remains (Action : Files.Paste.Resolved_Action) return Boolean is
      (Files.Model.Pasting.Execution_Mode (Model) = Files.File_System.Drop_Move
+      --  refusal-safe: a refused source counts as vacated, so undo moves the copy back
+      --  without replacing anything and never deletes what may be the only copy
       and then Files.Fs_Primitives.Entry_Exists (To_String (Action.Source_Path)));
 
    --  Start the current action in a helper when none runs, then poll it:

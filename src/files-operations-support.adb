@@ -38,7 +38,10 @@ package body Files.Operations.Support is
             Dos_Rules));
    begin
       for Attempt in First .. Max_Name_Attempts loop
-         if not Exists_Safely (Files.Fs_Primitives.Compose_Text (Directory, Name (Attempt), Extension)) then
+         --  A name the host will not answer for is not taken as free.
+         if Files.Fs_Primitives.Entry_Is_Absent
+           (Files.Fs_Primitives.Compose_Text (Directory, Name (Attempt), Extension))
+         then
             return Name (Attempt);
          end if;
       end loop;
@@ -49,8 +52,6 @@ package body Files.Operations.Support is
    begin
       return Files.Settings.Open_Actions.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector);
    end Empty_Action;
-
-   function Exists_Safely (Path : String) return Boolean renames Files.Fs_Primitives.Entry_Exists;
 
    function Make_Result
      (Status      : Operation_Status;

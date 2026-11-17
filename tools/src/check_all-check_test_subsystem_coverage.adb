@@ -117,10 +117,10 @@ separate (Check_All)
       Require_Tests ("text_input", 5);
       Require_Tests ("rendering", 104);
       Require_Tests ("operations", 48);
-      Require_Tests ("transfer", 55);
-      Require_Tests ("recovery", 53);
-      Require_Tests ("history", 37);
-      Require_Tests ("trash", 30);
+      Require_Tests ("transfer", 56);
+      Require_Tests ("recovery", 56);
+      Require_Tests ("history", 39);
+      Require_Tests ("trash", 31);
       Require_Tests ("search", 10);
       Require_Tests ("thumbnails", 19);
       Require_Tests ("archives", 7);

@@ -1,3 +1,5 @@
+with Files.Durability;
+with Hostkit.Durability;
 separate (Files.Operations)
 function Compress_Selected
   (Model    : in out Files.Model.Window_Model;
@@ -64,7 +66,8 @@ is
       then
          Collection_Failed := True;
          return;
-      elsif not Exists_Safely (Full) then
+      --  refusal-safe: a refused lookup fails the collection
+      elsif not Files.Fs_Primitives.Entry_Exists (Full) then
          Collection_Failed := True;
          return;
       elsif Hostkit.Fs.Is_Link (Full) then
@@ -217,9 +220,13 @@ begin
       Identities.Append (To_Unbounded_String (Files.File_Identities.Token (Staged)));
       Tree_Revisions.Append
         (To_Unbounded_String (Files.File_System.Tree_Revision (Staged)));
+      --  The archive's bytes are on the device before its name is published,
+      --  as every durable copy's are: a power cut leaves no recorded but
+      --  empty or cut-short archive.
       if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
         or else Length (Identities.First_Element) = 0
         or else Length (Tree_Revisions.First_Element) = 0
+        or else Hostkit.Durability."=" (Files.Durability.Sync_File (Staged), Hostkit.Durability.Failed)
         or else not Hostkit.Fs.Move_No_Replace (Staged, Output_Path)
       then
          Discard_Stage;

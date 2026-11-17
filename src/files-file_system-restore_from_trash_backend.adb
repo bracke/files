@@ -59,6 +59,10 @@ begin
         Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Simple & ".trashinfo");
       Original  : Unbounded_String;
       Parent    : Unbounded_String;
+      --  What the trash holds now, so what is removed once the item is back
+      --  is this item and its own info file: the trash may be emptied, and
+      --  another item trashed under the same name, while a long copy runs.
+      Info_Identity : constant String := Files.File_Identities.Token (Info_Path);
    begin
       if Expected_Original = "" and then not Files.Fs_Primitives.Exists (Info_Path) then
          return
@@ -113,38 +117,54 @@ begin
             --  taken meanwhile, no permission): no copy.
             return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
          elsif Outcome /= Hostkit.Fs.Moved then
-            --  The trash is on another device: the staged copy every move
-            --  uses (copied into a private stage on the destination's
-            --  filesystem, journaled, published without replacing), so a
-            --  failed copy leaves Original absent. Cancellation stops new
-            --  work, but must not interrupt a restore, which is recovery.
             declare
-               Identity, Revision : UString;
+               Trashed_Identity : constant String := Files.File_Identities.Token (Trashed_Path);
+               --  Its content too where the host gives it (none for a link):
+               --  the item must not have changed while it was copied either.
+               Trashed_Revision : constant String := Tree_Revision (Trashed_Path);
             begin
-               Support.Copy_To_New_Path
-                 (Trashed_Path, To_String (Original), Identity, Revision,
-                  Cancel => null, Preserve_Ownership => True, Durable => True);
-            exception
-               when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.File_System");
-                  return
-                    (Success   => False,
-                     Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
+               --  The trash is on another device: the staged copy every move
+               --  uses (copied into a private stage on the destination's
+               --  filesystem, journaled, published without replacing), so a
+               --  failed copy leaves Original absent. Cancellation stops new
+               --  work, but must not interrupt a restore, which is recovery.
+               declare
+                  Identity, Revision : UString;
+               begin
+                  Support.Copy_To_New_Path
+                    (Trashed_Path, To_String (Original), Identity, Revision,
+                     Cancel => null, Preserve_Ownership => True, Durable => True);
+               exception
+                  when Swallowed : others =>
+                     Files.Diagnostics.Note (Swallowed, "Files.File_System");
+                     return
+                       (Success   => False,
+                        Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
+               end;
+               if After_Restore_Copy /= null then
+                  After_Restore_Copy (Trashed_Path);
+               end if;
+               --  The restore is done; the trash copy is now redundant once the
+               --  restored copy is on the device. Only the item that was copied
+               --  goes, checked by identity and content as it is removed: one
+               --  that is not it, or cannot be synced or removed, stays with its
+               --  info file, so it is still listed in the trash rather than
+               --  hidden there for good, or someone else's lost.
+               if Trashed_Identity = ""
+                 or else not Support.Sync_Copy (Trashed_Path, To_String (Original), Files_Too => False)
+                 or else not Delete_Verified_Entry
+                   (Trashed_Path, Trashed_Identity, Trashed_Revision, Verify_Tree => Trashed_Revision /= "").Success
+               then
+                  return (Success => True, Error_Key => Null_Unbounded_String);
+               end if;
             end;
-            --  The restore is done; the trash copy is now redundant once the
-            --  restored copy is on the device. If it cannot be synced or
-            --  removed, its info file stays with it, so it is still listed in
-            --  the trash rather than hidden there for good.
-            if not Support.Sync_Copy (Trashed_Path, To_String (Original), Files_Too => False)
-              or else not Delete_Permanently (Trashed_Path).Success
-            then
-               return (Success => True, Error_Key => Null_Unbounded_String);
-            end if;
          end if;
       end;
 
+      --  Its own info file only: one written for another item since, under
+      --  the same name, stays.
       begin
-         if Files.Fs_Primitives.Exists (Info_Path) then
+         if Info_Identity /= "" and then Files.File_Identities.Token (Info_Path) = Info_Identity then
             Files.Fs_Primitives.Delete_File (Info_Path);
          end if;
       exception

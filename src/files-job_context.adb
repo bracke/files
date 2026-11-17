@@ -30,6 +30,9 @@ package body Files.Job_Context is
 
    Stage_Record_Header : constant String := "files-stage-3";
    Created_Record_Header : constant String := "files-created-3";
+   Created_Intent_Header : constant String := "files-created-intent-1";
+   Moved_Record_Header   : constant String := "files-moved-1";
+   Moved_Intent_Header   : constant String := "files-moved-intent-1";
    Max_Record_Header_Length : constant := Files.Bounded_Streams.Max_Header_Length;
    Max_Record_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
    Max_Record_Token_Length : constant := Files.Bounded_Streams.Max_Token_Length;
@@ -171,6 +174,7 @@ package body Files.Job_Context is
    is
       Journal : constant String := Hostkit.Fs.Join (To_String (Current), Name);
       Existing : constant Boolean :=
+        --  refusal-safe: a refused journal is created exclusively, which fails
         Files.Fs_Primitives.Entry_Exists (Journal);
       Handle : Hostkit.Lease_Files.Lease;
       Opened : Hostkit.Lease_Files.Open_Outcome;
@@ -445,7 +449,9 @@ package body Files.Job_Context is
       Record_Created (Destination, Source, Identity, Files.File_System.Tree_Revision (Destination));
    end Record_Created;
 
-   procedure Record_Created (Destination, Source, Identity, Tree_Revision : String) is
+   --  Append one creation record (a destination, a source, an identity and
+   --  a tree revision) to the journal Name under Header.
+   procedure Append_Creation (Name, Header, Destination, Source, Identity, Tree_Revision : String) is
       procedure Write
         (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
       begin
@@ -455,11 +461,6 @@ package body Files.Job_Context is
          String'Output (Stream, Tree_Revision);
       end Write;
    begin
-      if Length (Current) = 0
-        or else not Creation_Snapshot_Matches (Destination, Identity, Tree_Revision)
-      then
-         return;
-      end if;
       if Destination'Length > Max_Record_Path_Length
         or else Source'Length > Max_Record_Path_Length
         or else Identity'Length > Max_Record_Token_Length
@@ -467,7 +468,31 @@ package body Files.Job_Context is
       then
          return;
       end if;
-      Append_Journal_Record ("created", Created_Record_Header, Write'Access);
+      Append_Journal_Record (Name, Header, Write'Access);
+   end Append_Creation;
+
+   procedure Intend_Created (Destination, Source, Identity, Tree_Revision : String) is
+   begin
+      if Length (Current) = 0 or else Identity = "" then
+         return;
+      end if;
+      Append_Creation ("created-intent", Created_Intent_Header, Destination, Source, Identity, Tree_Revision);
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
+         --  Recovery then finds this one only once it is recorded, as
+         --  before intents were kept; the publication itself goes ahead.
+         null;
+   end Intend_Created;
+
+   procedure Record_Created (Destination, Source, Identity, Tree_Revision : String) is
+   begin
+      if Length (Current) = 0
+        or else not Creation_Snapshot_Matches (Destination, Identity, Tree_Revision)
+      then
+         return;
+      end if;
+      Append_Creation ("created", Created_Record_Header, Destination, Source, Identity, Tree_Revision);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
@@ -478,8 +503,15 @@ package body Files.Job_Context is
 
    procedure Record_Moved (Destination, Source, Identity : String) is
    begin
-      Append_Record ("moved", "files-moved-1", Destination, Source, Identity);
+      Append_Record ("moved", Moved_Record_Header, Destination, Source, Identity);
    end Record_Moved;
+
+   procedure Intend_Moved (Destination, Source, Identity : String) is
+   begin
+      if Identity /= "" then
+         Append_Record ("moved-intent", Moved_Intent_Header, Destination, Source, Identity);
+      end if;
+   end Intend_Moved;
 
    procedure Append_Record (Name, Header, Destination, Source, Identity : String) is
       procedure Write
@@ -584,17 +616,48 @@ package body Files.Job_Context is
          Files.Lease_Streams.Release (Input);
    end Read_Journal;
 
+   --  Add to Entries each intent the journal Intents (under Header) holds
+   --  that Happened and Entries does not record yet, once.
+   procedure Add_Carried_Out
+     (Entries                 : in out Journal_Entry_Vectors.Vector;
+      Directory, Name, Header : String;
+      With_Revisions          : Boolean;
+      Happened                : not null access function (Item : Journal_Entry) return Boolean)
+   is
+      Intents : Journal_Entry_Vectors.Vector;
+
+      function Recorded (Destination : Unbounded_String) return Boolean is
+        (for some Item of Entries => Item.Destination = Destination);
+   begin
+      Read_Journal (Directory, Name, Header, With_Revisions, Intents);
+      for Intent of Intents loop
+         if not Recorded (Intent.Destination) and then Happened (Intent) then
+            Entries.Append (Intent);
+         end if;
+      end loop;
+   end Add_Carried_Out;
+
    function Read_Created (Directory : String) return Journal_Entry_Vectors.Vector is
+      --  Published: what is at the destination is the entry staged.
+      function Published (Item : Journal_Entry) return Boolean is
+        (Files.File_Identities.Token (To_String (Item.Destination)) = To_String (Item.Identity));
    begin
       return Entries : Journal_Entry_Vectors.Vector do
          Read_Journal (Directory, "created", Created_Record_Header, True, Entries);
+         Add_Carried_Out (Entries, Directory, "created-intent", Created_Intent_Header, True, Published'Access);
       end return;
    end Read_Created;
 
    function Read_Moved (Directory : String) return Journal_Entry_Vectors.Vector is
+      --  Moved: the entry is at the destination, and its source gone for
+      --  sure (a source the host will not answer for is not taken as moved).
+      function Moved (Item : Journal_Entry) return Boolean is
+        (Files.File_Identities.Token (To_String (Item.Destination)) = To_String (Item.Identity)
+         and then Files.Fs_Primitives.Entry_Is_Absent (To_String (Item.Source)));
    begin
       return Entries : Journal_Entry_Vectors.Vector do
-         Read_Journal (Directory, "moved", "files-moved-1", False, Entries);
+         Read_Journal (Directory, "moved", Moved_Record_Header, False, Entries);
+         Add_Carried_Out (Entries, Directory, "moved-intent", Moved_Intent_Header, False, Moved'Access);
       end return;
    end Read_Moved;
 

@@ -40,16 +40,30 @@ begin
       end;
    end if;
    declare
-      Removed : Boolean := False;
-   begin
+      --  The verified entry is removed from its stage, marked first
+      --  (Recovery.Vacate), so a stop part way leaves a stage the sweep
+      --  finishes; the stage and its record go once it has.
+      function Remove_Payload return Boolean is
       begin
          Support.Delete_Owned_Tree (To_String (Backup));
-         Removed := True;
+         return True;
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.File_System");
-      end;
-      if not Removed then
+            return False;
+      end Remove_Payload;
+
+      Ran : Boolean;
+   begin
+      if Recovery.Vacate (To_String (Backup), Remove_Payload'Access, Ran) then
+         return (Success => True, Error_Key => Null_Unbounded_String);
+      elsif not Ran
+        or else (Files.File_Identities.Token (To_String (Backup)) = Expected_Identity
+                 and then (not Verify_Tree or else Hostkit.Fs.Is_Link (To_String (Backup))
+                           or else Tree_Revision (To_String (Backup)) = Expected_Tree_Revision))
+      then
+         --  Nothing was removed (it is still the entry, content and all):
+         --  it goes back whole.
          declare
             Restored : constant Mutation_Result := Recovery.Restore (To_String (Backup));
             pragma Unreferenced (Restored);
@@ -57,18 +71,10 @@ begin
             return Failed;
          end;
       end if;
-   end;
-   declare
-      Stage : constant String := Files.Fs_Primitives.Parent_Directory (To_String (Backup));
-      Removed : constant Mutation_Result := Delete_Permanently (Stage);
-      pragma Unreferenced (Removed);
-   begin
-      --  Preserve registered the backup; once its stage is gone the record
-      --  would otherwise leak and slowly exhaust the registry.
-      if Files.Fs_Primitives.Entry_Is_Absent (Stage) then
-         Recovery.Unregister (To_String (Backup));
-      end if;
-      return (Success => True, Error_Key => Null_Unbounded_String);
+      --  Removed part way: what is left is no longer the entry, so it is
+      --  not put back under its name as if it were. It stays in its
+      --  registered stage, listed among the recoveries.
+      return Failed;
    end;
 exception
    when Swallowed : others =>

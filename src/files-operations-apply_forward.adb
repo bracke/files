@@ -54,8 +54,10 @@ begin
                      Forwarded.Exclude (To_String (Action.Items (Index).From));
                      Files.History_Journal.Checkpoint (Model, Action, True);
                   end if;
-                  if Source = "" or else not Exists_Safely (Source)
-                    or else Exists_Safely (Dest)
+                  --  A source gone for sure, or a destination that may be
+                  --  taken (a refused lookup is not a free one), fails it.
+                  if Source = "" or else Files.Fs_Primitives.Entry_Is_Absent (Source)
+                    or else not Files.Fs_Primitives.Entry_Is_Absent (Dest)
                   then
                      Succeeded := False;
                   else

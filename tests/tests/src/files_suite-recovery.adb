@@ -106,6 +106,9 @@ package body Files_Suite.Recovery is
    procedure Test_Refused_Stage_Lookup_Keeps_Record (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Emptied_Stage_Swept (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Unmarked_Stage_Survives_Sweep (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Emptied_Undo_Stage_Swept (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Abandoned_Unfilled_Stage_Swept (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Partial_Delete_Kept_In_Stage (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Held_Release_Marker_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -184,6 +187,15 @@ package body Files_Suite.Recovery is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Unmarked_Stage_Survives_Sweep'Access,
          "the registry sweep leaves a stage with no payload and no restore or release marker");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Emptied_Undo_Stage_Swept'Access,
+         "a verified removal marks its stage before the entry leaves, so the sweep finishes it");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Abandoned_Unfilled_Stage_Swept'Access,
+         "the registry sweep removes an unfilled stage older than a Preserve could still be filling");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Partial_Delete_Kept_In_Stage'Access,
+         "a verified removal that stops part way keeps what is left in its stage, not under its name");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Held_Release_Marker_Skipped'Access,
          "the registry sweep leaves a release whose marker lease is held, and resumes it once released");
@@ -333,6 +345,9 @@ package body Files_Suite.Recovery is
    procedure Test_Emptied_Stage_Swept (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Unmarked_Stage_Survives_Sweep (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Emptied_Undo_Stage_Swept (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Abandoned_Unfilled_Stage_Swept (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Partial_Delete_Kept_In_Stage (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Held_Release_Marker_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

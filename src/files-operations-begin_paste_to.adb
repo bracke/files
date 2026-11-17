@@ -26,7 +26,8 @@ is
             Desired : constant String :=
               Files.Paste.Desired_Path (To_String (Item.Dest_Dir), To_String (Item.Dest_Name));
          begin
-            if Files.Fs_Primitives.Entry_Exists (Desired) then
+            --  A name the host will not answer for may be taken: ask.
+            if not Files.Fs_Primitives.Entry_Is_Absent (Desired) then
                Result.Append (To_Unbounded_String (Desired));
             end if;
          exception

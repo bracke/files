@@ -60,6 +60,7 @@ package body Files_Suite.Trash is
    overriding procedure Register_Tests (T : in out Trash_Test_Case);
 
    procedure Test_Restore_Keeps_Trash_Until_Synced (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Restore_Keeps_A_Replaced_Trash_Item (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Trash_Source_Verification (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Empty_Trash_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Trash_Deletion_Date (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -172,6 +173,9 @@ package body Files_Suite.Trash is
         (T, Test_Restore_Keeps_Trash_Until_Synced'Access,
          "a restore across devices keeps the trash's copy until the restored one is synced");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Restore_Keeps_A_Replaced_Trash_Item'Access,
+         "a restore across devices removes only the item it copied, not one trashed under its name since");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Trash_Source_Verification'Access,
          "cross-device trash retains edited and replaced sources");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -227,6 +231,8 @@ package body Files_Suite.Trash is
    procedure Test_Labels_Travel_Through_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Restore_Keeps_Trash_Until_Synced (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Restore_Keeps_A_Replaced_Trash_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Trash_Source_Verification (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

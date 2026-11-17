@@ -54,7 +54,8 @@ begin
             elsif Matches then
                Files.Model.Note_Path_Move (Model, Source, Target);
                Completed (Source_Path);
-            elsif Exists_Safely (Source) then
+            --  refusal-safe: a refused source fails the step, which a retry repeats
+            elsif Files.Fs_Primitives.Entry_Exists (Source) then
                if Files.File_System.Rename_Item (Source, Target, Identity).Success then
                   Files.Model.Note_Path_Move (Model, Source, Target);
                   --  A cross-device copy gives the moved entry a new identity.

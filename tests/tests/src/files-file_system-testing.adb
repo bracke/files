@@ -80,6 +80,23 @@ package body Files.File_System.Testing is
          Files.Diagnostics.Note (Failure, "Files.File_System.Testing");
    end Change_After_Metadata;
 
+   --  Whether Change_Trashed_After_Copy has fired.
+   Trashed_Changed : Boolean := False;
+
+   --  The After_Restore_Copy hook Change_Trashed_After_Copy installs.
+   procedure Change_Trashed (Trashed_Path : String) is
+   begin
+      if Trashed_Changed then
+         return;
+      end if;
+      Trashed_Changed := True;
+      Ada.Directories.Delete_File (Trashed_Path);
+      Write (Trashed_Path, "another item");
+   exception
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.File_System.Testing");
+   end Change_Trashed;
+
    --  The Refuse_Directory_Restore hook Fail_Directory_Restore installs.
    function Refuse_Restore (Directory : String) return Boolean is
       Block : constant String := To_String (Restore_Block);
@@ -114,6 +131,17 @@ package body Files.File_System.Testing is
       Change_Trigger := Null_Unbounded_String;
       Change_Source := Null_Unbounded_String;
    end Stop_Changing_Source;
+
+   procedure Change_Trashed_After_Copy is
+   begin
+      Trashed_Changed := False;
+      After_Restore_Copy := Change_Trashed'Access;
+   end Change_Trashed_After_Copy;
+
+   procedure Stop_Changing_Trashed is
+   begin
+      After_Restore_Copy := null;
+   end Stop_Changing_Trashed;
 
    procedure Fail_Directory_Restore (Trigger : String; Block : String := "") is
    begin

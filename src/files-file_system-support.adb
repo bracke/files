@@ -781,6 +781,10 @@ package body Files.File_System.Support is
          raise Ada.Directories.Use_Error;
       end if;
       Save_Links (Batch, Walk.Copied_Files, Hostkit.Fs.Join (To_String (Stage), "payload"), Destination_Path);
+      --  Named before it is published, so a helper stopped right after
+      --  still has it found for Undo (Files.Job_Context.Read_Created).
+      Files.Job_Context.Intend_Created
+        (Destination_Path, Source_Path, To_String (Identity), To_String (Tree_Revision_Value));
       if not Move_No_Replace (Hostkit.Fs.Join (To_String (Stage), "payload"), Destination_Path) then
          raise Ada.Directories.Use_Error;
       end if;

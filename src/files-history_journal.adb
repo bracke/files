@@ -582,12 +582,15 @@ package body Files.History_Journal is
       end if;
       if not Valid_Directory (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
+        --  refusal-safe: a refused folder refuses the save
         or else not Files.Fs_Primitives.Exists (Directory)
         or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
         or else Hostkit.Fs.Is_Link (Temporary)
+        --  refusal-safe: a refused temporary is not removed; writing it then refuses
         or else (Files.Fs_Primitives.Exists (Temporary)
           and then Files.Fs_Primitives.Kind (Temporary) /= Ada.Directories.Ordinary_File)
         or else Hostkit.Fs.Is_Link (Target)
+        --  refusal-safe: a refused target is replaced only through Publish, which checks it
         or else (Files.Fs_Primitives.Exists (Target)
           and then Files.Fs_Primitives.Kind (Target) /= Ada.Directories.Ordinary_File)
       then
@@ -595,6 +598,7 @@ package body Files.History_Journal is
       end if;
       --  A temporary a crash left behind (a plain file, checked above) would
       --  refuse every later save: the journal is ours, so it goes.
+      --  refusal-safe: a refused temporary stays; writing it then refuses
       if Files.Fs_Primitives.Exists (Temporary) then
          Files.Fs_Primitives.Delete_File (Temporary);
       end if;
@@ -670,15 +674,17 @@ package body Files.History_Journal is
       Undo.Clear;
       Redo.Clear;
       State := (others => <>);
+      --  None to read only when the journal is gone for sure (no folder is
+      --  no journal either). One the host will not answer for, or will not
+      --  open, is no absence: it raises, and the caller tries again.
       if not Valid_Directory (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Files.Fs_Primitives.Exists (Directory)
-        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
-        or else not Files.Fs_Primitives.Exists (Path)
-        or else Files.Lease_Streams.Open (Path, Input) /=
-          Hostkit.Lease_Files.Opened
+        or else Files.Fs_Primitives.Entry_Is_Absent (Path)
       then
          return False;
+      end if;
+      if Files.Lease_Streams.Open (Path, Input) /= Hostkit.Lease_Files.Opened then
+         raise Ada.Directories.Use_Error;
       end if;
       if Files.Lease_Streams.Size (Input) >
         Long_Long_Integer (Max_Journal_Bytes)

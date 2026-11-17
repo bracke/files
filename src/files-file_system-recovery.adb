@@ -1,3 +1,4 @@
+with Files.Timing;
 with Files.Protocol_Names;
 with Files.File_System.Support;
 with Files.Diagnostics;
@@ -626,10 +627,12 @@ package body Files.File_System.Recovery is
          Held := To_Unbounded_String (Hostkit.Fs.Join (Holder, Name));
       end Count_One;
    begin
+      --  refusal-safe: a refused payload goes on to the no-replace move back, which refuses an occupied one
       if Files.Fs_Primitives.Entry_Exists (Path)
         or else Hostkit.Fs.Is_Link (Holder)
         or else not Files.Fs_Primitives.Directory_Exists (Holder)
       then
+         --  refusal-safe: a refused payload keeps the release marker
          return Files.Fs_Primitives.Entry_Exists (Path);
       end if;
       Files.Fs_Primitives.For_Each_Name (Holder, Count_One'Access);
@@ -649,6 +652,7 @@ package body Files.File_System.Recovery is
             Files.Fs_Primitives.Delete_Directory (Holder);
          end if;
       end;
+      --  refusal-safe: a refused payload keeps the release marker
       return Files.Fs_Primitives.Entry_Exists (Path);
    exception
       when Swallowed : others =>
@@ -664,6 +668,7 @@ package body Files.File_System.Recovery is
       Stage  : constant String := Files.Fs_Primitives.Parent_Directory (Path);
       Marker : Hostkit.Lease_Files.Lease;
    begin
+      --  refusal-safe: a refused payload goes on to the claimed resume, which only moves no-replace
       if Files.Fs_Primitives.Entry_Exists (Path)
         or else not Claim_Marker (Stage, Releasing_Marker, Marker)
       then
@@ -732,6 +737,97 @@ package body Files.File_System.Recovery is
          return False;
    end Finish_Stopped_Stage;
 
+   --  Whether the stage of Payload was registered and made by a Preserve
+   --  that stopped before its original moved in, longer ago than
+   --  Unfilled_Stage_Grace: no payload (gone for sure), no release holder,
+   --  no restore or release marker, nothing but what Preserve writes, and an
+   --  owner record older than the grace -- so no Preserve is filling it now.
+   function Abandoned_Unfilled (Payload : String) return Boolean is
+      Stage    : constant String := Files.Fs_Primitives.Parent_Directory (Payload);
+      Owner    : constant String := Hostkit.Fs.Join (Stage, Owner_Name);
+      Original : UString;
+      Identity : UString;
+   begin
+      return Files.Fs_Primitives.Leaf_Text (Payload) = "payload"
+        and then Files.Fs_Primitives.Entry_Is_Absent (Payload)
+        and then Files.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (Stage, "release"))
+        and then not Has_Marker (Stage, Vacated_Marker)
+        and then not Has_Marker (Stage, Releasing_Marker)
+        and then Read_Owner (Stage, Original, Identity)
+        and then Contains_Only_Owned_Entries (Stage)
+        and then Files.Timing.Elapsed
+          (Now      => Ada.Calendar.Clock,
+           Since    => Hostkit.Fs.Modification_Time_Of (Owner, Follow_Links => False),
+           Interval => Unfilled_Stage_Grace);
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         return False;
+   end Abandoned_Unfilled;
+
+   --  Remove an abandoned, unfilled stage (Abandoned_Unfilled), holding its
+   --  restore marker meanwhile so nothing else starts on it.
+   --  @return True when the stage was claimed (it may still have refused to go).
+   function Remove_Abandoned_Stage (Payload : String) return Boolean is
+      Stage  : constant String := Files.Fs_Primitives.Parent_Directory (Payload);
+      Marker : Hostkit.Lease_Files.Lease;
+   begin
+      if not Hold_Marker (Stage, Vacated_Marker, Marker) then
+         return False;
+      end if;
+      Remove_Stage_Holding (Stage, Marker);
+      return True;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         Hostkit.Lease_Files.Release (Marker);
+         return False;
+   end Remove_Abandoned_Stage;
+
+   function Vacate
+     (Path  : String;
+      Leave : not null access function return Boolean;
+      Ran   : out Boolean)
+      return Boolean
+   is
+      Stage  : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Marker : Hostkit.Lease_Files.Lease;
+   begin
+      Ran := False;
+      --  Durable, and held, before the payload leaves, as Restore marks it:
+      --  a stop part way leaves a marked stage the sweep finishes.
+      if not Hold_Marker (Stage, Vacated_Marker, Marker) then
+         return False;
+      end if;
+      Ran := True;
+      if not Leave.all then
+         --  refusal-safe: a refused payload keeps the marker
+         Let_Go_Marker (Stage, Vacated_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
+         return False;
+      end if;
+      --  Its record goes only with its stage; a stage that will not go yet
+      --  keeps both, marked, for Sweep_Registry to finish.
+      begin
+         Remove_Stage_Holding (Stage, Marker);
+      exception
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+      end;
+      Hostkit.Lease_Files.Release (Marker);
+      if Files.Fs_Primitives.Entry_Is_Absent (Stage) then
+         Unregister (Path);
+      end if;
+      return True;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         if Hostkit.Lease_Files.Is_Held (Marker) then
+            --  refusal-safe: a refused payload keeps the marker
+            Let_Go_Marker (Stage, Vacated_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
+         end if;
+         return False;
+   end Vacate;
+
    function Release
      (Path     : String;
       To_Trash : not null access function (Path, Original : String) return Mutation_Result)
@@ -747,6 +843,7 @@ package body Files.File_System.Recovery is
       --  Stop short: the marker goes only with the payload back in place.
       function Give_Up return Mutation_Result is
       begin
+         --  refusal-safe: a refused payload keeps the marker
          Let_Go_Marker (Stage, Releasing_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
          return Failed;
       end Give_Up;
@@ -803,6 +900,7 @@ package body Files.File_System.Recovery is
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          if Hostkit.Lease_Files.Is_Held (Marker) then
+            --  refusal-safe: a refused payload keeps the marker
             Let_Go_Marker (Stage, Releasing_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
          end if;
          return Failed;
@@ -971,6 +1069,7 @@ package body Files.File_System.Recovery is
         and then Starts_With (Files.Fs_Primitives.Leaf_Text (Parent), Files.Protocol_Names.Recovery_Stage_Prefix)
         and then not Hostkit.Fs.Is_Link (Parent)
         and then Files.Fs_Primitives.Directory_Exists (Parent)
+        --  refusal-safe: a refused payload is not recognized, so nothing acts on it
         and then Files.Fs_Primitives.Entry_Exists (Path)
         and then Read_Owner (Parent, Original, Identity);
    exception
@@ -1251,6 +1350,12 @@ package body Files.File_System.Recovery is
                   Stopped (Index) := True;
                   Finished (Index) := Finish_Stopped_Stage (Payload)
                     and then Files.Fs_Primitives.Entry_Is_Absent (Files.Fs_Primitives.Parent_Directory (Payload));
+               elsif Abandoned_Unfilled (Payload)
+                 and then Stage_Matches (Payload, To_String (Identities.Element (Index)))
+               then
+                  Stopped (Index) := True;
+                  Finished (Index) := Remove_Abandoned_Stage (Payload)
+                    and then Files.Fs_Primitives.Entry_Is_Absent (Files.Fs_Primitives.Parent_Directory (Payload));
                end if;
             end;
          end loop;
@@ -1339,12 +1444,14 @@ package body Files.File_System.Recovery is
       if not Valid_Absolute_Path (To_String (Target)) then
          raise Ada.Directories.Use_Error;
       end if;
+      --  refusal-safe: a refused target goes on to the no-replace move, which refuses an occupied one
       if Files.Fs_Primitives.Entry_Exists (To_String (Target)) then
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_exists"));
       end if;
       --  A failed post-rename permission restoration can leave the private
       --  payload writable. Restore its recorded mode before retrying the move
       --  -- where the bits are the host's own, as Preserve records them.
+      --  refusal-safe: a refused mode record is skipped; the move does not depend on it
       if Hostkit.Metadata.Mode_Bits_Are_Native and then Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Parent, "mode"))
       then
          declare
@@ -1398,6 +1505,7 @@ package body Files.File_System.Recovery is
       if (Expected_Identity /= "" and then not Rename_Item (Path, To_String (Target), Expected_Identity).Success)
         or else (Expected_Identity = "" and then not Support.Move_No_Replace (Path, To_String (Target)))
       then
+         --  refusal-safe: a refused payload keeps the marker
          Let_Go_Marker (Parent, Vacated_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
       end if;
@@ -1419,6 +1527,7 @@ package body Files.File_System.Recovery is
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          if Hostkit.Lease_Files.Is_Held (Marker) then
+            --  refusal-safe: a refused payload keeps the marker
             Let_Go_Marker (Parent, Vacated_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
          end if;
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));

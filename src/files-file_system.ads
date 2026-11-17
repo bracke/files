@@ -1263,4 +1263,12 @@ private
    During_Sweep_Work : Sweep_Hook := null
      with Atomic;
 
+   --  Set only by the test suite (Files.File_System.Testing.Replace_Trashed_After_Copy):
+   --  called with the trashed item a restore from a trash on another device
+   --  has just copied back, before it removes that item, so the suite can put
+   --  another item under its name as emptying the trash and trashing again
+   --  would. The application never sets it.
+   After_Restore_Copy : Copy_Hook := null
+     with Atomic;
+
 end Files.File_System;

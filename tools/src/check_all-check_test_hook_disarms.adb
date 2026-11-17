@@ -29,6 +29,7 @@ separate (Check_All)
          Pair ("file_identities", "set_unavailable", "set_unavailable", Off => "false"),
          Pair ("file_system", "refuse_native_trash", "refuse_native_trash", Off => "false"),
          Pair ("file_system", "change_source_after_copy", "stop_changing_source"),
+         Pair ("file_system", "change_trashed_after_copy", "stop_changing_trashed"),
          Pair ("file_system", "fail_directory_restore", "stop_failing_directory_restore"),
          Pair ("file_system", "fail_owned_delete", "stop_failing_owned_delete"),
          Pair ("file_system", "refuse_creation_matches", "refuse_creation_matches", Off => "false"),

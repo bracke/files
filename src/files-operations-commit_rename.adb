@@ -62,7 +62,8 @@ begin
             Failure := Failure + 1;
             Record_First_Error ("error.name.invalid", Old_Full);
          elsif New_Name = Old_Name then
-            if Exists_Safely (Old_Full) then
+            --  refusal-safe: a refused lookup counts the unchanged name as a failure
+            if Files.Fs_Primitives.Entry_Exists (Old_Full) then
                Success := Success + 1;
                if Focus_Name = Null_Unbounded_String then
                   Focus_Name := Target.New_Name;

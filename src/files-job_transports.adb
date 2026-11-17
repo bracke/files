@@ -228,6 +228,7 @@ package body Files.Job_Transports is
       when others =>
          Files.Exclusive_Streams.Close_Safely (File);
          begin
+            --  refusal-safe: a refused temporary is left, not removed
             if Files.Fs_Primitives.Exists (Temp) then
                Files.Fs_Primitives.Delete_File (Temp);
             end if;
@@ -247,6 +248,7 @@ package body Files.Job_Transports is
       procedure Remove_Failed_Candidate (Candidate : String) is
          procedure Remove_File (Name : String) is
          begin
+            --  refusal-safe: a refused file is left, not removed
             if Files.Fs_Primitives.Entry_Exists (Name) then
                Files.Fs_Primitives.Delete_File (Name);
             end if;
