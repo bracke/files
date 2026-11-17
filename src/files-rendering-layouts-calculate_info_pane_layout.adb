@@ -41,7 +41,6 @@ separate (Files.Rendering.Layouts)
         (if Content_H > Layout.Main_Height then Content_H - Layout.Main_Height else 0);
       Requested_Px  : constant Natural := Saturating_Multiply (Snapshot.Info_Pane_Scroll_Lines, Line_Height);
       Scroll_Px     : constant Natural := Natural'Min (Requested_Px, Max_Scroll_Px);
-      Scroll_Lines  : constant Natural := Scroll_Px / Line_Height;
       Thumb         : constant Guikit.Layout.Scrollbar_Thumb :=
         Guikit.Layout.Calculate_Scrollbar_Thumb
           (Track_Length    => Layout.Main_Height,
@@ -68,7 +67,6 @@ separate (Files.Rendering.Layouts)
          Width             => Layout.Info_Pane_Width,
          Height            => Layout.Main_Height,
          Content_Height    => Content_H,
-         Scroll_Lines      => Scroll_Lines,
          Scroll_Pixels     => Scroll_Px,
          Scrollbar_Visible => Visible,
          Scrollbar_X       =>

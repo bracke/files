@@ -17,7 +17,14 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Inside, "here");
       Assert (not Files.Fs_Primitives.Entry_Is_Absent (Inside), "a readable entry is not absent");
       Assert (Files.Fs_Primitives.Entry_Is_Absent (Join (Locked, "nothing")), "nothing there is absent");
+      if not Files.File_System.Permissions.Supports_Permissions then
+         Files_Suite.Support.Skip
+           ("Test_An_Unsearchable_Entry_Is_Not_Absent", "this host has no POSIX permissions to set");
+         Reset_Root;
+         return;
+      end if;
       Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 0);
+      Assert (Mutation.Success, "the folder is made unsearchable");
       if Mutation.Success then
          begin
             declare
@@ -37,6 +44,12 @@ separate (Files_Suite.Recovery)
             Assert
               (not Files.Fs_Primitives.Entry_Is_Absent (Join (Locked, "nothing")),
                "nor is a refused lookup of a name that is not there");
+         else
+            --  Counted and named, so a host that stops refusing is seen
+            --  rather than passing in silence.
+            Files_Suite.Support.Skip
+              ("Test_An_Unsearchable_Entry_Is_Not_Absent",
+               "this host answers for an entry in a folder that may not be searched");
          end if;
          Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
          Assert (Mutation.Success, "the folder is opened again");

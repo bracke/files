@@ -105,8 +105,8 @@ separate (Check_All)
    begin
       --  The exact counts as of the last change to a suite: a lost test, or
       --  one added without its count moving here, fails.
-      Require_Tests ("settings", 37);
-      Require_Tests ("startup", 31);
+      Require_Tests ("settings", 38);
+      Require_Tests ("startup", 32);
       Require_Tests ("commands", 43);
       Require_Tests ("model", 55);
       Require_Tests ("interaction", 36);
@@ -115,7 +115,7 @@ separate (Check_All)
       Require_Tests ("tree", 15);
       Require_Tests ("keyboard", 14);
       Require_Tests ("text_input", 5);
-      Require_Tests ("rendering", 104);
+      Require_Tests ("rendering", 107);
       Require_Tests ("operations", 48);
       Require_Tests ("transfer", 56);
       Require_Tests ("recovery", 57);
@@ -127,5 +127,5 @@ separate (Check_All)
       Require_Tests ("info", 33);
       Require_Tests ("names", 18);
       Require_Tests ("refresh", 16);
-      Require_Tests ("open_actions", 17);
+      Require_Tests ("open_actions", 18);
    end Check_Test_Subsystem_Coverage;

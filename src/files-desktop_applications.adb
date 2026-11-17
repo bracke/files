@@ -203,16 +203,13 @@ package body Files.Desktop_Applications is
          Bases.Append (To_Unbounded_String (Value));
       end Append_Base;
 
+      --  Split on the host's path-list separator: ';' on Windows, where a
+      --  ':' belongs to a drive letter ("D:\apps\share").
       procedure Append_List (List : String) is
-         First : Positive := List'First;
       begin
-         for Index in List'Range loop
-            if List (Index) = ':' then
-               Append_Base (List (First .. Index - 1));
-               First := Index + 1;
-            end if;
+         for Entry_Text of Files.Types.Split_Path_List (List, GNAT.OS_Lib.Path_Separator) loop
+            Append_Base (To_String (Entry_Text));
          end loop;
-         Append_Base (List (First .. List'Last));
       end Append_List;
    begin
       for Base of Hostkit.Fs.Application_Data_Directories loop

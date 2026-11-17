@@ -305,11 +305,13 @@ separate (Files.Rendering)
       --  keeps its full name, since the dot is not a separator there.
       function Displayed_Name (Item : Item_Snapshot) return UString is separate;
 
+      --  Text cut to Capacity columns with an ellipsis: guikit's one
+      --  truncation rule, which every component shares.
       function Fitted_Text_For
         (Text     : UString;
          Capacity : Natural)
          return UString
- is separate;
+      is (To_Unbounded_String (Guikit.Utf8.Fit_With_Ellipsis (To_String (Text), Capacity)));
 
       --  One text command into Target, its box clipped to the window and
       --  its text fitted to the box when Fit says so.

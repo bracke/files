@@ -217,6 +217,16 @@ package Files.Commands is
    --  @return The parsed shortcut.
    function Parse_Shortcut (Text : String) return Shortcut;
 
+   --  Whether Parse_Shortcut reads Text in full: empty or blank (an explicit
+   --  unbind), or modifiers and exactly one key, every token known. A
+   --  misspelt token ("ctrl+bogus", "ctrl+shfit+1") makes it invalid, so a
+   --  settings file's typo can be refused instead of unbinding the command
+   --  or binding another key.
+   --
+   --  @param Text A shortcut string, modifiers then key, joined by '+'.
+   --  @return True when every token is a modifier or the one known key.
+   function Is_Valid_Shortcut_Text (Text : String) return Boolean;
+
    --  Override a command's shortcut (Value.Present False unbinds it). The
    --  override replaces the whole default binding, built-in secondary included.
    --  Shortcut_For / Find_By_Shortcut then resolve to the effective

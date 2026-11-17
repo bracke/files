@@ -26,6 +26,20 @@ package body Files.Types is
       end case;
    end Next_Scope;
 
+   function Split_Path_List (List : String; Separator : Character) return String_Vectors.Vector is
+      Result : String_Vectors.Vector;
+      First  : Integer := List'First;
+   begin
+      for Index in List'Range loop
+         if List (Index) = Separator then
+            Result.Append (Ada.Strings.Unbounded.To_Unbounded_String (List (First .. Index - 1)));
+            First := Index + 1;
+         end if;
+      end loop;
+      Result.Append (Ada.Strings.Unbounded.To_Unbounded_String (List (First .. List'Last)));
+      return Result;
+   end Split_Path_List;
+
    function Trim_Blanks (Text : String) return String is
       First : Integer := Text'First;
       Last  : Integer := Text'Last;

@@ -117,9 +117,14 @@ package body Files.Images.Png is
             Length_Value : constant Natural := U32 (Data, Position);
             Kind         : constant String := Data (Data'First + Position + 4 .. Data'First + Position + 7);
             Data_Start   : constant Natural := Position + 8;
-            Crc_Start    : constant Natural := Data_Start + Length_Value;
+            --  Room left after the chunk header for its data and CRC; the
+            --  loop condition keeps it non-negative. A crafted length near
+            --  Natural'Last is refused against it before any addition.
+            Room         : constant Natural := Data'Length - Data_Start - 4;
+            Fits         : constant Boolean := Length_Value <= Room;
+            Crc_Start    : constant Natural := (if Fits then Data_Start + Length_Value else Data'Length);
          begin
-            if Data_Start + Length_Value + 4 > Data'Length then
+            if not Fits then
                return False;
             elsif not Chunk_Crc_Is_Valid (Data, Position + 4, Crc_Start) then
                return False;

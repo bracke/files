@@ -76,7 +76,6 @@ package Files.Rendering.Layouts is
    type Main_View_Layout is record
       Columns           : Positive := 1;
       Content_Height    : Natural := 0;
-      Scroll_Lines      : Natural := 0;
       Scroll_Pixels     : Natural := 0;
       Scrollbar_Visible : Boolean := False;
       Scrollbar_X       : Natural := 0;
@@ -307,7 +306,6 @@ package Files.Rendering.Layouts is
       Width             : Natural := 0;
       Height            : Natural := 0;
       Content_Height    : Natural := 0;
-      Scroll_Lines      : Natural := 0;
       Scroll_Pixels     : Natural := 0;
       Scrollbar_Visible : Boolean := False;
       Scrollbar_X       : Natural := 0;

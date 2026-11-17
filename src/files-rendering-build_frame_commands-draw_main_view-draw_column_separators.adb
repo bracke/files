@@ -2,8 +2,6 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
    --  The Details view's column dividers, down the rows on screen.
    procedure Draw_Column_Separators is
       Content   : constant Content_Rectangle := Main_Content_Rect (Layout);
-      Content_X : constant Natural := Content.X;
-      Content_W : constant Natural := Content.Width;
       Content_Y : constant Natural := Content.Y;
       Separator_Y : constant Natural := Content_Y;
       --  Bottom edge of the content viewport (excludes the bottom bar).
@@ -29,15 +27,9 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
       end Last_Visible_Bottom;
 
       Separator_H : constant Natural := Last_Visible_Bottom - Separator_Y;
+      --  The header's columns: one geometry for header, dividers and rows.
       Columns   : constant Detail_Column_Geometry_Array :=
-        Compute_Detail_Columns
-          (Snapshot.Detail_Columns_Visible,
-           Snapshot.Detail_Column_Widths,
-           Snapshot.Detail_Column_Order,
-           Content_X,
-           Content_W,
-           Line_Height,
-           Natural'Min (Details_Row_Padding (Line_Height), Line_Height));
+        Details_Header_Geometry (Snapshot, Layout, Line_Height).Columns;
 
       procedure Add_Column_Separator (Column_X : Natural) is
       begin

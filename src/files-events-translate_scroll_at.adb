@@ -47,6 +47,60 @@ separate (Files.Events)
          return Scroll_Action (Target, Adjustment);
       end Bounded_Scroll_Action;
 
+      --  One wheel step of the main view. The view draws its offset snapped
+      --  down to whole row periods, and a row period (an icon cell plus its
+      --  gap) is rarely a whole number of lines, so a step in lines alone can
+      --  land inside the row already shown and move nothing. The step is
+      --  therefore made in rows -- at least one, as many as the lines asked
+      --  for cover -- from the offset actually drawn, then expressed as the
+      --  fewest lines whose snapped offset is that row; at the end the exact
+      --  maximum takes over, as the drawing does.
+      function Main_View_Scroll_Action
+        (Main    : Files.Rendering.Layouts.Main_View_Layout;
+         Raw     : Natural;
+         Maximum : Natural)
+         return Input_Action
+      is
+         Stride : constant Long_Long_Integer := Long_Long_Integer (Main.Row_Stride);
+         LH     : constant Long_Long_Integer := Long_Long_Integer (Line_Height);
+         Up     : constant Boolean := Action.Scroll_Lines < 0;
+         Lines  : constant Long_Long_Integer := abs Long_Long_Integer (Action.Scroll_Lines);
+      begin
+         if Stride < LH then
+            --  Rows no taller than a line: a line step always moves a row.
+            return Bounded_Scroll_Action (Scroll_Main_View, Raw, Maximum);
+         end if;
+         declare
+            Rows    : constant Long_Long_Integer := Long_Long_Integer'Max (1, Lines * LH / Stride);
+            Drawn   : constant Long_Long_Integer := Long_Long_Integer (Main.Scroll_Pixels);
+            --  The row boundary at or above (going up) or below (going down)
+            --  the drawn offset, which is off a boundary only at the very end.
+            Floor   : constant Long_Long_Integer := Drawn / Stride * Stride;
+            Ceiling : constant Long_Long_Integer :=
+              (if Floor = Drawn then Drawn else Floor + Stride);
+            Target  : constant Long_Long_Integer :=
+              (if Up then Long_Long_Integer'Max (0, Ceiling - Rows * Stride)
+               else Floor + Rows * Stride);
+            Last_Px : constant Long_Long_Integer := Long_Long_Integer (Main.Max_Scroll_Pixels);
+            --  The fewest lines reaching Target; LH <= Stride keeps the
+            --  snap from falling back a row. Lines reaching the last pixel
+            --  are drawn at the exact end instead of snapped: going down
+            --  that is a move (to the end), but going up from the end it
+            --  would stay put, so there a Target short of the end takes one
+            --  line less, which snaps to the row at or above Target.
+            Fewest  : constant Long_Long_Integer := (Target + LH - 1) / LH;
+            Reached : constant Long_Long_Integer :=
+              (if Up and then Target < Last_Px and then Fewest * LH >= Last_Px then Fewest - 1 else Fewest);
+            Wanted  : constant Long_Long_Integer := Long_Long_Integer'Min (Long_Long_Integer (Maximum), Reached);
+            Change  : constant Long_Long_Integer := Wanted - Long_Long_Integer (Raw);
+         begin
+            if Change = 0 then
+               return No_Action;
+            end if;
+            return Scroll_Action (Scroll_Main_View, Integer (Change));
+         end;
+      end Main_View_Scroll_Action;
+
       --  The wheel over the open folder tree: Over is False, with no action,
       --  when it is elsewhere.
       procedure Tree_Scroll (Over : out Boolean; Result : out Input_Action) is
@@ -152,8 +206,8 @@ separate (Files.Events)
               Files.Rendering.Layouts.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
          begin
             return
-              Bounded_Scroll_Action
-                (Scroll_Main_View,
+              Main_View_Scroll_Action
+                (Main,
                  Snapshot.Main_View_Scroll_Lines,
                  Files.Rendering.Layouts.Main_View_Max_Scroll (Main, Line_Height));
          end;

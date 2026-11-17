@@ -63,6 +63,7 @@ package body Files_Suite.Startup is
      (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Default_Home_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Startup_Loads_Settings_File (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_File_Typos_Keep_Defaults (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Startup_Invalid_Settings_Diagnostic (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Startup_Settings_Path_Not_File (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Startup_And_Runtime_Smoke_Reports (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -108,6 +109,9 @@ package body Files_Suite.Startup is
          "an existing settings file is not orphaned when the host location changes");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Startup_Loads_Settings_File'Access, "startup loads settings file");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_File_Typos_Keep_Defaults'Access,
+         "a misspelt shortcut keeps the default binding and upper-case booleans load");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Startup_Invalid_Settings_Diagnostic'Access, "startup reports invalid settings");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -183,6 +187,7 @@ package body Files_Suite.Startup is
    procedure Test_Default_Home_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Startup_Loads_Settings_File (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Settings_File_Typos_Keep_Defaults (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Startup_Invalid_Settings_Diagnostic (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

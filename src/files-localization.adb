@@ -649,6 +649,11 @@ package body Files.Localization is
 
    --  Text's answer for an already normalized locale whose catalogs are
    --  loaded: the regional message, else its language's, else Key.
+   --
+   --  Which catalog defines the key decides, never what the text says: a
+   --  regional value that happens to equal the English one (es-PR's
+   --  %m/%d/%Y date pattern, es-419's ',' digit group) is still the
+   --  region's own and must win over the language's.
    function Uncached_Text
      (Key              : String;
       Effective_Locale : String)
@@ -659,19 +664,30 @@ package body Files.Localization is
       for Index in Effective_Locale'Range loop
          if Effective_Locale (Index) = '-' then
             declare
-               Language_Rendered : constant String :=
-                 Render_Text (Key, Effective_Locale (Effective_Locale'First .. Index - 1));
+               Language : constant String := Effective_Locale (Effective_Locale'First .. Index - 1);
+               Found    : constant Messages.Runtime.Resolve_Result :=
+                 (if Available then Messages.Runtime.Resolve (Runtime, Effective_Locale, Key)
+                  else (others => <>));
+               Resolver : constant String :=
+                 Files.Types.To_Lower_Ascii (Messages.Runtime.Resolved_Locale (Found));
+               --  A catalog more specific than the language's (the region's,
+               --  or a script's in between) holds the key.
+               Regional : constant Boolean :=
+                 Messages.Runtime."=" (Found.Status, Messages.Runtime.Found)
+                 and then Resolver'Length > Language'Length
+                 and then Resolver (Resolver'First .. Resolver'First + Language'Length)
+                            = Files.Types.To_Lower_Ascii (Language) & '-';
             begin
-               --  The language has no message: the regional one, or Key.
-               if Language_Rendered = Key then
+               if Regional then
                   return Rendered;
-               --  No regional message, or the same as the language's.
-               elsif Rendered = Key or else Rendered = Language_Rendered then
-                  return Language_Rendered;
                end if;
-               --  Both differ: the regional one, unless it is only the "en"
-               --  default standing in for a message the language has.
-               return (if Rendered = Render_Text (Key, "en") then Language_Rendered else Rendered);
+               declare
+                  Language_Rendered : constant String := Render_Text (Key, Language);
+               begin
+                  --  The language has no message either: whatever the chain
+                  --  gave (the default's), or Key.
+                  return (if Language_Rendered = Key then Rendered else Language_Rendered);
+               end;
             end;
          end if;
       end loop;

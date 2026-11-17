@@ -74,6 +74,9 @@ package body Files_Suite.Rendering is
    overriding procedure Register_Tests (T : in out Rendering_Test_Case);
 
    procedure Test_Item_Layout_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Wheel_Moves_Every_Row_Period (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Huge_Volume_Meter_Draws (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Click_In_Scrolled_Field_Hits_Drawn_Character (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Reveal_Scroll_Shows_Item (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Snapshot_Key_Covers_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Main_View_Scroll_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -188,6 +191,15 @@ package body Files_Suite.Rendering is
    begin
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Item_Layout_Invariants'Access, "item layout invariants across view modes");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Wheel_Moves_Every_Row_Period'Access,
+         "every wheel notch over the main view moves the drawn rows, in every view mode and both ways");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Huge_Volume_Meter_Draws'Access,
+         "a frame draws the space bar of a volume whose size saturates Long_Long_Integer");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Click_In_Scrolled_Field_Hits_Drawn_Character'Access,
+         "a click in a scrolled field lands on the character drawn there when a wide one straddles the edge");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Reveal_Scroll_Shows_Item'Access,
          "the selection scrolls into view whole in every view mode, and Page Down moves by the rows in view");
@@ -610,6 +622,10 @@ package body Files_Suite.Rendering is
    procedure Test_Reveal_Scroll_Shows_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Item_Layout_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Wheel_Moves_Every_Row_Period (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Huge_Volume_Meter_Draws (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Click_In_Scrolled_Field_Hits_Drawn_Character
+     (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Main_View_Scroll_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -59,15 +59,15 @@ separate (Files_Suite.History)
 
          Step := Complete_Operation
                        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
-         if Step.Status = Files.Operation_Results.Operation_Success then
-            Assert
-              (Ada.Directories.Exists (Dest)
-                 and then Files.File_System.Read_Preview_Text (Dest, 3) = "old",
-               "undo of a copy-replace restores the overwritten original at the destination");
-            Assert
-              (not Files.Model.History.Redo_Available (Model),
-               "a copy paste that replaced an existing file is not redoable");
-         end if;
+         Files_Suite.Support.Assert_Equal
+           (Step.Status, Files.Operation_Results.Operation_Success, "undo of a copy-replace succeeds");
+         Assert
+           (Ada.Directories.Exists (Dest)
+              and then Files.File_System.Read_Preview_Text (Dest, 3) = "old",
+            "undo of a copy-replace restores the overwritten original at the destination");
+         Assert
+           (not Files.Model.History.Redo_Available (Model),
+            "a copy paste that replaced an existing file is not redoable");
       end;
 
       --  Move-replace: same overwrite, but the source is relocated. Undo must both
@@ -109,19 +109,19 @@ separate (Files_Suite.History)
 
          Step := Complete_Operation
                        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
-         if Step.Status = Files.Operation_Results.Operation_Success then
-            Assert
-              (Ada.Directories.Exists (Source)
-                 and then Files.File_System.Read_Preview_Text (Source, 3) = "new",
-               "undo of a move-replace returns the source to its origin");
-            Assert
-              (Ada.Directories.Exists (Dest)
-                 and then Files.File_System.Read_Preview_Text (Dest, 3) = "old",
-               "undo of a move-replace restores the overwritten original at the destination");
-            Assert
-              (not Files.Model.History.Redo_Available (Model),
-               "a move paste that replaced an existing file is not redoable");
-         end if;
+         Files_Suite.Support.Assert_Equal
+           (Step.Status, Files.Operation_Results.Operation_Success, "undo of a move-replace succeeds");
+         Assert
+           (Ada.Directories.Exists (Source)
+              and then Files.File_System.Read_Preview_Text (Source, 3) = "new",
+            "undo of a move-replace returns the source to its origin");
+         Assert
+           (Ada.Directories.Exists (Dest)
+              and then Files.File_System.Read_Preview_Text (Dest, 3) = "old",
+            "undo of a move-replace restores the overwritten original at the destination");
+         Assert
+           (not Files.Model.History.Redo_Available (Model),
+            "a move paste that replaced an existing file is not redoable");
       end;
 
       Project_Tools.Files.Delete_Tree (Trash_Home);

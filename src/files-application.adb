@@ -273,8 +273,13 @@ package body Files.Application is
               Files.Commands.Id_For_Identifier (To_String (Entry_Value.Command));
          begin
             --  Parse_Shortcut of an empty combo yields an absent shortcut, which
-            --  Set_Shortcut_Override records as an explicit unbind.
-            if Id /= Files.Commands.No_Command then
+            --  Set_Shortcut_Override records as an explicit unbind. A combo
+            --  with a token it does not know (a typo) is skipped: the command
+            --  keeps its default binding rather than losing it or taking
+            --  whatever the rest of the combo names.
+            if Id /= Files.Commands.No_Command
+              and then Files.Commands.Is_Valid_Shortcut_Text (To_String (Entry_Value.Combo))
+            then
                Files.Commands.Set_Shortcut_Override
                  (Id, Files.Commands.Parse_Shortcut (To_String (Entry_Value.Combo)));
             end if;

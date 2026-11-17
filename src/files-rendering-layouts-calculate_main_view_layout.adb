@@ -70,7 +70,6 @@ separate (Files.Rendering.Layouts)
         (if Row_Stride > 0 and then Bounded_Px < Max_Scroll
          then (Bounded_Px / Row_Stride) * Row_Stride
          else Bounded_Px);
-      Scroll_Lines : constant Natural := Scroll_Px / Line_Height;
       Bar_W        : constant Natural := Natural'Min (Scrollbar_Width (Layout), Layout.Main_Width);
       Thumb        : constant Guikit.Layout.Scrollbar_Thumb :=
         Guikit.Layout.Calculate_Scrollbar_Thumb
@@ -89,7 +88,6 @@ separate (Files.Rendering.Layouts)
       return
         (Columns           => Positive'Max (1, Positive (Columns)),
          Content_Height    => Content_Total_H,
-         Scroll_Lines      => Scroll_Lines,
          Scroll_Pixels     => Scroll_Px,
          Scrollbar_Visible => Visible,
          Scrollbar_X       =>

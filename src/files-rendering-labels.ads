@@ -8,15 +8,13 @@ with Guikit.Draw;
 --  What the frame shows as text or colour, apart from where: the symbol
 --  glyphs, times, sizes and permissions as words, the free-space label, the
 --  info pane's fields and their values, the colour a label is drawn in.
---  Files.Rendering.Geometry measures and places them. Private to
+--  Files.Rendering.Layouts places them and Files.Rendering.Geometry holds
+--  the metrics and wrapping they are measured with. Private to
 --  Files.Rendering's own units.
 private package Files.Rendering.Labels is
 
    use Ada.Strings.Unbounded;
    use type Files.Types.Color_Label;
-
-   Ellipsis_Text : constant String :=
-     [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A6#)];
 
    --  U+00D7 MULTIPLICATION SIGN, the conventional close-affordance glyph.
    Close_Glyph_Text : constant String :=

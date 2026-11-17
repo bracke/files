@@ -323,7 +323,30 @@ package body Files.Commands is
       return Guikit.Input.Key_Unknown;
    end Text_To_Key;
 
-   function Parse_Shortcut (Text : String) return Shortcut is separate;
+   --  Read Text as Parse_Shortcut does, also saying whether every token was
+   --  understood: an unknown or empty token, or more or fewer than one key,
+   --  makes it invalid.
+   procedure Read_Shortcut
+     (Text   : String;
+      Result : out Shortcut;
+      Valid  : out Boolean)
+   is separate;
+
+   function Parse_Shortcut (Text : String) return Shortcut is
+      Result : Shortcut;
+      Valid  : Boolean;
+   begin
+      Read_Shortcut (Text, Result, Valid);
+      return Result;
+   end Parse_Shortcut;
+
+   function Is_Valid_Shortcut_Text (Text : String) return Boolean is
+      Result : Shortcut;
+      Valid  : Boolean;
+   begin
+      Read_Shortcut (Text, Result, Valid);
+      return Valid;
+   end Is_Valid_Shortcut_Text;
 
    function Shortcut_Search_Text
      (Id : Command_Id)

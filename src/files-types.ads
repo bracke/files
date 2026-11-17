@@ -101,6 +101,16 @@ package Files.Types is
    --  @return Text trimmed.
    function Trim_Blanks (Text : String) return String;
 
+   --  The entries of a path list such as XDG_DATA_DIRS or PATH, split on
+   --  Separator: ':' on POSIX hosts, ';' on Windows, where ':' is part of a
+   --  drive letter. Empty entries are kept, so a caller can skip them as it
+   --  does any unusable entry.
+   --
+   --  @param List The list's text.
+   --  @param Separator The host's path-list separator.
+   --  @return The entries in order.
+   function Split_Path_List (List : String; Separator : Character) return String_Vectors.Vector;
+
    --  Read a decimal id: ASCII digits only, at most 4294967295. Never raises.
    --
    --  @param Text Candidate decimal id.

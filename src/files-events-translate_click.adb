@@ -54,14 +54,19 @@ separate (Files.Events)
            (if Focused
             then Files.Rendering.Layouts.Input_Scroll_Columns (Raw, Caret, Text_Width, Line_Height)
             else 0);
+         --  The column the drawn text really starts at: the drawing starts at
+         --  the byte offset for Scroll, which is before a wide character
+         --  that straddles column Scroll -- one column earlier than Scroll.
+         Base   : constant Natural :=
+           Guikit.Utf8.Display_Units_Before (Raw, Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Scroll));
          Click_Column : Natural;
       begin
          if Click_X <= Text_X then
-            return Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Scroll);
+            return Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Base);
          end if;
 
          Click_Column := Guikit.Layout.Saturating_Add (Click_X - Text_X, Char_W / 2) / Char_W;
-         return Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Guikit.Layout.Saturating_Add (Click_Column, Scroll));
+         return Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Guikit.Layout.Saturating_Add (Click_Column, Base));
       end Cursor_At;
 
       function Text_Click

@@ -47,4 +47,23 @@ separate (Files_Suite.Startup)
       Assert
         (Files.Localization.Text ("details.size.unit.mib", "de-DE") /= "details.size.unit.mib",
          "German catalog has generated digital unit labels");
+      --  A region's own value wins over its language's even when it equals
+      --  the English one: the catalog that defines the key decides, not
+      --  whether its text looks like the default standing in.
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("time.locale.date_pattern", "es-PR"),
+         "%m/%d/%Y",
+         "Puerto Rico keeps its own month-first date pattern, not Spanish's");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("time.locale.time_pattern", "sr-BA"),
+         "%H:%M:%S",
+         "Bosnian Serbian keeps its colon time pattern, not Serbian's dots");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("number.group", "es-419"),
+         ",",
+         "Latin American Spanish keeps its comma digit group, not Spanish's dot");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("time.locale.date_pattern", "es-ES"),
+         Files.Localization.Text ("time.locale.date_pattern", "es"),
+         "a region without its own value still takes its language's");
    end Test_Detected_Locale_Catalogs;

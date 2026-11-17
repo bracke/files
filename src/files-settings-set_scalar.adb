@@ -103,11 +103,9 @@ separate (Files.Settings)
                end if;
             end;
          when Info_Pane_Open_Setting =>
-            --  Historically matched case-sensitively, unlike the other flags.
-            Parse_Boolean (Text, Settings.Info_Pane_Open, Valid);
+            Parse_Boolean (Lower, Settings.Info_Pane_Open, Valid);
          when Use_System_Default_Opener_Setting =>
-            --  Historically matched case-sensitively, unlike the other flags.
-            Parse_Boolean (Text, Settings.Use_System_Default_Opener, Valid);
+            Parse_Boolean (Lower, Settings.Use_System_Default_Opener, Valid);
          when Group_By_Setting =>
             if Lower = "none" then
                Settings.Group_By := Files.Types.No_Grouping;

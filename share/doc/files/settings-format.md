@@ -27,14 +27,13 @@ when it holds:
   than 1 MiB in all.
 
 Not everything that looks wrong rejects the file: a label with an unknown
-color and a shortcut for an unknown command are skipped (see their
-sections), and a repeated bookmark or recent entry loads once.
+color and a shortcut for an unknown command or with a misspelt combo are
+skipped (see their sections), and a repeated bookmark or recent entry loads
+once.
 
 ## `[settings]`
 
-Global options. Booleans are `true` or `false`, in any case (`TRUE` loads),
-except `info_pane_open` and `use_system_default_opener`, which accept only
-lower-case `true` and `false` -- they have always been read that way. A key
+Global options. Booleans are `true` or `false`, in any case (`TRUE` loads). A key
 that is absent takes its default; the keys marked *omitted when default* are
 written only after they change.
 
@@ -134,4 +133,8 @@ Keyboard-shortcut overrides. Each entry is written as
 identifier and `<combo>` is the shortcut text (modifiers then key, joined by
 `+`, e.g. `control+shift+1`). An empty `<combo>` records an explicit unbind
 that suppresses the command's built-in default. Overrides for unknown command
-identifiers are ignored, so a stale file never blocks startup.
+identifiers are ignored, so a stale file never blocks startup. A combo with a
+token files does not know -- a misspelt modifier or key (`control+bogus`,
+`control+shfit+1`), an empty token, or more than one key -- is skipped as
+well: the command keeps its default binding instead of losing it or taking
+whatever the rest of the combo names.

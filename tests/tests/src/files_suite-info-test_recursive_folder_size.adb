@@ -79,7 +79,15 @@ separate (Files_Suite.Info)
       begin
          Ada.Directories.Create_Directory (Locked);
          Write_Binary_File (Join (Locked, "hidden"), "not empty");
-         Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 0);
+         Mutation :=
+           (if Files.File_System.Permissions.Supports_Permissions
+            then Files.File_System.Permissions.Set_Permissions (Locked, 0)
+            else (Success => False, others => <>));
+         if not Files.File_System.Permissions.Supports_Permissions then
+            Files_Suite.Support.Skip ("Test_Recursive_Folder_Size", "this host has no POSIX permissions to set");
+         else
+            Assert (Mutation.Success, "the size root is made unreadable");
+         end if;
          if Mutation.Success then
             begin
                Ada.Directories.Start_Search (Search, Locked, "");
@@ -124,6 +132,8 @@ separate (Files_Suite.Info)
                Assert
                  (not Guarded.Capped,
                   "an unreadable size root is unavailable, not an empty measurement: not capped");
+            else
+               Files_Suite.Support.Skip ("Test_Recursive_Folder_Size", "root reads an unreadable folder");
             end if;
          end if;
          Project_Tools.Files.Delete_Tree (Locked);
