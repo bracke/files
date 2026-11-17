@@ -1,6 +1,5 @@
 separate (Check_All)
    procedure Check_Direct_Localization_Call_Keys_In_File (Path : String) is
-      Catalog : constant String := Root & "/share/files.catalog";
       Content : constant String := To_String (Project_Tools.Text.Read_Text_File (Path));
 
       procedure Check_Marker (Marker : String) is
@@ -37,10 +36,7 @@ separate (Check_All)
                   end loop;
 
                   if Is_Complete_Localization_Key (To_String (Key)) then
-                     Require_In_Text
-                       (Catalog,
-                        "en." & To_String (Key) & " = ",
-                        Path & ": localization key must exist in share/files.catalog: " & To_String (Key));
+                     Require_Catalog_Key (Path, To_String (Key));
                   end if;
 
                   Search_From := Natural'Min (Index, Content'Last);

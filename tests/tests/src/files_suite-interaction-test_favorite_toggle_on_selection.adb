@@ -1,6 +1,8 @@
 with Files.Commands.Status;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
+with Files.Settings.Path_References;
+use Files.Settings.Path_References;
 separate (Files_Suite.Interaction)
    procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,7 +25,7 @@ separate (Files_Suite.Interaction)
          "the sample file is selected before favoriting");
       Files.Interaction.Apply_Input_Action
         (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
-      Assert (Has_Favorite (Settings, Item), "favoriting a selected file stores its path");
+      Assert (Is_Favorite (Settings, Item), "favoriting a selected file stores its path");
       Assert (Result.Settings_Changed, "favoriting reports a settings change");
 
       Files.Interaction.Apply_Input_Action
@@ -52,7 +54,7 @@ separate (Files_Suite.Interaction)
       --  Toggling the same selection again removes the favorite.
       Files.Interaction.Apply_Input_Action
         (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
-      Assert (not Has_Favorite (Settings, Item), "toggling the selected file again removes its favorite");
+      Assert (not Is_Favorite (Settings, Item), "toggling the selected file again removes its favorite");
 
       --  No selection: the toggle falls back to the current directory.
       Files.Model.Selection.Deselect_All (Model);
@@ -63,7 +65,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Apply_Input_Action
         (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       Assert
-        (Has_Favorite (Settings, Files.Model.Current_Path (Model)),
+        (Is_Favorite (Settings, Files.Model.Current_Path (Model)),
          "with no selection the toggle favorites the current folder");
 
       --  A selected inline-create placeholder has no filesystem path. It must
@@ -72,7 +74,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Apply_Input_Action
         (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       Assert
-        (not Has_Favorite (Settings, Files.Model.Current_Path (Model)),
+        (not Is_Favorite (Settings, Files.Model.Current_Path (Model)),
          "the setup removes the current-folder favorite");
       Files.Model.Begin_Create_File (Model, "untitled.txt");
       Assert
@@ -84,7 +86,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Apply_Input_Action
         (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       Assert
-        (not Has_Favorite (Settings, Files.Model.Current_Path (Model)),
+        (not Is_Favorite (Settings, Files.Model.Current_Path (Model)),
          "favoriting a temporary row does not toggle the current folder");
       Assert
         (Files.Model.Last_Error_Key (Model) = "error.create.pending"

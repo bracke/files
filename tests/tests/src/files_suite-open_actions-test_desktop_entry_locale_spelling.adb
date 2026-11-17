@@ -1,4 +1,5 @@
 with Files.Desktop_Applications;
+with Files.Localization;
 separate (Files_Suite.Open_Actions)
    --  Without a locale variable, Open With matches localized Name and Icon
    --  keys against the host's locale, which comes as a BCP 47 tag; a Desktop
@@ -21,4 +22,8 @@ separate (Files_Suite.Open_Actions)
       Check ("zh-Hant-TW", "zh_TW");
       Check ("es-419", "es_419");
       Check ("uz-Latn", "uz@latin");
+      --  The variant Normalize_Locale keeps goes back to its modifier, both
+      --  from the normalized tag and as a round trip of the POSIX locale.
+      Check ("ca-ES-valencia", "ca_ES@valencia");
+      Check (Files.Localization.Normalize_Locale ("ca_ES@valencia"), "ca_ES@valencia");
    end Test_Desktop_Entry_Locale_Spelling;

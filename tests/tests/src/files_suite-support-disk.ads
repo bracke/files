@@ -4,15 +4,6 @@
 --  executables the open and launch tests run.
 package Files_Suite.Support.Disk is
 
-   --  The scheduler state of a process, from the third field of Linux's
-   --  /proc/<pid>/stat: 'R' running, 'S' sleeping, 'T' stopped, 'Z' a zombie
-   --  nobody has reaped, and so on.
-   --
-   --  @param Process_Id Process to look at.
-   --  @return Its state letter, or ' ' when there is no such process (or no
-   --  /proc to ask).
-   function Process_State (Process_Id : Integer) return Character;
-
    --  The scratch directory every fixture builds under.
    --
    --  This is deliberately not a hardcoded "/tmp/...": on macOS /tmp is a
@@ -128,7 +119,10 @@ package Files_Suite.Support.Disk is
    --  @param Path A file or folder Forbid_Deletion was given.
    procedure Allow_Deletion (Path : String);
 
-   --  Create or replace a text file with Content.
+   --  Create or replace a text file holding Content and a line terminator
+   --  after it (Text_IO closes the line): "x" is written as "x" & LF, or
+   --  "x" & CR & LF on Windows. Check it with File_Has_Bytes, not File_Is; a
+   --  test that needs the exact bytes writes them with Write_Binary_File.
    --
    --  @param Path File to create.
    --  @param Content Text to write.
@@ -150,7 +144,8 @@ package Files_Suite.Support.Disk is
    --
    --  @param Path File to search.
    --  @param Bytes Sequence to look for, one Character per byte.
-   --  @return True when the sequence appears.
+   --  @return True when the sequence appears; False when nothing (or a
+   --  folder) is at Path. A file that cannot be read raises.
    function File_Has_Bytes (Path : String; Bytes : String) return Boolean;
 
    --  Does the file hold exactly these bytes, and nothing else? Read through
@@ -161,7 +156,8 @@ package Files_Suite.Support.Disk is
    --
    --  @param Path File to read.
    --  @param Bytes Its whole expected content, one Character per byte.
-   --  @return True when the file exists and holds exactly Bytes.
+   --  @return True when the file exists and holds exactly Bytes; False when
+   --  nothing (or a folder) is at Path. A file that cannot be read raises.
    function File_Is (Path : String; Bytes : String) return Boolean;
 
    --  Create a file of Filler_Count copies of one byte followed by Trailer,

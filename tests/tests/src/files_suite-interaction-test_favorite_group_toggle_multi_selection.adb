@@ -1,5 +1,6 @@
 with Files.Settings.Path_References;
 with Files_Suite.Support.Disk;
+use Files.Settings.Path_References;
 separate (Files_Suite.Interaction)
    procedure Test_Favorite_Group_Toggle_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -29,25 +30,25 @@ separate (Files_Suite.Interaction)
          "all three files are selected before the group toggle");
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
-      Assert (Has_Favorite (Settings, One), "the group toggle stars the first item");
-      Assert (Has_Favorite (Settings, Two), "the group toggle stars the second item");
-      Assert (Has_Favorite (Settings, Three), "the group toggle stars the third item");
+      Assert (Is_Favorite (Settings, One), "the group toggle stars the first item");
+      Assert (Is_Favorite (Settings, Two), "the group toggle stars the second item");
+      Assert (Is_Favorite (Settings, Three), "the group toggle stars the third item");
       Assert (Result.Settings_Changed, "starring the group reports a settings change");
 
       --  All three favorited: the next invocation un-stars the whole group.
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
-      Assert (not Has_Favorite (Settings, One), "a second group toggle un-stars the first item");
-      Assert (not Has_Favorite (Settings, Two), "a second group toggle un-stars the second item");
-      Assert (not Has_Favorite (Settings, Three), "a second group toggle un-stars the third item");
+      Assert (not Is_Favorite (Settings, One), "a second group toggle un-stars the first item");
+      Assert (not Is_Favorite (Settings, Two), "a second group toggle un-stars the second item");
+      Assert (not Is_Favorite (Settings, Three), "a second group toggle un-stars the third item");
 
       --  Mixed selection (one already favorited): the group toggle stars every
       --  item rather than flipping each independently.
       Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Two);
-      Assert (Has_Favorite (Settings, Two), "the second item is pre-favorited for the mixed case");
+      Assert (Is_Favorite (Settings, Two), "the second item is pre-favorited for the mixed case");
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
-      Assert (Has_Favorite (Settings, One), "a mixed group toggle stars the previously unstarred first item");
-      Assert (Has_Favorite (Settings, Two), "a mixed group toggle leaves the already-starred second item starred");
-      Assert (Has_Favorite (Settings, Three), "a mixed group toggle stars the previously unstarred third item");
+      Assert (Is_Favorite (Settings, One), "a mixed group toggle stars the previously unstarred first item");
+      Assert (Is_Favorite (Settings, Two), "a mixed group toggle leaves the already-starred second item starred");
+      Assert (Is_Favorite (Settings, Three), "a mixed group toggle stars the previously unstarred third item");
    end Test_Favorite_Group_Toggle_Multi_Selection;

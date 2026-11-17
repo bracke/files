@@ -2,8 +2,14 @@ separate (Check_All)
    procedure Check_Catalog_Baseline_Keys is
       Catalog : constant String := Root & "/share/files.catalog";
    begin
-      --  Only what no src literal names: a key a src literal names is already
-      --  required by the direct, indirect and command localization checks.
+      --  Only what the key checks cannot see. A src literal in one of the
+      --  catalog's namespaces is required by the direct and indirect checks,
+      --  so what stays here is: the default locale; the English filter
+      --  placeholder's value (its presence is checked there, not what it
+      --  says); keys built at run time from parts, which no literal spells
+      --  whole; and error.settings.closed, named only in files-commands.adb,
+      --  whose literals the indirect check skips (they are stable command
+      --  identifiers) and the command check reads for command.* alone.
       Require_In_Text
         (Catalog,
          "default_locale = en",
@@ -15,7 +21,7 @@ separate (Check_All)
       Require_In_Text
         (Catalog,
          "en.filter.placeholder = find",
-         "localization catalog must include filter placeholder text");
+         "the English filter placeholder must read ""find""");
       Require_In_Text
         (Catalog,
          "en.status.items = ",

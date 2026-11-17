@@ -1,6 +1,8 @@
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
+with Files.Settings.Path_References;
+use Files.Settings.Path_References;
 separate (Files_Suite.Interaction)
    procedure Test_Path_Star_Click_Toggles_Current_Dir (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -30,7 +32,7 @@ separate (Files_Suite.Interaction)
    begin
       Files_Suite.Support.Disk.Reset_Root;
       Assert (Star.Visible, "the path-bar star is laid out at the default window size");
-      Assert (not Has_Favorite (Settings, Current), "the current directory starts unfavorited");
+      Assert (not Is_Favorite (Settings, Current), "the current directory starts unfavorited");
 
       --  The star coordinate resolves to the favorite-toggle action, not to
       --  focusing the path field or navigating a breadcrumb.
@@ -44,7 +46,7 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Apply_Input_Action
            (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       end;
-      Assert (Has_Favorite (Settings, Current), "clicking the empty star favorites the current directory");
+      Assert (Is_Favorite (Settings, Current), "clicking the empty star favorites the current directory");
       Assert (Result.Settings_Changed, "toggling the path star reports a settings change");
       Assert (Ada.Directories.Exists (Path), "toggling the path star persists the settings file");
       Assert
@@ -67,5 +69,5 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Apply_Input_Action
            (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       end;
-      Assert (not Has_Favorite (Settings, Current), "clicking the filled star unfavorites the current directory");
+      Assert (not Is_Favorite (Settings, Current), "clicking the filled star unfavorites the current directory");
    end Test_Path_Star_Click_Toggles_Current_Dir;

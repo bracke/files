@@ -1,5 +1,4 @@
 with Files.File_System;
-with Ada.Text_IO;
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -165,13 +164,23 @@ package body Files_Suite.Support.Disk is
       Project_Tools.Files.Write_Text_File (Path, Content);
    end Write_File;
 
-   function File_Is (Path : String; Bytes : String) return Boolean is
+   --  The whole of Path, one Character per byte, through
+   --  Hostkit.Fs.Open_Stream (past Windows' path limit). Nothing there, or a
+   --  folder, reads as Absent; any other failure to read raises, so an
+   --  assertion over the bytes fails on it rather than passing as "not held".
+   function Read_Bytes (Path : String; Absent : out Boolean) return String is
       use type Ada.Streams.Stream_Element_Offset;
+      use type Hostkit.Fs.Entry_Kind;
       File   : Ada.Streams.Stream_IO.File_Type;
-      Buffer : Ada.Streams.Stream_Element_Array (1 .. 4_096);
+      Buffer : Ada.Streams.Stream_Element_Array (1 .. 64 * 1024);
       Last   : Ada.Streams.Stream_Element_Offset;
       Whole  : Unbounded_String;
    begin
+      Absent := False;
+      if Hostkit.Fs.Entry_Is_Absent (Path) or else Hostkit.Fs.Kind_Of (Path) = Hostkit.Fs.Directory_Entry then
+         Absent := True;
+         return "";
+      end if;
       Hostkit.Fs.Open_Stream (File, Ada.Streams.Stream_IO.In_File, Path);
       loop
          Ada.Streams.Stream_IO.Read (File, Buffer, Last);
@@ -181,56 +190,27 @@ package body Files_Suite.Support.Disk is
          exit when Last < Buffer'Last;
       end loop;
       Ada.Streams.Stream_IO.Close (File);
-      return To_String (Whole) = Bytes;
+      return To_String (Whole);
    exception
-      --  Nothing there, a folder, or a file that cannot be read: not Bytes.
       when others =>
          if Ada.Streams.Stream_IO.Is_Open (File) then
             Ada.Streams.Stream_IO.Close (File);
          end if;
-         return False;
+         raise;
+   end Read_Bytes;
+
+   function File_Is (Path : String; Bytes : String) return Boolean is
+      Absent : Boolean;
+      Whole  : constant String := Read_Bytes (Path, Absent);
+   begin
+      return not Absent and then Whole = Bytes;
    end File_Is;
 
    function File_Has_Bytes (Path : String; Bytes : String) return Boolean is
-      use type Ada.Streams.Stream_Element_Offset;
-
-      File   : Ada.Streams.Stream_IO.File_Type;
-      Buffer : Ada.Streams.Stream_Element_Array (1 .. 64 * 1024);
-      Last   : Ada.Streams.Stream_Element_Offset;
-      Whole  : Unbounded_String;
+      Absent : Boolean;
+      Whole  : constant String := Read_Bytes (Path, Absent);
    begin
-      if Bytes = "" or else not Ada.Directories.Exists (Path) then
-         return False;
-      end if;
-
-      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
-
-      while not Ada.Streams.Stream_IO.End_Of_File (File) loop
-         Ada.Streams.Stream_IO.Read (File, Buffer, Last);
-         exit when Last < Buffer'First;
-
-         declare
-            Chunk : String (1 .. Natural (Last - Buffer'First + 1));
-         begin
-            for Index in Chunk'Range loop
-               Chunk (Index) :=
-                 Character'Val
-                   (Buffer (Ada.Streams.Stream_Element_Offset (Index) + Buffer'First - 1));
-            end loop;
-
-            Append (Whole, Chunk);
-         end;
-      end loop;
-
-      Ada.Streams.Stream_IO.Close (File);
-      return Ada.Strings.Fixed.Index (To_String (Whole), Bytes) > 0;
-   exception
-      when others =>
-         if Ada.Streams.Stream_IO.Is_Open (File) then
-            Ada.Streams.Stream_IO.Close (File);
-         end if;
-
-         return False;
+      return not Absent and then Bytes /= "" and then Ada.Strings.Fixed.Index (Whole, Bytes) > 0;
    end File_Has_Bytes;
 
    procedure Write_Binary_File
@@ -268,7 +248,7 @@ package body Files_Suite.Support.Disk is
       Remaining : Natural := Filler_Count;
       Tail      : Ada.Streams.Stream_Element_Array (1 .. Trailer'Length);
    begin
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
+      Hostkit.Fs.Create_Stream (File, Ada.Streams.Stream_IO.Out_File, Path);
       while Remaining > 0 loop
          declare
             This : constant Natural := Natural'Min (Remaining, Chunk'Length);
@@ -434,37 +414,6 @@ package body Files_Suite.Support.Disk is
          Case_Probe_Result := False;
          return False;
    end Case_Insensitive_Filesystem;
-
-   function Process_State (Process_Id : Integer) return Character is
-      Path : constant String :=
-        "/proc/" & Ada.Strings.Fixed.Trim (Integer'Image (Process_Id), Ada.Strings.Both) & "/stat";
-      File : Ada.Text_IO.File_Type;
-   begin
-      if not Ada.Directories.Exists (Path) then
-         return ' ';
-      end if;
-      --  Text_IO, not a sized read: /proc files report a size of 0.
-      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
-      if Ada.Text_IO.End_Of_File (File) then
-         Ada.Text_IO.Close (File);
-         return ' ';
-      end if;
-      declare
-         Line : constant String := Ada.Text_IO.Get_Line (File);
-         --  "pid (comm) state ...": comm may itself hold spaces and
-         --  parentheses, so the state follows the last ')'.
-         Close_Paren : constant Natural := Ada.Strings.Fixed.Index (Line, ")", Ada.Strings.Backward);
-      begin
-         Ada.Text_IO.Close (File);
-         return (if Close_Paren > 0 and then Close_Paren + 2 <= Line'Last then Line (Close_Paren + 2) else ' ');
-      end;
-   exception
-      when others =>
-         if Ada.Text_IO.Is_Open (File) then
-            Ada.Text_IO.Close (File);
-         end if;
-         return ' ';
-   end Process_State;
 
    function Numbered_File (Directory : String; N : Positive) return String is
      (Join (Directory, "f" & Files.Types.Natural_Text (N) & ".txt"));

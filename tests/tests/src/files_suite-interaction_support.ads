@@ -288,16 +288,6 @@ package Files_Suite.Interaction_Support is
       Command  : Files.Commands.Command_Id;
       Result   : out Files.Interaction.Interaction_Result);
 
-   --  True when Path is present in the persisted favorites list.
-   --
-   --  @param Settings The window settings.
-   --  @param Path The path.
-   --  @return Whether Path is a favorite.
-   function Has_Favorite
-     (Settings : Files.Settings.Settings_Model;
-      Path     : String)
-      return Boolean;
-
    --  Drive the real Select_Drive command through the reducer so the root
    --  selector opens seeded with the platform roots plus the persisted
    --  favorites (each carrying its star label token).

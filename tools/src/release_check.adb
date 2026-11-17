@@ -1,6 +1,7 @@
 with Ada.Command_Line;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Directories;
+with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
@@ -140,31 +141,37 @@ begin
    Require_Alire_GNAT_15;
    Require_Manifest_Parity;
 
-   --  The release manifest must be publishable: pin-free, named "files",
-   --  declaring a license, and depending on the formerly-pinned runtime crates
-   --  through explicit compatible-version constraints.
+   --  The release manifest must be publishable: pin-free, named "files" and
+   --  declaring a license; and every crate the development manifest pins to
+   --  a sibling checkout is a release dependency there, through a published
+   --  version constraint (read from the pins, so a new sibling is covered the
+   --  day it is pinned).
    Project_Tools.Alire_Manifests.Require_Pin_Free_Crate_Manifest (Rel_Manifest, "files");
    Project_Tools.Alire_Manifests.Require_No_Local_Pins (Rel_Manifest);
-   for Dependency of Project_Tools.Alire_Manifests.String_List'
-     [To_Unbounded_String ("i18n"),
-      To_Unbounded_String ("textrender"),
-      To_Unbounded_String ("zlib"),
-      To_Unbounded_String ("cryptolib"),
-      To_Unbounded_String ("guikit"),
-      To_Unbounded_String ("messages"),
-      To_Unbounded_String ("hostkit"),
-      To_Unbounded_String ("a11y")]
-   loop
-      Require_Text (Rel_Manifest, To_String (Dependency) & " = ");
+   for Pin of Declarations (Dev_Manifest, "pins") loop
+      declare
+         Equals : constant Natural := Ada.Strings.Fixed.Index (Pin, "=");
+      begin
+         if Equals > Pin'First then
+            Require_Text
+              (Rel_Manifest, Ada.Strings.Fixed.Trim (Pin (Pin'First .. Equals - 1), Ada.Strings.Both) & " = ");
+         end if;
+      end;
    end loop;
    Project_Tools.Release_Checks.Require_Text (Checker, "alire.release.toml", "licenses =");
 
-   --  The development manifest must keep the local runtime workspace pins so
-   --  that local builds resolve the sibling checkouts.
+   --  The development manifest must keep every local runtime workspace pin,
+   --  so local builds resolve the sibling checkouts rather than a published
+   --  release: a pin lost here fails here, not as a stale crate later.
+   Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "hostkit", "../hostkit");
+   Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "humanize", "../humanize");
    Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "i18n", "../i18n");
+   Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "messages", "../messages");
    Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "textrender", "../textrender");
    Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "zlib", "../zlib");
+   Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "cryptolib", "../cryptolib");
    Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "guikit", "../guikit");
+   Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "a11y", "../a11ykit");
 
    --  The two manifests must declare the same version.
    declare
@@ -186,9 +193,14 @@ begin
 
    Put_Line ("files release checks passed");
 exception
-   when others =>
+   when Program_Error =>
       --  The project_tools Require_*/Fail helpers print a diagnostic and set
       --  the failure exit status before raising; swallow the propagated raise
       --  so the tool exits with that status and no Ada traceback.
+      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+   when Unexpected : others =>
+      --  Anything else (a manifest that cannot be opened, say) is no finding
+      --  of a check: say what it was, since nothing else has.
+      Put_Line (Standard_Error, "release_check failed: " & Ada.Exceptions.Exception_Information (Unexpected));
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
 end Release_Check;

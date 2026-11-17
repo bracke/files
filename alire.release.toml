@@ -21,8 +21,9 @@ executables = ["files"]
 gnat_native = "=15.2.1"
 
 # Release manifest: published form of alire.toml with NO local path pins.
-# The development alire.toml pins i18n/textrender/zlib/guikit to sibling
-# checkouts; this file depends on their published crates instead. Keep the two
+# The development alire.toml pins its sibling runtime crates (hostkit,
+# humanize, i18n, messages, textrender, zlib, cryptolib, guikit, a11y) to
+# local checkouts; this file depends on their published crates instead. Keep the two
 # manifests' metadata and dependency sets in sync (enforced by
 # tools/bin/release_check).
 

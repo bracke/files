@@ -2,7 +2,6 @@ with Files.File_System;
 with Ada.Containers;
 with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Indefinite_Hashed_Maps;
-with Ada.Characters.Handling;
 with Ada.Strings;
 with Ada.Numerics.Elementary_Functions;
 with Ada.Strings.Hash;

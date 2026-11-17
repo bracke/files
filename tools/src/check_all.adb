@@ -535,8 +535,6 @@ procedure Check_All is
 
    procedure Check_No_User_Text_Literals (Path : String) is separate;
 
-   procedure Check_Command_Localization_Keys is separate;
-
    procedure Check_Catalog_Unique_Keys is separate;
 
    procedure Check_Catalog_Format is separate;
@@ -545,24 +543,84 @@ procedure Check_All is
 
    procedure Check_Error_Localization_Test_Coverage is separate;
 
-   --  The namespaces of the catalog's keys: a literal in one of them names a
-   --  localization key.
-   Localization_Namespaces : constant String_List :=
-     [To_Unbounded_String ("accessibility."),
-      To_Unbounded_String ("cli."),
-      To_Unbounded_String ("command."),
-      To_Unbounded_String ("details."),
-      To_Unbounded_String ("dialog."),
-      To_Unbounded_String ("error."),
-      To_Unbounded_String ("info."),
-      To_Unbounded_String ("root."),
-      To_Unbounded_String ("runtime."),
-      To_Unbounded_String ("settings."),
-      To_Unbounded_String ("startup."),
-      To_Unbounded_String ("status.")];
+   package Key_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+     (Element_Type        => String,
+      Hash                => Ada.Strings.Hash,
+      Equivalent_Elements => "=");
+
+   --  The default catalog's text, read once: every key check asks it.
+   Catalog_Text   : Unbounded_String;
+   Catalog_Loaded : Boolean := False;
+
+   --  The namespaces of the catalog's own keys ("status." of en.status.items):
+   --  a literal in one of them names a localization key. Read from the
+   --  catalog, so a new namespace is checked the day its first key lands.
+   Catalog_Namespaces : Key_Sets.Set;
+
+   --  Keys already reported missing, so the direct, indirect and command
+   --  checks, which overlap, report each missing key once.
+   Reported_Missing_Keys : Key_Sets.Set;
+
+   procedure Load_Catalog is
+      Path : constant String := Root & "/share/files.catalog";
+   begin
+      if Catalog_Loaded then
+         return;
+      end if;
+      Catalog_Loaded := True;
+      if not Project_Tools.Files.File_Exists (Path) then
+         return;
+      end if;
+      Catalog_Text := ASCII.LF & Project_Tools.Text.Read_Text_File (Path);
+      declare
+         Text  : constant String := To_String (Catalog_Text);
+         Start : Natural := Ada.Strings.Fixed.Index (Text, ASCII.LF & "en.");
+      begin
+         while Start > 0 loop
+            declare
+               First : constant Positive := Start + 4;
+               Dot   : constant Natural := Ada.Strings.Fixed.Index (Text, ".", First);
+               Eol   : constant Natural := Ada.Strings.Fixed.Index (Text, [ASCII.LF], First);
+            begin
+               if Dot > First and then (Eol = 0 or else Dot < Eol) then
+                  Catalog_Namespaces.Include (Text (First .. Dot));
+               end if;
+               Start := Ada.Strings.Fixed.Index (Text, ASCII.LF & "en.", First);
+            end;
+         end loop;
+      end;
+   end Load_Catalog;
 
    function In_Localization_Namespace (Key : String) return Boolean is
-     (for some Namespace of Localization_Namespaces => Starts_With (Key, To_String (Namespace)));
+      Dot : constant Natural := Ada.Strings.Fixed.Index (Key, ".");
+   begin
+      Load_Catalog;
+      return Dot > Key'First and then Catalog_Namespaces.Contains (Key (Key'First .. Dot));
+   end In_Localization_Namespace;
+
+   --  Whether Text begins some catalog key without being one: a prefix the
+   --  code completes at run time ("time.month" & N & ".short").
+   function Is_Key_Fragment (Text : String) return Boolean is
+   begin
+      Load_Catalog;
+      return Ada.Strings.Fixed.Index (To_String (Catalog_Text), ASCII.LF & "en." & Text & " = ") = 0
+        and then Ada.Strings.Fixed.Index (To_String (Catalog_Text), ASCII.LF & "en." & Text) > 0;
+   end Is_Key_Fragment;
+
+   --  Key must be in the default catalog; Where names the source that asks
+   --  for it. A key already reported missing is not reported again.
+   procedure Require_Catalog_Key (Where : String; Key : String) is
+   begin
+      Load_Catalog;
+      if Ada.Strings.Fixed.Index (To_String (Catalog_Text), ASCII.LF & "en." & Key & " = ") = 0
+        and then not Reported_Missing_Keys.Contains (Key)
+      then
+         Reported_Missing_Keys.Include (Key);
+         Report (Where & ": localization key must exist in share/files.catalog: " & Key);
+      end if;
+   end Require_Catalog_Key;
+
+   procedure Check_Command_Localization_Keys is separate;
 
    function Is_Complete_Localization_Key (Key : String) return Boolean is
    begin

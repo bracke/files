@@ -50,6 +50,10 @@ package body Files.Desktop_Applications is
                elsif Subtag'Length in 2 | 3 and then Country = "" then
                   --  A region: a country code, or an area number.
                   Country := To_Unbounded_String (Subtag);
+               elsif Files.Types.To_Lower_Ascii (Subtag) = "valencia" then
+                  --  The one variant Normalize_Locale keeps (ca_ES@valencia
+                  --  becomes ca-ES-valencia): back to its POSIX modifier.
+                  Modifier := To_Unbounded_String ("valencia");
                end if;
             end;
             First := Index + 1;

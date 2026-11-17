@@ -340,6 +340,19 @@ package Files.Types is
    --  @return Text with A .. Z lower-cased.
    function To_Lower_Ascii (Text : String) return String;
 
+   --  Text with its ASCII letters upper-cased and every other byte kept, the
+   --  counterpart of To_Lower_Ascii: Ada.Characters.Handling.To_Upper would
+   --  map Latin-1 bytes too, mangling a UTF-8 lead byte.
+   --
+   --  @param Text Text to upper-case.
+   --  @return Text with a .. z upper-cased.
+   function To_Upper_Ascii (Text : String) return String;
+
+   --  @param Item Character to upper-case.
+   --  @return Item upper-cased when it is an ASCII letter a .. z, else Item.
+   function To_Upper_Ascii (Item : Character) return Character is
+     (if Item in 'a' .. 'z' then Character'Val (Character'Pos (Item) - 32) else Item);
+
    --  @param Text Text to inspect.
    --  @param Prefix Bytes Text must begin with.
    --  @return True when Text begins with exactly Prefix.

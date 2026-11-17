@@ -83,6 +83,15 @@ package body Files.Types is
       return Result;
    end To_Lower_Ascii;
 
+   function To_Upper_Ascii (Text : String) return String is
+      Result : String := Text;
+   begin
+      for Char of Result loop
+         Char := To_Upper_Ascii (Char);
+      end loop;
+      return Result;
+   end To_Upper_Ascii;
+
    function Fold_For_Sort (Text : String) return String is
       Result    : Ada.Strings.Unbounded.Unbounded_String;
       Index     : Integer := Text'First;

@@ -1,6 +1,7 @@
 separate (Check_All)
    procedure Check_Locale_Catalog_Arguments is
-      --  The messages crate's catalog checker, from the sibling checkout the
+      --  The default catalog, and every locale's {arguments} against it, by
+      --  the messages crate's catalog checker, from the sibling checkout the
       --  build pins (alire.toml: messages = { path = "../messages" }).
       Tool_Dir : constant String := Root & "/../messages/tools/catalog_check";
       Tool     : constant String := Tool_Dir & "/bin/catalog_check";
@@ -9,6 +10,19 @@ separate (Check_All)
       Checked  : Natural := 0;
    begin
       Run ("catalog_check build", Tool_Dir, Alr, [new String'("--non-interactive"), new String'("build")]);
+      --  The default catalog itself: well-formed, and an option name it holds
+      --  verbatim for the program "files" is not translated away.
+      if Project_Tools.Processes.Run_Status
+           (Label   => "catalog_check files.catalog",
+            Dir     => Tool_Dir,
+            Program => Tool,
+            Args    =>
+              GNAT.OS_Lib.Argument_List'[new String'(Base), new String'("--verbatim=files")],
+            Output  => Output,
+            Quiet   => True) /= 0
+      then
+         Report (Base & ": the message catalogue check failed (findings above) " & To_String (Output));
+      end if;
       for Locale of Project_Tools.Files.List_Tree (Root & "/share/locales", "files-*.catalog", Generated_Directories)
       loop
          Checked := Checked + 1;

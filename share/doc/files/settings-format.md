@@ -6,11 +6,37 @@ entries. Missing settings use built-in defaults. A value may be quoted
 in a blank intact. Sections are written in the order below; the last four are
 written only when they hold something.
 
+## What rejects the file
+
+The file loads whole or not at all. When it is rejected, files reports why at
+startup, runs on built-in defaults, and saves nothing: writing the defaults
+back would erase the bookmarks, labels and mappings of a file that is only
+unreadable to this build, so it is left for you to fix. A file is rejected
+when it holds:
+
+- a section header naming no section above (`[colours]`), or a `key = value`
+  line before the first header;
+- a line that is neither blank, a `#` comment, a `[section]` header, nor a
+  `key = value` entry (no `=`);
+- in `[settings]`, a key not listed below, or a value the key does not
+  accept (`font_pixel_size = 9`, `theme = blue`, `sort_ascending = yes`);
+- in `[filetypes]` or `[icons]`, an empty or malformed key or value; in
+  `[open-actions]`, an unknown base or modifier, an empty executable, or a
+  placeholder embedded in a larger argument;
+- a NUL byte anywhere, a line over 64 KiB, more than 4096 entries, or more
+  than 1 MiB in all.
+
+Not everything that looks wrong rejects the file: a label with an unknown
+color and a shortcut for an unknown command are skipped (see their
+sections), and a repeated bookmark or recent entry loads once.
+
 ## `[settings]`
 
-Global options. Booleans are `true` or `false`. A key that is absent takes
-its default; the keys marked *omitted when default* are written only after
-they change.
+Global options. Booleans are `true` or `false`, in any case (`TRUE` loads),
+except `info_pane_open` and `use_system_default_opener`, which accept only
+lower-case `true` and `false` -- they have always been read that way. A key
+that is absent takes its default; the keys marked *omitted when default* are
+written only after they change.
 
 | Key | Values | Default |
 |---|---|---|
@@ -31,6 +57,18 @@ they change.
 | `detail_column_<column>` | boolean, for `modified`, `size`, `filetype`, `created`, `permissions` | `true` for the first three, `false` for `created` and `permissions` |
 | `detail_column_width_<column>` | width in reference pixels (scaled with the line height), `0` for the proportional default; *omitted when default* | `0` |
 | `window_width`, `window_height` | pixels, clamped to 200 to 16384, `0` for the platform default; *omitted when default* | `0` |
+
+Two invalid values do not reject the file: a `detail_column_width_<column>`
+that is not a plain decimal number resets that column to its proportional
+default (`0`), and a `window_width` or `window_height` that is not one keeps
+the platform default. An invalid `detail_column_order` (a column missing,
+repeated or unknown) does reject it; a valid one is read with `name` moved to
+the front, wherever it was listed.
+
+Older files may carry `high_contrast_theme` and `light_theme` booleans in place
+of `theme`. They still load: when `theme` is absent, `high_contrast_theme =
+true` selects `high_contrast`, otherwise `light_theme = true` selects `light`;
+a `theme` key, wherever it appears, wins over both. They are never written.
 
 ## `[filetypes]`
 

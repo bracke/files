@@ -3,15 +3,11 @@ separate (Check_All)
       use Tokens;
 
       Commands : constant String := Root & "/src/files-commands.adb";
-      Catalog  : constant String := Root & "/share/files.catalog";
 
       procedure Require_Key (Key : String) is
       begin
          if Starts_With (Key, "command.") then
-            Require_In_Text
-              (Catalog,
-               "en." & Key & " = ",
-               "command localization key must exist in share/files.catalog: " & Key);
+            Require_Catalog_Key (Commands, Key);
          end if;
       end Require_Key;
    begin

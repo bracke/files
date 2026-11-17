@@ -7,7 +7,6 @@ with Files.Events;
 with Files.File_System;
 with Files.Model.Root_Selector;
 with Files.Model.Selection;
-with Files.Settings.Path_References;
 with Files.Rendering;
 with Files.Rendering.Hit;
 with Files.Types;
@@ -435,19 +434,6 @@ package body Files_Suite.Interaction_Support is
    end Dispatch_Command;
 
    --  True when Path is present in the persisted favorites list.
-   function Has_Favorite
-     (Settings : Files.Settings.Settings_Model;
-      Path     : String)
-      return Boolean is
-   begin
-      for P of Files.Settings.Path_References.Favorite_Paths (Settings) loop
-         if Ada.Strings.Unbounded.To_String (P) = Path then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Has_Favorite;
-
    --  Drive the real Select_Drive command through the reducer so the root
    --  selector opens seeded with the platform roots plus the persisted
    --  favorites (each carrying its star label token).
