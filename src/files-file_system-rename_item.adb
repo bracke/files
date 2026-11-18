@@ -68,28 +68,16 @@ is
 
       --  Beside the original and visible, named after it ("notes
       --  (renaming).txt"), so an entry left there is found by the name the
-      --  user knows; the stem is cut so the name stays storable.
-      --  Built like the duplicate's "(copy)" marker: a fixed, unlocalized
-      --  file name, the same on every locale.
-      Open  : constant String := " (";
-      Word  : constant String := "renaming";
-      Close : constant String := ")";
-      function Temp_Candidate (Index : Positive) return String is
-        (Hostkit.Fs.Join
-           (Directory,
-            Files.Leaf_Names.Fit
-              (Mutation_Leaf_Name (From_Path),
-               Files.Leaf_Names.Max_Length,
-               Hostkit.Fs.Uses_Dos_Filename_Rules (Directory),
-               Insert =>
-                 (if Index = 1 then Open & Word & Close
-                  else Open & Word & " " & Files.Types.Natural_Text (Index) & Close))));
+      --  user knows; the stem is cut so the name stays storable. Built like
+      --  the duplicate's "(copy)" marker: a fixed, unlocalized file name,
+      --  the same on every locale.
+      function Marker (Attempt : Natural) return String is
+        (Files.Leaf_Names.Counted_Marker ("renaming", Attempt));
 
-      --  How many scratch names are tried before the rename gives up. Each
-      --  occupied candidate is an earlier stranded entry or a user's file, so
-      --  a directory holding this many is pathological; the bound keeps the
-      --  search from probing the filesystem without end.
-      Max_Temp_Candidates : constant := 4096;
+      --  A name the host will not answer for raises (Is_Taken): the
+      --  rename fails rather than move onto a name that may be in use.
+      function Taken (Leaf : String) return Boolean is
+        (Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Directory, Leaf)));
 
       Temp : Unbounded_String := Null_Unbounded_String;
 
@@ -105,12 +93,27 @@ is
          return (Success => False, Error_Key => To_Unbounded_String (Rename_Stranded_Key));
       end Stranded_Result;
    begin
-      for Index in 1 .. Max_Temp_Candidates loop
-         if Files.Fs_Primitives.Entry_Is_Absent (Temp_Candidate (Index)) then
-            Temp := To_Unbounded_String (Temp_Candidate (Index));
-            exit;
-         end if;
-      end loop;
+      begin
+         declare
+            Leaf      : constant String := Mutation_Leaf_Name (From_Path);
+            Is_Folder : constant Boolean := Files.Fs_Primitives.Is_Plain_Directory (From_Path);
+            Free      : constant String :=
+              Files.Leaf_Names.First_Free
+                (Files.Types.Name_Stem (Leaf, Is_Folder), Files.Types.Name_Extension (Leaf, Is_Folder),
+                 Marker'Access, Taken'Access,
+                 --  Asked once: the search may try thousands of names.
+                 Hostkit.Fs.Leaf_Name_Limit_At (Directory));
+         begin
+            if Free /= "" then
+               Temp := To_Unbounded_String (Hostkit.Fs.Join (Directory, Free));
+            end if;
+         end;
+      exception
+         when Refused : Ada.Directories.Use_Error =>
+            --  A scratch name that could not be looked at: no rename.
+            Files.Diagnostics.Note (Refused, "Files.File_System");
+            Temp := Null_Unbounded_String;
+      end;
 
       if Temp = Null_Unbounded_String then
          return

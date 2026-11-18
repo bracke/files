@@ -8,11 +8,12 @@ separate (Files_Suite.Trash)
    --  still trashed, under a shortened name, and restored under its own.
    procedure Test_Trash_Long_Name (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      --  245 bytes: a leaf the filesystem stores, but not with ".trashinfo"
-      --  added. 121 ASCII bytes then two-byte letters, so the cut to 230
-      --  bytes before the extension lands inside a letter and must back off.
+      --  250 bytes: a leaf the filesystem stores, but not with ".trashinfo"
+      --  added. 126 ASCII bytes then two-byte letters, so the cut to 241
+      --  bytes before the extension (255 less ".trashinfo" and ".txt") lands
+      --  inside a letter and must back off.
       Long_Name : constant String :=
-        Ada.Strings.Fixed."*" (121, 'x')
+        Ada.Strings.Fixed."*" (126, 'x')
         & Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode (Ada.Strings.Wide_Wide_Fixed."*" (60, "ж"))
         & ".txt";
       Original  : constant String := Join (Root, Long_Name);
@@ -20,7 +21,7 @@ separate (Files_Suite.Trash)
 
       --  The fixture is reached through Hostkit: with the folder in front of
       --  it the name passes Windows' 260-character limit, where GNAT's own
-      --  calls stop. The name itself fits there: 185 UTF-16 units of 255.
+      --  calls stop. The name itself fits there: 190 UTF-16 units of 255.
       function Present (Path : String) return Boolean is (Files.Fs_Primitives.Entry_Exists (Path));
 
       --  Remove the macOS home, long names and all, past that limit too:
@@ -44,12 +45,17 @@ separate (Files_Suite.Trash)
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Root & "_xdg_data");
          Write_Binary_File (Original, "long");
          Assert (Files.File_System.Trash.Move_To_Trash (Original, Trashed).Success,
-                 "a file with a 245-byte name goes to the trash");
+                 "a file with a 250-byte name goes to the trash");
          Assert (not Present (Original), "it left its folder");
          Leaf := To_Unbounded_String (Files.Fs_Primitives.Leaf_Text (To_String (Trashed)));
+         --  Cut only as far as ".trashinfo" needs, where names count bytes;
+         --  a volume counting UTF-16 units holds all 190 with it.
          Files_Suite.Support.Assert_Equal
-           (Length (Leaf), 233, "it is kept under a name cut to fit, one byte backed off a split letter");
-         Assert (Files.Types.Starts_With (To_String (Leaf), Ada.Strings.Fixed."*" (121, 'x'))
+           (Length (Leaf),
+            (if Hostkit.Fs."=" (Hostkit.Fs.Leaf_Name_Limit_At (Root & "_xdg_data").Unit, Hostkit.Fs.Bytes) then 244
+             else Long_Name'Length),
+            "it is kept under a name cut to fit, one byte backed off a split letter");
+         Assert (Files.Types.Starts_With (To_String (Leaf), Ada.Strings.Fixed."*" (126, 'x'))
                  and then Ada.Directories.Extension (To_String (Leaf)) = "txt",
                  "the shortened name keeps its start and extension");
          Assert (Guikit.Utf8.Is_Valid (To_String (Leaf)), "the cut ends a whole character");

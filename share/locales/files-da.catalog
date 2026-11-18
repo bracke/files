@@ -325,6 +325,7 @@ da.error.drop.invalid_destination = Slipdestinationen er ikke en mappe.
 da.error.drop.invalid_source = Det slupne element findes ikke.
 da.error.duplicate.failed = De valgte elementer kunne ikke dubleres.
 da.error.extract.failed = Arkivet kunne ikke udpakkes.
+da.error.extract.entry_refused = Ikke udpakket: denne mappe kan ikke rumme arkivposten {path}.
 da.error.extract.not_archive = Markeringen indeholder intet arkiv.
 da.error.filter.empty = Der er intet aktivt filter.
 da.error.history.back_unavailable = Der er ingen historik at gå tilbage til.

@@ -325,6 +325,7 @@ fi.error.drop.invalid_destination = Pudotuskohde ei ole kansio.
 fi.error.drop.invalid_source = Pudotettua kohdetta ei ole olemassa.
 fi.error.duplicate.failed = Valittuja kohteita ei voitu monistaa.
 fi.error.extract.failed = Arkistoa ei voitu purkaa.
+fi.error.extract.entry_refused = Ei purettu: tähän kansioon ei voi tallentaa arkiston kohdetta {path}.
 fi.error.extract.not_archive = Valinnassa ei ole arkistoa.
 fi.error.filter.empty = Yksikään suodatin ei ole aktiivinen.
 fi.error.history.back_unavailable = Takaisin-historia on tyhjä.

@@ -22,6 +22,7 @@ with Hostkit.Shell;
 with Zlib;
 
 with Files.Operations.Support;
+with Files.Leaf_Names;
 with Ada.Containers;
 with Files.Refresh_Jobs;
 with Files.Diagnostics;

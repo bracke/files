@@ -325,6 +325,7 @@ fr.error.drop.invalid_destination = La destination du dépôt n'est pas un répe
 fr.error.drop.invalid_source = L'élément déposé n'existe pas.
 fr.error.duplicate.failed = Impossible de dupliquer les éléments sélectionnés.
 fr.error.extract.failed = Impossible d'extraire l'archive.
+fr.error.extract.entry_refused = Non extrait : ce dossier ne peut pas contenir l’entrée d’archive {path}.
 fr.error.extract.not_archive = La sélection ne contient aucune archive.
 fr.error.filter.empty = Aucun filtre n'est actif.
 fr.error.history.back_unavailable = L'historique précédent est vide.

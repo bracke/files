@@ -1,6 +1,8 @@
 with Ada.Containers.Vectors;
 
+with Files.Leaf_Names;
 with Files.Types;
+with Hostkit.Fs;
 
 --  Pure, side-effect-free paste/move conflict-resolution core.
 --
@@ -42,6 +44,9 @@ package Files.Paste is
       Source_Path : Files.Types.UString;
       Dest_Dir    : Files.Types.UString;
       Dest_Name   : Files.Types.UString;
+      --  Whether the source is a folder (not a link to one): a numbered
+      --  name keeps a plain folder's dots in its name (Types.Name_Stem).
+      Is_Directory : Boolean := False;
    end record;
 
    package Work_Item_Vectors is new Ada.Containers.Vectors
@@ -109,17 +114,17 @@ package Files.Paste is
    --    case then claim one destination, and the second is renamed; a
    --    replace keeps the existing entry's spelling (the first Existing
    --    path that folds equal), so its original comes back under it.
-   --  @param Dos_Names Whether the destination keeps names in UTF-16
-   --    (Hostkit.Fs.Uses_Dos_Filename_Rules): a numbered name is then cut to
-   --    fit in UTF-16 units rather than bytes (First_Free_Name).
+   --  @param Name_Limit How long a name the destination stores, and in what
+   --    unit (Hostkit.Fs.Leaf_Name_Limit_At): a numbered name is cut to fit
+   --    it (First_Free_Name).
    --  @return One resolved action per work item, in order.
    function Resolve
-     (Items     : Work_Item_Vectors.Vector;
-      Policy    : Conflict_Policy;
-      Overrides : Item_Decision_Vectors.Vector;
-      Existing  : Files.Types.String_Vectors.Vector;
+     (Items      : Work_Item_Vectors.Vector;
+      Policy     : Conflict_Policy;
+      Overrides  : Item_Decision_Vectors.Vector;
+      Existing   : Files.Types.String_Vectors.Vector;
       Fold_Names : Boolean := False;
-      Dos_Names  : Boolean := False)
+      Name_Limit : Hostkit.Fs.Leaf_Name_Limit := Files.Leaf_Names.Default_Limit)
       return Resolved_Action_Vectors.Vector;
 
    --  The naming rules of a directory a paste or drop writes into, as
@@ -127,8 +132,8 @@ package Files.Paste is
    type Name_Rules is record
       --  Whether the directory folds case (Hostkit.Fs.Folds_Name_Case).
       Fold_Names : Boolean := False;
-      --  Whether it keeps names in UTF-16 (Hostkit.Fs.Uses_Dos_Filename_Rules).
-      Dos_Names  : Boolean := False;
+      --  How long a name it stores (Hostkit.Fs.Leaf_Name_Limit_At).
+      Name_Limit : Hostkit.Fs.Leaf_Name_Limit := Files.Leaf_Names.Default_Limit;
    end record;
 
    --  The naming rules of Directory, both asked of its filesystem, so every
@@ -155,20 +160,24 @@ package Files.Paste is
       return Resolved_Action_Vectors.Vector;
 
    --  Name, or the first of "stem 2.ext", "stem 3.ext" ... that Taken says
-   --  is free: the one numbering a paste and a drop give a name in use. A
-   --  numbered name the destination could not store is cut down to fit
-   --  (Files.Leaf_Names): the stem loses whole characters from its end, the
-   --  counter and the extension are kept.
+   --  is free: the one numbering a paste and a drop give a name in use
+   --  (Files.Leaf_Names.First_Free with Spaced_Number). A numbered name the
+   --  destination could not store is cut down to fit: the stem loses whole
+   --  characters from its end, the counter and the extension are kept. A
+   --  plain folder's name is all stem ("v1.2 2").
    --
    --  @param Name The leaf name wanted.
    --  @param Taken Whether a leaf name is in use.
-   --  @param Dos_Rules Whether the destination measures names in UTF-16
-   --    units (Hostkit.Fs.Uses_Dos_Filename_Rules) rather than bytes.
-   --  @return A leaf name Taken says is free.
+   --  @param Limit How long a name the destination stores, and in what unit
+   --    (Hostkit.Fs.Leaf_Name_Limit_At).
+   --  @param Is_Directory Whether Name is a folder's.
+   --  @return A leaf name Taken says is free; Name itself when none of
+   --    Leaf_Names.Max_Attempts is, which the write then refuses as taken.
    function First_Free_Name
-     (Name      : String;
-      Taken     : not null access function (Leaf : String) return Boolean;
-      Dos_Rules : Boolean := False)
+     (Name         : String;
+      Taken        : not null access function (Leaf : String) return Boolean;
+      Limit        : Hostkit.Fs.Leaf_Name_Limit := Files.Leaf_Names.Default_Limit;
+      Is_Directory : Boolean := False)
       return String;
 
 end Files.Paste;

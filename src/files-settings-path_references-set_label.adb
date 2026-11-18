@@ -14,7 +14,7 @@ separate (Files.Settings.Path_References)
         Settings.Paths.Labels.First_Index .. Settings.Paths.Labels.Last_Index
       loop
          --  Compared in place: no copy of the label nor of its path.
-         if Settings.Paths.Labels (Index).Path = Path then
+         if Same (To_String (Settings.Paths.Labels (Index).Path), Path) then
             Existing := Index;
             exit;
          end if;

@@ -924,9 +924,9 @@ package body Files.Settings is
          if Clean'Length = 1 then
             return "";
          end if;
-         return Files.Types.To_Lower_Ascii (Trim (Clean (Clean'First + 1 .. Clean'Last)));
+         return Files.Types.To_Lower_Unicode (Trim (Clean (Clean'First + 1 .. Clean'Last)));
       else
-         return Files.Types.To_Lower_Ascii (Clean);
+         return Files.Types.To_Lower_Unicode (Clean);
       end if;
    end Normalize_Extension;
 

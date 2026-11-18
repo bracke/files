@@ -39,6 +39,7 @@ separate (Check_All)
          Pair ("fs_primitives", "refuse_lookups", "stop_refusing_lookups"),
          Pair ("operation_jobs", "fail_after_merge", "stop_failing_after_merge"),
          Pair ("operations", "fake_checkpoint_clock", "fake_checkpoint_clock", Off => "false"),
+         Pair ("path_references", "simulate_folding_host", "simulate_folding_host", Off => "false"),
          Pair ("process_jobs", "refuse_next_launch", "clear_refusal"),
          Pair ("undo_recording", "count_undo_records", "count_undo_records", Off => "false")];
 

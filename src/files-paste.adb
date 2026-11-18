@@ -2,8 +2,6 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
-with Files.Leaf_Names;
-with Hostkit.Fs;
 
 package body Files.Paste is
 
@@ -108,49 +106,31 @@ package body Files.Paste is
    end Next_Unresolved_Conflict;
 
    function First_Free_Name
-     (Name      : String;
-      Taken     : not null access function (Leaf : String) return Boolean;
-      Dos_Rules : Boolean := False)
+     (Name         : String;
+      Taken        : not null access function (Leaf : String) return Boolean;
+      Limit        : Hostkit.Fs.Leaf_Name_Limit := Files.Leaf_Names.Default_Limit;
+      Is_Directory : Boolean := False)
       return String
    is
-      Stem      : constant String := Files.Types.Stem_Of (Name);
-      Extension : constant String :=
-        (if Files.Types.Extension_Of (Name) = "" then "" else "." & Files.Types.Extension_Of (Name));
+      Free : constant String :=
+        Files.Leaf_Names.First_Free
+          (Files.Types.Name_Stem (Name, Is_Directory), Files.Types.Name_Extension (Name, Is_Directory),
+           Files.Leaf_Names.Spaced_Number'Access, Taken, Limit);
    begin
-      if not Taken (Name) then
-         return Name;
-      end if;
-      for Counter in 2 .. Positive'Last loop
-         declare
-            Counted   : constant String := " " & Files.Types.Natural_Text (Counter);
-            --  A long name is cut down, never made longer than the
-            --  destination stores; an extension too long to keep with it
-            --  goes by Fit's rule instead.
-            Shortened : constant String :=
-              Files.Leaf_Names.Cut (Stem, Counted & Extension, Files.Leaf_Names.Max_Length, Dos_Rules);
-            Candidate : constant String :=
-              (if not Files.Leaf_Names.Too_Long_Under (Shortened, Dos_Rules) then Shortened
-               else Files.Leaf_Names.Fit (Name, Files.Leaf_Names.Max_Length, Dos_Rules, Insert => Counted));
-         begin
-            if not Taken (Candidate) then
-               return Candidate;
-            end if;
-         end;
-      end loop;
-      return Name;
+      return (if Free = "" then Name else Free);
    end First_Free_Name;
 
    --  A destination path derived from Desired that collides with neither
-   --  Existing nor Claimed, formed by inserting " N" before the extension. This
-   --  mirrors Files.File_System.Plan_Drop_Import's Available_Destination so
-   --  renamed pastes match drag-and-drop's numbering.
+   --  Existing nor Claimed, numbered by First_Free_Name -- the numbering a
+   --  drop gives too (Files.File_System.Plan_Drop_Import).
    function Unique_Path
-     (Dir      : String;
-      Name     : String;
-      Existing : Path_Sets.Set;
-      Claimed  : Path_Sets.Set;
-      Fold     : Boolean;
-      Dos      : Boolean)
+     (Dir          : String;
+      Name         : String;
+      Existing     : Path_Sets.Set;
+      Claimed      : Path_Sets.Set;
+      Fold         : Boolean;
+      Limit        : Hostkit.Fs.Leaf_Name_Limit;
+      Is_Directory : Boolean)
       return String
    is
       function Key (Path : String) return String is
@@ -160,7 +140,7 @@ package body Files.Paste is
         (Existing.Contains (Key (Desired_Path (Dir, Leaf)))
          or else Claimed.Contains (Key (Desired_Path (Dir, Leaf))));
    begin
-      return Desired_Path (Dir, First_Free_Name (Name, Taken'Access, Dos));
+      return Desired_Path (Dir, First_Free_Name (Name, Taken'Access, Limit, Is_Directory));
    end Unique_Path;
 
    function Resolve
@@ -169,7 +149,7 @@ package body Files.Paste is
       Overrides : Item_Decision_Vectors.Vector;
       Existing  : Files.Types.String_Vectors.Vector;
       Fold_Names : Boolean := False;
-      Dos_Names  : Boolean := False)
+      Name_Limit : Hostkit.Fs.Leaf_Name_Limit := Files.Leaf_Names.Default_Limit)
       return Resolved_Action_Vectors.Vector
    is
       --  The name a set holds a path under: folded where the destination
@@ -234,6 +214,9 @@ package body Files.Paste is
             Name     : constant String := To_String (Item.Dest_Name);
             Desired  : constant String := Desired_Path (Dir, Name);
             Conflict : constant Boolean := Existing_Set.Contains (Key (Desired));
+            --  Item's name numbered free of what exists and what is claimed.
+            function Numbered return String is
+              (Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names, Name_Limit, Item.Is_Directory));
          begin
             if not Conflict then
                --  No on-disk conflict: write to the desired name, but still
@@ -241,7 +224,7 @@ package body Files.Paste is
                if Claimed.Contains (Key (Desired)) then
                   Emit_Write
                     (Item.Source_Path,
-                     Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names, Dos_Names), False);
+                     Numbered, False);
                else
                   Emit_Write (Item.Source_Path, Desired, False);
                end if;
@@ -255,14 +238,14 @@ package body Files.Paste is
                      if Claimed.Contains (Key (Desired)) then
                         Emit_Write
                           (Item.Source_Path,
-                           Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names, Dos_Names), False);
+                           Numbered, False);
                      else
                         Emit_Write (Item.Source_Path, Replace_Target (Desired), True);
                      end if;
                   when Decision_Rename =>
                      Emit_Write
                        (Item.Source_Path,
-                        Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names, Dos_Names), False);
+                        Numbered, False);
                   when Decision_Skip | Decision_Pending =>
                      --  Skip, and treat an undecided conflict as Skip so the
                      --  destination is never silently overwritten.
@@ -283,7 +266,7 @@ package body Files.Paste is
      (if Directory = ""
       then (others => <>)
       else (Fold_Names => Hostkit.Fs.Folds_Name_Case (Directory),
-            Dos_Names  => Hostkit.Fs.Uses_Dos_Filename_Rules (Directory)));
+            Name_Limit => Hostkit.Fs.Leaf_Name_Limit_At (Directory)));
 
    function Resolve
      (Items     : Work_Item_Vectors.Vector;
@@ -292,6 +275,6 @@ package body Files.Paste is
       Existing  : Files.Types.String_Vectors.Vector;
       Rules     : Name_Rules)
       return Resolved_Action_Vectors.Vector is
-     (Resolve (Items, Policy, Overrides, Existing, Fold_Names => Rules.Fold_Names, Dos_Names => Rules.Dos_Names));
+     (Resolve (Items, Policy, Overrides, Existing, Fold_Names => Rules.Fold_Names, Name_Limit => Rules.Name_Limit));
 
 end Files.Paste;

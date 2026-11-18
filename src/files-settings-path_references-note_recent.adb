@@ -13,7 +13,7 @@ separate (Files.Settings.Path_References)
       --  stays duplicate-free.
       Index := Settings.Paths.Recent.First_Index;
       while Index <= Settings.Paths.Recent.Last_Index loop
-         if To_String (Settings.Paths.Recent.Element (Index)) = Path then
+         if Same (To_String (Settings.Paths.Recent.Element (Index)), Path) then
             Settings.Paths.Recent.Delete (Index);
          else
             Index := Index + 1;

@@ -1,3 +1,4 @@
+with Ada.Directories;
 with Files.Undo_Recording;
 with Files.Window_Polls;
 with Files.Diagnostics;
@@ -19,7 +20,7 @@ with Files.Settings.Open_Actions;
 package body Files.Operations.Support is
    use Ada.Strings.Unbounded;
 
-   function First_Free_Name
+   function First_Free_Leaf
      (Directory : String;
       Base      : String;
       Extension : String;
@@ -27,26 +28,22 @@ package body Files.Operations.Support is
       First     : Natural := 1)
       return String
    is
-      Dos_Rules : constant Boolean := Hostkit.Fs.Uses_Dos_Filename_Rules (Directory);
-      Dotted    : constant Natural :=
-        (if Extension = "" then 0 else Files.Leaf_Names.Length_Under ("." & Extension, Dos_Rules));
+      --  Asked once: the search may try thousands of names.
+      Limit : constant Hostkit.Fs.Leaf_Name_Limit := Hostkit.Fs.Leaf_Name_Limit_At (Directory);
 
-      function Name (Attempt : Natural) return String is
-        (Files.Leaf_Names.Cut
-           (Base, Marker (Attempt),
-            (if Dotted >= Files.Leaf_Names.Max_Length then 0 else Files.Leaf_Names.Max_Length - Dotted),
-            Dos_Rules));
+      --  A name the host will not answer for raises (Is_Taken): never
+      --  handed out as free.
+      function Taken (Leaf : String) return Boolean is
+        (Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Directory, Leaf)));
+
+      Free : constant String :=
+        Files.Leaf_Names.First_Free (Base, Extension, Marker, Taken'Access, Limit, First);
    begin
-      for Attempt in First .. Max_Name_Attempts loop
-         --  A name the host will not answer for is not taken as free.
-         if Files.Fs_Primitives.Entry_Is_Absent
-           (Files.Fs_Primitives.Compose_Text (Directory, Name (Attempt), Extension))
-         then
-            return Name (Attempt);
-         end if;
-      end loop;
-      return Name (First);
-   end First_Free_Name;
+      if Free = "" then
+         raise Ada.Directories.Use_Error with "no_free_name=" & Directory;
+      end if;
+      return Free;
+   end First_Free_Leaf;
 
    function Empty_Action return Files.Settings.Open_Action is
    begin

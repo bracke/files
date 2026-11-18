@@ -24,8 +24,28 @@ is
    Recycle_Bin : constant Boolean :=
      Trash_Backend_Of_Current_Environment = Trash_Windows_Recycle_Bin and then Is_Trash_Files_Directory (Path);
 
+   --  A freedesktop trash's files/ (the home trash's, with every volume's
+   --  added below): its payloads are named for the trash ("notes.txt.2",
+   --  a long name cut), so the view lists each under the name it had, as
+   --  its .trashinfo records it, and its type and icon follow that name.
+   --  Everything done to it still addresses the payload's own path.
+   Trash_View : constant Boolean := not Recycle_Bin and then Is_Trash_Files_Directory (Path);
+
    --  List the entry at Full under Name, Normalized_Path being its folder.
    procedure Add_Named (Name : String; Full : String);
+
+   --  The name a trash payload at Full had, or Name when its record does
+   --  not say (the macOS home trash keeps none).
+   function Shown_Name (Name : String; Full : String) return String is
+      Original : constant String := Trash_Original_Path (Full);
+      Leaf     : constant String := (if Original = "" then "" else Files.Fs_Primitives.Leaf_Text (Original));
+   begin
+      return (if Leaf = "" then Name else Leaf);
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+         return Name;
+   end Shown_Name;
 
    procedure Add_Entry (Name : String) is
    begin
@@ -40,7 +60,11 @@ is
          end;
       end if;
       if not Recycle_Bin then
-         Add_Named (Name, Hostkit.Fs.Join (To_String (Normalized_Path), Name));
+         declare
+            Full : constant String := Hostkit.Fs.Join (To_String (Normalized_Path), Name);
+         begin
+            Add_Named ((if Trash_View then Shown_Name (Name, Full) else Name), Full);
+         end;
       end if;
    end Add_Entry;
 

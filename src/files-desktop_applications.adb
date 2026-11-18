@@ -228,9 +228,9 @@ package body Files.Desktop_Applications is
 
    function Comes_Before (Left, Right : Application) return Boolean is
       Left_Name  : constant String :=
-        Files.Types.Fold_Case (To_String (Left.Name));
+        Files.Types.Fold_For_Sort (To_String (Left.Name));
       Right_Name : constant String :=
-        Files.Types.Fold_Case (To_String (Right.Name));
+        Files.Types.Fold_For_Sort (To_String (Right.Name));
    begin
       if Left_Name /= Right_Name then
          return Left_Name < Right_Name;

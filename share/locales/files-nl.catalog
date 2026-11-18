@@ -325,6 +325,7 @@ nl.error.drop.invalid_destination = De doellocatie is geen map.
 nl.error.drop.invalid_source = Het neergezette item bestaat niet.
 nl.error.duplicate.failed = Kan de geselecteerde items niet dupliceren.
 nl.error.extract.failed = Kan het archief niet uitpakken.
+nl.error.extract.entry_refused = Niet uitgepakt: deze map kan het archiefitem {path} niet bevatten.
 nl.error.extract.not_archive = De selectie bevat geen archief.
 nl.error.filter.empty = Er is geen filter actief.
 nl.error.history.back_unavailable = De teruggeschiedenis is leeg.

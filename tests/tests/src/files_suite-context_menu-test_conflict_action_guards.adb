@@ -49,7 +49,7 @@ separate (Files_Suite.Context_Menu)
         (Files.Paste.Work_Item'
            (Source_Path => Ada.Strings.Unbounded.To_Unbounded_String ("/src/a.txt"),
             Dest_Dir    => Ada.Strings.Unbounded.To_Unbounded_String ("/dest"),
-            Dest_Name   => Ada.Strings.Unbounded.To_Unbounded_String ("a.txt")));
+            Dest_Name   => Ada.Strings.Unbounded.To_Unbounded_String ("a.txt"), others => <>));
       Existing.Append
         (Ada.Strings.Unbounded.To_Unbounded_String (Files.Paste.Desired_Path ("/dest", "a.txt")));
       Files.Model.Pasting.Begin_Conflict

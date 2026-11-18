@@ -1,3 +1,4 @@
+with Hostkit.Fs;
 with Files.Operation_Results;
 with Ada.Unchecked_Deallocation;
 with Files.Commands.Status;
@@ -167,11 +168,31 @@ separate (Files_Suite.Archives)
       begin
          for Unsafe of Files.Types.String_Vectors.Vector'
            ([To_Unbounded_String ("/etc/passwd"), To_Unbounded_String ("a/../../x"),
-             To_Unbounded_String ("a\b"), To_Unbounded_String ("C:x"), To_Unbounded_String (".."),
+             To_Unbounded_String ("..\x"), To_Unbounded_String ("a/b\c"), To_Unbounded_String (".."),
              To_Unbounded_String ("./"), To_Unbounded_String ("a//b"), To_Unbounded_String ("")])
          loop
             Assert (not Extractable (To_String (Unsafe)), "unsafe archive name refused: " & To_String (Unsafe));
          end loop;
+         --  A name an old Windows tool wrote with '\' separators is a path
+         --  into its folder; a ':' is a name's own character where the host
+         --  and the destination store it, and a DOS-rules destination
+         --  refuses it. A refused entry is named.
+         Assert (Extractable ("dir\report.txt"), "a '\'-separated name extracts into its folder");
+         Assert (Extractable ("Meeting 10:30.txt") = (Hostkit.Fs.Separator /= '\'),
+                 "a ':' is a name's own character off Windows");
+         Assert (not Extractable ("Meeting 10:30.txt", Dos => True), "a DOS-rules destination refuses ':'");
+         declare
+            Two : Zlib.Archive_Entry_Array (1 .. 2);
+         begin
+            Two (1).Name := To_Unbounded_String ("fine.txt");
+            Two (2).Name := To_Unbounded_String ("../escape.txt");
+            Files_Suite.Support.Assert_Equal
+              (Files.Archive_Writing.First_Unextractable (Two, False, False), "../escape.txt",
+               "the refused entry is named");
+            Two (2).Name := To_Unbounded_String ("also fine.txt");
+            Files_Suite.Support.Assert_Equal
+              (Files.Archive_Writing.First_Unextractable (Two, False, False), "", "all clear names none");
+         end;
          Assert (Extractable ("dir/nul.txt") and then Extractable ("aux.c"),
                  "a POSIX destination stores Windows device names");
          for Unstorable of Files.Types.String_Vectors.Vector'
@@ -276,4 +297,37 @@ separate (Files_Suite.Archives)
          Assert (not Ada.Directories.Exists (Join (Dir, "cases")), "no folder is made for it");
          Assert (No_Stage_Left, "and no staging folder is left behind");
       end if;
+
+      --  An entry that would leave the folder is refused by name: the
+      --  message says which, not only that the archive failed. Written under
+      --  a safe name of the same length, then renamed in the archive's bytes.
+      Names (1) := To_Unbounded_String ("aa_b.txt");
+      Names (2) := To_Unbounded_String ("notes.txt");
+      Zlib.ZIP_Files (Inputs, Join (Dir, "escape.zip"), Names, Status => Build_Status);
+      Assert (Build_Status = Zlib.Ok, "the archive to tamper with is created");
+      declare
+         Bytes   : String := Project_Tools.Files.Read_Raw_File (Join (Dir, "escape.zip"));
+         Safe    : constant String := "aa_b.txt";
+         Escaped : constant String := "../b.txt";
+         Renamed : Natural := 0;
+      begin
+         for I in Bytes'First .. Bytes'Last - Safe'Length + 1 loop
+            if Bytes (I .. I + Safe'Length - 1) = Safe then
+               Bytes (I .. I + Safe'Length - 1) := Escaped;
+               Renamed := Renamed + 1;
+            end if;
+         end loop;
+         Assert (Renamed = 2, "the name is renamed in both headers");
+         Write_Binary_File (Join (Dir, "escape.zip"), Bytes);
+      end;
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Files.Model.Initialize (Model, Dir, Load.Items, Root);
+      Select_Name (Model, "escape.zip");
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status, Files.Operation_Results.Operation_Failed, "an escaping entry is refused");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model), "error.extract.entry_refused", "with the message that names it");
+      Files_Suite.Support.Assert_Equal (Files.Model.Last_Error_Path (Model), "../b.txt", "naming that entry");
+      Assert (not Ada.Directories.Exists (Join (Root, "b.txt")), "nothing is written outside");
    end Test_Extract_Selected_Operation;

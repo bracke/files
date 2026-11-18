@@ -15,25 +15,22 @@ private package Files.Operations.Support is
    --  @return An open action with an empty executable and no arguments.
    function Empty_Action return Files.Settings.Open_Action;
 
-   --  How many numbered names (" 2", " (copy 3)") a new entry tries before
-   --  giving up on a free one.
-   Max_Name_Attempts : constant := 9_999;
-
-   --  The first stem of Base & Marker (First), Base & Marker (First + 1),
-   --  ... (up to Max_Name_Attempts) that names nothing in Directory, with
-   --  Extension ("" for none), or the first one when all are taken: how a
-   --  duplicate, a link, an archive or an extracted folder finds its name.
-   --  Base is cut at a whole character where the name would otherwise be
-   --  longer than Directory's filesystem stores; the marker and the
-   --  extension are kept whole.
+   --  The first leaf name of Base, Marker (First), Marker (First + 1), ...
+   --  and Extension that names nothing in Directory: how a duplicate, a
+   --  link, an archive or an extracted folder finds its name
+   --  (Files.Leaf_Names.First_Free, cut to what Directory's filesystem
+   --  stores, the marker and the extension kept whole). Raises Use_Error
+   --  when a name cannot be looked at (Fs_Primitives.Is_Taken) or none of
+   --  Leaf_Names.Max_Attempts is free: never a name that may be in use.
+   --
    --  @param Directory Where the new entry goes.
    --  @param Base The stem the names start from.
-   --  @param Extension Its extension, without the dot.
+   --  @param Extension Its extension, without the dot, or "".
    --  @param Marker What follows Base for an attempt (" (copy 2)", "").
    --  @param First The first attempt (0 where the bare name comes first).
    --  @param Attempt An attempt number.
-   --  @return The free stem.
-   function First_Free_Name
+   --  @return The free leaf name.
+   function First_Free_Leaf
      (Directory : String;
       Base      : String;
       Extension : String;

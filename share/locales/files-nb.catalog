@@ -325,6 +325,7 @@ nb.error.drop.invalid_destination = Slippmålet er ikke en mappe.
 nb.error.drop.invalid_source = Det slupne elementet finnes ikke.
 nb.error.duplicate.failed = Kunne ikke duplisere de valgte elementene.
 nb.error.extract.failed = Kunne ikke pakke ut arkivet.
+nb.error.extract.entry_refused = Ikke pakket ut: denne mappen kan ikke inneholde arkivoppføringen {path}.
 nb.error.extract.not_archive = Utvalget inneholder ikke noe arkiv.
 nb.error.filter.empty = Ingen filter er aktivt.
 nb.error.history.back_unavailable = Tilbakehistorikken er tom.

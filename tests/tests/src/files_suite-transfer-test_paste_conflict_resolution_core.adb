@@ -7,7 +7,7 @@ separate (Files_Suite.Transfer)
          return
            (Source_Path => To_Unbounded_String (Join ("/src", Name)),
             Dest_Dir    => To_Unbounded_String ("/dest"),
-            Dest_Name   => To_Unbounded_String (Name));
+            Dest_Name   => To_Unbounded_String (Name), others => <>);
       end Work_Item;
 
       --  A destination path spelled as the resolver spells it, with the
@@ -54,7 +54,7 @@ separate (Files_Suite.Transfer)
            (Files.Paste.Work_Item'
               (Source_Path => To_Unbounded_String ("/other/a.txt"),
                Dest_Dir    => To_Unbounded_String ("/dest"),
-               Dest_Name   => To_Unbounded_String ("a.txt")));
+               Dest_Name   => To_Unbounded_String ("a.txt"), others => <>));
          Actions := Files.Paste.Resolve (Twins, Files.Paste.Policy_Replace_All, None, Existing);
          Assert (Actions.Element (1).Replaced
                    and then To_String (Actions.Element (1).Dest_Path) = Dest ("a.txt"),

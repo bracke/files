@@ -325,6 +325,7 @@ pt.error.drop.invalid_destination = O destino da largada não é um diretório.
 pt.error.drop.invalid_source = O item largado não existe.
 pt.error.duplicate.failed = Não foi possível duplicar os itens selecionados.
 pt.error.extract.failed = Não foi possível extrair o arquivo.
+pt.error.extract.entry_refused = Não extraído: esta pasta não pode conter a entrada do arquivo {path}.
 pt.error.extract.not_archive = A seleção não contém nenhum arquivo compactado.
 pt.error.filter.empty = Nenhum filtro está ativo.
 pt.error.history.back_unavailable = O histórico anterior está vazio.

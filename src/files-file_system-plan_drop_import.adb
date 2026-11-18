@@ -29,7 +29,7 @@ is
    function Key (Path : String) return String is
      (if Rules.Fold_Names then Files.Types.Fold_Case (Path) else Path);
 
-   function Available_Destination (Leaf : String) return String is
+   function Available_Destination (Leaf : String; Is_Directory : Boolean) return String is
       --  A name that cannot be looked at raises (Is_Taken): that source's
       --  plan fails rather than take a name that may be in use.
       function Taken (Name : String) return Boolean is
@@ -39,7 +39,7 @@ is
       return Hostkit.Fs.Join
         (Destination_Directory,
          Files.Paste.First_Free_Name
-           (Leaf, Taken'Access, Rules.Dos_Names));
+           (Leaf, Taken'Access, Rules.Name_Limit, Is_Directory));
    end Available_Destination;
 
    --  Path with its links resolved: Hostkit.Fs.Real_Path, which also follows
@@ -162,7 +162,10 @@ begin
                   --  into the same directory still makes a numbered copy.)
                   Plan.Destination_Path := Source;
                else
-                  Plan.Destination_Path := To_Unbounded_String (Available_Destination (To_String (Leaf)));
+                  Plan.Destination_Path :=
+                    To_Unbounded_String
+                      (Available_Destination
+                         (To_String (Leaf), Files.Fs_Primitives.Is_Plain_Directory (Source_Text)));
                end if;
                Claimed.Include (Key (To_String (Plan.Destination_Path)));
                Plan.Error_Key := Null_Unbounded_String;

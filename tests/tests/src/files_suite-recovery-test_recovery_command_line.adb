@@ -48,4 +48,30 @@ separate (Files_Suite.Recovery)
       Assert (not Failed, "--discard-recovery deletes the payload: succeeded");
       Assert (not Files.File_System.Is_Recovery_Payload (To_String (Backup)),
               "--discard-recovery deletes the payload: payload gone");
+
+      --  The list keeps each path on its line and in its field, and sends no
+      --  control byte to the terminal; a path pasted from it reads back.
+      declare
+         Odd : constant String := "/x/a" & ASCII.HT & "b" & ASCII.LF & "c" & ASCII.ESC & "[2J" & ASCII.CR;
+         Odd_Windows : constant String := "C:\x\a" & ASCII.HT & "b" & ASCII.ESC;
+      begin
+         if Hostkit.Fs.Separator = '\' then
+            Files_Suite.Support.Assert_Equal
+              (Files.Recovery_CLI.Escaped (Odd_Windows), "C:\x\a\tb\x1b",
+               "control bytes print escaped, separators as they are");
+            Files_Suite.Support.Assert_Equal
+              (Files.Recovery_CLI.Unescaped ("C:\temp\x41"), "C:\temp\x41", "a Windows path reads as it is");
+         else
+            Files_Suite.Support.Assert_Equal
+              (Files.Recovery_CLI.Escaped (Odd & "\"), "/x/a\tb\nc\x1b[2J\r\\",
+               "control bytes and backslashes print escaped");
+            Files_Suite.Support.Assert_Equal
+              (Files.Recovery_CLI.Unescaped (Files.Recovery_CLI.Escaped (Odd & "\q")), Odd & "\q",
+               "a printed path reads back as the path");
+         end if;
+         Files_Suite.Support.Assert_Equal
+           (Files.Recovery_CLI.Escaped ("/plain/" & "caf" & Character'Val (16#C3#) & Character'Val (16#A9#)),
+            "/plain/" & "caf" & Character'Val (16#C3#) & Character'Val (16#A9#),
+            "a path with nothing to escape prints as it is");
+      end;
    end Test_Recovery_Command_Line;

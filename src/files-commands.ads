@@ -296,17 +296,26 @@ package Files.Commands is
      (Id : Command_Id)
       return Boolean;
 
-   --  Join the full paths of the given items into a single newline-separated
-   --  string, one path per line, in item order. Returns an empty string when no
+   --  Join the full paths of the given items into one text, one path per
+   --  line, in item order: lines end CR LF on Windows, LF elsewhere (Line_Break).
+   --  One path is copied exactly as it is. Among several, a path that holds a
+   --  line break or starts with '"' -- which pasted would read as two paths,
+   --  or as a quoted one -- is written in double quotes, a '"' inside it
+   --  doubled, as a spreadsheet reads a field. Returns an empty string when no
    --  items are supplied. This is the pure, filesystem-free text seam the
    --  Copy_Path_Command uses before the platform layer writes the system
    --  clipboard.
    --
    --  @param Items Items whose full paths are joined.
-   --  @return Newline-joined full paths, or an empty string when Items is empty.
+   --  @return The joined full paths, or an empty string when Items is empty.
    function Joined_Full_Paths
      (Items : Files.Items.Item_Vectors.Vector)
       return String;
+
+   --  The line break between copied paths: CR LF on Windows, LF elsewhere.
+   --
+   --  @return The line break.
+   function Line_Break return String;
 
    --  Return whether Identifier names a registered command.
    --

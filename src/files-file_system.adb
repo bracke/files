@@ -683,7 +683,7 @@ package body Files.File_System is
    --  before the disk is touched, so every host reports it alike (a Windows
    --  runner was seen creating a 300-character name).
    function Leaf_Too_Long (Name : String; Directory : String) return Boolean is
-     (Files.Leaf_Names.Too_Long_Under (Name, Hostkit.Fs.Uses_Dos_Filename_Rules (Directory)));
+     (Files.Leaf_Names.Too_Long_Under (Name, Hostkit.Fs.Leaf_Name_Limit_At (Directory)));
 
    function Storable_Leaf_Name_At
      (Name      : String;

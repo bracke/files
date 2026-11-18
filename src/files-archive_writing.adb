@@ -75,25 +75,25 @@ package body Files.Archive_Writing is
           (First <= Name'Last and then Name (First .. Name'Last) not in "." | "..");
    end Safe_Archive_Name;
 
-   function Names_Are_Extractable
+   function First_Unextractable
      (Entries          : Zlib.Archive_Entry_Array;
       Dos_Rules        : Boolean;
-      Case_Insensitive : Boolean) return Boolean
+      Case_Insensitive : Boolean) return String
    is
       Names_Seen : Archive_Name_Sets.Set;
 
-      --  Whether every '/'-separated segment of Name is one the destination
+      --  Whether every '/'-separated segment of Path is one the destination
       --  can store.
-      function Storable (Name : String) return Boolean is
-         First : Positive := Name'First;
+      function Storable (Path : String) return Boolean is
+         First : Positive := Path'First;
       begin
          if not Dos_Rules then
             return True;
          end if;
-         for I in Name'First .. Name'Last + 1 loop
-            if I > Name'Last or else Name (I) = '/' then
+         for I in Path'First .. Path'Last + 1 loop
+            if I > Path'Last or else Path (I) = '/' then
                if I > First
-                 and then not Files.File_System.Valid_Leaf_Name (Name (First .. I - 1), Files.File_System.Windows_Rules)
+                 and then not Files.File_System.Valid_Leaf_Name (Path (First .. I - 1), Files.File_System.Windows_Rules)
                then
                   return False;
                end if;
@@ -104,28 +104,47 @@ package body Files.Archive_Writing is
       end Storable;
 
       --  The name two entries collide under on the destination.
-      function Key (Name : String) return String is
-        (if Case_Insensitive then Files.Types.Fold_Case (Name) else Name);
+      function Key (Path : String) return String is
+        (if Case_Insensitive then Files.Types.Fold_Case (Path) else Path);
    begin
       for Member of Entries loop
          declare
             Name : constant String := Ada.Strings.Unbounded.To_String (Member.Name);
-            Is_Directory_Entry : constant Boolean :=
-              Name /= "" and then Name (Name'Last) = '/';
+            Path : constant String := Zlib.Entry_Path_Name (Name);
+            Is_Directory_Entry : constant Boolean := Path /= "" and then Path (Path'Last) = '/';
+            Relative : constant String :=
+              (if Is_Directory_Entry then Path (Path'First .. Path'Last - 1) else Path);
          begin
             --  A repeated directory entry is harmless (some writers emit one
             --  per member); only a repeated file would silently overwrite.
-            if not Safe_Archive_Name (Name, Allow_Trailing_Separator => Is_Directory_Entry)
-              or else not Storable (Name)
-              or else (not Is_Directory_Entry and then Names_Seen.Contains (Key (Name)))
+            if Relative = ""
+              or else not Zlib.Safe_Entry_Path (Relative)
+              or else not Storable (Relative)
+              or else (not Is_Directory_Entry and then Names_Seen.Contains (Key (Relative)))
             then
-               return False;
+               --  A nameless entry would write the destination itself: it
+               --  is named by the "/" it stands for, never "" (all clear).
+               return (if Name = "" then "/" else Name);
             end if;
-            Names_Seen.Include (Key (Name));
+            Names_Seen.Include (Key (Relative));
          end;
       end loop;
-      return True;
-   end Names_Are_Extractable;
+      return "";
+   end First_Unextractable;
+
+   function Names_Are_Extractable
+     (Entries          : Zlib.Archive_Entry_Array;
+      Dos_Rules        : Boolean;
+      Case_Insensitive : Boolean) return Boolean is
+     (First_Unextractable (Entries, Dos_Rules, Case_Insensitive) = "");
+
+   function First_Unextractable_At
+     (Entries     : Zlib.Archive_Entry_Array;
+      Destination : String) return String is
+     (First_Unextractable
+        (Entries,
+         Dos_Rules        => Destination /= "" and then Hostkit.Fs.Uses_Dos_Filename_Rules (Destination),
+         Case_Insensitive => Destination /= "" and then Hostkit.Fs.Folds_Name_Case (Destination)));
 
    function Extraction_Is_Within_Limits
      (Entries            : Zlib.Archive_Entry_Array;

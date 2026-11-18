@@ -325,6 +325,7 @@ it.error.drop.invalid_destination = La destinazione del rilascio non è una dire
 it.error.drop.invalid_source = L'elemento rilasciato non esiste.
 it.error.duplicate.failed = Impossibile duplicare gli elementi selezionati.
 it.error.extract.failed = Impossibile estrarre l'archivio.
+it.error.extract.entry_refused = Non estratto: questa cartella non può contenere la voce dell’archivio {path}.
 it.error.extract.not_archive = La selezione non contiene alcun archivio.
 it.error.filter.empty = Nessun filtro è attivo.
 it.error.history.back_unavailable = La cronologia indietro è vuota.

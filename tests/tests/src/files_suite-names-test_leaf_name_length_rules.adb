@@ -1,9 +1,10 @@
 with Files.Leaf_Names;
+with Hostkit.Fs;
 separate (Files_Suite.Names)
    --  How long a name each filesystem stores, as a table: 255 bytes on a
-   --  POSIX filesystem, 255 UTF-16 units under DOS rules (NTFS, FAT, exFAT)
-   --  -- where a name that is not UTF-8 counts its bytes, never fewer -- and
-   --  a long name cut down at whole characters, keeping what follows it.
+   --  POSIX filesystem, 255 UTF-16 units on NTFS, FAT, exFAT, SMB, APFS and
+   --  HFS+ -- where a name that is not UTF-8 counts its bytes, never fewer --
+   --  and a long name cut down at whole characters, keeping what follows it.
    procedure Test_Leaf_Name_Length_Rules (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
 
@@ -13,6 +14,11 @@ separate (Files_Suite.Names)
       Emoji   : constant String :=
         Character'Val (16#F0#) & Character'Val (16#9F#) & Character'Val (16#98#) & Character'Val (16#80#);
       Invalid : constant Character := Character'Val (16#FF#);
+      --  U+65E5 (a CJK character): three bytes, one UTF-16 unit.
+      Cjk     : constant String := Character'Val (16#E6#) & Character'Val (16#97#) & Character'Val (16#A5#);
+
+      Bytes_255 : constant Hostkit.Fs.Leaf_Name_Limit := (Unit => Hostkit.Fs.Bytes, Most => 255);
+      Utf16_255 : constant Hostkit.Fs.Leaf_Name_Limit := (Unit => Hostkit.Fs.Utf16_Units, Most => 255);
 
       function Repeat (Item : String; Count : Natural) return String is (Ada.Strings.Fixed."*" (Count, Item));
 
@@ -38,16 +44,30 @@ separate (Files_Suite.Names)
    begin
       for Item of Table loop
          Assert
-           (Files.Leaf_Names.Too_Long_Under (To_String (Item.Name), Dos_Rules => False) = Item.Posix_Too,
+           (Files.Leaf_Names.Too_Long_Under (To_String (Item.Name), Bytes_255) = Item.Posix_Too,
             To_String (Item.Label) & ": POSIX rule");
          Assert
-           (Files.Leaf_Names.Too_Long_Under (To_String (Item.Name), Dos_Rules => True) = Item.Dos_Too,
-            To_String (Item.Label) & ": DOS rule");
+           (Files.Leaf_Names.Too_Long_Under (To_String (Item.Name), Utf16_255) = Item.Dos_Too,
+            To_String (Item.Label) & ": UTF-16 rule");
       end loop;
-      Assert (Files.Leaf_Names.Length_Under (Repeat (Emoji, 127), Dos_Rules => True) = 254,
+      Assert (Files.Leaf_Names.Length_Under (Repeat (Emoji, 127), Hostkit.Fs.Utf16_Units) = 254,
               "an astral character is two UTF-16 units");
-      Assert (Files.Leaf_Names.Length_Under (Repeat (Emoji, 127), Dos_Rules => False) = 508,
+      Assert (Files.Leaf_Names.Length_Under (Repeat (Emoji, 127), Hostkit.Fs.Bytes) = 508,
               "and four bytes");
+
+      --  A name of 100 CJK characters is 300 bytes: too long for ext4, but
+      --  a volume counting UTF-16 units (APFS, HFS+, NTFS) holds it, so a
+      --  rename back to it (an Undo) is not refused there.
+      Assert (Files.Leaf_Names.Too_Long_Under (Repeat (Cjk, 100), Bytes_255),
+              "100 CJK characters are too long for 255 bytes");
+      Assert (not Files.Leaf_Names.Too_Long_Under (Repeat (Cjk, 100), Utf16_255),
+              "100 CJK characters fit in 255 UTF-16 units");
+
+      --  A volume that says it stores fewer (ecryptfs: 143 bytes) is held to
+      --  that.
+      Assert (Files.Leaf_Names.Too_Long_Under ([1 .. 144 => 'a'], (Unit => Hostkit.Fs.Bytes, Most => 143))
+              and then not Files.Leaf_Names.Too_Long_Under ([1 .. 143 => 'a'], (Unit => Hostkit.Fs.Bytes, Most => 143)),
+              "a smaller limit a volume states is the one that holds");
 
       --  Cutting: whole characters only, the tail kept, as little as needed.
       Files_Suite.Support.Assert_Equal
@@ -55,11 +75,11 @@ separate (Files_Suite.Names)
          Repeat (E_Acute, 126) & " 2",
          "a cut drops whole two-byte characters to fit 255 bytes");
       Files_Suite.Support.Assert_Equal
-        (Files.Leaf_Names.Cut (Repeat (E_Acute, 128), " 2", 255, Dos_Rules => True),
+        (Files.Leaf_Names.Cut (Repeat (E_Acute, 128), " 2", 255, Hostkit.Fs.Utf16_Units),
          Repeat (E_Acute, 128) & " 2",
-         "130 UTF-16 units fit under DOS rules uncut");
+         "130 UTF-16 units fit uncut");
       Files_Suite.Support.Assert_Equal
-        (Files.Leaf_Names.Cut (Repeat (Emoji, 128), "", 255, Dos_Rules => True),
+        (Files.Leaf_Names.Cut (Repeat (Emoji, 128), "", 255, Hostkit.Fs.Utf16_Units),
          Repeat (Emoji, 127),
          "a surrogate pair is never split");
       Files_Suite.Support.Assert_Equal

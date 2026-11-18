@@ -20,7 +20,8 @@ begin
                Dest_Dir    => To_Unbounded_String (Directory),
                Dest_Name   =>
                  To_Unbounded_String
-                   (Files.Fs_Primitives.Leaf_Text (To_String (Plan.Source_Path)))));
+                   (Files.Fs_Primitives.Leaf_Text (To_String (Plan.Source_Path))),
+               Is_Directory => Files.Fs_Primitives.Is_Plain_Directory (To_String (Plan.Source_Path))));
       end if;
    end loop;
    return Work;

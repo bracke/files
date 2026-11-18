@@ -1,3 +1,4 @@
+with Hostkit.Fs;
 separate (Files_Suite.Names)
    --  The "stem 2.ext" a paste or drop gives a name in use stays storable:
    --  a 254-byte name numbered as it is would take 256 bytes, so its stem
@@ -28,9 +29,10 @@ separate (Files_Suite.Names)
            (Free, Accented (124) & " 2.txt", "cut at a whole character");
       end;
       Files_Suite.Support.Assert_Equal
-        (Files.Paste.First_Free_Name (Accented_Name, Taken'Access, Dos_Rules => True),
+        (Files.Paste.First_Free_Name
+           (Accented_Name, Taken'Access, Limit => (Unit => Hostkit.Fs.Utf16_Units, Most => 255)),
          Accented (125) & " 2.txt",
-         "under DOS rules 131 UTF-16 units fit, so nothing is cut");
+         "where names count UTF-16 units, 131 of them fit, so nothing is cut");
       Files_Suite.Support.Assert_Equal
         (Files.Paste.First_Free_Name ("short.txt", Taken'Access), "short.txt", "a free name is kept");
    end Test_Numbered_Name_Fits;

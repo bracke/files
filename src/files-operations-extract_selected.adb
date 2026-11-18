@@ -18,6 +18,9 @@ is
    --  An earlier archive in the same batch may already have committed.
    --  Keep that output visible as well as undoable, while preserving the
    --  diagnostic which explains why the remaining batch stopped.
+   --  An entry it cannot extract, named in the message.
+   Refused_Key : constant String := "error.extract.entry_refused";
+
    function Failed return Operation_Result is
    begin
       Finish_Failed_Undo (Model, Progress);
@@ -56,10 +59,8 @@ begin
                --  A directory-unique destination folder name, e.g. "report"
                --  or "report (1)" when the first choice already exists.
                --  The bare name first, then "name (1)", "name (2)" and so on.
-               function Marker (Attempt : Natural) return String is
-                 (if Attempt = 0 then "" else " (" & Files.Types.Natural_Text (Attempt) & ")");
                function Unique_Name return String is
-                 (First_Free_Name (Destination, Base, "", Marker'Access, First => 0));
+                 (First_Free_Leaf (Destination, Base, "", Files.Leaf_Names.Numbered_Marker'Access, First => 0));
 
                Dest_Name : constant String := Unique_Name;
                Dest_Dir  : constant String := Hostkit.Fs.Join (Destination, Dest_Name);
@@ -84,6 +85,26 @@ begin
                   Capacity : constant Hostkit.Metadata.Volume_Capacity :=
                     Hostkit.Metadata.Volume_Capacity_Of (Destination);
                begin
+                  --  A name it cannot extract is named: which entry, not
+                  --  only that the archive failed.
+                  if Catalog_Status = Zlib.Ok then
+                     declare
+                        Refused : constant String :=
+                          Files.Archive_Writing.First_Unextractable_At (Entries, Destination);
+                     begin
+                        if Refused /= "" then
+                           Discard_Stage;
+                           Finish_Failed_Undo (Model, Progress);
+                           --  Archives extracted before this one are shown.
+                           if Progress.Items.Is_Empty then
+                              Files.Model.Set_Error (Model, Refused_Key, Refused);
+                           else
+                              Reload_With_Error (Model, Settings, Refused_Key, Refused);
+                           end if;
+                           return Make_Result (Operation_Failed, Refused_Key, Directory);
+                        end if;
+                     end;
+                  end if;
                   if Catalog_Status /= Zlib.Ok
                     or else not Files.Archive_Writing.Extraction_Is_Within_Limits
                       (Entries,

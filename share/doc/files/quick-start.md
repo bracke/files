@@ -42,6 +42,10 @@ files --discard-recovery DIRECTORY/.files-recovery-N/payload
 
 The no-argument list uses the persistent application-data index; the directory
 form scans only that directory. Listing prints the payload and its recorded
-original path, separated by a tab. Recovery refuses to replace an existing
+original path, separated by a tab, one payload per line. A control byte in
+either path is printed escaped (`\t`, `\n`, `\r`, `\xHH`) and, outside
+Windows, a backslash as `\\`, so a path stays on its line and in its field;
+`--recover` and `--discard-recovery` accept a path in that printed form.
+Recovery refuses to replace an existing
 destination. Discard is permanent, requires an identity-bound Files ownership
 record, and refuses directories containing unknown entries.

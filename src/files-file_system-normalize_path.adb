@@ -3,6 +3,10 @@ function Normalize_Path
   (Path : String)
    return Path_Result
 is
+   --  The full name in the spelling the volume stores (Windows: the stored
+   --  case and long names, however the path was typed), so one folder has
+   --  one path for favorites, labels and Recent to match.
+   function Stored (Text : String) return String is (Hostkit.Fs.Stored_Spelling (Text));
 begin
    if Path = "" or else Files.Fs_Primitives.Entry_Is_Absent (Path) then
       return
@@ -22,13 +26,14 @@ begin
       when Ada.Directories.Directory =>
          return
            (Status         => Path_Valid,
-            Directory_Path => To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path)),
+            Directory_Path => To_Unbounded_String (Stored (Files.Fs_Primitives.Full_Name (Path))),
             Error_Key      => Null_Unbounded_String);
       when Ada.Directories.Ordinary_File =>
          return
            (Status         => Path_Valid,
             Directory_Path =>
-              To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Files.Fs_Primitives.Full_Name (Path))),
+              To_Unbounded_String
+                (Files.Fs_Primitives.Parent_Directory (Stored (Files.Fs_Primitives.Full_Name (Path)))),
             Error_Key      => Null_Unbounded_String);
       when Ada.Directories.Special_File =>
          return

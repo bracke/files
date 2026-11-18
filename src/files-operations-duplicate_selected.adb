@@ -15,22 +15,8 @@ is
      (Kind => Files.Model.Undo_Delete_Created, Create_Kind => Files.Model.Create_Copy, Redoable => True,
       others => <>);
 
-   function Trimmed_Image (Value : Positive) return String is (Files.Types.Natural_Text (Value));
-
-   --  Build the " (copy)" / " (copy N)" marker. The fragments are kept
-   --  separate so no single string literal mixes a letter with a space,
-   --  which the format-validation tooling rejects.
-   function Copy_Marker (Value : Positive) return String is
-      Open  : constant String := " (";
-      Word  : constant String := "copy";
-      Close : constant String := ")";
-   begin
-      if Value = 1 then
-         return Open & Word & Close;
-      else
-         return Open & Word & " " & Trimmed_Image (Value) & Close;
-      end if;
-   end Copy_Marker;
+   --  The " (copy)" / " (copy N)" marker: a fixed, unlocalized file name.
+   function Copy_Marker (Attempt : Natural) return String is (Files.Leaf_Names.Counted_Marker ("copy", Attempt));
 
    --  Copy_Tree commits one selection at a time. If a later source
    --  fails, the earlier copies stay undoable; reload so they are not
@@ -67,17 +53,17 @@ begin
             --  folders; each duplicate belongs beside its source.
             Destination_Directory : constant String := Files.Fs_Primitives.Parent_Directory (Source);
             Name   : constant String := To_String (Item.Name);
-            Ext    : constant String := Files.Types.Extension_Of (Name);
-            Base   : constant String := Files.Types.Stem_Of (Name);
+            --  A plain folder's dots are part of its name: "v1.2 (copy)".
+            Is_Folder : constant Boolean := Item.Kind = Files.Types.Directory_Item;
 
-            --  A directory-unique copy stem (without extension), e.g. "report
-            --  (copy)" or "report (copy 2)" when earlier choices already exist.
-            function Marker (Attempt : Natural) return String is (Copy_Marker (Attempt));
-            function Unique_Stem return String is
-              (First_Free_Name (Destination_Directory, Base, Ext, Marker'Access));
-
+            --  A directory-unique copy name, e.g. "report (copy).txt" or
+            --  "report (copy 2).txt" when earlier choices already exist.
             Dest_Path : constant String :=
-              Files.Fs_Primitives.Compose_Text (Destination_Directory, Unique_Stem, Ext);
+              Hostkit.Fs.Join
+                (Destination_Directory,
+                 First_Free_Leaf
+                   (Destination_Directory, Files.Types.Name_Stem (Name, Is_Folder),
+                    Files.Types.Name_Extension (Name, Is_Folder), Copy_Marker'Access));
             Dest_Name : constant String := Files.Fs_Primitives.Leaf_Text (Dest_Path);
             Identity, Revision : Files.Types.UString;
             Mutation  : constant Files.File_System.Mutation_Result :=

@@ -3,7 +3,7 @@ with Zlib;
 --  Archive writers that preserve selected directory entries as well as files.
 package Files.Archive_Writing is
    --  Whether every entry name in Entries can be extracted without escaping
-   --  the destination or overwriting another entry.
+   --  the destination or overwriting another entry (First_Unextractable).
    --
    --  @param Entries Catalogue returned by Zlib before extraction.
    --  @param Dos_Rules Whether each name segment must be one Windows can
@@ -16,6 +16,33 @@ package Files.Archive_Writing is
      (Entries          : Zlib.Archive_Entry_Array;
       Dos_Rules        : Boolean;
       Case_Insensitive : Boolean) return Boolean;
+
+   --  The first entry of Entries whose name cannot be extracted, as the
+   --  archive lists it, or "" when every one can. A name is read as the path
+   --  zlib extracts it to (Zlib.Entry_Path_Name: '\' separates in a name
+   --  written by an old Windows tool) and must stay below the destination
+   --  (Zlib.Safe_Entry_Path); a ':' is a name's own character unless the
+   --  host or a DOS-rules destination says otherwise.
+   --
+   --  @param Entries Catalogue returned by Zlib before extraction.
+   --  @param Dos_Rules As Names_Are_Extractable.
+   --  @param Case_Insensitive As Names_Are_Extractable.
+   --  @return The refused entry's name, or "".
+   function First_Unextractable
+     (Entries          : Zlib.Archive_Entry_Array;
+      Dos_Rules        : Boolean;
+      Case_Insensitive : Boolean) return String;
+
+   --  First_Unextractable for a destination folder, asked of its volume
+   --  (Hostkit.Fs.Uses_Dos_Filename_Rules, Folds_Name_Case), so an
+   --  extraction names the entry it refuses.
+   --
+   --  @param Entries Catalogue returned by Zlib before extraction.
+   --  @param Destination Folder the entries are extracted into.
+   --  @return The refused entry's name, or "".
+   function First_Unextractable_At
+     (Entries     : Zlib.Archive_Entry_Array;
+      Destination : String) return String;
 
    --  Check that an archive catalogue can be extracted without exhausting the
    --  destination volume or crossing the application's structural limits.

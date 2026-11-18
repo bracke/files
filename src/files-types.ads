@@ -80,6 +80,34 @@ package Files.Types is
    --  @return The extension, or "".
    function Extension_Of (Name : String) return String;
 
+   --  Whether a folder named Name is a package that shows as one item, its
+   --  extension naming what it is (macOS's "Mail.app", "Photos.photoslibrary",
+   --  "Notes.rtfd"): app, appex, bundle, component, framework, kext, mpkg,
+   --  pkg, plugin, prefpane, qlgenerator, mdimporter, saver, xpc, rtfd,
+   --  photoslibrary, xcodeproj, xcworkspace, playground, matched without
+   --  regard to ASCII case.
+   --
+   --  @param Name A folder's leaf name.
+   --  @return True when its extension names a package.
+   function Is_Package_Name (Name : String) return Boolean;
+
+   --  Name's stem as a new name is built from it (a copy, a link, an
+   --  archive, a numbered paste): a file's and a package's Stem_Of, and all
+   --  of a plain folder's name, whose dots are part of it ("v1.2" is
+   --  "v1.2 (copy)", not "v1 (copy).2").
+   --
+   --  @param Name A leaf name.
+   --  @param Is_Directory Whether it names a folder.
+   --  @return The stem.
+   function Name_Stem (Name : String; Is_Directory : Boolean) return String;
+
+   --  Name's extension, by the rule Name_Stem splits by: "" for a plain folder.
+   --
+   --  @param Name A leaf name.
+   --  @param Is_Directory Whether it names a folder.
+   --  @return The extension without its dot, or "".
+   function Name_Extension (Name : String; Is_Directory : Boolean) return String;
+
    --  A path's last component read from its text alone
    --  (Hostkit.Path_Text.Leaf), for a unit that reads no disk: GNAT's Windows
    --  Ada.Directories.Simple_Name refuses a component past 256 characters.
@@ -350,6 +378,15 @@ package Files.Types is
    --  @return Text with A .. Z lower-cased.
    function To_Lower_Ascii (Text : String) return String;
 
+   --  Text in lower case by Unicode's simple mapping, every script alike
+   --  ("ДОК" is "док"), with no normalization and no data to load, so it
+   --  answers the same everywhere; text that is not valid UTF-8 is lowered
+   --  in ASCII only.
+   --
+   --  @param Text Text to lower.
+   --  @return Lowered text.
+   function To_Lower_Unicode (Text : String) return String;
+
    --  Text with its ASCII letters upper-cased and every other byte kept, the
    --  counterpart of To_Lower_Ascii: Ada.Characters.Handling.To_Upper would
    --  map Latin-1 bytes too, mangling a UTF-8 lead byte.
@@ -390,14 +427,20 @@ package Files.Types is
    --  @return Raw without a trailing incomplete character.
    function Trim_To_Character (Raw : String) return String;
 
-   --  Return a case-insensitive, accent-folded sort key for Text: an
-   --  ASCII-lowercased copy in which the accented Latin letters are reduced to
-   --  their base letter (a-with-umlaut becomes a, sharp-s becomes ss, and so
-   --  on). Ordering two names by String "<" on these keys sorts an accented name
-   --  next to its base letter, the way a reader expects, instead of by raw UTF-8
-   --  byte -- where every non-ASCII name lands after all of a..z. Non-Latin
-   --  scripts keep their codepoint order. Deterministic and self-contained: no
-   --  locale data is consulted, so the order never depends on the environment.
+   --  Return a case-insensitive, accent-folded sort key for Text, the one key
+   --  every name list sorts by (listings, the application picker). Every
+   --  script's letters fold to lower case (Ada's own Unicode tables), and an
+   --  accent or other combining mark is dropped, whether it is stored as a
+   --  mark of its own (decomposed, as macOS and many SMB servers write names)
+   --  or within a precomposed letter: the Latin, Greek and Cyrillic letters
+   --  and the voiced kana fold to their base letter (a-with-umlaut becomes a,
+   --  sharp-s becomes ss, Cyrillic short i becomes i, ga becomes ka), and
+   --  decomposed Hangul jamo compose into their syllable. So a name sorts the
+   --  same however it is stored, and next to its base letter instead of by
+   --  raw UTF-8 byte -- where every non-ASCII name lands after all of a..z.
+   --  Deterministic and self-contained: no locale or normalization data is
+   --  consulted, so the order never depends on the environment. Bytes that
+   --  are not UTF-8 are kept as they are.
    --
    --  @param Text Text to build a sort key for.
    --  @return Folded key; compare keys with String "<".

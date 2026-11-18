@@ -123,29 +123,27 @@ begin
    declare
       Top_Names : Archive_Name_Sets.Set;
 
-      function Entry_For (Name : String) return String is
-         Base : constant String := Files.Types.Stem_Of (Name);
-         Ext  : constant String := Files.Types.Extension_Of (Name);
+      --  An archive entry's name is bounded only by the format's 16-bit
+      --  name field, not by a volume.
+      Entry_Limit : constant Hostkit.Fs.Leaf_Name_Limit := (Unit => Hostkit.Fs.Bytes, Most => 65_535);
+
+      function Taken (Name : String) return Boolean is (Top_Names.Contains (Files.Types.Fold_Case (Name)));
+
+      --  The numbering a paste gives a name in use: "readme 2.txt", a plain
+      --  folder's dots kept in its name.
+      function Entry_For (Name : String; Is_Folder : Boolean) return String is
+         Free : constant String :=
+           Files.Leaf_Names.First_Free
+             (Files.Types.Name_Stem (Name, Is_Folder), Files.Types.Name_Extension (Name, Is_Folder),
+              Files.Leaf_Names.Spaced_Number'Access, Taken'Access, Entry_Limit);
       begin
-         if not Top_Names.Contains (Files.Types.Fold_Case (Name)) then
-            return Name;
-         end if;
-         for N in 2 .. Max_Name_Attempts loop
-            declare
-               Candidate : constant String :=
-                 Base & " " & Files.Types.Natural_Text (N) & (if Ext = "" then "" else "." & Ext);
-            begin
-               if not Top_Names.Contains (Files.Types.Fold_Case (Candidate)) then
-                  return Candidate;
-               end if;
-            end;
-         end loop;
-         return Name;
+         return (if Free = "" then Name else Free);
       end Entry_For;
    begin
       for Item of Items loop
          declare
-            Name : constant String := Entry_For (To_String (Item.Name));
+            Name : constant String :=
+              Entry_For (To_String (Item.Name), Item.Kind = Files.Types.Directory_Item);
          begin
             Top_Names.Include (Files.Types.Fold_Case (Name));
             Collect (To_String (Item.Full_Path), Name);
@@ -170,16 +168,17 @@ begin
         (case Format is
             when Zip_Archive       => "zip",
             when Seven_Zip_Archive => "7z");
-      --  ".bashrc" is all name: ".bashrc.zip", not ".zip".
-      Raw_Base : constant String := Files.Types.Stem_Of (To_String (Items.First_Element.Name));
+      --  ".bashrc" is all name: ".bashrc.zip", not ".zip"; so is a plain
+      --  folder's: "photos.2024.zip", not "photos.zip".
+      Raw_Base : constant String :=
+        Files.Types.Name_Stem
+          (To_String (Items.First_Element.Name), Items.First_Element.Kind = Files.Types.Directory_Item);
       Base     : constant String := (if Raw_Base = "" then "archive" else Raw_Base);
 
       --  A directory-unique simple archive name, e.g. "report.zip" or
       --  "report (1).zip" when the first choice already exists.
-      function Marker (Attempt : Natural) return String is
-        (if Attempt = 0 then "" else " (" & Files.Types.Natural_Text (Attempt) & ")");
       function Unique_Name return String is
-        (First_Free_Name (Directory, Base, Extension, Marker'Access, First => 0) & "." & Extension);
+        (First_Free_Leaf (Directory, Base, Extension, Files.Leaf_Names.Numbered_Marker'Access, First => 0));
 
       Archive_Name : constant String := Unique_Name;
       Output_Path  : constant String := Hostkit.Fs.Join (Directory, Archive_Name);

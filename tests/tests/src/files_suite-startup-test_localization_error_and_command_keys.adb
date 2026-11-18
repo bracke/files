@@ -74,6 +74,7 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("error.compress.failed");
       Add_Error_Key ("error.compress.unportable_name");
       Add_Error_Key ("error.extract.failed");
+      Add_Error_Key ("error.extract.entry_refused");
       Add_Error_Key ("error.undo.failed");
       Add_Error_Key ("error.redo.failed");
       Add_Error_Key ("error.operation.failed");
@@ -126,7 +127,7 @@ separate (Files_Suite.Startup)
          begin
             --  A message naming a path is formatted with one.
             Assert
-              ((if Text_Key = Files.File_System.Rename_Stranded_Key
+              ((if Text_Key = Files.File_System.Rename_Stranded_Key or else Text_Key = "error.extract.entry_refused"
                 then Files.Localization.Text (Text_Key, "path", "/left/here") /= Text_Key
                 else Files.Localization.Text (Text_Key) /= Text_Key),
                "error localization exists for " & Text_Key);

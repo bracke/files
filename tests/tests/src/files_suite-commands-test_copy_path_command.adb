@@ -1,3 +1,4 @@
+with Hostkit.Host;
 with Files.Items;
 with Files.Commands.Status;
 with Files.Model.Clipboard;
@@ -27,8 +28,27 @@ separate (Files_Suite.Commands)
       Pair.Append (Files.File_System.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
       Files_Suite.Support.Assert_Equal
         (Files.Commands.Joined_Full_Paths (Pair),
-         Alpha_Path & ASCII.LF & Beta_Path,
+         Alpha_Path & Files.Commands.Line_Break & Beta_Path,
          "full paths join one per line in item order");
+      Assert (Files.Commands.Line_Break
+              = (if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows) then ASCII.CR & ASCII.LF
+                 else [1 => ASCII.LF]),
+              "paths are joined by the host's line break");
+      --  A name holding a line break is quoted among several, so pasted it
+      --  is still one path; alone it is copied exactly.
+      declare
+         Odd : Files.Items.Item_Vectors.Vector;
+         Two_Lines : constant String := "a" & ASCII.LF & "b ""q"".txt";
+      begin
+         Odd.Append (Files.File_System.Make_Item (Root, Two_Lines, Files.Types.Regular_File_Item, "text/plain"));
+         Files_Suite.Support.Assert_Equal
+           (Files.Commands.Joined_Full_Paths (Odd), Join (Root, Two_Lines), "one path is copied exactly");
+         Odd.Append (Files.File_System.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
+         Files_Suite.Support.Assert_Equal
+           (Files.Commands.Joined_Full_Paths (Odd),
+            """" & Join (Root, "a" & ASCII.LF & "b """"q"""".txt") & """" & Files.Commands.Line_Break & Beta_Path,
+            "a path holding a line break is quoted among several, its quotes doubled");
+      end;
 
       --  Enablement follows the selection.
       Assert

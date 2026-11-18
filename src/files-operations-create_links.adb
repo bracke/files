@@ -29,20 +29,8 @@ is
       return Batch_Failed (Model, Settings, Error_Key, Directory, Wrote_Some => not Progress.Items.Is_Empty);
    end Failed;
 
-   --  Build the " (link)" / " (link N)" marker. The fragments are kept
-   --  separate so no single string literal mixes a letter with a space,
-   --  which the format-validation tooling rejects.
-   function Link_Marker (Value : Positive) return String is
-      Open  : constant String := " (";
-      Word  : constant String := "link";
-      Close : constant String := ")";
-   begin
-      if Value = 1 then
-         return Open & Word & Close;
-      else
-         return Open & Word & " " & Files.Types.Natural_Text (Value) & Close;
-      end if;
-   end Link_Marker;
+   --  The " (link)" / " (link N)" marker: a fixed, unlocalized file name.
+   function Link_Marker (Attempt : Natural) return String is (Files.Leaf_Names.Counted_Marker ("link", Attempt));
 begin
    if Files.Model.Selection.Includes_Temporary (Model) then
       return Disabled (Model, "error.create.pending");
@@ -59,18 +47,19 @@ begin
       declare
          Source : constant String := To_String (Item.Full_Path);
          Name   : constant String := To_String (Item.Name);
-         Ext    : constant String := Files.Types.Extension_Of (Name);
-         Base   : constant String := Files.Types.Stem_Of (Name);
+         --  A plain folder's dots are part of its name: "v1.2 (link)".
+         Is_Folder : constant Boolean := Item.Kind = Files.Types.Directory_Item;
          --  A link belongs beside its source, wherever the listing came from.
          Link_Directory : constant String := Files.Fs_Primitives.Parent_Directory (Source);
 
-         --  A directory-unique link stem (without extension), e.g. "report
-         --  (link)" or "report (link 2)" when earlier choices already exist.
-         function Marker (Attempt : Natural) return String is (Link_Marker (Attempt));
-         function Unique_Stem return String is (First_Free_Name (Link_Directory, Base, Ext, Marker'Access));
-
+         --  A directory-unique link name, e.g. "report (link).txt" or
+         --  "report (link 2).txt" when earlier choices already exist.
          Dest_Path : constant String :=
-           Files.Fs_Primitives.Compose_Text (Link_Directory, Unique_Stem, Ext);
+           Hostkit.Fs.Join
+             (Link_Directory,
+              First_Free_Leaf
+                (Link_Directory, Files.Types.Name_Stem (Name, Is_Folder),
+                 Files.Types.Name_Extension (Name, Is_Folder), Link_Marker'Access));
          Dest_Name : constant String := Files.Fs_Primitives.Leaf_Text (Dest_Path);
          Mutation  : constant Files.File_System.Mutation_Result :=
            (if Hard

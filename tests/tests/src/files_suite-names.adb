@@ -55,6 +55,7 @@ package body Files_Suite.Names is
    procedure Test_Path_Text_Leaf_And_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Stem_And_Extension (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Numbered_Name_Fits (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_One_Free_Name_Rule (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Create_File (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Create_Folder (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_File_Does_Not_Overwrite (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -121,6 +122,9 @@ package body Files_Suite.Names is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Numbered_Name_Fits'Access,
          "a numbered keep-both name is cut to fit the destination");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_One_Free_Name_Rule'Access,
+         "every new name is found one way, a folder's dots kept in it");
    end Register_Tests;
 
    procedure Test_Commit_Create_File (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -150,6 +154,8 @@ package body Files_Suite.Names is
    procedure Test_Path_Text_Leaf_And_Parent (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Stem_And_Extension (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_One_Free_Name_Rule (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Numbered_Name_Fits (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

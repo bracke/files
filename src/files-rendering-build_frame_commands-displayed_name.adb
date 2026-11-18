@@ -5,10 +5,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       if Snapshot.Show_Extensions or else Item.Kind = Files.Types.Directory_Item then
          return Item.Name;
       end if;
-      for I in reverse Name'First + 1 .. Name'Last loop
-         if Name (I) = '.' then
-            return To_Unbounded_String (Name (Name'First .. I - 1));
-         end if;
-      end loop;
-      return Item.Name;
+      --  The one rule for where an extension starts: "..." and "draft."
+      --  have none, so they show whole.
+      return To_Unbounded_String (Files.Types.Stem_Of (Name));
    end Displayed_Name;

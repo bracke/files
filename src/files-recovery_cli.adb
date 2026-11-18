@@ -17,6 +17,98 @@ package body Files.Recovery_CLI is
    --  the exit status.
    Command_Failed : Boolean := False;
 
+   --  Whether '\' is a character of a name here (it separates on Windows).
+   function Backslash_Is_Text return Boolean is (Hostkit.Fs.Separator /= '\');
+
+   Hex : constant String := "0123456789abcdef";
+
+   function Escaped (Text : String) return String is
+      Result : Unbounded_String;
+   begin
+      for C of Text loop
+         case C is
+            when ASCII.HT => Append (Result, "\t");
+            when ASCII.LF => Append (Result, "\n");
+            when ASCII.CR => Append (Result, "\r");
+            when Character'Val (0) .. Character'Val (8) | Character'Val (11) | Character'Val (12)
+               | Character'Val (14) .. Character'Val (31) | Character'Val (127) =>
+               Append (Result, "\x");
+               Append (Result, Hex (Character'Pos (C) / 16 + 1));
+               Append (Result, Hex (Character'Pos (C) mod 16 + 1));
+            when '\' =>
+               Append (Result, (if Backslash_Is_Text then "\\" else "\"));
+            when others => Append (Result, C);
+         end case;
+      end loop;
+      return To_String (Result);
+   end Escaped;
+
+   function Unescaped (Text : String) return String is
+      Result : Unbounded_String;
+      Index  : Integer := Text'First;
+
+      function Digit (C : Character) return Natural is
+        (case C is
+            when '0' .. '9' => Character'Pos (C) - Character'Pos ('0'),
+            when 'a' .. 'f' => Character'Pos (C) - Character'Pos ('a') + 10,
+            when 'A' .. 'F' => Character'Pos (C) - Character'Pos ('A') + 10,
+            when others => 16);
+
+      --  The byte an escape at Index stands for, and how long it is; Width
+      --  0 when none starts there.
+      procedure Decode (Value : out Character; Width : out Natural) is
+         Next : constant Character := Text (Index + 1);
+      begin
+         Width := 2;
+         case Next is
+            when 't' =>
+               Value := ASCII.HT;
+            when 'n' =>
+               Value := ASCII.LF;
+            when 'r' =>
+               Value := ASCII.CR;
+            when '\' =>
+               Value := '\';
+            when 'x' =>
+               if Index + 3 <= Text'Last
+                 and then Digit (Text (Index + 2)) < 16 and then Digit (Text (Index + 3)) < 16
+               then
+                  Value := Character'Val (Digit (Text (Index + 2)) * 16 + Digit (Text (Index + 3)));
+                  Width := 4;
+               else
+                  Value := ' ';
+                  Width := 0;
+               end if;
+            when others =>
+               Value := ' ';
+               Width := 0;
+         end case;
+      end Decode;
+   begin
+      --  On Windows '\' separates and no name holds a control byte, so the
+      --  list printed every path as it is.
+      if not Backslash_Is_Text then
+         return Text;
+      end if;
+      while Index <= Text'Last loop
+         declare
+            Value : Character := Text (Index);
+            Width : Natural := 1;
+         begin
+            if Text (Index) = '\' and then Index < Text'Last then
+               Decode (Value, Width);
+               if Width = 0 then
+                  Value := Text (Index);
+                  Width := 1;
+               end if;
+            end if;
+            Append (Result, Value);
+            Index := Index + Width;
+         end;
+      end loop;
+      return To_String (Result);
+   end Unescaped;
+
    procedure Fail (Message : String) is
    begin
       Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error, Message);
@@ -40,7 +132,7 @@ package body Files.Recovery_CLI is
                Original : constant String := Files.File_System.Trash.Trash_Original_Path (Payload);
             begin
                if Files.File_System.Is_Recovery_Payload (Payload) and then Original /= "" then
-                  Ada.Text_IO.Put_Line (Payload & ASCII.HT & Original);
+                  Ada.Text_IO.Put_Line (Escaped (Payload) & ASCII.HT & Escaped (Original));
                end if;
             end;
          end if;
@@ -70,7 +162,7 @@ package body Files.Recovery_CLI is
             Path : constant String := To_String (Payload);
          begin
             Ada.Text_IO.Put_Line
-              (Path & ASCII.HT & Files.File_System.Trash.Trash_Original_Path (Path));
+              (Escaped (Path) & ASCII.HT & Escaped (Files.File_System.Trash.Trash_Original_Path (Path)));
          end;
       end loop;
    exception
@@ -122,7 +214,11 @@ package body Files.Recovery_CLI is
       elsif Count /= 2 then
          Fail (Files.Localization.Text ("cli.recovery.error.argument"));
       else
-         Apply (Argument (2), Restore => Argument (1) = "--recover");
+         --  A path pasted from the list is read as the list printed it.
+         Apply
+           ((if Files.File_System.Is_Recovery_Payload (Argument (2)) then Argument (2)
+             else Unescaped (Argument (2))),
+            Restore => Argument (1) = "--recover");
       end if;
       Failed := Command_Failed;
       return True;

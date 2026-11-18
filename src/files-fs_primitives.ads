@@ -132,6 +132,15 @@ package Files.Fs_Primitives is
    --  @return True when Path names a directory.
    function Directory_Exists (Path : String) return Boolean;
 
+   --  Whether Path names a folder itself, not a link to one: what a new
+   --  name for it is built by (Files.Types.Name_Stem).
+   --
+   --  @param Path Filesystem path to test.
+   --  @return True for a folder that is no link; False for anything else or
+   --    a lookup the host refuses.
+   function Is_Plain_Directory (Path : String) return Boolean is
+     (not Hostkit.Fs.Is_Link (Path) and then Directory_Exists (Path));
+
    --  Open the entry currently named by Path only when that entry itself is a
    --  regular file. Symbolic links, reparse points, FIFOs, devices, and
    --  directories are refused without blocking.

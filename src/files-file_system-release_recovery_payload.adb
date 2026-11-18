@@ -10,17 +10,21 @@ function Release_Recovery_Payload (Path : String) return Mutation_Result is
       Ignored   : Files.Types.UString;
       Directory : constant String := Files.Fs_Primitives.Parent_Directory (Original);
       Leaf      : constant String := Files.Fs_Primitives.Leaf_Text (Original);
-      Stem      : constant String := Files.Types.Stem_Of (Leaf);
-      Extension : constant String :=
-        (if Files.Types.Extension_Of (Leaf) = "" then "" else "." & Files.Types.Extension_Of (Leaf));
+      Is_Folder : constant Boolean := Files.Fs_Primitives.Is_Plain_Directory (Entry_Path);
+      Limit     : constant Hostkit.Fs.Leaf_Name_Limit := Hostkit.Fs.Leaf_Name_Limit_At (Directory);
    begin
-      for Attempt in 1 .. 99 loop
+      --  The name a paste would give it there: "name", "name 2", ... Each
+      --  try is the move itself, which refuses an occupied name; a move
+      --  refused for any other reason (the folder is gone, or will not be
+      --  written) is not tried under another name.
+      for Attempt in 1 .. Files.Leaf_Names.Max_Attempts loop
          declare
             Beside : constant String :=
               Hostkit.Fs.Join
                 (Directory,
-                 (if Attempt = 1 then Leaf
-                  else Stem & " " & Files.Types.Natural_Text (Attempt) & Extension));
+                 Files.Leaf_Names.Candidate
+                   (Files.Types.Name_Stem (Leaf, Is_Folder), Files.Types.Name_Extension (Leaf, Is_Folder),
+                    Files.Leaf_Names.Spaced_Number (Attempt), Limit));
          begin
             if Support.Move_No_Replace (Entry_Path, Beside) then
                declare
@@ -32,6 +36,10 @@ function Release_Recovery_Payload (Path : String) return Mutation_Result is
                   return Trashed;
                end;
             end if;
+            --  refusal-safe: only a name surely in use is passed over; one
+            --  that cannot be looked at ends the search, and the payload is
+            --  trashed from its stage below.
+            exit when not Files.Fs_Primitives.Entry_Exists (Beside);
          end;
       end loop;
       return Move_To_Trash (Entry_Path, Ignored);

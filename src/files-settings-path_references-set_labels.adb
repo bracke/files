@@ -20,14 +20,14 @@ separate (Files.Settings.Path_References)
       Kept    : Path_Label_Vectors.Vector;
    begin
       for Index in Settings.Paths.Labels.First_Index .. Settings.Paths.Labels.Last_Index loop
-         if not Stored.Contains (To_String (Settings.Paths.Labels (Index).Path)) then
-            Stored.Insert (To_String (Settings.Paths.Labels (Index).Path), Index);
+         if not Stored.Contains (Key (To_String (Settings.Paths.Labels (Index).Path))) then
+            Stored.Insert (Key (To_String (Settings.Paths.Labels (Index).Path)), Index);
          end if;
       end loop;
       for Path of Paths loop
          declare
             Name  : constant String := To_String (Path);
-            Found : Index_Maps.Cursor := Stored.Find (Name);
+            Found : Index_Maps.Cursor := Stored.Find (Key (Name));
          begin
             if not Persistent_Path_Is_Valid (Name) then
                null;
@@ -41,7 +41,7 @@ separate (Files.Settings.Path_References)
                Settings.Paths.Labels (Index_Maps.Element (Found)).Label := Label;
             else
                Settings.Paths.Labels.Append (Path_Label'(Path => Path, Label => Label));
-               Stored.Insert (Name, Settings.Paths.Labels.Last_Index);
+               Stored.Insert (Key (Name), Settings.Paths.Labels.Last_Index);
             end if;
          end;
       end loop;

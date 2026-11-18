@@ -325,6 +325,7 @@ sv.error.drop.invalid_destination = Släppmålet är inte en katalog.
 sv.error.drop.invalid_source = Det släppta objektet finns inte.
 sv.error.duplicate.failed = Det gick inte att duplicera de markerade objekten.
 sv.error.extract.failed = Det gick inte att extrahera arkivet.
+sv.error.extract.entry_refused = Inte uppackat: den här mappen kan inte rymma arkivposten {path}.
 sv.error.extract.not_archive = Markeringen innehåller inget arkiv.
 sv.error.filter.empty = Inget filter är aktivt.
 sv.error.history.back_unavailable = Bakåthistoriken är tom.

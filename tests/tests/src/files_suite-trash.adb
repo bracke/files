@@ -89,6 +89,7 @@ package body Files_Suite.Trash is
    procedure Test_Labels_Travel_Through_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_Trash_Undo_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Symlink_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Trash_View_Shows_Original_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Undo_Trash_Already_Restored (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Trash_Test_Case) return AUnit.Message_String is
@@ -103,6 +104,9 @@ package body Files_Suite.Trash is
         (T, Test_Recent_Trash_Undo_Refresh'Access, "Undo immediately relists a Recent item restored from trash");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Symlink_Recovery'Access, "trash, permanent delete and Undo operate on valid and dangling links");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Trash_View_Shows_Original_Names'Access,
+         "the trash view lists each payload under the name it had");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Trash_Deletion_Date'Access, "trash deletion dates format whole seconds without rounding up");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -241,6 +245,8 @@ package body Files_Suite.Trash is
    procedure Test_Undo_Trash_Already_Restored (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Recent_Trash_Undo_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Trash_View_Shows_Original_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Symlink_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -2,9 +2,18 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 
+private with Hostkit.Host;
+
 --  What the settings keep about paths: favorites, recently opened items and
 --  color labels, an index of them for callers that ask about many paths,
 --  and how they follow an item that is moved or removed.
+--
+--  On Windows, whose volumes fold names, a stored path is matched without
+--  regard to case: C:\Users\Me\Notes and c:\users\me\notes are one entry,
+--  however the folder was typed or a setting written. On macOS a path is
+--  matched so where its volume folds names (Hostkit.Fs.Folds_Name_Case:
+--  APFS and HFS+ as formatted by default), and exactly on a volume formatted
+--  case-sensitive.
 package Files.Settings.Path_References is
 
    --  Report whether Path is currently stored in the favorites list.
@@ -226,5 +235,15 @@ package Files.Settings.Path_References is
      (Settings : in out Settings_Model;
       Path     : String;
       Changed  : out Boolean);
+
+private
+
+   --  Whether every stored path is matched without regard to case
+   --  (Windows). Test seam (Files.Settings.Path_References.Testing), so the
+   --  Windows matching is checked on every host.
+   Folds_Paths : Boolean := Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows);
+
+   --  Whether the host asks each path's volume instead (macOS).
+   Asks_Volume : constant Boolean := Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.MacOS);
 
 end Files.Settings.Path_References;

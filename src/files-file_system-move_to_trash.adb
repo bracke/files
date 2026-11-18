@@ -14,46 +14,36 @@ is
       Name            : String)
       return String
    is
-      --  A leaf holds at most 255 bytes. The freedesktop info file adds
-      --  ".trashinfo" to the name, and a clash adds a counter (".2" up to
-      --  ".2147483647"). A name with no room for what is added is cut down to
-      --  fit -- keeping its extension, never inside a UTF-8 sequence -- or the
-      --  item could never be trashed. The info file's Path= keeps the
-      --  original, which restore uses. The macOS home trash has no info file,
-      --  so there a name is cut only when a counter must be added.
-      Info_Suffix     : constant String := ".trashinfo";
-      Longest_Counter : constant String := ".2147483647";
-      Info_Room       : constant Natural := (if Info_Directory = "" then 0 else Info_Suffix'Length);
+      --  A leaf holds at most what the trash's volume stores. The freedesktop
+      --  info file adds ".trashinfo" to the name, and a clash adds a counter
+      --  after the whole name (".2", ".3", ...). A name with no room for
+      --  what is added is cut down to fit -- keeping its extension, never
+      --  inside a UTF-8 sequence -- or the item could never be trashed. The
+      --  info file's Path= keeps the original, which restore uses. The macOS
+      --  home trash has no info file, so there a name is cut only when a
+      --  counter must be added.
+      Info_Suffix : constant String := ".trashinfo";
+      Info_Room   : constant Natural := (if Info_Directory = "" then 0 else Info_Suffix'Length);
+      Volume      : constant Hostkit.Fs.Leaf_Name_Limit := Hostkit.Fs.Leaf_Name_Limit_At (Files_Directory);
+      Limit       : constant Hostkit.Fs.Leaf_Name_Limit :=
+        (Unit => Volume.Unit, Most => Volume.Most - Natural'Min (Volume.Most, Info_Room));
 
-      function Fit (Room : Natural) return String is (Files.Leaf_Names.Fit (Name, Room));
-
-      --  Room for the info file's suffix and the longest counter.
-      Base      : constant String :=
-        (if Info_Directory = ""
-         then Name
-         else Fit (Files.Leaf_Names.Max_Length - Info_Room - Longest_Counter'Length));
-      Counter   : Positive := 2;
-      Candidate : Unbounded_String := To_Unbounded_String (Base);
-   begin
       --  A name that cannot be looked at raises: the trash is refused,
       --  not handed a name that may be in use.
-      while Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Files_Directory, To_String (Candidate)))
-        or else (Info_Directory /= ""
-                 and then
-                   Files.Fs_Primitives.Is_Taken
-                     (Hostkit.Fs.Join (Info_Directory, To_String (Candidate) & Info_Suffix)))
-      loop
-         declare
-            Suffix : constant String := "." & Natural_Text (Counter);
-         begin
-            Candidate := To_Unbounded_String
-              ((if Info_Directory = "" then Fit (Files.Leaf_Names.Max_Length - Suffix'Length) else Base) & Suffix);
-         end;
-         exit when Counter = Positive'Last;
-         Counter := Counter + 1;
-      end loop;
+      function Taken (Leaf : String) return Boolean is
+        (Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Files_Directory, Leaf))
+         or else (Info_Directory /= ""
+                  and then Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Info_Directory, Leaf & Info_Suffix))));
 
-      return To_String (Candidate);
+      Free : constant String :=
+        Files.Leaf_Names.First_Free
+          (Name, "", Files.Leaf_Names.Dotted_Number'Access, Taken'Access, Limit,
+           Place => Files.Leaf_Names.After_Name);
+   begin
+      if Free = "" then
+         raise Ada.Directories.Use_Error with "no_free_trash_name=" & Files_Directory;
+      end if;
+      return Free;
    end Unique_Trash_Name;
 
    function Trash_Info_Path_Value (Path_Value : String) return String is

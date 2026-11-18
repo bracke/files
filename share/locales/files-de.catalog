@@ -329,6 +329,7 @@ de.error.drop.invalid_destination = Ablageziel ist kein Verzeichnis.
 de.error.drop.invalid_source = Abgelegtes Element existiert nicht.
 de.error.duplicate.failed = Ausgewählte Elemente konnten nicht dupliziert werden.
 de.error.extract.failed = Archiv konnte nicht entpackt werden.
+de.error.extract.entry_refused = Nicht entpackt: Dieser Ordner kann den Archiveintrag {path} nicht aufnehmen.
 de.error.extract.not_archive = Die Auswahl enthält kein Archiv.
 de.error.filter.empty = Kein Filter ist aktiv.
 de.error.history.back_unavailable = Der Rückwärtsverlauf ist leer.

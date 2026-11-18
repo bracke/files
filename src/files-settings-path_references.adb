@@ -5,6 +5,25 @@ with Hostkit.Fs;
 package body Files.Settings.Path_References is
    use Ada.Strings.Unbounded;
 
+   --  Whether Path is matched without regard to case: on every path where
+   --  the host's volumes fold names (Windows), where its own volume does
+   --  on macOS. A decision of Path's alone, so a path is keyed alike
+   --  wherever it is met.
+   function Folds (Path : String) return Boolean is
+     (Folds_Paths or else (Asks_Volume and then Hostkit.Fs.Folds_Name_Case (Path)));
+
+   --  The form a path is matched in: folded where it folds (Folds), so two
+   --  spellings of one path are one entry.
+   function Key (Path : String) return String is
+     (if Folds (Path) then Files.Types.Fold_Case (Path) else Path);
+
+   function Same (Left : String; Right : String) return Boolean is
+     (Left = Right or else Key (Left) = Key (Right));
+
+   --  Whether Paths holds Path, by Same.
+   function Holds (Paths : String_Vectors.Vector; Path : String) return Boolean is
+     (for some Existing of Paths => Same (To_String (Existing), Path));
+
    function Is_Favorite
      (Settings : Settings_Model;
       Path     : String)
@@ -13,12 +32,7 @@ package body Files.Settings.Path_References is
       if not Persistent_Path_Is_Valid (Path) then
          return False;
       end if;
-      for Existing of Settings.Paths.Favorites loop
-         if To_String (Existing) = Path then
-            return True;
-         end if;
-      end loop;
-      return False;
+      return Holds (Settings.Paths.Favorites, Path);
    end Is_Favorite;
 
    function Favorite_Paths
@@ -49,7 +63,7 @@ package body Files.Settings.Path_References is
       end if;
       --  Favorites never repeat (Add_Favorite), so one entry is all there is.
       for Index in Settings.Paths.Favorites.First_Index .. Settings.Paths.Favorites.Last_Index loop
-         if To_String (Settings.Paths.Favorites.Element (Index)) = Path then
+         if Same (To_String (Settings.Paths.Favorites.Element (Index)), Path) then
             Settings.Paths.Favorites.Delete (Index);
             return;
          end if;
@@ -61,8 +75,7 @@ package body Files.Settings.Path_References is
      (Settings : in out Settings_Model;
       Path     : String) is
    begin
-      if Persistent_Path_Is_Valid (Path) and then not Settings.Paths.Favorites.Contains (To_Unbounded_String (Path))
-      then
+      if Persistent_Path_Is_Valid (Path) and then not Holds (Settings.Paths.Favorites, Path) then
          Settings.Paths.Favorites.Append (To_Unbounded_String (Path));
       end if;
    end Add_Favorite;
@@ -73,7 +86,7 @@ package body Files.Settings.Path_References is
    begin
       if Persistent_Path_Is_Valid (Path)
         and then Natural (Settings.Paths.Recent.Length) < Max_Recent_Items
-        and then not Settings.Paths.Recent.Contains (To_Unbounded_String (Path))
+        and then not Holds (Settings.Paths.Recent, Path)
       then
          Settings.Paths.Recent.Append (To_Unbounded_String (Path));
       end if;
@@ -106,7 +119,7 @@ package body Files.Settings.Path_References is
          return Files.Types.No_Label;
       end if;
       for Entry_Value of Settings.Paths.Labels loop
-         if To_String (Entry_Value.Path) = Path then
+         if Same (To_String (Entry_Value.Path), Path) then
             return Entry_Value.Label;
          end if;
       end loop;
@@ -135,14 +148,14 @@ package body Files.Settings.Path_References is
       --  Toggle_Favorite_Path, Move_Path_References). Is_Favorite and
       --  Label_Of take the first stored label, so keep the first of a path's.
       for Existing of Settings.Paths.Favorites loop
-         Result.Favorites.Insert (To_String (Existing));
+         Result.Favorites.Include (Key (To_String (Existing)));
       end loop;
       for Entry_Value of Settings.Paths.Labels loop
          declare
             Path : constant String := To_String (Entry_Value.Path);
          begin
-            if Persistent_Path_Is_Valid (Path) and then not Result.Labels.Contains (Path) then
-               Result.Labels.Insert (Path, Entry_Value.Label);
+            if Persistent_Path_Is_Valid (Path) and then not Result.Labels.Contains (Key (Path)) then
+               Result.Labels.Insert (Key (Path), Entry_Value.Label);
             end if;
          end;
       end loop;
@@ -154,7 +167,7 @@ package body Files.Settings.Path_References is
       Path  : String)
       return Boolean is
    begin
-      return Persistent_Path_Is_Valid (Path) and then Index.Favorites.Contains (Path);
+      return Persistent_Path_Is_Valid (Path) and then Index.Favorites.Contains (Key (Path));
    end Is_Favorite;
 
    function Label_Of
@@ -167,7 +180,7 @@ package body Files.Settings.Path_References is
       if not Persistent_Path_Is_Valid (Path) then
          return Files.Types.No_Label;
       end if;
-      Found := Index.Labels.Find (Path);
+      Found := Index.Labels.Find (Key (Path));
       if Path_Label_Maps.Has_Element (Found) then
          return Path_Label_Maps.Element (Found);
       end if;
@@ -180,8 +193,13 @@ package body Files.Settings.Path_References is
       To       : String;
       Changed  : out Boolean)
    is
-      --  Path moved along with From: From itself or an entry inside it.
-      function Moved (Path : String) return String is (Hostkit.Fs.Rebase (Path, From, To));
+      --  Path moved along with From: From itself or an entry inside it --
+      --  matched as Same matches, whatever the spelling of its head.
+      function Moved (Path : String) return String is
+        (if Folds (From) and then Path'Length >= From'Length
+           and then Key (Path (Path'First .. Path'First + From'Length - 1)) = Key (From)
+         then Hostkit.Fs.Rebase (From & Path (Path'First + From'Length .. Path'Last), From, To)
+         else Hostkit.Fs.Rebase (Path, From, To));
 
       --  Each entry moved with From is rewritten. An entry that then repeats
       --  one listed before it goes (the earlier one stays): a path is a
@@ -263,7 +281,7 @@ package body Files.Settings.Path_References is
       --  The rule Move_Path_References follows (through Hostkit.Fs.Rebase),
       --  so a root such as "/" or "C:\" holds what lies below it here too.
       function Under (Candidate : String) return Boolean is
-        (Hostkit.Fs.Is_Same_Or_Inside (Candidate, Path));
+        (Hostkit.Fs.Is_Same_Or_Inside (Key (Candidate), Key (Path)));
 
       procedure Drop (Paths : in out String_Vectors.Vector) is
       begin

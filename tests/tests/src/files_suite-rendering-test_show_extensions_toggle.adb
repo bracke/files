@@ -27,6 +27,13 @@ separate (Files_Suite.Rendering)
       Assert (Frame_Has_Exact_Text (Rendered (".bashrc", Files.Types.Regular_File_Item, False), ".bashrc"),
               "a dotfile stays fully visible with extensions off");
 
+      --  A trailing dot is no extension: "..." is not drawn as "..", which
+      --  reads as the parent folder, nor "draft." as "draft".
+      Assert (Frame_Has_Exact_Text (Rendered ("...", Files.Types.Regular_File_Item, False), "..."),
+              "a name of dots stays whole with extensions off");
+      Assert (Frame_Has_Exact_Text (Rendered ("draft.", Files.Types.Regular_File_Item, False), "draft."),
+              "a trailing dot stays with extensions off");
+
       --  Directory names are never stripped, even when they contain a dot.
       Assert (Frame_Has_Exact_Text (Rendered ("my.folder", Files.Types.Directory_Item, False), "my.folder"),
               "a folder keeps its dotted name with extensions off");
