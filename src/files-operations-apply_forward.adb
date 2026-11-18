@@ -19,7 +19,7 @@ begin
       when Files.Model.Undo_Rename | Files.Model.Undo_Move =>
          --  Re-run the original transition: from the reverted (To) location
          --  back to the post-operation (From) location.
-         Succeeded := Move_Back (Action, Model, True);
+         Succeeded := Move_Back (Action, Model, Files.Model.Redo_Side);
 
       when Files.Model.Undo_Delete_Created =>
          --  Re-create each destination from its recorded source, retaining
@@ -43,16 +43,16 @@ begin
                      Action.Forward_Completed.Append (Action.Items (Index).From);
                      Forwarded.Include (To_String (Action.Items (Index).From));
                      --  Recognised again by a retry (Completed_Creation_Matches).
-                     Files.History_Journal.Checkpoint (Model, Action, True, Force => False);
+                     Files.History_Journal.Checkpoint (Model, Action, Files.Model.Redo_Side, Force => False);
                   end if;
                else
                   if Marked then
                      --  Persist the invalidation before attempting to
                      --  recreate a missing publication. A crash must not
                      --  revive a marker that no longer describes Path.
-                     Remove_Completion (Action, Action.Items (Index).From, True);
+                     Remove_Completion (Action, Action.Items (Index).From, Files.Model.Redo_Side);
                      Forwarded.Exclude (To_String (Action.Items (Index).From));
-                     Files.History_Journal.Checkpoint (Model, Action, True);
+                     Files.History_Journal.Checkpoint (Model, Action, Files.Model.Redo_Side);
                   end if;
                   --  A source gone for sure, or a destination that may be
                   --  taken (a refused lookup is not a free one), fails it.
@@ -100,7 +100,7 @@ begin
                            Action.Copy_Records := Files.Copy_Context.Records (Copy_Batch);
                            --  Written now: only the journal knows this entry's
                            --  identity, which is what tells a retry it is ours.
-                           Files.History_Journal.Checkpoint (Model, Action, True);
+                           Files.History_Journal.Checkpoint (Model, Action, Files.Model.Redo_Side);
                         else
                            Succeeded := False;
                         end if;

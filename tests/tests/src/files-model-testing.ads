@@ -98,4 +98,17 @@ package Files.Model.Testing is
    procedure Cancel_Create_File
      (Model : in out Window_Model);
 
+   --  The armed paste's write actions completed so far (the program reads
+   --  them through Foreground_Progress_Of).
+   --
+   --  @param Model Model to inspect.
+   --  @return Count of items already copied or moved.
+   function Paste_Execution_Done (Model : Window_Model) return Natural;
+
+   --  The armed paste's write actions in all.
+   --
+   --  @param Model Model to inspect.
+   --  @return Count of items to copy or move (skips excluded).
+   function Paste_Execution_Total (Model : Window_Model) return Natural;
+
 end Files.Model.Testing;

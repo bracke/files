@@ -1,3 +1,4 @@
+with Files.Model.Testing;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -36,10 +37,10 @@ separate (Files_Suite.History)
                Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, False);
                for Attempt in Files_Suite.Support.Timing.Polling loop
                   Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
-                  exit when Files.Model.Pasting.Execution_Done (Model) = 1;
+                  exit when Files.Model.Testing.Paste_Execution_Done (Model) = 1;
                end loop;
                Files_Suite.Support.Assert_Equal
-                 (Files.Model.Pasting.Execution_Done (Model),
+                 (Files.Model.Testing.Paste_Execution_Done (Model),
                   1,
                   "the first paste member commits");
                Assert (Hostkit.Fs.Move_No_Replace (A, Saved_A), "retain the first owned entry between batches");

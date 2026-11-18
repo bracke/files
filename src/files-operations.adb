@@ -572,13 +572,13 @@ package body Files.Operations is
    procedure Remove_Completion
      (Action : in out Files.Model.Undo_Entry;
       Path : Files.Types.UString;
-      Forward : Boolean)
+      Side : Files.Model.History_Side)
    is separate;
 
    function Move_Back
      (Action : in out Files.Model.Undo_Entry;
       Model : in out Files.Model.Window_Model;
-      Forward : Boolean) return Boolean
+      Side : Files.Model.History_Side) return Boolean
    is separate;
 
    --  Apply Mode, or the access record Access_Text when there is one, to

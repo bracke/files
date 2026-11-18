@@ -1,3 +1,4 @@
+with Files.Events;
 with Files.Commands;
 with Files.Interaction;
 with Files.Model;
@@ -198,23 +199,19 @@ package Files_Suite.Interaction_Support is
    --
    --  @param Model The window model.
    --  @param Settings The window settings.
-   --  @param In_Main Whether the click landed in the main view.
+   --  @param Target What the click landed on.
    --  @param Item_Index The item drawn there, or 0.
    --  @param X Horizontal position in pixels.
    --  @param Y Vertical position in pixels.
    --  @param Result What the dispatch did.
-   --  @param In_Details_Header Whether the click landed on the details header.
-   --  @param On_Context_Menu Whether the click landed on the open context menu.
    procedure Dispatch_Right_Click
-     (Model             : in out Files.Model.Window_Model;
-      Settings          : Files.Settings.Settings_Model;
-      In_Main           : Boolean;
-      Item_Index        : Natural;
-      X                 : Natural;
-      Y                 : Natural;
-      Result            : out Files.Interaction.Interaction_Result;
-      In_Details_Header : Boolean := False;
-      On_Context_Menu   : Boolean := False);
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Target     : Files.Events.Right_Click_Target;
+      Item_Index : Natural;
+      X          : Natural;
+      Y          : Natural;
+      Result     : out Files.Interaction.Interaction_Result);
 
    --  Dispatch a context-menu row's command, as a click on that row does.
    --

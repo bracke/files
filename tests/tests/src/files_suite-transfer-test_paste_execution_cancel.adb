@@ -1,3 +1,4 @@
+with Files.Model.Testing;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -24,7 +25,7 @@ separate (Files_Suite.Transfer)
          Files.Operation_Results.Operation_Success,
          "the first batch reports success");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Pasting.Execution_Done (Model),
+        (Files.Model.Testing.Paste_Execution_Done (Model),
          2,
          "two writes complete before cancelling");
 

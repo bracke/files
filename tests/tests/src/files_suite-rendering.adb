@@ -78,6 +78,7 @@ package body Files_Suite.Rendering is
    procedure Test_Huge_Volume_Meter_Draws (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Click_In_Scrolled_Field_Hits_Drawn_Character (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Reveal_Scroll_Shows_Item (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Reveal_From_The_End_Shows_The_Item (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Snapshot_Key_Covers_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Main_View_Scroll_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Command_Palette_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -203,6 +204,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Reveal_Scroll_Shows_Item'Access,
          "the selection scrolls into view whole in every view mode, and Page Down moves by the rows in view");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Reveal_From_The_End_Shows_The_Item'Access,
+         "revealing an item from the end of the list shows it whole, as the wheel reaches it");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Snapshot_Key_Covers_Settings'Access,
          "every setting the snapshot reads is part of the key that decides when a frame can be reused");
@@ -620,6 +624,7 @@ package body Files_Suite.Rendering is
    procedure Test_Snapshot_Key_Covers_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Reveal_Scroll_Shows_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Reveal_From_The_End_Shows_The_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Item_Layout_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Wheel_Moves_Every_Row_Period (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

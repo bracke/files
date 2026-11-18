@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Files.Protocol_Names;
 with Interfaces;
 with Ada.Streams;
@@ -302,6 +303,18 @@ package body Files.File_System.Support is
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
          return "";
    end Application_Data_Directory;
+
+   function Files_Data_Directory return String is
+      Data : constant String := Application_Data_Directory;
+   begin
+      return (if Data = "" then "" else Hostkit.Fs.Join (Data, Files.Protocol_Names.Data_Folder));
+   end Files_Data_Directory;
+
+   function Volume_Trash_List_Path return String is
+      App : constant String := Files_Data_Directory;
+   begin
+      return (if App = "" then "" else Hostkit.Fs.Join (App, Files.Protocol_Names.Volume_Trash_List));
+   end Volume_Trash_List_Path;
 
    function With_Root_Content (Snapshot : Source_Snapshot; Digest : String) return Source_Snapshot is
       package Sorting is new Files.Types.String_Vectors.Generic_Sorting;

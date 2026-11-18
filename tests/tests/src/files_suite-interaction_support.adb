@@ -3,7 +3,6 @@ with Ada.Strings.Unbounded;
 with AUnit.Assertions;
 
 with Files.Controller;
-with Files.Events;
 with Files.File_System;
 with Files.Model.Root_Selector;
 with Files.Model.Selection;
@@ -283,26 +282,22 @@ package body Files_Suite.Interaction_Support is
    end Right_Click_At;
 
    procedure Dispatch_Right_Click
-     (Model             : in out Files.Model.Window_Model;
-      Settings          : Files.Settings.Settings_Model;
-      In_Main           : Boolean;
-      Item_Index        : Natural;
-      X                 : Natural;
-      Y                 : Natural;
-      Result            : out Files.Interaction.Interaction_Result;
-      In_Details_Header : Boolean := False;
-      On_Context_Menu   : Boolean := False) is
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Target     : Files.Events.Right_Click_Target;
+      Item_Index : Natural;
+      X          : Natural;
+      Y          : Natural;
+      Result     : out Files.Interaction.Interaction_Result) is
    begin
       Dispatch
         (Model,
          Settings,
-         (Kind         => Files.Events.Right_Click_Input_Action,
-          Menu_X       => X,
-          Menu_Y       => Y,
-          In_Main_View => In_Main,
-          Target_Item  => Item_Index,
-          On_Header    => In_Details_Header,
-          Over_Menu    => On_Context_Menu),
+         (Kind        => Files.Events.Right_Click_Input_Action,
+          Menu_X      => X,
+          Menu_Y      => Y,
+          Clicked_On  => Target,
+          Target_Item => Item_Index),
          Result);
    end Dispatch_Right_Click;
 

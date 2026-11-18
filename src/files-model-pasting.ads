@@ -147,22 +147,6 @@ package Files.Model.Pasting is
      (Model : Window_Model)
       return Boolean;
 
-   --  The number of write actions completed so far.
-   --
-   --  @param Model Model to inspect.
-   --  @return Count of items already copied or moved.
-   function Execution_Done
-     (Model : Window_Model)
-      return Natural;
-
-   --  The total number of write actions in the armed execution.
-   --
-   --  @param Model Model to inspect.
-   --  @return Count of items to copy or move (skips excluded).
-   function Execution_Total
-     (Model : Window_Model)
-      return Natural;
-
    --  The copy/move mode of the armed execution.
    --
    --  @param Model Model to inspect.

@@ -63,6 +63,7 @@ package body Files_Suite.History is
    procedure Test_Batch_Creation_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Refused_Lookup_Keeps_Undo_Owed (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Refused_Journal_Lookup_Still_Reads (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_A_Briefly_Unreadable_Journal_Is_Read_Again (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Failure_After_Merge_Keeps_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Batch_Undo_Covers_Every_Item (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Duplicate_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -175,6 +176,9 @@ package body Files_Suite.History is
         (T, Test_Refused_Journal_Lookup_Still_Reads'Access,
          "a history journal whose lookup is refused is still read; one gone for sure is none");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_A_Briefly_Unreadable_Journal_Is_Read_Again'Access,
+         "a helper's journal briefly unreadable is read again before its history is given up");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Failure_After_Merge_Keeps_History'Access,
          "an operation failing after its journal merge keeps what was recorded since");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -236,6 +240,8 @@ package body Files_Suite.History is
    procedure Test_Batch_Creation_History (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Refused_Lookup_Keeps_Undo_Owed (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Refused_Journal_Lookup_Still_Reads (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_A_Briefly_Unreadable_Journal_Is_Read_Again (T : in out AUnit.Test_Cases.Test_Case'Class)
+     is separate;
    procedure Test_Failure_After_Merge_Keeps_History (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Batch_Undo_Covers_Every_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

@@ -158,7 +158,7 @@ begin
    elsif Is_Trash_Files_Directory (Path) then
       for Base of Volume_Trash_Bases loop
          declare
-            Volume_Files : constant String := Hostkit.Fs.Join (To_String (Base), "files");
+            Volume_Files : constant String := Trash_Items_Directory (To_String (Base));
          begin
             Normalized_Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Volume_Files));
             Support.For_Each_Entry (Volume_Files, Add_Entry'Access);

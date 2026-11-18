@@ -28,7 +28,12 @@ function Safe_Trash_Parent (Parent : String; Shared : Boolean; Existing : Boolea
    Shared_Writable : constant Boolean :=
      (Revision.Mode and (if Own_Private_Group then 8#002# else 8#022#)) /= 0;
 begin
-   if Hostkit.Fs.Is_Link (Parent)
+   --  Sticky, writable-by-others and owner are POSIX mode questions: where
+   --  the mode is a rendering of something else (Windows ACLs, whose
+   --  attribute bits would read as sticky or group-writable here), no
+   --  folder can be vouched for as a shared trash's parent.
+   if not Hostkit.Metadata.Mode_Bits_Are_Native
+     or else Hostkit.Fs.Is_Link (Parent)
      or else not Files.Fs_Primitives.Directory_Exists (Parent)
      or else not Revision.Available
    then

@@ -8,6 +8,7 @@ Test_Backslash_Executable_Lookup: needs a POSIX host: on Windows a backslash sep
 Test_Copy_Access_Bits: needs native POSIX mode bits
 Test_Cross_Device_Move_Keeps_Setgid: needs native POSIX mode bits
 Test_Fifo_Never_Blocks: Windows has no FIFOs
+Test_Finder_Volume_Trash_Needs_The_Systems_Trashes: Windows has no Finder volume trash
 Test_Move_Ownership: no POSIX owning groups here
 Test_Recovery_Mode_Failure: recovery records a folder's mode only where mode bits are native
 Test_Recursive_Folder_Size: this host reads a folder whose permissions were removed

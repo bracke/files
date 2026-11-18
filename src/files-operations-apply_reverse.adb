@@ -46,7 +46,7 @@ begin
          else
             Action.Reverse_Completed.Append (Copy.Path);
             Reversed.Include (Target);
-            Files.History_Journal.Checkpoint (Model, Action, False);
+            Files.History_Journal.Checkpoint (Model, Action, Files.Model.Undo_Side);
          end if;
       end;
    end loop;
@@ -57,7 +57,7 @@ begin
 
    case Action.Kind is
       when Files.Model.Undo_Rename | Files.Model.Undo_Move =>
-         Succeeded := Move_Back (Action, Model, False);
+         Succeeded := Move_Back (Action, Model, Files.Model.Undo_Side);
 
       when Files.Model.Undo_Restore_Trash =>
          for Item of Action.Items loop
@@ -79,7 +79,7 @@ begin
                --  original path (Restore_Recorded_Trash) -- unless it was a
                --  copy across devices, which has a new one: written now.
                Files.History_Journal.Checkpoint
-                 (Model, Action, False, Force => not Restored_In_Place (Trashed (Item)));
+                 (Model, Action, Files.Model.Undo_Side, Force => not Restored_In_Place (Trashed (Item)));
             end if;
          end loop;
 
@@ -111,7 +111,7 @@ begin
                   Action.Reverse_Completed.Append (Action.Items (Index).From);
                   Reversed.Include (To_String (Action.Items (Index).From));
                   --  A retry treats a path already gone as removed.
-                  Files.History_Journal.Checkpoint (Model, Action, False, Force => False);
+                  Files.History_Journal.Checkpoint (Model, Action, Files.Model.Undo_Side, Force => False);
                end if;
             end;
          end loop;
@@ -144,7 +144,8 @@ begin
          Files.Model.Note_Path_Move (Model, To_String (Original.Trash), To_String (Original.Target));
          Action.Restores_Completed.Append (Original.Trash);
          Restored.Include (To_String (Original.Trash));
-         Files.History_Journal.Checkpoint (Model, Action, False, Force => not Restored_In_Place (Original));
+         Files.History_Journal.Checkpoint
+           (Model, Action, Files.Model.Undo_Side, Force => not Restored_In_Place (Original));
       end if;
    end loop;
 

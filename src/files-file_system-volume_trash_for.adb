@@ -1,3 +1,5 @@
+with Ada.Streams;
+with Files.Durable_Writes;
 with Files.Durability;
 with Hostkit.Durability;
 with Hostkit.Host;
@@ -38,12 +40,15 @@ function Volume_Trash_For (Path : String) return String is
          return False;
    end Device_Of;
 
-   --  Base, made usable: created owner-only with files/ and info/ if absent.
+   --  Base, made usable: created owner-only, with files/ and info/ for a
+   --  freedesktop trash (the Finder's keeps its items in Base itself).
    function Prepared (Base : String) return String is
    begin
       Files.Private_Directories.Ensure (Base);
-      Files.Private_Directories.Ensure (Hostkit.Fs.Join (Base, "files"));
-      Files.Private_Directories.Ensure (Hostkit.Fs.Join (Base, "info"));
+      if not Is_Finder_Volume_Trash (Base) then
+         Files.Private_Directories.Ensure (Hostkit.Fs.Join (Base, "files"));
+         Files.Private_Directories.Ensure (Hostkit.Fs.Join (Base, "info"));
+      end if;
       return (if Valid_Volume_Trash_Base (Base) then Base else "");
    exception
       when Swallowed : others =>
@@ -55,50 +60,39 @@ function Volume_Trash_For (Path : String) return String is
    --  the root list does not show too. Best effort: a trash missing from the
    --  list is only missing from the view, still restorable from its volume.
    procedure Remember (Base : String) is
-      Data : constant String := Support.Application_Data_Directory;
-      App  : constant String := (if Data = "" then "" else Hostkit.Fs.Join (Data, "files"));
-      List : constant String := (if App = "" then "" else Hostkit.Fs.Join (App, "volume-trashes"));
-      --  This process's own temporary file: background jobs trash too.
-      Partial : constant String :=
-        List & ".partial-" & Natural_Text (Natural (abs Hostkit.Host.Own_Process_Id));
+      List : constant String := Support.Volume_Trash_List_Path;
 
-      --  Replace the list with Known and Base.
+      --  Replace the list with Known and Base, published whole: written to
+      --  a temporary of this process's own (background jobs trash too) and
+      --  renamed over the list once its content is on the device, so a
+      --  crash leaves the old list or the new one, never an empty one. A
+      --  list that will not sync is not published; one published whose
+      --  folder will not sync (Published_Not_Durable) is kept.
       procedure Write (Known : Files.Types.String_Vectors.Vector) is
-         File    : Ada.Text_IO.File_Type;
-      begin
-         Files.Fs_Primitives.Create_Path (App);
-         Hostkit.Fs.Create_Text (File, Ada.Text_IO.Out_File, Partial);
-         for Item of Known loop
-            --  Bounded: the oldest are dropped first.
-            if Natural (Known.Length) < Max_Remembered_Volume_Trashes
-              or else Item /= Known.First_Element
-            then
-               Ada.Text_IO.Put_Line (File, To_String (Item));
-            end if;
-         end loop;
-         Ada.Text_IO.Put_Line (File, Base);
-         Ada.Text_IO.Close (File);
-         --  Its content on the device first, or a crash could leave the list
-         --  replaced by an empty one. A list that will not sync is still
-         --  better than none: it replaces the old one all the same.
-         declare
-            Synced : constant Hostkit.Durability.Outcome := Files.Durability.Sync_File (Partial);
-            pragma Unreferenced (Synced);
+         procedure Lines (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
          begin
-            null;
-         end;
-         --  One step that replaces the list, so it is never missing: a
-         --  replacing rename on every host, where GNAT's refuses an existing
-         --  target on Windows.
-         if not Hostkit.Fs.Replace_File (Partial, List) then
-            Files.Fs_Primitives.Delete_File (Partial);
-         end if;
-      exception
-         when others =>
-            if Ada.Text_IO.Is_Open (File) then
-               Ada.Text_IO.Close (File);
-            end if;
-            raise;
+            for Item of Known loop
+               --  Bounded: the oldest are dropped first.
+               if Natural (Known.Length) < Max_Remembered_Volume_Trashes
+                 or else Item /= Known.First_Element
+               then
+                  String'Write (Stream, To_String (Item) & ASCII.LF);
+               end if;
+            end loop;
+            String'Write (Stream, Base & ASCII.LF);
+         end Lines;
+
+         Temporary : Files.Types.UString;
+         Identity  : Files.Types.UString;
+      begin
+         Files.Fs_Primitives.Create_Path (Support.Files_Data_Directory);
+         Files.Durable_Writes.Write_Private_Temporary (List, Lines'Access, Temporary, Identity);
+         case Files.Durable_Writes.Publish (To_String (Temporary), List) is
+            when Files.Durable_Writes.Published_Durable | Files.Durable_Writes.Published_Not_Durable =>
+               null;
+            when Files.Durable_Writes.Not_Published =>
+               Files.Durable_Writes.Remove_Owned (To_String (Temporary), To_String (Identity));
+         end case;
       end Write;
    begin
       if List = "" then
@@ -157,8 +151,26 @@ begin
       --  the user expects), and the trash view lists it with the others.
       declare
          Shared : constant String := Hostkit.Fs.Join (To_String (Top), ".Trash");
+         Finder : constant String := Hostkit.Fs.Join (To_String (Top), ".Trashes");
          Chosen : Unbounded_String;
       begin
+         --  The Finder's layout, where the home trash is ~/.Trash: the
+         --  volume's root-owned, sticky .Trashes (the system makes it) holds
+         --  a folder per user, its items directly in it, as the Finder lists
+         --  and empties them. No .Trashes the system made, or one that is
+         --  not safe, and the item is copied to the home trash as before:
+         --  a freedesktop trash there would be one the Finder never shows.
+         if Trash_Backend_Of_Current_Environment = Trash_Macos_Home then
+            if Safe_Trash_Parent (Finder, Shared => True)
+              and then Safe_Trash_Parent (To_String (Top), Shared => False)
+            then
+               Chosen := To_Unbounded_String (Prepared (Hostkit.Fs.Join (Finder, Id)));
+            end if;
+            if Length (Chosen) > 0 then
+               Remember (To_String (Chosen));
+            end if;
+            return To_String (Chosen);
+         end if;
          --  Checked before anything is made in it: an untrusted .Trash is
          --  not used at all, as the specification says.
          if Safe_Trash_Parent (Shared, Shared => True)

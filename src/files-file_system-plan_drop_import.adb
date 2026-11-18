@@ -42,13 +42,13 @@ is
            (Leaf, Taken'Access, Rules.Name_Limit, Is_Directory));
    end Available_Destination;
 
-   --  Path with its links resolved: Hostkit.Fs.Real_Path, which also follows
+   --  Path with its links resolved: Hostkit.Fs.Canonical_Path, which also follows
    --  Windows reparse points and gives the names' stored case there, where
-   --  Normalize_Pathname resolves nothing. A path Real_Path cannot answer
+   --  Normalize_Pathname resolves nothing. A path Canonical_Path cannot answer
    --  for (a part missing past the leaf) still has its links resolved
    --  below that part: Real_Name, not the text-only Full_Name of Windows.
    function Resolved_Directory (Path : String) return String is
-      Real : constant String := Hostkit.Fs.Real_Path (Path);
+      Real : constant String := Hostkit.Fs.Canonical_Path (Path);
    begin
       if Real /= "" then
          return Real;

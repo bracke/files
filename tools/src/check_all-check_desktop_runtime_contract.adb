@@ -137,6 +137,9 @@ separate (Check_All)
       --  payloads of retired entries behind. Restore stays in Run_Helper,
       --  the helper's side, where the journal is the whole history.
       Job_Finish : constant String := Subprogram_Code (Jobs_Body, "Advance");
+      --  The merge Advance asks for, read again while the journal is briefly
+      --  unreadable.
+      Journal_Merge : constant String := Subprogram_Code (Jobs_Body, "Merge_Journal");
 
       --  A window imports its queued drops through
       --  Files.Controller.Import_Pending_Drops, which leaves them queued while
@@ -144,15 +147,18 @@ separate (Check_All)
       --  (Drop_Events.Take) would import them under an open overlay.
       Drop_Input : constant String := Subprogram_Code (Windows_Body, "Handle_Drop_Input");
    begin
-      if Count_Names (Job_Finish, "Files.History_Journal.Merge") < 2 then
+      if Count_Names (Job_Finish, "Merge_Journal") < 2 then
          Fail (Jobs_Body & ": a background job's finish must merge the helper's history "
-               & "(Files.History_Journal.Merge) on its success and its failure path");
+               & "(Merge_Journal) on its success and its failure path");
+      end if;
+      if not Names (Journal_Merge, "Files.History_Journal.Merge") then
+         Fail (Jobs_Body & ": Merge_Journal must merge through Files.History_Journal.Merge");
       end if;
       if Count_Names (Job_Finish, "Files.Undo_Recording.Settle_History") < 2 then
          Fail (Jobs_Body & ": a background job's finish must settle the merged history "
                & "(Files.Undo_Recording.Settle_History) on its success and its failure path");
       end if;
-      if Ada.Strings.Fixed.Index (Job_Finish, "Files.History_Journal.Merge")
+      if Ada.Strings.Fixed.Index (Job_Finish, "Merge_Journal")
         > Ada.Strings.Fixed.Index (Job_Finish, "Files.Undo_Recording.Settle_History")
       then
          Fail (Jobs_Body & ": a background job's finish must settle the history after merging it, not before");

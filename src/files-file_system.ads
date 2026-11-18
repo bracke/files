@@ -5,7 +5,6 @@ with Ada.Calendar;
 with Ada.Containers.Vectors;
 
 with Files.Settings;
-with Files.Fs_Primitives;
 with Files.Items;
 with Files.Types;
 
@@ -208,15 +207,6 @@ package Files.File_System is
    --  @return Path with a leading tilde expanded to the home directory.
    function Expand_User_Path (Path : String) return String;
 
-   --  Return the parent directory of Path.
-   --
-   --  @param Path Directory path whose parent is requested.
-   --  @return Parent directory path, or an empty string when Path is a
-   --    filesystem root (or otherwise has no parent).
-   function Parent_Directory
-     (Path : String)
-      return String renames Files.Fs_Primitives.Parent_Directory;
-
    --  Load the direct children of a directory. Thumbnails come from the cache
    --  only: no image is decoded and no cache file written, so a caller that
    --  discards the items (a search walk, emptying the Trash) pays nothing for
@@ -328,6 +318,15 @@ package Files.File_System is
      (Full_Path : String;
       Settings  : Files.Settings.Settings_Model)
       return Item_Load_Result;
+
+   --  The Recent view's items: each recorded recent path loaded (Load_Item)
+   --  in most-recent-first order, one that no longer resolves left out. The
+   --  one way the view is built, whether navigated to, refreshed after a
+   --  change, or reloaded by a background refresh.
+   --
+   --  @param Settings Settings holding the recent paths and used to classify.
+   --  @return The loaded items.
+   function Load_Recent_Items (Settings : Files.Settings.Settings_Model) return Item_Vectors.Vector;
 
    --  Compute the extra info for an item: a folder's child count, a
    --  document's page/entry/line count, or a symlink's target. This opens the

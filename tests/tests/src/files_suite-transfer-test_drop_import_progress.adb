@@ -1,3 +1,4 @@
+with Files.Model.Testing;
 with Files.Operation_Results;
 separate (Files_Suite.Transfer)
    procedure Test_Drop_Import_Progress (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -35,10 +36,11 @@ separate (Files_Suite.Transfer)
          "large drop import reports success");
       Assert (Files.Model.Foreground_Job_Is_Active (Model), "a large drop keeps the progress executor active");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Pasting.Execution_Total (Model),
+        (Files.Model.Testing.Paste_Execution_Total (Model),
          Count,
          "the drop progress total counts every source");
-      Assert (Files.Model.Pasting.Execution_Done (Model) < Count, "the first drop batch does not finish the whole set");
+      Assert (Files.Model.Testing.Paste_Execution_Done (Model) < Count,
+              "the first drop batch does not finish the whole set");
 
       Step := Files.Foreground_Jobs.Advance (Model, Settings, Count);
       Files_Suite.Support.Assert_Equal

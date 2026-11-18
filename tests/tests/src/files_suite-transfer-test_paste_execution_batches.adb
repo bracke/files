@@ -1,3 +1,4 @@
+with Files.Model.Testing;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -19,11 +20,11 @@ separate (Files_Suite.Transfer)
       Arm_Numbered_Paste (Model, Settings, Src_Dir, Dest_Dir, Count);
       Assert (Files.Model.Foreground_Job_Is_Active (Model), "arming a paste execution activates it");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Pasting.Execution_Total (Model),
+        (Files.Model.Testing.Paste_Execution_Total (Model),
          Count,
          "the total counts every write action");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Pasting.Execution_Done (Model),
+        (Files.Model.Testing.Paste_Execution_Done (Model),
          0,
          "nothing is done before the first advance");
 
@@ -35,7 +36,7 @@ separate (Files_Suite.Transfer)
          "the first batch reports success");
       Assert (Files.Model.Foreground_Job_Is_Active (Model), "the execution is still in progress after one batch");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Pasting.Execution_Done (Model),
+        (Files.Model.Testing.Paste_Execution_Done (Model),
          2,
          "the first batch completes two writes");
 
@@ -46,7 +47,7 @@ separate (Files_Suite.Transfer)
          "the second batch reports success");
       Assert (Files.Model.Foreground_Job_Is_Active (Model), "the execution is still in progress after two batches");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Pasting.Execution_Done (Model),
+        (Files.Model.Testing.Paste_Execution_Done (Model),
          4,
          "progress advances to four writes");
 

@@ -81,16 +81,11 @@ separate (Files.Events)
             Target  : constant Long_Long_Integer :=
               (if Up then Long_Long_Integer'Max (0, Ceiling - Rows * Stride)
                else Floor + Rows * Stride);
-            Last_Px : constant Long_Long_Integer := Long_Long_Integer (Main.Max_Scroll_Pixels);
-            --  The fewest lines reaching Target; LH <= Stride keeps the
-            --  snap from falling back a row. Lines reaching the last pixel
-            --  are drawn at the exact end instead of snapped: going down
-            --  that is a move (to the end), but going up from the end it
-            --  would stay put, so there a Target short of the end takes one
-            --  line less, which snaps to the row at or above Target.
-            Fewest  : constant Long_Long_Integer := (Target + LH - 1) / LH;
-            Reached : constant Long_Long_Integer :=
-              (if Up and then Target < Last_Px and then Fewest * LH >= Last_Px then Fewest - 1 else Fewest);
+            --  The lines the drawing turns into Target (Layouts, which
+            --  revealing an item asks too).
+            Bounded : constant Natural := Natural (Long_Long_Integer'Min (Target, Long_Long_Integer (Natural'Last)));
+            Reached : constant Long_Long_Integer := Long_Long_Integer
+              (Files.Rendering.Layouts.Lines_For_Offset (Main, Line_Height, Bounded, Up));
             Wanted  : constant Long_Long_Integer := Long_Long_Integer'Min (Long_Long_Integer (Maximum), Reached);
             Change  : constant Long_Long_Integer := Wanted - Long_Long_Integer (Raw);
          begin

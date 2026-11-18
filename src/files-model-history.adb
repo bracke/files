@@ -91,8 +91,9 @@ package body Files.Model.History is
    end Completion_Markers_Valid;
 
    function History_Entry_Usable
-     (Action : Undo_Entry; For_Redo : Boolean) return Boolean
+     (Action : Undo_Entry; Side : History_Side) return Boolean
    is
+      For_Redo : constant Boolean := Side = Redo_Side;
       Main_Count : constant Natural := Natural (Action.Items.Length);
       Restore_Count : constant Natural := Natural (Action.Replaced.Length);
 
@@ -254,10 +255,10 @@ package body Files.Model.History is
       Next : in out Positive;
       Sanitized_Undo, Sanitized_Redo : out Undo_Entry_Vectors.Vector)
    is
-      procedure Keep (Action : Undo_Entry; For_Redo : Boolean; Stack : in out Undo_Entry_Vectors.Vector) is
+      procedure Keep (Action : Undo_Entry; Side : History_Side; Stack : in out Undo_Entry_Vectors.Vector) is
          Kept : Undo_Entry := Action;
       begin
-         if History_Entry_Usable (Action, For_Redo) then
+         if History_Entry_Usable (Action, Side) then
             if Kept.Sequence = 0 then
                Kept.Sequence := Next;
             end if;
@@ -269,10 +270,10 @@ package body Files.Model.History is
       Sanitized_Undo.Clear;
       Sanitized_Redo.Clear;
       for Action of Undo loop
-         Keep (Action, False, Sanitized_Undo);
+         Keep (Action, Undo_Side, Sanitized_Undo);
       end loop;
       for Action of Redo loop
-         Keep (Action, True, Sanitized_Redo);
+         Keep (Action, Redo_Side, Sanitized_Redo);
       end loop;
    end Sanitize_History;
 
@@ -426,8 +427,9 @@ package body Files.Model.History is
       --  An entry the journal neither holds nor lists the helper retired,
       --  payloads and all, unless the journal names it as dropped by its
       --  cap; one it lists stays where the window had it.
-      Merge_Stack (Model.History.Undo_Stack, Journal_Undo, True, Merged_Undo);
-      Merge_Stack (Model.History.Redo_Stack, Journal_Redo, not State.Redo_Retired, Merged_Redo);
+      Merge_Stack (Model.History.Undo_Stack, Journal_Undo, Keep_Left_Out => True, Merged => Merged_Undo);
+      Merge_Stack
+        (Model.History.Redo_Stack, Journal_Redo, Keep_Left_Out => not State.Redo_Retired, Merged => Merged_Redo);
 
       while Natural (Merged_Undo.Length) > Max_Undo_Depth loop
          --  As Commit_Undo_Record: a dropped entry could still have been

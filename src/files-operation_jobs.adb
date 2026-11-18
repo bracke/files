@@ -24,6 +24,11 @@ package body Files.Operation_Jobs is
    use Ada.Strings.Unbounded;
    use type Files.Operation_Results.Operation_Status;
    use type Files.Model.Undo_Action_Kind;
+   use type Files.History_Journal.Merge_Outcome;
+
+   --  How many times a finished helper's journal is read before its history
+   --  is given up (Merge_Journal); the waits between add up to 0.06 s.
+   Merge_Attempts : constant := 3;
 
    Request_Header : constant String := "files-operation-request-3";
    --  Version 2 dropped the operation result's copies of its action's
@@ -315,6 +320,25 @@ package body Files.Operation_Jobs is
 
    --  A helper that ended without success may still have published entries:
    --  read from its journal, they join the history.
+   --  A finished helper's journal merged into the window's history. One
+   --  there but not readable this moment (another process holding it, a
+   --  transient refusal) is tried again a few times, briefly, before its
+   --  history is given up; none at all is not waited for.
+   function Merge_Journal
+     (Directory : String;
+      Model     : in out Files.Model.Window_Model)
+      return Files.History_Journal.Merge_Outcome
+   is
+      Outcome : Files.History_Journal.Merge_Outcome := Files.History_Journal.Unreadable;
+   begin
+      for Attempt in 1 .. Merge_Attempts loop
+         Outcome := Files.History_Journal.Merge (Directory, Model);
+         exit when Outcome /= Files.History_Journal.Unreadable or else Attempt = Merge_Attempts;
+         delay Duration (Attempt) * 0.02;
+      end loop;
+      return Outcome;
+   end Merge_Journal;
+
    procedure Recover_Undo (Model : in out Files.Model.Window_Model; Job : Files.Process_Jobs.Session) is
       Kind : constant Operation_Kind :=
         Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File)).Kind;
@@ -480,9 +504,7 @@ package body Files.Operation_Jobs is
       end loop;
       --  Merged, not replaced: entries the journal left out stay, and what
       --  the merge retires has its payloads released here.
-      if not Files.History_Journal.Merge
-        (Files.Process_Jobs.Path (Job, ""), Model)
-      then
+      if Merge_Journal (Files.Process_Jobs.Path (Job, ""), Model) /= Files.History_Journal.Merged then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
       Merged := True;
@@ -555,8 +577,8 @@ package body Files.Operation_Jobs is
          --  was recorded since.
          if not Merged then
             declare
-               Restored : constant Boolean :=
-                 Files.History_Journal.Merge (Files.Process_Jobs.Path (Job, ""), Model);
+               Restored : constant Files.History_Journal.Merge_Outcome :=
+                 Merge_Journal (Files.Process_Jobs.Path (Job, ""), Model);
                pragma Unreferenced (Restored);
             begin
                null;

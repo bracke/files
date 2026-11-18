@@ -71,6 +71,25 @@ package body Files.Rendering.Layouts is
       return Natural
  is separate;
 
+   function Lines_For_Offset
+     (Main        : Main_View_Layout;
+      Line_Height : Positive;
+      Target      : Natural;
+      Up          : Boolean)
+      return Natural
+   is
+      LH      : constant Long_Long_Integer := Long_Long_Integer (Line_Height);
+      Px      : constant Long_Long_Integer := Long_Long_Integer (Target);
+      Last_Px : constant Long_Long_Integer := Long_Long_Integer (Main.Max_Scroll_Pixels);
+      Fewest  : constant Long_Long_Integer := (Px + LH - 1) / LH;
+   begin
+      if Main.Row_Stride < Line_Height then
+         return Natural (if Up then Px / LH else Fewest);
+      end if;
+      return Natural
+        (if Up and then Px < Last_Px and then Fewest * LH >= Last_Px then Fewest - 1 else Fewest);
+   end Lines_For_Offset;
+
    function Scroll_Lines_Revealing
      (Snapshot      : View_Snapshot;
       Layout        : Layout_Metrics;

@@ -1,3 +1,4 @@
+with Files.Model.Testing;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;

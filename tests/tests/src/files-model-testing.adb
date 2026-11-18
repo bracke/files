@@ -124,4 +124,8 @@ package body Files.Model.Testing is
      (Model : in out Window_Model)
      renames Files.Model.Cancel_Create_File;
 
+   function Paste_Execution_Done (Model : Window_Model) return Natural is (Model.Paste_Exec.Done);
+
+   function Paste_Execution_Total (Model : Window_Model) return Natural is (Model.Paste_Exec.Total);
+
 end Files.Model.Testing;

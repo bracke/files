@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Files.File_System.Trash;
 with Files.Model.Clipboard;
 with Files.Model.Quick_Look;
@@ -97,7 +98,7 @@ separate (Files.Commands.Status)
             return
               All_Of
                 (Ordinary_View,
-                 Require (Files.File_System.Parent_Directory (Files.Model.Current_Path (Model)) /= ""));
+                 Require (Files.Fs_Primitives.Parent_Directory (Files.Model.Current_Path (Model)) /= ""));
          when Delete_Selected_Items_Command
             | Cut_Selected_Items_Command
             | Duplicate_Selected_Command

@@ -29,6 +29,6 @@ separate (Files.Rendering.Layouts)
          if Wanted = Main.Scroll_Pixels then
             return Snapshot.Main_View_Scroll_Lines;
          end if;
-         return (Wanted + Line_Height - 1) / Line_Height;
+         return Lines_For_Offset (Main, Line_Height, Wanted, Up => Wanted < Main.Scroll_Pixels);
       end;
    end Scroll_Lines_Revealing;

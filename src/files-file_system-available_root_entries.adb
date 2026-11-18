@@ -1,3 +1,5 @@
+with Hostkit.Metadata;
+with Hostkit.Process;
 with Hostkit.Fs;
 with Hostkit.Mounts;
 separate (Files.File_System)
@@ -9,7 +11,24 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
    --  The folders the host's conventions give this user (the home, the
    --  Windows profile drive, share and OneDrive, where Linux mounts media).
    Places    : constant Hostkit.Fs.User_Place_List := Hostkit.Fs.User_Places;
-   User_Name : constant String := Files.Environment.Value ("USER");
+   --  The account this process runs as, by the host's own records: the
+   --  name a volumes folder (/media/<user>) is made for. Not $USER, which
+   --  any parent can set and Windows does not set at all.
+   function Account_Name return String is
+      Id : Hostkit.Metadata.Account_Id;
+   begin
+      if Hostkit.Process.Current_User_Account (Id) then
+         declare
+            Name : constant String := Hostkit.Metadata.User_Name_For_Id (Id);
+         begin
+            if Name /= "" then
+               return Name;
+            end if;
+         end;
+      end if;
+      return Hostkit.Host.Login_Name;
+   end Account_Name;
+   User_Name : constant String := Account_Name;
 
    function Place_Of (Kind : Hostkit.Fs.User_Place_Kind) return String is
    begin
@@ -22,6 +41,10 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
    end Place_Of;
 
    Desktop_Mounts : constant String := Place_Of (Hostkit.Fs.Desktop_Mounts_Parent);
+   --  What a mount point under Desktop_Mounts starts with: the folder and
+   --  the host's separator after it.
+   Mounts_Child   : constant String := Hostkit.Fs.Join (Desktop_Mounts, "x");
+   Mounts_Prefix  : constant String := Mounts_Child (Mounts_Child'First .. Mounts_Child'Last - 1);
 
    function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
 
@@ -37,7 +60,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       if Is_Network_Filesystem_Type (Filesystem_Type)
         or else Starts_With (Mount_Point, "//")
         or else Starts_With (Mount_Point, "\\")
-        or else (Desktop_Mounts /= "" and then Starts_With (Mount_Point, Desktop_Mounts & "/"))
+        or else (Desktop_Mounts /= "" and then Starts_With (Mount_Point, Mounts_Prefix))
       then
          return Root_Network_Mount;
       end if;

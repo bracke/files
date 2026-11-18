@@ -6,6 +6,11 @@ with Files.Types;
 --  GLFW-style input translation into internal command and selection events.
 package Files.Events is
 
+   --  What a right click landed on, from the top of what is drawn down:
+   --  the open context menu, the details view's column header, the main
+   --  view (an item, or the space between), or anything else.
+   type Right_Click_Target is (On_Context_Menu, On_Details_Header, On_Main_View, Elsewhere);
+
    type Input_Action_Kind is
      (No_Input_Action,
       Command_Input_Action,
@@ -118,15 +123,12 @@ package Files.Events is
             --  The command of the context-menu row clicked.
             Menu_Command : Files.Commands.Command_Id := Files.Commands.No_Command;
          when Right_Click_Input_Action =>
-            --  Where the context menu opens, and what lies there: the item
-            --  drawn there in the snapshot (0 for none), the details header,
-            --  or the open context menu itself.
-            Menu_X       : Natural := 0;
-            Menu_Y       : Natural := 0;
-            In_Main_View : Boolean := False;
-            Target_Item  : Natural := 0;
-            On_Header    : Boolean := False;
-            Over_Menu    : Boolean := False;
+            --  Where the context menu opens, what lies there, and the item
+            --  drawn there in the snapshot (0 for none).
+            Menu_X      : Natural := 0;
+            Menu_Y      : Natural := 0;
+            Clicked_On  : Right_Click_Target := Elsewhere;
+            Target_Item : Natural := 0;
          when No_Input_Action
             | Path_Favorite_Toggle_Input_Action
             | Tree_Pick_Confirm_Input_Action

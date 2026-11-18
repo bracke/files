@@ -2,8 +2,11 @@ separate (Files.Operations)
 function Move_Back
   (Action : in out Files.Model.Undo_Entry;
    Model : in out Files.Model.Window_Model;
-   Forward : Boolean) return Boolean
+   Side : Files.Model.History_Side) return Boolean
 is
+   use type Files.Model.History_Side;
+   --  Redoing re-does To -> From; undoing moves From back to To.
+   Forward : constant Boolean := Side = Files.Model.Redo_Side;
    Count : constant Natural := Natural (Action.Items.Length);
    Succeeded : Boolean := True;
    Done : Path_Sets.Set := To_Set (if Forward then Action.Forward_Completed else Action.Reverse_Completed);
@@ -19,7 +22,7 @@ is
          Action.Reverse_Completed.Append (Path);
       end if;
       --  A retry finds a finished move by its identity at the target.
-      Files.History_Journal.Checkpoint (Model, Action, Forward, Force => not Recognisable);
+      Files.History_Journal.Checkpoint (Model, Action, Side, Force => not Recognisable);
    end Completed;
 begin
    for Step in 0 .. Count - 1 loop
@@ -45,9 +48,9 @@ begin
             null;
          else
             if Marked then
-               Remove_Completion (Action, Source_Path, Forward);
+               Remove_Completion (Action, Source_Path, Side);
                Done.Exclude (Source);
-               Files.History_Journal.Checkpoint (Model, Action, Forward);
+               Files.History_Journal.Checkpoint (Model, Action, Side);
             end if;
             if Identity = "" then
                Succeeded := False;

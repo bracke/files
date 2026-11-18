@@ -60,7 +60,7 @@ separate (Files_Suite.Context_Menu)
       Dispatch_Right_Click
         (Model      => Model,
          Settings   => Settings,
-         In_Main    => True,
+         Target     => Files.Events.On_Main_View,
          Item_Index => Files.Model.Visible_Count (Model) + 1,
          X          => X,
          Y          => Y,

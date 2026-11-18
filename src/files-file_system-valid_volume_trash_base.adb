@@ -39,6 +39,13 @@ begin
    begin
       if Name = ".Trash-" & Id then
          return Safe_Trash_Parent (Parent, Shared => False, Existing => True) and then Owned_Tree;
+      elsif Name = Id and then Files.Fs_Primitives.Leaf_Text (Parent) = ".Trashes" then
+         --  The Finder's per-user folder, for the trash that keeps its
+         --  layout: no files/ or info/ of ours in it, its items directly.
+         return Trash_Backend_Of_Current_Environment in Trash_Macos_Home | Trash_Macos_Native
+           and then Safe_Trash_Parent (Parent, Shared => True)
+           and then Safe_Trash_Parent (Files.Fs_Primitives.Parent_Directory (Parent), Shared => False, Existing => True)
+           and then Own_Directory (Base);
       elsif Name = Id and then Files.Fs_Primitives.Leaf_Text (Parent) = ".Trash" then
          return Safe_Trash_Parent (Parent, Shared => True)
            and then Safe_Trash_Parent (Files.Fs_Primitives.Parent_Directory (Parent), Shared => False, Existing => True)

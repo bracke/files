@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Files.Images.Netpbm;
 with Files.Durable_Writes;
 

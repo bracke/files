@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Characters.Handling;

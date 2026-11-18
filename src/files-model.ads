@@ -1019,6 +1019,11 @@ package Files.Model is
 
    type Clipboard_Mode is (Clipboard_None, Clipboard_Copy, Clipboard_Cut);
 
+   --  Which of the two history stacks, and so which way an entry is applied:
+   --  undone (reversed) from the undo stack, redone (re-applied, "forward")
+   --  from the redo stack.
+   type History_Side is (Undo_Side, Redo_Side);
+
    --  Multi-level undo/redo history. Each entry stores enough to BOTH reverse
    --  (undo) and re-apply (redo) one action: its items, each a path with what
    --  the action recorded for it; Create_Kind names the kind of creation to

@@ -1,8 +1,6 @@
 separate (Files.File_System)
 function Remembered_Volume_Trashes (Complete : out Boolean) return Files.Types.String_Vectors.Vector is
-   Data   : constant String := Support.Application_Data_Directory;
-   List   : constant String :=
-     (if Data = "" then "" else Hostkit.Fs.Join (Hostkit.Fs.Join (Data, "files"), "volume-trashes"));
+   List   : constant String := Support.Volume_Trash_List_Path;
    Result : Files.Types.String_Vectors.Vector;
    File   : Ada.Text_IO.File_Type;
    Line   : Unbounded_String;

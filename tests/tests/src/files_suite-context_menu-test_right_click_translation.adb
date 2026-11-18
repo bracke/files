@@ -8,6 +8,7 @@ separate (Files_Suite.Context_Menu)
    procedure Test_Right_Click_Translation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Files.Events.Input_Action_Kind;
+      use type Files.Events.Right_Click_Target;
       use type Files.Model.Context_Menu_Target;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Items    : Files.Items.Item_Vectors.Vector;
@@ -60,15 +61,15 @@ separate (Files_Suite.Context_Menu)
             On_Toolbar : constant Files.Events.Input_Action := Right_Click (1, 1);
          begin
             Assert (On_Item.Kind = Files.Events.Right_Click_Input_Action, "a right click on an item is translated");
-            Assert (On_Item.In_Main_View and then On_Item.Target_Item = 2,
+            Assert (On_Item.Clicked_On = Files.Events.On_Main_View and then On_Item.Target_Item = 2,
                     "it names the item drawn under the pointer");
-            Assert (not On_Item.On_Header and then not On_Item.Over_Menu, "and nothing else");
+            Assert (On_Item.Clicked_On /= Files.Events.On_Details_Header, "and not the header");
             Assert (On_Item.Menu_X = Item_X and then On_Item.Menu_Y = Item_Y, "the menu opens where it was clicked");
-            Assert (On_Header.On_Header and then On_Header.In_Main_View, "the details header is told apart");
-            Assert (Below_Rows.In_Main_View and then Below_Rows.Target_Item = 0,
+            Assert (On_Header.Clicked_On = Files.Events.On_Details_Header, "the details header is told apart");
+            Assert (Below_Rows.Clicked_On = Files.Events.On_Main_View and then Below_Rows.Target_Item = 0,
                     "empty view space names no item");
             Assert (On_Toolbar.Kind = Files.Events.Right_Click_Input_Action
-                    and then not On_Toolbar.In_Main_View
+                    and then On_Toolbar.Clicked_On = Files.Events.Elsewhere
                     and then On_Toolbar.Target_Item = 0,
                     "the toolbar is not the view");
             Assert (Right_Click (Window_W, Item_Y).Kind = Files.Events.No_Input_Action,
@@ -91,7 +92,7 @@ separate (Files_Suite.Context_Menu)
                  Right_Click (Menu.X + Menu.Width / 2, Menu.Y + Menu.Height / 2);
             begin
                Assert (Menu.Visible, "the menu is laid out");
-               Assert (On_Menu.Over_Menu and then not On_Menu.In_Main_View and then On_Menu.Target_Item = 0,
+               Assert (On_Menu.Clicked_On = Files.Events.On_Context_Menu and then On_Menu.Target_Item = 0,
                        "a right click on the open menu is on the menu, not the item beneath it");
                Apply (On_Menu);
                Assert (Files.Model.Context_Menu.Is_Open (Model)

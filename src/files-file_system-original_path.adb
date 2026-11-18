@@ -134,7 +134,7 @@ function Original_Path (Trashed_Path : String) return String is
    --  restore publish there. Its nearest existing ancestor is resolved and
    --  must be Top itself or below it.
    function Stays_On_Volume (Candidate, Top : String) return Boolean is
-      Real_Top : constant String := Hostkit.Fs.Real_Path (Top);
+      Real_Top : constant String := Hostkit.Fs.Canonical_Path (Top);
       Current  : Unbounded_String := To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Candidate));
    begin
       if Real_Top = "" then
@@ -144,7 +144,7 @@ function Original_Path (Trashed_Path : String) return String is
          --  refusal-safe: a refusal is told apart just below.
          if Files.Fs_Primitives.Entry_Exists (To_String (Current)) then
             declare
-               Real : constant String := Hostkit.Fs.Real_Path (To_String (Current));
+               Real : constant String := Hostkit.Fs.Canonical_Path (To_String (Current));
             begin
                return Real /= "" and then (Real = Real_Top or else Relative_To_Top (Real, Real_Top) /= "");
             end;

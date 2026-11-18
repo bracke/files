@@ -79,7 +79,10 @@ separate (Files_Suite.Operations)
 
       procedure Merge is
       begin
-         Assert (Files.History_Journal.Merge (Directory, Window), "the window merges the helper's journal");
+         Assert
+           (Files.History_Journal."="
+              (Files.History_Journal.Merge (Directory, Window), Files.History_Journal.Merged),
+            "the window merges the helper's journal");
       end Merge;
    begin
       Reset_Root;
@@ -117,7 +120,7 @@ separate (Files_Suite.Operations)
       --  instead of failing, a helper may not undo it, and it stays in place.
       Files.Model.Initialize (Window, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Files.Model.History.Restore (Window, Stack (Item ("b"), Item ("x", Large => True)), Empty);
-      Assert (not Files.History_Journal.Journals_Newest (Window, Redo => False),
+      Assert (not Files.History_Journal.Journals_Newest (Window, Files.Model.Undo_Side),
               "a newest entry too large for the journal is not journaled");
       Start_Job;
       Run_Helper ("d");
@@ -126,7 +129,7 @@ separate (Files_Suite.Operations)
       Merge;
       Assert (Names (Files.Model.History.Undo_Entries (Window)) = "b,x,d",
               "the unjournaled newest entry keeps its place: " & Names (Files.Model.History.Undo_Entries (Window)));
-      Assert (Files.History_Journal.Journals_Newest (Window, Redo => False),
+      Assert (Files.History_Journal.Journals_Newest (Window, Files.Model.Undo_Side),
               "with a small newest entry the journal holds it");
 
       --  Redo: kept while the helper records nothing, retired with the

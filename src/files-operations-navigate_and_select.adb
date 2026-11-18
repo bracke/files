@@ -5,7 +5,7 @@ function Navigate_And_Select
    Path     : String)
    return Operation_Result
 is
-   Parent : constant String := Files.File_System.Parent_Directory (Path);
+   Parent : constant String := Files.Fs_Primitives.Parent_Directory (Path);
 begin
    if Parent = "" then
       return Make_Result (Operation_Disabled, Path => Path);

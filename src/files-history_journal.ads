@@ -37,9 +37,9 @@ package Files.History_Journal is
    --  journal gave it, so an entry too large for the journal is undone or
    --  redone in the window instead.
    --  @param Model Model whose history to measure.
-   --  @param Redo True for the redo stack.
+   --  @param Side Which stack.
    --  @return True when that stack is empty or its newest entry is journaled.
-   function Journals_Newest (Model : Files.Model.Window_Model; Redo : Boolean) return Boolean;
+   function Journals_Newest (Model : Files.Model.Window_Model; Side : Files.Model.History_Side) return Boolean;
 
    --  Write the history with Action's progress in it, for a crashed helper's
    --  retry to resume from. Each write rewrites (and syncs) the whole
@@ -49,20 +49,36 @@ package Files.History_Journal is
    --
    --  @param Model Helper model with the active action removed from its stack.
    --  @param Action Updated retry progress for the active action.
-   --  @param Redo True when the action belongs on the redo stack.
+   --  @param Side The stack the action belongs on.
    --  @param Force Write now, rather than within the second.
    procedure Checkpoint
-     (Model : Files.Model.Window_Model; Action : Files.Model.Undo_Entry; Redo : Boolean; Force : Boolean := True);
+     (Model  : Files.Model.Window_Model;
+      Action : Files.Model.Undo_Entry;
+      Side   : Files.Model.History_Side;
+      Force  : Boolean := True);
 
    --  @param Directory Absolute private helper transport directory.
    --  @param Model Parent model receiving the checkpointed stacks.
    --  @return True when a complete snapshot was recovered.
    function Restore (Directory : String; Model : in out Files.Model.Window_Model) return Boolean;
 
+   --  What taking a helper's journal back came to: merged; no journal there
+   --  at all (surely absent); or one there that could not be read whole
+   --  this time (held, refused, torn), which a later try may read.
+   type Merge_Outcome is (Merged, No_Journal, Unreadable);
+
    --  Take back a helper's journal into the window's history without losing
    --  what the journal left out (Files.Model.History.Merge).
    --  @param Directory Absolute private helper transport directory.
    --  @param Model Window model whose history to merge into.
-   --  @return True when a complete snapshot was read and merged.
-   function Merge (Directory : String; Model : in out Files.Model.Window_Model) return Boolean;
+   --  @return Merged when a complete snapshot was read and merged.
+   function Merge (Directory : String; Model : in out Files.Model.Window_Model) return Merge_Outcome;
+
+private
+
+   --  Test seam (Files.History_Journal.Testing): how many of the next
+   --  journal reads are refused, as a journal held a moment by another
+   --  process is. Zero outside the test suite.
+   Refused_Reads : Natural := 0;
+
 end Files.History_Journal;

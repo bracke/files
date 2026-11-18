@@ -14,7 +14,6 @@ with Files.Leaf_Names;
 with Hostkit.Fs;
 with Files.Model.History;
 with Files.Model.Selection;
-with Files.Settings.Path_References;
 with Files.Settings.Open_Actions;
 
 package body Files.Operations.Support is
@@ -109,32 +108,14 @@ package body Files.Operations.Support is
          --  The Recent view has no backing directory (Current_Path is empty), so a
          --  directory load would spuriously fail and a mutation performed from
          --  Recent would be reported as failed with the view left stale. Rebuild it
-         --  from the recorded recent paths instead, dropping any that no longer
-         --  resolve. Mirrors Navigation.Navigate_Recent, which this lower-level
-         --  shared helper cannot call.
+         --  from the recorded recent paths instead (Load_Recent_Items).
          if Files.Model.In_Recent_View (Model) then
-            declare
-               Recent : constant Files.Types.String_Vectors.Vector :=
-                 Files.Settings.Path_References.Recent_Paths (Settings);
-               Items  : Files.Items.Item_Vectors.Vector;
-            begin
-               for Path of Recent loop
-                  declare
-                     Loaded : constant Files.File_System.Item_Load_Result :=
-                       Files.File_System.Load_Item (To_String (Path), Settings);
-                  begin
-                     if Loaded.Success then
-                        Items.Append (Loaded.Item);
-                     end if;
-                  end;
-               end loop;
-               Files.Model.Navigate_Recent (Model, Items);
-               if Preserve_Selection and then Select_Name = "" then
-                  Files.Model.Selection.Restore
-                    (Model, Previous_Selection, Previous_Primary);
-               end if;
-               Files.Model.Set_Error (Model, "");
-            end;
+            Files.Model.Navigate_Recent (Model, Files.File_System.Load_Recent_Items (Settings));
+            if Preserve_Selection and then Select_Name = "" then
+               Files.Model.Selection.Restore
+                 (Model, Previous_Selection, Previous_Primary);
+            end if;
+            Files.Model.Set_Error (Model, "");
             return Make_Result (Operation_Success);
          end if;
 

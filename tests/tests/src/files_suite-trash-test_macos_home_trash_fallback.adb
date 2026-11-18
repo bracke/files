@@ -28,6 +28,35 @@ separate (Files_Suite.Trash)
          Assert
            (not Ada.Directories.Exists (Join (Join (Mac_Home, ".Trash"), "info")),
             "macOS-style home trash does not create a freedesktop info/ subdirectory");
+
+         --  Undo puts an item back out of ~/.Trash: the history knows where
+         --  it came from, as the Finder's layout keeps no record of its own.
+         declare
+            Item     : constant String := Join (Root, "mac-undo.txt");
+            Trashed  : Files.Types.UString;
+         begin
+            Write_File (Item, "back again");
+            Mutation := Files.File_System.Trash.Move_To_Trash (Item, Trashed);
+            Assert (Mutation.Success, "trashed to be put back");
+            Assert (not Files.File_System.Trash.Is_Volume_Trash_Item (To_String (Trashed)),
+                    "~/.Trash is the home trash, not a volume's");
+            declare
+               Identity : constant String := Files.File_Identities.Token (To_String (Trashed));
+            begin
+               Assert
+                 (Files.File_System.Trash.Restore_From_Trash (To_String (Trashed), Identity, Item).Success,
+                  "Undo restores an item from the macOS-style home trash");
+            end;
+            Assert (Ada.Directories.Exists (Item) and then not Ada.Directories.Exists (To_String (Trashed)),
+                    "it is back where it was, and gone from the trash");
+            Mutation := Files.File_System.Trash.Move_To_Trash (Item, Trashed);
+            Assert (Mutation.Success, "trashed again");
+            Assert (not Files.File_System.Trash.Restore_From_Trash (To_String (Trashed)).Success,
+                    "with nothing that says where it came from, it is not restored");
+            Assert (Files.File_System.Trash.Delete_Trashed_Item (To_String (Trashed)).Success,
+                    "and is deleted from the trash");
+            Assert (not Ada.Directories.Exists (To_String (Trashed)), "for good");
+         end;
       end Check;
    begin
       With_Trash_Environment (Check'Access);

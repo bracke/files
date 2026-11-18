@@ -4,12 +4,6 @@ with Messages.Runtime;
 
 package body Files.Localization.Testing is
 
-   function Config_Value
-     (Path    : String;
-      Section : String;
-      Key     : String)
-      return String is (Locale_Config_Value (Path, Section, Key));
-
    function Render_With_Shard
      (Base, Shard, Locale, Key : String;
       Loaded                   : out Boolean)

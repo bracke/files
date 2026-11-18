@@ -187,7 +187,7 @@ package Files.Fs_Primitives is
 
    --  Path made absolute as Ada.Directories.Full_Name makes it, past GNAT's
    --  Windows limit. On POSIX GNAT resolves links (Normalize_Pathname's
-   --  default), and so does this: Hostkit.Fs.Real_Path of the deepest part
+   --  default), and so does this: Hostkit.Fs.Canonical_Path of the deepest part
    --  that is there, the rest of the text after it. On Windows GNAT reads the
    --  text alone (GetFullPathName), and so does this (Absolute_Name).
    --
@@ -198,7 +198,7 @@ package Files.Fs_Primitives is
    --  Path made absolute with its links resolved on every host, for asking
    --  whether one path lies inside another -- never for showing: Full_Name
    --  on POSIX, and on Windows, where Full_Name follows no link, the same
-   --  resolution of Hostkit.Fs.Real_Path (symbolic links and junctions, in
+   --  resolution of Hostkit.Fs.Canonical_Path (symbolic links and junctions, in
    --  the names' stored case). A copy into its own tree through a link to
    --  it is then still seen as one.
    --

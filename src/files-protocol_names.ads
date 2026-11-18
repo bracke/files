@@ -67,4 +67,13 @@ package Files.Protocol_Names is
    Changed_File         : constant String := "changed";
    Claimed_Changed_File : constant String := "changed.claimed";
 
+   --  The folder under the per-user application data directory that holds
+   --  files' own data (Files.File_System.Support.Files_Data_Directory).
+   Data_Folder : constant String := "files";
+
+   --  In it: the list of volume trashes the trash view also lists, one
+   --  absolute path per line, and the recovery index folder.
+   Volume_Trash_List     : constant String := "volume-trashes";
+   Recovery_Index_Folder : constant String := "recovery-index";
+
 end Files.Protocol_Names;

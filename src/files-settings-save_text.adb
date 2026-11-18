@@ -14,7 +14,7 @@ separate (Files.Settings)
       --  Windows, and the save replaced the link there. A dangling link has
       --  no final path; the lexical resolution names where it points.
       function Link_Target return String is
-         Resolved : constant String := Hostkit.Fs.Real_Path (Path);
+         Resolved : constant String := Hostkit.Fs.Canonical_Path (Path);
       begin
          return (if Resolved /= "" then Resolved else Files.Fs_Primitives.Full_Name (Path));
       end Link_Target;

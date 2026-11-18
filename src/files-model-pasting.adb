@@ -151,16 +151,6 @@ package body Files.Model.Pasting is
       return Boolean is
      (Model.Paste_Exec.Active);
 
-   function Execution_Done
-     (Model : Window_Model)
-      return Natural is
-     (Model.Paste_Exec.Done);
-
-   function Execution_Total
-     (Model : Window_Model)
-      return Natural is
-     (Model.Paste_Exec.Total);
-
    function Execution_Mode
      (Model : Window_Model)
       return Files.File_System.Drop_Import_Mode is

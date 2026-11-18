@@ -1,7 +1,6 @@
 with Files.Diagnostics;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Vectors;
-with Ada.Directories;
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Hash;
@@ -11,7 +10,6 @@ with Messages.Result;
 
 with Files.Environment;
 with Files.Types;
-with Files.Capped_Files;
 with Files.Fs_Primitives;
 with Files.Resources;
 
@@ -333,159 +331,15 @@ package body Files.Localization is
    end Native_System_Locale;
 
    function Configured_Category_Locale (Category_Key : String) return String is
-      Home : Unbounded_String;
-
-      function Existing_Value
-        (Path    : String;
-         Section : String;
-         Key     : String)
-         return String
-      is
-         Value : constant String := Locale_Config_Value (Path, Section, Key);
-      begin
-         if Value /= "" then
-            return Normalize_Locale (Value);
-         end if;
-
-         return "";
-      end Existing_Value;
-
-      --  Where a locale is configured, in order: the Plasma desktop's own
-      --  setting (in the home folder), then the system's. In each the
-      --  category's key comes before the general LANG.
-      type Source is record
-         Path    : Unbounded_String;
-         Section : Unbounded_String;
-      end record;
-      Plasma : constant String := "/.config/plasma-localerc";
+      --  Where the desktop keeps its formats is the host's to know
+      --  (Hostkit.Host.Configured_Format_Locale); normalising is files'.
+      Value : constant String :=
+        Hostkit.Host.Configured_Format_Locale
+          ((if Category_Key = "LC_TIME" then Hostkit.Host.Time_Formats else Hostkit.Host.Number_Formats),
+           Files.Environment.Value ("HOME"));
    begin
-      Home := To_Unbounded_String (Files.Environment.Value ("HOME"));
-      declare
-         Sources : constant array (Positive range <>) of Source :=
-           [(To_Unbounded_String (if Length (Home) > 0 then To_String (Home) & Plasma else ""),
-             To_Unbounded_String ("Formats")),
-            (To_Unbounded_String ("/etc/locale.conf"), Null_Unbounded_String),
-            (To_Unbounded_String ("/etc/default/locale"), Null_Unbounded_String)];
-      begin
-         for Place of Sources loop
-            if Length (Place.Path) > 0 then
-               for General in Boolean loop
-                  declare
-                     Value : constant String :=
-                       Existing_Value
-                         (To_String (Place.Path), To_String (Place.Section),
-                          (if General then "LANG" else Category_Key));
-                  begin
-                     if Value /= "" then
-                        return Value;
-                     end if;
-                  end;
-               end loop;
-            end if;
-         end loop;
-      end;
-      return "";
+      return (if Value = "" then "" else Normalize_Locale (Value));
    end Configured_Category_Locale;
-
-   function Locale_Config_Value
-     (Path    : String;
-      Section : String;
-      Key     : String)
-      return String
-   is
-      use type Ada.Directories.File_Kind;
-      use type Files.Capped_Files.Read_Status;
-
-      Max_Config_Bytes : constant := 256 * 1024;
-      In_Section : Boolean := Section = "";
-   begin
-      --  refusal-safe: a desktop setting not seen gives no answer, as one
-      --  that cannot be read does; the next source is asked.
-      if not Files.Fs_Primitives.Exists (Path)
-        or else Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Ordinary_File
-      then
-         return "";
-      end if;
-
-      declare
-         Status     : Files.Capped_Files.Read_Status;
-         Content    : constant String :=
-           Files.Capped_Files.Read_Capped
-             (Path, Max_Config_Bytes, Files.Capped_Files.Follow_Links, Status);
-         Line_First : Natural := Content'First;
-      begin
-         if Status /= Files.Capped_Files.Read_Complete then
-            return "";
-         end if;
-         while Line_First <= Content'Last loop
-            declare
-               Newline : constant Natural :=
-                 Ada.Strings.Fixed.Index
-                   (Content (Line_First .. Content'Last), String'(1 => ASCII.LF));
-               Line_End : constant Natural :=
-                 (if Newline = 0 then Content'Last else Newline - 1);
-               --  A file saved with Windows line endings keeps a CR before
-               --  each LF; it is not part of the line.
-               Line_Last : constant Natural :=
-                 (if Line_End >= Line_First and then Content (Line_End) = ASCII.CR
-                  then Line_End - 1 else Line_End);
-               Line : constant String :=
-                 (if Line_Last < Line_First then ""
-                  else Content (Line_First .. Line_Last));
-               Trimmed : constant String :=
-                 Ada.Strings.Fixed.Trim (Line, Ada.Strings.Both);
-               Equals_Pos : Natural;
-            begin
-               if Trimmed'Length = 0
-                 or else Trimmed (Trimmed'First) = '#'
-                 or else Trimmed (Trimmed'First) = ';'
-               then
-                  null;
-               elsif Trimmed'Length > 2
-                 and then Trimmed (Trimmed'First) = '['
-                 and then Trimmed (Trimmed'Last) = ']'
-               then
-                  In_Section :=
-                    Trimmed (Trimmed'First + 1 .. Trimmed'Last - 1) = Section;
-               elsif In_Section then
-                  Equals_Pos := Ada.Strings.Fixed.Index (Trimmed, "=");
-                  if Equals_Pos > 0 then
-                     declare
-                        Name : constant String := Ada.Strings.Fixed.Trim
-                          (Trimmed (Trimmed'First .. Equals_Pos - 1),
-                           Ada.Strings.Both);
-                        Value : constant String :=
-                          (if Equals_Pos < Trimmed'Last then
-                             Ada.Strings.Fixed.Trim
-                               (Trimmed (Equals_Pos + 1 .. Trimmed'Last),
-                                Ada.Strings.Both)
-                           else "");
-                     begin
-                        if Name = Key then
-                           --  locale.conf is shell syntax: LANG="de_DE.UTF-8".
-                           if Value'Length >= 2
-                             and then Value (Value'First) in '"' | '''
-                             and then Value (Value'Last) = Value (Value'First)
-                           then
-                              return Value (Value'First + 1 .. Value'Last - 1);
-                           end if;
-                           return Value;
-                        end if;
-                     end;
-                  end if;
-               end if;
-
-               exit when Newline = 0;
-               Line_First := Newline + 1;
-            end;
-         end loop;
-         return "";
-      end;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Localization");
-         return "";
-   end Locale_Config_Value;
 
    function Portable_Locale (Value : String) return Boolean is
       Raw  : constant String := Ada.Strings.Fixed.Trim (Value, Ada.Strings.Both);

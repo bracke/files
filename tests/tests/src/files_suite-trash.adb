@@ -75,6 +75,7 @@ package body Files_Suite.Trash is
    procedure Test_Macos_Home_Trash_Fallback (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Stray_Home_Trash_Stays_Freedesktop (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Volume_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Finder_Volume_Trash_Needs_The_Systems_Trashes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_Input_Opens_Trash_View (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_Input_Relative_To_View (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Trash_Long_Name (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -138,6 +139,9 @@ package body Files_Suite.Trash is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Volume_Trash'Access,
          "an item on another volume goes to that volume's trash, listed, restored and deleted from there");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Finder_Volume_Trash_Needs_The_Systems_Trashes'Access,
+         "with the Finder's layout, a volume's .Trashes is used only when the system made it");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Path_Input_Opens_Trash_View'Access,
          "typing the trash's path into the path bar opens the trash view");
@@ -209,6 +213,9 @@ package body Files_Suite.Trash is
    procedure Test_Stray_Home_Trash_Stays_Freedesktop (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Volume_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Finder_Volume_Trash_Needs_The_Systems_Trashes (T : in out AUnit.Test_Cases.Test_Case'Class)
+     is separate;
 
    procedure Test_Path_Input_Opens_Trash_View (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

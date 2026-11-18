@@ -505,7 +505,9 @@ package body Files.History_Journal is
       return Result;
    end Pruned_Dropped;
 
-   function Journals_Newest (Model : Files.Model.Window_Model; Redo : Boolean) return Boolean is
+   function Journals_Newest (Model : Files.Model.Window_Model; Side : Files.Model.History_Side) return Boolean is
+      use type Files.Model.History_Side;
+      Redo       : constant Boolean := Side = Files.Model.Redo_Side;
       Undo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Undo_Entries (Model);
       Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Redo_Entries (Model);
       Original   : constant Files.Model.Undo_Entry_Vectors.Vector := (if Redo then Redo_Stack else Undo_Stack);
@@ -639,9 +641,13 @@ package body Files.History_Journal is
    Checkpoint_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
 
    procedure Checkpoint
-     (Model : Files.Model.Window_Model; Action : Files.Model.Undo_Entry; Redo : Boolean; Force : Boolean := True)
+     (Model  : Files.Model.Window_Model;
+      Action : Files.Model.Undo_Entry;
+      Side   : Files.Model.History_Side;
+      Force  : Boolean := True)
    is
       use type Ada.Real_Time.Time;
+      use type Files.Model.History_Side;
       Undo_Stack : Files.Model.Undo_Entry_Vectors.Vector;
       Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector;
    begin
@@ -650,7 +656,7 @@ package body Files.History_Journal is
       end if;
       Undo_Stack := Files.Model.History.Undo_Entries (Model);
       Redo_Stack := Files.Model.History.Redo_Entries (Model);
-      if Redo then
+      if Side = Files.Model.Redo_Side then
          Redo_Stack.Append (Action);
       else
          Undo_Stack.Append (Action);
@@ -674,6 +680,10 @@ package body Files.History_Journal is
       Undo.Clear;
       Redo.Clear;
       State := (others => <>);
+      if Refused_Reads > 0 then
+         Refused_Reads := Refused_Reads - 1;
+         raise Ada.Directories.Use_Error;
+      end if;
       --  None to read only when the journal is gone for sure (no folder is
       --  no journal either). One the host will not answer for, or will not
       --  open, is no absence: it raises, and the caller tries again.
@@ -748,18 +758,18 @@ package body Files.History_Journal is
          return False;
    end Restore;
 
-   function Merge (Directory : String; Model : in out Files.Model.Window_Model) return Boolean is
+   function Merge (Directory : String; Model : in out Files.Model.Window_Model) return Merge_Outcome is
       Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
       State : Files.Model.History_Journal_State;
    begin
       if not Read_Journal (Directory, Undo, Redo, State) then
-         return False;
+         return No_Journal;
       end if;
       Files.Model.History.Merge (Model, Undo, Redo, State);
-      return True;
+      return Merged;
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.History_Journal");
-         return False;
+         return Unreadable;
    end Merge;
 end Files.History_Journal;

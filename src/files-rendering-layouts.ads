@@ -401,6 +401,28 @@ package Files.Rendering.Layouts is
       Visible_Index : Natural)
       return Natural;
 
+   --  The fewest main-view scroll lines the drawing turns into the row
+   --  boundary Target (pixels), or into the exact end when Target is the
+   --  maximum. The view draws its offset snapped down to whole row periods,
+   --  except that lines reaching the last pixel draw at the exact end; so
+   --  moving Up to a Target short of the end takes one line less, which
+   --  snaps to the row at or above Target. Rows lower than a line cannot be
+   --  hit exactly: then Up rounds down and down rounds up, so the drawn
+   --  offset never passes Target in the direction of travel's far side.
+   --  The wheel and revealing an item both ask this, so they agree.
+   --
+   --  @param Main Main-view layout (row period, drawn offset, maximum).
+   --  @param Line_Height Text line height in pixels.
+   --  @param Target Wanted pixel offset: a row boundary, or the maximum.
+   --  @param Up Whether the view is moving towards the top.
+   --  @return Scroll position in lines.
+   function Lines_For_Offset
+     (Main        : Main_View_Layout;
+      Line_Height : Positive;
+      Target      : Natural;
+      Up          : Boolean)
+      return Natural;
+
    --  The main-view scroll, in lines, that shows the item with Visible_Index
    --  whole: unchanged when it already is, otherwise just far enough that it
    --  becomes the first or the last row in view.

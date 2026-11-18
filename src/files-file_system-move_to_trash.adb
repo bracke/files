@@ -103,7 +103,7 @@ is
    Volume     : constant String :=
      --  Only for an item the preflight accepts: choosing a volume's trash
      --  makes it there, which a refused request must not do.
-     (if Backend in Trash_Xdg_Data_Home | Trash_Home_Data and then Preflight.Success
+     (if Backend in Trash_Xdg_Data_Home | Trash_Home_Data | Trash_Macos_Home and then Preflight.Success
       then Volume_Trash_For (Path)
       else "");
    Base       : constant String := (if Volume /= "" then Volume else Trash_Base_Path);

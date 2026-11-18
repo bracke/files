@@ -210,6 +210,18 @@ private package Files.File_System.Support is
    --  @return The directory, or "" when none can be named.
    function Application_Data_Directory return String;
 
+   --  files' own folder in Application_Data_Directory
+   --  (Protocol_Names.Data_Folder).
+   --
+   --  @return The folder, or "" when Application_Data_Directory has no name.
+   function Files_Data_Directory return String;
+
+   --  The list of remembered volume trashes in Files_Data_Directory
+   --  (Protocol_Names.Volume_Trash_List).
+   --
+   --  @return The list's path, or "" when Files_Data_Directory has no name.
+   function Volume_Trash_List_Path return String;
+
    --  A snapshot taken with Content => False, completed with the digest of a
    --  regular-file root obtained another way (as it was copied), so the root
    --  is not read just to hash it.

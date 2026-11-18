@@ -5,17 +5,22 @@ function Replay
    Direction : Replay_Direction)
    return Operation_Result
 is
+   Side      : constant Files.Model.History_Side :=
+     (if Direction = Replay_Redo then Files.Model.Redo_Side else Files.Model.Undo_Side);
    Redo      : constant Boolean := Direction = Replay_Redo;
+   Other     : constant array (Files.Model.History_Side) of Files.Model.History_Side :=
+     [Files.Model.Undo_Side => Files.Model.Redo_Side, Files.Model.Redo_Side => Files.Model.Undo_Side];
    Directory : constant String := Files.Model.Current_Path (Model);
    Action    : Files.Model.Undo_Entry;
    Found     : Boolean := False;
    Returned_Action : Boolean := False;
    Succeeded : Boolean;
 
-   --  Push Action onto the redo stack (To_Redo) or the undo stack.
-   procedure Push (To_Redo : Boolean) is
+   --  Push Action onto the stack of side Onto.
+   procedure Push (Onto : Files.Model.History_Side) is
+      use type Files.Model.History_Side;
    begin
-      if To_Redo then
+      if Onto = Files.Model.Redo_Side then
          Files.Model.History.Push_Redo (Model, Action);
       else
          Files.Model.History.Push_Undo (Model, Action);
@@ -46,7 +51,7 @@ begin
       return Make_Result (Operation_Failed, "error.undo.failed", Directory);
    end if;
 
-   Files.History_Journal.Checkpoint (Model, Action, Redo);
+   Files.History_Journal.Checkpoint (Model, Action, Side);
    if Redo then
       Succeeded := Apply_Forward (Action, Model);
    else
@@ -60,10 +65,10 @@ begin
    --  other stack, without disturbing the rest of that history; an
    --  undo-only action that fully succeeded is simply consumed.
    if not Succeeded then
-      Push (To_Redo => Redo);
+      Push (Onto => Side);
    elsif Redo or else Action.Redoable then
       Clear_Completed_Steps;
-      Push (To_Redo => not Redo);
+      Push (Onto => Other (Side));
    end if;
 
    Returned_Action := True;
@@ -72,7 +77,7 @@ exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.Operations");
       if Found and then not Returned_Action then
-         Push (To_Redo => Redo);
+         Push (Onto => Side);
       end if;
       Files.Model.Set_Error (Model, "error.undo.failed");
       return Make_Result (Operation_Failed, "error.undo.failed", Directory);

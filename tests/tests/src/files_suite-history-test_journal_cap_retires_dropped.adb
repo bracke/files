@@ -88,7 +88,10 @@ separate (Files_Suite.History)
               "the helper records an action");
       Files.History_Journal.Save_To (Directory, Helper, Required => True);
 
-      Assert (Files.History_Journal.Merge (Directory, Window), "the window merges the helper's journal");
+      Assert
+           (Files.History_Journal."="
+              (Files.History_Journal.Merge (Directory, Window), Files.History_Journal.Merged),
+            "the window merges the helper's journal");
       Assert (Names (Files.Model.History.Undo_Entries (Window)) = "c,d",
               "the dropped entries leave the history: " & Names (Files.Model.History.Undo_Entries (Window)));
       declare

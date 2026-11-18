@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Ada.Streams;
 with Guikit.Shared_Bytes;
 with Files.Environment;
@@ -31,6 +32,9 @@ with Hostkit.Trash;
 with Files.Bounded_Text_IO;
 
 package body Files.File_System is
+
+   --  Short for the subunits: the one public name is Fs_Primitives'.
+   function Parent_Directory (Path : String) return String renames Files.Fs_Primitives.Parent_Directory;
    use type Hostkit.Host.Kind;
 
    use Files.File_System.Support;
@@ -325,6 +329,14 @@ package body Files.File_System is
    --  .Trash-$uid, or of .Trash for .Trash/$uid.
    function Volume_Trash_Top (Base : String) return String;
 
+   --  Whether Base is a per-user folder in a volume's .Trashes: the Finder's
+   --  layout, which keeps its items in Base itself, with no info files.
+   function Is_Finder_Volume_Trash (Base : String) return Boolean;
+
+   --  The folder of a trash base that holds its items: its files/, or the
+   --  base itself in the Finder's layout.
+   function Trash_Items_Directory (Base : String) return String;
+
    --  The volume trash to move Path into, created if need be and remembered
    --  for the trash view; "" when Path is on the home trash's device or its
    --  volume has no usable trash (read-only, no permission), and the home
@@ -386,6 +398,8 @@ package body Files.File_System is
       Settings  : Files.Settings.Settings_Model)
       return Item_Load_Result
    is separate;
+
+   function Load_Recent_Items (Settings : Files.Settings.Settings_Model) return Item_Vectors.Vector is separate;
 
    function Unknown_Signature (Path : String := "") return Directory_Signature is
      ((Path => To_Unbounded_String (Path), others => <>));
@@ -520,6 +534,13 @@ package body Files.File_System is
       then Files.Fs_Primitives.Parent_Directory (Base)
       else Files.Fs_Primitives.Parent_Directory (Files.Fs_Primitives.Parent_Directory (Base)));
 
+   function Is_Finder_Volume_Trash (Base : String) return Boolean is
+     (Base /= ""
+      and then Files.Fs_Primitives.Leaf_Text (Files.Fs_Primitives.Parent_Directory (Base)) = ".Trashes");
+
+   function Trash_Items_Directory (Base : String) return String is
+     (if Is_Finder_Volume_Trash (Base) then Base else Hostkit.Fs.Join (Base, "files"));
+
    function Volume_Trash_For (Path : String) return String is separate;
 
    function Volume_Trash_Bases return Files.Types.String_Vectors.Vector is separate;
@@ -531,7 +552,12 @@ package body Files.File_System is
    function Is_Volume_Trash_Item (Path : String) return Boolean is
       Base : constant String := Trash_Base_Of (Path);
    begin
-      return Base /= "" and then Base /= Trash_Base_Path;
+      --  The Finder's own trash keeps no base of ours: its volume trashes
+      --  are the .Trashes ones.
+      return Base /= ""
+        and then (if Trash_Backend_Of_Current_Environment = Trash_Macos_Native
+                  then Is_Finder_Volume_Trash (Base)
+                  else Base /= Trash_Base_Path);
    end Is_Volume_Trash_Item;
 
    function Path_Can_Be_Directory (Path : String) return Boolean is separate;

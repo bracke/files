@@ -24,7 +24,7 @@ separate (Files_Suite.Context_Menu)
       begin
          Item_Center (Model, 2, X, Y, Found);
          Assert (Found, "a layout cell exists for the menu-anchor item");
-         Dispatch_Right_Click (Model, Settings, True, 2, X, Y, Result);
+         Dispatch_Right_Click (Model, Settings, Files.Events.On_Main_View, 2, X, Y, Result);
          Assert (Files.Model.Context_Menu.Is_Open (Model), "the context menu opens");
       end Open_Menu;
 

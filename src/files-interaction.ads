@@ -271,23 +271,19 @@ private
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used by item-click selection.
-   --  @param In_Main True when the click landed inside the main grid region.
+   --  @param Target What the click landed on. On the open context menu it
+   --  is ignored, so the item drawn beneath cannot take the selection.
    --  @param Item_Index Visible item index under the cursor, or zero when none.
    --  @param X Window-space X coordinate of the click.
    --  @param Y Window-space Y coordinate of the click.
-   --  @param In_Details_Header True when the click landed on the details header.
-   --  @param On_Context_Menu True when the click landed on the open context
-   --  menu: it is ignored, so the item drawn beneath cannot take the selection.
    --  @param Result Follow-up flags describing the context-menu change.
    procedure Apply_Right_Click
-     (Model             : in out Files.Model.Window_Model;
-      Settings          : Files.Settings.Settings_Model;
-      In_Main           : Boolean;
-      Item_Index        : Natural;
-      X                 : Natural;
-      Y                 : Natural;
-      Result            : out Interaction_Result;
-      In_Details_Header : Boolean := False;
-      On_Context_Menu   : Boolean := False);
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Target     : Files.Events.Right_Click_Target;
+      Item_Index : Natural;
+      X          : Natural;
+      Y          : Natural;
+      Result     : out Interaction_Result);
 
 end Files.Interaction;

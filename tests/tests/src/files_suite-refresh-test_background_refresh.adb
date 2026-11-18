@@ -77,7 +77,7 @@ separate (Files_Suite.Refresh)
               and then Files.Model.Last_Error_Key (Model) = "error.directory.load",
               "an inconsistent helper outcome is rejected without replacing the listing");
       Files_Suite.Interaction_Support.Dispatch_Right_Click
-        (Model, Settings, In_Main => True, Item_Index => 0,
+        (Model, Settings, Files.Events.On_Main_View, Item_Index => 0,
          X => 0, Y => 0, Result => Routed);
       Assert
         (Files.Model.Context_Menu.Is_Open (Model),

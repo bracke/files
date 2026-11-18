@@ -479,16 +479,15 @@ package body Files.Interaction is
    end Apply_Context_Menu_Command;
 
    procedure Apply_Right_Click
-     (Model             : in out Files.Model.Window_Model;
-      Settings          : Files.Settings.Settings_Model;
-      In_Main           : Boolean;
-      Item_Index        : Natural;
-      X                 : Natural;
-      Y                 : Natural;
-      Result            : out Interaction_Result;
-      In_Details_Header : Boolean := False;
-      On_Context_Menu   : Boolean := False)
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Target     : Files.Events.Right_Click_Target;
+      Item_Index : Natural;
+      X          : Natural;
+      Y          : Natural;
+      Result     : out Interaction_Result)
    is
+      use type Files.Events.Right_Click_Target;
       --  Any input-owning overlay must swallow the click exactly as left-clicks
       --  are suppressed behind these overlays. Otherwise a right-click in the
       --  grid region behind the modal would open a context menu on top and the
@@ -499,13 +498,13 @@ package body Files.Interaction is
         Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Context_Menu_Overlay);
    begin
       Result := (others => <>);
-      if On_Context_Menu and then Files.Model.Context_Menu.Is_Open (Model) then
+      if Target = Files.Events.On_Context_Menu and then Files.Model.Context_Menu.Is_Open (Model) then
          return;
-      elsif In_Details_Header and then not Overlay_Open then
+      elsif Target = Files.Events.On_Details_Header and then not Overlay_Open then
          --  A right-click on the details-view column header opens the column
          --  configuration menu regardless of any item under the header band.
          Files.Model.Context_Menu.Open (Model, X, Y, Files.Types.Context_Menu_Header);
-      elsif In_Main and then not Overlay_Open then
+      elsif Target = Files.Events.On_Main_View and then not Overlay_Open then
          if Item_Index > Files.Model.Visible_Count (Model) then
             --  A queued pointer action can outlive the snapshot that produced
             --  its visible index. Do not turn that stale index into an item

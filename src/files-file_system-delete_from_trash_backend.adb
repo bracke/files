@@ -34,7 +34,7 @@ begin
    --  Freedesktop backends keep a <base>/info/<name>.trashinfo sidecar next
    --  to the payload; remove it so the emptied entry leaves no orphaned
    --  metadata. Sidecar removal is best-effort and never fails the purge.
-   if Base /= "" then
+   if Base /= "" and then Backend not in Trash_Macos_Home | Trash_Macos_Native then
       declare
          Simple    : constant String := Files.Fs_Primitives.Leaf_Text (Trashed_Path);
          Info_Path : constant String :=

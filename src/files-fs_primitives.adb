@@ -186,7 +186,7 @@ package body Files.Fs_Primitives is
    --  dangling links ends.
    function Resolved (Whole : String; Links : Natural := 0) return String is
       Most_Links : constant := 40;
-      Real       : constant String := Hostkit.Fs.Real_Path (Whole);
+      Real       : constant String := Hostkit.Fs.Canonical_Path (Whole);
    begin
       if Real /= "" then
          declare
