@@ -1,16 +1,76 @@
+with Ada.Real_Time;
 with Ada.Strings.Unbounded;
+
+with Files.Timing;
 
 with Hostkit.Fs;
 
 package body Files.Settings.Path_References is
    use Ada.Strings.Unbounded;
 
+   package Fold_Answers is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Boolean,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
+   --  What the volume said of a path lately. Asking is a system call
+   --  (pathconf), and matching one path against the stored ones asks of every
+   --  one of them: loading settings with many labels made a number of calls
+   --  that grows with the square of the labels, which ran past CI's time on
+   --  an Intel Mac. An answer is kept for a moment, as the mount table is.
+   protected Fold_Cache is
+      procedure Look_Up (Path : String; Known : out Boolean; Answer : out Boolean);
+      procedure Remember (Path : String; Answer : Boolean);
+   private
+      Answers : Fold_Answers.Map;
+      Since   : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+   end Fold_Cache;
+
+   protected body Fold_Cache is
+      procedure Look_Up (Path : String; Known : out Boolean; Answer : out Boolean) is
+         Position : Fold_Answers.Cursor;
+      begin
+         --  Kept for two seconds, so a volume mounted at a known path since
+         --  is asked again.
+         if Files.Timing.Elapsed (Ada.Real_Time.Clock, Since, Ada.Real_Time.Seconds (2)) then
+            Answers.Clear;
+            Since := Ada.Real_Time.Clock;
+         end if;
+         Position := Answers.Find (Path);
+         Known := Fold_Answers.Has_Element (Position);
+         Answer := Known and then Fold_Answers.Element (Position);
+      end Look_Up;
+
+      procedure Remember (Path : String; Answer : Boolean) is
+      begin
+         if Natural (Answers.Length) >= 16_384 then
+            Answers.Clear;
+         end if;
+         Answers.Include (Path, Answer);
+      end Remember;
+   end Fold_Cache;
+
+   --  Whether Path's volume folds name case, from Fold_Cache when it was
+   --  asked lately.
+   function Volume_Folds (Path : String) return Boolean is
+      Known  : Boolean;
+      Answer : Boolean;
+   begin
+      Fold_Cache.Look_Up (Path, Known, Answer);
+      if not Known then
+         Answer := Hostkit.Fs.Folds_Name_Case (Path);
+         Fold_Cache.Remember (Path, Answer);
+      end if;
+      return Answer;
+   end Volume_Folds;
+
    --  Whether Path is matched without regard to case: on every path where
    --  the host's volumes fold names (Windows), where its own volume does
    --  on macOS. A decision of Path's alone, so a path is keyed alike
    --  wherever it is met.
    function Folds (Path : String) return Boolean is
-     (Folds_Paths or else (Asks_Volume and then Hostkit.Fs.Folds_Name_Case (Path)));
+     (Folds_Paths or else (Asks_Volume and then Volume_Folds (Path)));
 
    --  The form a path is matched in: folded where it folds (Folds), so two
    --  spellings of one path are one entry.
@@ -137,6 +197,55 @@ package body Files.Settings.Path_References is
       Paths    : String_Vectors.Vector;
       Label    : Files.Types.Color_Label)
  is separate;
+
+   procedure Load_Label
+     (Settings : in out Settings_Model;
+      Known    : in out Label_Position_Maps.Map;
+      Path     : String;
+      Label    : Files.Types.Color_Label)
+   is
+      use type Files.Types.Color_Label;
+      Matched : constant String := Key (Path);
+      Place   : Label_Position_Maps.Cursor;
+   begin
+      if not Persistent_Path_Is_Valid (Path) then
+         return;
+      end if;
+      if Natural (Known.Length) /= Natural (Settings.Paths.Labels.Length) then
+         --  Not every label is accounted for (a first call, or a clearing
+         --  removed one): index them all again, the first of a path's
+         --  standing for it as Set_Label finds it.
+         Known.Clear;
+         for Index in Settings.Paths.Labels.First_Index .. Settings.Paths.Labels.Last_Index loop
+            declare
+               Existing : constant String := Key (To_String (Settings.Paths.Labels (Index).Path));
+            begin
+               if not Known.Contains (Existing) then
+                  Known.Insert (Existing, Index);
+               end if;
+            end;
+         end loop;
+         if Natural (Known.Length) /= Natural (Settings.Paths.Labels.Length) then
+            --  Two labels match one path already: Set_Label's scan decides.
+            Set_Label (Settings, Path, Label);
+            Known.Clear;
+            return;
+         end if;
+      end if;
+      if Label = Files.Types.No_Label then
+         Set_Label (Settings, Path, Label);
+         Known.Clear;
+         return;
+      end if;
+      Place := Known.Find (Matched);
+      if Label_Position_Maps.Has_Element (Place) then
+         Settings.Paths.Labels.Replace_Element
+           (Label_Position_Maps.Element (Place), (Path => To_Unbounded_String (Path), Label => Label));
+      else
+         Settings.Paths.Labels.Append (Path_Label'(Path => To_Unbounded_String (Path), Label => Label));
+         Known.Insert (Matched, Settings.Paths.Labels.Last_Index);
+      end if;
+   end Load_Label;
 
    function Index_Paths
      (Settings : Settings_Model)

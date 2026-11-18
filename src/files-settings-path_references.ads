@@ -162,6 +162,31 @@ package Files.Settings.Path_References is
       Equivalent_Keys => "=",
       "="             => Files.Types."=");
 
+   --  Where each label stands in the settings, by the form its path is
+   --  matched in, as Load_Label keeps it.
+   package Label_Position_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Positive,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
+   --  Set_Label for a settings file being read: the path is matched through
+   --  Known instead of against every label read before it, so reading n labels
+   --  takes n lookups, not n squared comparisons (each of which, on macOS,
+   --  asks the volume whether it folds case). Known starts empty and is kept
+   --  by the caller across one read; it is rebuilt whenever it does not
+   --  account for every label.
+   --
+   --  @param Settings Settings model being read.
+   --  @param Known The labels' places, by matched path.
+   --  @param Path Full item or folder path to label.
+   --  @param Label Color label to assign, or No_Label to clear.
+   procedure Load_Label
+     (Settings : in out Settings_Model;
+      Known    : in out Label_Position_Maps.Map;
+      Path     : String;
+      Label    : Files.Types.Color_Label);
+
    --  Favorite paths, as indexed by Index_Paths.
    package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
      (Element_Type        => String,

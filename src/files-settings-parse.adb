@@ -18,6 +18,8 @@ separate (Files.Settings)
       Theme_Explicit : Boolean := False;
       Legacy_Theme   : array (Legacy_Theme_Flag) of Boolean := [others => False];
       Entry_Count    : Natural := 0;
+      --  The labels read so far, by matched path (Path_References.Load_Label).
+      Known_Labels   : Path_References.Label_Position_Maps.Map;
 
       --  Per-section key=value handlers, dispatched through Line_Handlers
       --  below. Each takes the line's key as written (Key), lower-cased
@@ -139,7 +141,7 @@ separate (Files.Settings)
                      if Color_Label_From_Name (Color_Text, Label)
                        and then Persistent_Path_Is_Valid (Path_Text)
                      then
-                        Path_References.Set_Label (Settings, Path_Text, Label);
+                        Path_References.Load_Label (Settings, Known_Labels, Path_Text, Label);
                      elsif Label /= Files.Types.No_Label then
                         Err := To_Unbounded_String ("error.settings.invalid");
                      end if;
