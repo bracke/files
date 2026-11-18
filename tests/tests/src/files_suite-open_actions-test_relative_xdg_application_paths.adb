@@ -1,4 +1,5 @@
 with Files_Suite.Support.Guards;
+with GNAT.OS_Lib;
 separate (Files_Suite.Open_Actions)
    procedure Test_Relative_Xdg_Application_Paths (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -40,7 +41,7 @@ separate (Files_Suite.Open_Actions)
          Ada.Directories.Set_Directory (Root);
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", "relative-home");
          Ada.Environment_Variables.Set
-           ("XDG_DATA_DIRS", "relative-system:" & System_Base);
+           ("XDG_DATA_DIRS", "relative-system" & GNAT.OS_Lib.Path_Separator & System_Base);
          Apps := Files.Desktop_Applications.Available_Applications;
          Files_Suite.Support.Assert_Equal
            (To_String (Find (Apps, "Relative Data Home").Exec),

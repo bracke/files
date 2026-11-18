@@ -133,7 +133,8 @@ separate (Files_Suite.Info)
                  (not Guarded.Capped,
                   "an unreadable size root is unavailable, not an empty measurement: not capped");
             else
-               Files_Suite.Support.Skip ("Test_Recursive_Folder_Size", "root reads an unreadable folder");
+               Files_Suite.Support.Skip
+                 ("Test_Recursive_Folder_Size", "this host reads a folder whose permissions were removed");
             end if;
          end if;
          Project_Tools.Files.Delete_Tree (Locked);

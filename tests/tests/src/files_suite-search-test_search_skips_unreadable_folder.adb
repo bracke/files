@@ -28,7 +28,8 @@ separate (Files_Suite.Search)
       Assert (Mutation.Success, "make the folder unreadable");
       if Files.File_System.Load_Directory (Locked, Settings).Success then
          Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
-         Files_Suite.Support.Skip ("Test_Search_Skips_Unreadable_Folder", "root reads an unreadable folder");
+         Files_Suite.Support.Skip
+           ("Test_Search_Skips_Unreadable_Folder", "this host reads a folder whose permissions were removed");
          return;
       end if;
       for Contents in Boolean loop
