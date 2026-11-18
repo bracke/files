@@ -115,7 +115,7 @@ separate (Check_All)
       Require_Tests ("tree", 15);
       Require_Tests ("keyboard", 14);
       Require_Tests ("text_input", 5);
-      Require_Tests ("rendering", 108);
+      Require_Tests ("rendering", 109);
       Require_Tests ("operations", 49);
       Require_Tests ("transfer", 56);
       Require_Tests ("recovery", 62);

@@ -1,3 +1,4 @@
+with Guikit.Bidi;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents.Draw_Single_Item_Info)
    --  Draw an editable owner or group value and register one
    --  click hit region over it. While editing, the value shows
@@ -44,8 +45,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
                  Guikit.Layout.Saturating_Add
                    (Text_X,
                     Saturating_Multiply
-                      (Guikit.Utf8.Display_Units_Before
-                         (Raw, Snapshot.Text_Cursor_Position),
+                      (Guikit.Bidi.Caret_Column
+                         (Raw, Snapshot.Text_Cursor_Position, Columns => Text_W / Char_W),
                        Char_W));
             begin
                --  A 2 px stroke, inset from the row by a

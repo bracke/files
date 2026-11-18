@@ -94,6 +94,7 @@ package body Files_Suite.Rendering is
    procedure Test_Multi_Rename_Fields_And_Carets (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Show_Extensions_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Caret_Click_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Right_To_Left_Caret_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scrolled_Rename_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Grouped_Rename_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Caret_Scales_With_Line_Height (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -248,6 +249,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Caret_Click_Round_Trip'Access,
          "a click at a drawn caret pixel resolves back to that caret's cursor index");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Right_To_Left_Caret_And_Click'Access,
+         "in a Hebrew name the caret moves leftward as it advances and a click lands where it is drawn");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Scrolled_Rename_Click'Access,
          "a click on a scrolled rename field maps onto the scrolled text, per field in a multi-rename");
@@ -686,6 +690,8 @@ package body Files_Suite.Rendering is
    procedure Test_Show_Extensions_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Caret_Click_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Right_To_Left_Caret_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Scrolled_Rename_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -1,3 +1,4 @@
+with Guikit.Bidi;
 separate (Files.Rendering.Build_Frame_Commands)
    procedure Add_Caret
      (Region  : Files.Rendering.Layouts.Field_Text_Region;
@@ -9,10 +10,12 @@ separate (Files.Rendering.Build_Frame_Commands)
       Char_W  : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
       Raw     : constant String := To_String (Text);
       --  From the text's own origin (padding and any star reserve already
-      --  taken, as the click-to-caret mapping reads them), clamped inside the box.
+      --  taken, as the click-to-caret mapping reads them), clamped inside the box;
+      --  in right-to-left text, beside the character as it is drawn.
       Raw_X   : constant Natural :=
         Guikit.Layout.Saturating_Add
-          (Region.X, Saturating_Multiply (Guikit.Utf8.Display_Units_Before (Raw, Cursor), Char_W));
+          (Region.X,
+           Saturating_Multiply (Guikit.Bidi.Caret_Column (Raw, Cursor, Columns => Region.Width / Char_W), Char_W));
       Field_W : constant Natural := Region.Field_Width;
       Max_X   : constant Natural :=
         (if Field_W > 2 then Guikit.Layout.Saturating_Add (Region.Field_X, Field_W - 2) else Region.Field_X);

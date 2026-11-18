@@ -1,3 +1,4 @@
+with Guikit.Bidi;
 with Guikit.Layout;
 with Files.Rendering.Layouts;
 separate (Files.Events)
@@ -54,19 +55,19 @@ separate (Files.Events)
            (if Focused
             then Files.Rendering.Layouts.Input_Scroll_Columns (Raw, Caret, Text_Width, Line_Height)
             else 0);
-         --  The column the drawn text really starts at: the drawing starts at
-         --  the byte offset for Scroll, which is before a wide character
-         --  that straddles column Scroll -- one column earlier than Scroll.
-         Base   : constant Natural :=
-           Guikit.Utf8.Display_Units_Before (Raw, Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Scroll));
-         Click_Column : Natural;
+         --  The drawn text starts at the byte offset for Scroll, which is
+         --  before a wide character that straddles column Scroll.
+         Skip   : constant Natural := Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Scroll);
+         Shown  : constant String := Raw (Raw'First + Natural'Min (Skip, Raw'Length) .. Raw'Last);
+         --  Where the click is, in half cells from the start of what is drawn:
+         --  which half of a character it lands on decides the side of it the
+         --  caret goes, and in right-to-left text that is the other side.
+         Half   : constant Natural :=
+           (if Click_X <= Text_X then 0 else Guikit.Layout.Saturating_Multiply (Click_X - Text_X, 2) / Char_W);
       begin
-         if Click_X <= Text_X then
-            return Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Base);
-         end if;
-
-         Click_Column := Guikit.Layout.Saturating_Add (Click_X - Text_X, Char_W / 2) / Char_W;
-         return Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Guikit.Layout.Saturating_Add (Click_Column, Base));
+         return Natural'Min (Skip, Raw'Length)
+           + Guikit.Bidi.Cursor_At_Half_Column
+               (Shown, Half, Columns => (if Text_Width = 0 then Natural'Last else Text_Width / Char_W));
       end Cursor_At;
 
       function Text_Click
