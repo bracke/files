@@ -21,6 +21,8 @@ is
       begin
          if not Valid_Original_Path (Original) then
             return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
+         --  refusal-safe: the Recycle Bin's restore never replaces
+         --  (Restore_Taken), so an original not seen is not written over.
          elsif Files.Fs_Primitives.Entry_Exists (Original) then
             return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_exists"));
          elsif Expected_Identity /= ""
@@ -64,6 +66,7 @@ begin
       --  another item trashed under the same name, while a long copy runs.
       Info_Identity : constant String := Files.File_Identities.Token (Info_Path);
    begin
+      --  refusal-safe: an info file not seen refuses the restore.
       if Expected_Original = "" and then not Files.Fs_Primitives.Exists (Info_Path) then
          return
            (Success   => False,
@@ -87,6 +90,8 @@ begin
             Error_Key => To_Unbounded_String ("error.trash.restore_parent_missing"));
       end if;
 
+      --  refusal-safe: the move and the copy below never replace, so an
+      --  original not seen is not written over.
       if Files.Fs_Primitives.Entry_Exists (To_String (Original)) then
          return
            (Success   => False,

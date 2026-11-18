@@ -65,7 +65,12 @@ package body Files.File_System.Support is
       begin
          --  Something the source gained after it was copied is not in the
          --  copy: the move's own check of the source refuses it next.
-         if Hostkit.Fs.Is_Link (To) or else not Files.Fs_Primitives.Entry_Exists (To) then
+         if Hostkit.Fs.Is_Link (To) or else Files.Fs_Primitives.Entry_Is_Absent (To) then
+            return;
+         --  refusal-safe: a part of the copy that cannot be looked at
+         --  cannot be synced either, and the copy is not durable.
+         elsif not Files.Fs_Primitives.Entry_Exists (To) then
+            Synced := False;
             return;
          elsif Files.Fs_Primitives.Kind (To) = Ada.Directories.Directory then
             if not Hostkit.Fs.Is_Link (From) then

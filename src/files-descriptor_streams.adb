@@ -1,4 +1,5 @@
 with Ada.Directories;
+with Files.Io_Errors;
 
 package body Files.Descriptor_Streams is
 
@@ -29,6 +30,8 @@ package body Files.Descriptor_Streams is
             Integer (Ada.Streams.Stream_Element_Offset'Min
                        (Item'Last - Next + 1, Ada.Streams.Stream_Element_Offset (Integer'Last))));
          if Written <= 0 then
+            --  Why (a full disk, a quota), for the handler that picks the message.
+            Files.Io_Errors.Capture;
             raise Ada.Directories.Use_Error;
          end if;
          Next := Next + Ada.Streams.Stream_Element_Offset (Written);

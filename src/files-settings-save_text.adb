@@ -6,7 +6,6 @@ separate (Files.Settings)
       Text : String)
       return Settings_Write_Result
    is
-      use type GNAT.OS_Lib.File_Descriptor;
       --  Publishing renames a temporary over the target, which would replace
       --  a symlinked settings file (stow, home-manager, a dotfiles repo) with
       --  a plain file and silently detach it. Write through to the link's
@@ -24,31 +23,14 @@ separate (Files.Settings)
       Parent : constant String := Parent_Directory (Target);
       Temp   : Unbounded_String;
       Temp_Identity : Unbounded_String;
-      Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
       Publication : Files.Durable_Writes.Publication_Result :=
         Files.Durable_Writes.Not_Published;
 
-      procedure Remove_Owned_Temp is
+      --  The settings text, as the bytes it is.
+      procedure Write_Text (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
       begin
-         if Length (Temp) > 0
-           and then Length (Temp_Identity) > 0
-           and then Files.File_Identities.Token (To_String (Temp)) = To_String (Temp_Identity)
-         then
-            if Hostkit.Fs.Is_Link (To_String (Temp)) then
-               declare
-                  Removed : constant Boolean := Hostkit.Fs.Delete_Link (To_String (Temp));
-                  pragma Unreferenced (Removed);
-               begin
-                  null;
-               end;
-            elsif Files.Fs_Primitives.Exists (To_String (Temp)) then
-               Files.Fs_Primitives.Delete_File (To_String (Temp));
-            end if;
-         end if;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Settings.Save_Text");
-      end Remove_Owned_Temp;
+         String'Write (Stream, Text);
+      end Write_Text;
    begin
       Files.Io_Errors.Reset;
       if Path = ""
@@ -61,6 +43,9 @@ separate (Files.Settings)
             Durable   => False,
             Path      => To_Unbounded_String (Path),
             Error_Key => To_Unbounded_String ("error.settings.save"));
+      --  refusal-safe: a save replaces the file whatever is there; a target
+      --  not seen only skips this guard, and the publish beside it is then
+      --  refused in the same folder.
       elsif Files.Fs_Primitives.Exists (Target)
         and then Files.Fs_Primitives.Kind (Target) /= Ada.Directories.Ordinary_File
       then
@@ -72,6 +57,7 @@ separate (Files.Settings)
       end if;
 
       if Parent /= "" then
+         --  refusal-safe: a folder not seen is made, which fails or finds it.
          if Files.Fs_Primitives.Exists (Parent) then
             if Files.Fs_Primitives.Kind (Parent) /= Ada.Directories.Directory then
                return
@@ -99,57 +85,7 @@ separate (Files.Settings)
       --  settings intact rather than truncating them to nothing. Exclusive
       --  creation also refuses a stale or hostile .tmp symlink instead of
       --  following it and truncating its target.
-      for Index in 1 .. 9_999 loop
-         declare
-            Candidate : constant String :=
-              Target & ".tmp" & (if Index = 1 then "" else "-" &
-                Files.Types.Natural_Text (Index));
-         begin
-            Descriptor := Hostkit.Regular_Files.Create_New (Candidate, 8#666#);
-            if Descriptor /= GNAT.OS_Lib.Invalid_FD then
-               Temp := To_Unbounded_String (Candidate);
-               Temp_Identity := To_Unbounded_String (Files.File_Identities.Token (Candidate));
-               if Length (Temp_Identity) = 0 then
-                  raise Ada.Directories.Use_Error;
-               end if;
-               Files.Private_Directories.Make_File_Private (Descriptor);
-               exit;
-            end if;
-         end;
-      end loop;
-      if Descriptor = GNAT.OS_Lib.Invalid_FD or else Length (Temp_Identity) = 0 then
-         --  errno still holds why the last candidate was refused.
-         Files.Io_Errors.Capture;
-         raise Ada.Directories.Use_Error;
-      end if;
-
-      declare
-         Next : Integer := Text'First;
-         Written : Integer;
-      begin
-         while Next <= Text'Last loop
-            Written := GNAT.OS_Lib.Write
-              (Descriptor, Text (Next)'Address, Text'Last - Next + 1);
-            if Written <= 0 then
-               Files.Io_Errors.Capture;
-               raise Ada.Directories.Use_Error;
-            end if;
-            Next := Next + Written;
-         end loop;
-      end;
-      declare
-         Closed : Boolean;
-      begin
-         GNAT.OS_Lib.Close (Descriptor, Closed);
-         Descriptor := GNAT.OS_Lib.Invalid_FD;
-         if not Closed then
-            Files.Io_Errors.Capture;
-            raise Ada.Directories.Use_Error;
-         end if;
-      end;
-      if Files.File_Identities.Token (To_String (Temp)) /= To_String (Temp_Identity) then
-         raise Ada.Directories.Use_Error;
-      end if;
+      Files.Durable_Writes.Write_Private_Temporary (Target, Write_Text'Access, Temp, Temp_Identity);
       Publication := Files.Durable_Writes.Publish (To_String (Temp), Target);
       if not Files.Durable_Writes.Published (Publication) then
          raise Ada.Directories.Use_Error;
@@ -172,11 +108,7 @@ separate (Files.Settings)
             --  Why, before the cleanup below can record a cause of its own.
             Key : constant Unbounded_String := Files.Io_Errors.Error_Key ("error.settings.save");
          begin
-            if Descriptor /= GNAT.OS_Lib.Invalid_FD then
-               GNAT.OS_Lib.Close (Descriptor);
-               Descriptor := GNAT.OS_Lib.Invalid_FD;
-            end if;
-            Remove_Owned_Temp;
+            Files.Durable_Writes.Remove_Owned (To_String (Temp), To_String (Temp_Identity));
 
             return
               (Success   => False,

@@ -40,7 +40,9 @@ begin
          Info_Path : constant String :=
            Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Simple & ".trashinfo");
       begin
-         if Files.Fs_Primitives.Exists (Info_Path) then
+         --  One that could not be looked at is deleted all the same, or it
+         --  stays behind describing an item that is gone.
+         if not Files.Fs_Primitives.Entry_Is_Absent (Info_Path) then
             Files.Fs_Primitives.Delete_File (Info_Path);
          end if;
       exception

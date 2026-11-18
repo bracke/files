@@ -12,6 +12,7 @@ begin
    if Source_Path = ""
      or else (Hard
               and then not Hostkit.Fs.Is_Link (Source_Path)
+              --  refusal-safe: a source not seen fails the link; nothing is made.
               and then (not Files.Fs_Primitives.Exists (Source_Path)
                         or else Files.Fs_Primitives.Kind (Source_Path) = Ada.Directories.Directory))
    then

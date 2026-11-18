@@ -298,8 +298,10 @@ package body Files.File_System is
    Max_Remembered_Volume_Trashes : constant := 64;
 
    --  The volume trashes this application has trashed into, oldest first, as
-   --  Volume_Trash_For recorded them (unvalidated).
-   function Remembered_Volume_Trashes return Files.Types.String_Vectors.Vector;
+   --  Volume_Trash_For recorded them (unvalidated). Complete is False when a
+   --  list is there (or may be) but could not be read whole: what is
+   --  returned then is no basis for writing the list again.
+   function Remembered_Volume_Trashes (Complete : out Boolean) return Files.Types.String_Vectors.Vector;
 
    --  Whether Base is one of this user's volume trash directories: named
    --  .Trash-$uid, or $uid inside a sticky .Trash, a real directory (not a
@@ -492,7 +494,8 @@ package body Files.File_System is
 
    function Volume_Trash_Supported return Boolean is separate;
 
-   function Remembered_Volume_Trashes return Files.Types.String_Vectors.Vector is separate;
+   function Remembered_Volume_Trashes (Complete : out Boolean) return Files.Types.String_Vectors.Vector
+     is separate;
 
    function Valid_Volume_Trash_Base (Base : String) return Boolean is separate;
 
@@ -981,7 +984,10 @@ package body Files.File_System is
 
    function Entry_Identity_Matches (Path, Expected : String) return Boolean is
    begin
+      --  refusal-safe: what cannot be looked at is unverified, and an
+      --  unverified entry is never acted on (not undone, not removed).
       return Expected /= ""
+        --  refusal-safe: as above.
         and then Files.Fs_Primitives.Entry_Exists (Path)
         and then Files.File_Identities.Token (Path) = Expected;
    exception

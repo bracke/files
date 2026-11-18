@@ -18,7 +18,9 @@ separate (Files.Settings)
            (Success   => False,
             Settings  => Default_Settings,
             Error_Key => To_Unbounded_String ("error.settings.load"));
-      elsif not Files.Fs_Primitives.Exists (Path) then
+      elsif Files.Fs_Primitives.Entry_Is_Absent (Path) then
+         --  Defaults only for a file surely not there: one that cannot be
+         --  looked at fails the load, so it is not saved over with them.
          return
            (Success   => True,
             Settings  => Default_Settings,

@@ -79,6 +79,8 @@ package body Files.Durability is
              (Faults.Stage
               and then Leaf'Length > Prefix'Length
               and then Leaf (Leaf'First .. Leaf'First + Prefix'Length - 1) = Prefix
+              --  refusal-safe: a test's fault injection only; it decides
+              --  whether to feign a failed sync, never what is kept.
               and then Files.Fs_Primitives.Entry_Exists (Hostkit.Fs.Join (Path, "payload")));
       end;
    end Faulted;

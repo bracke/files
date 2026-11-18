@@ -128,6 +128,8 @@ package body Files_Suite.Recovery is
    procedure Test_Transfer_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Replacement_Checkpoint_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovered_Checkpoint_Keeps_Result (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_A_Reasonless_Helper_Failure_Is_A_Failure (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_A_Failed_Result_Publish_Leaves_No_Stage (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Truncated_Persisted_Records (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Autonomous_Cleanup_Worker (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Cleanup_Exit_Verification (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -137,6 +139,8 @@ package body Files_Suite.Recovery is
    procedure Test_Released_Job_Leaves_Registry_Alone (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_An_Unsearchable_Entry_Is_Not_Absent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Job_Cancellation_Latches (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_A_Torn_Cancel_Marker_Is_Written_Again (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_A_Torn_Journal_Record_Is_Cut_Back (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Identity_Token_Round_Trips (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Helper_Lease_Survives_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Exclusive_Stream_Hardlink (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -149,6 +153,7 @@ package body Files_Suite.Recovery is
    procedure Test_Private_Directory_Hardening (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scavenger_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Window_Job_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_A_Closing_Window_Cancels_Its_Job (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transport_Cleanup_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Stage_Owner_Marker_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -248,6 +253,12 @@ package body Files_Suite.Recovery is
         (T, Test_Recovered_Checkpoint_Keeps_Result'Access,
          "an unreadable replacement checkpoint keeps the backup the result reported");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_A_Reasonless_Helper_Failure_Is_A_Failure'Access,
+         "a helper failure that carries no reason is still a failure, never an empty key");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_A_Failed_Result_Publish_Leaves_No_Stage'Access,
+         "a job result that could not be published leaves no staged file to refuse the next");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Truncated_Persisted_Records'Access,
          "every strict prefix of persisted job and history records is rejected");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -273,6 +284,12 @@ package body Files_Suite.Recovery is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Job_Cancellation_Latches'Access,
          "a helper sees its cancellation within a check interval, and once seen it stays seen");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_A_Torn_Cancel_Marker_Is_Written_Again'Access,
+         "a cancel marker left torn is written again whole, so the job can still be cancelled");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_A_Torn_Journal_Record_Is_Cut_Back'Access,
+         "a journal record a full disk cut short is taken back, so the records after it are read");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Identity_Token_Round_Trips'Access,
          "An identity token parses back to what made it");
@@ -307,6 +324,9 @@ package body Files_Suite.Recovery is
         (T, Test_Scavenger_Shutdown'Access, "scavenger shutdown reaps a stalled coordinator before returning");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Window_Job_Shutdown'Access, "closing one window stops its stalled jobs while another remains active");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_A_Closing_Window_Cancels_Its_Job'Access,
+         "closing a window cancels its job with the grace a cancel gives, and keeps a paste's progress in its history");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Transport_Cleanup_Guards'Access,
          "transport cleanup refuses unmarked, leased, linked and replaced directories");
@@ -369,6 +389,8 @@ package body Files_Suite.Recovery is
 
    procedure Test_Window_Job_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_A_Closing_Window_Cancels_Its_Job (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Transport_Protocol_Gaps (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Copy_Journal_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -389,6 +411,10 @@ package body Files_Suite.Recovery is
 
    procedure Test_Recovered_Checkpoint_Keeps_Result (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_A_Reasonless_Helper_Failure_Is_A_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_A_Failed_Result_Publish_Leaves_No_Stage (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Truncated_Persisted_Records (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Helper_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -405,6 +431,10 @@ package body Files_Suite.Recovery is
    procedure Test_Released_Job_Leaves_Registry_Alone (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_An_Unsearchable_Entry_Is_Not_Absent (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Job_Cancellation_Latches (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_A_Torn_Cancel_Marker_Is_Written_Again (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_A_Torn_Journal_Record_Is_Cut_Back (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Identity_Token_Round_Trips (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Helper_Lease_Survives_Parent (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

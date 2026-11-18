@@ -13,6 +13,8 @@ begin
       begin
          if Value = "" then
             return False;
+         --  refusal-safe: an answer for the trash's availability only; the
+         --  folders are made, and moved into, by steps refused on the same path.
          elsif Files.Fs_Primitives.Exists (Value) then
             return Files.Fs_Primitives.Directory_Exists (Value);
          end if;

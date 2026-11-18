@@ -7,7 +7,7 @@ with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    --  A batch records its Undo entry at once and then at most once a second,
-   --  not once per item; a trash batch too, and it undoes completely. A batch
+   --  not once per item; a trash and a link batch too, and it undoes completely. A batch
    --  none of whose items can be verified for Undo still succeeds, but says
    --  so ("undo.unavailable"), and does not retry the record on every item.
    --  The throttle's clock is the suite's fake one, so "a second has passed"
@@ -157,6 +157,25 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Assert_Equal
         (Files.Undo_Recording.Testing.Undo_Records, 2,
          "a refused record is tried at the first item and retried only at the end");
+      Files.File_System.Testing.Refuse_Creation_Matches (False);
+
+      --  Links are such a batch too: recorded at the first link and at the
+      --  end, undone whole, and a missing Undo said as for the others. (Hard
+      --  links: every runner may make them.)
+      Prepare;
+      Step := Files.Operations.Create_Hardlink_Selected (Model, Settings);
+      Assert (Step.Status = Files.Operation_Results.Operation_Success, "the links are made");
+      Assert_Clock_Read ("the link batch");
+      Files_Suite.Support.Assert_Equal
+        (Files.Undo_Recording.Testing.Undo_Records, 2, "a link batch is recorded at its first link and at its end");
+      Assert (Files.Model.History.Undo_Available (Model), "the links can be undone");
+      Prepare;
+      Files.File_System.Testing.Refuse_Creation_Matches (True);
+      Step := Files.Operations.Create_Hardlink_Selected (Model, Settings);
+      Assert (Step.Status = Files.Operation_Results.Operation_Success, "unverifiable links still stand");
+      Assert (not Files.Model.History.Undo_Available (Model), "no Undo is recorded for unverifiable links");
+      Assert (Files.Model.Last_Error_Key (Model) = "undo.unavailable",
+              "a link batch's missing Undo is reported: " & Files.Model.Last_Error_Key (Model));
       Cleanup;
       Reset_Root;
    exception

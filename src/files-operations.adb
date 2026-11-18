@@ -53,18 +53,6 @@ package body Files.Operations is
 
    --  The undo history is recorded by Files.Undo_Recording; these name it
    --  here for the bodies that record.
-   function Try_Record_Undo
-     (Model       : in out Files.Model.Window_Model;
-      Kind        : Files.Model.Undo_Action_Kind;
-      Items       : Files.Model.Recorded_Item_Vectors.Vector;
-      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
-      Redoable    : Boolean := True;
-      Replaced    : Files.Model.Recorded_Original_Vectors.Vector :=
-        Files.Model.Recorded_Original_Vectors.Empty_Vector;
-      Kept        : Files.Model.Kept_Copy_Vectors.Vector := Files.Model.Kept_Copy_Vectors.Empty_Vector)
-      return Boolean
-     renames Files.Undo_Recording.Try_Record_Undo;
-
    procedure Record_Undo
      (Model       : in out Files.Model.Window_Model;
       Kind        : Files.Model.Undo_Action_Kind;
@@ -358,6 +346,18 @@ package body Files.Operations is
    is separate;
 
    Paste_Execution_First_Batch : constant := 32;
+
+   procedure Record_Paste_Execution
+     (Model : in out Files.Model.Window_Model;
+      Kept  : Kept_Copy := No_Kept_Copy)
+   is separate;
+
+   procedure Record_Paste_So_Far (Model : in out Files.Model.Window_Model) is
+   begin
+      if Files.Model.Pasting.Execution_Is_Active (Model) then
+         Record_Paste_Execution (Model);
+      end if;
+   end Record_Paste_So_Far;
 
    function Finalize_Paste_Execution
      (Model     : in out Files.Model.Window_Model;

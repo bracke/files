@@ -95,6 +95,7 @@ package body Files_Suite.Operations is
    procedure Test_Long_Path_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Pending_Create_Mutation_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Batch_Undo_Records (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Refused_Lookups_Are_Not_Absence (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Environment_Guard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_User_Visible_Mount_Points (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Permanent_Delete_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -245,6 +246,9 @@ package body Files_Suite.Operations is
         (T, Test_Batch_Undo_Records'Access,
          "a batch records its Undo at most once a second, and reports a batch it cannot record for Undo");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Refused_Lookups_Are_Not_Absence'Access,
+         "a refused lookup is not absence: settings kept, Recent kept, no name in use given, the delete done");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Environment_Guard'Access, "the test environment guard restores variables, on an exception too");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Io_Error_Classifier'Access,
@@ -295,6 +299,7 @@ package body Files_Suite.Operations is
    procedure Test_Builtin_Icons_Match_Share (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Batch_Undo_Records (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Refused_Lookups_Are_Not_Absence (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Environment_Guard (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

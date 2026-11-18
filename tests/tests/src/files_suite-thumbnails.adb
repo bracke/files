@@ -72,6 +72,7 @@ package body Files_Suite.Thumbnails is
    procedure Test_Thumbnail_Command_Rendering (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_An_Unwritable_Thumbnail_Fails_Cleanly (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Cache_Prune_Past_Cap (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Listing_Counts_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Decode_Emoji_Png_From_Font (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -106,6 +107,9 @@ package body Files_Suite.Thumbnails is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Thumbnail_Cache_Is_Bounded'Access,
          "the thumbnail cache is pruned to its budget, oldest first");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_An_Unwritable_Thumbnail_Fails_Cleanly'Access,
+         "a thumbnail the disk will not take fails as a thumbnail failure and leaves no temporary");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Thumbnail_Cache_Prune_Past_Cap'Access,
          "a thumbnail cache holding more than the prune cap is still pruned, back under the cap and the budget");
@@ -197,6 +201,8 @@ package body Files_Suite.Thumbnails is
    procedure Test_Thumbnail_Transport_Budget (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_An_Unwritable_Thumbnail_Fails_Cleanly (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Thumbnail_Cache_Prune_Past_Cap (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

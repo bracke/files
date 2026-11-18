@@ -6,7 +6,9 @@ function Load_Item
 is
    Empty : Directory_Item;
 begin
-   if Full_Path = "" or else not Files.Fs_Primitives.Entry_Exists (Full_Path) then
+   --  Missing only when that is sure: a path that cannot be looked at is
+   --  still listed (the Recent view keeps it), its details unavailable.
+   if Full_Path = "" or else Files.Fs_Primitives.Entry_Is_Absent (Full_Path) then
       return
         (Success   => False,
          Item      => Empty,

@@ -88,7 +88,10 @@ is
          return False;
    end Walk;
 begin
+   --  refusal-safe: a root not seen measures nothing; the result stays
+   --  unavailable (Available False), never a size of 0.
    if Path = ""
+     --  refusal-safe: as above.
      or else not Files.Fs_Primitives.Exists (Path)
      or else Hostkit.Fs.Is_Link (Path)
      or else Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Directory

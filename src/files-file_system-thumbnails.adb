@@ -12,7 +12,6 @@ with GNAT.OS_Lib;
 with Files.File_Types;
 
 with Hostkit.Fs;
-with Hostkit.Regular_Files;
 with Files.File_System.Support;
 with Files.Images;
 with Interfaces;

@@ -399,6 +399,8 @@ package body Files.Localization is
       Max_Config_Bytes : constant := 256 * 1024;
       In_Section : Boolean := Section = "";
    begin
+      --  refusal-safe: a desktop setting not seen gives no answer, as one
+      --  that cannot be read does; the next source is asked.
       if not Files.Fs_Primitives.Exists (Path)
         or else Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Ordinary_File
       then
@@ -559,6 +561,8 @@ package body Files.Localization is
          return;
       end if;
 
+      --  refusal-safe: a catalog not seen is not loaded, and its texts fall
+      --  back to the default locale's, as an unreadable one's do.
       if Files.Fs_Primitives.Exists (Path) then
          declare
             Loaded : constant Boolean := Load_Locale_Shard (Runtime, Path);

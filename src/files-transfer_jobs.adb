@@ -283,6 +283,27 @@ package body Files.Transfer_Jobs is
          raise;
    end Start;
 
+   procedure Settle (Result : in out Job_Result; Cancelled : Boolean) is
+   begin
+      if Cancelled and then not Result.Mutation.Success then
+         Result.Cancelled := Is_Cancellation_Failure (Result);
+         if Length (Result.Trashed) > 0
+           and then To_String (Result.Mutation.Error_Key) = "error.drop.failed"
+         then
+            Result.Mutation.Error_Key := To_Unbounded_String ("error.trash.restore_failed");
+         end if;
+      end if;
+      --  A helper that failed without saying why -- it died between writing
+      --  its first result and its last, or its last could not be published --
+      --  still failed: an empty key read as success to the paste, which then
+      --  stopped with the rest undone and nothing said.
+      if not Result.Mutation.Success and then not Result.Cancelled
+        and then Length (Result.Mutation.Error_Key) = 0
+      then
+         Result.Mutation.Error_Key := To_Unbounded_String ("error.drop.failed");
+      end if;
+   end Settle;
+
    procedure Poll (Job : Session; Finished : out Boolean; Result : out Job_Result) is
       Cancelled : Boolean := False;
 
@@ -338,14 +359,7 @@ package body Files.Transfer_Jobs is
          if not Result.Mutation.Success then
             Recover;
          end if;
-         if Cancelled and then not Result.Mutation.Success then
-            Result.Cancelled := Is_Cancellation_Failure (Result);
-            if Length (Result.Trashed) > 0
-              and then To_String (Result.Mutation.Error_Key) = "error.drop.failed"
-            then
-               Result.Mutation.Error_Key := To_Unbounded_String ("error.trash.restore_failed");
-            end if;
-         end if;
+         Settle (Result, Cancelled);
       end if;
    exception
       when Swallowed : others =>

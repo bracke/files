@@ -125,4 +125,9 @@ package body Files.Transfer_Jobs.Testing is
    begin
       Apply_Replacement_Checkpoint (Path, Result);
    end Apply_Checkpoint;
+   procedure Settle (Result : in out Job_Result; Cancelled : Boolean) is
+   begin
+      Files.Transfer_Jobs.Settle (Result, Cancelled);
+   end Settle;
+
 end Files.Transfer_Jobs.Testing;

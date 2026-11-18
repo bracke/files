@@ -49,7 +49,10 @@ function Original_Path (Trashed_Path : String) return String is
       Max_Trash_Info_Line  : constant Natural := 64 * 1024;
       Read_Succeeded : Boolean;
    begin
+      --  refusal-safe: an info file not seen gives no original path, and
+      --  a restore without one is refused.
       if Hostkit.Fs.Is_Link (Info_File_Path)
+        --  refusal-safe: as above.
         or else not Files.Fs_Primitives.Exists (Info_File_Path)
         or else Files.Fs_Primitives.Kind (Info_File_Path) /= Ada.Directories.Ordinary_File
       then
@@ -138,12 +141,17 @@ function Original_Path (Trashed_Path : String) return String is
          return False;
       end if;
       loop
+         --  refusal-safe: a refusal is told apart just below.
          if Files.Fs_Primitives.Entry_Exists (To_String (Current)) then
             declare
                Real : constant String := Hostkit.Fs.Real_Path (To_String (Current));
             begin
                return Real /= "" and then (Real = Real_Top or else Relative_To_Top (Real, Real_Top) /= "");
             end;
+         elsif not Files.Fs_Primitives.Entry_Is_Absent (To_String (Current)) then
+            --  One that cannot be looked at may be the link off the volume:
+            --  not passed over to an ancestor that would vouch for it.
+            return False;
          end if;
          declare
             Up : constant String := Files.Fs_Primitives.Parent_Directory (To_String (Current));

@@ -8,7 +8,6 @@ with Ada.Strings.Unbounded;
 with Interfaces;
 
 with Files.Durable_Writes;
-with Files.Exclusive_Streams;
 with Files.Fs_Primitives;
 with Hostkit.Fs;
 with Guikit.Shared_Bytes;
@@ -93,37 +92,41 @@ package body Files.Job_Records is
       Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
       Name      : String := Files.Process_Jobs.Result_File)
    is
-      Staged : constant String := Hostkit.Fs.Join (Directory, Files.Process_Jobs.Staged_Name (Name));
-      Result : constant String := Hostkit.Fs.Join (Directory, Name);
-      File   : aliased Files.Exclusive_Streams.Output_Stream;
+      Staged   : constant String := Hostkit.Fs.Join (Directory, Files.Process_Jobs.Staged_Name (Name));
+      Result   : constant String := Hostkit.Fs.Join (Directory, Name);
+      Identity : Files.Types.UString;
    begin
-      Files.Exclusive_Streams.Create (File, Staged);
-      Write (File'Access);
-      Validate_Size (Files.Exclusive_Streams.Size (File));
-      Files.Exclusive_Streams.Close (File);
+      --  The staged name is fixed, so a staged file left behind would refuse
+      --  every later publish of this record: whatever fails below removes
+      --  the one this call wrote.
+      Files.Durable_Writes.Write_Private_File
+        (Staged, Write, Identity, Max_Bytes => Long_Long_Integer (Max_Transport_Bytes));
       declare
          Step    : Files.Durable_Writes.Publication_Step;
          Outcome : constant Files.Durable_Writes.Publication_Result :=
            Files.Durable_Writes.Publish (Staged, Result, Step);
 
+         --  refusal-safe: words for a diagnostic, deciding nothing.
          function State (Path : String) return String is
+           --  refusal-safe: as above.
            (if Files.Fs_Primitives.Exists (Path) then "present" else "gone");
       begin
          if not Files.Durable_Writes.Published (Outcome) then
             --  Say which part failed, as a machine-readable diagnostic: an
             --  intermittent CI failure here could not be reproduced locally.
-            raise Ada.Directories.Use_Error with
-              "publish=" & Files.Durable_Writes.Publication_Result'Image (Outcome)
-              & ";step=" & Files.Durable_Writes.Publication_Step'Image (Step)
-              & ";dir=" & State (Directory)
-              & ";tmp=" & State (Staged)
-              & ";result=" & State (Result);
+            declare
+               Message : constant String :=
+                 "publish=" & Files.Durable_Writes.Publication_Result'Image (Outcome)
+                 & ";step=" & Files.Durable_Writes.Publication_Step'Image (Step)
+                 & ";dir=" & State (Directory)
+                 & ";tmp=" & State (Staged)
+                 & ";result=" & State (Result);
+            begin
+               Files.Durable_Writes.Remove_Owned (Staged, To_String (Identity));
+               raise Ada.Directories.Use_Error with Message;
+            end;
          end if;
       end;
-   exception
-      when others =>
-         Files.Exclusive_Streams.Close_Safely (File);
-         raise;
    end Publish_Result;
 
    procedure Write_String

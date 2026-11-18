@@ -33,6 +33,9 @@ is
       Height         => Size,
       Error_Key      => Null_Unbounded_String);
 
+   --  Nothing yet: the thumbnail is written into the reserved file later.
+   procedure Write_Nothing (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is null;
+
    function Publish_Temp (Target_Path : String) return Boolean is
    begin
       if Length (Temp_Identity) = 0
@@ -53,6 +56,8 @@ is
 begin
    if Size > Max_Thumbnail_Dimension then
       return Failed (Thumbnail_Failed, "error.thumbnail.failed");
+   --  refusal-safe: a source not seen gets no thumbnail; only the words
+   --  of the failure depend on why.
    elsif not Files.Fs_Primitives.Exists (Source_Path) then
       return Failed (Thumbnail_Source_Missing, "error.thumbnail.source_missing");
    elsif Files.Fs_Primitives.Kind (Source_Path) /= Ada.Directories.Ordinary_File then
@@ -63,43 +68,9 @@ begin
    Files.Private_Directories.Ensure (Cache_Directory);
    Prune_Cache_Once (Cache_Directory);
    Target := To_Unbounded_String (Thumbnail_Path_For (Source_Path, Cache_Directory, Size));
-   declare
-      use type GNAT.OS_Lib.File_Descriptor;
-      Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
-   begin
-      for Index in 1 .. 9_999 loop
-         declare
-            Candidate : constant String := To_String (Target) & ".tmp"
-              & (if Index = 1 then "" else "-" &
-                   Files.Types.Natural_Text (Index));
-         begin
-            Descriptor := Hostkit.Regular_Files.Create_New (Candidate, 8#666#);
-            if Descriptor /= GNAT.OS_Lib.Invalid_FD then
-               Temp := To_Unbounded_String (Candidate);
-               Temp_Identity := To_Unbounded_String (Files.File_Identities.Token (Candidate));
-               if Length (Temp_Identity) = 0 then
-                  raise Ada.Directories.Use_Error;
-               end if;
-               Files.Private_Directories.Make_File_Private (Descriptor);
-               GNAT.OS_Lib.Close (Descriptor);
-               Descriptor := GNAT.OS_Lib.Invalid_FD;
-               exit;
-            end if;
-         end;
-      end loop;
-      if Descriptor /= GNAT.OS_Lib.Invalid_FD then
-         GNAT.OS_Lib.Close (Descriptor);
-      end if;
-      if Length (Temp_Identity) = 0 then
-         raise Ada.Directories.Use_Error;
-      end if;
-   exception
-      when others =>
-         if Descriptor /= GNAT.OS_Lib.Invalid_FD then
-            GNAT.OS_Lib.Close (Descriptor);
-         end if;
-         raise;
-   end;
+   --  A private temporary reserved beside the target, written below by
+   --  name: by a decoder, or by the stand-in.
+   Files.Durable_Writes.Write_Private_Temporary (To_String (Target), Write_Nothing'Access, Temp, Temp_Identity);
    if (Source_Fits_Fast_Decode (Source_Path)
        and then (Try_Write_Decoded_Png_Thumbnail (Source_Path, Size, To_String (Temp))
                  or else Try_Write_Decoded_P3_Thumbnail (Source_Path, Size, To_String (Temp))))
@@ -157,7 +128,15 @@ exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
       if Stream_IO.Is_Open (File) then
-         Stream_IO.Close (File);
+         --  Closing flushes what is buffered, which fails again on the full
+         --  disk that failed the write: that must not escape before the
+         --  temporary is removed, nor replace the answer this gives.
+         begin
+            Stream_IO.Close (File);
+         exception
+            when Close_Failure : others =>
+               Files.Diagnostics.Note (Close_Failure, "Files.File_System.Thumbnails");
+         end;
       end if;
       Files.Durable_Writes.Remove_Owned (To_String (Temp), To_String (Temp_Identity));
       return Failed (Thumbnail_Failed, "error.thumbnail.failed");

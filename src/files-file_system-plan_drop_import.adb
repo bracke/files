@@ -30,9 +30,11 @@ is
      (if Rules.Fold_Names then Files.Types.Fold_Case (Path) else Path);
 
    function Available_Destination (Leaf : String) return String is
+      --  A name that cannot be looked at raises (Is_Taken): that source's
+      --  plan fails rather than take a name that may be in use.
       function Taken (Name : String) return Boolean is
-        (Files.Fs_Primitives.Entry_Exists (Hostkit.Fs.Join (Destination_Directory, Name))
-         or else Claimed.Contains (Key (Hostkit.Fs.Join (Destination_Directory, Name))));
+        (Claimed.Contains (Key (Hostkit.Fs.Join (Destination_Directory, Name)))
+         or else Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Destination_Directory, Name)));
    begin
       return Hostkit.Fs.Join
         (Destination_Directory,
@@ -127,6 +129,8 @@ begin
       begin
          Plan.Source_Path := Source;
          Plan.Mode := Mode;
+         --  refusal-safe: a source not seen is refused as invalid; nothing is
+         --  planned for it.
          if not Files.Fs_Primitives.Entry_Exists (Source_Text) then
             Plan.Valid := False;
             Plan.Error_Key := To_Unbounded_String ("error.drop.invalid_source");

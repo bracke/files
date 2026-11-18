@@ -42,9 +42,14 @@ begin
       --  Network shares included: a server that is gone stalls this as it
       --  stalls opening the share itself, which beats an item trashed there
       --  that can never be seen, restored or emptied again.
-      for Base of Remembered_Volume_Trashes loop
-         Consider (To_String (Base));
-      end loop;
+      declare
+         --  What could be read is listed even when the rest could not.
+         Complete : Boolean;
+      begin
+         for Base of Remembered_Volume_Trashes (Complete) loop
+            Consider (To_String (Base));
+         end loop;
+      end;
    end;
    return Result;
 exception

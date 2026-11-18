@@ -14,37 +14,19 @@ is
 
    First_Created : Unbounded_String;
    Created_Any   : Boolean := False;
-   --  Each link made: where it is, its source (what Redo links again), and
-   --  its identity and revision as made.
-   Made          : Files.Model.Undo_Item_Vectors.Vector;
-   Undo_Recorded : Boolean := False;
-
-   --  Record one undo entry for every link created so far, exactly once,
-   --  whether the batch completes or stops part-way. A created link is
-   --  undone by deleting it and redone by re-creating it from its source.
-   procedure Record_Created is
-   begin
-      if Undo_Recorded or else Made.Is_Empty then
-         return;
-      end if;
-      Undo_Recorded := True;
-      declare
-         Recorded : constant Boolean := Try_Record_Undo
-           (Model, Files.Model.Undo_Delete_Created, Published (Made),
-            Create_Kind =>
-              (if Hard
-               then Files.Model.Create_Hard_Link
-               else Files.Model.Create_Symbolic_Link));
-         pragma Unreferenced (Recorded);
-      begin
-         null;
-      end;
-   end Record_Created;
+   --  The batch's Undo entry, grown as it goes like every batch's: each link
+   --  made, where it is, its source (what Redo links again), and its
+   --  identity and revision as made. Undo deletes them, Redo links again.
+   Progress      : Progressive_Undo :=
+     (Kind        => Files.Model.Undo_Delete_Created,
+      Create_Kind => (if Hard then Files.Model.Create_Hard_Link else Files.Model.Create_Symbolic_Link),
+      Redoable    => True,
+      others      => <>);
 
    function Failed (Error_Key : String) return Operation_Result is
    begin
-      Record_Created;
-      return Batch_Failed (Model, Settings, Error_Key, Directory, Wrote_Some => not Made.Is_Empty);
+      Finish_Failed_Undo (Model, Progress);
+      return Batch_Failed (Model, Settings, Error_Key, Directory, Wrote_Some => not Progress.Items.Is_Empty);
    end Failed;
 
    --  Build the " (link)" / " (link N)" marker. The fragments are kept
@@ -99,13 +81,16 @@ begin
             return Failed (To_String (Mutation.Error_Key));
          end if;
 
-         Made.Append
-           (Files.Model.Undo_Item'
-              (From          => To_Unbounded_String (Dest_Path),
-               Forward       => To_Unbounded_String (Source),
-               Identity      => To_Unbounded_String (Files.File_Identities.Token (Dest_Path)),
-               Tree_Revision => To_Unbounded_String (Files.File_System.Tree_Revision (Dest_Path)),
-               others        => <>));
+         Progress.Items.Append
+           (Files.Model.Recorded_Item'
+              (Item       =>
+                 (From          => To_Unbounded_String (Dest_Path),
+                  Forward       => To_Unbounded_String (Source),
+                  Identity      => To_Unbounded_String (Files.File_Identities.Token (Dest_Path)),
+                  Tree_Revision => To_Unbounded_String (Files.File_System.Tree_Revision (Dest_Path)),
+                  others        => <>),
+               Provenance => Files.Model.Published));
+         Checkpoint_Undo (Model, Progress);
          if not Created_Any then
             First_Created := To_Unbounded_String (Dest_Name);
             Created_Any := True;
@@ -113,13 +98,21 @@ begin
       end;
    end loop;
 
-   if not Created_Any then
-      return Failed ("error.link.failed");
-   end if;
-   Record_Created;
-
-   --  Reload so the new links appear, and select the first one.
-   return Reload_Current_Directory (Model, Settings, To_String (First_Created));
+   declare
+      Undo : constant Undo_Outcome := Finish_Undo (Model, Progress);
+   begin
+      if not Created_Any then
+         return Failed ("error.link.failed");
+      end if;
+      --  Reload so the new links appear, and select the first one; an Undo
+      --  that could not be recorded is said, not left silently missing.
+      declare
+         Result : constant Operation_Result := Reload_Current_Directory (Model, Settings, To_String (First_Created));
+      begin
+         Note_Undo_Outcome (Model, Undo, Result);
+         return Result;
+      end;
+   end;
 exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.Operations");

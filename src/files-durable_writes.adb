@@ -1,15 +1,13 @@
 with Ada.Directories;
+with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
-with GNAT.OS_Lib;
-with Files.Descriptor_Streams;
 with Files.Diagnostics;
 with Files.Durability;
+with Files.Exclusive_Streams;
 with Files.File_Identities;
 with Files.Fs_Primitives;
 with Files.Io_Errors;
-with Files.Private_Directories;
 with Hostkit.Fs;
-with Hostkit.Regular_Files;
 
 package body Files.Durable_Writes is
    use type Hostkit.Durability.Outcome;
@@ -81,47 +79,91 @@ package body Files.Durable_Writes is
          Files.Diagnostics.Note (Swallowed, "Files.Durable_Writes");
    end Remove_Owned;
 
+   --  Remove the file at Temporary that this unit just created exclusively,
+   --  whose identity could not be read: the creation itself proved it ours.
+   procedure Remove_Created (Temporary : String) is
+   begin
+      if not Hostkit.Fs.Delete_File (Temporary) then
+         Files.Diagnostics.Trace ("Files.Durable_Writes", "own_temporary_kept=" & Temporary);
+      end if;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Durable_Writes");
+   end Remove_Created;
+
    procedure Write_Private_File
      (Temporary : String;
       Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
-      Identity  : out Files.Types.UString)
+      Identity  : out Files.Types.UString;
+      Max_Bytes : Long_Long_Integer := Long_Long_Integer'Last)
    is
-      use type GNAT.OS_Lib.File_Descriptor;
-      Output : aliased Files.Descriptor_Streams.Output_Stream;
+      Output  : aliased Files.Exclusive_Streams.Output_Stream;
+      Created : Boolean := False;
    begin
       Identity := Files.Types.UString'(Ada.Strings.Unbounded.Null_Unbounded_String);
-      Output.Descriptor := Hostkit.Regular_Files.Create_New (Temporary, 8#666#);
-      if Output.Descriptor = GNAT.OS_Lib.Invalid_FD then
-         raise Ada.Directories.Use_Error;
-      end if;
+      Files.Io_Errors.Clear_Os_Error;
+      Files.Exclusive_Streams.Create (Output, Temporary);
+      Created := True;
       Identity := Ada.Strings.Unbounded.To_Unbounded_String (Files.File_Identities.Token (Temporary));
       if Ada.Strings.Unbounded.Length (Identity) = 0 then
          raise Ada.Directories.Use_Error;
       end if;
-      Files.Private_Directories.Make_File_Private (Output.Descriptor);
       Write (Output'Access);
-      declare
-         Closed : Boolean;
-      begin
-         Files.Descriptor_Streams.Flush (Output);
-         GNAT.OS_Lib.Close (Output.Descriptor, Closed);
-         Output.Descriptor := GNAT.OS_Lib.Invalid_FD;
-         if not Closed then
-            raise Ada.Directories.Use_Error;
-         end if;
-      end;
+      if Files.Exclusive_Streams.Size (Output) > Max_Bytes then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Files.Exclusive_Streams.Close (Output);
       if Files.File_Identities.Token (Temporary) /= Ada.Strings.Unbounded.To_String (Identity) then
          raise Ada.Directories.Use_Error;
       end if;
    exception
       when others =>
-         if Output.Descriptor /= GNAT.OS_Lib.Invalid_FD then
-            GNAT.OS_Lib.Close (Output.Descriptor);
-            Output.Descriptor := GNAT.OS_Lib.Invalid_FD;
+         Files.Exclusive_Streams.Close_Safely (Output);
+         if Created and then Ada.Strings.Unbounded.Length (Identity) = 0 then
+            Remove_Created (Temporary);
+         elsif Created then
+            Remove_Owned (Temporary, Ada.Strings.Unbounded.To_String (Identity));
          end if;
-         Remove_Owned (Temporary, Ada.Strings.Unbounded.To_String (Identity));
          Identity := Ada.Strings.Unbounded.Null_Unbounded_String;
          raise;
    end Write_Private_File;
+
+   procedure Write_Private_Temporary
+     (Base      : String;
+      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
+      Temporary : out Files.Types.UString;
+      Identity  : out Files.Types.UString)
+   is
+      Max_Candidates : constant := 9_999;
+   begin
+      Temporary := Ada.Strings.Unbounded.Null_Unbounded_String;
+      Identity := Ada.Strings.Unbounded.Null_Unbounded_String;
+      for Index in 1 .. Max_Candidates loop
+         declare
+            Candidate : constant String :=
+              Base & ".tmp" & (if Index = 1 then "" else "-" & Files.Types.Natural_Text (Index));
+            Taken     : Boolean := False;
+         begin
+            begin
+               Write_Private_File (Candidate, Write, Identity);
+               Temporary := Ada.Strings.Unbounded.To_Unbounded_String (Candidate);
+               return;
+            exception
+               when Ada.Directories.Use_Error =>
+                  --  Only a name already taken moves on to the next one; a
+                  --  refusal of any other kind (a full disk, no right to
+                  --  write there) would refuse every name. Asked after the
+                  --  failure, as its errno is already recorded.
+                  --  refusal-safe: a refused lookup ends the search, failed
+                  Taken := Ada.Strings.Unbounded.Length (Identity) = 0
+                    and then not Files.Fs_Primitives.Entry_Is_Absent (Candidate);
+                  if not Taken then
+                     raise;
+                  end if;
+            end;
+         end;
+      end loop;
+      raise Ada.Directories.Use_Error with "no_free_temporary=" & Base;
+   end Write_Private_Temporary;
 
 end Files.Durable_Writes;

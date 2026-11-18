@@ -47,7 +47,10 @@ package Files.Application.Windows is
    procedure Run
      (Startup : Startup_Result);
 
-   --  Stop a closing window's helpers without waiting for filesystem I/O.
+   --  Stop a closing window's helpers without waiting for filesystem I/O. A
+   --  modal job is cancelled as the user's Cancel does, keeping its grace to
+   --  undo a replace half done, and a paste's progress is recorded in the
+   --  window's history before the paste is let go.
    --  @param Model Closing window whose transfer, operation and refresh sessions to release.
    --  @param Watch Closing window's native notification session to release.
    procedure Release_Window_Jobs

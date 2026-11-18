@@ -49,4 +49,9 @@ package Files.Transfer_Jobs.Testing is
    --  @param Path Checkpoint file to adopt.
    --  @param Result Result whose replaced-destination pair may change.
    procedure Apply_Checkpoint (Path : String; Result : in out Job_Result);
+
+   --  Settle a finished helper's result as the window's poll does.
+   --  @param Result The result read; settled in place.
+   --  @param Cancelled Whether the user cancelled the helper.
+   procedure Settle (Result : in out Job_Result; Cancelled : Boolean);
 end Files.Transfer_Jobs.Testing;

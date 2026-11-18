@@ -123,10 +123,14 @@ package body Files.Copy_Context is
         (if Batch_Directory = "" then ""
          else Hostkit.Fs.Join (Batch_Directory, "links"));
    begin
-      if Path = "" or else not Files.Fs_Primitives.Exists (Path) then
+      --  No links file is no hard links recorded; one that cannot be
+      --  looked at is read below, and refused there as unreadable.
+      if Path = "" or else Files.Fs_Primitives.Entry_Is_Absent (Path) then
          return Result;
       end if;
+      --  refusal-safe: a batch folder not seen raises Data_Error.
       if Hostkit.Fs.Is_Link (Batch_Directory)
+        --  refusal-safe: as above.
         or else not Files.Fs_Primitives.Exists (Batch_Directory)
         or else Files.Fs_Primitives.Kind (Batch_Directory) /= Ada.Directories.Directory
       then
@@ -193,13 +197,19 @@ package body Files.Copy_Context is
       if Path = "" then
          return;
       end if;
+      --  refusal-safe: a batch folder not seen refuses the write; a links
+      --  file or temporary not seen is still never written over -- the
+      --  temporary is created exclusively, and only it replaces the file.
       if Hostkit.Fs.Is_Link (Batch_Directory)
+        --  refusal-safe: as above.
         or else not Files.Fs_Primitives.Exists (Batch_Directory)
         or else Files.Fs_Primitives.Kind (Batch_Directory) /= Ada.Directories.Directory
         or else Hostkit.Fs.Is_Link (Path)
+        --  refusal-safe: as above.
         or else (Files.Fs_Primitives.Exists (Path)
           and then Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Ordinary_File)
         or else Hostkit.Fs.Is_Link (Temp)
+        --  refusal-safe: as above.
         or else Files.Fs_Primitives.Exists (Temp)
       then
          raise Ada.Directories.Use_Error;

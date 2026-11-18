@@ -38,9 +38,13 @@ package body Files.Resources is
          Catalog : constant String := Hostkit.Fs.Join (Path, "files.catalog");
          Icons   : constant String := Hostkit.Fs.Join (Path, "files/icons");
       begin
+         --  refusal-safe: a share folder not seen is passed over for the
+         --  next candidate; nothing is written there.
          return Path /= ""
+           --  refusal-safe: as above.
            and then Files.Fs_Primitives.Exists (Catalog)
            and then Files.Fs_Primitives.Kind (Catalog) = Ada.Directories.Ordinary_File
+           --  refusal-safe: as above.
            and then Files.Fs_Primitives.Exists (Icons)
            and then Files.Fs_Primitives.Kind (Icons) = Ada.Directories.Directory;
       exception

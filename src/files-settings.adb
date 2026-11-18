@@ -1,15 +1,11 @@
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
-with GNAT.OS_Lib;
 
 with Hostkit.Fs;
-with Hostkit.Regular_Files;
 
-with Files.File_Identities;
 with Files.Fs_Primitives;
 with Files.Durable_Writes;
-with Files.Private_Directories;
 with Guikit.Utf8;
 
 package body Files.Settings is

@@ -12,7 +12,6 @@ with Interfaces;
 with CryptoLib.OS_Random;
 with Files.Bounded_Streams;
 with Files.Durable_Writes;
-with Files.Exclusive_Streams;
 with Files.File_Identities;
 with Files.Lease_Streams;
 with Files.Private_Directories;
@@ -200,9 +199,18 @@ package body Files.Job_Transports is
      (Directory, Owner_Token : String;
       Identity : out Files.Types.UString;
       Header : String := Marker_Header) is
-      File   : aliased Files.Exclusive_Streams.Output_Stream;
-      Marker : constant String := Hostkit.Fs.Join (Directory, Marker_Name);
-      Temp   : constant String := Marker & ".tmp";
+      Marker         : constant String := Hostkit.Fs.Join (Directory, Marker_Name);
+      Temp           : constant String := Marker & ".tmp";
+      Temp_Identity  : Files.Types.UString;
+
+      --  The marker's record: what the transport is and who owns it.
+      procedure Write_Marker (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
+      begin
+         String'Output (Stream, Header);
+         String'Output (Stream, Directory);
+         String'Output (Stream, To_String (Identity));
+         String'Output (Stream, Owner_Token);
+      end Write_Marker;
    begin
       Identity := To_Unbounded_String (Files.File_Identities.Token (Directory));
       if not Is_Transport_Path (Directory)
@@ -213,29 +221,24 @@ package body Files.Job_Transports is
       then
          raise Ada.Directories.Use_Error;
       end if;
-      Files.Exclusive_Streams.Create (File, Temp);
-      String'Output (File'Access, Header);
-      String'Output (File'Access, Directory);
-      String'Output (File'Access, To_String (Identity));
-      String'Output (File'Access, Owner_Token);
-      Files.Exclusive_Streams.Close (File);
+      --  The caller holds the transport alone (a fresh one, or its exclusive
+      --  lease), so a temporary already there was left by a writer that
+      --  died mid-mark, and stands in the way of this one.
+      --  refusal-safe: a refused lookup leaves the name, and the write below fails
+      if Files.Fs_Primitives.Entry_Exists (Temp) then
+         Files.Fs_Primitives.Delete_File (Temp);
+      end if;
+      Files.Durable_Writes.Write_Private_File (Temp, Write_Marker'Access, Temp_Identity);
       if not Files.Durable_Writes.Published
         (Files.Durable_Writes.Publish (Temp, Marker))
       then
+         --  Only the temporary this call wrote: whatever else sits at that
+         --  name is not removed on the strength of its name.
+         Files.Durable_Writes.Remove_Owned (Temp, To_String (Temp_Identity));
          raise Ada.Directories.Use_Error;
       end if;
    exception
       when others =>
-         Files.Exclusive_Streams.Close_Safely (File);
-         begin
-            --  refusal-safe: a refused temporary is left, not removed
-            if Files.Fs_Primitives.Exists (Temp) then
-               Files.Fs_Primitives.Delete_File (Temp);
-            end if;
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
-         end;
          Identity := Null_Unbounded_String;
          raise;
    end Mark;

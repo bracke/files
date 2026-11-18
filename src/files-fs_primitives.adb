@@ -34,12 +34,26 @@ package body Files.Fs_Primitives is
 
    function Entry_Exists (Path : String) return Boolean is
    begin
+      --  refusal-safe: this is the presence question itself; a decision that
+      --  must not take a refusal for absence asks Entry_Is_Absent.
       return Path /= "" and then not Refused (Path) and then (Exists (Path) or else Hostkit.Fs.Is_Link (Path));
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Fs_Primitives");
          return False;
    end Entry_Exists;
+
+   function Is_Taken (Path : String) return Boolean is
+   begin
+      --  refusal-safe: an answer of "not there" is checked against
+      --  Entry_Is_Absent before it is believed.
+      if Entry_Exists (Path) then
+         return True;
+      elsif Entry_Is_Absent (Path) then
+         return False;
+      end if;
+      raise Ada.Directories.Use_Error with Path;
+   end Is_Taken;
 
    function File_Exists (Path : String) return Boolean is
      (not Refused (Path) and then Hostkit.Fs.Kind_Of (Path) = Hostkit.Fs.Ordinary_File_Entry);
@@ -82,7 +96,9 @@ package body Files.Fs_Primitives is
 
    procedure Delete_Tree_If_Present (Path : String) is
    begin
-      if Exists (Path) or else Hostkit.Fs.Is_Link (Path) then
+      --  Only a tree surely gone is left alone: one that could not be
+      --  looked at is deleted, and a delete that fails says so.
+      if not Entry_Is_Absent (Path) then
          Delete_Tree (Path);
       end if;
    end Delete_Tree_If_Present;
@@ -242,7 +258,9 @@ package body Files.Fs_Primitives is
    procedure Delete_File (Path : String) is
    begin
       if not Hostkit.Fs.Delete_File (Path) then
-         if Entry_Exists (Path) then
+         --  Name_Error ("nothing there") only when that is sure: a caller
+         --  may take it as already deleted.
+         if not Entry_Is_Absent (Path) then
             raise Ada.Directories.Use_Error;
          end if;
          raise Ada.Directories.Name_Error;

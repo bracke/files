@@ -109,9 +109,12 @@ function Volume_Trash_For (Path : String) return String is
       --  lost: read it back, and write again while Base is missing.
       for Attempt in 1 .. 3 loop
          declare
-            Known : constant Files.Types.String_Vectors.Vector := Remembered_Volume_Trashes;
+            Complete : Boolean;
+            Known    : constant Files.Types.String_Vectors.Vector := Remembered_Volume_Trashes (Complete);
          begin
-            exit when Known.Contains (To_Unbounded_String (Base));
+            --  A list that could not be read is left as it is: written from
+            --  what was read, it would forget every other volume's trash.
+            exit when not Complete or else Known.Contains (To_Unbounded_String (Base));
             Write (Known);
          end;
       end loop;

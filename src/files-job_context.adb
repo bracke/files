@@ -209,10 +209,17 @@ package body Files.Job_Context is
          raise Ada.Directories.Use_Error;
       end if;
       Offset := Ada.Streams.Stream_Element_Offset (Size);
-      if Buffer.Last = 0
-        or else not Hostkit.Lease_Files.Write_At
-          (Handle, Buffer.Data (Buffer.Data'First .. Buffer.Last), Offset)
+      if Buffer.Last = 0 then
+         raise Ada.Directories.Use_Error;
+      elsif not Hostkit.Lease_Files.Write_At
+        (Handle, Buffer.Data (Buffer.Data'First .. Buffer.Last), Offset)
       then
+         --  A record cut short (a full disk) is taken back off the end: the
+         --  next record would follow the torn one, and a reader stops at the
+         --  first record out of shape, so every record after it was lost.
+         if not Hostkit.Lease_Files.Truncate (Handle, Size) then
+            Files.Diagnostics.Trace ("Files.Job_Context", "torn_record_kept=" & Journal);
+         end if;
          raise Ada.Directories.Use_Error;
       end if;
       Hostkit.Lease_Files.Release (Handle);
@@ -544,7 +551,11 @@ package body Files.Job_Context is
    --  One journal: Name in Directory, under Header, of records holding a
    --  destination, a source and an identity, and with Revisions a tree
    --  revision too. A source may be empty only where With_Revisions says
-   --  (a creation has none). Any record out of shape drops the whole read.
+   --  (a creation has none). A record out of shape ends the read there: the
+   --  records before it are kept, as a crash mid-append tears only the last
+   --  one, and nothing after it is trusted. A failed append cuts its torn
+   --  record back off (Append_Journal_Record), so a later record never
+   --  follows one. A journal whose header is wrong is not read at all.
    procedure Read_Journal
      (Directory, Name, Header : String;
       With_Revisions          : Boolean;

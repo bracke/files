@@ -105,7 +105,7 @@ separate (Check_All)
    begin
       --  The exact counts as of the last change to a suite: a lost test, or
       --  one added without its count moving here, fails.
-      Require_Tests ("settings", 38);
+      Require_Tests ("settings", 39);
       Require_Tests ("startup", 32);
       Require_Tests ("commands", 43);
       Require_Tests ("model", 55);
@@ -116,13 +116,13 @@ separate (Check_All)
       Require_Tests ("keyboard", 14);
       Require_Tests ("text_input", 5);
       Require_Tests ("rendering", 107);
-      Require_Tests ("operations", 48);
+      Require_Tests ("operations", 49);
       Require_Tests ("transfer", 56);
-      Require_Tests ("recovery", 57);
+      Require_Tests ("recovery", 62);
       Require_Tests ("history", 39);
       Require_Tests ("trash", 31);
       Require_Tests ("search", 10);
-      Require_Tests ("thumbnails", 19);
+      Require_Tests ("thumbnails", 20);
       Require_Tests ("archives", 7);
       Require_Tests ("info", 33);
       Require_Tests ("names", 18);

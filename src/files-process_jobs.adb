@@ -541,9 +541,14 @@ package body Files.Process_Jobs is
             Job.Shared.References := Job.Shared.References - 1;
          else
             --  The reaper stops a running helper and removes the transport:
-            --  releasing a session does no filesystem work on this task.
+            --  releasing a session does no filesystem work on this task. A
+            --  helper asked to cancel keeps its grace (Cancel_Grace_Period):
+            --  the reaper stops it only once that has passed, so one halfway
+            --  through a replace can put the original back first.
             Inspect (Job.Shared);
-            Stop (Job.Shared);
+            if not Job.Shared.Cancelled then
+               Stop (Job.Shared);
+            end if;
             Ensure_Reaper;
             Submit_Or_Abandon (Job.Shared);
          end if;
@@ -659,6 +664,25 @@ package body Files.Process_Jobs is
       end if;
    end Poll;
 
+   --  Write the cancellation marker at Path whole, over a torn one there.
+   --  Raises Use_Error when it cannot.
+   procedure Rewrite_Cancellation_Marker (Path : String) is
+      Marker  : Hostkit.Lease_Files.Lease;
+      Written : Boolean;
+   begin
+      if Hostkit.Lease_Files.Open (Path, Hostkit.Lease_Files.Exclusive, Writable => True, Item => Marker)
+        /= Hostkit.Lease_Files.Opened
+      then
+         raise Ada.Directories.Use_Error;
+      end if;
+      Written := Hostkit.Lease_Files.Truncate (Marker, 0)
+        and then Hostkit.Lease_Files.Write_At (Marker, Cancellation_Marker);
+      Hostkit.Lease_Files.Release (Marker);
+      if not Written then
+         raise Ada.Directories.Use_Error;
+      end if;
+   end Rewrite_Cancellation_Marker;
+
    procedure Cancel (Job : Session) is
       Marker : Hostkit.Lease_Files.Lease;
       Marker_Path : constant String := Path (Job, Files.Protocol_Names.Cancel_File);
@@ -669,12 +693,27 @@ package body Files.Process_Jobs is
          if Outcome = Hostkit.Lease_Files.Opened then
             if not Hostkit.Lease_Files.Write_At (Marker, Cancellation_Marker) then
                Hostkit.Lease_Files.Release (Marker);
-               raise Ada.Directories.Use_Error;
+               --  Made exclusively by this call, so it is this call's to
+               --  take back: a marker cut short (a full disk) would refuse
+               --  every later cancel's create and read as no cancel to the
+               --  helper.
+               declare
+                  Removed : constant Boolean := Hostkit.Fs.Delete_File (Marker_Path);
+                  pragma Unreferenced (Removed);
+               begin
+                  raise Ada.Directories.Use_Error;
+               end;
             end if;
             Hostkit.Lease_Files.Release (Marker);
-         elsif Outcome /= Hostkit.Lease_Files.Refused
-           or else not Valid_Cancellation_Marker (Marker_Path)
+         elsif Outcome = Hostkit.Lease_Files.Refused
+           and then not Valid_Cancellation_Marker (Marker_Path)
          then
+            --  A marker left torn -- the write above failed and so did the
+            --  removal, or the window died mid-write -- is written again
+            --  whole: only the window writes it, and the helper reads it
+            --  under the same lock.
+            Rewrite_Cancellation_Marker (Marker_Path);
+         elsif Outcome /= Hostkit.Lease_Files.Refused then
             raise Ada.Directories.Use_Error;
          end if;
          Job.Shared.Cancel_At := Ada.Real_Time.Clock;

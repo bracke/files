@@ -8,7 +8,9 @@ is
 
    function Counter_Text return String is (Files.Types.Natural_Text (Counter));
 begin
-   while Files.Fs_Primitives.Entry_Exists (Hostkit.Fs.Join (Directory_Path, To_String (Candidate)))
+   --  A name that cannot be looked at raises, and the handler's plain
+   --  name is created exclusively: never one in use.
+   while Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Directory_Path, To_String (Candidate)))
    loop
       Candidate := To_Unbounded_String ("untitled " & Counter_Text & ".txt");
       exit when Counter = Positive'Last;

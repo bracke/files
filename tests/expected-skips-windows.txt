@@ -2,6 +2,7 @@
 -- each as "Test: reason", exactly as the test's Skip call gives them: a listed
 -- test that skips for another reason fails the run as an unlisted skip does.
 Test_An_Unsearchable_Entry_Is_Not_Absent: this host answers for an entry in a folder that may not be searched
+Test_An_Unwritable_Thumbnail_Fails_Cleanly: this host has no file-size limit
 Test_Autonomous_Cleanup_Worker: the stopped-worker half needs Linux and its /proc
 Test_Backslash_Executable_Lookup: needs a POSIX host: on Windows a backslash separates directories
 Test_Copy_Access_Bits: needs native POSIX mode bits

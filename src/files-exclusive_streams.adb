@@ -1,8 +1,10 @@
 with GNAT.OS_Lib;
 with Files.Diagnostics;
+with Files.Io_Errors;
 with Ada.IO_Exceptions;
 
 with Files.Private_Directories;
+with Hostkit.Fs;
 with Hostkit.Regular_Files;
 
 package body Files.Exclusive_Streams is
@@ -17,9 +19,25 @@ package body Files.Exclusive_Streams is
       Stream.Pending := 0;
       Stream.Descriptor := Hostkit.Regular_Files.Create_New (Path, 8#666#);
       if Stream.Descriptor = GNAT.OS_Lib.Invalid_FD then
+         Files.Io_Errors.Capture;
          raise Ada.IO_Exceptions.Use_Error;
       end if;
-      Files.Private_Directories.Make_File_Private (Stream.Descriptor);
+      begin
+         Files.Private_Directories.Make_File_Private (Stream.Descriptor);
+      exception
+         when others =>
+            --  Made exclusively a moment ago, so the file is this call's to
+            --  remove: a file it could not make private is not left behind.
+            Close_Safely (Stream);
+            declare
+               --  The failure being raised is the one to report.
+               Removed : constant Boolean := Hostkit.Fs.Delete_File (Path);
+               pragma Unreferenced (Removed);
+            begin
+               null;
+            end;
+            raise;
+      end;
    exception
       when others =>
          Close_Safely (Stream);
@@ -42,6 +60,8 @@ package body Files.Exclusive_Streams is
       GNAT.OS_Lib.Close (Stream.Descriptor, Closed);
       Stream.Descriptor := GNAT.OS_Lib.Invalid_FD;
       if not Closed then
+         --  A full disk often shows only here, as the data is flushed.
+         Files.Io_Errors.Capture;
          raise Ada.IO_Exceptions.Use_Error;
       end if;
    end Close;

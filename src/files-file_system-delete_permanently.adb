@@ -55,7 +55,9 @@ begin
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.permanent_delete.refused"));
-   elsif not Files.Fs_Primitives.Entry_Exists (Path) then
+   elsif Files.Fs_Primitives.Entry_Is_Absent (Path) then
+      --  Missing only when that is sure: one that cannot be looked at is
+      --  deleted below, and a delete that fails says why.
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.path.missing"));

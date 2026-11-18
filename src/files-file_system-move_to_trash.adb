@@ -1,3 +1,4 @@
+with Files.Durable_Writes;
 with Files.Durability;
 with Hostkit.Durability;
 separate (Files.File_System)
@@ -34,10 +35,12 @@ is
       Counter   : Positive := 2;
       Candidate : Unbounded_String := To_Unbounded_String (Base);
    begin
-      while Files.Fs_Primitives.Entry_Exists (Hostkit.Fs.Join (Files_Directory, To_String (Candidate)))
+      --  A name that cannot be looked at raises: the trash is refused,
+      --  not handed a name that may be in use.
+      while Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Files_Directory, To_String (Candidate)))
         or else (Info_Directory /= ""
                  and then
-                   Files.Fs_Primitives.Entry_Exists
+                   Files.Fs_Primitives.Is_Taken
                      (Hostkit.Fs.Join (Info_Directory, To_String (Candidate) & Info_Suffix)))
       loop
          declare
@@ -125,7 +128,8 @@ is
    Name      : Unbounded_String;
    Target    : Unbounded_String;
    Info_Path : Unbounded_String;
-   Info_Owned : Boolean := False;
+   --  The info file this call wrote, once it has: only that one is removed.
+   Info_Identity : Unbounded_String;
 
    --  Where the item came from, as its info file says it: absolute for the
    --  home trash, relative to the volume's top for a volume trash.
@@ -149,12 +153,7 @@ is
 
    procedure Delete_Info_File_If_Present is
    begin
-      if Info_Owned and then Files.Fs_Primitives.Exists (To_String (Info_Path)) then
-         Files.Fs_Primitives.Delete_File (To_String (Info_Path));
-      end if;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+      Files.Durable_Writes.Remove_Owned (To_String (Info_Path), To_String (Info_Identity));
    end Delete_Info_File_If_Present;
 
    function Send_To_Recycle_Bin return Mutation_Result is separate;

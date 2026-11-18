@@ -569,6 +569,8 @@ package body Files.Refresh_Jobs is
    begin
       if not Job.Native and then Files.Process_Jobs.Active (Job.Process) then
          Job.Native :=
+           --  refusal-safe: a marker not seen keeps the polling fallback on,
+           --  which only costs polls; it is asked again next pass.
            Files.Fs_Primitives.Exists
              (Files.Process_Jobs.Path (Job.Process, Files.Protocol_Names.Native_Watch_File));
       end if;
@@ -634,8 +636,11 @@ package body Files.Refresh_Jobs is
       File   : Files.Exclusive_Streams.Output_Stream;
       Target : constant String := Hostkit.Fs.Join (Directory, Files.Protocol_Names.Changed_File);
 
+      --  refusal-safe: a marker not seen is made exclusively, which cannot
+      --  write over one; a hint lost is given again by the next poll.
       function Posted return Boolean is
         (not Hostkit.Fs.Is_Link (Target)
+         --  refusal-safe: as above.
          and then Files.Fs_Primitives.Exists (Target)
          and then Files.Fs_Primitives.Kind (Target) = Ada.Directories.Ordinary_File);
    begin
@@ -671,9 +676,12 @@ package body Files.Refresh_Jobs is
             begin
                null;
             end;
-         elsif Files.Fs_Primitives.Exists (Claimed)
-           and then Files.Fs_Primitives.Kind (Claimed) = Ada.Directories.Ordinary_File
-         then
+         elsif Files.Fs_Primitives.Entry_Is_Absent (Claimed) then
+            null;
+         elsif Files.Fs_Primitives.Kind (Claimed) = Ada.Directories.Ordinary_File then
+            --  A claim that cannot be looked at raises above (Kind) and
+            --  stays to be removed, not taken for gone: left, it would
+            --  refuse every later claim of a change.
             Files.Fs_Primitives.Delete_File (Claimed);
          end if;
          Job.Claim_Left := False;

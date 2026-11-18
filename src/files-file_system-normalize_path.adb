@@ -4,11 +4,18 @@ function Normalize_Path
    return Path_Result
 is
 begin
-   if Path = "" or else not Files.Fs_Primitives.Exists (Path) then
+   if Path = "" or else Files.Fs_Primitives.Entry_Is_Absent (Path) then
       return
         (Status         => Path_Missing,
          Directory_Path => Null_Unbounded_String,
          Error_Key      => To_Unbounded_String ("error.path.missing"));
+   --  refusal-safe: there but not to be looked at (or a dangling link):
+   --  said as such, not as missing.
+   elsif not Files.Fs_Primitives.Exists (Path) then
+      return
+        (Status         => Path_Inaccessible,
+         Directory_Path => Null_Unbounded_String,
+         Error_Key      => To_Unbounded_String ("error.path.inaccessible"));
    end if;
 
    case Files.Fs_Primitives.Kind (Path) is

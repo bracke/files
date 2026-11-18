@@ -78,6 +78,16 @@ private
    --  Decode one complete result through a validated, pinned file lease.
    function Read_Transport_Result (Path : String) return Job_Result;
 
+   --  What a finished helper's result says once read and, where it failed,
+   --  recovered: a failure the user cancelled is a cancellation, a cancelled
+   --  replace that could not put the original back says so, and a failure
+   --  that carries no reason is still a failure, never an empty key a paste
+   --  would read as success.
+   --
+   --  @param Result The result read; settled in place.
+   --  @param Cancelled Whether the user cancelled the helper.
+   procedure Settle (Result : in out Job_Result; Cancelled : Boolean);
+
    --  Decode the authority record for an original destination preserved
    --  before replacement.  The record is accepted only as a complete,
    --  ordinary file and while the preserved entry still has its captured

@@ -590,6 +590,16 @@ package body Test_Helpers is
               and then Files.Process_Jobs.Cancellation_Requested
                 (Ada.Command_Line.Argument (2))
             then
+               --  Say it was let see the cancel, where its test asked: a
+               --  helper killed outright never gets here.
+               declare
+                  Seen : constant String := Ada.Environment_Variables.Value ("FILES_TEST_CANCEL_SEEN", "");
+               begin
+                  if Seen /= "" then
+                     Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Seen);
+                     Ada.Text_IO.Close (File);
+                  end if;
+               end;
                Hostkit.Process.End_Now (0);
             end if;
          end loop;

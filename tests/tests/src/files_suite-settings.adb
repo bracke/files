@@ -68,6 +68,7 @@ package body Files_Suite.Settings is
    procedure Test_Default_Settings_Text_And_Themes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Load_File_Inputs (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Ensure_And_Save_Text (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_A_Failed_Save_Leaves_No_Temporary (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Draft_Apply_And_Save (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Draft_Ignores_Orphan_Rows (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Settings_Save (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -150,6 +151,9 @@ package body Files_Suite.Settings is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Ensure_And_Save_Text'Access,
          "ensure default file creates it; save text is atomic, owner-only, link-safe, and rejects bad input");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_A_Failed_Save_Leaves_No_Temporary'Access,
+         "a settings save that fails leaves no temporary behind, even one whose identity could not be read");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Draft_Apply_And_Save'Access,
          "settings drafts reset, apply, save, and reject invalid values; a closed settings pane cannot save");
@@ -340,6 +344,8 @@ package body Files_Suite.Settings is
    procedure Test_Settings_Load_File_Inputs (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Settings_Ensure_And_Save_Text (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_A_Failed_Save_Leaves_No_Temporary (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Settings_Draft_Apply_And_Save (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

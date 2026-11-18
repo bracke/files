@@ -944,6 +944,30 @@ begin
    Project_Tools.Files.Write_Text_File (Combined_Suite, Suite_Sources);
    Project_Tools.Files.Write_Text_File (Combined_Check_All, Check_All_Sources);
 
+   --  "--only <Check_Name>" runs that one check of the tree and stops: no
+   --  build and no suite, for working on a check or on what it reports.
+   if Ada.Command_Line.Argument_Count = 2 and then Ada.Command_Line.Argument (1) = "--only" then
+      declare
+         Found : Boolean := False;
+      begin
+         for Item of Checks loop
+            if To_String (Item.Name) = Ada.Command_Line.Argument (2) then
+               Found := True;
+               Run_Check (To_String (Item.Name), Item.Check);
+            end if;
+         end loop;
+         Cleanup_Temps;
+         if not Found then
+            Put_Line (Standard_Error, "check_all: no check named " & Ada.Command_Line.Argument (2));
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         elsif not Problems_Found ("the end of " & Ada.Command_Line.Argument (2)) then
+            Put_Line (Ada.Command_Line.Argument (2) & " passed");
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Success);
+         end if;
+         return;
+      end;
+   end if;
+
    for Item of Checks loop
       Run_Check (To_String (Item.Name), Item.Check);
    end loop;

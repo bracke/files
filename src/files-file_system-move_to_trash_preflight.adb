@@ -29,6 +29,7 @@ is
 
    function Source_Exists return Boolean is
    begin
+      --  refusal-safe: a source not seen is refused; nothing is moved.
       return Path /= "" and then Files.Fs_Primitives.Entry_Exists (Path);
    exception
       when Swallowed : others =>
@@ -45,6 +46,8 @@ is
          return Hostkit.Fs.Join
            (Files.Fs_Primitives.Full_Name (Files.Fs_Primitives.Parent_Directory (Value)),
             Files.Fs_Primitives.Leaf_Text (Value));
+      --  refusal-safe: a path not seen is compared as written; the move
+      --  into or out of it is then refused on that same path.
       elsif Files.Fs_Primitives.Exists (Value) then
          return Files.Fs_Primitives.Full_Name (Value);
       else

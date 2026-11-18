@@ -24,9 +24,10 @@ begin
       Id     : constant String := Natural_Text (Uid);
       Name   : constant String := Files.Fs_Primitives.Leaf_Text (Base);
       Parent : constant String := Files.Fs_Primitives.Parent_Directory (Base);
-      --  A part not made yet, or our own real directory.
+      --  A part surely not made yet, or our own real directory: one that
+      --  cannot be looked at could be the link this guards against.
       function Absent_Or_Own (Part : String) return Boolean is
-        ((not Hostkit.Fs.Is_Link (Part) and then not Files.Fs_Primitives.Exists (Part))
+        ((not Hostkit.Fs.Is_Link (Part) and then Files.Fs_Primitives.Entry_Is_Absent (Part))
          or else Own_Directory (Part));
 
       --  The base, and its files/ and info/: a files/ that is a link would

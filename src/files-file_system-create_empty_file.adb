@@ -22,6 +22,8 @@ begin
    if Descriptor = GNAT.OS_Lib.Invalid_FD then
       --  Before the existence check, whose own calls overwrite errno.
       Files.Io_Errors.Capture;
+      --  refusal-safe: the create failed either way; this only picks the
+      --  words for it.
       if Files.Fs_Primitives.Entry_Exists (Path) then
          return (Success => False, Error_Key => To_Unbounded_String ("error.file.exists"));
       end if;

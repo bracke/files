@@ -6,33 +6,16 @@ procedure Write_Info_File is
      "[Trash Info]" & ASCII.LF
      & "Path=" & Trash_Info_Path_Value (Info_Path_Text)
      & ASCII.LF & "DeletionDate=" & Trash_Deletion_Date (Ada.Calendar.Clock) & ASCII.LF;
-   --  Created last, so nothing runs between a refusal and Capture.
-   Descriptor : GNAT.OS_Lib.File_Descriptor :=
-     Hostkit.Regular_Files.Create_New (To_String (Info_Path), 8#666#);
-   Written : Integer;
-   Next    : Positive := Metadata'First;
-   Closed  : Boolean;
+
+   --  The info file's text, as the bytes it is.
+   procedure Write_Metadata (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
+   begin
+      String'Write (Stream, Metadata);
+   end Write_Metadata;
 begin
-   if Descriptor = GNAT.OS_Lib.Invalid_FD then
-      Files.Io_Errors.Capture;
-      raise Ada.Directories.Use_Error;
-   end if;
-   Info_Owned := True;
-   Files.Private_Directories.Make_File_Private (Descriptor);
-   while Next <= Metadata'Last loop
-      Written := GNAT.OS_Lib.Write (Descriptor, Metadata (Next)'Address, Metadata'Last - Next + 1);
-      if Written <= 0 then
-         Files.Io_Errors.Capture;
-         raise Ada.Directories.Use_Error;
-      end if;
-      Next := Next + Written;
-   end loop;
-   GNAT.OS_Lib.Close (Descriptor, Closed);
-   Descriptor := GNAT.OS_Lib.Invalid_FD;
-   if not Closed then
-      Files.Io_Errors.Capture;
-      raise Ada.Directories.Use_Error;
-   end if;
+   --  Made anew at its final name, never over one already there; what fails
+   --  below removes only this file, by its identity.
+   Files.Durable_Writes.Write_Private_File (To_String (Info_Path), Write_Metadata'Access, Info_Identity);
    --  On the device before the item moves in: a crash must not leave
    --  an item in the trash with an empty info file, which the trash
    --  view could neither list nor restore.
@@ -41,10 +24,4 @@ begin
    then
       raise Ada.Directories.Use_Error;
    end if;
-exception
-   when others =>
-      if Descriptor /= GNAT.OS_Lib.Invalid_FD then
-         GNAT.OS_Lib.Close (Descriptor);
-      end if;
-      raise;
 end Write_Info_File;

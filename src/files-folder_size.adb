@@ -269,6 +269,8 @@ package body Files.Folder_Size is
             Result : Files.File_System.Directory_Size_Result;
             Read   : Boolean := False;
          begin
+            --  refusal-safe: a result not seen is waited for; once the helper
+            --  ends, the directories it never answered are unmeasured.
             exit when not Files.Fs_Primitives.Exists (Name);
             begin
                if Test_Unreadable_Results > 0 then

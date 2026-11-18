@@ -39,6 +39,17 @@ package Files.Fs_Primitives is
    --  @return True only when the host says Path names nothing.
    function Entry_Is_Absent (Path : String) return Boolean;
 
+   --  Whether a new entry may not take the name Path: what a search for a
+   --  free name asks of each candidate. A refused lookup is neither taken
+   --  nor free, and a search that went on past it could hand out a name
+   --  that is in use, or never end: it raises instead.
+   --
+   --  @param Path Candidate path.
+   --  @return True when an entry (or a link) is at Path, False when the host
+   --    says Path names nothing.
+   --  @raises Ada.Directories.Use_Error when the lookup is refused.
+   function Is_Taken (Path : String) return Boolean;
+
    --  Return the parent directory of Path, read from its text (Parent_Text)
    --  as Ada.Directories.Containing_Directory would give it, without its
    --  limits: a name alone lies in ".".

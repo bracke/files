@@ -793,6 +793,17 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Record what an armed paste has done so far as its one Undo entry --
+   --  the items written and the originals a Replace preserved -- and consume
+   --  a cut's clipboard, leaving the paste armed for
+   --  Files.Model.End_Foreground_Job. A window closing mid-paste calls this
+   --  before it lets the paste go, so the originals preserved so far reach
+   --  its history, which sends them to the system trash as it ends, instead
+   --  of being dropped with the paste in hidden stages.
+   --
+   --  @param Model Window whose paste is armed; nothing without one.
+   procedure Record_Paste_So_Far (Model : in out Files.Model.Window_Model);
+
 private
 
    --  A failed move's copy that had to stay at its destination while its
@@ -807,6 +818,15 @@ private
 
    --  No copy kept.
    No_Kept_Copy : constant Kept_Copy := (others => <>);
+
+   --  Record_Paste_So_Far, with a failed move's copy left beside its still
+   --  present source (Kept) joining the entry.
+   --
+   --  @param Model Window whose paste is armed.
+   --  @param Kept The kept copy, or none.
+   procedure Record_Paste_Execution
+     (Model : in out Files.Model.Window_Model;
+      Kept  : Kept_Copy := No_Kept_Copy);
 
    --  Finish an armed paste execution: record its one Undo, reload, and
    --  report Error_Key (a mid-run failure) or the Undo it could not record.

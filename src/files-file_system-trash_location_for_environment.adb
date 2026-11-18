@@ -27,7 +27,9 @@ begin
       if Environment_Equals ("FILES_TRASH_BACKEND", "macos-home")
         or else (Hostkit.Host.Current = Hostkit.Host.MacOS
                  and then not Environment_Equals ("FILES_TRASH_BACKEND", "xdg")
-                 and then Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Home, ".Trash")))
+                 --  One that cannot be looked at (privacy controls guard
+                 --  it) is still the system's: the Finder's layout is kept.
+                 and then not Files.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (Home, ".Trash")))
       then
          Result :=
            (Backend => Trash_Macos_Home,

@@ -6,6 +6,7 @@ function Set_Permissions
 is
    function Exists_Safely (Candidate : String) return Boolean is
    begin
+      --  refusal-safe: a path not seen is refused; no mode is changed.
       return Candidate /= "" and then Files.Fs_Primitives.Exists (Candidate);
    exception
       when Swallowed : others =>
