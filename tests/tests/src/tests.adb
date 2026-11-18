@@ -3,7 +3,6 @@ with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Text_IO;
-with GNAT.OS_Lib;
 
 with AUnit;
 with AUnit.Reporter.Text;
@@ -71,9 +70,10 @@ begin
       declare
          Created_Temp : constant String :=
            Hostkit.Fs.Create_Temporary_Directory ("files-suite-");
-         Suite_Temp : constant String :=
-           GNAT.OS_Lib.Normalize_Pathname
-             (Created_Temp, Resolve_Links => True);
+         --  Spelled as the application spells a folder it opens: canonical,
+         --  so on Windows a short 8.3 part of TEMP (RUNNER~1) is its long name,
+         --  and every path a test expects matches the one the code reports.
+         Suite_Temp : constant String := Hostkit.Fs.Canonical_Path (Created_Temp);
          Job_Temp   : constant String := Hostkit.Fs.Join (Suite_Temp, "jobs");
       begin
          if Suite_Temp = "" then

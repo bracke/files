@@ -1,4 +1,5 @@
 with Files_Suite.Support.Guards;
+with Hostkit.Host;
 separate (Files_Suite.Startup)
    procedure Test_Host_Locale_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -33,14 +34,18 @@ separate (Files_Suite.Startup)
          Ada.Environment_Variables.Clear ("LC_NUMERIC");
          Ada.Environment_Variables.Set ("LANG", "C.UTF-8");
          Ada.Environment_Variables.Set ("HOME", Fake_Home);
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Time_Locale,
-            "de-DE",
-            "portable process LANG falls back to KDE formats locale");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Number_Locale,
-            "da-DK",
-            "portable process LANG falls back to KDE numeric formats locale");
+         --  Only Linux reads KDE's formats (Hostkit.Host.Configured_Format_Locale);
+         --  Windows and macOS keep them in the regional setting the host reports.
+         if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Linux) then
+            Files_Suite.Support.Assert_Equal
+              (Files.Localization.System_Time_Locale,
+               "de-DE",
+               "portable process LANG falls back to KDE formats locale");
+            Files_Suite.Support.Assert_Equal
+              (Files.Localization.System_Number_Locale,
+               "da-DK",
+               "portable process LANG falls back to KDE numeric formats locale");
+         end if;
 
          Ada.Environment_Variables.Set
            ("HOME", Join (Root, "missing-locale-home"));

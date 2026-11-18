@@ -49,9 +49,11 @@ separate (Files_Suite.Settings)
               and then Refs.Recent_Paths (Settings).Is_Empty,
               "forgetting it in another spelling drops its label, star and Recent entry");
 
-      --  Where names do not fold, two spellings are two paths.
+      --  Where names do not fold, two spellings are two paths. Linux only:
+      --  Windows folds every path, and macOS asks the volume, whose default
+      --  APFS folds too.
       Refs.Testing.Simulate_Folding_Host (False);
-      if Hostkit.Host.Current /= Hostkit.Host.Windows then
+      if Hostkit.Host.Current = Hostkit.Host.Linux then
          Refs.Add_Favorite (Settings, Stored);
          Assert (not Refs.Is_Favorite (Settings, Typed), "a host that tells case apart keeps the spellings apart");
       end if;

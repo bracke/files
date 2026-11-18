@@ -69,8 +69,8 @@ separate (Files_Suite.Commands)
          "copy-path records a pending system-clipboard request");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Clipboard.System_Request_Text (Model),
-         Alpha_Path & ASCII.LF & Beta_Path & ASCII.LF & Gamma_Path,
-         "copy-path stores the newline-joined selection paths");
+         Alpha_Path & Files.Commands.Line_Break & Beta_Path & Files.Commands.Line_Break & Gamma_Path,
+         "copy-path stores the selection paths, one to a line as the host breaks lines");
       Files.Model.Clipboard.Clear_System_Request (Model);
       Assert
         (not Files.Model.Clipboard.System_Request_Pending (Model),

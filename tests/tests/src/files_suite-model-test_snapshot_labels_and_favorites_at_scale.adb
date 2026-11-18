@@ -1,9 +1,12 @@
 with Files.Settings.Path_References;
+with Hostkit.Fs;
+with Hostkit.Host;
 separate (Files_Suite.Model)
    --  Build_Snapshot looks favorites and labels up in a hashed index of the
    --  settings rather than scanning both lists per item. It must answer as
-   --  Files.Settings.Path_References.Is_Favorite and Label_Of do -- exact path equality, no
-   --  case folding or separator trimming, and the first of repeated labels.
+   --  Files.Settings.Path_References.Is_Favorite and Label_Of do -- exact path equality
+   --  where the volume tells case apart, no separator trimming, and the first of
+   --  repeated labels.
    procedure Test_Snapshot_Labels_And_Favorites_At_Scale (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Files.Types.Color_Label;
@@ -13,6 +16,12 @@ separate (Files_Suite.Model)
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Favorites : Natural := 0;
       Labelled  : Natural := 0;
+      --  Whether favorites match Root's names without regard to case, as
+      --  Path_References decides it.
+      Folds_Case : constant Boolean :=
+        Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows)
+        or else (Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.MacOS)
+                 and then Hostkit.Fs.Folds_Name_Case (Root));
 
       function Name_Of (Index : Positive) return String is
         ("item_" & Ada.Strings.Fixed.Trim (Index'Image, Ada.Strings.Left) & ".txt");
@@ -61,14 +70,20 @@ separate (Files_Suite.Model)
                   Labelled := Labelled + 1;
                end if;
                if Name = Name_Of (1) then
-                  Assert (not Item.Is_Favorite, "a favorite stored in another case does not mark the item");
+                  --  Another case is another name only where the volume tells
+                  --  case apart; where it folds case (Windows, most macOS
+                  --  volumes) it is the same entry, and the favorite marks it.
+                  Assert (Item.Is_Favorite = Folds_Case,
+                          "a favorite stored in another case marks the item exactly where names fold case");
                elsif Name = Name_Of (2) then
                   Assert (Item.Label = Files.Types.No_Label,
                           "a label stored with a trailing separator does not mark the item");
                end if;
             end;
          end loop;
-         Files_Suite.Support.Assert_Equal (Favorites, Count / 3, "every stored favorite is marked, and no other item");
+         Files_Suite.Support.Assert_Equal
+           (Favorites, Count / 3 + (if Folds_Case then 1 else 0),
+            "every stored favorite is marked, and no other item");
          Files_Suite.Support.Assert_Equal (Labelled, Count / 5, "every stored label is shown, and no other");
       end;
    end Test_Snapshot_Labels_And_Favorites_At_Scale;
