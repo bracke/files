@@ -1019,7 +1019,11 @@ jobs:
           # answers for its own part of the tree.
           log="$RUNNER_TEMP/held-smoke.txt"
           mkdir -p "$RUNNER_TEMP/first-window" "$RUNNER_TEMP/second-window"
-          FILES_LIVE_SMOKE_HOLD=20 "$bin" --live-smoke "$RUNNER_TEMP/first-window" "$RUNNER_TEMP/second-window" > "$log" 2>&1 &
+          # Only the first three scenarios show the items with no overlay over
+          # them, and the walk reaches the window a minute or two after the
+          # smoke starts (it took 114 s on one Windows run): 40 s a scenario
+          # keeps the items reachable for two minutes.
+          FILES_LIVE_SMOKE_HOLD=40 "$bin" --live-smoke "$RUNNER_TEMP/first-window" "$RUNNER_TEMP/second-window" > "$log" 2>&1 &
           smoke_pid=$!
           for _ in $(seq 1 120); do
             grep -q "live-smoke hold" "$log" && break
