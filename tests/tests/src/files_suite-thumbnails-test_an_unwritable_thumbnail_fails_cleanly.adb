@@ -2,10 +2,9 @@ with Files.File_System.Thumbnails;
 with Files_Suite.Support.File_Size_Limits;
 separate (Files_Suite.Thumbnails)
    --  A stand-in thumbnail written to a disk that will not take it fails as a
-   --  thumbnail failure: nothing raises out of the generator (a close that
-   --  flushes what was buffered fails again on that disk), and the temporary
-   --  it reserved is not left in the cache. A file-size limit stands in for
-   --  the full disk.
+   --  thumbnail failure: nothing raises out of the generator, and neither the
+   --  temporary reserved for the decoders nor the stand-in's is left in the
+   --  cache. A file-size limit stands in for the full disk.
    procedure Test_An_Unwritable_Thumbnail_Fails_Cleanly (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Source  : constant String := Join (Root, "too-big.png");
