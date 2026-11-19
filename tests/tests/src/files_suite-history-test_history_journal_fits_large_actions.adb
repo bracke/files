@@ -31,7 +31,8 @@ separate (Files_Suite.History)
       Undo.Append (Large ("older"));
       Undo.Append (Large ("newer"));
       Files.History_Journal.Save_Stacks
-        (History_Directory, Undo, Files.Model.Undo_Entry_Vectors.Empty_Vector, Required => True);
+        (History_Directory, Undo, Files.Model.Undo_Entry_Vectors.Empty_Vector,
+         Mode => Files.History_Journal.Must_Commit);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.Model.Testing.Restore_Journal (History_Directory, Model), "the journal is saved and reads back");
       Files_Suite.Support.Assert_Equal

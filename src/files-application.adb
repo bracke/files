@@ -1,7 +1,4 @@
-with Files.File_System.Permissions;
-with Files.Items;
 with Files.Environment;
-with Ada.Calendar;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -11,7 +8,6 @@ with Interfaces;
 with GNAT.OS_Lib;
 
 with Hostkit.Fs;
-with Hostkit.Metadata;
 
 with Files.Commands;
 with Files.Diagnostics;
@@ -27,8 +23,6 @@ with Files.Rendering;
 with Guikit.Frame_Analysis;
 with Guikit.Mirroring;
 with Guikit.Vulkan;
-with Files.Model.Selection;
-with Files.Model.Status_Samples;
 
 package body Files.Application is
 
@@ -364,74 +358,6 @@ package body Files.Application is
          Files.Model.Toggle_Info_Pane (Model);
       end if;
    end Apply_Persisted_UI_State;
-
-   procedure Sample_Volume_Space
-     (Model : in out Files.Model.Window_Model)
-   is
-      Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
-   begin
-      if Files.Model.Current_Path (Model) = "" then
-         --  A view with no folder of its own (Recent) is on no volume: a
-         --  capacity query for "" fails here and on Windows may answer for
-         --  the working directory's drive. An unchanged unknown touches nothing.
-         Files.Model.Status_Samples.Set_Volume_Space (Model, "", (others => <>), Now);
-      elsif not Files.Model.Status_Samples.Volume_Space_Is_Current (Model, Now) then
-         declare
-            Path     : constant String := Files.Model.Current_Path (Model);
-            Capacity : constant Hostkit.Metadata.Volume_Capacity := Hostkit.Metadata.Volume_Capacity_Of (Path);
-         begin
-            Files.Model.Status_Samples.Set_Volume_Space
-              (Model,
-               Path,
-               (Known       => Capacity.Available,
-                Free_Bytes  => Capacity.Free_Bytes,
-                Total_Bytes => Capacity.Capacity_Bytes),
-               Now);
-         end;
-      end if;
-   end Sample_Volume_Space;
-
-   procedure Sample_Account_Names
-     (Model : in out Files.Model.Window_Model)
-   is
-      --  Record Item's owner and group names unless they already are.
-      procedure Sample (Item : Files.Items.Directory_Item) is
-      begin
-         if not Item.Ownership_Available then
-            return;
-         end if;
-         if not Files.Model.Status_Samples.Account_Name_Known (Model, Files.Model.User_Account, Item.Owner_Id) then
-            Files.Model.Status_Samples.Set_Account_Name
-              (Model, Files.Model.User_Account, Item.Owner_Id,
-               Files.File_System.Permissions.User_Name_For_Id (Item.Owner_Id));
-         end if;
-         if not Files.Model.Status_Samples.Account_Name_Known (Model, Files.Model.Group_Account, Item.Group_Id) then
-            Files.Model.Status_Samples.Set_Account_Name
-              (Model, Files.Model.Group_Account, Item.Group_Id,
-               Files.File_System.Permissions.Group_Name_For_Id (Item.Group_Id));
-         end if;
-      end Sample;
-   begin
-      if Files.Model.Status_Samples.Account_Names_Current (Model) then
-         return;
-      end if;
-      --  The same items Build_Snapshot lists in the info pane.
-      if Files.Model.Info_Pane_Is_Open (Model) and then Files.Model.Selection.Selected_Count (Model) > 0 then
-         declare
-            Items : constant Files.Items.Item_Vectors.Vector :=
-              Files.Model.Selection.Selected_Items (Model, Limit => Files.Rendering.Max_Info_Items);
-         begin
-            if Items.Is_Empty then
-               Sample (Files.Model.Selection.Selected_Item (Model));
-            end if;
-            for Item of Items loop
-               Sample (Item);
-            end loop;
-         end;
-      end if;
-      --  After any Set_Account_Name above, so its revision bump is covered.
-      Files.Model.Status_Samples.Note_Account_Names_Sampled (Model);
-   end Sample_Account_Names;
 
    function Resolve_Startup_Paths
      (Arguments : String_Vectors.Vector;

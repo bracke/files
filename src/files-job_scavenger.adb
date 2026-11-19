@@ -583,7 +583,9 @@ package body Files.Job_Scavenger is
                        Files.Job_Cleanup.Run
                          (Directory, To_String (Identity),
                           Attempt_Limit => (if Interruptible then 1 else 8),
-                          Discard_Unreadable_On_Last_Attempt => not Interruptible);
+                          Unreadable    =>
+                            (if Interruptible then Files.Job_Cleanup.Keep_Unreadable
+                             else Files.Job_Cleanup.Discard_On_Last_Attempt));
                   begin
                      if Outcome = Files.Job_Cleanup.Cleanup_Failed then
                         Retry_Needed := True;

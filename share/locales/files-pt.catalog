@@ -317,6 +317,7 @@ pt.error.io.busy = O item está em uso.
 pt.error.move.source_changed = O item mudou enquanto era movido, por isso foi deixado onde estava.
 pt.error.move.source_set_aside = Mudou durante a movimentação: cópia mantida, original guardado à parte.
 pt.error.paste.undo_unavailable = Não é possível desfazer: a cópia mudou. O item substituído está na lixeira.
+pt.error.operation.undo_unavailable = Desfazer indisponível: não foi possível ler o histórico.
 pt.error.io.name_too_long = O nome é demasiado longo.
 pt.error.create.no_temporary_item = Não existe nenhuma criação de ficheiro pendente.
 pt.error.create.pending = Já existe uma criação de ficheiro pendente.

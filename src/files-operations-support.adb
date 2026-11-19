@@ -254,7 +254,7 @@ package body Files.Operations.Support is
          end loop;
       end if;
       if Progress.Durable then
-         Files.History_Journal.Save (Files.Model.History.State (Model), Required => True);
+         Files.History_Journal.Save (Files.Model.History.State (Model), Mode => Files.History_Journal.Must_Commit);
       end if;
    end Record_Progress;
 

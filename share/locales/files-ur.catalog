@@ -546,6 +546,7 @@ ur.error.io.busy = آئٹم استعمال میں ہے۔
 ur.error.move.source_changed = منتقلی کے دوران آئٹم بدل گیا، اس لیے اسے اپنی جگہ چھوڑ دیا گیا۔
 ur.error.move.source_set_aside = منتقلی کے دوران بدل گیا: کاپی رکھی گئی، اصل بحالی کے لیے الگ رکھا گیا۔
 ur.error.paste.undo_unavailable = یہ چسپاں کالعدم نہیں ہو سکتا: رکھی گئی کاپی بدل گئی۔ بدلا گیا آئٹم ردی میں ہے۔
+ur.error.operation.undo_unavailable = اس کارروائی کے لیے کالعدم دستیاب نہیں: اس کی تاریخ دوبارہ پڑھی نہیں جا سکی۔
 ur.error.io.name_too_long = نام بہت لمبا ہے۔
 ur.error.duplicate.failed = منتخب آئٹم کی نقل نہیں بن سکی۔
 ur.error.link.failed = لنک نہیں بن سکا۔

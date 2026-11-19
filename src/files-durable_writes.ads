@@ -130,10 +130,15 @@ package Files.Durable_Writes is
    --  this user, open to no one else (no group or other mode bits), and
    --  last written more than a minute before this process started -- so a
    --  temporary another running writer (a background job) is filling is
-   --  never taken from it. Each is removed only while its identity is still
-   --  the one checked (Remove_Owned). Where mode bits or the user's id are
-   --  not the host's own (Windows), none can be shown owner-only and
-   --  nothing is removed. Never raises.
+   --  never taken from it. That start is reckoned by the folder's own
+   --  clock, not this machine's (a share's server may be far off from it):
+   --  when there is anything to sweep, a fresh temporary is written there,
+   --  its modification time read and the file removed again, and the time
+   --  this process has run taken from it. When that marker cannot be
+   --  written or its time read, nothing is removed. Each is removed only
+   --  while its identity is still the one checked (Remove_Owned). Where
+   --  mode bits or the user's id are not the host's own (Windows), none can
+   --  be shown owner-only and nothing is removed. Never raises.
    --
    --  @param Base The path the temporaries are named after (the target).
    procedure Sweep_Stale_Temporaries (Base : String);

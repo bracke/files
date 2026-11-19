@@ -1,3 +1,4 @@
+with Files.File_System;
 with Files.Model.Support;
 
 package body Files.Model.Folder_Sizes is

@@ -546,6 +546,7 @@ fa.error.io.busy = مورد در حال استفاده است.
 fa.error.move.source_changed = مورد هنگام انتقال تغییر کرد، پس در جای خود ماند.
 fa.error.move.source_set_aside = هنگام انتقال تغییر کرد: رونوشت نگه داشته شد و اصل برای بازیابی کنار گذاشته شد.
 fa.error.paste.undo_unavailable = واگرد این چسباندن ممکن نیست: رونوشتش تغییر کرد. مورد جایگزین‌شده در زباله‌دان است.
+fa.error.operation.undo_unavailable = واگرد برای این عملیات در دسترس نیست: تاریخچه‌اش دوباره خوانده نشد.
 fa.error.io.name_too_long = نام بیش از حد بلند است.
 fa.error.duplicate.failed = تکثیر موارد انتخاب‌شده ممکن نشد.
 fa.error.link.failed = ایجاد پیوند ممکن نشد.

@@ -1,4 +1,3 @@
-with Files.Command_Palette;
 with Files.Overlays;
 with Files.Model.Command_Palette;
 with Files.Model.Settings_Pane;
@@ -87,7 +86,7 @@ separate (Files_Suite.Interaction)
                   Hit : constant Boolean :=
                     Files.Model.Command_Palette.Click (Model, Node.X + Node.Width / 2, Node.Y + Node.Height / 2);
                begin
-                  if Hit and then Files.Command_Palette.Selected_Command (Model)
+                  if Hit and then Files.Model.Command_Palette.Selected_Command (Model)
                                   = Files.Commands.Toggle_Hidden_Files_Command
                   then
                      Row_X := Node.X + Node.Width / 2;

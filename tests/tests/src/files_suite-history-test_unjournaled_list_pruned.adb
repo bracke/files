@@ -70,7 +70,7 @@ separate (Files_Suite.History)
       Assert (Natural (Files.Model.History.Journal_State (Window).Unjournaled.Length) = 900,
               "nothing in range is pruned on restore");
       begin
-         Files.Model.Testing.Save_Journal_To (Directory, Window, Required => True);
+         Files.Model.Testing.Save_Journal_To (Directory, Window, Mode => Files.History_Journal.Must_Commit);
       exception
          when Ada.Directories.Use_Error =>
             Assert (False, "a list past its cap does not fail a required save");

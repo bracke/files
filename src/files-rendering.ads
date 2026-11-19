@@ -531,6 +531,8 @@ package Files.Rendering is
    function Cell_Height_For (Size : Positive) return Positive is
      (Positive'Max (1, Size * 5 / 4));
 
+private
+
    --  The text cell width is the advance every layout measures labels with,
    --  taken from the same line height. Derived separately (Size * 3 / 4) it
    --  came out a pixel wider at some sizes, so labels sized to fit lost their
@@ -540,8 +542,6 @@ package Files.Rendering is
    --  @return Text cell width in pixels.
    function Cell_Width_For (Size : Positive) return Positive is
      (Guikit.Layout.Caret_Advance_Width (Cell_Height_For (Size)));
-
-private
 
    --  The index of the first overlay of Files.UI_Types.Overlay_Stack open in
    --  Snapshot, looking from From down.

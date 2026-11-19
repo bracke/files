@@ -3,7 +3,6 @@ with Files.File_System.Permissions;
 with Files.File_System.Thumbnails;
 with Ada.Directories;
 with Ada.Strings.Fixed;
-with Ada.Calendar.Formatting;
 with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
@@ -722,52 +721,6 @@ package body Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
    is separate;
-
-   function Prepare_Quick_Look
-     (Item : Files.Items.Directory_Item)
-      return Files.Quick_Look.Quick_Look_Content
-   is
-      Name     : constant String := To_String (Item.Name);
-      Filetype : constant String := To_String (Item.Filetype);
-      Icon_Id  : constant String := To_String (Item.Icon_Id);
-      Path     : constant String := To_String (Item.Full_Path);
-      Is_Image : constant Boolean :=
-        Files.File_System.Thumbnails.Is_Image_Item (Item.Kind, Filetype, Name, Icon_Id);
-      Text_File : constant Boolean :=
-        not Is_Image
-        and then (Item.Kind = Files.Types.Regular_File_Item or else Item.Kind = Files.Types.Executable_Item);
-      Read_Ok  : Boolean := False;
-      Complete : Boolean := True;
-      Raw      : constant String :=
-        (if Text_File
-         then Files.File_System.Read_Preview_Text (Path, Files.Quick_Look.Max_Preview_Bytes, Read_Ok, Complete)
-         else "");
-      Content : Files.Quick_Look.Quick_Look_Content :=
-        Files.Quick_Look.Prepare_Content
-          (Name           => Name,
-           Filetype       => Filetype,
-           Icon_Id        => Icon_Id,
-           Kind           => Item.Kind,
-           Size_Available => Item.Size_Available,
-           Size           => Item.Size,
-           Is_Image       => Is_Image,
-           Image_Path     => Path,
-           Raw_Bytes      => Raw,
-           Bytes_Complete => Complete or else not Read_Ok);
-   begin
-      --  The original image, so the preview scales the source rather than the
-      --  small thumbnail, is decoded off the UI thread: Poll_Quick_Look asks
-      --  for it, and the thumbnail shows until it is in.
-      Content.Source_Stamp := Quick_Look_Stamp (Item);
-      return Content;
-   end Prepare_Quick_Look;
-
-   function Quick_Look_Stamp (Item : Files.Items.Directory_Item) return Files.Types.UString is
-     (To_Unbounded_String
-        (Long_Long_Integer'Image (Item.Size)
-         & (if Item.Modified_Available
-            then " " & Ada.Calendar.Formatting.Image (Item.Modified_Time, Include_Time_Fraction => True)
-            else "")));
 
    procedure Begin_Paste_Execution
      (Model           : in out Files.Model.Window_Model;

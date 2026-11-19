@@ -16,7 +16,7 @@ package body Files.Job_Cleanup is
       Attempt_Limit       : Positive := 8;
       Initial_Retry_Delay : Duration := 0.25;
       Maximum_Retry_Delay : Duration := 4.0;
-      Discard_Unreadable_On_Last_Attempt : Boolean := True)
+      Unreadable          : Unreadable_Records := Discard_On_Last_Attempt)
       return Cleanup_Outcome
    is
       Stages      : constant String := Hostkit.Fs.Join (Directory, Files.Protocol_Names.Stages_Directory);
@@ -67,7 +67,7 @@ package body Files.Job_Cleanup is
             Files.Job_Context.Clean_Stages
               (Directory, Claim,
                Discard_Unreadable =>
-                 Discard_Unreadable_On_Last_Attempt and then Attempt = Attempt_Limit);
+                 Unreadable = Discard_On_Last_Attempt and then Attempt = Attempt_Limit);
             if Files.Fs_Primitives.Entry_Is_Absent (Stages) then
                begin
                   if not Files.Job_Transports.Retire (Claim, Directory) then

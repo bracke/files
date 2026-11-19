@@ -8,13 +8,13 @@ separate (Files_Suite.Startup)
    begin
       --  What this host has is the host's business; the rule is tested on
       --  every combination.
-      Assert (Files.Application.Windows.Capabilities_Of (True, True).Live_Window_Smoke_Ready,
+      Assert (Files.Window_Policy.Capabilities_Of (True, True).Live_Window_Smoke_Ready,
               "a display and Vulkan make a live window smoke ready");
-      Assert (not Files.Application.Windows.Capabilities_Of (False, True).Live_Window_Smoke_Ready
-              and then not Files.Application.Windows.Capabilities_Of (True, False).Live_Window_Smoke_Ready,
+      Assert (not Files.Window_Policy.Capabilities_Of (False, True).Live_Window_Smoke_Ready
+              and then not Files.Window_Policy.Capabilities_Of (True, False).Live_Window_Smoke_Ready,
               "either one missing does not");
-      Assert (Files.Application.Windows."="
-                (Caps, Files.Application.Windows.Capabilities_Of (Caps.Display_Available, Caps.Vulkan_Available)),
+      Assert (Files.Window_Policy."="
+                (Caps, Files.Window_Policy.Capabilities_Of (Caps.Display_Available, Caps.Vulkan_Available)),
               "this host's capabilities follow the same rule");
       declare
          Source        : Files.Drop_Events.Drop_Event_Source;

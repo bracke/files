@@ -14,7 +14,7 @@ separate (Files.Application.Windows)
       --  Encoded inside the handler: what an initial value raises would
       --  escape it into GLFW.
       declare
-         Bytes : constant String := Text_Input_Bytes (Char);
+         Bytes : constant String := Files.Window_Policy.Text_Input_Bytes (Char);
       begin
          if Bytes = "" then
             return;

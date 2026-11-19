@@ -58,7 +58,7 @@ separate (Files.File_System.Recovery)
          end if;
          --  The source goes next; the copy must be on the device first. Its
          --  files were flushed as they were written; its folders are now.
-         if not Support.Sync_Copy (Source, Destination, Files_Too => False) then
+         if not Support.Sync_Copy (Source, Destination, Scope => Support.Folders_Only) then
             raise Ada.Directories.Use_Error;
          end if;
          declare

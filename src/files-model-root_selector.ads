@@ -16,7 +16,7 @@ package Files.Model.Root_Selector is
    --  @param Roots Root entries to expose.
    procedure Open
      (Model : in out Window_Model;
-      Roots : Files.File_System.Root_Entry_Vectors.Vector);
+      Roots : Files.File_System_Types.Root_Entry_Vectors.Vector);
 
    --  Close the root selector.
    --
@@ -92,7 +92,7 @@ package Files.Model.Root_Selector is
    function Entry_At
      (Model : Window_Model;
       Index : Positive)
-      return Files.File_System.Root_Entry;
+      return Files.File_System_Types.Root_Entry;
 
    --  Return a root kind from the selector.
    --
@@ -102,7 +102,7 @@ package Files.Model.Root_Selector is
    function Kind
      (Model : Window_Model;
       Index : Positive)
-      return Files.File_System.Root_Kind;
+      return Files.File_System_Types.Root_Kind;
 
    --  Return whether a root entry reports removable media.
    --

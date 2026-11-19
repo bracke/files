@@ -105,7 +105,7 @@ package body Files.Model.Testing is
    procedure Set_Folder_Size
      (Model : in out Window_Model;
       Path  : String;
-      Value : Files.File_System.Directory_Size_Result) is
+      Value : Files.File_System_Types.Directory_Size_Result) is
    begin
       Touch_Header (Model);
       Model.Folder_Sizes.Include (To_Unbounded_String (Path), Value);
@@ -154,9 +154,12 @@ package body Files.Model.Testing is
       return Outcome;
    end Merge_Journal;
 
-   procedure Save_Journal_To (Directory : String; Model : Window_Model; Required : Boolean := False) is
+   procedure Save_Journal_To
+     (Directory : String;
+      Model     : Window_Model;
+      Mode      : Files.History_Journal.Save_Mode := Files.History_Journal.Best_Effort) is
    begin
-      Files.History_Journal.Save_To (Directory, Files.Model.History.State (Model), Required);
+      Files.History_Journal.Save_To (Directory, Files.Model.History.State (Model), Mode);
    end Save_Journal_To;
 
    function Journals_Newest (Model : Window_Model; Side : History_Side) return Boolean is

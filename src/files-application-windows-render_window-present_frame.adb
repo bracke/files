@@ -29,40 +29,55 @@ separate (Files.Application.Windows.Render_Window)
    begin
       --  The cached frame keeps the unmirrored coordinates hit tests use, so
       --  what is shown is the cached frame itself only when nothing is merged
-      --  in and nothing is reflected; otherwise one working copy takes both.
+      --  in and nothing is reflected; otherwise it is Shown_Frame, the cached
+      --  frame with the overlays merged in and reflected, made again only
+      --  when the cached frame was rebuilt, an overlay changed or the layout
+      --  direction turned -- not copied on every present.
       if Overlay_Merged or else Mirrored then
-         declare
-            --  A working copy of the cached frame, so an overlay (whose state
-            --  lives in its component and changes every frame) is merged in
-            --  fresh without polluting the cache.
-            Frame : Files.Rendering.Frame_Commands := Runtime.Cached_Frame;
-         begin
+         if Frame_Rebuilt
+           or else Overlay_Changed
+           or else not Runtime.Shown_Frame_Valid
+           or else Runtime.Shown_Frame_Mirrored /= Mirrored
+         then
+            Runtime.Shown_Frame := Runtime.Cached_Frame;
             --  Settings remains logically open when Commands is invoked from it,
             --  but Commands is the active top-level modal and owns the pixels until
             --  it closes (Window_Overlay_Shown): only one is ever built.
             if Palette.Shown then
-               Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
-               Append_Overlay (Frame, Palette.Rectangles, Palette.Text, Palette.Accessibility, Palette.Icons);
+               Append_Modal_Backdrop (Runtime.Shown_Frame, Natural (Width), Natural (Height));
+               Append_Overlay
+                 (Runtime.Shown_Frame, Palette.Rectangles, Palette.Text, Palette.Accessibility, Palette.Icons);
             end if;
             if Settings.Shown then
-               Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
-               Append_Overlay (Frame, Settings.Rectangles, Settings.Text, Settings.Accessibility, Settings.Icons);
+               Append_Modal_Backdrop (Runtime.Shown_Frame, Natural (Width), Natural (Height));
+               Append_Overlay
+                 (Runtime.Shown_Frame, Settings.Rectangles, Settings.Text, Settings.Accessibility, Settings.Icons);
             end if;
 
             if Mirrored then
-               Mirror (Frame);
+               Mirror (Runtime.Shown_Frame);
             end if;
-            Show (Frame);
-         end;
+            Runtime.Shown_Frame_Valid := True;
+            Runtime.Shown_Frame_Mirrored := Mirrored;
+         end if;
+         Show (Runtime.Shown_Frame);
       else
+         --  Nothing to keep beside the cached frame.
+         if Runtime.Shown_Frame_Valid then
+            Runtime.Shown_Frame := (others => <>);
+            Runtime.Shown_Frame_Valid := False;
+         end if;
          Show (Runtime.Cached_Frame);
       end if;
 
       --  Remember what we just put on screen so the next render's present gate
       --  can tell whether an overlay closed (a change that must be presented).
+      --  Unchanged, they are what was presented last.
       Runtime.Presented_Once := True;
-      Runtime.Last_Palette := Palette;
-      Runtime.Last_Settings := Settings;
+      if Overlay_Changed then
+         Runtime.Last_Palette := Palette;
+         Runtime.Last_Settings := Settings;
+      end if;
 
       --  Burn down one frame of the grace window. It is refilled above on any
       --  visible change, so it only reaches zero after a genuine idle gap.

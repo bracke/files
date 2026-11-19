@@ -1,3 +1,4 @@
+with Ada.Calendar.Formatting;
 with Ada.Strings.Unbounded;
 
 package body Files.Quick_Look is
@@ -137,5 +138,12 @@ package body Files.Quick_Look is
 
       return Content;
    end Prepare_Content;
+
+   function Source_Stamp_Of (Item : Files.Items.Directory_Item) return UString is
+     (To_Unbounded_String
+        (Long_Long_Integer'Image (Item.Size)
+         & (if Item.Modified_Available
+            then " " & Ada.Calendar.Formatting.Image (Item.Modified_Time, Include_Time_Fraction => True)
+            else "")));
 
 end Files.Quick_Look;

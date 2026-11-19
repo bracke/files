@@ -317,6 +317,7 @@ it.error.io.busy = L'elemento è in uso.
 it.error.move.source_changed = L'elemento è cambiato durante lo spostamento, quindi è stato lasciato dov'era.
 it.error.move.source_set_aside = È cambiato durante lo spostamento: copia mantenuta, originale messo da parte.
 it.error.paste.undo_unavailable = Impossibile annullare: la copia è cambiata. L'elemento sostituito è nel cestino.
+it.error.operation.undo_unavailable = Annulla non disponibile: impossibile leggere la cronologia.
 it.error.io.name_too_long = Il nome è troppo lungo.
 it.error.create.no_temporary_item = Non esiste alcuna creazione di file in sospeso.
 it.error.create.pending = Una creazione di file è già in sospeso.

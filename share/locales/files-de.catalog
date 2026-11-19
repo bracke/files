@@ -321,6 +321,7 @@ de.error.io.busy = Das Element wird gerade verwendet.
 de.error.move.source_changed = Das Element wurde während des Verschiebens geändert und deshalb an seinem Ort belassen.
 de.error.move.source_set_aside = Während des Verschiebens geändert: Kopie behalten, Original beiseitegelegt.
 de.error.paste.undo_unavailable = Nicht rückgängig: die Kopie wurde geändert. Das ersetzte Element ist im Papierkorb.
+de.error.operation.undo_unavailable = Rückgängig nicht verfügbar: Verlauf nicht lesbar.
 de.error.io.name_too_long = Der Name ist zu lang.
 de.error.create.no_temporary_item = Es liegt keine ausstehende Dateierstellung vor.
 de.error.create.pending = Eine Dateierstellung ist bereits ausstehend.

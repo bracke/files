@@ -66,6 +66,6 @@ package Files.Model.Folder_Sizes is
    function Value
      (Model : Window_Model;
       Path  : String)
-      return Files.File_System.Directory_Size_Result;
+      return Files.File_System_Types.Directory_Size_Result;
 
 end Files.Model.Folder_Sizes;

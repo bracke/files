@@ -1,9 +1,45 @@
+with Files.Commands;
 with Files.Desktop_Applications;
 with Guikit.Command_Palette;
 --  The command palette overlay: opening and closing it, its query and selection, the
---  Open With listing it can show instead of the commands, and the visit
---  through which the window layer drives its guikit component.
+--  Open With listing it can show instead of the commands, the command list
+--  it hands its guikit component (built, in the current language, by
+--  Files.Command_Palette) and the command a chosen row names, and the visit
+--  through which the window layer drives that component.
+--  Guikit.Command_Palette owns the query, selection, scroll, filtering and
+--  rendering.
 package Files.Model.Command_Palette is
+
+   --  All commands offered by the palette in the current mode, unfiltered
+   --  (Files.Command_Palette.Commands, which this hands the mode and the
+   --  Open-With listing): every visible registered command (Commands mode),
+   --  or every listed application (Open-With mode). Each command's Id is the
+   --  Files.Commands enumeration position (Commands mode) or the one-based
+   --  index into Open_With_Applications (Open-With mode).
+   --
+   --  @param Model Current model, for the mode and command enablement.
+   --  @return The commands to hand to Guikit.Command_Palette.
+   function Commands
+     (Model : Window_Model)
+      return Guikit.Command_Palette.Command_Vectors.Vector;
+
+   --  The command of the palette's highlighted row: the inverse of the Id
+   --  Commands gives each row in Commands mode. No_Command in Open-With mode,
+   --  with nothing highlighted, or for an Id outside the enumeration (a stale
+   --  or malformed palette model).
+   --
+   --  @param Model Current model, for the mode and the highlighted row.
+   --  @return The highlighted command, or No_Command.
+   function Selected_Command
+     (Model : Window_Model)
+      return Files.Commands.Command_Id;
+
+   --  List the commands again at the next draw: what a row shows beyond this
+   --  model -- a shortcut, which another window may have rebound -- changed.
+   --
+   --  @param Model Model whose palette is listed again.
+   procedure Relist
+     (Model : in out Window_Model);
 
    --  Open the command palette.
    --

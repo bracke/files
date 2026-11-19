@@ -317,6 +317,7 @@ nb.error.io.busy = Elementet er i bruk.
 nb.error.move.source_changed = Elementet ble endret under flyttingen, så det ble latt være der det var.
 nb.error.move.source_set_aside = Endret under flytting: kopien ble beholdt, originalen lagt til side.
 nb.error.paste.undo_unavailable = Kan ikke angres: kopien er endret. Det erstattede elementet er i papirkurven.
+nb.error.operation.undo_unavailable = Angre er ikke tilgjengelig: historikken kunne ikke leses.
 nb.error.io.name_too_long = Navnet er for langt.
 nb.error.create.no_temporary_item = Det finnes ingen ventende filoppretting.
 nb.error.create.pending = En filoppretting venter allerede.

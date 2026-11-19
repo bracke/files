@@ -1,0 +1,97 @@
+with Ada.Calendar;
+with Ada.Containers.Vectors;
+with Files.Types;
+
+--  The value types Files.File_System's results are made of, in a leaf
+--  package of their own so a unit that only holds such a value (the window
+--  model) need not depend on the filesystem layer. Files.File_System
+--  re-exports each one under its own name, literals included.
+package Files.File_System_Types is
+   subtype UString is Files.Types.UString;
+
+   --  Whether a path names a directory that can be shown.
+   type Path_Status is
+     (Path_Valid,
+      Path_Missing,
+      Path_Inaccessible);
+
+   --  A path checked as a directory to show: its status, the directory it
+   --  names when valid, and the message key when not.
+   type Path_Result is record
+      Status         : Path_Status := Path_Missing;
+      Directory_Path : UString;
+      Error_Key      : UString;
+   end record;
+
+   --  What a directory held when it was read, to tell later whether it
+   --  changed (Same_State). Taken is False for a signature read from nothing
+   --  (Unknown_Signature, and every default): it records no state, so it
+   --  never matches another, nor itself.
+   type Directory_Signature is record
+      Path               : UString;
+      Taken              : Boolean := False;
+      Exists             : Boolean := False;
+      Entry_Count        : Natural := 0;
+      Entry_State_Checksum : Natural := 0;
+      Latest_Modified    : Ada.Calendar.Time := Files.Types.Unknown_Time;
+      Latest_Modified_Known : Boolean := False;
+   end record;
+
+   --  Whether a drop copies its sources or moves them.
+   type Drop_Import_Mode is
+     (Drop_Copy,
+      Drop_Move);
+
+   --  Recursive directory-size measurement. Total_Bytes sums the sizes of all
+   --  descendant regular files; File_Count counts those files and Item_Count
+   --  counts every visited entry (files plus directories). Capped is True when
+   --  the walk stopped early against the entry-count or depth guard, so the
+   --  totals are a lower bound. Available is False when the root was missing or
+   --  unreadable.
+   type Directory_Size_Result is record
+      Available   : Boolean := False;
+      Total_Bytes : Long_Long_Integer := 0;
+      File_Count  : Natural := 0;
+      Item_Count  : Natural := 0;
+      Capped      : Boolean := False;
+   end record;
+
+   --  Whether a root entry can be opened now.
+   type Root_Readiness is
+     (Root_Ready,
+      Root_Missing,
+      Root_Inaccessible);
+
+   --  What a root entry stands for, which decides its label and icon.
+   type Root_Kind is
+     (Root_Filesystem,
+      Root_Home,
+      Root_Current,
+      Root_Mount,
+      Root_User_Mount,
+      Root_Network_Mount,
+      Root_Windows_Drive,
+      Root_Favorite);
+
+   --  One place the root selector offers: a filesystem root, home, a mount,
+   --  a drive or a favorite.
+   type Root_Entry is record
+      Path  : UString;
+      --  A localization key ("root.home", "root.mount") or literal text.
+      Label : UString;
+      --  The {name} a key's pattern takes (a mount's leaf name), or empty.
+      Name  : UString;
+      --  A detail shown after the label (a mount's filesystem type), or empty.
+      Detail : UString;
+      Kind  : Root_Kind := Root_Filesystem;
+      Volume_Name : UString;
+      Ready       : Root_Readiness := Root_Ready;
+      Removable   : Boolean := False;
+   end record;
+
+   --  The root selector's entries, in the order offered.
+   package Root_Entry_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Root_Entry);
+
+end Files.File_System_Types;

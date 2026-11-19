@@ -1,8 +1,7 @@
-with Files.Extra_Info_Reader;
+with Files.Io_Errors;
 with Files.Operation_Results;
 with Files.Operations;
 with Files.Process_Jobs;
-with Files.Window_Polls;
 
 package body Files.Application.Windows.Watch is
    use type Ada.Real_Time.Time;
@@ -54,15 +53,11 @@ package body Files.Application.Windows.Watch is
       Refreshed := Files.Refresh_Jobs.Advance (Runtime.Model, Runtime.Settings);
       Reveal_Pending_Selection (Runtime);
       Files.Refresh_Jobs.Resume_Owed (Runtime.Model, Runtime.Settings);
-      --  The selected item's type details, read off the UI thread; this also
-      --  serves selections deferred by a cancelled or failed refresh.
-      Files.Window_Polls.Poll_Selected_Item_Extra
-        (Runtime.Model, Files.Extra_Info_Reader.Requester (Runtime.A11y_Key), Runtime.Settings.Show_Hidden_Files);
 
       declare
          Changed     : constant Boolean := Drain_Native_Watch (Runtime);
          Load_Failed : constant Boolean :=
-           Files.Model.Last_Error_Key (Runtime.Model) = "error.directory.load";
+           Files.Model.Last_Error_Key (Runtime.Model) = Files.Io_Errors.Directory_Load_Key;
          Polled      : Boolean;
       begin
          --  A burst of writes is paced to one reload per gap, the last one

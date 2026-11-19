@@ -7,11 +7,6 @@ function Execute_Drop_Import
    return Mutation_Result
 is
    Context : Files.Copy_Context.Session := Batch;
-
-   --  Whether a failure says no more than that the drop failed: only such
-   --  a failure is reported as the cancel that stopped it.
-   function Generic_Failure (Key : UString) return Boolean is
-     (Length (Key) = 0 or else To_String (Key) = "error.drop.failed");
 begin
    Created.Clear;
    if Natural (Plans.Length) > 1 and then Files.Copy_Context.Directory (Context) = "" then
@@ -114,7 +109,9 @@ begin
                            declare
                               Cancelled : constant Boolean := Cancel /= null and then Cancel.all;
                            begin
-                              if Cancelled and then not Copy_Kept and then Generic_Failure (Moved.Error_Key) then
+                              if Cancelled and then not Copy_Kept
+                                and then Says_Only_Stopped (To_String (Moved.Error_Key), Copy_Step)
+                              then
                                  return (Success => False, Error_Key => To_Unbounded_String (Cancelled_Error_Key));
                               end if;
                            end;
@@ -153,7 +150,8 @@ begin
                return
                  (Success   => False,
                   Error_Key =>
-                    (if Cancelled and then Generic_Failure (Key) then To_Unbounded_String (Cancelled_Error_Key)
+                    (if Cancelled and then Says_Only_Stopped (To_String (Key), Copy_Step)
+                     then To_Unbounded_String (Cancelled_Error_Key)
                      else Key));
             end;
       end;

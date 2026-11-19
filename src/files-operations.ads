@@ -5,7 +5,7 @@ with Files.File_System;
 with Files.Model;
 with Files.Operation_Results;
 with Files.Paste;
-with Files.Quick_Look;
+with Files.Quick_Look.Preparation;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
@@ -585,13 +585,6 @@ package Files.Operations is
    procedure Settle_Current_Is_Trash
      (Model : in out Files.Model.Window_Model);
 
-   --  The size and modification time of Item as a preview remembers them
-   --  (Quick_Look_Content.Source_Stamp).
-   --
-   --  @param Item The previewed item.
-   --  @return Its stamp.
-   function Quick_Look_Stamp (Item : Files.Items.Directory_Item) return Files.Types.UString;
-
    --  Undo the most recently recorded reversible action: pop the top undo
    --  entry, apply its reverse, push it onto the redo stack (unless it is
    --  undo-only), then reload the directory. Undo history is multi-level, so
@@ -655,35 +648,17 @@ package Files.Operations is
    --  @return Prepared Quick Look content.
    function Prepare_Quick_Look
      (Item : Files.Items.Directory_Item)
-      return Files.Quick_Look.Quick_Look_Content;
+      return Files.Quick_Look.Quick_Look_Content renames Files.Quick_Look.Preparation.Prepare;
 
-   --  Start every launch of one open, all or nothing: each action's
-   --  executable is checked before any starts, then each is started
-   --  detached (started and let go, so no exit status is known). Once all
-   --  have started, every path of Paths joins the recent list -- the same
-   --  rule whether the open came from Open or from Open With. The first
-   --  failure is reported on the error line and stops the rest.
-   --
-   --  @param Model Window model whose error line and recent list follow.
-   --  @param Actions The launches, in order; not empty.
-   --  @param Paths The paths the open opens: Paths (I) is the one Actions (I)
-   --    opens when there are as many, otherwise the first stands for all.
-   --  @return Action_Executed for the first launch; Failed with the launch
-   --    and path that failed and why.
-   function Launch_Open_Actions
-     (Model   : in out Files.Model.Window_Model;
-      Actions : Files.Desktop_Applications.Open_Action_Vectors.Vector;
-      Paths   : Files.Types.String_Vectors.Vector)
-      return Operation_Result;
-
-   --  Open Targets with App (Open With) through Launch_Open_Actions; an App
+   --  Open Targets with App (Open With), all its launches started or none; an App
    --  that runs in a terminal (Terminal=true) is started inside the one Open
    --  Terminal would open, and fails when there is none.
    --
    --  @param Model Window model whose error line and recent list follow.
    --  @param App The application chosen.
    --  @param Targets The paths to open.
-   --  @return As Launch_Open_Actions; Failed with "error.terminal.unavailable"
+   --  @return Action_Executed for the first launch, or Failed with the launch
+   --    and path that failed and why; Failed with "error.terminal.unavailable"
    --    when App needs a terminal no host one can run.
    function Launch_Application
      (Model   : in out Files.Model.Window_Model;
@@ -805,6 +780,25 @@ package Files.Operations is
    procedure Record_Paste_So_Far (Model : in out Files.Model.Window_Model);
 
 private
+
+   --  Start every launch of one open, all or nothing: each action's
+   --  executable is checked before any starts, then each is started
+   --  detached (started and let go, so no exit status is known). Once all
+   --  have started, every path of Paths joins the recent list -- the same
+   --  rule whether the open came from Open or from Open With. The first
+   --  failure is reported on the error line and stops the rest.
+   --
+   --  @param Model Window model whose error line and recent list follow.
+   --  @param Actions The launches, in order; not empty.
+   --  @param Paths The paths the open opens: Paths (I) is the one Actions (I)
+   --    opens when there are as many, otherwise the first stands for all.
+   --  @return Action_Executed for the first launch; Failed with the launch
+   --    and path that failed and why.
+   function Launch_Open_Actions
+     (Model   : in out Files.Model.Window_Model;
+      Actions : Files.Desktop_Applications.Open_Action_Vectors.Vector;
+      Paths   : Files.Types.String_Vectors.Vector)
+      return Operation_Result;
 
    --  A failed move's copy that had to stay at its destination while its
    --  source is still where it was: nothing moved, so its undo deletes the

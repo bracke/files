@@ -1,11 +1,172 @@
 with Files.Commands;
 with Files.Timing;
+with Guikit.Mirroring;
+with Guikit.Utf8;
 
 package body Files.Window_Policy is
 
    use type Files.Commands.Command_Id;
    use type Files.Events.Input_Action_Kind;
    use type Files.UI_Types.Focus_Target;
+   use type Glfw.Input.Mouse.Coordinate;
+   use type Glfw.Size;
+
+   function Accumulate_Scroll_Offset
+     (Remainder : in out Long_Float;
+      Offset    : Long_Float)
+      return Integer
+   is
+      Whole_Float : Long_Float := 0.0;
+      Whole       : Integer := 0;
+   begin
+      --  Native input is not trusted to contain a finite IEEE value. A NaN
+      --  compares false to every bound and, if retained, would poison every
+      --  later scroll event for this window.
+      if Remainder /= Remainder or else Offset /= Offset then
+         Remainder := 0.0;
+         return 0;
+      end if;
+
+      declare
+         Total : constant Long_Float := Remainder + Offset;
+      begin
+         if Total >= Long_Float (Integer'Last) then
+            Remainder := 0.0;
+            return Integer'Last;
+         elsif Total <= Long_Float (Integer'First) then
+            Remainder := 0.0;
+            return Integer'First;
+         elsif Total >= 1.0 then
+            Whole_Float := Long_Float'Floor (Total);
+         elsif Total <= -1.0 then
+            Whole_Float := Long_Float'Ceiling (Total);
+         else
+            Remainder := Total;
+            return 0;
+         end if;
+
+         Whole := Integer (Whole_Float);
+         Remainder := Total - Long_Float (Whole);
+         return Whole;
+      end;
+   end Accumulate_Scroll_Offset;
+
+   function Add_Pending_Scroll
+     (Current : Integer;
+      Change  : Integer)
+      return Integer is
+   begin
+      if Change > 0 and then Current > Integer'Last - Change then
+         return Integer'Last;
+      elsif Change < 0 and then Current < Integer'First - Change then
+         return Integer'First;
+      else
+         return Current + Change;
+      end if;
+   end Add_Pending_Scroll;
+
+   function Text_Input_Bytes
+     (Char : Wide_Wide_Character)
+      return String
+   is
+      Code : constant Natural := Wide_Wide_Character'Pos (Char);
+   begin
+      --  Drop control characters (text-input policy); Guikit.Utf8.Encode returns
+      --  "" for surrogates and out-of-range values.
+      if Code < Character'Pos (' ') then
+         return "";
+      end if;
+      return Guikit.Utf8.Encode (Code);
+   end Text_Input_Bytes;
+
+   function Scale_Coordinate
+     (Value  : Glfw.Input.Mouse.Coordinate;
+      Source : Glfw.Size;
+      Target : Glfw.Size)
+      return Natural is
+   begin
+      if Value <= 0.0 or else Source = 0 or else Target = 0 then
+         return 0;
+      end if;
+
+      declare
+         Scaled : constant Long_Float :=
+           Long_Float (Value) * Long_Float (Target) / Long_Float (Source);
+      begin
+         if Scaled <= 0.0 then
+            return 0;
+         elsif Scaled >= Long_Float (Target) then
+            return Natural (Target);
+         else
+            --  The pixel the point lies in: truncate, as the framebuffer's
+            --  pixel grid does. A conversion would round, putting the right
+            --  half of every pixel in the next one.
+            return Natural (Long_Float'Floor (Scaled));
+         end if;
+      end;
+   exception
+      when Constraint_Error =>
+         return 0;
+   end Scale_Coordinate;
+
+   function Scale_X
+     (Value  : Glfw.Input.Mouse.Coordinate;
+      Source : Glfw.Size;
+      Target : Glfw.Size)
+      return Natural
+   is
+      Scaled : constant Natural := Scale_Coordinate (Value, Source, Target);
+   begin
+      if not Guikit.Mirroring.Mirrored_Layout or else Target <= 0 then
+         return Scaled;
+      end if;
+      return Guikit.Mirroring.Mirror_X (Scaled, Natural (Target));
+   end Scale_X;
+
+   function Scrollbar_Drag_Offset
+     (Thumb_Top    : Natural;
+      Track_Length : Natural;
+      Thumb_Length : Natural;
+      Maximum      : Natural)
+      return Natural
+   is
+      Travel  : constant Natural :=
+        (if Track_Length > Thumb_Length then Track_Length - Thumb_Length else 0);
+      Clamped : constant Natural := Natural'Min (Thumb_Top, Travel);
+   begin
+      if Travel = 0 or else Maximum = 0 then
+         return 0;
+      end if;
+
+      return
+        Natural
+          (Long_Long_Integer (Clamped)
+             * Long_Long_Integer (Maximum)
+             / Long_Long_Integer (Travel));
+   end Scrollbar_Drag_Offset;
+
+   function Cursor_Is_Inside_Window
+     (X      : Glfw.Input.Mouse.Coordinate;
+      Y      : Glfw.Input.Mouse.Coordinate;
+      Width  : Glfw.Size;
+      Height : Glfw.Size)
+      return Boolean is
+   begin
+      return Width > 0
+        and then Height > 0
+        and then X >= 0.0
+        and then Y >= 0.0
+        and then X < Glfw.Input.Mouse.Coordinate (Width)
+        and then Y < Glfw.Input.Mouse.Coordinate (Height);
+   exception
+      when Constraint_Error =>
+         return False;
+   end Cursor_Is_Inside_Window;
+
+   function Unmirrored_Node_X (X, Width, Frame_Width : Natural) return Natural is
+     (if Guikit.Mirroring.Mirrored_Layout and then X <= Frame_Width and then Width <= Frame_Width - X
+      then Frame_Width - X - Width
+      else X);
 
    function Accessibility_Action
      (Click    : Files.Events.Input_Action;

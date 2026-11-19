@@ -1,12 +1,15 @@
 with Ada.Streams;
 with Files.Durable_Writes;
 with Files_Suite.Support.Disk;
+with Files_Suite.Operations_Support;
 separate (Files_Suite.Recovery)
    --  The temporaries a crash left beside a file are swept before it is
    --  written again -- only ones files itself could have made and left:
    --  named as its temporaries are, regular files of this user that nobody
-   --  else may read, written before this process started. And a name that
-   --  is taken is told apart from any other refusal to create a temporary.
+   --  else may read, written before this process started by the folder's
+   --  own clock. Where that clock cannot be read -- no marker can be
+   --  written in the folder -- none is removed. And a name that is taken is
+   --  told apart from any other refusal to create a temporary.
    procedure Test_Stale_Temporaries_Swept (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Base     : constant String := Join (Root, "settings.txt");
@@ -60,6 +63,24 @@ separate (Files_Suite.Recovery)
          Assert (Ada.Directories.Exists (Base & ".tmp-5"), "a folder is kept");
          if Linked then
             Assert (Hostkit.Fs.Is_Link (Base & ".tmp-6"), "a link is kept");
+         end if;
+      end;
+
+      --  No marker can be written in a read-only folder, so its clock
+      --  cannot be read: even a stale temporary there is kept.
+      declare
+         Locked_Folder : constant String := Join (Root, "locked");
+         Locked_Base   : constant String := Join (Locked_Folder, "settings.txt");
+      begin
+         Ada.Directories.Create_Directory (Locked_Folder);
+         Make_Stale (Locked_Base & ".tmp");
+         if Files_Suite.Operations_Support.Lock_Directory (Locked_Folder) then
+            Files.Durable_Writes.Sweep_Stale_Temporaries (Locked_Base);
+            Files_Suite.Operations_Support.Unlock_Directory (Locked_Folder);
+            Assert (Ada.Directories.Exists (Locked_Base & ".tmp"),
+                    "without the folder's own time, nothing is judged stale");
+            Files_Suite.Support.Assert_Equal
+              (Natural (Ada.Directories.Size (Locked_Base & ".tmp")), 11, "nor touched");
          end if;
       end;
 

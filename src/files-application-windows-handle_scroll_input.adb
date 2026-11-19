@@ -38,7 +38,7 @@ separate (Files.Application.Windows)
                   Files.Interaction.Apply_Zoom
                     (Runtime.Model, Runtime.Settings, "",
                      Files.Settings.Clamp_Font_Pixel_Size
-                       (Add_Pending_Scroll (Integer (Runtime.Settings.Font_Pixel_Size), Offset)),
+                       (Files.Window_Policy.Add_Pending_Scroll (Integer (Runtime.Settings.Font_Pixel_Size), Offset)),
                      Zoomed);
                   if Zoomed.Settings_Changed then
                      Runtime.Zoom_Unsaved := True;
@@ -60,14 +60,16 @@ separate (Files.Application.Windows)
          --  maximum offset. Discard the event instead of accumulating invisible
          --  main/info offsets while the window is minimized.
          Action := (Kind => Files.Events.No_Input_Action);
-      elsif not Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H) then
+      elsif not Files.Window_Policy.Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H) then
          Action := (Kind => Files.Events.No_Input_Action);
       else
-         Refresh_Snapshot (Runtime);
          declare
-            X        : constant Natural := Scale_X (Cursor_X, Window_W, Frame_W);
-            Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-            Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Current_Slot);
+            X        : constant Natural := Files.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W);
+            Y        : constant Natural := Files.Window_Policy.Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+            --  The pane under the pointer is the one drawn there, as for a
+            --  click (Hit_Slot), not the model as a change since has laid it
+            --  out.
+            Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
          begin
             Action :=
               Files.Events.Translate_Scroll_At

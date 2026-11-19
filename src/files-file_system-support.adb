@@ -52,7 +52,9 @@ package body Files.File_System.Support is
 
    procedure On_Large_Stack (Work : not null access procedure);
 
-   function Sync_Copy (Source, Destination : String; Files_Too : Boolean := True) return Boolean is
+   function Sync_Copy
+     (Source, Destination : String;
+      Scope               : Sync_Scope := Files_And_Folders) return Boolean is
       use type Hostkit.Durability.Outcome;
       Synced : Boolean := True;
 
@@ -79,7 +81,7 @@ package body Files.File_System.Support is
             end if;
             Synced := Synced
               and then Files.Durability.Sync_Directory (To) /= Hostkit.Durability.Failed;
-         elsif Files_Too and then Files.Fs_Primitives.Kind (To) = Ada.Directories.Ordinary_File then
+         elsif Scope = Files_And_Folders and then Files.Fs_Primitives.Kind (To) = Ada.Directories.Ordinary_File then
             Synced := Files.Durability.Sync_File (To) /= Hostkit.Durability.Failed;
          end if;
       end Sync;
@@ -736,6 +738,41 @@ package body Files.File_System.Support is
          Revision := Published;
    end Inherit_Destination_Access;
 
+   function Publish_From_Stage
+     (Staged, Target, Source, Identity : String;
+      Revision                         : in out Files.Types.UString;
+      Flush                            : Publish_Flush) return Boolean
+   is
+      use type Hostkit.Durability.Outcome;
+      Staged_Revision : constant String := To_String (Revision);
+   begin
+      if Flush = Flush_Tree_And_Folder and then Files.Durability.Sync_Tree (Staged) = Hostkit.Durability.Failed then
+         return False;
+      end if;
+      Files.Job_Context.Intend_Created (Target, Source, Identity, Staged_Revision);
+      if not Move_No_Replace (Staged, Target) then
+         return False;
+      end if;
+      Inherit_Destination_Access (Target, Revision);
+      --  A helper stopped before the record below still has the entry found
+      --  with the revision it has now, not the one its first intent named.
+      if To_String (Revision) /= Staged_Revision then
+         Files.Job_Context.Intend_Created (Target, Source, Identity, To_String (Revision));
+      end if;
+      Files.Job_Context.Record_Created (Target, Source, Identity, To_String (Revision));
+      --  The new name on the device. The entry is published and recorded
+      --  whatever this answers, as Durable_Writes.Publish's callers take a
+      --  Published_Not_Durable write: its contents are on the device, only
+      --  the name may be lost to a crash. The failure is traced.
+      if Flush = Flush_Tree_And_Folder
+        and then Files.Durability.Sync_Directory (Files.Fs_Primitives.Parent_Directory (Target))
+          = Hostkit.Durability.Failed
+      then
+         Files.Diagnostics.Trace ("Files.File_System", "published_not_durable=" & Target);
+      end if;
+      return True;
+   end Publish_From_Stage;
+
    procedure Copy_To_New_Path
      (Source_Path, Destination_Path : String;
       Identity, Tree_Revision_Value : out Files.Types.UString;
@@ -796,16 +833,14 @@ package body Files.File_System.Support is
          raise Ada.Directories.Use_Error;
       end if;
       Save_Links (Batch, Walk.Copied_Files, Hostkit.Fs.Join (To_String (Stage), "payload"), Destination_Path);
-      --  Named before it is published, so a helper stopped right after
-      --  still has it found for Undo (Files.Job_Context.Read_Created).
-      Files.Job_Context.Intend_Created
-        (Destination_Path, Source_Path, To_String (Identity), To_String (Tree_Revision_Value));
-      if not Move_No_Replace (Hostkit.Fs.Join (To_String (Stage), "payload"), Destination_Path) then
+      --  The walk flushed what a move needs (Durable); a move's caller
+      --  syncs the published copy (Sync_Copy) before it removes the source.
+      if not Publish_From_Stage
+        (Hostkit.Fs.Join (To_String (Stage), "payload"), Destination_Path, Source_Path, To_String (Identity),
+         Tree_Revision_Value, No_Flush)
+      then
          raise Ada.Directories.Use_Error;
       end if;
-      Inherit_Destination_Access (Destination_Path, Tree_Revision_Value);
-      Files.Job_Context.Record_Created
-        (Destination_Path, Source_Path, To_String (Identity), To_String (Tree_Revision_Value));
       --  Publication is complete; leftover staging must not falsify its result.
       declare
          Removed : constant Boolean := Files.Job_Context.Discard_Stage (To_String (Stage));

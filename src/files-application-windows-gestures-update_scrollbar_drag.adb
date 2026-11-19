@@ -29,7 +29,7 @@ separate (Files.Application.Windows.Gestures)
 
       Refresh_Snapshot (Runtime);
       declare
-         Y_Frame      : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+         Y_Frame      : constant Natural := Files.Window_Policy.Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
          Line_Height  : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
          Snapshot     : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Current_Slot);
          Layout       : constant Files.Rendering.Layout_Metrics :=
@@ -65,7 +65,7 @@ separate (Files.Application.Windows.Gestures)
                Rel_Y := Drag_Range;
             end if;
             Apply_Lines.all
-              (Scrollbar_Drag_Offset
+              (Files.Window_Policy.Scrollbar_Drag_Offset
                  (Thumb_Top    => Natural (Rel_Y),
                   Track_Length => Track_H,
                   Thumb_Length => Thumb_H,

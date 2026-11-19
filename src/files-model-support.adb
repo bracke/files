@@ -1,3 +1,4 @@
+with Files.File_System;
 with Files.UI_Types;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Indefinite_Hashed_Sets;

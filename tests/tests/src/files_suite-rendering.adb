@@ -121,6 +121,7 @@ package body Files_Suite.Rendering is
    procedure Test_Root_Tooltips_Over_Tree_Panel (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Header_Cells_Are_Accessible_Buttons (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Fields_Are_Focused_By_Requests (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Mirrored_Text_Fields_Are_Focused_By_Requests (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Pressed_Only_Where_Press_Began (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Panel_Leaves_Items_Visible (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Uses_Shadow_Color (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -327,6 +328,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Text_Fields_Are_Focused_By_Requests'Access,
          "a screen reader's request on the path or filter field focuses that field");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Mirrored_Text_Fields_Are_Focused_By_Requests'Access,
+         "in a mirrored window a screen reader's request on a field, where it is shown, focuses it");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Pressed_Only_Where_Press_Began'Access,
          "a control is drawn pressed only where the press began");
@@ -794,6 +798,8 @@ package body Files_Suite.Rendering is
 
    procedure Test_Header_Cells_Are_Accessible_Buttons (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Text_Fields_Are_Focused_By_Requests (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Mirrored_Text_Fields_Are_Focused_By_Requests (T : in out AUnit.Test_Cases.Test_Case'Class)
+     is separate;
    procedure Test_Pressed_Only_Where_Press_Began (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Tree_Panel_Leaves_Items_Visible (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

@@ -1,4 +1,4 @@
-with Files.Application.Windows;
+with Files.Window_Policy;
 with Files.Controller.Testing;
 with Files_Suite.Support.Models;
 with Glfw;
@@ -36,14 +36,17 @@ separate (Files_Suite.Keyboard)
         (Files.Model.Text_Cursor_Position (Model), 2, "in a text field Left still moves the caret left");
 
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Windows.Scale_X (10.2, Glfw.Size (100), Glfw.Size (100)), 89,
+        (Files.Window_Policy.Scale_X (10.2, Glfw.Size (100), Glfw.Size (100)), 89,
          "the pointer's column is reflected");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Windows.Scale_X (150.0, Glfw.Size (100), Glfw.Size (100)), 100,
-         "past the right edge stays past every pixel");
+        (Files.Window_Policy.Scale_X (150.0, Glfw.Size (100), Glfw.Size (100)), 0,
+         "a drag held past the shown right edge is past the drawn frame's left edge");
+      Files_Suite.Support.Assert_Equal
+        (Files.Window_Policy.Scale_X (100.0, Glfw.Size (100), Glfw.Size (100)), 0,
+         "the shown right edge itself is the drawn frame's left edge");
       Guikit.Mirroring.Set_Mirrored_Layout (False);
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Windows.Scale_X (10.2, Glfw.Size (100), Glfw.Size (100)), 10,
+        (Files.Window_Policy.Scale_X (10.2, Glfw.Size (100), Glfw.Size (100)), 10,
          "unmirrored, the column is the one under the pointer");
    exception
       when others =>

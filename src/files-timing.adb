@@ -20,6 +20,22 @@ package body Files.Timing is
       end if;
    end Elapsed;
 
+   function Time_Since
+     (Now   : Ada.Real_Time.Time;
+      Since : Ada.Real_Time.Time)
+      return Duration
+   is
+      use type Ada.Real_Time.Time;
+   begin
+      if Now <= Since then
+         return 0.0;
+      end if;
+      return Ada.Real_Time.To_Duration (Ada.Real_Time."-" (Now, Since));
+   exception
+      when Constraint_Error =>
+         return Duration'Last;
+   end Time_Since;
+
    function Until_Due
      (Now   : Ada.Real_Time.Time;
       Due   : Ada.Real_Time.Time;

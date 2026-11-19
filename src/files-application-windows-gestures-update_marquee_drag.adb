@@ -12,8 +12,6 @@ separate (Files.Application.Windows.Gestures)
    is
       X_Frame : Integer;
       Y_Frame : Integer;
-      --  In frame pixels, so as far for the hand on a 2x display as on 1x.
-      Threshold : constant Natural := Natural (Float (Marquee_Drag_Threshold) * Runtime.Pixel_Ratio);
    begin
       if not Runtime.Marquee.Active then
          return;
@@ -22,8 +20,8 @@ separate (Files.Application.Windows.Gestures)
          return;
       end if;
 
-      X_Frame := Scale_X (Cursor_X, Window_W, Frame_W);
-      Y_Frame := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+      X_Frame := Files.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W);
+      Y_Frame := Files.Window_Policy.Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
 
       if not Mouse_Down then
          --  Released: end the gesture and stop drawing the rectangle, keeping
@@ -37,8 +35,10 @@ separate (Files.Application.Windows.Gestures)
       end if;
 
       if not Runtime.Marquee.Moved then
-         if abs (X_Frame - Runtime.Marquee.Origin_X) > Threshold
-           or else abs (Y_Frame - Runtime.Marquee.Origin_Y) > Threshold
+         --  Frame pixels: the drag distance is scaled to them.
+         if Files.Window_Policy.Is_Drag
+           (Long_Float (X_Frame - Runtime.Marquee.Origin_X), Long_Float (Y_Frame - Runtime.Marquee.Origin_Y),
+            Runtime.Pixel_Ratio)
          then
             Runtime.Marquee.Moved := True;
          else

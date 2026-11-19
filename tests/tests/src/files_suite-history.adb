@@ -47,7 +47,6 @@ package body Files_Suite.History is
    use AUnit.Assertions;
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
-   use type Files.File_System.Drop_Import_Mode;
    use type Files.Operation_Results.Operation_Status;
    use type Files.Model.Undo_Action_Kind;
    use Files_Suite.Support;
@@ -64,6 +63,7 @@ package body Files_Suite.History is
    procedure Test_Refused_Lookup_Keeps_Undo_Owed (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Refused_Journal_Lookup_Still_Reads (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_A_Briefly_Unreadable_Journal_Is_Read_Again (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_An_Unreadable_Journal_Waits_Then_Reports (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Failure_After_Merge_Keeps_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Batch_Undo_Covers_Every_Item (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Duplicate_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -179,6 +179,9 @@ package body Files_Suite.History is
         (T, Test_A_Briefly_Unreadable_Journal_Is_Read_Again'Access,
          "a helper's journal briefly unreadable is read again before its history is given up");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_An_Unreadable_Journal_Waits_Then_Reports'Access,
+         "an unreadable helper journal is retried on later polls, then given up with the real outcome and a notice");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Failure_After_Merge_Keeps_History'Access,
          "an operation failing after its journal merge keeps what was recorded since");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -241,6 +244,8 @@ package body Files_Suite.History is
    procedure Test_Refused_Lookup_Keeps_Undo_Owed (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Refused_Journal_Lookup_Still_Reads (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_A_Briefly_Unreadable_Journal_Is_Read_Again (T : in out AUnit.Test_Cases.Test_Case'Class)
+     is separate;
+   procedure Test_An_Unreadable_Journal_Waits_Then_Reports (T : in out AUnit.Test_Cases.Test_Case'Class)
      is separate;
    procedure Test_Failure_After_Merge_Keeps_History (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

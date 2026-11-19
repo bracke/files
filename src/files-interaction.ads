@@ -1,5 +1,6 @@
 with Files.Commands;
 with Files.Controller;
+with Files.Drop_Events;
 with Files.Events;
 with Files.Model;
 with Files.Model.Selection;
@@ -60,7 +61,9 @@ package Files.Interaction is
    --  (Files.Settings.Refresh_Draft), so its draft shows the change and its
    --  next save cannot write the old values back; the listing is reloaded
    --  when what it lists or how it names entries' types changed (the listing
-   --  options, the filetype or icon mappings).
+   --  options, the filetype or icon mappings). An open command palette lists
+   --  its commands again: a shortcut the other window rebound shows its new
+   --  keys.
    --
    --  @param Model This window's model.
    --  @param Settings This window's live settings, replaced by Shared.
@@ -92,6 +95,36 @@ package Files.Interaction is
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result            : out Interaction_Result;
       Tree_Page_Rows    : Natural := 0);
+
+   --  Type Text into the window: the focused field edits it, or the grid's
+   --  type-ahead moves the selection (Files.Controller.Append_Focused_Text),
+   --  as a key press reaches the window through Handle_Key.
+   --
+   --  @param Model Window model to update.
+   --  @param Text UTF-8 text typed, in the order it arrived.
+   --  @param Result Follow-up flags describing what the text did.
+   procedure Append_Text
+     (Model  : in out Files.Model.Window_Model;
+      Text   : String;
+      Result : out Interaction_Result);
+
+   --  Import the paths dropped on the window (Files.Controller.
+   --  Import_Pending_Drops), which stay queued in Source while an overlay owns
+   --  the input. A drop too big to take whole is refused with an error line.
+   --  A move the import made carries its labels, favourites and recent
+   --  entries along, as a move from a command does.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Live settings model, updated when stored paths follow.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Source The window's queue of dropped paths.
+   --  @param Result Follow-up flags describing what the drop did.
+   procedure Import_Drops
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Source        : in out Files.Drop_Events.Drop_Event_Source;
+      Result        : out Interaction_Result);
 
    --  Apply a translated input action to the model and settings. The drag
    --  begins (scrollbar, column resize and reorder, marquee) are ignored here:

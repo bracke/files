@@ -42,7 +42,6 @@ package body Files_Suite.Refresh is
    use AUnit.Assertions;
    use type Files.Commands.Command_Id;
    use type Files.Events.Input_Action_Kind;
-   use type Files.File_System.Drop_Import_Mode;
    use type Files.Operation_Results.Operation_Status;
    use type Files.Operations.Archive_Format;
    use type Files.UI_Types.Focus_Target;

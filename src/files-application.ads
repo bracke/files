@@ -115,15 +115,6 @@ package Files.Application is
       Settings_Path : String := "")
       return Startup_Result;
 
-   --  Resolve the owner and group names of the items the info pane lists into
-   --  Model (Files.Model.Status_Samples.Set_Account_Name), so the snapshot
-   --  shows names without an NSS lookup of its own. Does nothing while the model is unchanged
-   --  since the last sample, or when the info pane shows no item.
-   --
-   --  @param Model Window model whose info-pane items are sampled.
-   procedure Sample_Account_Names
-     (Model : in out Files.Model.Window_Model);
-
    --  Resolve command-line paths into one window model per valid directory.
    --
    --  @param Arguments Command-line arguments as paths.
@@ -178,13 +169,5 @@ package Files.Application is
    --  desktop windows after resolving startup paths and settings.
    --  @return Success only when the selected mode completes without errors.
    function Run return Ada.Command_Line.Exit_Status;
-
-   --  Sample the current directory's volume space into Model when its last
-   --  sample is stale (Files.Model.Status_Samples.Volume_Space_Is_Current),
-   --  so the snapshot shows it without querying the disk itself.
-   --
-   --  @param Model Window model whose current directory is sampled.
-   procedure Sample_Volume_Space
-     (Model : in out Files.Model.Window_Model);
 
 end Files.Application;

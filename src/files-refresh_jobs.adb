@@ -1,7 +1,6 @@
-with Files.Operations;
 with Files.Window_Polls;
 with Files.Protocol_Names;
-with Files.Quick_Look;
+with Files.Quick_Look.Preparation;
 with Files.Helper_Modes;
 with Files.Items;
 with Files.Diagnostics;
@@ -352,10 +351,10 @@ package body Files.Refresh_Jobs is
          --  otherwise the preview it had, image and all, comes back.
          Files.Model.Quick_Look.Open
            (Model,
-            (if Files.Operations.Quick_Look_Stamp (Files.Model.Selection.Selected_Item (Model))
+            (if Files.Quick_Look.Source_Stamp_Of (Files.Model.Selection.Selected_Item (Model))
                 = Previous_Preview.Source_Stamp
              then Previous_Preview
-             else Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model))));
+             else Files.Quick_Look.Preparation.Prepare (Files.Model.Selection.Selected_Item (Model))));
       end if;
    end Apply_Reloaded_Items;
 

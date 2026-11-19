@@ -2,7 +2,7 @@ with Files.File_System.Permissions;
 with Files.Model.Status_Samples;
 separate (Files_Suite.Model)
    --  Owner and group names reach the info pane through the model: the window
-   --  layer samples them (Files.Application.Sample_Account_Names) and
+   --  layer samples them (Files.Window_Polls.Sample_Account_Names) and
    --  Build_Snapshot only reads them, so building a snapshot makes no NSS
    --  lookup. Unsampled, the pane gets no name and falls back to the number.
    procedure Test_Snapshot_Owner_Names_From_Model (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -43,7 +43,7 @@ separate (Files_Suite.Model)
       end;
       Assert (not Files.Model.Status_Samples.Account_Names_Current (Model), "nothing has been sampled yet");
 
-      Files.Application.Sample_Account_Names (Model);
+      Files.Window_Polls.Sample_Account_Names (Model);
       Assert (Files.Model.Status_Samples.Account_Names_Current (Model), "the sample covers the model as it is");
       declare
          Info : constant Files.Rendering.Info_Snapshot := Shown_Info;

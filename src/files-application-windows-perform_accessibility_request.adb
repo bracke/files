@@ -17,9 +17,10 @@ separate (Files.Application.Windows)
       end if;
       declare
          --  A text field is focused, not clicked at its centre (which may
-         --  lie on a breadcrumb or the search-scope chip).
+         --  lie on a breadcrumb or the search-scope chip). The node's box is
+         --  where it is shown: reflected back in a mirrored layout.
          Field : constant Files.Events.Input_Action :=
-           Files.Events.Translate_Field_Request
+           Files.Window_Policy.Field_Request
              (Item.Bounds.X, Item.Bounds.Y, Item.Bounds.Width, Item.Bounds.Height,
               Natural (Frame_W), Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
       begin

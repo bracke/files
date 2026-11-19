@@ -1,6 +1,7 @@
 with Glfw.Windows.Drop.Paths;
 with Files.Model;
 with Files.Refresh_Jobs;
+with Files.Window_Policy;
 with Guikit.Layout;
 with Guikit.Vulkan;
 with Glfw;
@@ -18,11 +19,9 @@ private with Files.Events;
 private with Files.Overlays;
 private with Files.Rendering;
 private with Files.Rendering.Text;
-private with Files.Snapshot_Policy.Settings_Keys;
 private with Files.Snapshot_Slots;
 private with Files.Settings;
 private with Files.Types;
-private with Files.Window_Policy;
 private with Glfw.Input.Keys;
 private with Glfw.Windows;
 private with Guikit.Draw;
@@ -34,11 +33,7 @@ package Files.Application.Windows is
    Desktop_Error : exception;
 
    --  What this host offers a desktop run, found without opening a window.
-   type Desktop_Capabilities is record
-      Display_Available       : Boolean := False;
-      Vulkan_Available        : Boolean := False;
-      Live_Window_Smoke_Ready : Boolean := False;
-   end record;
+   subtype Desktop_Capabilities is Files.Window_Policy.Desktop_Capabilities;
 
    --  Create one GLFW window for each startup window and run until all close.
    --
@@ -73,107 +68,6 @@ package Files.Application.Windows is
    --
    --  @return Display, Vulkan, and smoke-test readiness flags.
    function Runtime_Capabilities return Desktop_Capabilities;
-
-   --  The capabilities a host with this display and this Vulkan has: a live
-   --  window smoke needs both.
-   --
-   --  @param Display Whether a window can be shown.
-   --  @param Vulkan Whether Vulkan is usable.
-   --  @return The capability flags.
-   function Capabilities_Of (Display, Vulkan : Boolean) return Desktop_Capabilities is
-     (Display_Available => Display, Vulkan_Available => Vulkan, Live_Window_Smoke_Ready => Display and then Vulkan);
-
-   --  Accumulate a fractional scroll offset into whole scroll lines.
-   --
-   --  @param Remainder Fractional offset carried from previous callbacks.
-   --  @param Offset New GLFW-style scroll offset to add.
-   --  @return Whole scroll lines produced by the accumulated offset.
-   function Accumulate_Scroll_Offset
-     (Remainder : in out Long_Float;
-      Offset    : Long_Float)
-      return Integer;
-
-   --  Add pending scroll line counts using saturation.
-   --
-   --  @param Current Pending scroll lines already queued.
-   --  @param Change Newly accumulated scroll lines.
-   --  @return Saturated sum of current and new scroll lines.
-   function Add_Pending_Scroll
-     (Current : Integer;
-      Change  : Integer)
-      return Integer;
-
-   --  Encode a GLFW character callback value for the byte-oriented text controller.
-   --
-   --  Control characters and invalid Unicode scalar values are ignored.
-   --
-   --  @param Char Character callback value reported by GLFW.
-   --  @return UTF-8 bytes to append to focused text input, or an empty string.
-   function Text_Input_Bytes
-     (Char : Wide_Wide_Character)
-      return String;
-
-   --  Scale a window-relative mouse coordinate into framebuffer coordinates.
-   --
-   --  @param Value Mouse coordinate in the source window dimension.
-   --  @param Source Source window dimension.
-   --  @param Target Target framebuffer dimension.
-   --  @return Clamped target coordinate, or zero for invalid dimensions.
-   function Scale_Coordinate
-     (Value  : Glfw.Input.Mouse.Coordinate;
-      Source : Glfw.Size;
-      Target : Glfw.Size)
-      return Natural;
-
-   --  Scale_Coordinate for the pointer's X, reflected in a right-to-left
-   --  (mirrored) layout so it names the column of the frame as drawn before
-   --  mirroring, where layouts and hit tests work. The framebuffer extent,
-   --  which names no pixel, stays as it is.
-   --
-   --  @param Value Mouse X in the source window width.
-   --  @param Source Window width.
-   --  @param Target Framebuffer width.
-   --  @return The column hit tests use.
-   function Scale_X
-     (Value  : Glfw.Input.Mouse.Coordinate;
-      Source : Glfw.Size;
-      Target : Glfw.Size)
-      return Natural;
-
-   --  Convert a scrollbar thumb position into its logical scroll offset.
-   --
-   --  Thumb_Top is relative to the beginning of the track. Positions beyond
-   --  the usable thumb travel are clamped, so the bottom of the track maps to
-   --  Maximum exactly even when the content's final page is partial.
-   --
-   --  @param Thumb_Top Relative top of the dragged thumb.
-   --  @param Track_Length Total scrollbar track length.
-   --  @param Thumb_Length Length of the draggable thumb.
-   --  @param Maximum Largest valid logical scroll offset.
-   --  @return Proportional logical offset in the range 0 .. Maximum.
-   function Scrollbar_Drag_Offset
-     (Thumb_Top    : Natural;
-      Track_Length : Natural;
-      Thumb_Length : Natural;
-      Maximum      : Natural)
-      return Natural;
-
-   --  Return whether raw GLFW cursor coordinates name a pixel inside a window.
-   --  Test this before scaling: Scale_Coordinate clamps negative values to zero,
-   --  which intentionally loses the distinction between outside-left/top and
-   --  the first pixel.
-   --
-   --  @param X Raw horizontal cursor coordinate.
-   --  @param Y Raw vertical cursor coordinate.
-   --  @param Width Window width in screen coordinates.
-   --  @param Height Window height in screen coordinates.
-   --  @return True when the coordinate lies inside the half-open window bounds.
-   function Cursor_Is_Inside_Window
-     (X      : Glfw.Input.Mouse.Coordinate;
-      Y      : Glfw.Input.Mouse.Coordinate;
-      Width  : Glfw.Size;
-      Height : Glfw.Size)
-      return Boolean;
 
 private
 
@@ -300,17 +194,20 @@ private
 
    --  What a window-layer overlay's commands are built from: the model (the
    --  palette's query and selection, the settings panel's state and draft),
-   --  the settings the snapshot reads (theme, text size, language), the
+   --  the window's live settings (their revision, Files.Model.Settings_Revision,
+   --  and the colour theme, which another window's change also moves), the
    --  overlay's region and line height, its focus and the pointer over it
-   --  (-1 for the palette, which draws no hover). The commands are rebuilt
-   --  only when this moves.
+   --  (-1 off the overlay, and always for the palette, which draws no
+   --  hover). The commands are rebuilt only when this moves, or when the
+   --  window adopts another window's settings (Share_Settings_From).
    type Overlay_Inputs is record
-      Model_Revision : Natural := 0;
-      Settings_Key   : Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key;
-      Region         : Files.Overlays.Overlay_Region;
-      Focused        : Boolean := False;
-      Hover_X        : Integer := -1;
-      Hover_Y        : Integer := -1;
+      Model_Revision    : Natural := 0;
+      Settings_Revision : Natural := 0;
+      Theme             : Files.Settings.Theme_Choice := Files.Settings.Theme_Dark;
+      Region            : Files.Overlays.Overlay_Region;
+      Focused           : Boolean := False;
+      Hover_X           : Integer := -1;
+      Hover_Y           : Integer := -1;
    end record;
 
    --  Everything besides the snapshot that a frame is built from: its size
@@ -441,7 +338,8 @@ private
       --  Build_Frame_Commands rebuild and reuse the previously built data.
       Frame_Cache_Valid    : Boolean := False;
       --  Present-gate state: whether we have presented at least once, and the
-      --  overlays of the last presented frame. A frame is re-presented only
+      --  overlays of the last presented frame (kept when an overlay was built
+      --  or dropped, the only times it can differ). A frame is re-presented only
       --  when its commands or an overlay's changed (opened, closed, typed in,
       --  hovered), or the text is not yet settled -- otherwise the identical
       --  frame is left on screen and the whole submit/present path is skipped.
@@ -469,6 +367,13 @@ private
       --  The pointer and size inputs Cached_Frame was built for. The time
       --  it shows is its snapshot's (View_Snapshot.Now).
       Cached_Inputs        : Frame_Inputs;
+      --  What is shown when it is not Cached_Frame itself: Cached_Frame with
+      --  the overlays merged in and, in a right-to-left layout, reflected.
+      --  Valid while it was made from the frame and overlays shown now, in
+      --  the direction Shown_Frame_Mirrored says (Present_Frame keeps it).
+      Shown_Frame          : Files.Rendering.Frame_Commands;
+      Shown_Frame_Valid    : Boolean := False;
+      Shown_Frame_Mirrored : Boolean := False;
       Last_Glyph_Count : Natural := 0;
       --  Glyphs of the last frame no font drew (FILES_DIAGNOSTICS traces it).
       Last_Missing_Glyph_Count : Natural := 0;

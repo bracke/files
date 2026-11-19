@@ -453,14 +453,6 @@ package Files.Controller is
 
 private
 
-   --  Replace the text of the currently focused text input.
-   --
-   --  @param Model Window model to update.
-   --  @param Text New text for the focused input.
-   procedure Replace_Focused_Text
-     (Model : in out Files.Model.Window_Model;
-      Text  : String);
-
    --  Validate, apply, refresh, and save edited settings (Commit_Settings): a
    --  valid draft is applied even when the save then fails, and the failure
    --  is reported; one the file could not hold is refused. An unchanged draft
@@ -475,6 +467,14 @@ private
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String)
       return Controller_Result;
+
+   --  Replace the text of the currently focused text input.
+   --
+   --  @param Model Window model to update.
+   --  @param Text New text for the focused input.
+   procedure Replace_Focused_Text
+     (Model : in out Files.Model.Window_Model;
+      Text  : String);
 
    --  Toggle hidden-file visibility, persist it, and reload the directory.
    --

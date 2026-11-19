@@ -78,7 +78,7 @@ package Files.Model.Testing is
    procedure Set_Folder_Size
      (Model : in out Window_Model;
       Path  : String;
-      Value : Files.File_System.Directory_Size_Result);
+      Value : Files.File_System_Types.Directory_Size_Result);
    --  Clear the destination-picker sub-mode and its captured sources.
    --
    --  @param Model Model to update.
@@ -134,8 +134,11 @@ package Files.Model.Testing is
    --
    --  @param Directory Helper transport directory.
    --  @param Model Model whose history to save.
-   --  @param Required Raise when the snapshot cannot be committed.
-   procedure Save_Journal_To (Directory : String; Model : Window_Model; Required : Boolean := False);
+   --  @param Mode Must_Commit raises when the snapshot cannot be committed.
+   procedure Save_Journal_To
+     (Directory : String;
+      Model     : Window_Model;
+      Mode      : Files.History_Journal.Save_Mode := Files.History_Journal.Best_Effort);
 
    --  Files.History_Journal.Journals_Newest of Model's history.
    --

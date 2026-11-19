@@ -8,6 +8,34 @@ package body Files.Model.Command_Palette is
    use Ada.Strings.Unbounded;
    use Files.Model.Support;
 
+   function Commands
+     (Model : Window_Model)
+      return Guikit.Command_Palette.Command_Vectors.Vector is
+     (Files.Command_Palette.Commands
+        (Model, Model.Command_Palette.Mode, Model.Command_Palette.Open_With_Applications));
+
+   function Selected_Command
+     (Model : Window_Model)
+      return Files.Commands.Command_Id
+   is
+      Id : constant Natural := Guikit.Command_Palette.Selected_Id (Model.Command_Palette.View);
+   begin
+      if Model.Command_Palette.Mode /= Palette_Commands
+        or else Id > Files.Commands.Command_Id'Pos (Files.Commands.Command_Id'Last)
+      then
+         return Files.Commands.No_Command;
+      end if;
+      return Files.Commands.Command_Id'Val (Id);
+   end Selected_Command;
+
+   procedure Relist
+     (Model : in out Window_Model) is
+   begin
+      --  A new revision is not the one listed (With_Panel), and the window
+      --  layer rebuilds an overlay whose model moved.
+      Touch (Model);
+   end Relist;
+
    --  The presentation config for the command palette (overlay with shortcuts,
    --  the component owns the filtering).
    --
@@ -48,7 +76,7 @@ package body Files.Model.Command_Palette is
         (Model.Command_Palette.View, Palette_Config (Guikit.Layout.Reference_Line_Height));
       Guikit.Command_Palette.Reset (Model.Command_Palette.View);
       Guikit.Command_Palette.Set_Commands
-        (Model.Command_Palette.View, Files.Command_Palette.Commands (Model));
+        (Model.Command_Palette.View, Commands (Model));
       Model.Focus_Value := Files.UI_Types.Focus_Command_Palette;
    end Open;
 
@@ -139,7 +167,7 @@ package body Files.Model.Command_Palette is
       --  The command list is mode-specific; reload it and reset the query.
       Guikit.Command_Palette.Reset (Model.Command_Palette.View);
       Guikit.Command_Palette.Set_Commands
-        (Model.Command_Palette.View, Files.Command_Palette.Commands (Model));
+        (Model.Command_Palette.View, Commands (Model));
    end Open_With;
 
    function Open_With_Targets
@@ -175,7 +203,7 @@ package body Files.Model.Command_Palette is
         (Model.Command_Palette.View, Palette_Config (Line_Height, Title, Empty_State, Close_Label));
       if Model.Command_Palette.Listed_Revision /= Model.Revision_Value then
          Guikit.Command_Palette.Set_Commands
-           (Model.Command_Palette.View, Files.Command_Palette.Commands (Model));
+           (Model.Command_Palette.View, Commands (Model));
          Model.Command_Palette.Listed_Revision := Model.Revision_Value;
       end if;
       Draw (Model.Command_Palette.View);

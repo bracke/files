@@ -15,7 +15,7 @@ separate (Files.Application.Windows)
          --  Scale_Coordinate deliberately returns the framebuffer extent for
          --  a cursor on/beyond the bottom or right edge. Such a coordinate
          --  names no pixel and must not close or replace a context menu.
-         if not Cursor_Is_Inside_Window (Event.X, Event.Y, Window_W, Window_H)
+         if not Files.Window_Policy.Cursor_Is_Inside_Window (Event.X, Event.Y, Window_W, Window_H)
            or else Frame_W <= 0 or else Frame_H <= 0
          then
             return;
@@ -25,8 +25,8 @@ separate (Files.Application.Windows)
             Action : Files.Events.Input_Action :=
               Files.Events.Translate_Right_Click
                 (Snapshot    => Runtime.View.Snapshots (Slot),
-                 X           => Scale_X (Event.X, Window_W, Frame_W),
-                 Y           => Scale_Coordinate (Event.Y, Window_H, Frame_H),
+                 X           => Files.Window_Policy.Scale_X (Event.X, Window_W, Frame_W),
+                 Y           => Files.Window_Policy.Scale_Coordinate (Event.Y, Window_H, Frame_H),
                  Width       => Natural (Frame_W),
                  Height      => Natural (Frame_H),
                  Line_Height => Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
@@ -70,8 +70,8 @@ separate (Files.Application.Windows)
               and then Path = To_String (Runtime.Last_Click_Path)
               and then Now <= Runtime.Last_Click_Time + Double_Click_Interval;
          begin
-            Runtime.Press_X := Scale_X (Event.X, Window_W, Frame_W);
-            Runtime.Press_Y := Scale_Coordinate (Event.Y, Window_H, Frame_H);
+            Runtime.Press_X := Files.Window_Policy.Scale_X (Event.X, Window_W, Frame_W);
+            Runtime.Press_Y := Files.Window_Policy.Scale_Coordinate (Event.Y, Window_H, Frame_H);
             Runtime.Deferred_Click_Pending := False;
             if Is_Item and then not Activate then
                Runtime.Last_Click_Item := Action.Item_Index;

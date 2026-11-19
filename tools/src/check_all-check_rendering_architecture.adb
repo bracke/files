@@ -260,6 +260,6 @@ separate (Check_All)
          Require_At_Most ("files-rendering-layouts.adb", 407);
          Require_At_Most ("files-rendering-geometry.adb", 584);
          Require_At_Most ("files-rendering-build_frame_commands.adb", 670);
-         Require_At_Most ("files-application-windows.adb", 1_150);
+         Require_At_Most ("files-application-windows.adb", 1_000);
       end;
    end Check_Rendering_Architecture;

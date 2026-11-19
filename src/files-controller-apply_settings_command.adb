@@ -15,7 +15,7 @@ begin
       when Files.Commands.Reset_Settings_Command =>
          --  The pane's Reset button: back to defaults, shortcuts included,
          --  and saved. Status_Of disables it while the pane is closed.
-         Files.Settings_Form.Reset_To_Defaults (Model);
+         Files.Model.Settings_Pane.Reset_To_Defaults (Model);
          declare
             Saved : Controller_Result := Save_Settings (Model, Settings, Settings_Path);
          begin

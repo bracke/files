@@ -383,6 +383,7 @@ package body Files.File_System.Testing is
    end Trash_Capabilities_Of_Current_Environment;
 
    function Root_Discovery_Status return Root_Discovery_Diagnostics is
+      use type Files.File_System_Types.Root_Readiness;
       Entries : constant Root_Entry_Vectors.Vector := Available_Root_Entries;
       Result  : Root_Discovery_Diagnostics :=
         (Root_Count              => Natural (Entries.Length),

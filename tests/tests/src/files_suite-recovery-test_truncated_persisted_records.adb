@@ -114,7 +114,7 @@ separate (Files_Suite.Recovery)
         (History_Directory,
          Files.Model.Undo_Entry_Vectors.Empty_Vector,
          Files.Model.Undo_Entry_Vectors.Empty_Vector,
-         Required => True);
+         Mode => Files.History_Journal.Must_Commit);
       Files.Model.Initialize
         (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert

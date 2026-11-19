@@ -8,9 +8,7 @@ with Guikit.Settings_Panel;
 
 with Files.Desktop_Applications;
 with Files.Breadcrumbs;
-with Files.Command_Palette;
 with Files.Folder_Tree;
-with Files.Settings_Form;
 with Guikit.Bidi;
 with Guikit.Text;
 with Guikit.Utf8.Editing;
@@ -324,7 +322,7 @@ package body Files.Controller is
             Files.Model.Settings_Pane.Set_Focused_Value (Model, Text);
             declare
                Saved : constant Boolean :=
-                 Files.Settings_Form.Apply (Model, Files.Model.Settings_Pane.Take_Change (Model));
+                 Files.Model.Settings_Pane.Apply_Change (Model, Files.Model.Settings_Pane.Take_Change (Model));
                pragma Unreferenced (Saved);
             begin
                null;  --  text edits update the draft but persist on commit
@@ -808,7 +806,7 @@ package body Files.Controller is
       end if;
 
       declare
-         Command : constant Files.Commands.Command_Id := Files.Command_Palette.Selected_Command (Model);
+         Command : constant Files.Commands.Command_Id := Files.Model.Command_Palette.Selected_Command (Model);
          Result  : Controller_Result;
       begin
          if Command = Files.Commands.No_Command then
@@ -949,7 +947,7 @@ package body Files.Controller is
      (Model : in out Files.Model.Window_Model)
       return Controller_Result is
    begin
-      if Files.Settings_Form.Apply (Model, Files.Model.Settings_Pane.Take_Change (Model)) then
+      if Files.Model.Settings_Pane.Apply_Change (Model, Files.Model.Settings_Pane.Take_Change (Model)) then
          return Make_Result (Controller_Needs_Settings_Path, Files.Commands.Save_Settings_Command);
       else
          return Make_Result (Controller_Text_Updated);

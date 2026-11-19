@@ -317,6 +317,7 @@ sv.error.io.busy = Objektet används.
 sv.error.move.source_changed = Objektet ändrades medan det flyttades och lämnades därför kvar där det var.
 sv.error.move.source_set_aside = Ändrades under flytten: kopian behölls, originalet lades undan.
 sv.error.paste.undo_unavailable = Kan inte ångras: kopian har ändrats. Det ersatta objektet ligger i papperskorgen.
+sv.error.operation.undo_unavailable = Ångra är inte tillgängligt: historiken kunde inte läsas.
 sv.error.io.name_too_long = Namnet är för långt.
 sv.error.create.no_temporary_item = Ingen pågående filskapelse finns.
 sv.error.create.pending = En filskapelse pågår redan.

@@ -317,6 +317,7 @@ fi.error.io.busy = Kohde on käytössä.
 fi.error.move.source_changed = Kohde muuttui siirron aikana, joten se jätettiin paikalleen.
 fi.error.move.source_set_aside = Muuttui siirron aikana: kopio säilytettiin, alkuperäinen siirrettiin talteen.
 fi.error.paste.undo_unavailable = Ei voi kumota: kopio on muuttunut. Korvattu kohde on roskakorissa.
+fi.error.operation.undo_unavailable = Kumoaminen ei ole käytettävissä: historiaa ei voitu lukea.
 fi.error.io.name_too_long = Nimi on liian pitkä.
 fi.error.create.no_temporary_item = Odottavaa tiedoston luontia ei ole.
 fi.error.create.pending = Tiedoston luonti on jo odottamassa.

@@ -81,12 +81,18 @@ package Files.Job_Context is
    --  @param Source Source pathname, or empty for archives and extraction.
    --  @param Identity Identity captured in private staging before publication.
    --  @param Tree_Revision Revision captured in staging before publication.
+   --  A publication whose revision changed once it was in place (a folder
+   --  whose new parent's access, inherited on Windows, rewrote its change
+   --  times) names it again with the revision it has now: of several
+   --  intents for one destination, the latest that was carried out counts.
    procedure Intend_Created (Destination, Source, Identity, Tree_Revision : String);
 
    --  @param Directory Helper transport directory containing the publication journal.
    --  @return The published entries, in order; those before a damaged record
    --    when one is. Then each one an intent named (Intend_Created) that was
-   --    published but not yet recorded: Destination carries its identity.
+   --    published but not yet recorded: Destination carries its identity,
+   --    which is the check; of several intents for one destination, the
+   --    latest so published.
    function Read_Created (Directory : String) return Journal_Entry_Vectors.Vector;
 
    --  Record a move only after its source has been vacated.

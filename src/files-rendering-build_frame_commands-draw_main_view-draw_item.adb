@@ -127,9 +127,10 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
               (if Hovered and then Item.Modified_Available
                then To_Unbounded_String (Full_Time_Text (Item.Modified_Time))
                else Null_Unbounded_String),
+            --  A hidden column has no width, where Draw_Details_Row draws
+            --  neither its text nor its tooltip.
             Created_Tooltip  =>
               (if Hovered and then Item.Creation_Available
-                 and then Snapshot.Detail_Columns_Visible (Files.Types.Created_Column)
                then To_Unbounded_String (Full_Time_Text (Item.Creation_Time))
                else Null_Unbounded_String),
             Dim              => Item.Cut_Pending,

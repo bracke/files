@@ -1,0 +1,64 @@
+with Files.History_Journal.Testing;
+with Files.Operation_Results;
+with Files.Operation_Commands;
+with Files_Suite.Support.Guards;
+separate (Files_Suite.History)
+   --  A finished helper's journal that stays unreadable past one poll's
+   --  reads keeps the job, transport and all, for later polls: once it can
+   --  be read the history comes back whole. One that never can be read is
+   --  given up after a bound: the operation still reports what it did (a
+   --  success stays a success) together with the notice that it may not
+   --  be undoable, and what it created is still recorded for Undo from the
+   --  helper's own record of its creations.
+   procedure Test_An_Unreadable_Journal_Waits_Then_Reports (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : aliased Files.Model.Window_Model;
+      Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
+      Load     : Files.File_System.Directory_Load_Result;
+      Step     : Files.Operation_Results.Operation_Result;
+
+      --  Duplicate a.txt with the window's next Refused journal reads
+      --  refused, and finish the job.
+      procedure Duplicate_With_Refused_Reads (Refused : Natural) is
+      begin
+         Reset_Root;
+         Write_Binary_File (Join (Root, "a.txt"), "a bytes");
+         Load := Files.File_System.Load_Directory (Root, Settings);
+         Files.Model.Initialize (Model, Root, Load.Items, Root);
+         Files.Operations.Clear_Undo (Model);
+         Assert (Files.Model.Selection.Select_By_Name (Model, "a.txt"), "the file is listed");
+         Files.Model.Set_Background_Transfers (Model, True);
+         Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+         Files.History_Journal.Testing.Refuse_Reads (Refused);
+         Step := Complete_Operation (Model, Settings, Step);
+         Files.History_Journal.Testing.Refuse_Reads (0);
+         Await_View (Model, Settings);
+         Files_Suite.Support.Assert_Equal
+           (Step.Status, Files.Operation_Results.Operation_Success, "the duplicate succeeds");
+         Assert (Ada.Directories.Exists (Join (Root, "a (copy).txt")), "and is made");
+      end Duplicate_With_Refused_Reads;
+   begin
+      --  More refusals than one poll reads: a later poll takes it back.
+      Duplicate_With_Refused_Reads (5);
+      Files_Suite.Support.Assert_Equal
+        (Natural (Files.Model.History.Undo_Entries (Model).Length), 1,
+         "its history is taken back on a later poll");
+      Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Redoable, "whole, its Redo included");
+      Files_Suite.Support.Assert_Equal (Files.Model.Last_Error_Key (Model), "", "and nothing is reported");
+
+      --  Never readable: given up, reported, and its creation still undoable.
+      Duplicate_With_Refused_Reads (10_000);
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model), "error.operation.undo_unavailable",
+         "a history given up is reported beside the operation's own outcome");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Files.Model.History.Undo_Entries (Model).Length), 1,
+         "what the helper created is still recorded for Undo");
+      Reset_Root;
+   exception
+      when others =>
+         Files.History_Journal.Testing.Refuse_Reads (0);
+         raise;
+   end Test_An_Unreadable_Journal_Waits_Then_Reports;

@@ -3,8 +3,8 @@ separate (Files_Suite.Transfer)
    --  A folder's own name compares by the rule of the folder it is in, not
    --  by its own volume's: a case-folding stick mounted at /media/u/STICK
    --  does not take in /media/u/stick, a different folder of a volume that
-   --  tells case apart. Below it, and where the holder folds too, case does
-   --  not matter.
+   --  tells case apart, nor does any folder above the mount point. Below
+   --  it, and where the holder folds too, case does not matter.
    procedure Test_Path_Within_Mount_Case (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
 
@@ -33,4 +33,10 @@ separate (Files_Suite.Transfer)
               "where the folder holding the mount folds names, the spellings are one folder");
       Assert (not Within ("/media/u/STICKY", "/media/u/STICK", Everywhere => True),
               "a longer name is never within, folded or not");
+      Assert (not Within ("/MEDIA/u/STICK/docs/a", "/media/u/STICK/docs"),
+              "the folders above the mount compare exactly, though the stick folds");
+      Assert (not Within ("/media/U/STICK/DOCS", "/media/u/STICK/docs"),
+              "every name above the mount point, not only the mount's own");
+      Assert (Within ("/media/u/STICK/Docs/a/", "/media/u/STICK/docs/"),
+              "from the mount point down names fold, a trailing separator or not");
    end Test_Path_Within_Mount_Case;

@@ -546,6 +546,7 @@ he.error.io.busy = הפריט נמצא בשימוש.
 he.error.move.source_changed = הפריט השתנה בזמן ההעברה, ולכן נשאר במקומו.
 he.error.move.source_set_aside = הפריט השתנה בזמן ההעברה: העותק נשמר, והמקור הוצב בצד לשחזור.
 he.error.paste.undo_unavailable = לא ניתן לבטל הדבקה זו: העותק השמור השתנה. הפריט שהוחלף נמצא באשפה.
+he.error.operation.undo_unavailable = ביטול אינו זמין עבור פעולה זו: לא ניתן היה לקרוא את ההיסטוריה שלה בחזרה.
 he.error.io.name_too_long = השם ארוך מדי.
 he.error.duplicate.failed = לא ניתן היה לשכפל את הפריטים הנבחרים.
 he.error.link.failed = לא ניתן היה ליצור את הקישור.

@@ -22,7 +22,8 @@ separate (Files.Application.Windows)
 
       --  Build the command palette's or the settings panel's commands, when
       --  shown, over the frame drawn now (their state lives in their
-      --  components, not in the cached frame).
+      --  components, not in the cached frame), and set Overlay_Changed when
+      --  it built or dropped one.
       procedure Build_Overlays is separate;
 
       --  Read the framebuffer and window sizes (rescaling text when the pixel
@@ -65,8 +66,8 @@ separate (Files.Application.Windows)
 
       --  A changed free-space reading or owner name bumps the model revision,
       --  so the snapshot below is rebuilt only when what it shows has moved.
-      Sample_Volume_Space (Runtime.Model);
-      Sample_Account_Names (Runtime.Model);
+      Files.Window_Polls.Sample_Volume_Space (Runtime.Model);
+      Files.Window_Polls.Sample_Account_Names (Runtime.Model);
 
       Refresh_Cached_Frame;
 
@@ -75,7 +76,11 @@ separate (Files.Application.Windows)
       --  so we keep presenting every frame through it and stay on the compositor's
       --  frame clock while the user is interacting.
       Build_Overlays;
-      Overlay_Changed := Palette /= Runtime.Last_Palette or else Settings /= Runtime.Last_Settings;
+      --  An overlay neither built nor dropped is the one last presented: only
+      --  a rebuilt one is compared, which may have come out the same.
+      if Overlay_Changed then
+         Overlay_Changed := Palette /= Runtime.Last_Palette or else Settings /= Runtime.Last_Settings;
+      end if;
       if Frame_Rebuilt
         or else Overlay_Changed
         or else Files.Rendering.Text.Retry_Due (Runtime.Text, Runtime.Font_Pixel_Size, Ada.Real_Time.Clock)

@@ -1,12 +1,12 @@
 separate (Files.Application.Windows.Render_Window)
    procedure Refresh_Cached_Frame
    is
-      Hover_X  : constant Natural := Scale_X (Cursor_X, Window_W, Width);
-      Hover_Y  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Height);
+      Hover_X  : constant Natural := Files.Window_Policy.Scale_X (Cursor_X, Window_W, Width);
+      Hover_Y  : constant Natural := Files.Window_Policy.Scale_Coordinate (Cursor_Y, Window_H, Height);
       Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
       Has_Hover_Now : constant Boolean :=
         Width > 0 and then Height > 0
-        and then Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H);
+        and then Files.Window_Policy.Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H);
       Has_Press_Now : constant Boolean := Mouse_Down and then Has_Hover_Now;
       Has_Drag_Now  : constant Boolean :=
         Mouse_Down

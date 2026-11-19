@@ -21,7 +21,7 @@ package Files.Model.Pasting is
      (Model           : in out Window_Model;
       Items           : Files.Paste.Work_Item_Vectors.Vector;
       Existing        : Files.Types.String_Vectors.Vector;
-      Mode            : Files.File_System.Drop_Import_Mode;
+      Mode            : Files.File_System_Types.Drop_Import_Mode;
       Index           : Positive;
       Clear_Clipboard : Boolean := True);
 
@@ -110,7 +110,7 @@ package Files.Model.Pasting is
    procedure Begin_Execution
      (Model           : in out Window_Model;
       Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
-      Mode            : Files.File_System.Drop_Import_Mode;
+      Mode            : Files.File_System_Types.Drop_Import_Mode;
       Clear_Clipboard : Boolean := True;
       Batch           : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
 
@@ -154,7 +154,7 @@ package Files.Model.Pasting is
    --  @return Copy or move mode.
    function Execution_Mode
      (Model : Window_Model)
-      return Files.File_System.Drop_Import_Mode;
+      return Files.File_System_Types.Drop_Import_Mode;
 
    --  Whether the armed execution has been asked to cancel.
    --

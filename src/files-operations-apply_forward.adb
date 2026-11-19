@@ -44,7 +44,8 @@ begin
                      Forwarded.Include (To_String (Action.Items (Index).From));
                      --  Recognised again by a retry (Completed_Creation_Matches).
                      Files.History_Journal.Checkpoint
-                       (Files.Model.History.State (Model), Action, Files.Model.Redo_Side, Force => False);
+                       (Files.Model.History.State (Model), Action, Files.Model.Redo_Side,
+                        Timing => Files.History_Journal.Within_Second);
                   end if;
                else
                   if Marked then

@@ -8,7 +8,7 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
-with Files.File_System;
+with Files.File_System_Types;
 private with Files.Folder_Tree;
 private with Files.Folder_Size;
 with Files.Paste;
@@ -283,7 +283,7 @@ package Files.Model is
    --  @return Stored directory signature for the current path.
    function Directory_Signature_Of
      (Model : Window_Model)
-      return Files.File_System.Directory_Signature;
+      return Files.File_System_Types.Directory_Signature;
 
    --  Replace the stored directory polling signature.
    --
@@ -291,7 +291,7 @@ package Files.Model is
    --  @param Signature Signature captured after loading or polling a directory.
    procedure Set_Directory_Signature
      (Model     : in out Window_Model;
-      Signature : Files.File_System.Directory_Signature);
+      Signature : Files.File_System_Types.Directory_Signature);
 
    --  Return the model home path.
    --
@@ -817,7 +817,7 @@ package Files.Model is
    --  @param Items Loaded destination items when Result is valid.
    procedure Commit_Path_Input
      (Model  : in out Window_Model;
-      Result : Files.File_System.Path_Result;
+      Result : Files.File_System_Types.Path_Result;
       Items  : Files.Items.Item_Vectors.Vector);
 
    --  Return whether the path input is valid.
@@ -1101,7 +1101,7 @@ package Files.Model is
       Existing         : Files.Types.String_Vectors.Vector;
       Overrides        : Files.Paste.Item_Decision_Vectors.Vector;
       Policy           : Files.Paste.Conflict_Policy := Files.Paste.Policy_Ask;
-      Mode             : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      Mode             : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy;
       Index            : Natural := 0;
       Apply_All        : Boolean := False;
       Clears_Clipboard : Boolean := True;
@@ -1117,7 +1117,7 @@ package Files.Model is
       Cursor                  : Natural := 0;
       Done                    : Natural := 0;
       Total                   : Natural := 0;
-      Mode                    : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      Mode                    : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy;
       Cancelled               : Boolean := False;
       Clears_Clipboard        : Boolean := True;
       Current                 : UString;
@@ -1303,10 +1303,10 @@ private
    --  one entry per measured selected directory so a multi-item selection can
    --  show each folder's size; pruned to the selection by
    --  Folder_Sizes.Prune_To_Selection.
-   use type Files.File_System.Directory_Size_Result;
+   use type Files.File_System_Types.Directory_Size_Result;
    package Folder_Size_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => UString,
-      Element_Type => Files.File_System.Directory_Size_Result,
+      Element_Type => Files.File_System_Types.Directory_Size_Result,
       "<"          => Ada.Strings.Unbounded."<");
 
    use type Files.Types.Account_Id;
@@ -1442,7 +1442,7 @@ private
    --  state.
    type Root_Selector_State is record
       Open     : Boolean := False;
-      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Entries  : Files.File_System_Types.Root_Entry_Vectors.Vector;
       Selected : Natural := 0;
    end record;
 
@@ -1502,7 +1502,7 @@ private
       --  layer so labels, favorites and recent paths follow (Note_Path_Move).
       Path_Move_Queue      : Files.Types.Path_Move_Vectors.Vector;
       Items                : Files.Items.Item_Vectors.Vector;
-      Directory_Signature  : Files.File_System.Directory_Signature;
+      Directory_Signature  : Files.File_System_Types.Directory_Signature;
       --  The filter bar's query and caret.
       Filter               : Text_Field_State;
       Type_Ahead_Buffer_Value : UString;

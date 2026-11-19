@@ -14,7 +14,7 @@ package body Files.Model.Settings_Pane is
    begin
       Touch (Model);
       Guikit.Settings_Panel.Reset (Model.Settings_Panel_View);
-      Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Files.Settings_Form.Fields (Model));
+      Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Fields (Model));
    end Reset_Settings_Panel;
 
    --  The number of complete key/value pairs across two parallel lists (the
@@ -137,6 +137,34 @@ package body Files.Model.Settings_Pane is
       Normalize_Settings_Draft (Normalized_Draft);
       Model.Settings_Draft_Value := Normalized_Draft;
    end Set_Draft;
+
+   function Fields
+     (Model : Window_Model)
+      return Guikit.Settings_Panel.Field_Vectors.Vector is
+     (Files.Settings_Form.Fields (Model.Settings_Draft_Value));
+
+   function Apply_Change
+     (Model  : in out Window_Model;
+      Change : Guikit.Settings_Panel.Change)
+      return Boolean
+   is
+      use type Guikit.Settings_Panel.Change_Kind;
+      Draft : Files.Settings.Settings_Draft := Model.Settings_Draft_Value;
+      Save  : Boolean;
+   begin
+      if Change.Kind = Guikit.Settings_Panel.No_Change then
+         return False;
+      end if;
+      Save := Files.Settings_Form.Apply (Draft, Change);
+      Set_Draft (Model, Draft);
+      return Save;
+   end Apply_Change;
+
+   procedure Reset_To_Defaults
+     (Model : in out Window_Model) is
+   begin
+      Set_Draft (Model, Files.Settings_Form.Reset_To_Defaults);
+   end Reset_To_Defaults;
 
    procedure Move_Focus (Model : in out Window_Model; Delta_Rows : Integer) is
    begin

@@ -71,7 +71,7 @@ separate (Files_Suite.History)
       end loop;
       Files.Model.Initialize (Window, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Files.Model.History.Restore (Window, Undo, Files.Model.Undo_Entry_Vectors.Empty_Vector, State);
-      Files.Model.Testing.Save_Journal_To (Directory, Window, Required => True);
+      Files.Model.Testing.Save_Journal_To (Directory, Window, Mode => Files.History_Journal.Must_Commit);
 
       --  The helper carries the dropped markers on into its own journal.
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
@@ -86,7 +86,7 @@ separate (Files_Suite.History)
       end;
       Assert (Files.Model.History.Commit_Undo_Record (Helper, Item ("d", 1, Large => False, Preserving => False)),
               "the helper records an action");
-      Files.Model.Testing.Save_Journal_To (Directory, Helper, Required => True);
+      Files.Model.Testing.Save_Journal_To (Directory, Helper, Mode => Files.History_Journal.Must_Commit);
 
       Assert
            (Files.History_Journal."="

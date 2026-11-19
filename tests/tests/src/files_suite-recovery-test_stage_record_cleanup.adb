@@ -170,7 +170,7 @@ separate (Files_Suite.Recovery)
             Assert (Result.Success, "make a stage record temporarily unreadable");
             Outcome := Files.Job_Cleanup.Run
               (Transport, To_String (Transport_Identity),
-               Attempt_Limit => 1, Discard_Unreadable_On_Last_Attempt => False);
+               Attempt_Limit => 1, Unreadable => Files.Job_Cleanup.Keep_Unreadable);
             Assert
               (Outcome = Files.Job_Cleanup.Cleanup_Failed
                and then Ada.Directories.Exists

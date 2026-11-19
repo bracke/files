@@ -117,7 +117,7 @@ private
       return Text_Render_Status;
 
    --  Load the text renderer font with the text cell the layouts use for
-   --  Pixel_Size (Cell_Width_For, Cell_Height_For).
+   --  Pixel_Size (Cell_Height_For, and the cell width taken from it).
    --
    --  @param Renderer Renderer state to initialize.
    --  @param Font_Path TrueType font path.
@@ -127,11 +127,7 @@ private
      (Renderer   : in out Text_Renderer;
       Font_Path  : String;
       Pixel_Size : Positive)
-      return Text_Render_Status is
-     (Initialize_Text
-        (Renderer, Font_Path, Pixel_Size,
-         Cell_Width  => Cell_Width_For (Pixel_Size),
-         Cell_Height => Cell_Height_For (Pixel_Size)));
+      return Text_Render_Status;
 
    --  Whether glyphs built earlier for Renderer still index the atlas its
    --  renderer holds now. Renderers are shared by windows of one size, and
@@ -176,5 +172,15 @@ private
       Glyphs_Valid       : Boolean := False;
       Glyphs             : Text_Render_Result;
    end record;
+
+   function Initialize_Text
+     (Renderer   : in out Text_Renderer;
+      Font_Path  : String;
+      Pixel_Size : Positive)
+      return Text_Render_Status is
+     (Initialize_Text
+        (Renderer, Font_Path, Pixel_Size,
+         Cell_Width  => Cell_Width_For (Pixel_Size),
+         Cell_Height => Cell_Height_For (Pixel_Size)));
 
 end Files.Rendering.Text;

@@ -142,11 +142,12 @@ separate (Check_All)
       --  unreadable.
       Journal_Merge : constant String := Subprogram_Code (Jobs_Body, "Merge_Journal");
 
-      --  A window imports its queued drops through
-      --  Files.Controller.Import_Pending_Drops, which leaves them queued while
-      --  an overlay owns the input; taking them straight from the queue
-      --  (Drop_Events.Take) would import them under an open overlay.
-      Drop_Input : constant String := Subprogram_Code (Windows_Body, "Handle_Drop_Input");
+      --  A window imports its queued drops through Files.Interaction.Import_Drops,
+      --  which goes to Files.Controller.Import_Pending_Drops; that leaves them
+      --  queued while an overlay owns the input. Taking them straight from the
+      --  queue (Drop_Events.Take) would import them under an open overlay.
+      Drop_Input  : constant String := Subprogram_Code (Windows_Body, "Handle_Drop_Input");
+      Drop_Import : constant String := Subprogram_Code (Root & "/src/files-interaction.adb", "Import_Drops");
    begin
       if Count_Names (Job_Finish, "Merge_Journal") < 2 then
          Fail (Jobs_Body & ": a background job's finish must merge the helper's history "
@@ -171,11 +172,14 @@ separate (Check_All)
          Fail (Jobs_Body & ": a background job's finish must merge the helper's history, "
                & "not replace the window's with it (Files.Model.History.Restore)");
       end if;
-      if not Names (Drop_Input, "Files.Controller.Import_Pending_Drops") then
-         Fail (Windows_Body & ": Handle_Drop_Input must import drops through Files.Controller.Import_Pending_Drops");
+      if not Names (Drop_Input, "Files.Interaction.Import_Drops") then
+         Fail (Windows_Body & ": Handle_Drop_Input must import drops through Files.Interaction.Import_Drops");
       end if;
-      if Names (Drop_Input, "Drop_Events.Take") then
-         Fail (Windows_Body & ": Handle_Drop_Input must not take drops from the queue itself "
+      if not Names (Drop_Import, "Files.Controller.Import_Pending_Drops") then
+         Fail ("files-interaction.adb: Import_Drops must import drops through Files.Controller.Import_Pending_Drops");
+      end if;
+      if Names (Drop_Input, "Drop_Events.Take") or else Names (Drop_Import, "Drop_Events.Take") then
+         Fail (Windows_Body & ": drops must not be taken from the queue directly "
                & "(Drop_Events.Take); Files.Controller.Import_Pending_Drops leaves them queued under an overlay");
       end if;
       Require_Not_Contains_In_Unit

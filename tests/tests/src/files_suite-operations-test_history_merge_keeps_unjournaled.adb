@@ -69,12 +69,12 @@ separate (Files_Suite.Operations)
          if Name /= "" then
             Assert (Files.Model.History.Commit_Undo_Record (Helper, Item (Name)), "the helper records " & Name);
          end if;
-         Files.Model.Testing.Save_Journal_To (Directory, Helper, Required => True);
+         Files.Model.Testing.Save_Journal_To (Directory, Helper, Mode => Files.History_Journal.Must_Commit);
       end Run_Helper;
 
       procedure Start_Job is
       begin
-         Files.Model.Testing.Save_Journal_To (Directory, Window, Required => True);
+         Files.Model.Testing.Save_Journal_To (Directory, Window, Mode => Files.History_Journal.Must_Commit);
       end Start_Job;
 
       procedure Merge is
@@ -111,7 +111,7 @@ separate (Files_Suite.Operations)
          Files.Model.History.Take_Undo (Helper, Taken, Found);
          Assert (Found and then Names (Stack (Taken)) = "c", "the helper consumes its newest entry");
       end;
-      Files.Model.Testing.Save_Journal_To (Directory, Helper, Required => True);
+      Files.Model.Testing.Save_Journal_To (Directory, Helper, Mode => Files.History_Journal.Must_Commit);
       Merge;
       Assert (Names (Files.Model.History.Undo_Entries (Window)) = "a,b",
               "the consumed entry goes, the left-out one stays: " & Names (Files.Model.History.Undo_Entries (Window)));

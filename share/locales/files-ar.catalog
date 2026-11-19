@@ -546,6 +546,7 @@ ar.error.io.busy = العنصر قيد الاستخدام.
 ar.error.move.source_changed = تغيّر العنصر أثناء نقله، لذا تُرك في مكانه.
 ar.error.move.source_set_aside = تغيّر أثناء النقل: احتُفظ بالنسخة، ووُضع الأصل جانبًا للاسترداد.
 ar.error.paste.undo_unavailable = لا يمكن التراجع عن هذا اللصق: تغيّرت النسخة المحفوظة. العنصر المستبدل في المهملات.
+ar.error.operation.undo_unavailable = التراجع غير متاح لهذه العملية: تعذّرت قراءة سجلها مرة أخرى.
 ar.error.io.name_too_long = الاسم طويل جدًا.
 ar.error.duplicate.failed = تعذّر تكرار العناصر المحددة.
 ar.error.link.failed = تعذّر إنشاء الرابط.

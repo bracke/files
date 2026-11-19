@@ -16,6 +16,7 @@ with Files.File_Types;
 
 with Hostkit.Metadata;
 with Hostkit.Fs;
+with Hostkit.Path_Text;
 with Hostkit.Host;
 with Hostkit.Regular_Files;
 with Guikit.Utf8.Editing;
@@ -193,12 +194,14 @@ package body Files.File_System is
    --  The one rule every "is this path inside that one" check here follows:
    --  Hostkit.Fs.Is_Same_Or_Inside on the text (a root such as "/" or "C:\"
    --  holds every longer path; /a/bc is not inside /a/b), and on the
-   --  case-folded text too where the volume holding Parent's own name folds
-   --  names (Hostkit.Fs.Folds_Name_Case of the folder Parent is in, or of a
-   --  root itself), since there C:\Data and c:\data are one folder. That is
-   --  not Parent's own volume: a case-folding stick mounted at
-   --  /media/u/STICK does not make /media/u/stick the same folder, as
-   --  /media/u, where both names are, tells them apart. Below Parent the
+   --  case-folded text too where each of Parent's names may be folded: a
+   --  name compares by the rule of the folder it is in (Hostkit.Fs.
+   --  Folds_Name_Case of that folder, or of a root itself), since where
+   --  that folds C:\Data and c:\data are one folder. So the folders above
+   --  a mount compare exactly and only from the mount point down are names
+   --  folded: a case-folding stick mounted at /media/u/STICK does not make
+   --  /media/u/stick the same folder, as /media/u, where both names are,
+   --  tells them apart, nor /MEDIA/u/STICK, as / does. Below Parent the
    --  spelling does not matter: Child is inside once its head is Parent.
    --  The volume is asked only when the spellings differ by case alone, so
    --  an exact match never waits on a slow mount. Making the paths absolute
@@ -409,15 +412,71 @@ package body Files.File_System is
       Folds         : not null access function (Directory : String) return Boolean)
       return Boolean
    is
-      --  The folder Parent's own name is in, whose volume decides how that
-      --  name compares: a stick mounted at /media/u/STICK folds the names
-      --  inside it, but /media/u/stick is another folder of /media/u. A
-      --  root is its own.
-      Holder : constant String := Parent_Directory (Parent);
+      --  How many names deep Path is: its root none.
+      function Depth (Path : String) return Natural is
+         Count : Natural := 0;
+         Walk  : Unbounded_String := To_Unbounded_String (Path);
+      begin
+         while Parent_Directory (To_String (Walk)) not in "" | "." loop
+            Count := Count + 1;
+            Walk := To_Unbounded_String (Parent_Directory (To_String (Walk)));
+         end loop;
+         return Count;
+      end Depth;
+
+      --  Whether Left (of Child) and Right (of Parent), as deep as each
+      --  other, are one entry: each name compared by the rule of the folder
+      --  it is in -- exactly, unless that folder's volume folds names -- so
+      --  the folders above a mount compare exactly, and only from the mount
+      --  point down are names folded. A stick mounted at /media/u/STICK
+      --  folds the names inside it, but /media/u/stick is another folder of
+      --  /media/u. A root folds when its own volume does.
+      function Same_Entry (Left, Right : String) return Boolean is
+         Holder : constant String := Parent_Directory (Right);
+      begin
+         if Left = Right then
+            return True;
+         elsif Files.Types.Fold_Case (Left) /= Files.Types.Fold_Case (Right) then
+            return False;
+         elsif Holder in "" | "." then
+            return Folds (Right);
+         elsif Files.Types.Leaf_Of (Left) /= Files.Types.Leaf_Of (Right)
+           and then not Folds (Holder)
+         then
+            return False;
+         end if;
+         return Same_Entry (Parent_Directory (Left), Holder);
+      end Same_Entry;
+
+      --  Path without the separators it may end in, a root's own kept.
+      function Trimmed (Path : String) return String is
+         Last : Natural := Path'Last;
+      begin
+         while Last - Path'First + 1 > Hostkit.Path_Text.Root_Length (Path)
+           and then Hostkit.Fs.Is_Separator (Path (Last))
+         loop
+            Last := Last - 1;
+         end loop;
+         return Path (Path'First .. Last);
+      end Trimmed;
    begin
-      return Hostkit.Fs.Is_Same_Or_Inside (Child, Parent)
-        or else (Hostkit.Fs.Is_Same_Or_Inside (Files.Types.Fold_Case (Child), Files.Types.Fold_Case (Parent))
-                 and then Folds (if Holder = "" then Parent else Holder));
+      if Hostkit.Fs.Is_Same_Or_Inside (Child, Parent) then
+         return True;
+      elsif not Hostkit.Fs.Is_Same_Or_Inside (Files.Types.Fold_Case (Child), Files.Types.Fold_Case (Parent)) then
+         return False;
+      end if;
+      --  Within by folding alone: Child's folder as deep as Parent must be
+      --  Parent, each of its names by its own folder's rule.
+      declare
+         Top          : constant String := Trimmed (Parent);
+         Parent_Depth : constant Natural := Depth (Top);
+         Head         : Unbounded_String := To_Unbounded_String (Trimmed (Child));
+      begin
+         for Extra in 1 .. Depth (To_String (Head)) - Natural'Min (Parent_Depth, Depth (To_String (Head))) loop
+            Head := To_Unbounded_String (Parent_Directory (To_String (Head)));
+         end loop;
+         return Same_Entry (To_String (Head), Top);
+      end;
    end Path_Is_Within_By;
 
    function Path_Is_Within (Child, Parent : String) return Boolean is

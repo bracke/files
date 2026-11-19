@@ -77,7 +77,6 @@ package body Files_Suite.Recovery is
    use type Hostkit.Host.Kind;
    use type Files.Private_Directories.Create_Result;
    use type Files.Job_Transports.Claim_Outcome;
-   use type Files.File_System.Drop_Import_Mode;
    use type Files.Operation_Results.Operation_Status;
    use type Files.Operations.Archive_Format;
    use type Interfaces.Unsigned_8;

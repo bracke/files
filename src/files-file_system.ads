@@ -7,39 +7,35 @@ with Ada.Containers.Vectors;
 with Files.Settings;
 with Files.Items;
 with Files.Types;
+with Files.File_System_Types;
 
 --  Filesystem inspection, directory loading, and mutation result modeling.
 package Files.File_System is
    subtype UString is Files.Types.UString;
 
-   type Path_Status is
-     (Path_Valid,
-      Path_Missing,
-      Path_Inaccessible);
+   --  The value types below live in Files.File_System_Types, so a unit
+   --  that only holds them need not depend on this package; they are
+   --  re-exported here under their own names, literals included. Their
+   --  operators are not this package's own, so they are made visible to it
+   --  and its children here.
+   use type Files.File_System_Types.Drop_Import_Mode;
+   use type Files.File_System_Types.Root_Kind;
 
-   type Path_Result is record
-      Status         : Path_Status := Path_Missing;
-      Directory_Path : UString;
-      Error_Key      : UString;
-   end record;
+   subtype Path_Status is Files.File_System_Types.Path_Status;
+   --  @return The literal Path_Valid of Path_Status, as Files.File_System_Types names it.
+   function Path_Valid return Path_Status renames Files.File_System_Types.Path_Valid;
+   --  @return The literal Path_Missing of Path_Status, as Files.File_System_Types names it.
+   function Path_Missing return Path_Status renames Files.File_System_Types.Path_Missing;
+   --  @return The literal Path_Inaccessible of Path_Status, as Files.File_System_Types names it.
+   function Path_Inaccessible return Path_Status renames Files.File_System_Types.Path_Inaccessible;
+
+   subtype Path_Result is Files.File_System_Types.Path_Result;
 
    --  The item type is Files.Items'; these names keep it at hand here.
    subtype Directory_Item is Files.Items.Directory_Item;
    package Item_Vectors renames Files.Items.Item_Vectors;
 
-   --  What a directory held when it was read, to tell later whether it
-   --  changed (Same_State). Taken is False for a signature read from nothing
-   --  (Unknown_Signature, and every default): it records no state, so it
-   --  never matches another, nor itself.
-   type Directory_Signature is record
-      Path               : UString;
-      Taken              : Boolean := False;
-      Exists             : Boolean := False;
-      Entry_Count        : Natural := 0;
-      Entry_State_Checksum : Natural := 0;
-      Latest_Modified    : Ada.Calendar.Time := Files.Types.Unknown_Time;
-      Latest_Modified_Known : Boolean := False;
-   end record;
+   subtype Directory_Signature is Files.File_System_Types.Directory_Signature;
 
    --  The signature of a listing not read from the directory (search
    --  results, items handed in) or one that could not be signed: the next
@@ -90,9 +86,11 @@ package Files.File_System is
       Error_Key      : UString;
    end record;
 
-   type Drop_Import_Mode is
-     (Drop_Copy,
-      Drop_Move);
+   subtype Drop_Import_Mode is Files.File_System_Types.Drop_Import_Mode;
+   --  @return The literal Drop_Copy of Drop_Import_Mode, as Files.File_System_Types names it.
+   function Drop_Copy return Drop_Import_Mode renames Files.File_System_Types.Drop_Copy;
+   --  @return The literal Drop_Move of Drop_Import_Mode, as Files.File_System_Types names it.
+   function Drop_Move return Drop_Import_Mode renames Files.File_System_Types.Drop_Move;
 
    type Drop_Import_Plan is record
       Source_Path      : UString;
@@ -117,19 +115,7 @@ package Files.File_System is
       Error_Key : UString;
    end record;
 
-   --  Recursive directory-size measurement. Total_Bytes sums the sizes of all
-   --  descendant regular files; File_Count counts those files and Item_Count
-   --  counts every visited entry (files plus directories). Capped is True when
-   --  the walk stopped early against the entry-count or depth guard, so the
-   --  totals are a lower bound. Available is False when the root was missing or
-   --  unreadable.
-   type Directory_Size_Result is record
-      Available   : Boolean := False;
-      Total_Bytes : Long_Long_Integer := 0;
-      File_Count  : Natural := 0;
-      Item_Count  : Natural := 0;
-      Capped      : Boolean := False;
-   end record;
+   subtype Directory_Size_Result is Files.File_System_Types.Directory_Size_Result;
 
    type Trash_Backend is
      (Trash_Unavailable,
@@ -157,38 +143,34 @@ package Files.File_System is
       Error_Key : UString;
    end record;
 
-   type Root_Readiness is
-     (Root_Ready,
-      Root_Missing,
-      Root_Inaccessible);
+   subtype Root_Readiness is Files.File_System_Types.Root_Readiness;
+   --  @return The literal Root_Ready of Root_Readiness, as Files.File_System_Types names it.
+   function Root_Ready return Root_Readiness renames Files.File_System_Types.Root_Ready;
+   --  @return The literal Root_Missing of Root_Readiness, as Files.File_System_Types names it.
+   function Root_Missing return Root_Readiness renames Files.File_System_Types.Root_Missing;
+   --  @return The literal Root_Inaccessible of Root_Readiness, as Files.File_System_Types names it.
+   function Root_Inaccessible return Root_Readiness renames Files.File_System_Types.Root_Inaccessible;
 
-   type Root_Kind is
-     (Root_Filesystem,
-      Root_Home,
-      Root_Current,
-      Root_Mount,
-      Root_User_Mount,
-      Root_Network_Mount,
-      Root_Windows_Drive,
-      Root_Favorite);
+   subtype Root_Kind is Files.File_System_Types.Root_Kind;
+   --  @return The literal Root_Filesystem of Root_Kind, as Files.File_System_Types names it.
+   function Root_Filesystem return Root_Kind renames Files.File_System_Types.Root_Filesystem;
+   --  @return The literal Root_Home of Root_Kind, as Files.File_System_Types names it.
+   function Root_Home return Root_Kind renames Files.File_System_Types.Root_Home;
+   --  @return The literal Root_Current of Root_Kind, as Files.File_System_Types names it.
+   function Root_Current return Root_Kind renames Files.File_System_Types.Root_Current;
+   --  @return The literal Root_Mount of Root_Kind, as Files.File_System_Types names it.
+   function Root_Mount return Root_Kind renames Files.File_System_Types.Root_Mount;
+   --  @return The literal Root_User_Mount of Root_Kind, as Files.File_System_Types names it.
+   function Root_User_Mount return Root_Kind renames Files.File_System_Types.Root_User_Mount;
+   --  @return The literal Root_Network_Mount of Root_Kind, as Files.File_System_Types names it.
+   function Root_Network_Mount return Root_Kind renames Files.File_System_Types.Root_Network_Mount;
+   --  @return The literal Root_Windows_Drive of Root_Kind, as Files.File_System_Types names it.
+   function Root_Windows_Drive return Root_Kind renames Files.File_System_Types.Root_Windows_Drive;
+   --  @return The literal Root_Favorite of Root_Kind, as Files.File_System_Types names it.
+   function Root_Favorite return Root_Kind renames Files.File_System_Types.Root_Favorite;
 
-   type Root_Entry is record
-      Path  : UString;
-      --  A localization key ("root.home", "root.mount") or literal text.
-      Label : UString;
-      --  The {name} a key's pattern takes (a mount's leaf name), or empty.
-      Name  : UString;
-      --  A detail shown after the label (a mount's filesystem type), or empty.
-      Detail : UString;
-      Kind  : Root_Kind := Root_Filesystem;
-      Volume_Name : UString;
-      Ready       : Root_Readiness := Root_Ready;
-      Removable   : Boolean := False;
-   end record;
-
-   package Root_Entry_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Root_Entry);
+   subtype Root_Entry is Files.File_System_Types.Root_Entry;
+   package Root_Entry_Vectors renames Files.File_System_Types.Root_Entry_Vectors;
 
    --  Normalize an existing filesystem path to a directory path.
    --
@@ -662,8 +644,9 @@ package Files.File_System is
    --  flushed to the device (a power cut leaves no recorded but empty or cut
    --  short output), named as intended (Files.Job_Context.Intend_Created),
    --  renamed into place, given the access its new folder hands down (as a
-   --  published copy is, its revision read again where that changed it),
-   --  recorded as created, and its new name flushed. A failure of that last
+   --  published copy is, its revision read again where that changed it and
+   --  named again with it), recorded as created, and its new name flushed --
+   --  the publication Copy_Tree's copies share (Support.Publish_From_Stage). A failure of that last
    --  flush is traced, not returned: the entry is published and recorded,
    --  as a Durable_Writes publication that is Published_Not_Durable. The one
    --  way Compress and Extract publish what they made.
@@ -809,6 +792,28 @@ package Files.File_System is
    --  back only when the helper ended before writing the real one -- killed
    --  after a cancel it ignored, or dead on its own.
    Interrupted_Error_Key : constant String := "error.drop.interrupted";
+
+   --  Where a drop's or paste's failure key is read (Says_Only_Stopped):
+   --  * Copy_Step: as a copy or move step leaves it, where a stop raised
+   --    part way through reads as the generic "error.drop.failed";
+   --  * Finished_Job: as a finished transfer job reports it, where every
+   --    such stop already carries Cancelled_Error_Key (Execute_Drop_Import
+   --    gives it), so "error.drop.failed" there is a failure of its own (a
+   --    destination that appeared).
+   type Failure_Reading is (Copy_Step, Finished_Job);
+
+   --  The one rule for telling a cancel from a failure of its own: whether a
+   --  failure key says no more than that the work stopped -- no key, a
+   --  cancel, an interruption, or, read at a Copy_Step, the generic
+   --  "error.drop.failed". A cancelled job's failure with such a key is
+   --  reported as the cancel; any other key (a full disk, a collision) has
+   --  a cause of its own and is reported as such.
+   --  @param Error_Key The failure's message key.
+   --  @param Reading Where the key is read.
+   --  @return True when the key names no cause beyond the stop.
+   function Says_Only_Stopped (Error_Key : String; Reading : Failure_Reading) return Boolean is
+     (Error_Key in "" | Cancelled_Error_Key | Interrupted_Error_Key
+      or else (Reading = Copy_Step and then Error_Key = "error.drop.failed"));
 
    --  The job's own cancellation (Files.Job_Context.Cancelled): what a copy
    --  or a check stops for unless it is handed another check, or null for

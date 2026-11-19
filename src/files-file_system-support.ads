@@ -16,6 +16,10 @@ private package Files.File_System.Support is
    procedure For_Each_Entry
      (Path : String; Visit : not null access procedure (Name : String));
 
+   --  What Sync_Copy puts on the device: every file and folder of the copy,
+   --  or its folders only.
+   type Sync_Scope is (Files_And_Folders, Folders_Only);
+
    --  Put a just-published copy on the storage device: every regular file
    --  and directory in it (links are not followed), then the folder that
    --  holds it. A move removes its source only after this, so a crash of the
@@ -26,9 +30,11 @@ private package Files.File_System.Support is
    --  @param Destination Its published copy.
    --  @return False when any sync failed; a host that cannot sync
    --    directories (Not_Supported) does not count as a failure.
-   --  @param Files_Too False when the walk already flushed every file
+   --  @param Scope Folders_Only when the walk already flushed every file
    --    (a For_Move Copy_To_New_Path): then only the folders are synced.
-   function Sync_Copy (Source, Destination : String; Files_Too : Boolean := True) return Boolean;
+   function Sync_Copy
+     (Source, Destination : String;
+      Scope               : Sync_Scope := Files_And_Folders) return Boolean;
 
    --  Give an entry just published from its private stage (a copy, or what
    --  Compress or Extract made) the access its new folder hands down, and
@@ -42,6 +48,37 @@ private package Files.File_System.Support is
    procedure Inherit_Destination_Access
      (Path     : String;
       Revision : in out Files.Types.UString);
+
+   --  How Publish_From_Stage puts the entry on the device: not itself (a
+   --  copy whose caller syncs it, Sync_Copy, or needs no flush), or the
+   --  staged tree before it is published and its new folder after.
+   type Publish_Flush is (No_Flush, Flush_Tree_And_Folder);
+
+   --  The one publication of a staged entry, in this order: its intent is
+   --  named (Files.Job_Context.Intend_Created), so a helper stopped after
+   --  the move still has it found for Undo; it is moved to Target without
+   --  replacing anything; it is given the access its new folder hands down
+   --  (Inherit_Destination_Access) and, when that changed its revision,
+   --  named again with the new one; and it is recorded
+   --  (Files.Job_Context.Record_Created). With Flush_Tree_And_Folder the
+   --  staged tree is synced first, and Target's folder last: a failure of
+   --  that last sync is traced, not returned, as the entry is published and
+   --  recorded whatever it answers.
+   --  @param Staged The staged entry.
+   --  @param Target Where it is published; must not exist.
+   --  @param Source What it was copied from, or empty (an archive, an
+   --    extraction).
+   --  @param Identity The staged entry's identity, which the move keeps.
+   --  @param Revision Its revision in staging; on return the revision it
+   --    was recorded with.
+   --  @param Flush Whether this syncs the tree and the folder.
+   --  @return False when the tree could not be synced or the move was
+   --    refused: nothing is published then, and the caller decides whether
+   --    that raises.
+   function Publish_From_Stage
+     (Staged, Target, Source, Identity : String;
+      Revision                         : in out Files.Types.UString;
+      Flush                            : Publish_Flush) return Boolean;
 
    --  Whether environment variable Name equals Expected, compared
    --  case-insensitively.

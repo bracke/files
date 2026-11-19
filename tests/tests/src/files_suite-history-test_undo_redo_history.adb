@@ -143,7 +143,7 @@ separate (Files_Suite.History)
               ("relative-history-directory",
                Files.Model.Undo_Entry_Vectors.Empty_Vector,
                Files.Model.Undo_Entry_Vectors.Empty_Vector,
-               Required => True);
+               Mode => Files.History_Journal.Must_Commit);
          exception
             when Ada.Directories.Use_Error =>
                Rejected := True;
@@ -166,7 +166,7 @@ separate (Files_Suite.History)
               (Write_Directory,
                Files.Model.History.Undo_Entries (Model),
                Files.Model.History.Redo_Entries (Model),
-               Required => True);
+               Mode => Files.History_Journal.Must_Commit);
             Assert
               (File_Is (Victim, "protected history target")
                and then Hostkit.Fs.Is_Link (Join (Write_Directory, "history.tmp"))
@@ -181,7 +181,7 @@ separate (Files_Suite.History)
            (Source_Directory,
             Files.Model.Undo_Entry_Vectors.Empty_Vector,
             Files.Model.Undo_Entry_Vectors.Empty_Vector,
-            Required => True);
+            Mode => Files.History_Journal.Must_Commit);
          Ada.Directories.Create_Directory (Read_Directory);
          if Hostkit.Fs.Create_Link
            (Join (Source_Directory, "history"), Join (Read_Directory, "history"))

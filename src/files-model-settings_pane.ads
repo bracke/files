@@ -51,6 +51,33 @@ package Files.Model.Settings_Pane is
      (Model : in out Window_Model;
       Draft : Files.Settings.Settings_Draft);
 
+   --  The panel's fields for the current draft (Files.Settings_Form.Fields).
+   --
+   --  @param Model Model whose draft the fields show.
+   --  @return The fields to hand to the panel.
+   function Fields
+     (Model : Window_Model)
+      return Guikit.Settings_Panel.Field_Vectors.Vector;
+
+   --  Apply a change the panel emitted to the draft
+   --  (Files.Settings_Form.Apply). A No_Change leaves the model as it is.
+   --
+   --  @param Model Model whose draft is updated.
+   --  @param Change The change the panel produced.
+   --  @return True when a persisted setting changed and the caller should save.
+   function Apply_Change
+     (Model  : in out Window_Model;
+      Change : Guikit.Settings_Panel.Change)
+      return Boolean;
+
+   --  Return the draft to the defaults and drop every shortcut override:
+   --  what the pane's Reset button and the reset command both do before
+   --  saving.
+   --
+   --  @param Model Model whose draft is reset.
+   procedure Reset_To_Defaults
+     (Model : in out Window_Model);
+
    --  Move keyboard focus over the panel's fields (sections are skipped).
    --
    --  @param Model Model to update.

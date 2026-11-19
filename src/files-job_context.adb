@@ -19,6 +19,8 @@ with Files.File_Identities;
 with Files.Lease_Streams;
 with Files.Path_Checks;
 with Ada.Real_Time;
+with Ada.Containers.Indefinite_Hashed_Sets;
+with Ada.Strings.Hash;
 
 package body Files.Job_Context is
    use Ada.Strings.Unbounded;
@@ -27,6 +29,9 @@ package body Files.Job_Context is
    use type Hostkit.Durability.Outcome;
    use type Hostkit.Fs.Entry_Kind;
    use type Hostkit.Lease_Files.Open_Outcome;
+
+   package Destination_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+     (Element_Type => String, Hash => Ada.Strings.Hash, Equivalent_Elements => "=");
 
    Stage_Record_Header : constant String := "files-stage-3";
    Created_Record_Header : constant String := "files-created-3";
@@ -535,17 +540,20 @@ package body Files.Job_Context is
          null;
    end Append_Record;
 
-   --  One journal: Name in Directory, under Header, of records holding a
-   --  destination, a source and an identity, and with Revisions a tree
-   --  revision too. A source may be empty only where With_Revisions says
-   --  (a creation has none). A record out of shape ends the read there: the
+   --  The shape of a journal's records: a destination, a source and an
+   --  identity, and for a creation a tree revision too.
+   type Record_Shape is (Move_Record, Creation_Record);
+
+   --  One journal: Name in Directory, under Header, of records of Shape. A
+   --  source may be empty only in a Creation_Record (an archive or an
+   --  extraction has none). A record out of shape ends the read there: the
    --  records before it are kept, as a crash mid-append tears only the last
    --  one, and nothing after it is trusted. A failed append cuts its torn
    --  record back off (Append_Journal_Record), so a later record never
    --  follows one. A journal whose header is wrong is not read at all.
    procedure Read_Journal
      (Directory, Name, Header : String;
-      With_Revisions          : Boolean;
+      Shape                   : Record_Shape;
       Entries                 : out Journal_Entry_Vectors.Vector)
    is
       Count : Natural := 0;
@@ -586,12 +594,12 @@ package body Files.Job_Context is
             Identity    : constant String := Files.Bounded_Streams.Input_String
               (Input'Access, Max_Record_Token_Length);
             Revision    : constant String :=
-              (if With_Revisions
+              (if Shape = Creation_Record
                then Files.Bounded_Streams.Input_String (Input'Access, Max_Record_Token_Length)
                else "");
          begin
             if not Valid_Absolute_Path (Destination)
-              or else (not (With_Revisions and then Source = "") and then not Valid_Absolute_Path (Source))
+              or else (not (Shape = Creation_Record and then Source = "") and then not Valid_Absolute_Path (Source))
               or else Identity = ""
               or else not Nul_Free (Identity)
               or else not Nul_Free (Revision)
@@ -615,24 +623,43 @@ package body Files.Job_Context is
    end Read_Journal;
 
    --  Add to Entries each intent the journal Intents (under Header) holds
-   --  that Happened and Entries does not record yet, once.
+   --  that Happened and Entries does not record yet, once, in the order
+   --  named. Of several intents for one destination the latest that
+   --  Happened counts: a publication names its entry again once inheriting
+   --  its folder's access changed its revision (Intend_Created), and that
+   --  later intent carries the revision the entry has now.
    procedure Add_Carried_Out
      (Entries                 : in out Journal_Entry_Vectors.Vector;
       Directory, Name, Header : String;
-      With_Revisions          : Boolean;
+      Shape                   : Record_Shape;
       Happened                : not null access function (Item : Journal_Entry) return Boolean)
    is
       Intents : Journal_Entry_Vectors.Vector;
-
-      function Recorded (Destination : Unbounded_String) return Boolean is
-        (for some Item of Entries => Item.Destination = Destination);
+      --  Destinations recorded, or already given by a later intent.
+      Taken   : Destination_Sets.Set;
    begin
-      Read_Journal (Directory, Name, Header, With_Revisions, Intents);
-      for Intent of Intents loop
-         if not Recorded (Intent.Destination) and then Happened (Intent) then
-            Entries.Append (Intent);
-         end if;
+      Read_Journal (Directory, Name, Header, Shape, Intents);
+      if Intents.Is_Empty then
+         return;
+      end if;
+      for Item of Entries loop
+         Taken.Include (To_String (Item.Destination));
       end loop;
+      declare
+         Chosen : array (Intents.First_Index .. Intents.Last_Index) of Boolean := [others => False];
+      begin
+         for Index in reverse Chosen'Range loop
+            if not Taken.Contains (To_String (Intents (Index).Destination)) and then Happened (Intents (Index)) then
+               Taken.Include (To_String (Intents (Index).Destination));
+               Chosen (Index) := True;
+            end if;
+         end loop;
+         for Index in Chosen'Range loop
+            if Chosen (Index) then
+               Entries.Append (Intents (Index));
+            end if;
+         end loop;
+      end;
    end Add_Carried_Out;
 
    function Read_Created (Directory : String) return Journal_Entry_Vectors.Vector is
@@ -641,8 +668,9 @@ package body Files.Job_Context is
         (Files.File_Identities.Token (To_String (Item.Destination)) = To_String (Item.Identity));
    begin
       return Entries : Journal_Entry_Vectors.Vector do
-         Read_Journal (Directory, "created", Created_Record_Header, True, Entries);
-         Add_Carried_Out (Entries, Directory, "created-intent", Created_Intent_Header, True, Published'Access);
+         Read_Journal (Directory, "created", Created_Record_Header, Creation_Record, Entries);
+         Add_Carried_Out
+           (Entries, Directory, "created-intent", Created_Intent_Header, Creation_Record, Published'Access);
       end return;
    end Read_Created;
 
@@ -654,8 +682,8 @@ package body Files.Job_Context is
          and then Files.Fs_Primitives.Entry_Is_Absent (To_String (Item.Source)));
    begin
       return Entries : Journal_Entry_Vectors.Vector do
-         Read_Journal (Directory, "moved", Moved_Record_Header, False, Entries);
-         Add_Carried_Out (Entries, Directory, "moved-intent", Moved_Intent_Header, False, Moved'Access);
+         Read_Journal (Directory, "moved", Moved_Record_Header, Move_Record, Entries);
+         Add_Carried_Out (Entries, Directory, "moved-intent", Moved_Intent_Header, Move_Record, Moved'Access);
       end return;
    end Read_Moved;
 

@@ -1,3 +1,5 @@
+with Files.Timing;
+with Ada.Real_Time;
 with Ada.Calendar;
 with Ada.Directories;
 with Ada.IO_Exceptions;
@@ -162,9 +164,50 @@ package body Files.Durable_Writes is
 
    --  When this process started, near enough: when this unit was elaborated.
    Process_Start : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+   --  The same moment on the monotonic clock, for how long this process has
+   --  run (a wall-clock difference can overflow and can go backwards).
+   Process_Start_Monotonic : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
 
    --  How much older than Process_Start a temporary must be to be stale.
    Stale_Margin : constant Duration := 60.0;
+
+   --  When this process started, by the clock of the folder Base is in (a
+   --  network share's server, say), not this machine's: a fresh temporary
+   --  of Base's is written there and its modification time read, less the
+   --  time this process has run. Found is False, and nothing may be judged
+   --  stale, when that marker cannot be written or its time read (which
+   --  raises inside, and is noted).
+   procedure Folder_Process_Start
+     (Base  : String;
+      Start : out Ada.Calendar.Time;
+      Found : out Boolean)
+   is
+      use type Ada.Calendar.Time;
+      Marker, Identity : Files.Types.UString;
+
+      procedure Write_Nothing (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is null;
+   begin
+      Start := Process_Start;
+      Found := False;
+      --  Named as Base's temporaries are, so one a crash leaves behind is
+      --  itself swept by a later sweep.
+      Write_Private_Temporary (Base, Write_Nothing'Access, Marker, Identity);
+      declare
+         Path : constant String := Ada.Strings.Unbounded.To_String (Marker);
+         Now  : constant Ada.Calendar.Time := Hostkit.Fs.Modification_Time_Of (Path, Follow_Links => False);
+      begin
+         Remove_Owned (Path, Ada.Strings.Unbounded.To_String (Identity));
+         Start := Now - Files.Timing.Time_Since (Ada.Real_Time.Clock, Process_Start_Monotonic);
+         Found := True;
+      end;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Durable_Writes");
+         if Ada.Strings.Unbounded.Length (Marker) > 0 then
+            Remove_Owned (Ada.Strings.Unbounded.To_String (Marker), Ada.Strings.Unbounded.To_String (Identity));
+         end if;
+         Found := False;
+   end Folder_Process_Start;
 
    procedure Sweep_Stale_Temporaries (Base : String) is
       use type Ada.Calendar.Time;
@@ -173,6 +216,9 @@ package body Files.Durable_Writes is
       Prefix    : constant String := Files.Types.Leaf_Of (Base) & ".tmp";
       User      : Hostkit.Metadata.Account_Id;
       Names     : Files.Types.String_Vectors.Vector;
+      --  Process_Start by the folder's own clock (Folder_Process_Start).
+      Start     : Ada.Calendar.Time;
+      Found     : Boolean;
 
       --  Base & ".tmp", or Base & ".tmp-" and a number from 2.
       function Temporary_Name (Name : String) return Boolean is
@@ -201,7 +247,7 @@ package body Files.Durable_Writes is
            and then Status.Available
            and then Status.User_Id = User
            and then Status.Mode mod 8#100# = 0
-           and then Hostkit.Fs.Modification_Time_Of (Path, Follow_Links => False) < Process_Start - Stale_Margin
+           and then Hostkit.Fs.Modification_Time_Of (Path, Follow_Links => False) < Start - Stale_Margin
          then
             Remove_Owned (Path, Identity);
          end if;
@@ -217,6 +263,16 @@ package body Files.Durable_Writes is
          return;
       end if;
       Files.Fs_Primitives.For_Each_Name (Directory, Collect'Access);
+      if Names.Is_Empty then
+         return;
+      end if;
+      --  Judged by the folder's clock, which a share's server keeps and this
+      --  machine's may be off from; without it, nothing is judged stale.
+      Folder_Process_Start (Base, Start, Found);
+      if not Found then
+         Files.Diagnostics.Trace ("Files.Durable_Writes", "sweep_skipped_no_folder_time=" & Directory);
+         return;
+      end if;
       for Name of Names loop
          Remove_If_Stale (Hostkit.Fs.Join (Directory, Ada.Strings.Unbounded.To_String (Name)));
       end loop;

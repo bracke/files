@@ -1,8 +1,7 @@
-with Files.Model.Command_Palette;
-with Files.Commands.Status;
 with Ada.Strings.Unbounded;
 
-with Files.Desktop_Applications;
+with Files.Commands;
+with Files.Commands.Status;
 with Files.Localization;
 
 package body Files.Command_Palette is
@@ -10,26 +9,21 @@ package body Files.Command_Palette is
    use type Files.Model.Palette_Mode;
 
    function Localized (Key : String) return Unbounded_String is
-   begin
-      if Key = "" then
-         return Null_Unbounded_String;
-      end if;
-      return To_Unbounded_String (Files.Localization.Text (Key));
-   end Localized;
+     (if Key = "" then Null_Unbounded_String else To_Unbounded_String (Files.Localization.Text (Key)));
 
    function Commands
-     (Model : Files.Model.Window_Model)
+     (Model        : Files.Model.Window_Model;
+      Mode         : Files.Model.Palette_Mode;
+      Applications : Files.Desktop_Applications.Application_Vectors.Vector)
       return Guikit.Command_Palette.Command_Vectors.Vector
    is
       Result : Guikit.Command_Palette.Command_Vectors.Vector;
    begin
-      if Files.Model.Command_Palette.Mode_Of (Model) = Files.Model.Palette_Open_With then
+      if Mode = Files.Model.Palette_Open_With then
          declare
-            Apps : constant Files.Desktop_Applications.Application_Vectors.Vector :=
-              Files.Model.Command_Palette.Open_With_Applications (Model);
             Index : Natural := 0;
          begin
-            for App of Apps loop
+            for App of Applications loop
                Index := Index + 1;
                Result.Append
                  (Guikit.Command_Palette.Command'
@@ -66,19 +60,5 @@ package body Files.Command_Palette is
       end if;
       return Result;
    end Commands;
-
-   function Selected_Command
-     (Model : Files.Model.Window_Model)
-      return Files.Commands.Command_Id
-   is
-      Id : constant Natural := Files.Model.Command_Palette.Selected_Id (Model);
-   begin
-      if Files.Model.Command_Palette.Mode_Of (Model) /= Files.Model.Palette_Commands
-        or else Id > Files.Commands.Command_Id'Pos (Files.Commands.Command_Id'Last)
-      then
-         return Files.Commands.No_Command;
-      end if;
-      return Files.Commands.Command_Id'Val (Id);
-   end Selected_Command;
 
 end Files.Command_Palette;

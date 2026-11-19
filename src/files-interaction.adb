@@ -270,6 +270,11 @@ package body Files.Interaction is
    begin
       Settings := Shared;
       Refresh_Open_Pane (Model, Before, Settings);
+      --  Shortcuts are the process's, rebound in the other window; this
+      --  window's palette listed them before.
+      if Files.Model.Command_Palette.Is_Open (Model) then
+         Files.Model.Command_Palette.Relist (Model);
+      end if;
       Files.Controller.Follow_Favorites (Model, Before, Settings);
       --  The sort is shared like the hidden filter: every window shows the
       --  order the settings hold, so a later command here never writes an
@@ -416,6 +421,34 @@ package body Files.Interaction is
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result            : out Interaction_Result;
       Tree_Page_Rows    : Natural := 0) is separate;
+
+   procedure Append_Text
+     (Model  : in out Files.Model.Window_Model;
+      Text   : String;
+      Result : out Interaction_Result)
+   is
+      Outcome : constant Files.Controller.Controller_Result := Files.Controller.Append_Focused_Text (Model, Text);
+   begin
+      --  A character runs no command: the edit or the type-ahead move is in
+      --  the model, which the next frame draws.
+      Result := (Status => Outcome.Status, others => <>);
+   end Append_Text;
+
+   procedure Import_Drops
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Source        : in out Files.Drop_Events.Drop_Event_Source;
+      Result        : out Interaction_Result) is
+   begin
+      Result := (others => <>);
+      if Files.Drop_Events.Take_Overflow (Source) then
+         Files.Model.Set_Error (Model, "error.drop.failed");
+         return;
+      end if;
+      Files.Controller.Import_Pending_Drops (Model, Settings, Source);
+      Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
+   end Import_Drops;
 
    procedure Apply_Input_Action
      (Model             : in out Files.Model.Window_Model;

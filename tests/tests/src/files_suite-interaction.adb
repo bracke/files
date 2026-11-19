@@ -60,6 +60,7 @@ package body Files_Suite.Interaction is
    procedure Test_Event_Wait_Follows_Held_Release (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Event_Wait_Folds_Over_Windows (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Adoption_Drops_Frames (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Adopted_Shortcut_Relists_Palette (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shift_Click_Range_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shift_Click_Anchors_At_Ctrl_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -126,6 +127,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Adoption_Drops_Frames'Access,
          "every window adopting shared settings takes them and drops its cached frame; the source keeps its own");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Adopted_Shortcut_Relists_Palette'Access,
+         "a window adopting shared settings lists its open palette again, with a shortcut's new keys");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Ctrl_Click_Multi_Selection'Access, "ctrl-click builds and toggles a multi-selection");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -220,6 +224,7 @@ package body Files_Suite.Interaction is
    procedure Test_Event_Wait_Folds_Over_Windows (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Settings_Adoption_Drops_Frames (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Adopted_Shortcut_Relists_Palette (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

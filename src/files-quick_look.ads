@@ -1,4 +1,5 @@
 with Guikit.Shared_Bytes;
+with Files.Items;
 with Files.Types;
 
 --  Pure Quick Look content preparation. Given an item's metadata plus a bounded
@@ -96,5 +97,13 @@ package Files.Quick_Look is
       Raw_Bytes      : String;
       Bytes_Complete : Boolean := True)
       return Quick_Look_Content;
+
+   --  The size and modification time of Item as a preview remembers them
+   --  (Quick_Look_Content.Source_Stamp): a refresh that lists the item with
+   --  the same stamp keeps the preview it has.
+   --
+   --  @param Item The previewed item.
+   --  @return Its stamp.
+   function Source_Stamp_Of (Item : Files.Items.Directory_Item) return UString;
 
 end Files.Quick_Look;

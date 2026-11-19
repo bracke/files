@@ -120,19 +120,13 @@ package body Files.Application.Windows.Gestures is
          Column       => Runtime.Column_Resize.Target,
          Origin_X     => Runtime.Column_Resize.Origin_X,
          Origin_Width => Runtime.Column_Resize.Origin_W,
-         Current_X    => Scale_X (Cursor_X, Window_W, Frame_W),
+         Current_X    => Files.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W),
          Result       => Result,
          Line_Height  => Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
       if Result.Settings_Changed then
          Runtime.Column_Resize.Changed := True;
       end if;
    end Update_Column_Resize_Drag;
-
-   --  Minimum pointer travel, in frame pixels at the reference line height
-   --  (scaled with the text), before an armed header press becomes a reorder
-   --  drag. Below it a press/release is treated as a sort click, matching the
-   --  resize hot zone's grabbable-yet-forgiving feel.
-   Column_Reorder_Threshold : constant := 6;
 
    procedure Update_Column_Reorder_Drag
      (Runtime    : in out Runtime_Window;
@@ -144,11 +138,6 @@ package body Files.Application.Windows.Gestures is
       Frame_H    : Glfw.Size;
       Mouse_Down : Boolean)
    is separate;
-
-   --  Minimum pointer travel, in frame pixels, before an armed empty-space press
-   --  becomes a marquee. Below it the press/release is a plain empty-space click
-   --  that leaves the selection untouched, matching the pre-marquee no-op.
-   Marquee_Drag_Threshold : constant := 4;
 
    procedure Update_Marquee_Drag
      (Runtime    : in out Runtime_Window;

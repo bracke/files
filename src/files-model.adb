@@ -1,3 +1,4 @@
+with Files.File_System;
 with Guikit.Layout;
 with Guikit.Bidi;
 with Guikit.Text;
@@ -38,7 +39,7 @@ package body Files.Model is
            (Done      => Model.Paste_Exec.Done,
             Total     => Model.Paste_Exec.Total,
             Name      => Model.Paste_Exec.Current,
-            Moving    => Files.File_System."=" (Model.Paste_Exec.Mode, Files.File_System.Drop_Move),
+            Moving    => Files.File_System_Types."=" (Model.Paste_Exec.Mode, Files.File_System_Types.Drop_Move),
             Label_Key => Null_Unbounded_String),
          when Operation_Job =>
            (Done      => 0,

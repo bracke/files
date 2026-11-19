@@ -4,9 +4,10 @@ with Files.Preview_Decoder;
 
 --  What the shown window needs read for it beside its input: details,
 --  folder sizes and Quick Look images, read off the UI thread and handed to
---  the model once they are in (or, with no helpers, read at once). Driven by
---  the window loop and by what changes the selection; nothing here is an
---  operation the user started.
+--  the model once they are in (or, with no helpers, read at once), and the
+--  volume's free space and the info pane's account names, sampled before a
+--  frame is drawn. Driven by the window loop and by what changes the
+--  selection; nothing here is an operation the user started.
 package Files.Window_Polls is
 
    --  Compute and cache the selected item's "extra info" (folder child count,
@@ -70,5 +71,23 @@ package Files.Window_Polls is
    --
    --  @param Model Window model whose folder-size cache is updated.
    procedure Update_Folder_Size (Model : in out Files.Model.Window_Model);
+
+   --  Sample the current directory's volume space into Model when its last
+   --  sample is stale (Files.Model.Status_Samples.Volume_Space_Is_Current),
+   --  so the snapshot shows it without querying the disk itself.
+   --
+   --  @param Model Window model whose current directory is sampled.
+   procedure Sample_Volume_Space
+     (Model : in out Files.Model.Window_Model);
+
+   --  Resolve the owner and group names of the items the info pane lists into
+   --  Model (Files.Model.Status_Samples.Set_Account_Name), so the snapshot
+   --  shows names without an NSS lookup of its own. Does nothing while the
+   --  model is unchanged since the last sample, or when the info pane shows
+   --  no item.
+   --
+   --  @param Model Window model whose info-pane items are sampled.
+   procedure Sample_Account_Names
+     (Model : in out Files.Model.Window_Model);
 
 end Files.Window_Polls;

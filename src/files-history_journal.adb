@@ -532,7 +532,7 @@ package body Files.History_Journal is
    procedure Save_Stacks
      (Directory : String;
       Undo, Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
-      Required : Boolean := False;
+      Mode : Save_Mode := Best_Effort;
       State : Files.Undo_History.History_Journal_State := (others => <>))
    is
       Kept_Undo : Files.Undo_History.Undo_Entry_Vectors.Vector := Undo;
@@ -596,29 +596,33 @@ package body Files.History_Journal is
       --  so it never refuses a later save; a Target that is a link or not a
       --  file refuses it there.
       if not Files.Durable_Writes.Published (Files.Durable_Writes.Write_And_Publish (Target, Write_Journal'Access))
-        and then Required
       then
-         raise Ada.Directories.Use_Error;
+         if Mode = Must_Commit then
+            raise Ada.Directories.Use_Error;
+         end if;
+         --  A best-effort save that did not commit leaves the journal as
+         --  it was: traced, as a refused save is below.
+         Files.Diagnostics.Trace ("Files.History_Journal", "journal_not_published=" & Target);
       end if;
    exception
       when Failure : others =>
-         if Required then
+         if Mode = Must_Commit then
             raise;
          end if;
          Files.Diagnostics.Note (Failure, "Files.History_Journal");
    end Save_Stacks;
 
-   procedure Save (History : Files.Undo_History.Undo_History_State; Required : Boolean := False) is
+   procedure Save (History : Files.Undo_History.Undo_History_State; Mode : Save_Mode := Best_Effort) is
    begin
-      Save_To (Files.Job_Context.Directory, History, Required);
+      Save_To (Files.Job_Context.Directory, History, Mode);
    end Save;
 
    procedure Save_To
      (Directory : String;
       History   : Files.Undo_History.Undo_History_State;
-      Required  : Boolean := False) is
+      Mode      : Save_Mode := Best_Effort) is
    begin
-      Save_Stacks (Directory, History.Undo_Stack, History.Redo_Stack, Required, History.Journal);
+      Save_Stacks (Directory, History.Undo_Stack, History.Redo_Stack, Mode, History.Journal);
    end Save_To;
 
    --  When the journal was last written by Checkpoint.
@@ -629,14 +633,14 @@ package body Files.History_Journal is
      (History : Files.Undo_History.Undo_History_State;
       Action  : Files.Undo_History.Undo_Entry;
       Side    : Files.Undo_History.History_Side;
-      Force   : Boolean := True)
+      Timing  : Checkpoint_Timing := Write_Now)
    is
       use type Ada.Real_Time.Time;
       use type Files.Undo_History.History_Side;
       Undo_Stack : Files.Undo_History.Undo_Entry_Vectors.Vector;
       Redo_Stack : Files.Undo_History.Undo_Entry_Vectors.Vector;
    begin
-      if not Force and then Ada.Real_Time.Clock < Last_Checkpoint + Checkpoint_Interval then
+      if Timing = Within_Second and then Ada.Real_Time.Clock < Last_Checkpoint + Checkpoint_Interval then
          return;
       end if;
       Undo_Stack := History.Undo_Stack;
@@ -648,7 +652,7 @@ package body Files.History_Journal is
       end if;
       Save_Stacks
         (Files.Job_Context.Directory, Undo_Stack, Redo_Stack,
-         Required => True, State => History.Journal);
+         Mode => Must_Commit, State => History.Journal);
       Last_Checkpoint := Ada.Real_Time.Clock;
    end Checkpoint;
 
@@ -671,11 +675,13 @@ package body Files.History_Journal is
       end if;
       --  None to read only when the journal is gone for sure (no folder is
       --  no journal either). One the host will not answer for, or will not
-      --  open, is no absence: it raises, and the caller tries again.
-      if not Valid_Directory (Directory)
-        or else Hostkit.Fs.Is_Link (Directory)
-        or else Files.Fs_Primitives.Entry_Is_Absent (Path)
-      then
+      --  open, is no absence: it raises, and the caller tries again. Nor is
+      --  a transport that is not a valid folder path, or is a link: that is
+      --  a refusal to read through it, never proof there is no journal.
+      if not Valid_Directory (Directory) or else Hostkit.Fs.Is_Link (Directory) then
+         raise Ada.Directories.Use_Error;
+      end if;
+      if Files.Fs_Primitives.Entry_Is_Absent (Path) then
          return False;
       end if;
       if Files.Lease_Streams.Open (Path, Input) /= Hostkit.Lease_Files.Opened then

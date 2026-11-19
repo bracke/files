@@ -12,7 +12,7 @@ separate (Files_Suite.History)
         (History_Directory,
          Files.Model.Undo_Entry_Vectors.Empty_Vector,
          Files.Model.Undo_Entry_Vectors.Empty_Vector,
-         Required => True);
+         Mode => Files.History_Journal.Must_Commit);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.Model.Testing.Restore_Journal (History_Directory, Model), "the journal is saved over the leftover");
       Assert (File_Is (Join (History_Directory, "history.tmp"), "half a journal"),

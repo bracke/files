@@ -260,10 +260,13 @@ package body Files.Transfer_Jobs is
          Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
    end Apply_Replacement_Checkpoint;
 
+   --  A failed result that is the cancel: its key, read as a finished job's,
+   --  names no cause of its own (Files.File_System.Says_Only_Stopped), and
+   --  no original is held.
    function Is_Cancellation_Failure (Result : Job_Result) return Boolean is
      (not Result.Mutation.Success and then Length (Result.Trashed) = 0
-      and then To_String (Result.Mutation.Error_Key)
-                 in "" | Files.File_System.Cancelled_Error_Key | Files.File_System.Interrupted_Error_Key);
+      and then Files.File_System.Says_Only_Stopped
+        (To_String (Result.Mutation.Error_Key), Files.File_System.Finished_Job));
 
    procedure Start
      (Job    : in out Session;
@@ -289,9 +292,10 @@ package body Files.Transfer_Jobs is
       if Cancelled and then not Result.Mutation.Success then
          Result.Cancelled := Is_Cancellation_Failure (Result);
          if Length (Result.Trashed) > 0
-           and then To_String (Result.Mutation.Error_Key)
-                      in "error.drop.failed" | Files.File_System.Cancelled_Error_Key
-                       | Files.File_System.Interrupted_Error_Key
+           --  Read as a step's: a held original that a stop left held is
+           --  what the user must learn, whatever stopped it.
+           and then Files.File_System.Says_Only_Stopped
+             (To_String (Result.Mutation.Error_Key), Files.File_System.Copy_Step)
          then
             Result.Mutation.Error_Key := To_Unbounded_String ("error.trash.restore_failed");
          end if;

@@ -25,6 +25,11 @@ package Files.Io_Errors is
    Busy_Key          : constant String := "error.io.busy";
    Name_Too_Long_Key : constant String := "error.io.name_too_long";
 
+   --  A folder's listing could not be read: what a load or a refresh of it
+   --  reports, and what the window's watch retries slowly rather than at
+   --  once.
+   Directory_Load_Key : constant String := "error.directory.load";
+
    --  The causes told apart, as Hostkit.Errors names them (its literals are
    --  the names to use: No_Space, Name_Too_Long ...). Several share
    --  one key: a full disk and a full quota both mean there is no room, a

@@ -8,9 +8,9 @@ separate (Files_Suite.Commands)
    begin
       Files.Model.Focus_Filter_Input (Model);
       declare
-         Utf8_Text : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00E9#));
+         Utf8_Text : constant String := Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#00E9#));
          Combining_Text : constant String :=
-           "e" & Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#0301#));
+           "e" & Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#0301#));
       begin
          Files.Controller.Testing.Replace_Focused_Text (Model, "a" & Utf8_Text & "b");
          Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 2);
@@ -120,7 +120,7 @@ separate (Files_Suite.Commands)
          Files.Controller.Testing.Replace_Focused_Text (Model, "e");
          Result :=
            Files.Controller.Append_Focused_Text
-             (Model, Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#0301#)));
+             (Model, Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#0301#)));
          Files_Suite.Support.Assert_Equal
            (Files.Model.Filter_Text (Model),
             Combining_Text,

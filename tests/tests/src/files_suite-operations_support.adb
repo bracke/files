@@ -13,7 +13,7 @@ with Project_Tools.Files;
 with GNAT.OS_Lib;
 with Hostkit.Host;
 with Hostkit.Process;
-with Files.Application.Windows;
+with Files.Window_Policy;
 with Files.Events;
 with Files.File_System;
 with Files.Interaction;
@@ -110,9 +110,9 @@ package body Files_Suite.Operations_Support is
    function Truncated_UTF8_Name return String is ("bad" & Byte (16#E2#) & Byte (16#82#) & "name.txt");
    function Overlong_UTF8_Name return String is ("bad" & Byte (16#C0#) & Byte (16#AF#) & "name.txt");
    function NBSP_Name return String is
-     (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#)));
+     (Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#)));
    function Ideographic_Space_Name return String is
-     (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#3000#)));
+     (Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#3000#)));
    function Trailing_NBSP_Name return String is ("trailing-nbsp" & NBSP_Name);
    function Trailing_Ideographic_Name return String is ("trailing-wide" & Ideographic_Space_Name);
 

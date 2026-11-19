@@ -81,7 +81,7 @@ separate (Files_Suite.Commands)
                     (Files.Commands.Shortcut_For (Files.Commands.Open_Command_Palette_Command))),
                "control+p") = 0,
             "the shown shortcut does not spell control+p, so this tests the search text");
-         Guikit.Command_Palette.Set_Commands (Palette, Files.Command_Palette.Commands (Model));
+         Guikit.Command_Palette.Set_Commands (Palette, Files.Model.Command_Palette.Commands (Model));
          Guikit.Command_Palette.Set_Query (Palette, "control+p");
          for C of Guikit.Command_Palette.Results (Palette) loop
             Found := Found

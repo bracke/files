@@ -1,3 +1,4 @@
+with Files.Window_Polls;
 with Files.UI_Types;
 with Ada.Real_Time;
 with Files.Fonts;
@@ -35,8 +36,8 @@ package body Files.Application.Windows.Smoke is
    function Sampled (Model : Files.Model.Window_Model) return Files.Model.Window_Model is
       Result : Files.Model.Window_Model := Model;
    begin
-      Sample_Volume_Space (Result);
-      Sample_Account_Names (Result);
+      Files.Window_Polls.Sample_Volume_Space (Result);
+      Files.Window_Polls.Sample_Account_Names (Result);
       return Result;
    end Sampled;
 

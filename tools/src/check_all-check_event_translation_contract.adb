@@ -207,6 +207,8 @@ separate (Check_All)
       declare
          Allowed : constant String_List :=
            [To_Unbounded_String ("Files.Command_Palette"),
+            --  The command a palette row names: the registry's ids, read.
+            To_Unbounded_String ("Files.Commands"),
             To_Unbounded_String ("Files.Copy_Context"),
             To_Unbounded_String ("Files.Desktop_Applications"),
             --  A handler's trace of what it carried on past, not model I/O.
@@ -214,6 +216,9 @@ separate (Check_All)
             --  The info pane's extra line as data: the model only keeps it.
             To_Unbounded_String ("Files.Extra_Info"),
             To_Unbounded_String ("Files.File_System"),
+            --  The filesystem layer's value types alone, no I/O: what the
+            --  model's spec holds of it.
+            To_Unbounded_String ("Files.File_System_Types"),
             To_Unbounded_String ("Files.File_Types"),
             To_Unbounded_String ("Files.Folder_Size"),
             To_Unbounded_String ("Files.Folder_Tree"),
@@ -247,4 +252,10 @@ separate (Check_All)
             end loop;
          end loop;
       end;
+      --  The model's spec holds the filesystem layer's values through their
+      --  leaf package only, so the whole filesystem layer is not a
+      --  dependency of every unit that names a window model.
+      Require_Only_Allowed_With_Clauses
+        (Root & "/src/files-model.ads", "Files.File_System",
+         [To_Unbounded_String ("Files.File_System_Types")]);
    end Check_Event_Translation_Contract;

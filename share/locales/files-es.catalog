@@ -317,6 +317,7 @@ es.error.io.busy = El elemento está en uso.
 es.error.move.source_changed = El elemento cambió mientras se movía, así que se dejó donde estaba.
 es.error.move.source_set_aside = Cambió durante el traslado: se conservó la copia y se apartó el original.
 es.error.paste.undo_unavailable = No se puede deshacer: la copia cambió. El elemento reemplazado está en la papelera.
+es.error.operation.undo_unavailable = Deshacer no disponible: no se pudo leer el historial.
 es.error.io.name_too_long = El nombre es demasiado largo.
 es.error.create.no_temporary_item = No hay ninguna creación de archivo pendiente.
 es.error.create.pending = Ya hay una creación de archivo pendiente.

@@ -25,10 +25,12 @@ is
    --  removes it. A path gone for sure is already removed; one the host will
    --  not answer for, or another entry under the name, is not, and a retry
    --  repeats the step. A removed path is marked reversed and the journal
-   --  checkpointed (Force: written now rather than when next due), so a
+   --  checkpointed as Timing says (Write_Now: written now rather than when
+   --  next due), so a
    --  retry never deletes what a restore has since put there.
    function Remove_Created
-     (Path : Files.Types.UString; Identity, Tree_Revision : String; Force : Boolean) return Boolean
+     (Path : Files.Types.UString; Identity, Tree_Revision : String;
+      Timing : Files.History_Journal.Checkpoint_Timing) return Boolean
    is
       Target : constant String := To_String (Path);
    begin
@@ -44,7 +46,7 @@ is
       Action.Reverse_Completed.Append (Path);
       Reversed.Include (Target);
       Files.History_Journal.Checkpoint
-        (Files.Model.History.State (Model), Action, Files.Model.Undo_Side, Force => Force);
+        (Files.Model.History.State (Model), Action, Files.Model.Undo_Side, Timing => Timing);
       return True;
    end Remove_Created;
 
@@ -59,7 +61,8 @@ is
          if Files.Job_Context.Cancelled then
             return Stopped;
          end if;
-         if not Remove_Created (Copy.Path, To_String (Copy.Identity), To_String (Copy.Tree_Revision), Force => True)
+         if not Remove_Created (Copy.Path, To_String (Copy.Identity), To_String (Copy.Tree_Revision),
+                                Timing => Files.History_Journal.Write_Now)
          then
             Outcome := Item_Failed;
          end if;
@@ -92,7 +95,9 @@ is
             --  copy across devices, which has a new one: written now.
             Files.History_Journal.Checkpoint
               (Files.Model.History.State (Model), Action, Files.Model.Undo_Side,
-               Force => not Restored_In_Place (Trashed (Item)));
+               Timing =>
+                 (if Restored_In_Place (Trashed (Item)) then Files.History_Journal.Within_Second
+                  else Files.History_Journal.Write_Now));
          end if;
       end loop;
       return Outcome;
@@ -113,7 +118,8 @@ is
             --  A retry treats a path already gone as removed, so its
             --  checkpoint can wait.
             if not Remove_Created
-              (Item.From, To_String (Item.Identity), To_String (Item.Tree_Revision), Force => False)
+              (Item.From, To_String (Item.Identity), To_String (Item.Tree_Revision),
+               Timing => Files.History_Journal.Within_Second)
             then
                Outcome := Item_Failed;
             end if;
@@ -143,7 +149,9 @@ is
             Restored.Include (To_String (Original.Trash));
             Files.History_Journal.Checkpoint
               (Files.Model.History.State (Model), Action, Files.Model.Undo_Side,
-               Force => not Restored_In_Place (Original));
+               Timing =>
+                 (if Restored_In_Place (Original) then Files.History_Journal.Within_Second
+                  else Files.History_Journal.Write_Now));
          end if;
       end loop;
       return Outcome;

@@ -159,7 +159,7 @@ private package Files.Operations.Support is
       Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
       Redoable    : Boolean := False;
       --  Whether each record also commits the history journal durably
-      --  (Files.History_Journal.Save, Required), stopping a helper that
+      --  (Files.History_Journal.Save, Must_Commit), stopping a helper that
       --  cannot.
       Durable : Boolean := False;
       --  The batch appends an item for each entry it made, Published; once a

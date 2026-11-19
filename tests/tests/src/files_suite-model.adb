@@ -19,8 +19,8 @@ with AUnit.Test_Cases;
 with GNAT.OS_Lib;
 with Hostkit.Host;
 
-with Files.Application;
-with Files.Application.Windows;
+with Files.Window_Polls;
+with Files.Window_Policy;
 with Files.Bounded_Text_IO;
 with Files.Commands;
 with Files.Controller;
@@ -53,7 +53,6 @@ package body Files_Suite.Model is
    use type Ada.Directories.File_Kind;
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
-   use type Files.File_System.Path_Status;
    use type Files.File_System.Root_Kind;
    use type Files.File_System.Root_Readiness;
    use type Files.Types.Sort_Field;

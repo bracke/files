@@ -38,7 +38,10 @@ package body Files.Operation_Jobs.Helper is
          Files.Model.History.Restore (Model, Journal.Undo, Journal.Redo, Journal.State);
       end;
       Files.History_Journal.Save
-        (Files.Model.History.State (Model), Required => Work.Kind in Trash | Undo | Redo);
+        (Files.Model.History.State (Model),
+         Mode =>
+           (if Work.Kind in Trash | Undo | Redo then Files.History_Journal.Must_Commit
+            else Files.History_Journal.Best_Effort));
       if Work.Kind in Search_Names | Search_Contents then
          Files.Model.Set_Filter (Model, To_String (Work.Query));
       else

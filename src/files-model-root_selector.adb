@@ -1,3 +1,4 @@
+with Files.File_System;
 with Files.UI_Types;
 with Files.Model.Support;
 

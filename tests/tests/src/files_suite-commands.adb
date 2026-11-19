@@ -14,9 +14,8 @@ with AUnit;
 with AUnit.Assertions;
 with AUnit.Test_Cases;
 
-with Files.Application;
-with Files.Application.Windows;
-with Files.Command_Palette;
+with Files.Window_Policy;
+with Files.Model.Command_Palette;
 with Files.Commands;
 with Files.Controller;
 with Files.File_System;

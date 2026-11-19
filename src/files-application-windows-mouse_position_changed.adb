@@ -4,16 +4,16 @@ separate (Files.Application.Windows)
       X      : Glfw.Input.Mouse.Coordinate;
       Y      : Glfw.Input.Mouse.Coordinate)
    is
-      Drag_Threshold : constant Glfw.Input.Mouse.Coordinate := 6.0;
    begin
       Object.Last_Mouse_X := X;
       Object.Last_Mouse_Y := Y;
 
       --  Worked out inside the handler: what an initial value raises would
       --  escape it into GLFW.
+      --  Window coordinates: the drag distance counts window pixels as is.
       if Object.Left_Mouse_Down
-        and then (abs (X - Object.Drag_Start_X) >= Drag_Threshold
-                  or else abs (Y - Object.Drag_Start_Y) >= Drag_Threshold)
+        and then Files.Window_Policy.Is_Drag
+                   (Long_Float (X - Object.Drag_Start_X), Long_Float (Y - Object.Drag_Start_Y), Pixel_Ratio => 1.0)
       then
          Object.Drag_Moved := True;
       end if;

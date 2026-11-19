@@ -28,6 +28,10 @@ separate (Files.Application.Windows)
             Settings          => Runtimes (Target).Settings,
             Shared            => Runtimes (Source).Settings,
             Frame_Cache_Valid => Runtimes (Target).Frame_Cache_Valid);
+         --  The overlays show settings too (a shortcut's keys, rebound in
+         --  the source window): built again, not kept from before.
+         Runtimes (Target).Palette_Overlay_Built := False;
+         Runtimes (Target).Settings_Overlay_Built := False;
       end Adopt;
 
       procedure Share is new Files.Settings_Sharing.Share_From
