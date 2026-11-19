@@ -74,9 +74,7 @@ is
       Admitted : Boolean := False;
    begin
       declare
-         --  Inside the handled body, so a failing hidden-attribute query is
-         --  caught below like any other per-entry failure.
-         Hidden : constant Boolean := Name (Name'First) = '.' or else Hostkit.Fs.Is_Hidden (Full);
+         Hidden : constant Boolean := Entry_Is_Hidden (Name, Full);
       begin
          if Options.Show_Hidden or else not Hidden then
             declare
@@ -85,10 +83,9 @@ is
                if Include = null or else Include (Name, Kind) then
                   Admitted := True;
                   declare
-                     Item : Directory_Item :=
-                       Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Settings, Cached);
+                     Item : constant Directory_Item :=
+                       Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Settings, Cached, Hidden);
                   begin
-                     Item.Hidden := Hidden;
                      Items.Append (Item);
                   end;
                end if;
@@ -101,19 +98,19 @@ is
          --  entry by name as an unknown item flagged with the same metadata
          --  error Item_For_Path records, so the user still sees it is there.
          --  One that failed before the filters ran is listed only by a plain
-         --  listing, and only if its name does not mark it hidden.
+         --  listing, and only if it is not hidden.
          Files.Diagnostics.Note (Failure, "Files.File_System");
          begin
             if not Admitted then
                Admitted := Include = null
-                 and then (Options.Show_Hidden or else Name (Name'First) /= '.');
+                 and then (Options.Show_Hidden or else not Entry_Is_Hidden (Name, Full));
             end if;
             if Admitted then
                Items.Append
                  (Directory_Item'(Name           => To_Unbounded_String (Name),
                                   Full_Path      => To_Unbounded_String (Full),
                                   Parent_Path    => Normalized_Path,
-                                  Hidden         => Name (Name'First) = '.',
+                                  Hidden         => Entry_Is_Hidden (Name, Full),
                                   Filetype       => To_Unbounded_String ("application/octet-stream"),
                                   Icon_Id        => To_Unbounded_String ("unknown"),
                                   Metadata_Error => True,

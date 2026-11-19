@@ -36,7 +36,7 @@ is
         and then Is_Subdirectory (Full)
       then
          declare
-            Hidden   : constant Boolean := Name (Name'First) = '.' or else Hostkit.Fs.Is_Hidden (Full);
+            Hidden   : constant Boolean := Entry_Is_Hidden (Name, Full);
             Filetype : constant String :=
               Files.File_Types.Detect_Filetype (Settings, Files.Types.Directory_Item, Name);
             Item     : Directory_Item :=

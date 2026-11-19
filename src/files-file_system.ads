@@ -766,6 +766,16 @@ package Files.File_System is
    --  Optional cooperative cancellation, checked between copy chunks and entries.
    type Cancellation_Check is access function return Boolean;
 
+   --  The error key of a drop or paste that stopped because it was cancelled,
+   --  and only then: a failure that merely coincides with a cancel (a
+   --  destination that appeared, a full disk) keeps its own key.
+   Cancelled_Error_Key : constant String := "error.drop.cancelled";
+
+   --  The result a transfer helper leaves while an import is under way: read
+   --  back only when the helper ended before writing the real one -- killed
+   --  after a cancel it ignored, or dead on its own.
+   Interrupted_Error_Key : constant String := "error.drop.interrupted";
+
    --  The job's own cancellation (Files.Job_Context.Cancelled): what a copy
    --  or a check stops for unless it is handed another check, or null for
    --  none -- recovery, which must finish once the job is cancelled.

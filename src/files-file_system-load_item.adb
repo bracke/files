@@ -35,7 +35,7 @@ begin
 
       return
         (Success   => True,
-         Item      => Item_For_Path (Full, Name, Parent, Kind, Settings, (others => <>)),
+         Item      => Item_For_Path (Full, Name, Parent, Kind, Settings, (others => <>), Entry_Is_Hidden (Name, Full)),
          Error_Key => Null_Unbounded_String);
    end;
 exception

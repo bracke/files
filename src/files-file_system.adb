@@ -179,13 +179,37 @@ package body Files.File_System is
      (Full : String)
       return Files.Types.Item_Kind;
 
+   --  Whether an entry is hidden: a leading dot in its name, or the host's
+   --  hidden flag (Hostkit.Fs.Is_Hidden: Windows' attribute, macOS's
+   --  UF_HIDDEN). The one rule the listing, the tree, folder counts, Recent
+   --  and made-up items share. A flag that cannot be read leaves the name
+   --  to decide, so an entry is never dropped for it.
+   --
+   --  @param Name The entry's name.
+   --  @param Full Its full path.
+   --  @return True when it is hidden.
+   function Entry_Is_Hidden (Name : String; Full : String) return Boolean;
+
+   function Entry_Is_Hidden (Name : String; Full : String) return Boolean is
+      Dotted : constant Boolean := Name'Length > 0 and then Name (Name'First) = '.';
+   begin
+      return Dotted or else Hostkit.Fs.Is_Hidden (Full);
+   exception
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.File_System");
+         return Dotted;
+   end Entry_Is_Hidden;
+
+   --  @param Hidden Whether the entry is hidden (Entry_Is_Hidden), which a
+   --  listing has already asked before it builds the item.
    function Item_For_Path
      (Full        : String;
       Name        : String;
       Parent_Path : String;
       Kind        : Files.Types.Item_Kind;
       Settings    : Files.Settings.Settings_Model;
-      Cached      : Cache_Index)
+      Cached      : Cache_Index;
+      Hidden      : Boolean)
       return Directory_Item;
 
    procedure Sort_Items
@@ -285,7 +309,8 @@ package body Files.File_System is
       Parent_Path : String;
       Kind        : Files.Types.Item_Kind;
       Settings    : Files.Settings.Settings_Model;
-      Cached      : Cache_Index)
+      Cached      : Cache_Index;
+      Hidden      : Boolean)
       return Directory_Item
    is separate;
 
@@ -454,7 +479,7 @@ package body Files.File_System is
         (Name        => To_Unbounded_String (Name),
          Full_Path   => To_Unbounded_String (Hostkit.Fs.Join (Parent_Path, Name)),
          Parent_Path => To_Unbounded_String (Parent_Path),
-         Hidden      => Name'Length > 0 and then Name (Name'First) = '.',
+         Hidden      => Entry_Is_Hidden (Name, Hostkit.Fs.Join (Parent_Path, Name)),
          Kind        => Kind,
          Filetype    => To_Unbounded_String (Filetype),
          Icon_Id     => To_Unbounded_String (Files.File_Types.Icon_Id_For (Settings, Kind, Filetype)),

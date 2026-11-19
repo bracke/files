@@ -26,7 +26,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
             Add_Accessibility_Node
               (Role_List,
                Menu.X, Menu.Y, Menu.Width, Menu.Height,
-               Localized ("command.palette.open"));
+               Localized ("accessibility.context_menu"));
 
             declare
                --  Fit a menu label to its padded interior exactly as

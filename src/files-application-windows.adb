@@ -921,7 +921,11 @@ package body Files.Application.Windows is
       Width           : Natural;
       Height          : Natural)
    is
-      Handle : Window_Access := new Desktop_Window;
+      Handle   : Window_Access := new Desktop_Window;
+      --  Whether the window's entry is in Runtime_Windows yet: a failure
+      --  after that takes it out again, so nothing is left holding the
+      --  handle freed below.
+      Appended : Boolean := False;
    begin
       Glfw.Windows.Init
         (Object => As_Window (Handle),
@@ -949,6 +953,7 @@ package body Files.Application.Windows is
             Font_Pixel_Size => Settings.Font_Pixel_Size,
             Shown           => True,
             others          => <>));
+      Appended := True;
       Files.Model.Set_Background_Transfers
         (Runtime_Windows.Reference (Runtime_Windows.Last_Index).Model, True);
       --  The screen reader looks at the window itself; answer it there.
@@ -956,7 +961,12 @@ package body Files.Application.Windows is
         (Runtime_Windows.Reference (Runtime_Windows.Last_Index).A11y_Key,
          Glfw.Windows.Native.Handle (As_Window (Handle)));
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.Application.Windows");
+         if Appended then
+            Files.Accessibility.Forget (Runtime_Windows.Last_Element.A11y_Key);
+            Runtime_Windows.Delete_Last;
+         end if;
          if Handle /= null then
             if Glfw.Windows.Initialized (As_Window (Handle)) then
                Glfw.Windows.Drop.Paths.Forget (As_Window (Handle));

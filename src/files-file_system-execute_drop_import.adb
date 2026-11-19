@@ -43,7 +43,7 @@ begin
             return (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
          end if;
          if Cancel /= null and then Cancel.all then
-            return (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
+            return (Success => False, Error_Key => To_Unbounded_String (Cancelled_Error_Key));
          end if;
          if Plan.Mode = Drop_Move then
             if Source_Path /= Destination_Path then
@@ -102,7 +102,11 @@ begin
                            end if;
                            --  Otherwise nothing is at the destination and the
                            --  source stays canonical, so paste-replace can
-                           --  restore its original destination.
+                           --  restore its original destination. A copy the
+                           --  cancel stopped says so.
+                           if Cancel /= null and then Cancel.all then
+                              return (Success => False, Error_Key => To_Unbounded_String (Cancelled_Error_Key));
+                           end if;
                            return Moved;
                         end if;
                         Files.Job_Context.Record_Moved
@@ -129,13 +133,12 @@ begin
             --  removes its own private stage when it raises, and nothing it
             --  does after publishing raises, so no partial destination is
             --  left and nothing is cleaned up here; the source is untouched.
-            --  A cancelled copy keeps the generic key: the helper reads it as
-            --  cancelled.
+            --  A cancelled copy says so: the helper reads it as cancelled.
             return
               (Success   => False,
                Error_Key =>
                  (if Cancel /= null and then Cancel.all
-                  then To_Unbounded_String ("error.drop.failed")
+                  then To_Unbounded_String (Cancelled_Error_Key)
                   else Files.Io_Errors.Error_Key ("error.drop.failed")));
       end;
    end loop;

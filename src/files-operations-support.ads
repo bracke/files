@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with Ada.Real_Time;
 
 with Files.Items;
@@ -225,5 +226,26 @@ private package Files.Operations.Support is
    procedure Finish_Failed_Undo
      (Model    : in out Files.Model.Window_Model;
       Progress : in out Progressive_Undo);
+
+   --  Put a staged file or folder at Target, never over an entry already
+   --  there: its identity and tree revision taken first, the whole of it
+   --  flushed to the device (a power cut leaves no recorded but empty or cut
+   --  short output), renamed into place, given the destination's inherited
+   --  permissions (on Windows that writes the change times a revision reads,
+   --  so it is read again), and recorded as created. The one way Compress
+   --  and Extract publish what they made.
+   --
+   --  @param Staged The finished file or folder inside a stage.
+   --  @param Target Where it is published.
+   --  @param Identity Set to its identity token, for its Undo.
+   --  @param Revision Set to its tree revision, for its Undo.
+   --  @return False when it was not published; Staged is then left for the
+   --    caller to discard with its stage.
+   function Publish_Staged
+     (Staged   : String;
+      Target   : String;
+      Identity : out Ada.Strings.Unbounded.Unbounded_String;
+      Revision : out Ada.Strings.Unbounded.Unbounded_String)
+      return Boolean;
 
 end Files.Operations.Support;

@@ -94,6 +94,41 @@ package body Files.Durability is
    function Sync_Directory (Path : String) return Hostkit.Durability.Outcome is
      (if Faulted (Path) then Hostkit.Durability.Failed else Hostkit.Durability.Sync_Directory (Path));
 
+   function Sync_Tree (Path : String) return Hostkit.Durability.Outcome is
+      use type Hostkit.Durability.Outcome;
+      use type Hostkit.Fs.Entry_Kind;
+      Worst : Hostkit.Durability.Outcome := Hostkit.Durability.Synced;
+
+      procedure Note (Outcome : Hostkit.Durability.Outcome) is
+      begin
+         if Outcome = Hostkit.Durability.Failed
+           or else (Outcome = Hostkit.Durability.Not_Supported and then Worst = Hostkit.Durability.Synced)
+         then
+            Worst := Outcome;
+         end if;
+      end Note;
+
+      procedure Visit (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean) is
+         pragma Unreferenced (Stop);
+         Full : constant String := Hostkit.Fs.Join (Path, Name);
+      begin
+         if Hostkit.Fs.Is_Link (Full) then
+            null;
+         elsif Kind = Hostkit.Fs.Directory_Entry then
+            Note (Sync_Tree (Full));
+         elsif Kind = Hostkit.Fs.Ordinary_File_Entry then
+            Note (Sync_File (Full));
+         end if;
+      end Visit;
+   begin
+      if Hostkit.Fs.Is_Link (Path) or else not Files.Fs_Primitives.Directory_Exists (Path) then
+         return Sync_File (Path);
+      end if;
+      Files.Fs_Primitives.For_Each_Listed (Path, Visit'Access);
+      Note (Sync_Directory (Path));
+      return Worst;
+   end Sync_Tree;
+
    procedure Set_Faults (Suffix : String; Stage : Boolean) is
    begin
       Faults.Set (Suffix, Stage);

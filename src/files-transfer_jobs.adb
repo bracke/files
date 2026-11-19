@@ -262,7 +262,8 @@ package body Files.Transfer_Jobs is
 
    function Is_Cancellation_Failure (Result : Job_Result) return Boolean is
      (not Result.Mutation.Success and then Length (Result.Trashed) = 0
-      and then To_String (Result.Mutation.Error_Key) in "" | "error.drop.failed");
+      and then To_String (Result.Mutation.Error_Key)
+                 in "" | Files.File_System.Cancelled_Error_Key | Files.File_System.Interrupted_Error_Key);
 
    procedure Start
      (Job    : in out Session;
@@ -288,7 +289,9 @@ package body Files.Transfer_Jobs is
       if Cancelled and then not Result.Mutation.Success then
          Result.Cancelled := Is_Cancellation_Failure (Result);
          if Length (Result.Trashed) > 0
-           and then To_String (Result.Mutation.Error_Key) = "error.drop.failed"
+           and then To_String (Result.Mutation.Error_Key)
+                      in "error.drop.failed" | Files.File_System.Cancelled_Error_Key
+                       | Files.File_System.Interrupted_Error_Key
          then
             Result.Mutation.Error_Key := To_Unbounded_String ("error.trash.restore_failed");
          end if;
@@ -443,7 +446,8 @@ package body Files.Transfer_Jobs is
             Result.Cancelled := True;
          else
             --  A checkpoint represents unfinished work until the write completes.
-            Result.Mutation := (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
+            Result.Mutation :=
+              (Success => False, Error_Key => To_Unbounded_String (Files.File_System.Interrupted_Error_Key));
             Save;
             declare
                Replaced, Replaced_Identity, Created_Identity, Created_Tree_Revision : Files.Types.UString;

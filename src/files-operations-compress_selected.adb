@@ -1,5 +1,3 @@
-with Files.Durability;
-with Hostkit.Durability;
 separate (Files.Operations)
 function Compress_Selected
   (Model    : in out Files.Model.Window_Model;
@@ -188,8 +186,8 @@ begin
       Status       : Zlib.Status_Code;
       Stage        : constant String := Files.Job_Context.Create_Stage (Directory);
       Staged       : constant String := Hostkit.Fs.Join (Stage, Archive_Name);
-      Identities   : Files.Types.String_Vectors.Vector;
-      Tree_Revisions : Files.Types.String_Vectors.Vector;
+      --  What identifies the published archive, for its Undo.
+      Identity, Tree_Revision : Unbounded_String;
 
       procedure Discard_Stage is
          Removed : constant Boolean := Files.Job_Context.Discard_Stage (Stage);
@@ -216,42 +214,20 @@ begin
       Free_Text_Array (Inputs);
       Free_Text_Array (Names);
 
-      Identities.Append (To_Unbounded_String (Files.File_Identities.Token (Staged)));
-      Tree_Revisions.Append
-        (To_Unbounded_String (Files.File_System.Tree_Revision (Staged)));
-      --  The archive's bytes are on the device before its name is published,
-      --  as every durable copy's are: a power cut leaves no recorded but
-      --  empty or cut-short archive.
       if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
-        or else Length (Identities.First_Element) = 0
-        or else Length (Tree_Revisions.First_Element) = 0
-        or else Hostkit.Durability."=" (Files.Durability.Sync_File (Staged), Hostkit.Durability.Failed)
-        or else not Hostkit.Fs.Move_No_Replace (Staged, Output_Path)
+        or else not Publish_Staged (Staged, Output_Path, Identity, Tree_Revision)
       then
          Discard_Stage;
          return Failed;
       end if;
-      --  The stage handed the archive owner-only access, which the rename
-      --  kept on Windows: let the destination's inheritance replace it, as
-      --  for any file made there. A file's revision leaves out the change
-      --  time this writes; a failure leaves the archive owner-only, no
-      --  reason to undo it.
-      declare
-         Inherited : constant Boolean := Hostkit.Metadata.Inherit_From_Parent (Output_Path);
-         pragma Unreferenced (Inherited);
-      begin
-         null;
-      end;
-      Files.Job_Context.Record_Created
-        (Output_Path, "", To_String (Identities.First_Element), To_String (Tree_Revisions.First_Element));
       Discard_Stage;
       Record_Undo
         (Model, Files.Model.Undo_Delete_Created,
          Published
            (Files.Model.Undo_Item_Vectors.To_Vector
               ((From          => To_Unbounded_String (Output_Path),
-                Identity      => Identities.First_Element,
-                Tree_Revision => Tree_Revisions.First_Element,
+                Identity      => Identity,
+                Tree_Revision => Tree_Revision,
                 others        => <>), 1)),
          Redoable => False);
 

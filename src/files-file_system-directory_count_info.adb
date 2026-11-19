@@ -13,15 +13,7 @@ is
    Capped : Boolean := False;
 
    function Is_Hidden (Name : String) return Boolean is
-   begin
-      return Name (Name'First) = '.' or else Hostkit.Fs.Is_Hidden (Hostkit.Fs.Join (Path, Name));
-   exception
-      when Failure : others =>
-         --  As the listing: an entry whose flag cannot be read is hidden
-         --  only by its name.
-         Files.Diagnostics.Note (Failure, "Files.File_System");
-         return Name (Name'First) = '.';
-   end Is_Hidden;
+     (Entry_Is_Hidden (Name, Hostkit.Fs.Join (Path, Name)));
 
    procedure Count_One (Name : String; Stop : in out Boolean) is
    begin

@@ -1,4 +1,3 @@
-with Hostkit.Host;
 with Files.File_Types;
 separate (Files.Operations)
 function Extract_Selected
@@ -122,37 +121,12 @@ begin
                Files.Fs_Primitives.Create_Directory (Payload);
                Zlib.Extract_Archive_File_To_Directory (Full_Path, Payload, "", Status);
 
-               declare
-                  Identity : constant String := Files.File_Identities.Token (Payload);
-                  Revision : constant String := Files.File_System.Tree_Revision (Payload);
-               begin
-
-                  if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
-                    or else Identity = "" or else Revision = ""
-                    or else not Hostkit.Fs.Move_No_Replace (Payload, Dest_Dir)
-                  then
-                     Discard_Stage;
-                     return Failed;
-                  end if;
-
-                  declare
-                     --  The stage handed the payload owner-only access, which
-                     --  the rename kept on Windows: let the destination's
-                     --  inheritance replace it, as for any folder made there.
-                     --  That writes the change times the folder's revision
-                     --  reads, so it is taken afresh. A failure leaves the
-                     --  folder owner-only, no reason to undo the extraction.
-                     Published : constant String :=
-                       (if Hostkit.Metadata.Inherit_From_Parent (Dest_Dir)
-                          and then Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows)
-                        then Files.File_System.Tree_Revision (Dest_Dir)
-                        else Revision);
-                  begin
-                     Files.Job_Context.Record_Created (Dest_Dir, "", Identity, Published);
-                     Made_Identity := To_Unbounded_String (Identity);
-                     Made_Revision := To_Unbounded_String (Published);
-                  end;
-               end;
+               if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
+                 or else not Publish_Staged (Payload, Dest_Dir, Made_Identity, Made_Revision)
+               then
+                  Discard_Stage;
+                  return Failed;
+               end if;
                Discard_Stage;
                Progress.Items.Append
                  (Files.Model.Recorded_Item'

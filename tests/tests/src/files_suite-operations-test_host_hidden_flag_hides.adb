@@ -63,4 +63,11 @@ separate (Files_Suite.Operations)
             Assert (Item.Hidden, To_String (Item.Name) & " is marked hidden");
          end if;
       end loop;
+
+      --  One path loaded alone -- what Recent shows -- is hidden by the same
+      --  rule as the listing.
+      Assert (Files.File_System.Load_Item (Join (Dir, ".dotted"), Settings).Item.Hidden, "a lone dot file is hidden");
+      Assert
+        (not Marked or else Files.File_System.Load_Item (Flagged, Settings).Item.Hidden,
+         "a lone file the host marks hidden is hidden");
    end Test_Host_Hidden_Flag_Hides;

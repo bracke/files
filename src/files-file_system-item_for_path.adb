@@ -10,7 +10,8 @@ function Item_For_Path
    Parent_Path : String;
    Kind        : Files.Types.Item_Kind;
    Settings    : Files.Settings.Settings_Model;
-   Cached      : Cache_Index)
+   Cached      : Cache_Index;
+   Hidden      : Boolean)
    return Directory_Item
 is
    Filetype : constant String := Files.File_Types.Detect_Filetype (Settings, Kind, Name);
@@ -31,7 +32,7 @@ is
      (Name        => To_Unbounded_String (Name),
       Full_Path   => To_Unbounded_String (Full),
       Parent_Path => To_Unbounded_String (Parent_Path),
-      Hidden      => Name'Length > 0 and then Name (Name'First) = '.',
+      Hidden      => Hidden,
       Kind        => Kind,
       Filetype    => To_Unbounded_String (Filetype),
       Icon_Id     => To_Unbounded_String (Icon_Id),

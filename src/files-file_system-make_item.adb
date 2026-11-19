@@ -14,7 +14,7 @@ begin
      (Name        => To_Unbounded_String (Name),
       Full_Path   => To_Unbounded_String (Hostkit.Fs.Join (Parent_Path, Name)),
       Parent_Path => To_Unbounded_String (Parent_Path),
-      Hidden      => Name'Length > 0 and then Name (Name'First) = '.',
+      Hidden      => Entry_Is_Hidden (Name, Hostkit.Fs.Join (Parent_Path, Name)),
       Kind        => Kind,
       Filetype    => To_Unbounded_String (Type_Name),
       Icon_Id     => To_Unbounded_String (Files.File_Types.Icon_Id_For (Settings, Kind, Type_Name)),

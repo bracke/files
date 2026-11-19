@@ -150,4 +150,23 @@ separate (Files_Suite.Rendering)
             end if;
          end loop;
       end;
+
+      --  A screen reader is told the menu is the context menu, not the
+      --  command palette.
+      declare
+         Frame : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
+         Named : Boolean := False;
+      begin
+         for Node of Frame.Accessibility loop
+            if Node.Role = Guikit.Draw.Role_List
+              and then To_String (Node.Name) = Files.Localization.Text ("accessibility.context_menu")
+            then
+               Named := True;
+            end if;
+            Assert
+              (To_String (Node.Name) /= Files.Localization.Text ("command.palette.open"),
+               "no node of the context menu frame is named after the command palette");
+         end loop;
+         Assert (Named, "the context menu's list is named the context menu");
+      end;
    end Test_Context_Menu_Separators;

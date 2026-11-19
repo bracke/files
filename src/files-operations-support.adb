@@ -1,9 +1,14 @@
+with Files.Job_Context;
+with Hostkit.Host;
+with Hostkit.Metadata;
+with Hostkit.Durability;
+with Files.Durability;
+with Files.File_Identities;
 with Ada.Directories;
 with Files.Undo_Recording;
 with Files.Window_Polls;
 with Files.Diagnostics;
 with Hostkit.Process;
-with Ada.Strings.Unbounded;
 
 with Files.File_System;
 with Files.History_Journal;
@@ -309,5 +314,33 @@ package body Files.Operations.Support is
       when Unrecorded : others =>
          Files.Diagnostics.Note (Unrecorded, "Files.Operations.Support");
    end Finish_Failed_Undo;
+
+   function Publish_Staged
+     (Staged   : String;
+      Target   : String;
+      Identity : out Ada.Strings.Unbounded.Unbounded_String;
+      Revision : out Ada.Strings.Unbounded.Unbounded_String)
+      return Boolean
+   is
+   begin
+      Identity := To_Unbounded_String (Files.File_Identities.Token (Staged));
+      Revision := To_Unbounded_String (Files.File_System.Tree_Revision (Staged));
+      if Length (Identity) = 0 or else Length (Revision) = 0
+        or else Hostkit.Durability."=" (Files.Durability.Sync_Tree (Staged), Hostkit.Durability.Failed)
+        or else not Hostkit.Fs.Move_No_Replace (Staged, Target)
+      then
+         return False;
+      end if;
+      --  The stage handed it owner-only access, which the rename kept on
+      --  Windows: the destination's inheritance replaces it, as for anything
+      --  made there. A failure leaves it owner-only, no reason to undo it.
+      if Hostkit.Metadata.Inherit_From_Parent (Target)
+        and then Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows)
+      then
+         Revision := To_Unbounded_String (Files.File_System.Tree_Revision (Target));
+      end if;
+      Files.Job_Context.Record_Created (Target, "", To_String (Identity), To_String (Revision));
+      return True;
+   end Publish_Staged;
 
 end Files.Operations.Support;

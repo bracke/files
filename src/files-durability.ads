@@ -30,6 +30,14 @@ package Files.Durability is
    --    Not_Supported.
    function Sync_Directory (Path : String) return Hostkit.Durability.Outcome;
 
+   --  Put a whole tree on the device: every regular file's contents, then
+   --  each folder's entries, deepest first. Links are not followed.
+   --
+   --  @param Path A file or a folder.
+   --  @return Failed when any flush failed; otherwise Synced, or
+   --    Not_Supported where the host has no flush at all.
+   function Sync_Tree (Path : String) return Hostkit.Durability.Outcome;
+
 private
 
    --  Set only by the test suite (Files.Durability.Testing): from then on a

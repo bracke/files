@@ -53,6 +53,8 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("error.drop.invalid_destination");
       Add_Error_Key ("error.drop.invalid_source");
       Add_Error_Key ("error.drop.failed");
+      Add_Error_Key ("error.drop.cancelled");
+      Add_Error_Key ("error.drop.interrupted");
       Add_Error_Key ("error.move.source_changed");
       Add_Error_Key ("error.move.source_set_aside");
       Add_Error_Key ("error.paste.undo_unavailable");
