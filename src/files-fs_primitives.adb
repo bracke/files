@@ -107,9 +107,6 @@ package body Files.Fs_Primitives is
 
    function Parent_Text (Path : String) return String renames Hostkit.Path_Text.Parent;
 
-   function Compose_Text (Directory : String; Stem : String; Extension : String := "") return String is
-     (Hostkit.Fs.Join (Directory, (if Extension = "" then Stem else Stem & "." & Extension)));
-
    function Kind (Path : String) return Ada.Directories.File_Kind is
    begin
       case Hostkit.Fs.Kind_Of (Path) is

@@ -1634,8 +1634,8 @@ private
       Range_Anchor_Path    : UString;
       --  The visible rows, worked out once per listing, filter and search
       --  (Support.Invalidate_Visible at every write of those): which item each
-      --  visible row is, and each item's row (0: hidden). A visible-index
-      --  lookup used to walk the items each time, about ten walks a key.
+      --  visible row is, and each item's row (0: hidden), so a visible-index
+      --  lookup does not walk the items.
       Visible_Cache_Valid : Boolean := False;
       Visible_Items       : Natural_Vectors.Vector;
       Item_Visible_Rows   : Natural_Vectors.Vector;
@@ -1711,7 +1711,7 @@ private
       Account_Names         : Account_Names_State;
       --  The grouping the items are ordered by (Sync_Grouping).
       Grouping : Grouping_State;
-      --  Narrower generation used to reject stale background directory reads
+      --  Narrower generation that rejects stale background directory reads
       --  without treating harmless interaction as a listing-context change.
       Listing_Revision_Value : Natural := 0;
       --  Generation of the displayed view; advanced only by navigation.

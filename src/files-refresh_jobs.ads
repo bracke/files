@@ -63,9 +63,9 @@ package Files.Refresh_Jobs is
    procedure Release_Watch (Job : in out Watch_Session);
 
    --  How often a window may re-read its folder on its own. A file being
-   --  written posts a change every 50 ms, and each one used to start a full
-   --  reload of the folder as soon as the last ended; a listing that cannot
-   --  be read was re-read, forced, on every poll.
+   --  written posts a change every 50 ms; the pacer spaces the reloads those
+   --  changes ask for (Watch_Refresh_Gap), and a listing that cannot be read
+   --  waits Load_Retry_Gap before the next try.
    type Watch_Pacer is private;
 
    --  The shortest gap between two refreshes a watch asked for.

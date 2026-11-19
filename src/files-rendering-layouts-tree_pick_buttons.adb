@@ -1,10 +1,5 @@
 separate (Files.Rendering.Layouts)
-   function Tree_Pick_Buttons
-     (Panel       : Tree_Panel_Layout;
-      Line_Height : Positive)
-      return Tree_Pick_Button_Layout
-   is
-      pragma Unreferenced (Line_Height);
+   function Tree_Pick_Buttons (Panel : Tree_Panel_Layout) return Tree_Pick_Button_Layout is
       Height : constant Natural := Panel.Row_Height;
       Half   : constant Natural := Panel.Width / 2;
    begin

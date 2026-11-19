@@ -1,18 +1,13 @@
 with Interfaces;
 with Files.Images.Netpbm;
 separate (Files.File_System.Thumbnails)
---  Binary P6, not the ASCII P3 this used to write.
---
---  Identical pixels either way, but a 64x64 thumbnail is 12 KB here and
---  was 43 KB as text, and the loader on the directory-listing path had to
---  turn some twelve thousand ASCII numbers per thumbnail into as many
---  strings to read one back.
+--  Write the thumbnail as a binary P6 image: a 64x64 thumbnail takes 12 KB,
+--  and the loader on the directory-listing path reads its pixels as bytes.
 --
 --  Stream_IO rather than Text_IO, and not only for the line endings:
 --  Alire's switches carry -gnatW8, so Text_IO would try to encode every
 --  pixel byte above 127 as UTF-8 on the way out and corrupt the image.
---  Load_Cached_Thumbnail reads both formats, so caches written before
---  this keep working rather than being silently discarded.
+--  Load_Cached_Thumbnail reads ASCII P3 caches too.
 procedure Write_Pixels_As_Ppm
   (Target_Path   : String;
    Size          : Positive;
@@ -23,8 +18,7 @@ is
    use Ada.Streams;
 
    --  The source fitted into Size x Size with its proportions kept: the
-   --  longer side is Size. Scaling each side to Size on its own squashed
-   --  every picture that is not square.
+   --  longer side is Size, the shorter one scaled by the same factor.
    Longest  : constant Positive := Positive'Max (1, Natural'Max (Source_Width, Source_Height));
    Out_W    : constant Positive :=
      (if Source_Width >= Source_Height then Size else Positive'Max (1, Source_Width * Size / Longest));

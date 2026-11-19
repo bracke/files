@@ -50,7 +50,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
          Sort  : constant Detail_Column_Sort := Detail_Column_Sorts (Column);
       begin
          if Sort.Sortable and then Snapshot.Sort_Field = Sort.Field then
-            return To_Unbounded_String (Label & " " & Direction_Text);
+            return To_Unbounded_String (Label & " " & Direction_Text (Snapshot.Sort_Ascending));
          else
             return To_Unbounded_String (Label);
          end if;

@@ -327,6 +327,25 @@ package Files.Controller is
       Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result;
 
+   --  Drop the selection, dragged within the window, on a visible item: a
+   --  folder there receives it through the paste engine (its conflict dialog
+   --  and progress overlay), copied with Ctrl and moved otherwise. A drop on
+   --  a file, on no item, or with nothing selected does nothing.
+   --
+   --  @param Model Window model whose selection is dropped.
+   --  @param Settings Settings model the paste reads.
+   --  @param Target_Index One-based visible index of the item dropped on, or zero.
+   --  @param Modifiers Modifier keys held at the release (Ctrl copies).
+   --  @return Executed (Copy_To_Command or Move_To_Command, with the paste's
+   --    result) when the paste started; Ignored, with the paste's result when
+   --    there was one, otherwise.
+   function Handle_Item_Drop
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Target_Index : Natural;
+      Modifiers    : Guikit.Input.Modifier_Set)
+      return Controller_Result;
+
    --  Whether dropped paths may be imported now: not while an overlay owns
    --  the input (a dialog, the palette, a paste's progress), which would turn
    --  the import away. Until it closes the drop stays queued, not lost.

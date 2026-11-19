@@ -124,7 +124,9 @@ separate (Files.Application.Windows)
                if Action.Kind = Files.Events.Item_Click_Input_Action
                  and then Action.Item_Index /= Runtime.Drag_Source_Index
                then
-                  Handle_Item_Drop (Runtime, Action.Item_Index, Modifiers);
+                  Dispatch_Click_Action
+                    (Runtime, (Kind => Files.Events.Item_Drop_Input_Action, Drop_Target => Action.Item_Index),
+                     Modifiers);
                end if;
             end;
          end if;

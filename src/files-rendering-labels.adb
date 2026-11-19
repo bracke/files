@@ -3,6 +3,125 @@ with Files.Localization;
 
 package body Files.Rendering.Labels is
 
+   function Command_Label (Id : Files.Commands.Command_Id) return UString is
+     (To_Unbounded_String (Files.Localization.Text (Files.Commands.Name_Key (Id))));
+
+   function Bottom_Command_Label (Id : Files.Commands.Command_Id) return UString is
+      function Short (Key : String) return UString is (To_Unbounded_String (Files.Localization.Text (Key)));
+   begin
+      case Id is
+         when Files.Commands.Select_Small_Icons_Command => return Short ("command.view.small.short");
+         when Files.Commands.Select_Large_Icons_Command => return Short ("command.view.large.short");
+         when Files.Commands.Select_Details_Command     => return Short ("command.view.details.short");
+         when Files.Commands.Toggle_Info_Pane_Command   => return Short ("command.info.toggle.short");
+         when Files.Commands.Toggle_Sort_Menu_Command   => return Short ("command.sort.name");
+         when others                                    => return Command_Label (Id);
+      end case;
+   end Bottom_Command_Label;
+
+   function Sort_Field_Label (Field : Files.Types.Sort_Field) return String is
+     (Files.Localization.Text (Files.Commands.Sort_Label_Key (Field)));
+
+   function Direction_Text (Ascending : Boolean) return String is
+     (Files.Localization.Text ((if Ascending then "sort.direction.ascending" else "sort.direction.descending")));
+
+   function Sort_Button_Label (Field : Files.Types.Sort_Field; Ascending : Boolean) return UString is
+     (To_Unbounded_String (Sort_Field_Label (Field) & " " & Direction_Text (Ascending)));
+
+   function View_Mode_Label (Mode : Files.Types.View_Mode) return String is
+   begin
+      case Mode is
+         when Files.Types.Small_Icons => return Files.Localization.Text ("command.view.small");
+         when Files.Types.Large_Icons => return Files.Localization.Text ("command.view.large");
+         when Files.Types.Details     => return Files.Localization.Text ("command.view.details");
+      end case;
+   end View_Mode_Label;
+
+   function Count_Status_Text (Snapshot : View_Snapshot) return UString is
+      --  Each count and its localized word; only spaces and punctuation are
+      --  literals here.
+      Selected : constant String :=
+        Grouped_Natural_Text (Snapshot.Selected_Count) & " " & Files.Localization.Text ("status.selected");
+   begin
+      return
+        To_Unbounded_String
+          (Grouped_Natural_Text (Snapshot.Hidden_Count) & " " & Files.Localization.Text ("status.hidden")
+           & "  "
+           & Grouped_Natural_Text (Snapshot.Visible_Count) & " " & Files.Localization.Text ("status.visible")
+           & "  "
+           & Selected
+           & (if Snapshot.Selected_Count >= 1
+              then " (" & Size_Text (Snapshot.Selection_Total_Bytes)
+                   & (if Snapshot.Selection_Total_Pending then " ..." else "") & ")"
+              else ""));
+   end Count_Status_Text;
+
+   function Compact_Count_Status_Text (Snapshot : View_Snapshot) return String is
+     (Grouped_Natural_Text (Snapshot.Hidden_Count) & "/"
+      & Grouped_Natural_Text (Snapshot.Visible_Count) & "/"
+      & Grouped_Natural_Text (Snapshot.Selected_Count));
+
+   function Count_Legend_Text return String is
+     (" ("
+      & Files.Localization.Text ("status.hidden") & " / "
+      & Files.Localization.Text ("status.visible") & " / "
+      & Files.Localization.Text ("status.selected")
+      & ")");
+
+   function Bottom_Info_Text (Snapshot : View_Snapshot) return UString is
+     (if Length (Snapshot.Last_Error_Key) > 0 then Snapshot.Last_Error_Text else Count_Status_Text (Snapshot));
+
+   function Main_View_Accessible_Description (Snapshot : View_Snapshot) return UString is
+     (To_Unbounded_String
+        (Files.Localization.Text ("settings.default_view") & ": " & View_Mode_Label (Snapshot.View_Mode) & "  ")
+      & Count_Status_Text (Snapshot));
+
+   function Empty_State_Key (Snapshot : View_Snapshot) return String is
+     (if Snapshot.Item_Count = 0 and then Snapshot.In_Recent_View then "recent.empty"
+      elsif Snapshot.Item_Count = 0 then "status.empty_directory"
+      elsif Snapshot.Visible_Count = 0 and then Length (Snapshot.Filter_Text) > 0 then "status.empty_filter"
+      else "");
+
+   function Info_Value (Label_Key : String; Value : String) return UString is
+     (To_Unbounded_String (Files.Localization.Text (Label_Key) & ": " & Value));
+
+   function Labelled_Time_Text
+     (Label_Key : String;
+      Available : Boolean;
+      Value     : Ada.Calendar.Time;
+      Now       : Ada.Calendar.Time)
+      return UString is
+     (Info_Value (Label_Key, To_String (Info_Metadata_Text (Available, Value, Now))));
+
+   function Detail_Names return Detail_Column_Names is
+     ((Modified => To_Unbounded_String (Files.Localization.Text ("details.modified")),
+       Size     => To_Unbounded_String (Files.Localization.Text ("details.size")),
+       Filetype => To_Unbounded_String (Files.Localization.Text ("details.filetype"))));
+
+   function Item_Accessible_Description
+     (Names    : Detail_Column_Names;
+      Item     : Item_Snapshot;
+      Details  : Boolean;
+      Modified : UString;
+      Size     : UString)
+      return UString is
+   begin
+      if not Details then
+         return Item.Filetype_Detail;
+      end if;
+      return
+        To_Unbounded_String
+          (Files.Localization.Text
+             ("accessibility.item.details",
+              Files.Localization.Argument_List'
+                [(To_Unbounded_String ("modified_label"), Names.Modified),
+                 (To_Unbounded_String ("modified"), Modified),
+                 (To_Unbounded_String ("size_label"), Names.Size),
+                 (To_Unbounded_String ("size"), Size),
+                 (To_Unbounded_String ("type_label"), Names.Filetype),
+                 (To_Unbounded_String ("type"), Item.Filetype_Detail)]));
+   end Item_Accessible_Description;
+
    function Free_Space_Label (Snapshot : View_Snapshot) return String is
    begin
       --  Omitted when free space is unknown or an error line is showing, so the
@@ -34,18 +153,15 @@ package body Files.Rendering.Labels is
 
    function Folder_Contents_Text (Info : Info_Snapshot) return UString is
       Result : Unbounded_String;
-      --  "1 item" / "3 items" where the locale's catalog has the plural
-      --  message; else the number and the catalog's word.
-      Counted : constant String :=
-        Files.Localization.Count_Text ("info.contents.items.count", Info.Folder_File_Count);
+      --  The word in the plural form the count takes ("1 item", "3 items")
+      --  where the locale's catalog has the plural message, else the
+      --  catalog's word. The number itself is written in the number locale's
+      --  digits and grouping, like the size beside it.
+      Plural : constant String := Files.Localization.Count_Text ("info.contents.items.word", Info.Folder_File_Count);
    begin
-      if Counted /= "" then
-         Append (Result, Counted);
-      else
-         Append (Result, Grouped_Integer_Text (Long_Long_Integer (Info.Folder_File_Count)));
-         Append (Result, " ");
-         Append (Result, Files.Localization.Text ("info.contents.items"));
-      end if;
+      Append (Result, Grouped_Natural_Text (Info.Folder_File_Count));
+      Append (Result, " ");
+      Append (Result, (if Plural /= "" then Plural else Files.Localization.Text ("info.contents.items")));
       Append (Result, Files.Localization.Text ("info.contents.separator"));
       Append (Result, Size_Text (Info.Folder_Size_Bytes));
       Append (Result, " ");

@@ -1,6 +1,7 @@
 with Ada.Calendar;
 with Ada.Strings.Unbounded;
 
+with Files.Commands;
 with Files.Display_Text;
 with Files.Types;
 with Guikit.Draw;
@@ -57,9 +58,127 @@ private package Files.Rendering.Labels is
    function Grouped_Integer_Text (Value : Long_Long_Integer) return String
      renames Files.Display_Text.Grouped_Integer_Text;
 
+   --  @param Value A measure, such as an image's width.
+   --  @return It in the locale's digits, ungrouped.
+   function Digits_Text (Value : Natural) return String
+     renames Files.Display_Text.Digits_Text;
+
    --  @param Value A byte count.
    --  @return It as a size ("1.2 MB").
    function Size_Text (Value : Long_Long_Integer) return String renames Files.Display_Text.Size_Text;
+
+   --  @param Value A count.
+   --  @return It with the locale's digit grouping (12.345, not 12345), as
+   --    sizes and paste-progress counts are shown.
+   function Grouped_Natural_Text (Value : Natural) return String is
+     (Grouped_Integer_Text (Long_Long_Integer (Value)));
+
+   --  @param Id A command.
+   --  @return Its localized name.
+   function Command_Label (Id : Files.Commands.Command_Id) return UString;
+
+   --  The bottom bar's name for a command: the short form where the bar has
+   --  one (view modes, info toggle, sort), else its name.
+   --
+   --  @param Id A command.
+   --  @return The label.
+   function Bottom_Command_Label (Id : Files.Commands.Command_Id) return UString;
+
+   --  @param Field A sort field.
+   --  @return Its localized name.
+   function Sort_Field_Label (Field : Files.Types.Sort_Field) return String;
+
+   --  @param Ascending The sort direction.
+   --  @return Its localized arrow or word.
+   function Direction_Text (Ascending : Boolean) return String;
+
+   --  @param Field The sort field.
+   --  @param Ascending The sort direction.
+   --  @return The sort button's label: the field and the direction.
+   function Sort_Button_Label (Field : Files.Types.Sort_Field; Ascending : Boolean) return UString;
+
+   --  @param Mode A view mode.
+   --  @return Its localized name.
+   function View_Mode_Label (Mode : Files.Types.View_Mode) return String;
+
+   --  @param Snapshot The view snapshot.
+   --  @return The labelled hidden, visible and selected counts ("3 hidden
+   --    12 visible  1 selected (4 KB)"); a selection's total size carries
+   --    " ..." while a folder in it is still measured.
+   function Count_Status_Text (Snapshot : View_Snapshot) return UString;
+
+   --  @param Snapshot The view snapshot.
+   --  @return The three counts alone, "hidden/visible/selected", for a bar
+   --    too narrow for Count_Status_Text.
+   function Compact_Count_Status_Text (Snapshot : View_Snapshot) return String;
+
+   --  @return The legend of the compact counts, " (hidden / visible /
+   --    selected)" in the status labels, for the counts' tooltip.
+   function Count_Legend_Text return String;
+
+   --  @param Snapshot The view snapshot.
+   --  @return The bottom bar's info line: the error line when there is one,
+   --    else Count_Status_Text.
+   function Bottom_Info_Text (Snapshot : View_Snapshot) return UString;
+
+   --  @param Snapshot The view snapshot.
+   --  @return The main view's accessibility description: its view mode and
+   --    the counts.
+   function Main_View_Accessible_Description (Snapshot : View_Snapshot) return UString;
+
+   --  @param Snapshot The view snapshot.
+   --  @return The localization key of what the empty main view says (an
+   --    empty recent list, folder or filter result), or "" when it has items.
+   function Empty_State_Key (Snapshot : View_Snapshot) return String;
+
+   --  @param Label_Key Localization key of the label.
+   --  @param Value The value.
+   --  @return "Label: Value".
+   function Info_Value (Label_Key : String; Value : String) return UString;
+
+   --  @param Label_Key Localization key of the label.
+   --  @param Available The time is known.
+   --  @param Value The time.
+   --  @param Now The time it is shown at (the snapshot's).
+   --  @return "Label: <time>" relative to Now, or that it is unknown.
+   function Labelled_Time_Text
+     (Label_Key : String;
+      Available : Boolean;
+      Value     : Ada.Calendar.Time;
+      Now       : Ada.Calendar.Time)
+      return UString;
+
+   --  @param Item A row.
+   --  @return The details view's size cell: the size, or "" when unknown.
+   function Detail_Size_Text (Item : Item_Snapshot) return UString is
+     (if Item.Size_Available then To_Unbounded_String (Size_Text (Item.Size)) else Null_Unbounded_String);
+
+   --  The details view's column names, which a row's accessibility
+   --  description repeats: looked up once a frame, not once a row.
+   type Detail_Column_Names is record
+      Modified : UString;
+      Size     : UString;
+      Filetype : UString;
+   end record;
+
+   --  @return The localized details column names.
+   function Detail_Names return Detail_Column_Names;
+
+   --  @param Names The details column names (Detail_Names).
+   --  @param Item The row.
+   --  @param Details The view is the details view.
+   --  @param Modified The row's modified cell as drawn.
+   --  @param Size The row's size cell as drawn.
+   --  @return What a screen reader says of the row beyond its name: in the
+   --    details view its modified time, size and type, each named; in an
+   --    icon view its type.
+   function Item_Accessible_Description
+     (Names    : Detail_Column_Names;
+      Item     : Item_Snapshot;
+      Details  : Boolean;
+      Modified : UString;
+      Size     : UString)
+      return UString;
 
    --  Whether the free-space field should render the graphical used/free bar
    --  (bar mode selected and the capacity totals are usable). When False the
@@ -128,6 +247,18 @@ private package Files.Rendering.Labels is
       Value     : Ada.Calendar.Time;
       Now       : Ada.Calendar.Time)
       return UString;
+
+   --  A details-view time cell: as Info_Metadata_Text.
+   --
+   --  @param Available The time is known.
+   --  @param Value The time.
+   --  @param Now The time it is shown at (the snapshot's).
+   --  @return The text.
+   function Detail_Time_Text
+     (Available : Boolean;
+      Value     : Ada.Calendar.Time;
+      Now       : Ada.Calendar.Time)
+      return UString renames Info_Metadata_Text;
 
    --  The fields of an item's info block. Name is the pane's heading; the
    --  remaining fields are the single-item pane's labelled sections, and their

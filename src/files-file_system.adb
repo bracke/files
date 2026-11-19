@@ -165,11 +165,6 @@ package body Files.File_System is
       Start  : Ada.Streams.Stream_Element_Offset)
       return Natural;
 
-   function Dimensions_Text
-     (Width  : Natural;
-      Height : Natural)
-      return String;
-
    function Image_Dimensions_Info
      (Path     : String;
       Filetype : String)
@@ -279,11 +274,6 @@ package body Files.File_System is
      (Buffer : Ada.Streams.Stream_Element_Array;
       Start  : Ada.Streams.Stream_Element_Offset)
       return Natural is separate;
-
-   function Dimensions_Text
-     (Width  : Natural;
-      Height : Natural)
-      return String is separate;
 
    function Image_Dimensions_Info
      (Path     : String;
@@ -870,14 +860,16 @@ package body Files.File_System is
       return Mutation_Result
    is
       Left_At : UString;
+      Failure : Rename_Failure;
    begin
-      return Rename_Item (From_Path, To_Path, Left_At, Expected_Identity);
+      return Rename_Item (From_Path, To_Path, Left_At, Failure, Expected_Identity);
    end Rename_Item;
 
    function Rename_Item
      (From_Path : String;
       To_Path   : String;
       Left_At   : out UString;
+      Failure   : out Rename_Failure;
       Expected_Identity : String := "")
       return Mutation_Result
    is separate;

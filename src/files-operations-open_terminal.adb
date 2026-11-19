@@ -31,10 +31,9 @@ begin
          return Make_Result (Operation_Failed, "error.terminal.unavailable", Directory);
       end if;
 
-      --  Detached: the terminal outlives us and is not waited for. This used to end
-      --  in "</dev/null >/dev/null 2>&1 &", a shell asked to background the process
-      --  because the spawn underneath blocked -- and a Windows shell cannot read a
-      --  word of it.
+      --  Detached: the terminal outlives us and is not waited for. The spawn
+      --  itself detaches, so the command carries no shell backgrounding syntax
+      --  and reads the same to every host's shell.
       Started := Hostkit.Process.Run_Shell_Command (Command, Wait => False, Exit_Status => Exit_Status);
 
       if not Started then

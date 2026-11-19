@@ -52,13 +52,10 @@ separate (Files.Settings)
       Add_Icon_Mapping (Settings, "application/octet-stream", "unknown");
 
       --  The one seeded open action, and it has to name a program this host
-      --  actually has. It used to be xdg-open everywhere, which no Windows or
-      --  macOS box has -- and because Lookup_Open_Action prefers a configured
-      --  action over the system default, that entry did not merely fail to
-      --  help: it shadowed the working `start` and `open` fallbacks, so a text
-      --  file would not open at all. Worse, Ensure_Default_File writes these
-      --  defaults out, so the dead entry was persisted into the user's
-      --  settings file for them to find and delete by hand.
+      --  actually has: Lookup_Open_Action prefers a configured action over the
+      --  system default, so an opener the host lacks would shadow the working
+      --  fallbacks, and Ensure_Default_File writes these defaults out into the
+      --  user's settings file.
       --  The host's opener as a settings file keeps it: named, not located,
       --  so the file carries no one machine's absolute paths.
       declare

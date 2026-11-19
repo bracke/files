@@ -24,7 +24,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          Buttons : Guikit.Menu_Tree.Menu_Tree_Button_Vectors.Vector;
          Pick    : constant Tree_Pick_Button_Layout :=
            (if Snapshot.Tree_Pick_Active
-            then Tree_Pick_Buttons (Tree_Panel, Line_Height)
+            then Tree_Pick_Buttons (Tree_Panel)
             else (others => <>));
       begin
          for I in 1 .. Natural (Tree_Rows_Layout.Length) loop

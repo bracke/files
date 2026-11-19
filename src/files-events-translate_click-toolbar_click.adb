@@ -18,6 +18,7 @@ procedure Toolbar_Click (Handled : out Boolean; Result : out Input_Action) is
      Files.Rendering.Layouts.Path_Field_Text_Region (Toolbar, Width, Line_Height);
    Filter_Text      : constant Files.Rendering.Layouts.Field_Text_Region :=
      Files.Rendering.Layouts.Filter_Field_Text_Region (Toolbar, Line_Height);
+   Command          : Files.Commands.Command_Id;
 begin
    Handled := True;
    if Path_Star.Visible

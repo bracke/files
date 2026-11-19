@@ -67,7 +67,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          Layout.Main_Width,
          Layout.Main_Height,
          Localized ("accessibility.main_view"),
-         Main_View_Accessible_Description);
+         Main_View_Accessible_Description (Snapshot));
 
       if Layout.Info_Pane_Width > 0 then
          Add_Rect

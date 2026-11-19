@@ -26,6 +26,16 @@ package body Files.Model is
       end return;
    end Replaced_Trash;
 
+   --  An idle transfer session, to release a held one by assignment: the
+   --  model only holds the job handles; Files.Operations drives them.
+   --
+   --  @return A session holding no job.
+   function Released_Transfer return Files.Transfer_Jobs.Session is
+      Idle : Files.Transfer_Jobs.Session;
+   begin
+      return Idle;
+   end Released_Transfer;
+
    procedure Set_Background_Transfers (Model : in out Window_Model; Enabled : Boolean) is
    begin
       Model.Background_Transfers_Value := Enabled;
@@ -70,7 +80,7 @@ package body Files.Model is
    begin
       --  Released, not driven: a helper still running is stopped and reaped
       --  by its last handle going (Files.Process_Jobs).
-      Model.Paste_Exec_Job := Support.Released_Transfer;
+      Model.Paste_Exec_Job := Released_Transfer;
       Model.Operation_Job := Support.Released_Process;
       Model.Operation_Label_Key := Null_Unbounded_String;
       Model.Operation_Name := Null_Unbounded_String;
@@ -402,6 +412,16 @@ package body Files.Model is
      (Model : Window_Model)
       return Natural is
      (Natural (Model.Items.Length));
+
+   --  How many items are visible (the pending create row not counted).
+   --
+   --  @param Model Model to inspect.
+   --  @return The count.
+   function Visible_Item_Count (Model : Window_Model) return Natural is
+   begin
+      Ensure_Visible_Map (Model);
+      return Natural (Model.Visible_Items.Length);
+   end Visible_Item_Count;
 
    function Visible_Count
      (Model : Window_Model)

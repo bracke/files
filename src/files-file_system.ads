@@ -581,22 +581,32 @@ package Files.File_System is
    --  The error a rename reports when it left the entry at neither name.
    Rename_Stranded_Key : constant String := "error.rename.stranded";
 
-   --  As Rename_Item, also telling where the entry was left when it is at
-   --  neither name: a case-only rename goes through a scratch name beside
-   --  the original, and when the second hop and the way back both fail the
-   --  entry stays at that scratch name -- reported as Rename_Stranded_Key,
-   --  whose message names Left_At.
+   --  Why a rename failed, for a caller that acts on the reason and not only
+   --  reports the result's key.
+   type Rename_Failure is
+     (Rename_Refused,         --  Any reason not named below.
+      Rename_Source_Missing,  --  The entry to rename is gone.
+      Rename_Name_Invalid,    --  The destination cannot store the new name.
+      Rename_Stranded);       --  Left at neither name (Rename_Stranded_Key).
+
+   --  As Rename_Item, also telling why it failed and where the entry was left
+   --  when it is at neither name: a case-only rename goes through a scratch
+   --  name beside the original, and when the second hop and the way back both
+   --  fail the entry stays at that scratch name -- reported as
+   --  Rename_Stranded_Key, whose message names Left_At.
    --
    --  @param From_Path Existing path.
    --  @param To_Path Destination path.
    --  @param Left_At The path the entry was left at for Rename_Stranded_Key;
    --    empty otherwise.
+   --  @param Failure Why the rename failed; Rename_Refused when it succeeded.
    --  @param Expected_Identity Optional history snapshot verified before and after quarantining the source.
    --  @return Mutation result.
    function Rename_Item
      (From_Path : String;
       To_Path   : String;
       Left_At   : out UString;
+      Failure   : out Rename_Failure;
       Expected_Identity : String := "")
       return Mutation_Result;
 

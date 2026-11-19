@@ -106,6 +106,7 @@ package body Files_Suite.Transfer is
    procedure Test_Batch_Hard_Link_Copy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Failed_Move_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Drop_Import_Execution (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Item_Drop_Starts_Paste (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Drop_Import_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Tree_Preserves_Symlinks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Resolution_Core (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -171,6 +172,9 @@ package body Files_Suite.Transfer is
          "cross-device move, trash, and restore failures preserve recoverable data");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Drop_Import_Execution'Access, "drop import copies, moves and arms the conflict dialog");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Item_Drop_Starts_Paste'Access,
+         "the controller pastes a selection dropped on a folder item into that folder");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Drop_Import_Guards'Access, "drop import handles same-directory, into-self and same-name sources");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -297,6 +301,8 @@ package body Files_Suite.Transfer is
    end Register_Tests;
 
    procedure Test_Drop_Import_Execution (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Item_Drop_Starts_Paste (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Drop_Import_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -53,8 +53,7 @@ begin
    end if;
 
    --  A detached launch starts the application and returns. It has no exit status to
-   --  report and does not pretend to: what used to be reported was the backgrounding
-   --  wrapper shell's zero, which said nothing about the application.
+   --  report and does not pretend to: it answers only whether the launch started.
    if Detach then
       return Hostkit.Process.Launch
         (Executable, Arguments, Working_Directory => To_String (Action.Working_Directory));

@@ -1,3 +1,5 @@
+with Guikit.Bidi;
+with Guikit.Mirroring;
 separate (Files.Application.Windows.Render_Window)
    procedure Present_Frame
    is
@@ -6,9 +8,30 @@ separate (Files.Application.Windows.Render_Window)
       --  from the cached one.
       Overlay_Merged : constant Boolean := Palette.Shown or else Settings.Shown;
 
-      procedure Present (Unmirrored : Files.Rendering.Frame_Commands) is separate;
+      --  Give Frame to the screen reader, its path to the title bar, and present it.
+      procedure Show (Frame : Files.Rendering.Frame_Commands) is separate;
+
+      --  Reflect Frame for a right-to-left layout, in place.
+      procedure Mirror (Frame : in out Files.Rendering.Frame_Commands) is
+         W : constant Natural := Frame.Layout.Width;
+      begin
+         Guikit.Mirroring.Mirror (Frame.Rectangles, W);
+         Guikit.Mirroring.Mirror (Frame.Triangles, W);
+         Guikit.Mirroring.Mirror (Frame.Text, W);
+         Guikit.Mirroring.Mirror (Frame.Icons, W);
+         Guikit.Mirroring.Mirror (Frame.Overlay_Rectangles, W);
+         Guikit.Mirroring.Mirror (Frame.Overlay_Text, W);
+         Guikit.Mirroring.Mirror (Frame.Tooltips, W);
+         Guikit.Mirroring.Mirror (Frame.Accessibility, W);
+         Guikit.Mirroring.Mirror (Frame.Layout);
+      end Mirror;
+
+      Mirrored : constant Boolean := Guikit.Bidi.Mirrored_Layout;
    begin
-      if Overlay_Merged then
+      --  The cached frame keeps the unmirrored coordinates hit tests use, so
+      --  what is shown is the cached frame itself only when nothing is merged
+      --  in and nothing is reflected; otherwise one working copy takes both.
+      if Overlay_Merged or else Mirrored then
          declare
             --  A working copy of the cached frame, so an overlay (whose state
             --  lives in its component and changes every frame) is merged in
@@ -27,11 +50,13 @@ separate (Files.Application.Windows.Render_Window)
                Append_Overlay (Frame, Settings.Rectangles, Settings.Text, Settings.Accessibility, Settings.Icons);
             end if;
 
-            Present (Frame);
+            if Mirrored then
+               Mirror (Frame);
+            end if;
+            Show (Frame);
          end;
       else
-         --  Nothing to merge: present the cached frame itself, uncopied.
-         Present (Runtime.Cached_Frame);
+         Show (Runtime.Cached_Frame);
       end if;
 
       --  Remember what we just put on screen so the next render's present gate

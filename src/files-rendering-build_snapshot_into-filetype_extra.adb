@@ -9,7 +9,9 @@ separate (Files.Rendering.Build_Snapshot_Into)
       function Detail (Extra : Files.Extra_Info.Info) return UString is
          Subject : constant String := To_String (Extra.Subject);
          Value   : constant String := To_String (Extra.Value);
-         Count   : constant String := Files.Types.Natural_Text (Extra.Count) & (if Extra.Capped then "+" else "");
+         Count   : constant String :=
+           Files.Rendering.Labels.Grouped_Integer_Text (Long_Long_Integer (Extra.Count))
+           & (if Extra.Capped then "+" else "");
 
          function Fill (Key, Name, Text : String) return UString is
            (To_Unbounded_String (Files.Localization.Text ("info.extra." & Key, Name, Text)));
@@ -36,7 +38,10 @@ separate (Files.Rendering.Build_Snapshot_Into)
                        else " " & Fill ("encoding", "encoding", Word ("encoding." & Value)));
                end;
             when Files.Extra_Info.Image_Dimensions =>
-               return Fill ("image.dimensions", "dimensions", Value);
+               return Fill
+                 ("image.dimensions", "dimensions",
+                  Files.Rendering.Labels.Digits_Text (Extra.Width) & "x"
+                  & Files.Rendering.Labels.Digits_Text (Extra.Height));
             when Files.Extra_Info.Document_Kind =>
                return To_Unbounded_String (Word ("document." & Value));
             when Files.Extra_Info.Pdf_Pages =>

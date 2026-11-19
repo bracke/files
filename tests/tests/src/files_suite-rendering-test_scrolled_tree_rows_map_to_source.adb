@@ -32,7 +32,7 @@ separate (Files_Suite.Rendering)
 
       Layout  := Calculate_Layout (Snap, Width, 200, LH);
       Panel   := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
-      Buttons := Tree_Pick_Buttons (Panel, LH);
+      Buttons := Tree_Pick_Buttons (Panel);
       Rows    := Calculate_Tree_Row_Layout (Snap, Panel, LH);
       Frame   := Build_Frame_Commands (Snap, Width, 200, LH);
 

@@ -107,15 +107,6 @@ package Files.Fs_Primitives is
    --  @return The parent, indexed from 1, or "" when there is none.
    function Parent_Text (Path : String) return String;
 
-   --  Directory joined with a leaf made of Stem and Extension, what
-   --  Ada.Directories.Compose makes, from text alone (Leaf_Text).
-   --
-   --  @param Directory The folder the leaf goes in.
-   --  @param Stem The leaf's name before its extension.
-   --  @param Extension The extension without its dot, or "" for none.
-   --  @return The joined path.
-   function Compose_Text (Directory : String; Stem : String; Extension : String := "") return String;
-
    --  What Path names, as Ada.Directories.Kind says, asked through
    --  Hostkit.Fs.Kind_Of: on Windows a path past 260 characters still answers.
    --

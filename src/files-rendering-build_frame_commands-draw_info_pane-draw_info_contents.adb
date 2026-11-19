@@ -37,7 +37,9 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane)
                Files.Localization.Argument_List'
                [Arg ("summary", Summary),
                 Arg ("modified",
-                     To_String (Time_Text (Info.Modified_Available, Info.Modified_Time, "info.modified")))])
+                     To_String
+                       (Labelled_Time_Text
+                          ("info.modified", Info.Modified_Available, Info.Modified_Time, Snapshot.Now)))])
             else Summary);
       begin
          if not Full or else not Info.Metadata_Error then

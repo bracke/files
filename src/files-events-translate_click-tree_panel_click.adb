@@ -40,7 +40,7 @@ begin
       if Snapshot.Tree_Pick_Active then
          declare
             Buttons : constant Files.Rendering.Layouts.Tree_Pick_Button_Layout :=
-              Files.Rendering.Layouts.Tree_Pick_Buttons (Tree_Panel_L, Line_Height);
+              Files.Rendering.Layouts.Tree_Pick_Buttons (Tree_Panel_L);
          begin
             if Buttons.Visible then
                if Within (X, Buttons.Choose_X, Buttons.Button_Width)

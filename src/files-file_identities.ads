@@ -27,6 +27,7 @@ package Files.File_Identities is
    --  @return Size, mode, ownership and precise modification/change times, or empty on failure.
    function Revision (Path : String; Include_Change_Time : Boolean := True) return String;
 private
+   --  Test seam: Token answers empty, as on a host without identities.
    Test_Identity_Unavailable : Boolean := False;
    pragma Atomic (Test_Identity_Unavailable);
 end Files.File_Identities;

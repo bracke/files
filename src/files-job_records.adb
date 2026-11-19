@@ -363,6 +363,8 @@ package body Files.Job_Records is
       Boolean'Output (Stream, Value.Filetype_Extra.Capped);
       Write_String (Stream, To_String (Value.Filetype_Extra.Subject), Max_Text_Length);
       Write_String (Stream, To_String (Value.Filetype_Extra.Value), Max_Text_Length);
+      Natural'Output (Stream, Value.Filetype_Extra.Width);
+      Natural'Output (Stream, Value.Filetype_Extra.Height);
       Boolean'Output (Stream, Value.Filetype_Extra_Loaded);
       Boolean'Output (Stream, Value.Thumbnail_Available);
       Write_String (Stream, To_String (Value.Thumbnail_Path), Max_Path_Length);
@@ -409,6 +411,8 @@ package body Files.Job_Records is
          Result.Filetype_Extra.Capped := Boolean'Input (Stream);
          Result.Filetype_Extra.Subject := To_Unbounded_String (Read_String (Stream, Max_Text_Length));
          Result.Filetype_Extra.Value := To_Unbounded_String (Read_String (Stream, Max_Text_Length));
+         Result.Filetype_Extra.Width := Natural'Input (Stream);
+         Result.Filetype_Extra.Height := Natural'Input (Stream);
       end;
       Result.Filetype_Extra_Loaded := Boolean'Input (Stream);
       Result.Thumbnail_Available := Boolean'Input (Stream);

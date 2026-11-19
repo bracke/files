@@ -49,7 +49,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          Draw_Drag_Preview;
       end if;
 
-      if Empty_State_Key /= "" and then Layout.Main_Width > 0 and then Layout.Main_Height > 0 then
+      if Empty_State_Key (Snapshot) /= "" and then Layout.Main_Width > 0 and then Layout.Main_Height > 0 then
          Draw_Empty_State;
       end if;
 

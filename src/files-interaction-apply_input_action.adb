@@ -38,6 +38,9 @@ separate (Files.Interaction)
                  Visible_Index => Action.Item_Index,
                  Activate      => Action.Activate,
                  Modifiers     => Modifiers);
+         when Files.Events.Item_Drop_Input_Action =>
+            Asked := True;
+            Outcome := Files.Controller.Handle_Item_Drop (Model, Settings, Action.Drop_Target, Modifiers);
          when Files.Events.Root_Click_Input_Action =>
             Asked := True;
             Outcome :=

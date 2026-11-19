@@ -21,7 +21,7 @@ separate (Files_Suite.Rendering)
       Snap.Tree_Pick_Active := True;
       Layout  := Calculate_Layout (Snap, Width, Height, LH);
       Panel   := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
-      Buttons := Tree_Pick_Buttons (Panel, LH);
+      Buttons := Tree_Pick_Buttons (Panel);
       Frame   := Build_Frame_Commands (Snap, Width, Height, LH);
 
       Assert (Buttons.Visible, "the active tree destination picker shows a Choose/Cancel bar");

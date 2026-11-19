@@ -23,6 +23,7 @@ package Files.Events is
       Text_Click_Input_Action,
       Settings_Click_Input_Action,
       Item_Click_Input_Action,
+      Item_Drop_Input_Action,
       Root_Click_Input_Action,
       Breadcrumb_Click_Input_Action,
       Path_Favorite_Toggle_Input_Action,
@@ -101,6 +102,10 @@ package Files.Events is
             --  controller's (Handle_Item_Click), read from the click's own.
             Item_Index      : Natural := 0;
             Activate        : Boolean := False;
+         when Item_Drop_Input_Action =>
+            --  The item a drag of the selection was released on; the
+            --  release's Ctrl copies, otherwise the selection moves.
+            Drop_Target : Natural := 0;
          when Root_Click_Input_Action =>
             Root_Index : Natural := 0;
          when Breadcrumb_Click_Input_Action =>

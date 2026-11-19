@@ -46,7 +46,11 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
          end if;
       end Add_At;
 
-      Column_Header : constant array (0 .. 2) of Character := ('R', 'W', 'E');
+      function Column_Header_Key (Col : Natural) return String is
+        (case Col is
+            when 0      => "info.permissions.column.read",
+            when 1      => "info.permissions.column.write",
+            when others => "info.permissions.column.execute");
 
       function Row_Label_Key (Row : Natural) return String is
         (case Row is
@@ -56,12 +60,12 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
    begin
       Add_Info_Label (Current_Row, Info_Field_Label_Key (Info_Permissions));
 
-      --  R/W/E header, one letter centred over each column.
+      --  The read/write/execute header, one letter centred over each column.
       for Col in 0 .. 2 loop
          Add_At
            (Guikit.Layout.Saturating_Add
               (Guikit.Layout.Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap)), Header_Pad),
-            Current_Row + 1, Char_W, [1 => Column_Header (Col)]);
+            Current_Row + 1, Char_W, Files.Localization.Text (Column_Header_Key (Col)));
       end loop;
 
       for Bit in 0 .. 8 loop

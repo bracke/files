@@ -1,6 +1,7 @@
 separate (Files.Events.Translate_Click)
 --  The open sort menu: a row picks the sort, a click outside closes it.
 procedure Sort_Menu_Click (Handled : out Boolean; Result : out Input_Action) is
+   Command : Files.Commands.Command_Id;
 begin
    Handled := True;
    --  The open sort menu owns pointer input just as it owns the keyboard.

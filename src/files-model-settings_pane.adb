@@ -1,9 +1,20 @@
 with Files.Model.Support;
+with Files.Settings_Form;
 
 package body Files.Model.Settings_Pane is
 
    use Ada.Strings.Unbounded;
    use Files.Model.Support;
+
+   --  Reset the panel component and rebuild its field list from the draft.
+   --
+   --  @param Model Model whose settings panel is rebuilt.
+   procedure Reset_Settings_Panel (Model : in out Window_Model) is
+   begin
+      Touch (Model);
+      Guikit.Settings_Panel.Reset (Model.Settings_Panel_View);
+      Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Files.Settings_Form.Fields (Model));
+   end Reset_Settings_Panel;
 
    --  The number of complete key/value pairs across two parallel lists (the
    --  shorter of the two lengths).

@@ -53,7 +53,7 @@ separate (Files_Suite.Info)
       Assert_Localized_Extra
         (Name     => "picture.png",
          Filetype => "image/png",
-         Extra    => Files.Extra_Info.Make (Files.Extra_Info.Image_Dimensions, Value => "32x16"),
+         Extra    => Files.Extra_Info.Make (Files.Extra_Info.Image_Dimensions, Width => 32, Height => 16),
          Expected =>
            Detail_Value ("info.extra.image.dimensions", "dimensions", "32x16"),
          Message  => "item snapshot localizes image dimension metadata");

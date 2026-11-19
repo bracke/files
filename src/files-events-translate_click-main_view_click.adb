@@ -43,8 +43,8 @@ begin
    declare
       Item_Layout : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
         Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
+      Item_Index  : constant Natural := Files.Rendering.Hit.Item_At (Item_Layout, X, Y);
    begin
-      Item_Index := Files.Rendering.Hit.Item_At (Item_Layout, X, Y);
       if Item_Index /= 0 then
          --  Item_At answers the item's visible index; the rows (and their
          --  rectangles) also hold group headers, so look up its row position.

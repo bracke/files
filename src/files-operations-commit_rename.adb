@@ -21,16 +21,23 @@ is
    --  told over any other error, as the user has to go and find it.
    Stranded_Path    : Unbounded_String := Null_Unbounded_String;
 
+   --  What the first error was, where the outcome depends on it.
+   type Error_Reason is
+     (Invalid_Name,   --  A name the folder cannot hold: Operation_Invalid_Name.
+      Stranded,       --  An entry left at neither name: its message names it.
+      Other_Error);
+   First_Error_Reason : Error_Reason := Other_Error;
+
    --  The path the first error's message names: only a stranded entry's.
    function First_Error_Argument return String is
-     (if To_String (First_Error_Key) = Files.File_System.Rename_Stranded_Key
-      then To_String (First_Error_Path) else "");
+     (if First_Error_Reason = Stranded then To_String (First_Error_Path) else "");
 
-   procedure Record_First_Error (Key : String; Path : String) is
+   procedure Record_First_Error (Key : String; Path : String; Reason : Error_Reason := Other_Error) is
    begin
       if First_Error_Key = Null_Unbounded_String then
          First_Error_Key := To_Unbounded_String (Key);
          First_Error_Path := To_Unbounded_String (Path);
+         First_Error_Reason := Reason;
       end if;
    end Record_First_Error;
 begin
@@ -60,7 +67,7 @@ begin
          --  is a name the user typed.
          if New_Name /= Old_Name and then not Files.File_System.Valid_Leaf_Name_At (New_Name, Parent) then
             Failure := Failure + 1;
-            Record_First_Error ("error.name.invalid", Old_Full);
+            Record_First_Error ("error.name.invalid", Old_Full, Invalid_Name);
          elsif New_Name = Old_Name then
             --  refusal-safe: a refused lookup counts the unchanged name as a failure
             if Files.Fs_Primitives.Entry_Exists (Old_Full) then
@@ -78,8 +85,9 @@ begin
             declare
                New_Path : constant String := Hostkit.Fs.Join (Parent, New_Name);
                Left_At  : Unbounded_String;
+               Why      : Files.File_System.Rename_Failure;
                Mutation : constant Files.File_System.Mutation_Result :=
-                 Files.File_System.Rename_Item (Old_Full, New_Path, Left_At);
+                 Files.File_System.Rename_Item (Old_Full, New_Path, Left_At, Why);
             begin
                if Mutation.Success then
                   Success := Success + 1;
@@ -96,19 +104,22 @@ begin
                   end if;
                else
                   Failure := Failure + 1;
-                  if To_String (Mutation.Error_Key) = "error.rename.source_missing" then
-                     Need_Reload := True;
-                     Record_First_Error (To_String (Mutation.Error_Key), New_Path);
-                  elsif To_String (Mutation.Error_Key) = Files.File_System.Rename_Stranded_Key then
-                     --  The entry is at a name the listing does not show yet.
-                     Need_Reload := True;
-                     if Stranded_Path = Null_Unbounded_String then
-                        Stranded_Path := Left_At;
-                     end if;
-                     Record_First_Error (To_String (Mutation.Error_Key), To_String (Left_At));
-                  else
-                     Record_First_Error (To_String (Mutation.Error_Key), New_Path);
-                  end if;
+                  case Why is
+                     when Files.File_System.Rename_Source_Missing =>
+                        Need_Reload := True;
+                        Record_First_Error (To_String (Mutation.Error_Key), New_Path);
+                     when Files.File_System.Rename_Stranded =>
+                        --  The entry is at a name the listing does not show yet.
+                        Need_Reload := True;
+                        if Stranded_Path = Null_Unbounded_String then
+                           Stranded_Path := Left_At;
+                        end if;
+                        Record_First_Error (To_String (Mutation.Error_Key), To_String (Left_At), Stranded);
+                     when Files.File_System.Rename_Name_Invalid =>
+                        Record_First_Error (To_String (Mutation.Error_Key), New_Path, Invalid_Name);
+                     when Files.File_System.Rename_Refused =>
+                        Record_First_Error (To_String (Mutation.Error_Key), New_Path);
+                  end case;
                end if;
             end;
          end if;
@@ -116,16 +127,16 @@ begin
    end loop;
 
    --  All renames failed. Keep the inline editors active (so the user can
-   --  correct them) unless a vanished source forces a reload -- matching the
-   --  single-item behavior exactly.
+   --  correct them) unless a vanished or stranded entry forces a reload.
    if Success = 0 then
       if Stranded_Path /= Null_Unbounded_String then
          First_Error_Key := To_Unbounded_String (Files.File_System.Rename_Stranded_Key);
          First_Error_Path := Stranded_Path;
+         First_Error_Reason := Stranded;
       end if;
       declare
          Failed_Status : constant Operation_Status :=
-           (if To_String (First_Error_Key) = "error.name.invalid"
+           (if First_Error_Reason = Invalid_Name
             then Operation_Invalid_Name
             else Operation_Failed);
       begin

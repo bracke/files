@@ -96,14 +96,9 @@ is
          return False;
    end Inside_Volume_Trash;
 begin
-   --  The native backends used to be refused here, because nothing called
-   --  them: a desktop trash we could not reach was the same as no trash. They
-   --  are wired up now, so refusing the platform's own trash before even
-   --  looking at the path meant deleting on Windows always failed with
-   --  "native unavailable" while the Recycle Bin sat there unused.
-   --
-   --  A native backend gets the same checks as any other: it still may not
-   --  swallow a path that does not exist, or the filesystem root.
+   --  A native backend (the Recycle Bin, the macOS Trash) is a trash like any
+   --  other and gets the same checks: it may not swallow a path that does
+   --  not exist, or the filesystem root.
    if not Source_Exists or else Is_Filesystem_Root then
       return
         (Success   => False,

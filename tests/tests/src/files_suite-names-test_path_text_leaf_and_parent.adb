@@ -9,6 +9,11 @@ separate (Files_Suite.Names)
       pragma Unreferenced (T);
       package P renames Files.Fs_Primitives;
       Long : constant String := [1 .. 300 => 'n'];
+
+      --  Directory joined with a leaf made of Stem and Extension, from text
+      --  alone, as the leaf and parent readings are.
+      function Compose_Text (Directory : String; Stem : String; Extension : String := "") return String is
+        (Hostkit.Fs.Join (Directory, (if Extension = "" then Stem else Stem & "." & Extension)));
    begin
       Files_Suite.Support.Assert_Equal (P.Leaf_Text ("C:\dir\" & Long), Long, "a long Windows leaf");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("C:\dir\" & Long), "C:\dir", "and its parent");
@@ -26,8 +31,8 @@ separate (Files_Suite.Names)
       Files_Suite.Support.Assert_Equal (P.Parent_Directory ("/"), "", "the POSIX root has no parent directory");
       Files_Suite.Support.Assert_Equal (P.Parent_Directory ("/a/b"), "/a", "a parent is the text before the leaf");
       Files_Suite.Support.Assert_Equal
-        (P.Compose_Text ("C:\dir", Long, "txt"), "C:\dir" & Hostkit.Fs.Separator & Long & ".txt",
+        (Compose_Text ("C:\dir", Long, "txt"), "C:\dir" & Hostkit.Fs.Separator & Long & ".txt",
          "a long leaf composes with its extension");
       Files_Suite.Support.Assert_Equal
-        (P.Compose_Text ("/d", "stem"), "/d" & Hostkit.Fs.Separator & "stem", "and without one");
+        (Compose_Text ("/d", "stem"), "/d" & Hostkit.Fs.Separator & "stem", "and without one");
    end Test_Path_Text_Leaf_And_Parent;

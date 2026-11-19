@@ -117,7 +117,7 @@ separate (Check_All)
       Require_Tests ("text_input", 5);
       Require_Tests ("rendering", 111);
       Require_Tests ("operations", 49);
-      Require_Tests ("transfer", 56);
+      Require_Tests ("transfer", 57);
       Require_Tests ("recovery", 63);
       Require_Tests ("history", 40);
       Require_Tests ("trash", 33);

@@ -16,7 +16,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
       Add_Button (Bottom.Sort_Button_X, Bottom.Sort_Button_Width, Snapshot.Sort_Menu_Open, Hovered, Pressed);
       declare
          Field_Label : constant String := Sort_Field_Label (Snapshot.Sort_Field);
-         Arrow_Text  : constant String := Direction_Text;
+         Arrow_Text  : constant String := Direction_Text (Snapshot.Sort_Ascending);
          Cell_W      : constant Positive :=
            Guikit.Layout.Caret_Advance_Width (Line_Height);
          Label_W     : constant Natural :=
@@ -77,7 +77,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
          Bottom_Content_Y,
          Bottom.Sort_Button_Width,
          Bottom_Content_H,
-         Sort_Button_Label,
+         Sort_Button_Label (Snapshot.Sort_Field, Snapshot.Sort_Ascending),
          Localized (Files.Commands.Description_Key (Files.Commands.Toggle_Sort_Menu_Command)),
          Enabled  => Snapshot.Command_Enabled (Files.Commands.Toggle_Sort_Menu_Command),
          Selected => Snapshot.Sort_Menu_Open);

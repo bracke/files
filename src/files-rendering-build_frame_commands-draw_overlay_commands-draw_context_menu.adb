@@ -43,8 +43,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
 
             declare
                --  Fit a menu label to its padded interior exactly as
-               --  Add_Overlay_Text (Fit => True) would, so Draw_Menu_Row
-               --  reproduces the former per-row overlay text byte for byte.
+               --  Add_Overlay_Text (Fit => True) fits overlay text, so a row's
+               --  label is cut where any other fitted overlay text would be.
                Cell_W : constant Positive :=
                  Guikit.Layout.Caret_Advance_Width (Line_Height);
             begin

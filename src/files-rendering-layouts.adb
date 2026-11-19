@@ -270,11 +270,7 @@ package body Files.Rendering.Layouts is
       return Tree_Row_Layout_Vectors.Vector
  is separate;
 
-   function Tree_Pick_Buttons
-     (Panel       : Tree_Panel_Layout;
-      Line_Height : Positive)
-      return Tree_Pick_Button_Layout
- is separate;
+   function Tree_Pick_Buttons (Panel : Tree_Panel_Layout) return Tree_Pick_Button_Layout is separate;
 
    function Calculate_Info_Pane_Layout
      (Snapshot    : View_Snapshot;

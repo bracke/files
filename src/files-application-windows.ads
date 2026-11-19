@@ -15,8 +15,10 @@ private with Files.Accessibility;
 private with Files.Commands;
 private with Files.Drop_Events;
 private with Files.Events;
+private with Files.Overlays;
 private with Files.Rendering;
 private with Files.Rendering.Text;
+private with Files.Snapshot_Policy.Settings_Keys;
 private with Files.Snapshot_Slots;
 private with Files.Settings;
 private with Files.Types;
@@ -296,6 +298,19 @@ private
       Accessibility : Guikit.Draw.Accessibility_Node_Vectors.Vector;
    end record;
 
+   --  What the settings panel's commands are built from: the model (its
+   --  panel state and draft), the settings the snapshot reads (theme, text
+   --  size, language), the panel's region and line height, its focus and the
+   --  pointer over it. The commands are rebuilt only when this moves.
+   type Settings_Overlay_Inputs is record
+      Model_Revision : Natural := 0;
+      Settings_Key   : Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key;
+      Region         : Files.Overlays.Overlay_Region;
+      Focused        : Boolean := False;
+      Hover_X        : Integer := -1;
+      Hover_Y        : Integer := -1;
+   end record;
+
    --  Everything besides the snapshot that a frame is built from: its size
    --  and the pointer. A frame is rebuilt only when these or the snapshot
    --  change, compared as one record.
@@ -428,6 +443,12 @@ private
       Presented_Once             : Boolean := False;
       Last_Palette               : Overlay_Commands;
       Last_Settings              : Overlay_Commands;
+      --  The settings panel's commands while it is shown (Shown False
+      --  otherwise), the inputs they were built from, and whether they were
+      --  built at all: an idle panel is not rebuilt every loop pass.
+      Settings_Overlay           : Overlay_Commands;
+      Settings_Overlay_From      : Settings_Overlay_Inputs;
+      Settings_Overlay_Built     : Boolean := False;
       --  Frames still owed a present after the last visible change (grace window,
       --  see Present_Grace_Frames). Nonzero keeps us presenting every frame so
       --  interaction stays paced to the display; it decays to zero when idle and

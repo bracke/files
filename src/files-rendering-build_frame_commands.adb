@@ -540,9 +540,8 @@ separate (Files.Rendering)
       end Add_Focus_Ring;
 
       --  Draw an editable input field's box chrome (background fill plus a
-      --  one-pixel border) into the base rectangle layer, byte-identical to the
-      --  former inline Add_Rect + Add_Border pair. The field text, caret, focus
-      --  ring and any adornments stay with the caller.
+      --  one-pixel border) into the base rectangle layer. The field text,
+      --  caret, focus ring and any adornments stay with the caller.
       procedure Add_Input_Field
         (X            : Natural;
          Y            : Natural;
@@ -678,174 +677,14 @@ separate (Files.Rendering)
          Enabled  : Boolean := True)
  is separate;
 
-      function Command_Label (Id : Files.Commands.Command_Id) return UString is
-      begin
-         return To_Unbounded_String (Files.Localization.Text (Files.Commands.Name_Key (Id)));
-      end Command_Label;
-
-      function Bottom_Command_Label (Id : Files.Commands.Command_Id) return UString is
-      begin
-         case Id is
-            when Files.Commands.Select_Small_Icons_Command =>
-               return To_Unbounded_String (Files.Localization.Text ("command.view.small.short"));
-            when Files.Commands.Select_Large_Icons_Command =>
-               return To_Unbounded_String (Files.Localization.Text ("command.view.large.short"));
-            when Files.Commands.Select_Details_Command =>
-               return To_Unbounded_String (Files.Localization.Text ("command.view.details.short"));
-            when Files.Commands.Toggle_Info_Pane_Command =>
-               return To_Unbounded_String (Files.Localization.Text ("command.info.toggle.short"));
-            when Files.Commands.Toggle_Sort_Menu_Command =>
-               return To_Unbounded_String (Files.Localization.Text ("command.sort.name"));
-            when others =>
-               return Command_Label (Id);
-         end case;
-      end Bottom_Command_Label;
-
-      function Sort_Field_Label
-        (Field : Files.Types.Sort_Field)
-         return String is (Files.Localization.Text (Files.Commands.Sort_Label_Key (Field)));
-
       function Sort_Field_Command
         (Field : Files.Types.Sort_Field)
          return Files.Commands.Registered_Command_Id is (Files.Commands.Sort_Command (Field));
-
-      function Direction_Text return String is
-      begin
-         return
-           Files.Localization.Text
-             ((if Snapshot.Sort_Ascending then "sort.direction.ascending" else "sort.direction.descending"));
-      end Direction_Text;
-
-      function Sort_Button_Label return UString is
-      begin
-         return To_Unbounded_String (Sort_Field_Label (Snapshot.Sort_Field) & " " & Direction_Text);
-      end Sort_Button_Label;
 
       function Command_Color (Id : Files.Commands.Registered_Command_Id) return Render_Color is
       begin
          return (if Snapshot.Command_Enabled (Id) then Text_Color else Disabled_Text_Color);
       end Command_Color;
-
-      --  Group counts with the locale's separator (12.345, not 12345), the same
-      --  way sizes and paste-progress counts are shown, so no on-screen number
-      --  is formatted inconsistently with the rest.
-      function Grouped_Natural_Text (Value : Natural) return String is
-      begin
-         return Grouped_Integer_Text (Long_Long_Integer (Value));
-      end Grouped_Natural_Text;
-
-      function View_Mode_Label return String is
-      begin
-         case Snapshot.View_Mode is
-            when Files.Types.Small_Icons =>
-               return Files.Localization.Text ("command.view.small");
-            when Files.Types.Large_Icons =>
-               return Files.Localization.Text ("command.view.large");
-            when Files.Types.Details =>
-               return Files.Localization.Text ("command.view.details");
-         end case;
-      end View_Mode_Label;
-
-      function Hidden_Status_Text return String is
-      begin
-         --  Built from fragments so no letters-plus-space display literal is
-         --  hard-coded: "N" + " " + localized "hidden".
-         return
-           Grouped_Natural_Text (Snapshot.Hidden_Count)
-           & " "
-           & Files.Localization.Text ("status.hidden");
-      end Hidden_Status_Text;
-
-      function Selected_Status_Text return String is separate;
-
-      function Count_Status_Text return UString is
-      begin
-         return
-           To_Unbounded_String
-             (Hidden_Status_Text
-              & "  "
-              & Grouped_Natural_Text (Snapshot.Visible_Count)
-              & " "
-              & Files.Localization.Text ("status.visible")
-              & "  "
-              & Selected_Status_Text);
-      end Count_Status_Text;
-
-      function Bottom_Info_Text return UString is
-      begin
-         if Length (Snapshot.Last_Error_Key) > 0 then
-            return Snapshot.Last_Error_Text;
-         end if;
-
-         return Count_Status_Text;
-      end Bottom_Info_Text;
-
-      function Main_View_Accessible_Description return UString is
-      begin
-         return
-           To_Unbounded_String
-             (Files.Localization.Text ("settings.default_view")
-              & ": "
-              & View_Mode_Label
-              & "  ")
-           & Count_Status_Text;
-      end Main_View_Accessible_Description;
-
-      function Empty_State_Key return String is
-      begin
-         if Snapshot.Item_Count = 0 and then Snapshot.In_Recent_View then
-            return "recent.empty";
-         elsif Snapshot.Item_Count = 0 then
-            return "status.empty_directory";
-         elsif Snapshot.Visible_Count = 0 and then Length (Snapshot.Filter_Text) > 0 then
-            return "status.empty_filter";
-         else
-            return "";
-         end if;
-      end Empty_State_Key;
-
-      function Info_Value
-        (Label_Key : String;
-         Value     : String)
-         return UString
-      is
-      begin
-         return To_Unbounded_String (Files.Localization.Text (Label_Key) & ": " & Value);
-      end Info_Value;
-
-      function Missing_Info (Label_Key : String) return UString is
-      begin
-         return Info_Value (Label_Key, Files.Localization.Text ("status.missing_metadata"));
-      end Missing_Info;
-
-      function Time_Text
-        (Available : Boolean;
-         Value     : Ada.Calendar.Time;
-         Label_Key : String)
-         return UString
- is separate;
-
-      function Detail_Size_Text (Item : Item_Snapshot) return UString is separate;
-
-      function Detail_Time_Text (Item : Item_Snapshot) return UString is
-      begin
-         if not Item.Modified_Available then
-            return To_Unbounded_String (Files.Localization.Text ("status.missing_metadata"));
-         end if;
-
-         return
-           To_Unbounded_String (Humanized_Time_Text (Item.Modified_Time, Snapshot.Now));
-      end Detail_Time_Text;
-
-      function Detail_Created_Text (Item : Item_Snapshot) return UString is
-      begin
-         if not Item.Creation_Available then
-            return To_Unbounded_String (Files.Localization.Text ("status.missing_metadata"));
-         end if;
-
-         return
-           To_Unbounded_String (Humanized_Time_Text (Item.Creation_Time, Snapshot.Now));
-      end Detail_Created_Text;
 
       --  The root selector, context menu and paste dialogs.
       procedure Draw_Overlay_Commands is separate;
@@ -854,11 +693,8 @@ separate (Files.Rendering)
       --  destination, which blocks the rest of the window.
       procedure Draw_Tree_Panel (As_Overlay : Boolean) is separate;
 
-      --  Details-view accessibility row labels are identical for every row;
-      --  look them up once here rather than three times per visible row.
-      Detail_Modified_Label : constant String := Files.Localization.Text ("details.modified");
-      Detail_Size_Label     : constant String := Files.Localization.Text ("details.size");
-      Detail_Filetype_Label : constant String := Files.Localization.Text ("details.filetype");
+      --  The details column names a row's accessibility description repeats.
+      Detail_Column_Labels : constant Detail_Column_Names := Detail_Names;
       --  The window background and the toolbar.
       procedure Draw_Toolbar is separate;
 

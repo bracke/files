@@ -116,7 +116,9 @@ package body Files_Suite.Support.Models is
          when Executable_Format => return "executable.format|" & V;
          when Symlink_Target    => return "symlink.target|" & V;
          when Text_Lines        => return S & ".lines_encoding|" & N & "|" & V;
-         when Image_Dimensions  => return "image.dimensions|" & V;
+         when Image_Dimensions  =>
+            return "image.dimensions|"
+              & Files.Types.Natural_Text (Extra.Width) & "x" & Files.Types.Natural_Text (Extra.Height);
          when Document_Kind     => return "document.kind|" & V;
          when Pdf_Pages         => return "document.pdf.pages|" & N;
          when Archive_Format    => return "archive.format|" & V;

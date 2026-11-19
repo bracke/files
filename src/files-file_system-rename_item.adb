@@ -3,6 +3,7 @@ function Rename_Item
   (From_Path : String;
    To_Path   : String;
    Left_At   : out UString;
+   Failure   : out Rename_Failure;
    Expected_Identity : String := "")
    return Mutation_Result
 is
@@ -90,6 +91,7 @@ is
       function Stranded_Result return Mutation_Result is
       begin
          Left_At := Temp;
+         Failure := Rename_Stranded;
          return (Success => False, Error_Key => To_Unbounded_String (Rename_Stranded_Key));
       end Stranded_Result;
    begin
@@ -251,6 +253,7 @@ is
    May_Copy : Boolean := False;
 begin
    Left_At := Null_Unbounded_String;
+   Failure := Rename_Refused;
    Files.Io_Errors.Reset;
    if To_Path /= "" and then Leaf_Too_Long (Name, Parent) then
       --  Longer than the destination stores: refused before the disk is
@@ -262,6 +265,7 @@ begin
       return Rename_Recorded;
    --  refusal-safe: a refused source fails the rename
    elsif not Files.Fs_Primitives.Entry_Exists (From_Path) then
+      Failure := Rename_Source_Missing;
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.rename.source_missing"));
@@ -274,6 +278,7 @@ begin
    elsif not Storable_Leaf_Name_At (Name, Parent) then
       --  Only what the destination cannot hold: a move keeps a name another
       --  program created; a name the user types is checked by the caller.
+      Failure := Rename_Name_Invalid;
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.name.invalid"));

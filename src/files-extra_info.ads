@@ -21,7 +21,7 @@ package Files.Extra_Info is
       --  Subject: text, markdown, source.ada, source.json or source.xml;
       --  Count lines; Value the encoding (ascii, utf8, binary ...).
       Image_Dimensions,
-      --  Value: "W x H" as Dimensions_Text writes it.
+      --  Width and Height in pixels.
       Document_Kind,
       --  Value: the document family (pdf).
       Pdf_Pages,
@@ -41,6 +41,8 @@ package Files.Extra_Info is
       Capped  : Boolean := False;
       Subject : Files.Types.UString;
       Value   : Files.Types.UString;
+      Width   : Natural := 0;
+      Height  : Natural := 0;
    end record;
 
    No_Info : constant Info := (others => <>);
@@ -52,18 +54,24 @@ package Files.Extra_Info is
    --  @param Value The kind's value (see Kind).
    --  @param Count The kind's count (see Kind).
    --  @param Capped Whether the count stopped at its limit.
+   --  @param Width An image's width in pixels.
+   --  @param Height An image's height in pixels.
    --  @return The extra info.
    function Make
      (Of_Kind : Kind;
       Subject : String := "";
       Value   : String := "";
       Count   : Natural := 0;
-      Capped  : Boolean := False)
+      Capped  : Boolean := False;
+      Width   : Natural := 0;
+      Height  : Natural := 0)
       return Info is
      (Of_Kind => Of_Kind,
       Count   => Count,
       Capped  => Capped,
       Subject => Ada.Strings.Unbounded.To_Unbounded_String (Subject),
-      Value   => Ada.Strings.Unbounded.To_Unbounded_String (Value));
+      Value   => Ada.Strings.Unbounded.To_Unbounded_String (Value),
+      Width   => Width,
+      Height  => Height);
 
 end Files.Extra_Info;

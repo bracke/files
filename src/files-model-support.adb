@@ -3,7 +3,6 @@ with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 
 with Files.Grouping;
-with Files.Settings_Form;
 
 package body Files.Model.Support is
 
@@ -178,12 +177,6 @@ package body Files.Model.Support is
               then Model.Item_Visible_Rows (Item_Index) else 0);
    end Item_To_Visible_Index;
 
-   function Visible_Item_Count (Model : Window_Model) return Natural is
-   begin
-      Ensure_Visible_Map (Model);
-      return Natural (Model.Visible_Items.Length);
-   end Visible_Item_Count;
-
    function Selection_Contains
      (Model      : Window_Model;
       Item_Index : Natural)
@@ -291,67 +284,6 @@ package body Files.Model.Support is
          end if;
       end if;
    end Reconcile_Rename_With_Selection;
-
-   procedure Reconcile_Selection (Model : in out Window_Model) is
-   begin
-      Touch_Selection (Model);
-      if not Model.Selected_Item_Indexes.Is_Empty then
-         for Index in reverse Model.Selected_Item_Indexes.First_Index .. Model.Selected_Item_Indexes.Last_Index loop
-            declare
-               Item_Index : constant Natural := Model.Selected_Item_Indexes.Element (Index);
-            begin
-               if Item_Index = Temporary_Item_Index then
-                  if not Temporary_Is_Visible (Model) then
-                     Model.Selected_Item_Indexes.Delete (Index);
-                  end if;
-               elsif Model.Items.Is_Empty
-                 or else Item_Index > Natural (Model.Items.Last_Index)
-                 or else not Item_Is_Visible (Model, Model.Items.Element (Positive (Item_Index)))
-               then
-                  Model.Selected_Item_Indexes.Delete (Index);
-               end if;
-            end;
-         end loop;
-      end if;
-
-      if Model.Selected_Item_Index = Temporary_Item_Index then
-         if Temporary_Is_Visible (Model) then
-            Add_Selected_Index (Model, Temporary_Item_Index);
-            Reconcile_Rename_With_Selection (Model);
-            return;
-         end if;
-      end if;
-
-      if Model.Selected_Item_Index /= 0 then
-         if not Model.Items.Is_Empty
-           and then Model.Selected_Item_Index <= Natural (Model.Items.Last_Index)
-           and then Item_Is_Visible (Model, Model.Items.Element (Positive (Model.Selected_Item_Index)))
-         then
-            Add_Selected_Index (Model, Model.Selected_Item_Index);
-            Reconcile_Rename_With_Selection (Model);
-            return;
-         end if;
-      end if;
-
-      Model.Selected_Item_Index := 0;
-      if not Model.Selected_Item_Indexes.Is_Empty then
-         Model.Selected_Item_Index := Model.Selected_Item_Indexes.Element (Model.Selected_Item_Indexes.First_Index);
-         Reconcile_Rename_With_Selection (Model);
-         return;
-      end if;
-
-      if not Model.Items.Is_Empty then
-         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-            if Item_Is_Visible (Model, Model.Items (Index)) then
-               Model.Selected_Item_Index := Natural (Index);
-               Add_Selected_Index (Model, Model.Selected_Item_Index);
-               Reconcile_Rename_With_Selection (Model);
-               return;
-            end if;
-         end loop;
-      end if;
-      Reconcile_Rename_With_Selection (Model);
-   end Reconcile_Selection;
 
    package Label_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
@@ -561,13 +493,6 @@ package body Files.Model.Support is
       Hide_Command_Palette (Model);
    end Clear_Overlay_State_For_Edit;
 
-   procedure Reset_Settings_Panel (Model : in out Window_Model) is
-   begin
-      Touch (Model);
-      Guikit.Settings_Panel.Reset (Model.Settings_Panel_View);
-      Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Files.Settings_Form.Fields (Model));
-   end Reset_Settings_Panel;
-
    procedure Begin_Create_Temporary
       (Model        : in out Window_Model;
        Name         : String;
@@ -694,12 +619,6 @@ package body Files.Model.Support is
          Model.Focus_Value := Files.Types.Focus_None;
       end if;
    end Close_Settings_Pane;
-
-   function Released_Transfer return Files.Transfer_Jobs.Session is
-      Idle : Files.Transfer_Jobs.Session;
-   begin
-      return Idle;
-   end Released_Transfer;
 
    function Released_Process return Files.Process_Jobs.Session is
       Idle : Files.Process_Jobs.Session;

@@ -17,7 +17,7 @@ separate (Files.Application.Windows)
       --  The overlays this render shows, and whether they differ from the
       --  ones last presented.
       Palette         : Overlay_Commands;
-      Settings        : Overlay_Commands;
+      Settings        : Overlay_Commands renames Runtime.Settings_Overlay;
       Overlay_Changed : Boolean := False;
 
       --  Build the command palette's or the settings panel's commands, when
@@ -86,7 +86,7 @@ separate (Files.Application.Windows)
       --  Present gate: once the grace window has elapsed (nothing has changed for
       --  a while), the identical frame is already on screen -- skip the whole
       --  submit/present path. That is the idle saving: the loop still wakes each
-      --  timeout, but an unchanging view no longer re-packs vertices or presents.
+      --  timeout, but an unchanging view neither re-packs vertices nor presents.
       if Runtime.Presented_Once
         and then Runtime.Present_Grace = 0
         and then not Guikit.Vulkan.Readback_Enabled (Runtime.Vulkan)

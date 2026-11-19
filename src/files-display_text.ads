@@ -43,6 +43,13 @@ package Files.Display_Text is
    --  @return It with the locale's digit grouping ("12,345").
    function Grouped_Integer_Text (Value : Long_Long_Integer) return String;
 
+   --  A whole number in the number locale's digits, ungrouped: a measure
+   --  such as an image's 1920 pixels, which no locale groups.
+   --
+   --  @param Value The number.
+   --  @return Its digits as the locale writes them (Arabic-Indic in Arabic).
+   function Digits_Text (Value : Natural) return String;
+
    --  @param Value A byte count.
    --  @return It as a size ("1.2 MB").
    function Size_Text (Value : Long_Long_Integer) return String;

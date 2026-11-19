@@ -11,6 +11,11 @@ is
    Width  : Natural;
    Height : Natural;
 
+   --  An image's size as data; nothing when either side is unknown.
+   function Dimensions (Across, Down : Natural) return Files.Extra_Info.Info is
+     (if Across = 0 or else Down = 0 then Files.Extra_Info.No_Info
+      else Files.Extra_Info.Make (Files.Extra_Info.Image_Dimensions, Width => Across, Height => Down));
+
    function JPEG_Info return Files.Extra_Info.Info is
       Segment_Buffer : Ada.Streams.Stream_Element_Array (1 .. 9);
       Segment_Last   : Ada.Streams.Stream_Element_Offset;
@@ -81,9 +86,7 @@ is
                end if;
                Read_Segment (Segment_Buffer (1 .. 5), Segment_Last);
                if Segment_Last >= 5 then
-                  return Files.Extra_Info.Make
-                    (Files.Extra_Info.Image_Dimensions,
-                     Value => Dimensions_Text (U16_BE (Segment_Buffer, 4), U16_BE (Segment_Buffer, 2)));
+                  return Dimensions (U16_BE (Segment_Buffer, 4), U16_BE (Segment_Buffer, 2));
                end if;
                return Files.Extra_Info.No_Info;
             end if;
@@ -118,7 +121,7 @@ begin
    --  chunk; a signature alone is not enough.
    if Filetype = "image/png" and then Files.Images.PNG_Header (Buffer (1 .. Last), Width, Height) then
       Close_Read_Descriptor (File);
-      return Files.Extra_Info.Make (Files.Extra_Info.Image_Dimensions, Value => Dimensions_Text (Width, Height));
+      return Dimensions (Width, Height);
    elsif Filetype = "image/jpeg"
      and then Last >= 2
      and then Buffer (1) = 16#FF#

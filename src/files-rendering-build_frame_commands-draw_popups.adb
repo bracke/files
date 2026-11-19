@@ -154,7 +154,8 @@ separate (Files.Rendering.Build_Frame_Commands)
                               Enabled  => Snapshot.Command_Enabled (Sort_Field_Command (Field)),
                               Label    =>
                                 To_Unbounded_String
-                                  (Sort_Field_Label (Field) & (if Selected then " " & Direction_Text else "")));
+                                  (Sort_Field_Label (Field)
+                                   & (if Selected then " " & Direction_Text (Snapshot.Sort_Ascending) else "")));
                         end;
                      end loop;
 

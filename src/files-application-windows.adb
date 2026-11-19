@@ -5,7 +5,6 @@ with Files.Foreground_Jobs;
 with Files.Preview_Decoder;
 with Files.Extra_Info_Reader;
 with Files.Controller;
-with Files.Items;
 with Files.Diagnostics;
 with Ada.Unchecked_Deallocation;
 with System;
@@ -20,7 +19,6 @@ with Glfw.Windows.Native;
 with Glfw.Windows.Vulkan;
 
 with Hostkit.Host;
-with Files.File_System;
 with Files.Interaction;
 with Files.Job_Scavenger;
 with Files.Operations;
@@ -45,7 +43,6 @@ package body Files.Application.Windows is
    use type Files.Commands.Command_Id;
    use type Files.Types.Focus_Target;
    use type Files.Types.Detail_Column;
-   use type Files.Types.Item_Kind;
    use type Guikit.Vulkan.Vulkan_Status;
    use type Files.Rendering.View_Snapshot;
    use type System.Address;
@@ -275,6 +272,8 @@ package body Files.Application.Windows is
          Runtime.Type_Ahead_Input_At := Ada.Real_Time.Clock;
       end if;
 
+      --  The edit or type-ahead move is in the model, which the next frame
+      --  draws; a character has no follow-up for Interaction to run.
       Result := Files.Controller.Append_Focused_Text (Runtime.Model, Text);
       pragma Unreferenced (Result);
    end Dispatch_Text;
@@ -472,6 +471,8 @@ package body Files.Application.Windows is
      (Runtime : in out Runtime_Window)
    is
       Now    : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
+      --  A failed refresh leaves its error on the model's error line, and an
+      --  applied listing is drawn from the model: neither answer is needed.
       Result : Files.Operation_Results.Operation_Result;
       pragma Unreferenced (Result);
       Refreshed : Boolean;
@@ -806,47 +807,6 @@ package body Files.Application.Windows is
      (Runtime : in out Runtime_Window;
       Item    : A11ykit.Provider.Request)
    is separate;
-
-   procedure Handle_Item_Drop
-     (Runtime      : in out Runtime_Window;
-      Target_Index : Natural;
-      Modifiers    : Guikit.Input.Modifier_Set)
-   is
-      Sources : constant Files.Types.String_Vectors.Vector := Files.Model.Selection.Selected_Paths (Runtime.Model);
-      Mode    : constant Files.File_System.Drop_Import_Mode :=
-        (if Modifiers (Guikit.Input.Control_Key) then Files.File_System.Drop_Copy else Files.File_System.Drop_Move);
-      Result  : Files.Operation_Results.Operation_Result;
-   begin
-      if Target_Index = 0
-        or else Target_Index > Files.Model.Visible_Count (Runtime.Model)
-        or else Sources.Is_Empty
-      then
-         return;
-      end if;
-
-      declare
-         Target : constant Files.Items.Directory_Item :=
-           Files.Model.Visible_Item (Runtime.Model, Positive (Target_Index));
-      begin
-         if Target.Kind /= Files.Types.Directory_Item then
-            return;
-         end if;
-
-         --  Route the drop onto a folder row through the paste engine so it
-         --  gets the conflict dialog and progress/cancel overlay. From_Clipboard
-         --  is False: a dropped move must not clear an unrelated clipboard.
-         Result :=
-           Files.Operations.Begin_Paste_To
-             (Model          => Runtime.Model,
-              Settings       => Runtime.Settings,
-              Source_Paths   => Sources,
-              Destination    => To_String (Target.Full_Path),
-              Mode           => Mode,
-              From_Clipboard => False);
-      end;
-
-      pragma Unreferenced (Result);
-   end Handle_Item_Drop;
 
    procedure Handle_Mouse
      (Runtime : in out Runtime_Window)

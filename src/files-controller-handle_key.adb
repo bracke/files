@@ -233,6 +233,7 @@ separate (Files.Controller)
             | Files.Events.Text_Click_Input_Action
             | Files.Events.Settings_Click_Input_Action
             | Files.Events.Item_Click_Input_Action
+            | Files.Events.Item_Drop_Input_Action
             | Files.Events.Root_Click_Input_Action
             | Files.Events.Breadcrumb_Click_Input_Action
             | Files.Events.Path_Favorite_Toggle_Input_Action

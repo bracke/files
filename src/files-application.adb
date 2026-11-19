@@ -137,10 +137,9 @@ package body Files.Application is
    function Home_Directory return String is
       --  Which directory is this user's home is a host fact, and Hostkit answers
       --  it: HOME then the password file on POSIX, USERPROFILE then HOMEDRIVE
-      --  and HOMEPATH on Windows. This used to spell that cascade out itself,
-      --  including consulting Windows variables on hosts that have none -- and
-      --  it had no equivalent of the password file, so a POSIX session started
-      --  without HOME fell through to the current directory.
+      --  and HOMEPATH on Windows. A POSIX session started without HOME still
+      --  finds its home in the password file, and no host reads another's
+      --  variables.
       From_Host : constant String := Hostkit.Fs.Home_Directory;
 
       --  Hostkit returns the first candidate that is set, not the first that
@@ -179,10 +178,9 @@ package body Files.Application is
       return Hostkit.Fs.Current_Directory;
    end Home_Directory;
 
-   --  ~/.config/files/settings.conf -- correct on Linux and what every host got,
-   --  because this used to hard-code it. Kept as a name of its own because a
-   --  settings file already written there has to keep being found: see
-   --  Default_Settings_Path.
+   --  ~/.config/files/settings.conf on every host: correct on Linux, and where a
+   --  settings file may already have been written on any host, which has to
+   --  keep being found: see Default_Settings_Path.
    function Legacy_Settings_Path
      (Home_Path : String)
       return String is
@@ -250,11 +248,10 @@ package body Files.Application is
    is
       Files_Settings : constant String := Files.Environment.Value ("FILES_SETTINGS");
    begin
-      --  FILES_SETTINGS is this application's own override and stays here.
-      --  XDG_CONFIG_HOME used to be read a second time at this level; it is part
-      --  of what "where does configuration go" means on Linux, so it is Hostkit's
-      --  answer now and reaching for it here would answer for hosts that do not
-      --  have it.
+      --  FILES_SETTINGS is this application's own override and is read here.
+      --  XDG_CONFIG_HOME is not: it is part of what "where does configuration
+      --  go" means on Linux, so it is Hostkit's answer, and reading it here
+      --  would answer for hosts that do not have it.
       if Files_Settings /= "" then
          return Files_Settings;
       end if;

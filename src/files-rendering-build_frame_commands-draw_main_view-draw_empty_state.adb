@@ -62,7 +62,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
          Text_Y,
          Text_W,
          Text_H,
-         To_Unbounded_String (Files.Localization.Text (Empty_State_Key)),
+         To_Unbounded_String (Files.Localization.Text (Empty_State_Key (Snapshot))),
          Muted_Text_Color,
          Fit => True);
    end Draw_Empty_State;

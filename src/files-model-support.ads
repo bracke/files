@@ -107,12 +107,6 @@ private package Files.Model.Support is
    --  @param Model Model to inspect.
    procedure Ensure_Visible_Map (Model : Window_Model);
 
-   --  How many items are visible (the pending create row not counted).
-   --
-   --  @param Model Model to inspect.
-   --  @return The count.
-   function Visible_Item_Count (Model : Window_Model) return Natural;
-
    --  Note a change: Revision and Rows_Revision move.
    --
    --  @param Model Model that changed.
@@ -160,12 +154,6 @@ private package Files.Model.Support is
    --  @param Model Model to reconcile in place.
    procedure Reconcile_Rename_With_Selection (Model : in out Window_Model);
 
-   --  Drop any selected indexes that are no longer visible or valid after the
-   --  item list or filter changed.
-   --
-   --  @param Model Model whose selection is reconciled in place.
-   procedure Reconcile_Selection (Model : in out Window_Model);
-
    --  Reorder the stored items to match the model's current sort field and
    --  direction. Keyboard navigation walks the stored item order, so it must be
    --  identical to the displayed order the renderer sorts with -- otherwise a
@@ -187,11 +175,6 @@ private package Files.Model.Support is
    --  @param Model Model whose overlay/edit state is cleared.
    procedure Clear_Overlay_State_For_Edit
      (Model : in out Window_Model);
-
-   --  Reset the panel component and rebuild its field list from the draft.
-   --
-   --  @param Model Model whose settings panel is rebuilt.
-   procedure Reset_Settings_Panel (Model : in out Window_Model);
 
    --  Begin an inline create-file/create-folder edit: clear other overlays, add
    --  the temporary row, and open a rename field pre-filled with Name.
@@ -280,12 +263,6 @@ private package Files.Model.Support is
    --
    --  @return A session holding no job.
    function Released_Process return Files.Process_Jobs.Session;
-
-   --  An idle transfer session, to release a held one by assignment: the
-   --  model only holds the job handles; Files.Operations drives them.
-   --
-   --  @return A session holding no job.
-   function Released_Transfer return Files.Transfer_Jobs.Session;
 
    --  Clear the pending grid type-ahead prefix.
    --

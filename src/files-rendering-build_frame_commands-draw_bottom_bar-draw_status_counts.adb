@@ -19,14 +19,11 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
       declare
          Show_Free : constant Boolean := Free_Field_W > 0;
          Counts_W  : constant Natural := (if Toggle_W > 2 * Pad then Toggle_W - 2 * Pad else 0);
-         Info_Text : constant UString := Bottom_Info_Text;
+         Info_Text : constant UString := Bottom_Info_Text (Snapshot);
          --  When the labelled counts do not fit the available width, collapse
          --  to just the three numbers (hidden / visible / selected),
          --  slash-separated and label-less. The error line is never collapsed.
-         Compact   : constant String :=
-           Grouped_Natural_Text (Snapshot.Hidden_Count) & "/"
-           & Grouped_Natural_Text (Snapshot.Visible_Count) & "/"
-           & Grouped_Natural_Text (Snapshot.Selected_Count);
+         Compact   : constant String := Compact_Count_Status_Text (Snapshot);
          Use_Compact : constant Boolean :=
            Length (Snapshot.Last_Error_Key) = 0
            and then Saturating_Multiply (Guikit.Utf8.Display_Units (To_String (Info_Text)), Cell_W) > Counts_W;
@@ -46,13 +43,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
          --  labels down to "N/N/N". The legend reuses the status labels, so it
          --  is localized and matches the compact separator.
          Counts_Tip : constant UString :=
-           Command_Tooltip_Text (Files.Commands.Toggle_Hidden_Files_Command)
-           & To_Unbounded_String
-               (" ("
-                & Files.Localization.Text ("status.hidden") & " / "
-                & Files.Localization.Text ("status.visible") & " / "
-                & Files.Localization.Text ("status.selected")
-                & ")");
+           Command_Tooltip_Text (Files.Commands.Toggle_Hidden_Files_Command) & Count_Legend_Text;
       begin
          Add_Button
            (Bottom.Info_X, Toggle_W,

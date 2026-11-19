@@ -29,15 +29,15 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
            and then Item.Visible_Index /= Drag_Item_Index
            and then Item.Kind = Files.Types.Directory_Item
            and then Hovered;
+         Details   : constant Boolean := Snapshot.View_Mode = Files.Types.Details;
          --  Details mode needs the formatted modified/size text twice -- once
          --  to draw the row, once for the accessibility description. Format
          --  each once here; other view modes never touch them.
          Detail_Modified : constant UString :=
-           (if Snapshot.View_Mode = Files.Types.Details
-            then Detail_Time_Text (Item) else Null_Unbounded_String);
-         Detail_Size : constant UString :=
-           (if Snapshot.View_Mode = Files.Types.Details
-            then Detail_Size_Text (Item) else Null_Unbounded_String);
+           (if Details
+            then Detail_Time_Text (Item.Modified_Available, Item.Modified_Time, Snapshot.Now)
+            else Null_Unbounded_String);
+         Detail_Size : constant UString := (if Details then Detail_Size_Text (Item) else Null_Unbounded_String);
       begin
          --  Grouping band header: a non-selectable caption row. It draws its
          --  own subdued background and label and then skips all per-item
@@ -91,11 +91,9 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
                Use_Thumbnail => Snapshot.View_Mode = Files.Types.Large_Icons);
          end if;
 
-         --  Favorite indicator: a small filled star tucked into the
-         --  top-left corner of the item's icon in every view mode. Drawn
-         --  only for favorited items, so a bare icon means "not favorited".
          --  Favorite star (top-left) and color-label dot (bottom-right) over
-         --  the icon; each draws only when set.
+         --  the icon in every view mode; each draws only when set, so a bare
+         --  icon means neither.
          Guikit.Item_Grid.Draw_Item_Indicators
            (Rectangles    => Result.Rectangles,
             Text_Commands => Result.Text,
@@ -131,7 +129,9 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
                Caret_Color      => Text_Color);
          end;
 
-         if Snapshot.View_Mode = Files.Types.Details and then Item_Rect.Height > 0 then
+         --  The full-date tooltips of the time cells only for the row under
+         --  the pointer: only its tooltip can show in this frame.
+         if Details then
             Guikit.Item_Grid.Draw_Details_Row
               (Rectangles       => Result.Rectangles,
                Text_Commands    => Result.Text,
@@ -143,14 +143,14 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
                Modified         => Detail_Modified,
                Size             => Detail_Size,
                Filetype         => Item.Filetype_Detail,
-               Created          => Detail_Created_Text (Item),
+               Created          => Detail_Time_Text (Item.Creation_Available, Item.Creation_Time, Snapshot.Now),
                Permissions      => Item.Permissions,
                Modified_Tooltip =>
-                 (if Item.Modified_Available
+                 (if Hovered and then Item.Modified_Available
                   then To_Unbounded_String (Full_Time_Text (Item.Modified_Time))
                   else Null_Unbounded_String),
                Created_Tooltip  =>
-                 (if Item.Creation_Available
+                 (if Hovered and then Item.Creation_Available
                   then To_Unbounded_String (Full_Time_Text (Item.Creation_Time))
                   else Null_Unbounded_String),
                Dim              => Item.Cut_Pending,
@@ -159,38 +159,22 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
                Border_Color     => Border_Color);
          end if;
 
-         declare
-            Row_Description : constant UString :=
-              (if Snapshot.View_Mode = Files.Types.Details
-               then To_Unbounded_String
-                 (Files.Localization.Text
-                    ("accessibility.item.details",
-                     Files.Localization.Argument_List'
-                       [(To_Unbounded_String ("modified_label"), To_Unbounded_String (Detail_Modified_Label)),
-                        (To_Unbounded_String ("modified"), Detail_Modified),
-                        (To_Unbounded_String ("size_label"), To_Unbounded_String (Detail_Size_Label)),
-                        (To_Unbounded_String ("size"), Detail_Size),
-                        (To_Unbounded_String ("type_label"), To_Unbounded_String (Detail_Filetype_Label)),
-                        (To_Unbounded_String ("type"), Item.Filetype_Detail)]))
-               else Item.Filetype_Detail);
-         begin
-            Add_Accessibility_Node
-              ((if Snapshot.View_Mode = Files.Types.Details then Role_Table_Row else Role_List_Item),
-               Item_Rect.X,
-               Item_Rect.Y,
-               Item_Rect.Width,
-               Item_Rect.Height,
-               Item.Name,
-               Row_Description,
-               Enabled  => True,
-               Selected => Item.Selected,
-               Focused  =>
-                 Item.Selected
-                 and then Snapshot.Focus = Files.Types.Focus_None
-                 and then not Snapshot.Tree_Keyboard_Active
-                 and then not Snapshot.Tree_Pick_Active
-                 and then Item.Visible_Index =
-                   Snapshot.Primary_Selected_Visible_Index);
-         end;
+         Add_Accessibility_Node
+           ((if Details then Role_Table_Row else Role_List_Item),
+            Item_Rect.X,
+            Item_Rect.Y,
+            Item_Rect.Width,
+            Item_Rect.Height,
+            Item.Name,
+            Item_Accessible_Description (Detail_Column_Labels, Item, Details, Detail_Modified, Detail_Size),
+            Enabled  => True,
+            Selected => Item.Selected,
+            Focused  =>
+              Item.Selected
+              and then Snapshot.Focus = Files.Types.Focus_None
+              and then not Snapshot.Tree_Keyboard_Active
+              and then not Snapshot.Tree_Pick_Active
+              and then Item.Visible_Index =
+                Snapshot.Primary_Selected_Visible_Index);
       end;
    end Draw_Item;

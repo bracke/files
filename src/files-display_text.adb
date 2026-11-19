@@ -33,10 +33,9 @@ package body Files.Display_Text is
    --  Building the Util date bundle costs ~43 localization catalog lookups plus
    --  environment reads (System_Time_Locale). It depends only on the time
    --  locale, which is invariant across a frame (effectively across a session),
-   --  yet Formatted_Time_Text used to rebuild it on every call -- i.e. several
-   --  times per visible details row per frame while scrolling. Cache it and
-   --  rebuild only when the locale actually changes. Single-threaded render, so
-   --  package-level state is safe here.
+   --  while Formatted_Time_Text runs several times per visible details row per
+   --  frame. It is cached and rebuilt only when the locale changes.
+   --  Single-threaded render, so package-level state is safe here.
    Cached_Bundle        : Util.Properties.Manager;
    Cached_Bundle_Locale : Ada.Strings.Unbounded.Unbounded_String;
    Cached_Bundle_Ready  : Boolean := False;
@@ -268,6 +267,17 @@ package body Files.Display_Text is
    begin
       return Number_Symbol ("number.group", ",");
    end Group_Separator;
+
+   function Digits_Text (Value : Natural) return String is
+      Locale : constant String := Files.Localization.System_Number_Locale;
+      Latin  : constant String := Integer_Text (Long_Long_Integer (Value));
+      Result : Unbounded_String;
+   begin
+      for Digit of Latin loop
+         Append (Result, I18N.Number_Format.Digit_Text (Locale, Digit));
+      end loop;
+      return To_String (Result);
+   end Digits_Text;
 
    function Grouped_Integer_Text (Value : Long_Long_Integer) return String is
       Text        : constant String := Integer_Text (Value);

@@ -831,6 +831,13 @@ package body Files.Controller is
       Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result is separate;
 
+   function Handle_Item_Drop
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Target_Index : Natural;
+      Modifiers    : Guikit.Input.Modifier_Set)
+      return Controller_Result is separate;
+
    --  External file drops have no overlay-specific destination, so every
    --  input-owning overlay blocks them rather than allowing a hidden filesystem
    --  mutation in the current directory.

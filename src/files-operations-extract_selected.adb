@@ -69,11 +69,12 @@ begin
                --  What identifies the published folder, for its Undo.
                Made_Identity, Made_Revision : Unbounded_String;
 
+               --  Remove the stage; a removal that fails is traced with its path.
                procedure Discard_Stage is
-                  Removed : constant Boolean := Files.Job_Context.Discard_Stage (Stage);
-                  pragma Unreferenced (Removed);
                begin
-                  null;
+                  if not Files.Job_Context.Discard_Stage (Stage) then
+                     Files.Diagnostics.Trace ("Files.Operations", "stage_discard_failed=" & Stage);
+                  end if;
                end Discard_Stage;
             begin
                declare

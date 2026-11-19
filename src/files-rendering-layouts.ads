@@ -818,12 +818,8 @@ package Files.Rendering.Layouts is
    --  to host a button row below its title.
    --
    --  @param Panel Folder-tree panel layout.
-   --  @param Line_Height Text line height in pixels.
    --  @return Button-bar rectangles; Visible is False when they do not fit.
-   function Tree_Pick_Buttons
-     (Panel       : Tree_Panel_Layout;
-      Line_Height : Positive)
-      return Tree_Pick_Button_Layout;
+   function Tree_Pick_Buttons (Panel : Tree_Panel_Layout) return Tree_Pick_Button_Layout;
 
    --  Calculate info-pane content and scrollbar geometry.
    --

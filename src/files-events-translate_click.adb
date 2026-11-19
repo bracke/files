@@ -26,8 +26,6 @@ separate (Files.Events)
         Files.Rendering.Layouts.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
       Settings_Pane  : constant Guikit.Layout.Settings_Pane_Layout :=
         Files.Rendering.Layouts.Settings_Pane_Region (Layout, Line_Height);
-      Command        : Files.Commands.Command_Id := Files.Commands.No_Command;
-      Item_Index     : Natural := 0;
 
       function Within
         (Value  : Natural;

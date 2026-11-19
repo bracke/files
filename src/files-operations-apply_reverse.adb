@@ -1,6 +1,6 @@
 separate (Files.Operations)
---  Apply the reverse (undo) direction of Action. Returns True on full
---  success. Mirrors the pre-existing single-level undo behaviour.
+--  Apply the reverse (undo) direction of Action, one journaled history
+--  entry. Returns True on full success.
 function Apply_Reverse
   (Action : in out Files.Model.Undo_Entry; Model : in out Files.Model.Window_Model)
    return Boolean

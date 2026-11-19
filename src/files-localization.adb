@@ -431,9 +431,17 @@ package body Files.Localization is
       --  humanize's phrases in this locale's language too, beside its defaults.
       if Humanize_Loaded then
          declare
-            Ignored : Messages.Runtime.Load_Result;
+            use type Messages.Runtime.Load_Status;
+            Phrases : Messages.Runtime.Load_Result;
          begin
-            Humanize.Catalogs.Load_Phrases (Runtime, Ignored, Normalized);
+            --  A failed load leaves the runtime as it was: humanize keeps its
+            --  default wording for this language.
+            Humanize.Catalogs.Load_Phrases (Runtime, Phrases, Normalized);
+            if Phrases.Status /= Messages.Runtime.Loaded then
+               Files.Diagnostics.Trace
+                 ("Files.Localization",
+                  "humanize_phrases_skipped=" & Normalized & ",status=" & Phrases.Status'Image);
+            end if;
          end;
       end if;
 
