@@ -17,6 +17,7 @@ it under a dated version heading when a release is cut.
   mirrored: the folder tree and the info pane swap sides, the toolbar, grid,
   columns and menus run from the right, and Left and Right trade places
   everywhere except in a text field.
+- The interface is translated into Arabic, Persian, Urdu, Hebrew and Yiddish.
 
 ### Fixed
 - A move that fails after copying keeps one Undo entry: undoing it removes the

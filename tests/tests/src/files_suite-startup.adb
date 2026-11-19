@@ -77,6 +77,7 @@ package body Files_Suite.Startup is
    procedure Test_Durable_Publication_Outcomes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Localization_Runtime_Labels (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Localization_Western_Translations (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Localization_Right_To_Left_Translations (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Localization_Pane_Labels (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Localization_Error_And_Command_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Locale_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -142,6 +143,9 @@ package body Files_Suite.Startup is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Localization_Western_Translations'Access,
          "western locales translate command, error and status labels");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Localization_Right_To_Left_Translations'Access,
+         "right-to-left locales translate command, error and status labels");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Localization_Pane_Labels'Access,
          "default catalog localizes info pane, status and landmark labels with key fallback");
@@ -212,6 +216,8 @@ package body Files_Suite.Startup is
    procedure Test_Localization_Runtime_Labels (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Localization_Western_Translations (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Localization_Right_To_Left_Translations (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Localization_Pane_Labels (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
