@@ -28,7 +28,7 @@ separate (Files_Suite.Trash)
       Assert (Mutation.Success, "the first notes.txt is trashed");
       Mutation := Files.File_System.Trash.Move_To_Trash (Join (Join (Root, "b"), "notes.txt"), Second);
       Assert (Mutation.Success, "the second notes.txt is trashed");
-      Assert (Files.Fs_Primitives.Leaf_Text (To_String (Second)) /= "notes.txt",
+      Assert (Files.Types.Leaf_Of (To_String (Second)) /= "notes.txt",
               "the trash names the second payload for itself");
 
       Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);

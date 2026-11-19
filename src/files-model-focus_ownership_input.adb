@@ -16,7 +16,7 @@ begin
 
    Touch (Model);
    Reset_Type_Ahead (Model);
-   Model.Focus_Value := Files.Types.Focus_Ownership_Input;
+   Model.Focus_Value := Files.UI_Types.Focus_Ownership_Input;
    Model.Ownership_Input.Editing_Group := Editing_Group;
    declare
       Id : constant Files.Types.Account_Id := (if Editing_Group then Item.Group_Id else Item.Owner_Id);

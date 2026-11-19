@@ -79,7 +79,7 @@ separate (Files.Application.Windows.Smoke)
 
       function Open return Boolean is
         (Files.Model.Settings_Pane.Is_Open (Runtime.Model)
-         and then Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input);
+         and then Files.Model.Focus (Runtime.Model) = Files.UI_Types.Focus_Settings_Input);
 
       function Key_Now return String is (Files.Model.Settings_Pane.Focused_Key (Runtime.Model));
    begin
@@ -180,7 +180,7 @@ separate (Files.Application.Windows.Smoke)
 
       Press (Guikit.Input.Key_Escape);
       Expect (not Files.Model.Settings_Pane.Is_Open (Runtime.Model)
-              and then Files.Model.Focus (Runtime.Model) = Files.Types.Focus_None);
+              and then Files.Model.Focus (Runtime.Model) = Files.UI_Types.Focus_None);
 
       --  The list: the selection follows the keyboard into view, and a press on
       --  part of the selection keeps all of it until a release without a drag.

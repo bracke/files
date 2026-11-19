@@ -63,7 +63,7 @@ separate (Files_Suite.Model)
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "back clears temporary create state");
       Assert (not Files.Model.Rename.Is_Active (Model), "back clears rename state");
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "back closes command palette");
-      Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_None, "back clears focus");
+      Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.UI_Types.Focus_None, "back clears focus");
       Assert (Files.Model.Can_Go_Forward (Model), "forward is enabled after back");
       Files.Model.Navigate_To (Model, "/tmp/files_aunit/branch", Items);
       Assert (not Files.Model.Can_Go_Forward (Model), "new navigation after back clears forward history");
@@ -88,7 +88,7 @@ separate (Files_Suite.Model)
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "forward clears temporary create state");
       Assert (not Files.Model.Rename.Is_Active (Model), "forward clears rename state");
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "forward closes command palette");
-      Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_None, "forward clears focus");
+      Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.UI_Types.Focus_None, "forward clears focus");
       Files.Model.Go_Forward (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),

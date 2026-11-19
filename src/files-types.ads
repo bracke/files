@@ -108,12 +108,16 @@ package Files.Types is
    --  @return The extension without its dot, or "".
    function Name_Extension (Name : String; Is_Directory : Boolean) return String;
 
-   --  A path's last component read from its text alone
-   --  (Hostkit.Path_Text.Leaf), for a unit that reads no disk: GNAT's Windows
-   --  Ada.Directories.Simple_Name refuses a component past 256 characters.
+   --  Path's last component read from its text alone (Hostkit.Path_Text.Leaf),
+   --  for every unit, whether or not it reads the disk. Ada.Directories.Simple_Name
+   --  is not to be used on a path: GNAT's Windows runtime rejects a component
+   --  longer than 256 characters, which the filesystem then refuses with a
+   --  cause of its own ("too long"), not as an invalid name, and reads
+   --  "\\server\share" as a folder.
    --
    --  @param Path A path.
-   --  @return Its last component, indexed from 1, or "" for a root.
+   --  @return Its last component without trailing separators, indexed from 1,
+   --    or "" for a root or an empty path.
    function Leaf_Of (Path : String) return String;
 
    --  A count in decimal, without the leading blank Natural'Image gives it.
@@ -269,31 +273,6 @@ package Files.Types is
    --  state. Used to iterate the color swatches and label bands in order.
    subtype Real_Color_Label is Color_Label range Red .. Gray;
 
-   --  Which right-click context menu is open: on an item, on the empty area
-   --  of a folder, on a column header -- or none.
-   type Context_Menu_Target is
-     (Context_Menu_None,
-      Context_Menu_Item,
-      Context_Menu_Empty,
-      Context_Menu_Header);
-
-   --  The label picker's swatch count: one per real color, then the clear
-   --  swatch.
-   Swatch_Count : constant :=
-     Real_Color_Label'Pos (Real_Color_Label'Last) - Real_Color_Label'Pos (Real_Color_Label'First) + 2;
-
-   --  The label picker's clear (No_Label) swatch: the last one.
-   Clear_Swatch : constant := Swatch_Count;
-
-   --  The label picker's swatches in order: one per real color, then the
-   --  clear swatch (No_Label). The one mapping the renderer, the hit-test
-   --  and the model's keyboard highlight share.
-   --
-   --  @param Index One-based swatch index.
-   --  @return The label that swatch sets.
-   function Label_For_Swatch (Index : Positive) return Color_Label is
-     (if Index <= Real_Color_Label'Pos (Real_Color_Label'Last) then Color_Label'Val (Index) else No_Label);
-
    --  Detail-view row grouping mode. When it is not No_Grouping the detail list
    --  gains non-selectable group header rows composed with the active sort.
    type Group_Mode is
@@ -310,44 +289,6 @@ package Files.Types is
       Executable_Item,
       Unknown_Item,
       Other_Item);
-
-   type Focus_Target is
-     (Focus_None,
-      Focus_Path_Input,
-      Focus_Filter_Input,
-      Focus_Rename_Input,
-      Focus_Command_Palette,
-      Focus_Settings_Input,
-      Focus_Ownership_Input);
-
-   --  The transient surfaces that own window input while open. A new overlay
-   --  is added here, to Overlay_Stack, to Files.Model.Overlay_Is_Open and to
-   --  Files.Rendering.Overlay_Open (the snapshot's view of the same flags);
-   --  the compiler then asks for it in every case over this type.
-   type Input_Overlay is
-     (Settings_Pane_Overlay,
-      Command_Palette_Overlay,
-      Root_Selector_Overlay,
-      Sort_Menu_Overlay,
-      Context_Menu_Overlay,
-      Label_Picker_Overlay,
-      Quick_Look_Overlay,
-      Tree_Pick_Overlay,
-      Paste_Conflict_Overlay,
-      Foreground_Job_Overlay);
-
-   --  Overlays listed in some order.
-   type Overlay_Order is array (Positive range <>) of Input_Overlay;
-
-   --  Every overlay, top to bottom as they stack: the paste dialogs over
-   --  everything, then the window layer's palette over its settings pane,
-   --  then the frame's popups in the reverse of their drawing order, and the
-   --  tree pick, which is part of the frame itself. The one order the model
-   --  (Files.Model.Topmost_Overlay), the keyboard and the pointer all follow.
-   Overlay_Stack : constant Overlay_Order :=
-     [Foreground_Job_Overlay, Paste_Conflict_Overlay, Command_Palette_Overlay, Settings_Pane_Overlay,
-      Context_Menu_Overlay, Root_Selector_Overlay, Sort_Menu_Overlay, Label_Picker_Overlay,
-      Quick_Look_Overlay, Tree_Pick_Overlay];
 
    --  Scope the shared filter-bar query applies to. Filter_Here live-filters the
    --  current directory by name (the default), Search_Names replaces the view

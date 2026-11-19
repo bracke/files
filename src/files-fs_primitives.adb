@@ -1,3 +1,4 @@
+with Files.Types;
 with Files.Diagnostics;
 with Ada.Strings.Unbounded;
 
@@ -103,8 +104,6 @@ package body Files.Fs_Primitives is
       end if;
    end Delete_Tree_If_Present;
 
-   function Leaf_Text (Path : String) return String renames Hostkit.Path_Text.Leaf;
-
    function Parent_Text (Path : String) return String renames Hostkit.Path_Text.Parent;
 
    function Kind (Path : String) return Ada.Directories.File_Kind is
@@ -163,7 +162,7 @@ package body Files.Fs_Primitives is
 
    function Parent_Directory (Path : String) return String is
       Parent : constant String := Parent_Text (Path);
-      Leaf   : constant String := Leaf_Text (Path);
+      Leaf   : constant String := Files.Types.Leaf_Of (Path);
    begin
       --  A name alone lies in the current directory, as
       --  Ada.Directories.Containing_Directory says.
@@ -200,7 +199,7 @@ package body Files.Fs_Primitives is
          end if;
          declare
             Base   : constant String := Resolved (Parent, Links);
-            Joined : constant String := Hostkit.Fs.Join (Base, Leaf_Text (Whole));
+            Joined : constant String := Hostkit.Fs.Join (Base, Files.Types.Leaf_Of (Whole));
             Target : Ada.Strings.Unbounded.Unbounded_String;
          begin
             if Links < Most_Links

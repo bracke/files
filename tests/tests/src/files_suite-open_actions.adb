@@ -23,6 +23,7 @@ with Hostkit.Metadata;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files_Suite.Support.Guards;
@@ -37,7 +38,7 @@ package body Files_Suite.Open_Actions is
    use type Files.Commands.Command_Id;
    use type Files.Operations.Testing.Open_Action_Lifecycle_State;
    use type Files.Operation_Results.Operation_Status;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use Files_Suite.Support;
    use Files_Suite.Support.Models;

@@ -926,7 +926,7 @@ package body Files.Job_Context is
    --  @param Directory The transport that should own it.
    --  @return True when it may be removed.
    function Is_Own_Stage (Path, Expected, Directory : String) return Boolean is
-      Name : constant String := Files.Fs_Primitives.Leaf_Text (Path);
+      Name : constant String := Files.Types.Leaf_Of (Path);
    begin
       return Name'Length > Files.Protocol_Names.Work_Stage_Prefix'Length
         and then Ada.Strings.Fixed.Head (Name, Files.Protocol_Names.Work_Stage_Prefix'Length)

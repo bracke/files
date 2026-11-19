@@ -56,7 +56,7 @@ begin
    end if;
 
    declare
-      Simple    : constant String := Files.Fs_Primitives.Leaf_Text (Trashed_Path);
+      Simple    : constant String := Files.Types.Leaf_Of (Trashed_Path);
       Info_Path : constant String :=
         Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Simple & ".trashinfo");
       Original  : Unbounded_String;

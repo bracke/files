@@ -11,13 +11,13 @@ separate (Files.Controller)
       New_Cursor : Natural;
    begin
       --  No focused field: the grid owns the key, so deletion is a no-op here.
-      if Files.Model.Focus (Model) = Files.Types.Focus_None then
+      if Files.Model.Focus (Model) = Files.UI_Types.Focus_None then
          return Make_Result (Controller_Ignored);
       end if;
 
       --  Rename edits broadcast to every synchronized caret via the model, which
       --  reports whether anything changed. Exactly one variant is evaluated.
-      if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+      if Files.Model.Focus (Model) = Files.UI_Types.Focus_Rename_Input then
          declare
             Deleted : constant Boolean :=
               Files.Model.Rename.Delete (Model, Backward => Direction = Delete_Backward, By_Word => By_Word);

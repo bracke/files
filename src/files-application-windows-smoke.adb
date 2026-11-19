@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Ada.Real_Time;
 with Files.Fonts;
 with Files.Items;
@@ -10,7 +11,7 @@ with Files.Model.Selection;
 package body Files.Application.Windows.Smoke is
    use Ada.Strings.Unbounded;
    use type Files.Rendering.Text.Text_Render_Status;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Files.Types.View_Mode;
    use type Glfw.Size;
    use type Guikit.Vulkan.Vulkan_Status;

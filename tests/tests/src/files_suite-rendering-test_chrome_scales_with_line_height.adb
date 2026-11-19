@@ -68,7 +68,7 @@ separate (Files_Suite.Rendering)
            (Calculate_Context_Menu_Layout (Snap, 2_000, 1_600, LH));
       begin
          Snap.Context_Menu_Open := True;
-         Snap.Context_Menu_Target := Files.Types.Context_Menu_Item;
+         Snap.Context_Menu_Target := Files.UI_Types.Context_Menu_Item;
          Snap.Context_Menu_X := 100;
          Snap.Context_Menu_Y := 100;
          declare

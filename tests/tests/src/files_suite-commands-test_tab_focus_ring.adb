@@ -14,37 +14,38 @@ separate (Files_Suite.Commands)
       Shift (Guikit.Input.Shift_Key) := True;
 
       --  Forward ring: grid -> path input -> filter -> grid.
-      Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_None, "focus starts on the grid");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model), Files.UI_Types.Focus_None, "focus starts on the grid");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Path_Input,
+         Files.UI_Types.Focus_Path_Input,
          "Tab focuses the path input");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Filter_Input,
+         Files.UI_Types.Focus_Filter_Input,
          "Tab focuses the filter input");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "Tab returns focus to the grid");
 
       --  Backward ring: grid -> filter -> path -> grid.
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab, Shift);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Filter_Input,
+         Files.UI_Types.Focus_Filter_Input,
          "Shift+Tab focuses the filter input");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab, Shift);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Path_Input,
+         Files.UI_Types.Focus_Path_Input,
          "Shift+Tab focuses the path input");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab, Shift);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "Shift+Tab returns focus to the grid");
    end Test_Tab_Focus_Ring;

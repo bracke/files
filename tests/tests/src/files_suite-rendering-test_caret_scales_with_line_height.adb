@@ -9,7 +9,7 @@ separate (Files_Suite.Rendering)
          X, Y, W, H : Natural;
          Found      : Boolean;
       begin
-         Snapshot.Focus := Files.Types.Focus_Path_Input;
+         Snapshot.Focus := Files.UI_Types.Focus_Path_Input;
          Snapshot.Path_Input_Text := To_Unbounded_String ("/home/user/example");
          Snapshot.Text_Cursor_Position := 4;
          Find_Caret (Build_Frame_Commands (Snapshot, 1000, 800, L), X, Y, W, H, Found);

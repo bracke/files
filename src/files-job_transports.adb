@@ -157,7 +157,7 @@ package body Files.Job_Transports is
 
    function Is_Transport_Path (Directory : String) return Boolean is
    begin
-      return Is_Transport_Name (Files.Fs_Primitives.Leaf_Text (Directory))
+      return Is_Transport_Name (Files.Types.Leaf_Of (Directory))
         and then Files.Fs_Primitives.Full_Name (Files.Fs_Primitives.Parent_Directory (Directory)) =
           Files.Fs_Primitives.Full_Name (Hostkit.Fs.Temp_Directory);
    exception
@@ -167,7 +167,7 @@ package body Files.Job_Transports is
    end Is_Transport_Path;
 
    function Witness_Path (Directory : String) return String is
-      Name : constant String := Files.Fs_Primitives.Leaf_Text (Directory);
+      Name : constant String := Files.Types.Leaf_Of (Directory);
    begin
       return Hostkit.Fs.Join
         (Hostkit.Fs.Temp_Directory,

@@ -47,7 +47,7 @@ separate (Files_Suite.Trash)
          Assert (Files.File_System.Trash.Move_To_Trash (Original, Trashed).Success,
                  "a file with a 250-byte name goes to the trash");
          Assert (not Present (Original), "it left its folder");
-         Leaf := To_Unbounded_String (Files.Fs_Primitives.Leaf_Text (To_String (Trashed)));
+         Leaf := To_Unbounded_String (Files.Types.Leaf_Of (To_String (Trashed)));
          --  Cut only as far as ".trashinfo" needs, where names count bytes;
          --  a volume counting UTF-16 units holds all 190 with it.
          Files_Suite.Support.Assert_Equal

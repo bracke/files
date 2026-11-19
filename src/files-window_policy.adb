@@ -5,7 +5,7 @@ package body Files.Window_Policy is
 
    use type Files.Commands.Command_Id;
    use type Files.Events.Input_Action_Kind;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
 
    function Accessibility_Action
      (Click    : Files.Events.Input_Action;
@@ -27,11 +27,11 @@ package body Files.Window_Policy is
 
    function Activation_Presses_Space
      (Activate : Boolean;
-      Focus    : Files.Types.Focus_Target;
+      Focus    : Files.UI_Types.Focus_Target;
       Field    : Guikit.Settings_Panel.Field_Kind)
       return Boolean is
      (Activate
-      and then Focus = Files.Types.Focus_Settings_Input
+      and then Focus = Files.UI_Types.Focus_Settings_Input
       and then Field in Guikit.Settings_Panel.Toggle | Guikit.Settings_Panel.Choice);
 
    function Zoom_Save_Due

@@ -45,7 +45,7 @@ is
          --  Resolve the parent to find the link's location, never its target.
          return Hostkit.Fs.Join
            (Files.Fs_Primitives.Full_Name (Files.Fs_Primitives.Parent_Directory (Value)),
-            Files.Fs_Primitives.Leaf_Text (Value));
+            Files.Types.Leaf_Of (Value));
       --  refusal-safe: a path not seen is compared as written; the move
       --  into or out of it is then refused on that same path.
       elsif Files.Fs_Primitives.Exists (Value) then
@@ -75,9 +75,9 @@ is
             Text   : constant String := To_String (Current);
             Parent : constant String :=
               (if Text = "" then "" else Files.Fs_Primitives.Parent_Directory (Text));
-            Name   : constant String := (if Text = "" then "" else Files.Fs_Primitives.Leaf_Text (Text));
+            Name   : constant String := (if Text = "" then "" else Files.Types.Leaf_Of (Text));
             Upper  : constant String :=
-              (if Parent = "" then "" else Files.Fs_Primitives.Leaf_Text (Parent));
+              (if Parent = "" then "" else Files.Types.Leaf_Of (Parent));
          begin
             exit when Text = "" or else Parent = Text;
             if ((Name'Length >= 6 and then Name (Name'First .. Name'First + 5) = ".Trash")

@@ -67,7 +67,7 @@ separate (Files.Events)
       end Cursor_At;
 
       function Text_Click
-        (Target     : Files.Types.Focus_Target;
+        (Target     : Files.UI_Types.Focus_Target;
          Cursor     : Natural;
          Item_Index : Natural := 0)
          return Input_Action is

@@ -6,7 +6,7 @@ separate (Files.Application.Windows.Render_Window)
       --  The frame Refresh_Cached_Frame just built for this size and snapshot.
       Layout      : Files.Rendering.Layout_Metrics renames Runtime.Cached_Frame.Layout;
    begin
-      if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Types.Command_Palette_Overlay) then
+      if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.UI_Types.Command_Palette_Overlay) then
          Palette.Shown := True;
          Files.Overlays.Build_Palette_Frame
            (Model         => Runtime.Model,
@@ -18,13 +18,13 @@ separate (Files.Application.Windows.Render_Window)
                Clip_Width  => Natural (Width),
                Clip_Height => Natural (Height),
                Line_Height => Line_Height),
-            Focused       => Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Command_Palette,
+            Focused       => Files.Model.Focus (Runtime.Model) = Files.UI_Types.Focus_Command_Palette,
             Rectangles    => Palette.Rectangles,
             Text          => Palette.Text,
             Icons         => Palette.Icons,
             Accessibility => Palette.Accessibility);
       end if;
-      Settings.Shown := Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Types.Settings_Pane_Overlay);
+      Settings.Shown := Files.Model.Window_Overlay_Shown (Runtime.Model, Files.UI_Types.Settings_Pane_Overlay);
       if Settings.Shown then
          declare
             Pane : constant Guikit.Layout.Settings_Pane_Layout :=
@@ -41,7 +41,7 @@ separate (Files.Application.Windows.Render_Window)
                   Clip_Width  => Natural (Width),
                   Clip_Height => Natural (Height),
                   Line_Height => Line_Height),
-               Focused        => Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input,
+               Focused        => Files.Model.Focus (Runtime.Model) = Files.UI_Types.Focus_Settings_Input,
                Hover_X        => (if Pointer.Has_Hover then Integer (Pointer.Hover_X) else -1),
                Hover_Y        => (if Pointer.Has_Hover then Integer (Pointer.Hover_Y) else -1));
          begin

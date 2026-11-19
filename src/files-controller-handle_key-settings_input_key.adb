@@ -2,7 +2,7 @@ separate (Files.Controller.Handle_Key)
 procedure Settings_Input_Key (Handled : out Boolean; Result : out Controller_Result) is
 begin
    Handled := True;
-   if Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input then
+   if Files.Model.Focus (Model) = Files.UI_Types.Focus_Settings_Input then
       if Files.Model.Settings_Pane.Is_Capturing (Model) then
          --  A Shortcut row is armed: every key is a chord to capture, not a
          --  navigation or shortcut, until the capture ends.

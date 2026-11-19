@@ -56,7 +56,7 @@ separate (Files_Suite.Model)
          "root row click loads root");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "root row click clears path input focus");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Path_Input_Text (Model),

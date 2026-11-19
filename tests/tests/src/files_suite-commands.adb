@@ -27,6 +27,7 @@ with Files.Settings;
 with Guikit.Command_Palette;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 with Guikit.Utf8.Editing;
 with Files_Suite.Support;
 with Files_Suite.Support.Disk;

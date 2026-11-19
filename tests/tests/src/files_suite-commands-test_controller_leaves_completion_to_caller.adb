@@ -60,7 +60,7 @@ separate (Files_Suite.Commands)
       Files.Model.Label_Picker.Close (Model);
 
       --  Enter on a highlighted context-menu row asks for that row to be run.
-      Files.Model.Context_Menu.Open (Model, 10, 10, Files.Types.Context_Menu_Item);
+      Files.Model.Context_Menu.Open (Model, 10, 10, Files.UI_Types.Context_Menu_Item);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       declare
          Rows : constant Files.Commands.Context_Menu_Rows :=
@@ -78,7 +78,7 @@ separate (Files_Suite.Commands)
 
       --  With nothing highlighted, Enter only dismisses the menu.
       Files.Model.Context_Menu.Close (Model);
-      Files.Model.Context_Menu.Open (Model, 10, 10, Files.Types.Context_Menu_Item);
+      Files.Model.Context_Menu.Open (Model, 10, 10, Files.UI_Types.Context_Menu_Item);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Assert
         (Result.Activation = Files.Controller.No_Activation

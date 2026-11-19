@@ -126,7 +126,7 @@ separate (Files.Controller)
       --  rebound) closes any overlay Escape closes, as the command does; a
       --  shortcut being captured in the settings pane takes it first.
       procedure Top_Overlay_Key (Handled : out Boolean; Result : out Controller_Result) is
-         use type Files.Types.Input_Overlay;
+         use type Files.UI_Types.Input_Overlay;
          Top : Files.Model.Input_Overlay;
       begin
          Handled := False;
@@ -135,7 +135,7 @@ separate (Files.Controller)
             return;
          elsif Is_Close_Key
            and then Top in Files.Model.Escape_Closable_Overlay
-           and then not (Top = Files.Types.Settings_Pane_Overlay
+           and then not (Top = Files.UI_Types.Settings_Pane_Overlay
                          and then Files.Model.Settings_Pane.Is_Capturing (Model))
          then
             Handled := True;
@@ -143,17 +143,17 @@ separate (Files.Controller)
             return;
          end if;
          case Top is
-            when Files.Types.Foreground_Job_Overlay  => Foreground_Job_Key (Handled, Result);
-            when Files.Types.Paste_Conflict_Overlay  => Paste_Conflict_Key (Handled, Result);
-            when Files.Types.Command_Palette_Overlay => Palette_Key (Handled, Result);
-            when Files.Types.Context_Menu_Overlay    => Context_Menu_Key (Handled, Result);
-            when Files.Types.Root_Selector_Overlay   => Root_Selector_Key (Handled, Result);
-            when Files.Types.Sort_Menu_Overlay       => Sort_Menu_Key (Handled, Result);
-            when Files.Types.Label_Picker_Overlay    => Label_Picker_Key (Handled, Result);
-            when Files.Types.Quick_Look_Overlay      => Quick_Look_Key (Handled, Result);
-            when Files.Types.Tree_Pick_Overlay       => Tree_Pick_Key (Handled, Result);
+            when Files.UI_Types.Foreground_Job_Overlay  => Foreground_Job_Key (Handled, Result);
+            when Files.UI_Types.Paste_Conflict_Overlay  => Paste_Conflict_Key (Handled, Result);
+            when Files.UI_Types.Command_Palette_Overlay => Palette_Key (Handled, Result);
+            when Files.UI_Types.Context_Menu_Overlay    => Context_Menu_Key (Handled, Result);
+            when Files.UI_Types.Root_Selector_Overlay   => Root_Selector_Key (Handled, Result);
+            when Files.UI_Types.Sort_Menu_Overlay       => Sort_Menu_Key (Handled, Result);
+            when Files.UI_Types.Label_Picker_Overlay    => Label_Picker_Key (Handled, Result);
+            when Files.UI_Types.Quick_Look_Overlay      => Quick_Look_Key (Handled, Result);
+            when Files.UI_Types.Tree_Pick_Overlay       => Tree_Pick_Key (Handled, Result);
             --  The pane's keys are its focused field's (Settings_Input_Key).
-            when Files.Types.Settings_Pane_Overlay   => null;
+            when Files.UI_Types.Settings_Pane_Overlay   => null;
          end case;
       end Top_Overlay_Key;
 
@@ -181,11 +181,11 @@ separate (Files.Controller)
 
       case Action.Kind is
          when Files.Events.Command_Input_Action =>
-            if Files.Model.Focus (Model) /= Files.Types.Focus_None
+            if Files.Model.Focus (Model) /= Files.UI_Types.Focus_None
               and then not Files.Commands.Allowed_With_Text_Focus (Action.Command)
               --  F2 inside the rename field toggles that rename off.
               and then not (Action.Command = Files.Commands.Rename_Selected_Items_Command
-                            and then Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input)
+                            and then Files.Model.Focus (Model) = Files.UI_Types.Focus_Rename_Input)
             then
                --  A focused text field owns the keyboard. Space is a typed
                --  space, not Quick Look; Ctrl+V/X/C/A/Z are text editing, and
@@ -194,7 +194,7 @@ separate (Files.Controller)
             end if;
             return Execute_Non_Settings_Command (Action.Command, Model, Settings, Modifiers);
          when Files.Events.Selection_Input_Action =>
-            if Files.Model.Focus (Model) = Files.Types.Focus_None
+            if Files.Model.Focus (Model) = Files.UI_Types.Focus_None
               and then not Files.Model.Settings_Pane.Is_Open (Model)
             then
                declare

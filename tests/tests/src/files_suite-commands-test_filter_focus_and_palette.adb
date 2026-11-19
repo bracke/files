@@ -26,7 +26,7 @@ separate (Files_Suite.Commands)
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "filter focus closes command palette");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Filter_Input,
+         Files.UI_Types.Focus_Filter_Input,
          "filter input receives focus");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Files_Suite.Support.Assert_Equal
@@ -40,7 +40,7 @@ separate (Files_Suite.Commands)
       Assert (Files.Model.Command_Palette.Is_Open (Model), "Control+P opens palette from filter input");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Command_Palette,
+         Files.UI_Types.Focus_Command_Palette,
          "Control+P transfers focus from filter input to palette");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal

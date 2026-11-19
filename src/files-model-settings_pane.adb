@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Model.Support;
 with Files.Settings_Form;
 
@@ -118,7 +119,7 @@ package body Files.Model.Settings_Pane is
       Clear_Root_Selector_State (Model);
       Hide_Command_Palette (Model);
       Reset_Settings_Panel (Model);
-      Model.Focus_Value := Files.Types.Focus_Settings_Input;
+      Model.Focus_Value := Files.UI_Types.Focus_Settings_Input;
    end Begin_Edit;
 
    function Draft_Of

@@ -19,7 +19,7 @@ separate (Files_Suite.Keyboard)
       Files.Model.Label_Picker.Open (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Label_Picker.Highlight (Model),
-         Files.Types.Clear_Swatch,
+         Files.UI_Types.Clear_Swatch,
          "the picker opens on the clear swatch");
 
       --  Arrows move the highlight, clamped to the 1 .. Swatch_Count range.
@@ -27,9 +27,9 @@ separate (Files_Suite.Keyboard)
         (Model, Settings, "", Guikit.Input.Key_Right, Guikit.Input.No_Modifiers, Result);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Label_Picker.Highlight (Model),
-         Files.Types.Swatch_Count,
+         Files.UI_Types.Swatch_Count,
          "Right stays clamped at the last swatch");
-      Files_Suite.Support.Assert_Equal (Natural (Files.Types.Swatch_Count), 8, "seven colors and the clear swatch");
+      Files_Suite.Support.Assert_Equal (Natural (Files.UI_Types.Swatch_Count), 8, "seven colors and the clear swatch");
       for Step in 1 .. 4 loop
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Left, Guikit.Input.No_Modifiers, Result);

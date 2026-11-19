@@ -62,7 +62,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
       --  As the window layer draws it (Window_Overlay_Shown): not under the
       --  palette or a paste dialog, so the frame does not leave a hole for it.
       Snapshot.Settings_Pane_Open :=
-        Files.Model.Window_Overlay_Shown (Model, Files.Types.Settings_Pane_Overlay);
+        Files.Model.Window_Overlay_Shown (Model, Files.UI_Types.Settings_Pane_Overlay);
       Snapshot.Icon_Theme := Settings.Icon_Theme;
       Snapshot.Info_Pane_Scroll_Lines := Files.Model.Info_Pane_Scroll_Lines (Model);
       Snapshot.Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);

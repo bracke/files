@@ -40,7 +40,7 @@ separate (Files_Suite.Model)
       Files.Model.Testing.Cancel_Create_File (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "direct create cancel clears rename focus");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_N, Ctrl);
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "Control+N can add temporary item after direct cancel");
@@ -48,12 +48,12 @@ separate (Files_Suite.Model)
         (Files.Commands.Focus_Path_Input_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Path_Input,
+         Files.UI_Types.Focus_Path_Input,
          "path focus can move away from create");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "Escape clears path focus during create");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "Escape cancels temporary item after path focus");
       Assert (not Files.Model.Rename.Is_Active (Model), "Escape clears create rename after path focus");

@@ -38,13 +38,13 @@ begin
    then
       Result :=
         Text_Click
-          (Files.Types.Focus_Path_Input,
+          (Files.UI_Types.Focus_Path_Input,
            Cursor_At
              (Text        => Snapshot.Path_Input_Text,
               Text_X      => Path_Text.X,
               Click_X     => X,
               Text_Width  => Path_Text.Width,
-              Focused     => Snapshot.Focus = Files.Types.Focus_Path_Input));
+              Focused     => Snapshot.Focus = Files.UI_Types.Focus_Path_Input));
       return;
    elsif Scope_Chip.Visible
      and then Within (X, Scope_Chip.X, Scope_Chip.Width)
@@ -60,13 +60,13 @@ begin
    then
       Result :=
         Text_Click
-          (Files.Types.Focus_Filter_Input,
+          (Files.UI_Types.Focus_Filter_Input,
            Cursor_At
              (Text        => Snapshot.Filter_Text,
               Text_X      => Filter_Text.X,
               Click_X     => X,
               Text_Width  => Filter_Text.Width,
-              Focused     => Snapshot.Focus = Files.Types.Focus_Filter_Input));
+              Focused     => Snapshot.Focus = Files.UI_Types.Focus_Filter_Input));
       return;
    end if;
 

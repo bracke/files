@@ -58,7 +58,7 @@ separate (Files_Suite.Text_Input)
 
          Click_Outcome :=
            Files.Controller.Handle_Text_Click
-             (Model, Files.Types.Focus_Filter_Input, 0);
+             (Model, Files.UI_Types.Focus_Filter_Input, 0);
          Assert
            (Click_Outcome.Status = Files.Controller.Controller_Ignored
             and then Files.Model.Filter_Text (Model) = "",
@@ -106,7 +106,7 @@ separate (Files_Suite.Text_Input)
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "the settings pane can remain open after focus is cancelled");
       Assert_Contained ("an unfocused settings pane");
       Files.Model.Settings_Pane.Close (Model);
@@ -116,7 +116,7 @@ separate (Files_Suite.Text_Input)
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "the command palette can remain open after focus is cancelled");
       Assert_Contained ("an unfocused command palette");
       Files.Model.Command_Palette.Close (Model);
@@ -124,17 +124,17 @@ separate (Files_Suite.Text_Input)
       Files.Model.Settings_Pane.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Settings_Input,
+         Files.UI_Types.Focus_Settings_Input,
          "opening settings focuses its input surface");
       Files.Model.Command_Palette.Open (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Command_Palette,
+         Files.UI_Types.Focus_Command_Palette,
          "the command palette takes focus above settings");
       Files.Model.Command_Palette.Close (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Settings_Input,
+         Files.UI_Types.Focus_Settings_Input,
          "closing the command palette restores settings focus");
       Files.Model.Settings_Pane.Close (Model);
 
@@ -149,7 +149,7 @@ separate (Files_Suite.Text_Input)
       Files.Model.Sort_Menu.Close (Model);
 
       Prepare_Background;
-      Files.Model.Context_Menu.Open (Model, 10, 10, Files.Types.Context_Menu_Empty);
+      Files.Model.Context_Menu.Open (Model, 10, 10, Files.UI_Types.Context_Menu_Empty);
       Assert_Contained ("the context menu");
       Files.Model.Context_Menu.Close (Model);
 

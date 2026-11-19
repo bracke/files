@@ -120,13 +120,13 @@ separate (Files.Events)
          return Action;
       end if;
 
-      --  The overlay on top (Files.Types.Overlay_Stack, as clicks, keys and
+      --  The overlay on top (Files.UI_Types.Overlay_Stack, as clicks, keys and
       --  the drawing follow) takes the wheel: over its scrollable region it
       --  scrolls that, anywhere else the wheel is swallowed so nothing behind
       --  it moves.
       if Position /= 0 then
-         case Files.Types.Overlay_Stack (Position) is
-            when Files.Types.Command_Palette_Overlay =>
+         case Files.UI_Types.Overlay_Stack (Position) is
+            when Files.UI_Types.Command_Palette_Overlay =>
                declare
                   Palette : constant Files.Rendering.Layouts.Command_Palette_Layout :=
                     Files.Rendering.Layouts.Calculate_Command_Palette_Layout (Layout, Line_Height);
@@ -138,7 +138,7 @@ separate (Files.Events)
                      return Action;
                   end if;
                end;
-            when Files.Types.Settings_Pane_Overlay =>
+            when Files.UI_Types.Settings_Pane_Overlay =>
                declare
                   Settings_Pane : constant Guikit.Layout.Settings_Pane_Layout :=
                     Files.Rendering.Layouts.Settings_Pane_Region (Layout, Line_Height);
@@ -150,7 +150,7 @@ separate (Files.Events)
                      return Action;
                   end if;
                end;
-            when Files.Types.Tree_Pick_Overlay =>
+            when Files.UI_Types.Tree_Pick_Overlay =>
                --  Picking a folder in the tree: only the tree scrolls.
                if Snapshot.Tree_Panel_Open then
                   Tree_Scroll (Over_Tree, Tree_Action);
@@ -159,13 +159,13 @@ separate (Files.Events)
                   end if;
                end if;
             --  No scrollable region of their own.
-            when Files.Types.Foreground_Job_Overlay
-               | Files.Types.Paste_Conflict_Overlay
-               | Files.Types.Root_Selector_Overlay
-               | Files.Types.Sort_Menu_Overlay
-               | Files.Types.Context_Menu_Overlay
-               | Files.Types.Label_Picker_Overlay
-               | Files.Types.Quick_Look_Overlay =>
+            when Files.UI_Types.Foreground_Job_Overlay
+               | Files.UI_Types.Paste_Conflict_Overlay
+               | Files.UI_Types.Root_Selector_Overlay
+               | Files.UI_Types.Sort_Menu_Overlay
+               | Files.UI_Types.Context_Menu_Overlay
+               | Files.UI_Types.Label_Picker_Overlay
+               | Files.UI_Types.Quick_Look_Overlay =>
                null;
          end case;
          return No_Action;

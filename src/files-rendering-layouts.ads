@@ -2,6 +2,7 @@ with Ada.Containers.Vectors;
 
 with Files.Commands;
 with Files.Types;
+with Files.UI_Types;
 with Guikit.Item_Grid;
 with Guikit.Layout;
 with Guikit.Segmented;
@@ -125,12 +126,12 @@ package Files.Rendering.Layouts is
    end record;
 
    type Label_Swatch_Array is
-     array (1 .. Files.Types.Swatch_Count) of Label_Swatch_Bounds;
+     array (1 .. Files.UI_Types.Swatch_Count) of Label_Swatch_Bounds;
 
    --  Geometry of the centered color-label picker overlay: the outer panel,
    --  its title and its row of clickable swatches. Swatches 1 .. 7
    --  correspond to the colors Red .. Gray (Files.Types.Real_Color_Label in
-   --  order); the last, Files.Types.Clear_Swatch, is the "None" clear swatch.
+   --  order); the last, Files.UI_Types.Clear_Swatch, is the "None" clear swatch.
    type Label_Picker_Layout is record
       X           : Natural := 0;
       Y           : Natural := 0;
@@ -153,7 +154,7 @@ package Files.Rendering.Layouts is
    --  @return The color label the swatch assigns.
    function Label_For_Swatch
      (Index : Positive)
-      return Files.Types.Color_Label renames Files.Types.Label_For_Swatch;
+      return Files.Types.Color_Label renames Files.UI_Types.Label_For_Swatch;
 
    type Root_Selector_Layout is record
       X          : Natural := 0;

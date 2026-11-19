@@ -24,14 +24,14 @@ separate (Files_Suite.Commands)
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "Escape closes unfocused settings pane");
-      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 2);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Settings_Input, Cursor_Position => 2);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "closed settings text click is ignored");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "closed settings text click does not focus input");
       Files.Model.Command_Palette.Open (Model);
       Files.Model.Selection.Select_Visible (Model, 1);
@@ -43,7 +43,7 @@ separate (Files_Suite.Commands)
       Assert (not Files.Model.Rename.Is_Active (Model), "settings pane opening clears active rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Settings_Input,
+         Files.UI_Types.Focus_Settings_Input,
          "settings pane opening moves focus to settings input");
       Files.Model.Selection.Select_Visible (Model, 1);
       Assert
@@ -82,18 +82,18 @@ separate (Files_Suite.Commands)
          "settings pane blocks background item click");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Settings_Input,
+         Files.UI_Types.Focus_Settings_Input,
          "blocked item click keeps settings focus");
-      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Path_Input, Cursor_Position => 1);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Path_Input, Cursor_Position => 1);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "settings pane blocks background path text click");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Settings_Input,
+         Files.UI_Types.Focus_Settings_Input,
          "blocked text click keeps settings focus");
-      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 1);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Settings_Input, Cursor_Position => 1);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -102,7 +102,7 @@ separate (Files_Suite.Commands)
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "settings pane closes after focus Escape");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "settings Escape clears settings focus");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
@@ -118,7 +118,7 @@ separate (Files_Suite.Commands)
       Assert
         (Files.Model.Selection.Selected_Item (Model).Name = "Alpha.txt",
          "settings pane keeps background selection unchanged");
-      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 1);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Settings_Input, Cursor_Position => 1);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,

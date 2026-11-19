@@ -19,7 +19,7 @@ separate (Files_Suite.Rendering)
       end;
       Snapshot.Selected_Count := 1;
       Snapshot.Rename_Active := True;
-      Snapshot.Focus := Files.Types.Focus_Rename_Input;
+      Snapshot.Focus := Files.UI_Types.Focus_Rename_Input;
 
       declare
          Layout : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);

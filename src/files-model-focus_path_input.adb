@@ -4,7 +4,7 @@ procedure Focus_Path_Input
 begin
    Touch (Model);
    Reset_Type_Ahead (Model);
-   Model.Focus_Value := Files.Types.Focus_Path_Input;
+   Model.Focus_Value := Files.UI_Types.Focus_Path_Input;
    Model.Tree_Panel.Keyboard := False;
    Model.Path_Input :=
      (Edit => (Text => Model.Current_Path_Value, Cursor => Length (Model.Current_Path_Value)), others => <>);

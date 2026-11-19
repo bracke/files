@@ -26,12 +26,12 @@ separate (Files.File_System.Recovery)
          --  (a stage a nested move left there) is not this payload.
          Original : constant String := Original_Path (Path);
          Leaf     : constant String :=
-           (if Valid_Absolute_Path (Original) then Files.Fs_Primitives.Leaf_Text (Original) else "recovered");
+           (if Valid_Absolute_Path (Original) then Files.Types.Leaf_Of (Original) else "recovered");
       begin
          if Count = 0 then
             Files.Fs_Primitives.Delete_Directory (Holder);
          elsif Count = 1
-           and then Files.Fs_Primitives.Leaf_Text (To_String (Held)) = Leaf
+           and then Files.Types.Leaf_Of (To_String (Held)) = Leaf
            and then Support.Move_No_Replace (To_String (Held), Path)
          then
             Files.Fs_Primitives.Delete_Directory (Holder);

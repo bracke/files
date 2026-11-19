@@ -68,16 +68,17 @@ separate (Check_All)
       --  The spec names the types translation reads and produces: a
       --  Command_Id in an Input_Action (Files.Commands), the View_Snapshot and
       --  Frame_Commands that Translate_Click hit-tests (Files.Rendering), and
-      --  and the shared value types (Files.Types). Those three are allowed
-      --  there and nothing
-      --  else -- the body checks below still forbid any call into them beyond
-      --  reading those values.
+      --  the shared value types (Files.Types, and Files.UI_Types for the focus
+      --  and overlay values). Those are allowed there and nothing else -- the
+      --  body checks below still forbid any call into them beyond reading
+      --  those values.
       Require_Only_Allowed_With_Clauses
         (Events_Spec,
          "Files.",
          [To_Unbounded_String ("Files.Commands"),
           To_Unbounded_String ("Files.Rendering"),
-          To_Unbounded_String ("Files.Types")]);
+          To_Unbounded_String ("Files.Types"),
+          To_Unbounded_String ("Files.UI_Types")]);
       Require_Not_Contains
         (Events_Spec,
          "Files.Model.",
@@ -229,6 +230,7 @@ separate (Check_All)
             To_Unbounded_String ("Files.Transfer_Jobs"),
             To_Unbounded_String ("Files.Type_Ahead"),
             To_Unbounded_String ("Files.Types"),
+            To_Unbounded_String ("Files.UI_Types"),
             To_Unbounded_String ("Files.Undo_Payloads")];
       begin
          for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-model*.ad?", Generated_Directories) loop

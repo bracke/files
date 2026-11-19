@@ -573,14 +573,14 @@ package body Files.File_System is
    end Relative_To_Top;
 
    function Volume_Trash_Top (Base : String) return String is
-     (if Files.Fs_Primitives.Leaf_Text (Base) (1 .. Natural'Min (7, Files.Fs_Primitives.Leaf_Text (Base)'Length))
+     (if Files.Types.Leaf_Of (Base) (1 .. Natural'Min (7, Files.Types.Leaf_Of (Base)'Length))
            = ".Trash-"
       then Files.Fs_Primitives.Parent_Directory (Base)
       else Files.Fs_Primitives.Parent_Directory (Files.Fs_Primitives.Parent_Directory (Base)));
 
    function Is_Finder_Volume_Trash (Base : String) return Boolean is
      (Base /= ""
-      and then Files.Fs_Primitives.Leaf_Text (Files.Fs_Primitives.Parent_Directory (Base)) = ".Trashes");
+      and then Files.Types.Leaf_Of (Files.Fs_Primitives.Parent_Directory (Base)) = ".Trashes");
 
    function Trash_Items_Directory (Base : String) return String is
      (if Is_Finder_Volume_Trash (Base) then Base else Hostkit.Fs.Join (Base, "files"));

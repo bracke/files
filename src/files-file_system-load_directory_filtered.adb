@@ -38,7 +38,7 @@ is
    --  not say (the macOS home trash keeps none).
    function Shown_Name (Name : String; Full : String) return String is
       Original : constant String := Trash_Original_Path (Full);
-      Leaf     : constant String := (if Original = "" then "" else Files.Fs_Primitives.Leaf_Text (Original));
+      Leaf     : constant String := (if Original = "" then "" else Files.Types.Leaf_Of (Original));
    begin
       return (if Leaf = "" then Name else Leaf);
    exception
@@ -142,7 +142,7 @@ begin
             Item_Path : constant String := To_String (Recycled.Recycled_Path);
          begin
             Normalized_Path := To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Item_Path));
-            Add_Named (Files.Fs_Primitives.Leaf_Text (To_String (Recycled.Original_Path)), Item_Path);
+            Add_Named (Files.Types.Leaf_Of (To_String (Recycled.Original_Path)), Item_Path);
          exception
             when Swallowed : others =>
                --  One unreadable record hides its item, not the bin.

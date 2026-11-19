@@ -169,7 +169,7 @@ begin
    Prepare_Directories;
 
    Name := To_Unbounded_String
-     (Unique_Trash_Name (Files_Dir, Info_Dir, Files.Fs_Primitives.Leaf_Text (Path)));
+     (Unique_Trash_Name (Files_Dir, Info_Dir, Files.Types.Leaf_Of (Path)));
    Target := To_Unbounded_String (Hostkit.Fs.Join (Files_Dir, To_String (Name)));
 
    if not Macos_Home then

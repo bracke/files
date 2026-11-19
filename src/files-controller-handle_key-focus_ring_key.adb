@@ -13,9 +13,9 @@ begin
      and then not Modifiers (Guikit.Input.Control_Key)
      and then not Modifiers (Guikit.Input.Alt_Key)
      and then Files.Model.Focus (Model) in
-       Files.Types.Focus_None
-         | Files.Types.Focus_Path_Input
-         | Files.Types.Focus_Filter_Input
+       Files.UI_Types.Focus_None
+         | Files.UI_Types.Focus_Path_Input
+         | Files.UI_Types.Focus_Filter_Input
    then
       declare
          Backward : constant Boolean := Modifiers (Guikit.Input.Shift_Key);
@@ -26,7 +26,7 @@ begin
            and then not Files.Model.Tree_Panel.Visible_Rows (Model).Is_Empty;
       begin
          case Files.Model.Focus (Model) is
-            when Files.Types.Focus_None =>
+            when Files.UI_Types.Focus_None =>
                if Files.Model.Tree_Panel.Has_Keyboard (Model) then
                   if Backward then
                      Files.Model.Focus_Filter_Input (Model);
@@ -42,13 +42,13 @@ begin
                else
                   Files.Model.Focus_Path_Input (Model);
                end if;
-            when Files.Types.Focus_Path_Input =>
+            when Files.UI_Types.Focus_Path_Input =>
                if Backward then
                   Files.Model.Cancel_Focus_Or_Edit (Model);
                else
                   Files.Model.Focus_Filter_Input (Model);
                end if;
-            when Files.Types.Focus_Filter_Input =>
+            when Files.UI_Types.Focus_Filter_Input =>
                if Backward then
                   Files.Model.Focus_Path_Input (Model);
                else

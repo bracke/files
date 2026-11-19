@@ -1,3 +1,4 @@
+with Files.Types;
 with Ada.Strings.Unbounded;
 with Files.Fs_Primitives;
 with Files.Protocol_Names;
@@ -68,7 +69,7 @@ package body Files.Durability is
       declare
          Suffix : constant String := Slashed (Faults.Suffix);
          Text   : constant String := Slashed (Path);
-         Leaf   : constant String := Files.Fs_Primitives.Leaf_Text (Path);
+         Leaf   : constant String := Files.Types.Leaf_Of (Path);
          Prefix : constant String := Files.Protocol_Names.Recovery_Stage_Prefix;
       begin
          return

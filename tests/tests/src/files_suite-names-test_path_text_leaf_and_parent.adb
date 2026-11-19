@@ -15,17 +15,17 @@ separate (Files_Suite.Names)
       function Compose_Text (Directory : String; Stem : String; Extension : String := "") return String is
         (Hostkit.Fs.Join (Directory, (if Extension = "" then Stem else Stem & "." & Extension)));
    begin
-      Files_Suite.Support.Assert_Equal (P.Leaf_Text ("C:\dir\" & Long), Long, "a long Windows leaf");
+      Files_Suite.Support.Assert_Equal (Files.Types.Leaf_Of ("C:\dir\" & Long), Long, "a long Windows leaf");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("C:\dir\" & Long), "C:\dir", "and its parent");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("C:\" & Long), "C:\", "a drive root keeps its separator");
-      Files_Suite.Support.Assert_Equal (P.Leaf_Text ("C:\"), "", "a drive root has no leaf");
-      Files_Suite.Support.Assert_Equal (P.Leaf_Text ("/a/b/"), "b", "trailing separators are not a component");
+      Files_Suite.Support.Assert_Equal (Files.Types.Leaf_Of ("C:\"), "", "a drive root has no leaf");
+      Files_Suite.Support.Assert_Equal (Files.Types.Leaf_Of ("/a/b/"), "b", "trailing separators are not a component");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("/a/b/"), "/a", "nor part of the parent");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("/x"), "/", "the POSIX root keeps its separator");
-      Files_Suite.Support.Assert_Equal (P.Leaf_Text ("/"), "", "the POSIX root has no leaf");
+      Files_Suite.Support.Assert_Equal (Files.Types.Leaf_Of ("/"), "", "the POSIX root has no leaf");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("\\server\share\" & Long), "\\server\share", "a share");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("\\server\share"), "", "a share's root has no parent");
-      Files_Suite.Support.Assert_Equal (P.Leaf_Text ("\\server\share\"), "", "nor a leaf");
+      Files_Suite.Support.Assert_Equal (Files.Types.Leaf_Of ("\\server\share\"), "", "nor a leaf");
       Files_Suite.Support.Assert_Equal (P.Parent_Directory ("\\server\share"), "", "nor a parent directory");
       Files_Suite.Support.Assert_Equal (P.Parent_Directory ("name"), ".", "a name alone lies in the current directory");
       Files_Suite.Support.Assert_Equal (P.Parent_Directory ("/"), "", "the POSIX root has no parent directory");

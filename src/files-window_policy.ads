@@ -1,7 +1,7 @@
 with Ada.Real_Time;
 
 with Files.Events;
-with Files.Types;
+with Files.UI_Types;
 with Guikit.Input;
 with Guikit.Settings_Panel;
 
@@ -65,7 +65,7 @@ package Files.Window_Policy is
    --  @return True when Space should follow.
    function Activation_Presses_Space
      (Activate : Boolean;
-      Focus    : Files.Types.Focus_Target;
+      Focus    : Files.UI_Types.Focus_Target;
       Field    : Guikit.Settings_Panel.Field_Kind)
       return Boolean;
 

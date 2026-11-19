@@ -17,7 +17,7 @@ separate (Files.File_System.Recovery)
    begin
       if Root = ""
         or else Files.Fs_Primitives.Parent_Directory (Directory) /= Root
-        or else not Starts_With (Files.Fs_Primitives.Leaf_Text (Directory), Files.Protocol_Names.Recovery_Stage_Prefix)
+        or else not Starts_With (Files.Types.Leaf_Of (Directory), Files.Protocol_Names.Recovery_Stage_Prefix)
         or else Hostkit.Fs.Is_Link (Directory)
       then
          return;

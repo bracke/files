@@ -537,7 +537,7 @@ package body Files.Job_Scavenger is
       --  Whether Directory's own name is a current transport's.
       function Is_Current_Name (Directory : String) return Boolean is
       begin
-         return Files.Job_Transports.Is_Transport_Name (Files.Fs_Primitives.Leaf_Text (Directory));
+         return Files.Job_Transports.Is_Transport_Name (Files.Types.Leaf_Of (Directory));
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Job_Scavenger");

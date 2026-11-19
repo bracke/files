@@ -30,7 +30,7 @@ separate (Files_Suite.Text_Input)
               Line_Height => Line);
       begin
          Assert (Margin.Kind /= Files.Events.Text_Click_Input_Action
-                 or else Margin.Focus_Target /= Files.Types.Focus_Path_Input,
+                 or else Margin.Focus_Target /= Files.UI_Types.Focus_Path_Input,
                  "a click in the margin past the path field's box does not focus it");
       end;
 
@@ -51,7 +51,7 @@ separate (Files_Suite.Text_Input)
             "a click past the breadcrumbs in the path field translates to a text click");
          Files_Suite.Support.Assert_Equal
            (Action.Focus_Target,
-            Files.Types.Focus_Path_Input,
+            Files.UI_Types.Focus_Path_Input,
             "the text click targets the path input");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
@@ -59,7 +59,7 @@ separate (Files_Suite.Text_Input)
 
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Path_Input,
+         Files.UI_Types.Focus_Path_Input,
          "applying the text click moves focus to the path input");
       --  Focusing the path input loads the current directory path for editing,
       --  so the exact end offset is path-dependent; asserting the cursor moved

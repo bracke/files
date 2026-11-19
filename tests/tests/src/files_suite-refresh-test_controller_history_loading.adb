@@ -53,7 +53,8 @@ separate (Files_Suite.Refresh)
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 3, "back loads first path items");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "back clears temporary create state");
       Assert (not Files.Model.Rename.Is_Active (Model), "back clears rename state");
-      Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_None, "back clears rename focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model), Files.UI_Types.Focus_None, "back clears rename focus");
       Files.Model.Begin_Create_File (Model, "forward-history-pending.txt");
       Files.Model.Selection.Select_Visible (Model, 3);
       Result := Files.Controller.Execute_Non_Settings_Command
@@ -75,7 +76,7 @@ separate (Files_Suite.Refresh)
       Assert (not Files.Model.Rename.Is_Active (Model), "forward clears rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "forward clears rename focus");
 
       Project_Tools.Files.Delete_Tree (First);
@@ -126,7 +127,7 @@ separate (Files_Suite.Refresh)
          "failed forward preserves rename text");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Rename_Input,
+         Files.UI_Types.Focus_Rename_Input,
          "failed forward restores rename focus");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files.Model.Begin_Create_File (Model, "failed-forward-pending.txt");
@@ -177,7 +178,7 @@ separate (Files_Suite.Refresh)
          "failed back preserves rename text");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Rename_Input,
+         Files.UI_Types.Focus_Rename_Input,
          "failed back restores rename focus");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Ada.Directories.Create_Path (First);

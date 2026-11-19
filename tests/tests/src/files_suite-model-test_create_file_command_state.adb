@@ -55,7 +55,7 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Rename.Is_Active (Model), "create command starts rename mode");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Rename_Input,
+         Files.UI_Types.Focus_Rename_Input,
          "create command focuses rename input");
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Create_File_Command, Model),

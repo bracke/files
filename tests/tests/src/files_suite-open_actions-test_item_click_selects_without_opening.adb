@@ -23,7 +23,7 @@ separate (Files_Suite.Open_Actions)
          "click selection updates selected visible index");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "item click clears text input focus");
       Routed := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal
@@ -47,7 +47,7 @@ separate (Files_Suite.Open_Actions)
          "outside item click preserves selection");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Path_Input,
+         Files.UI_Types.Focus_Path_Input,
          "outside item click preserves focus");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Path_Input_Text (Model),

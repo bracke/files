@@ -47,7 +47,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
       Assert (Files.Model.Rename.Is_Active (Model), "the rename survives a shared hidden-files change");
       Assert (Files.Model.Rename.Text (Model) = "Beta-2.txt", "with the name typed so far");
-      Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_Rename_Input, "and keeps the keyboard");
+      Assert_Equal (Files.Model.Focus (Model), Files.UI_Types.Focus_Rename_Input, "and keeps the keyboard");
       Assert_Equal (Files.Model.Visible_Count (Model), 2, "while the hidden result leaves the view");
       Outcome := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
 

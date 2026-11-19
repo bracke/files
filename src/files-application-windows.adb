@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operation_Results;
 with Ada.Calendar;
 with Files.Window_Polls;
@@ -41,7 +42,7 @@ package body Files.Application.Windows is
    use type Glfw.Size;
    use type Files.Events.Input_Action_Kind;
    use type Files.Commands.Command_Id;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Files.Types.Detail_Column;
    use type Guikit.Vulkan.Vulkan_Status;
    use type Files.Rendering.View_Snapshot;
@@ -268,7 +269,7 @@ package body Files.Application.Windows is
       --  When the grid owns the keyboard this run feeds type-ahead; stamp the
       --  activity time so the inactivity timeout below measures from the last
       --  keystroke rather than from the previous field edit.
-      if Files.Model.Focus (Runtime.Model) = Files.Types.Focus_None then
+      if Files.Model.Focus (Runtime.Model) = Files.UI_Types.Focus_None then
          Runtime.Type_Ahead_Input_At := Ada.Real_Time.Clock;
       end if;
 
@@ -1043,7 +1044,7 @@ package body Files.Application.Windows is
         Files.Model.Tree_Panel.Pick_Is_Active (Runtime.Model)
         and then Files.Model.Tree_Panel.Is_Open (Runtime.Model)
         and then Runtime.Scrollbar_Drag_Target = Files.Events.Scroll_Tree_Panel
-        and then not Files.Model.Other_Input_Owning_Overlay_Is_Open (Runtime.Model, Files.Types.Tree_Pick_Overlay);
+        and then not Files.Model.Other_Input_Owning_Overlay_Is_Open (Runtime.Model, Files.UI_Types.Tree_Pick_Overlay);
    begin
       if not Files.Model.Input_Owning_Overlay_Is_Open (Runtime.Model) then
          return;

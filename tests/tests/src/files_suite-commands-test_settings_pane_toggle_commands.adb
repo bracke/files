@@ -37,7 +37,7 @@ separate (Files_Suite.Commands)
          "settings toggle reports successful state-only operation");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Settings_Input,
+         Files.UI_Types.Focus_Settings_Input,
          "settings pane receives editable settings focus");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
@@ -57,7 +57,7 @@ separate (Files_Suite.Commands)
          "settings pane opening clears pending rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Settings_Input,
+         Files.UI_Types.Focus_Settings_Input,
          "settings pane opening focuses settings after clearing edit state");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);

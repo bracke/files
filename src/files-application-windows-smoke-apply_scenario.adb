@@ -38,8 +38,8 @@ separate (Files.Application.Windows.Smoke)
                X          => 64,
                Y          => 96,
                Target     =>
-                 (if Has_Item then Files.Types.Context_Menu_Item
-                  else Files.Types.Context_Menu_Empty));
+                 (if Has_Item then Files.UI_Types.Context_Menu_Item
+                  else Files.UI_Types.Context_Menu_Empty));
 
          when Scenario_Palette =>
             Files.Model.Command_Palette.Open (Runtime.Model);

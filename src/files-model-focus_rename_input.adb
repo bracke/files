@@ -5,7 +5,7 @@ begin
    Touch (Model);
    if Model.Rename.Active then
       Reset_Type_Ahead (Model);
-      Model.Focus_Value := Files.Types.Focus_Rename_Input;
+      Model.Focus_Value := Files.UI_Types.Focus_Rename_Input;
       Clear_Root_Selector_State (Model);
       Hide_Command_Palette (Model);
    end if;

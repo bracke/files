@@ -34,7 +34,7 @@ separate (Files_Suite.Rendering)
          Snapshot : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
       begin
          Snapshot.Filter_Text := To_Unbounded_String (Raw);
-         Snapshot.Focus := Files.Types.Focus_Filter_Input;
+         Snapshot.Focus := Files.UI_Types.Focus_Filter_Input;
          Snapshot.Text_Cursor_Position := Caret;
          declare
             Frame  : constant Frame_Commands := Build_Frame_Commands (Snapshot, Width, Height, LH);

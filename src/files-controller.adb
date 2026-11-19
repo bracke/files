@@ -32,7 +32,7 @@ package body Files.Controller is
    use type Files.Model.Palette_Mode;
    use type Files.Model.Tree_Pick_Mode;
    use type Files.Operation_Results.Operation_Status;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
    use type Guikit.Input.Navigation_Direction;
@@ -311,15 +311,15 @@ package body Files.Controller is
       Text  : String) is
    begin
       case Files.Model.Focus (Model) is
-         when Files.Types.Focus_Path_Input =>
+         when Files.UI_Types.Focus_Path_Input =>
             Files.Model.Set_Path_Input_Text (Model, Text);
-         when Files.Types.Focus_Filter_Input =>
+         when Files.UI_Types.Focus_Filter_Input =>
             Files.Model.Set_Filter (Model, Text);
-         when Files.Types.Focus_Rename_Input =>
+         when Files.UI_Types.Focus_Rename_Input =>
             Files.Model.Rename.Set_Text (Model, Text);
-         when Files.Types.Focus_Command_Palette =>
+         when Files.UI_Types.Focus_Command_Palette =>
             Files.Model.Command_Palette.Set_Query (Model, Text);
-         when Files.Types.Focus_Settings_Input =>
+         when Files.UI_Types.Focus_Settings_Input =>
             Files.Model.Settings_Pane.Set_Focused_Value (Model, Text);
             declare
                Saved : constant Boolean :=
@@ -328,9 +328,9 @@ package body Files.Controller is
             begin
                null;  --  text edits update the draft but persist on commit
             end;
-         when Files.Types.Focus_Ownership_Input =>
+         when Files.UI_Types.Focus_Ownership_Input =>
             Files.Model.Set_Ownership_Input_Text (Model, Text);
-         when Files.Types.Focus_None =>
+         when Files.UI_Types.Focus_None =>
             null;
       end case;
    end Replace_Focused_Text;
@@ -687,7 +687,7 @@ package body Files.Controller is
       return Controller_Result is
    begin
       if not Files.Model.Root_Selector.Is_Open (Model)
-        or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Root_Selector_Overlay)
+        or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.UI_Types.Root_Selector_Overlay)
         or else Root_Index = 0
         or else Root_Index > Files.Model.Root_Selector.Count (Model)
       then
@@ -738,7 +738,7 @@ package body Files.Controller is
       Node_Index : Natural)
       return Boolean is
      (Files.Model.Tree_Panel.Is_Open (Model)
-      and then not Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Tree_Pick_Overlay)
+      and then not Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.UI_Types.Tree_Pick_Overlay)
       and then Node_Index in 1 .. Files.Model.Tree_Panel.Node_Count (Model));
 
    function Toggle_Tree_Node
@@ -934,7 +934,7 @@ package body Files.Controller is
 
    function Handle_Text_Click
      (Model           : in out Files.Model.Window_Model;
-      Target          : Files.Types.Focus_Target;
+      Target          : Files.UI_Types.Focus_Target;
       Cursor_Position : Natural;
       Item_Index      : Natural := 0)
       return Controller_Result
@@ -988,7 +988,7 @@ package body Files.Controller is
       return Controller_Result is
    begin
       if not Files.Model.Settings_Pane.Is_Open (Model)
-        or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Settings_Pane_Overlay)
+        or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.UI_Types.Settings_Pane_Overlay)
         or else not Files.Model.Settings_Pane.Click (Model, X, Y)
       then
          return Make_Result (Controller_Ignored);

@@ -20,19 +20,20 @@ separate (Files_Suite.Model)
 
       Roots.Append (Ada.Strings.Unbounded.To_Unbounded_String (Files_Suite.Support.Disk.Root));
       Files.Model.Root_Selector.Open (Model, Roots);
-      Assert (Files.Model.Testing.Overlay_Is_Open (Model, Files.Types.Root_Selector_Overlay), "the selector is open");
+      Assert
+        (Files.Model.Testing.Overlay_Is_Open (Model, Files.UI_Types.Root_Selector_Overlay), "the selector is open");
       Assert (Files.Model.Input_Owning_Overlay_Is_Open (Model), "the selector owns input");
       Assert
-        (not Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Root_Selector_Overlay),
+        (not Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.UI_Types.Root_Selector_Overlay),
          "the selector's own clicks are not blocked by itself");
       Assert
-        (Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Context_Menu_Overlay),
+        (Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.UI_Types.Context_Menu_Overlay),
          "the selector blocks a context menu");
       Assert (Files.Model.Character_Input_Is_Contained (Model), "the selector has no text field of its own");
 
       Files.Model.Command_Palette.Open (Model);
       Assert
-        (Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Root_Selector_Overlay),
+        (Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.UI_Types.Root_Selector_Overlay),
          "the palette over the selector blocks the selector's clicks");
       Assert
         (not Files.Model.Character_Input_Is_Contained (Model),

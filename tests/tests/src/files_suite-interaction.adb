@@ -24,6 +24,7 @@ with Files.Event_Wait;
 with Guikit.Input;
 with Ada.Real_Time;
 with Files.Types;
+with Files.UI_Types;
 with Files_Suite.Support;
 with Files_Suite.Interaction_Support;
 
@@ -39,7 +40,7 @@ package body Files_Suite.Interaction is
    use type Files.Events.Scroll_Target;
    use type Guikit.Draw.Accessibility_Role;
    use type Files.Types.Color_Label;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use Files_Suite.Interaction_Support;
 
    type Interaction_Test_Case is new AUnit.Test_Cases.Test_Case with null record;

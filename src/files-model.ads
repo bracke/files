@@ -18,6 +18,7 @@ with Guikit.Command_Palette;
 with Guikit.Input;
 with Guikit.Settings_Panel;
 with Files.Types;
+with Files.UI_Types;
 with Files.Transfer_Jobs;
 
 --  Directory state, selection, filtering, history, input state, and pane state.
@@ -169,9 +170,9 @@ package Files.Model is
       return Boolean;
 
    --  The transient surfaces that own window input while open
-   --  (Files.Types.Input_Overlay); every model query reads that list.
-   subtype Input_Overlay is Files.Types.Input_Overlay;
-   use all type Files.Types.Input_Overlay;
+   --  (Files.UI_Types.Input_Overlay); every model query reads that list.
+   subtype Input_Overlay is Files.UI_Types.Input_Overlay;
+   use all type Files.UI_Types.Input_Overlay;
 
    --  The overlays with their own text-entry surface.
    subtype Text_Input_Overlay is Input_Overlay range Settings_Pane_Overlay .. Command_Palette_Overlay;
@@ -180,7 +181,7 @@ package Files.Model is
    --  their own way out.
    subtype Escape_Closable_Overlay is Input_Overlay range Settings_Pane_Overlay .. Tree_Pick_Overlay;
 
-   --  The open overlay on top (the first open one of Files.Types.Overlay_Stack):
+   --  The open overlay on top (the first open one of Files.UI_Types.Overlay_Stack):
    --  the one whose own controls alone still act, and the one drawn on top.
    --  Escape, the keyboard, the pointer and the window's drawing follow it.
    --
@@ -191,7 +192,7 @@ package Files.Model is
 
    --  Whether the window layer draws Overlay (the command palette or the
    --  settings pane, which it merges over the frame): it is open and nothing
-   --  is open above it in Files.Types.Overlay_Stack. A paste dialog, drawn in
+   --  is open above it in Files.UI_Types.Overlay_Stack. A paste dialog, drawn in
    --  the frame, is above both; the palette is above the pane.
    --
    --  @param Model Model to inspect.
@@ -237,7 +238,7 @@ package Files.Model is
       return Boolean;
 
    --  Whether typed characters are contained: the overlay on top
-   --  (Files.Types.Overlay_Stack, which keys, clicks and the wheel follow too)
+   --  (Files.UI_Types.Overlay_Stack, which keys, clicks and the wheel follow too)
    --  takes them only when it is the command palette or the settings pane with
    --  its own text field focused; any other overlay on top swallows them.
    --
@@ -756,7 +757,7 @@ package Files.Model is
    --  @return Focus target.
    function Focus
      (Model : Window_Model)
-      return Files.Types.Focus_Target;
+      return Files.UI_Types.Focus_Target;
 
    --  Return the text of the currently focused text input: the path, filter,
    --  rename, palette query, settings value or ownership field.
@@ -1016,7 +1017,7 @@ package Files.Model is
    procedure Clear_Reveal
      (Model : in out Window_Model);
 
-   subtype Context_Menu_Target is Files.Types.Context_Menu_Target;
+   subtype Context_Menu_Target is Files.UI_Types.Context_Menu_Target;
 
    type Clipboard_Mode is (Clipboard_None, Clipboard_Copy, Clipboard_Cut);
 
@@ -1431,7 +1432,7 @@ private
       Open       : Boolean := False;
       X          : Natural := 0;
       Y          : Natural := 0;
-      Target     : Context_Menu_Target := Files.Types.Context_Menu_None;
+      Target     : Context_Menu_Target := Files.UI_Types.Context_Menu_None;
       Highlight  : Natural := 0;
    end record;
 
@@ -1570,7 +1571,7 @@ private
    --  highlight. Every default is the closed state.
    type Label_Picker_State is record
       Open   : Boolean := False;
-      Swatch : Positive := Files.Types.Clear_Swatch;
+      Swatch : Positive := Files.UI_Types.Clear_Swatch;
    end record;
 
    --  The volume-space sample and where and when it was taken; Sampled is
@@ -1656,7 +1657,7 @@ private
       --  History below.
       Back_History         : Files.Types.String_Vectors.Vector;
       Forward_History      : Files.Types.String_Vectors.Vector;
-      Focus_Value          : Files.Types.Focus_Target := Files.Types.Focus_None;
+      Focus_Value          : Files.UI_Types.Focus_Target := Files.UI_Types.Focus_None;
       Path_Input           : Path_Input_State;
       Info_Pane_Open       : Boolean := False;
       Settings_Pane_Open   : Boolean := False;

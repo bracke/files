@@ -9,23 +9,23 @@ separate (Files.Controller)
       Operation : Files.Operation_Results.Operation_Result := Empty_Operation;
    begin
       case Files.Model.Focus (Model) is
-         when Files.Types.Focus_Path_Input =>
+         when Files.UI_Types.Focus_Path_Input =>
             Operation := Files.Operations.Commit_Path_Input (Model, Settings);
             return Make_Result (Controller_Command_Executed, Files.Commands.Focus_Path_Input_Command, Operation);
-         when Files.Types.Focus_Filter_Input =>
+         when Files.UI_Types.Focus_Filter_Input =>
             Files.Model.Cancel_Focus_Or_Edit (Model);
             Operation.Status := Files.Operation_Results.Operation_Success;
             return Make_Result (Controller_Command_Executed, Files.Commands.Focus_Filter_Input_Command, Operation);
-         when Files.Types.Focus_Rename_Input =>
+         when Files.UI_Types.Focus_Rename_Input =>
             if Files.Model.Temporary_Item_Is_Active (Model) then
                Operation := Files.Operations.Commit_Create_File (Model, Settings);
             else
                Operation := Files.Operations.Commit_Rename (Model, Settings);
             end if;
             return Make_Result (Controller_Command_Executed, Files.Commands.Rename_Selected_Items_Command, Operation);
-         when Files.Types.Focus_Command_Palette =>
+         when Files.UI_Types.Focus_Command_Palette =>
             return Activate_Palette_Command (Model, Settings, Modifiers);
-         when Files.Types.Focus_Settings_Input =>
+         when Files.UI_Types.Focus_Settings_Input =>
             declare
                Parsed : constant Files.Settings.Settings_Parse_Result :=
                  Files.Settings.Validate_Draft (Files.Model.Settings_Pane.Draft_Of (Model));
@@ -50,11 +50,11 @@ separate (Files.Controller)
                 (Controller_Command_Executed,
                  Files.Commands.Toggle_Settings_Pane_Command,
                  Operation);
-         when Files.Types.Focus_Ownership_Input =>
+         when Files.UI_Types.Focus_Ownership_Input =>
             return Make_Result
               (Controller_Command_Executed, Files.Commands.No_Command,
                Files.Operations.Commit_Ownership_Input (Model, Settings));
-         when Files.Types.Focus_None =>
+         when Files.UI_Types.Focus_None =>
             --  Return over the grid opens the selection.
             return Execute_Non_Settings_Command
               (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);

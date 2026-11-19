@@ -1,3 +1,4 @@
+with Files.Types;
 with Files.Fs_Primitives;
 with Files.Timing;
 with Files.Protocol_Names;
@@ -492,7 +493,7 @@ package body Files.File_System.Recovery is
       --  payload must never let the stage, original inside, be removed.
       return Files.Fs_Primitives.Entry_Is_Absent (Path)
         and then Files.Fs_Primitives.Entry_Is_Absent (Holder)
-        and then Files.Fs_Primitives.Leaf_Text (Path) = "payload"
+        and then Files.Types.Leaf_Of (Path) = "payload"
         and then (Has_Marker (Stage, Vacated_Marker) or else Has_Marker (Stage, Releasing_Marker))
         and then Read_Owner (Stage, Original, Identity)
         and then Contains_Only_Owned_Entries (Stage);
@@ -541,7 +542,7 @@ package body Files.File_System.Recovery is
       Original : UString;
       Identity : UString;
    begin
-      return Files.Fs_Primitives.Leaf_Text (Payload) = "payload"
+      return Files.Types.Leaf_Of (Payload) = "payload"
         and then Files.Fs_Primitives.Entry_Is_Absent (Payload)
         and then Files.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (Stage, "release"))
         and then not Has_Marker (Stage, Vacated_Marker)
@@ -614,8 +615,8 @@ package body Files.File_System.Recovery is
       Parent : constant String := Files.Fs_Primitives.Parent_Directory (Path);
       Original, Identity : UString;
    begin
-      return Files.Fs_Primitives.Leaf_Text (Path) = "payload"
-        and then Starts_With (Files.Fs_Primitives.Leaf_Text (Parent), Files.Protocol_Names.Recovery_Stage_Prefix)
+      return Files.Types.Leaf_Of (Path) = "payload"
+        and then Starts_With (Files.Types.Leaf_Of (Parent), Files.Protocol_Names.Recovery_Stage_Prefix)
         and then not Hostkit.Fs.Is_Link (Parent)
         and then Files.Fs_Primitives.Directory_Exists (Parent)
         --  refusal-safe: a refused payload is not recognized, so nothing acts on it

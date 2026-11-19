@@ -36,7 +36,7 @@ separate (Files_Suite.Tree)
       Tab;
       Tab;
       Tab;
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None
+      Assert (Files.Model.Focus (Model) = Files.UI_Types.Focus_None
               and then not Files.Model.Tree_Panel.Has_Keyboard (Model),
               "with the tree closed, Tab from the filter returns to the grid");
 
@@ -91,7 +91,7 @@ separate (Files_Suite.Tree)
       Tab (Backward => True);
       Assert (Files.Model.Tree_Panel.Has_Keyboard (Model), "Shift+Tab from the grid reaches the open tree");
       Tab (Backward => True);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input
+      Assert (Files.Model.Focus (Model) = Files.UI_Types.Focus_Filter_Input
               and then not Files.Model.Tree_Panel.Has_Keyboard (Model),
               "Shift+Tab from the tree goes on to the filter");
 

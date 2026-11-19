@@ -28,6 +28,7 @@ with Files.Rendering;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files_Suite.Support.Timing;
@@ -43,7 +44,7 @@ package body Files_Suite.Refresh is
    use type Files.File_System.Drop_Import_Mode;
    use type Files.Operation_Results.Operation_Status;
    use type Files.Operations.Archive_Format;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use type Files.Types.View_Mode;
    use Files_Suite.Support;

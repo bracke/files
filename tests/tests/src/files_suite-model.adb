@@ -38,6 +38,7 @@ with Files.Settings;
 with Files.Type_Ahead;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 with Files_Suite.Support;
 with Files_Suite.Support.Images;
 with Files_Suite.Support.Models;

@@ -29,7 +29,7 @@ package body Files.Rendering is
    use type Files.Model.Tree_Pick_Mode;
    use type Files.Quick_Look.Content_Kind;
    use type Files.Types.Color_Label;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Files.Types.Group_Mode;
    use type Files.Types.Item_Kind;
    use type Files.Types.View_Mode;

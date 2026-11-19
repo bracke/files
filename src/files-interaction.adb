@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Window_Polls;
 with Files.Items;
@@ -20,7 +21,7 @@ package body Files.Interaction is
    use type Files.Commands.Command_Id;
    use type Files.Controller.Controller_Status;
    use type Files.Operation_Results.Operation_Status;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Guikit.Input.Key_Code;
 
    --  Pointer actions are translated from an immutable frame snapshot and may
@@ -36,23 +37,23 @@ package body Files.Interaction is
          return True;
       end if;
       case Overlay is
-         when Files.Types.Foreground_Job_Overlay | Files.Types.Paste_Conflict_Overlay =>
+         when Files.UI_Types.Foreground_Job_Overlay | Files.UI_Types.Paste_Conflict_Overlay =>
             return False;
-         when Files.Types.Quick_Look_Overlay =>
+         when Files.UI_Types.Quick_Look_Overlay =>
             return Command = Files.Commands.Toggle_Quick_Look_Command;
-         when Files.Types.Label_Picker_Overlay
-            | Files.Types.Command_Palette_Overlay
-            | Files.Types.Context_Menu_Overlay =>
+         when Files.UI_Types.Label_Picker_Overlay
+            | Files.UI_Types.Command_Palette_Overlay
+            | Files.UI_Types.Context_Menu_Overlay =>
             return Command = Files.Commands.Close_Overlay_Command;
-         when Files.Types.Settings_Pane_Overlay =>
+         when Files.UI_Types.Settings_Pane_Overlay =>
             return Command = Files.Commands.Toggle_Settings_Pane_Command;
-         when Files.Types.Root_Selector_Overlay =>
+         when Files.UI_Types.Root_Selector_Overlay =>
             return Command in Files.Commands.Select_Drive_Command
                               | Files.Commands.Close_Overlay_Command;
-         when Files.Types.Sort_Menu_Overlay =>
+         when Files.UI_Types.Sort_Menu_Overlay =>
             return Command in Files.Commands.Sort_Command_Id
                               | Files.Commands.Close_Overlay_Command;
-         when Files.Types.Tree_Pick_Overlay =>
+         when Files.UI_Types.Tree_Pick_Overlay =>
             return Command = Files.Commands.Toggle_Folder_Tree_Command;
       end case;
    end Command_Action_Is_Current;
@@ -432,7 +433,7 @@ package body Files.Interaction is
       Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result)
    is
-      use type Files.Types.Input_Overlay;
+      use type Files.UI_Types.Input_Overlay;
       Offered : Boolean := Command = Files.Commands.No_Command;
       Top     : Files.Model.Input_Overlay;
    begin
@@ -445,7 +446,7 @@ package body Files.Interaction is
       --  against a newer empty/header menu or selection.
       if not Files.Model.Context_Menu.Is_Open (Model)
         or else not Files.Model.Topmost_Overlay (Model, Top)
-        or else Top /= Files.Types.Context_Menu_Overlay
+        or else Top /= Files.UI_Types.Context_Menu_Overlay
       then
          return;
       end if;
@@ -496,7 +497,7 @@ package body Files.Interaction is
       --  should be unreachable. An open context menu does not count:
       --  right-clicking elsewhere replaces it with a new menu.
       Overlay_Open : constant Boolean :=
-        Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Context_Menu_Overlay);
+        Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.UI_Types.Context_Menu_Overlay);
    begin
       Result := (others => <>);
       if Target = Files.Events.On_Context_Menu and then Files.Model.Context_Menu.Is_Open (Model) then
@@ -504,7 +505,7 @@ package body Files.Interaction is
       elsif Target = Files.Events.On_Details_Header and then not Overlay_Open then
          --  A right-click on the details-view column header opens the column
          --  configuration menu regardless of any item under the header band.
-         Files.Model.Context_Menu.Open (Model, X, Y, Files.Types.Context_Menu_Header);
+         Files.Model.Context_Menu.Open (Model, X, Y, Files.UI_Types.Context_Menu_Header);
       elsif Target = Files.Events.On_Main_View and then not Overlay_Open then
          if Item_Index > Files.Model.Visible_Count (Model) then
             --  A queued pointer action can outlive the snapshot that produced
@@ -535,9 +536,9 @@ package body Files.Interaction is
                   Observe_Controller_Outcome (Click_Result, Result);
                end;
             end if;
-            Files.Model.Context_Menu.Open (Model, X, Y, Files.Types.Context_Menu_Item);
+            Files.Model.Context_Menu.Open (Model, X, Y, Files.UI_Types.Context_Menu_Item);
          else
-            Files.Model.Context_Menu.Open (Model, X, Y, Files.Types.Context_Menu_Empty);
+            Files.Model.Context_Menu.Open (Model, X, Y, Files.UI_Types.Context_Menu_Empty);
          end if;
       else
          Files.Model.Context_Menu.Close (Model);

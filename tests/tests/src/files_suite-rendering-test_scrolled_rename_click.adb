@@ -24,7 +24,7 @@ separate (Files_Suite.Rendering)
       Set_Rename (2, 0);
       Snapshot.Selected_Count := 2;
       Snapshot.Rename_Active := True;
-      Snapshot.Focus := Files.Types.Focus_Rename_Input;
+      Snapshot.Focus := Files.UI_Types.Focus_Rename_Input;
       --  The model reports the first renaming field's caret as the text cursor.
       Snapshot.Text_Cursor_Position := Long_Name'Length;
 

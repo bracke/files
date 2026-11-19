@@ -88,17 +88,6 @@ package Files.Fs_Primitives is
      (Path  : String;
       Visit : not null access procedure (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean));
 
-   --  Path's last component read from its text alone (Hostkit.Path_Text.Leaf),
-   --  where Ada.Directories.Simple_Name is not to be used on a path: GNAT's
-   --  Windows runtime rejects a component longer than 256 characters, which
-   --  the filesystem then refuses with a cause of its own ("too long"), not as
-   --  an invalid name, and reads "\\server\share" as a folder.
-   --
-   --  @param Path A path.
-   --  @return Its last component without trailing separators, indexed from 1,
-   --    or "" for a root or an empty path.
-   function Leaf_Text (Path : String) return String;
-
    --  Path less its last component, read from its text alone
    --  (Hostkit.Path_Text.Parent): a root keeps its separator ("/", "C:\"), a
    --  share is "\\server\share", and a root has no parent.

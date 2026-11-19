@@ -21,7 +21,7 @@ separate (Files.Controller)
       --  Modifier combinations (Ctrl/Alt shortcuts) never reach here because the
       --  GLFW character callback only emits printable text, so shortcuts stay on
       --  the command path.
-      if Files.Model.Focus (Model) = Files.Types.Focus_None then
+      if Files.Model.Focus (Model) = Files.UI_Types.Focus_None then
          --  The selected item's details follow on the window's next poll
          --  (Window_Polls.Poll_Selected_Item_Extra), as for every selection.
          declare
@@ -34,7 +34,7 @@ separate (Files.Controller)
 
       --  Rename edits broadcast to every synchronized caret rather than the
       --  single focused buffer.
-      if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+      if Files.Model.Focus (Model) = Files.UI_Types.Focus_Rename_Input then
          return
            Make_Result
              (if Files.Model.Rename.Insert_At_Carets (Model, Text)

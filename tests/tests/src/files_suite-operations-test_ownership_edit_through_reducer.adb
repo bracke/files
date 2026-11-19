@@ -81,7 +81,7 @@ separate (Files_Suite.Operations)
             Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Reduce);
          Assert
-           (Files.Model.Focus (Model) /= Files.Types.Focus_Ownership_Input,
+           (Files.Model.Focus (Model) /= Files.UI_Types.Focus_Ownership_Input,
             "a stale ownership action cannot focus an editor in a closed pane");
 
          Files.Model.Toggle_Info_Pane (Model);
@@ -98,7 +98,7 @@ separate (Files_Suite.Operations)
 
            (Files.Model.Focus (Model),
 
-            Files.Types.Focus_Ownership_Input,
+            Files.UI_Types.Focus_Ownership_Input,
 
             "the reducer focuses the ownership editor");
 
@@ -117,7 +117,7 @@ separate (Files_Suite.Operations)
             "committing the identity ownership edit through the reducer seam succeeds");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Focus (Model),
-            Files.Types.Focus_None,
+            Files.UI_Types.Focus_None,
             "committing the ownership edit clears the editor focus");
       end;
    end Test_Ownership_Edit_Through_Reducer;

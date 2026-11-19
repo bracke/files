@@ -91,7 +91,7 @@ separate (Files_Suite.Commands)
          "invalid controller path input does not navigate");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Path_Input,
+         Files.UI_Types.Focus_Path_Input,
          "invalid path input keeps focus");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -122,7 +122,7 @@ separate (Files_Suite.Commands)
          "modified Return in path input does not navigate");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Path_Input,
+         Files.UI_Types.Focus_Path_Input,
          "modified Return keeps path input focus");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
@@ -153,7 +153,7 @@ separate (Files_Suite.Commands)
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "path input loads destination items");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "path input commit clears focus");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "path input success clears temporary create state");
       Assert (not Files.Model.Rename.Is_Active (Model), "path input success clears rename state");

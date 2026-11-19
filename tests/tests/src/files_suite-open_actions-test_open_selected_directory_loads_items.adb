@@ -80,7 +80,7 @@ separate (Files_Suite.Open_Actions)
          "directory open clears stale temporary name");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "directory open clears rename focus");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "directory open loads destination items");
       Assert (Files.Model.Visible_Item (Model, 1).Name = To_Unbounded_String ("child.txt"), "child item is loaded");

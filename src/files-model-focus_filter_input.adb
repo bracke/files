@@ -4,7 +4,7 @@ procedure Focus_Filter_Input
 begin
    Touch (Model);
    Reset_Type_Ahead (Model);
-   Model.Focus_Value := Files.Types.Focus_Filter_Input;
+   Model.Focus_Value := Files.UI_Types.Focus_Filter_Input;
    Model.Tree_Panel.Keyboard := False;
    Model.Filter.Cursor := Length (Model.Filter.Text);
    Clear_Root_Selector_State (Model);

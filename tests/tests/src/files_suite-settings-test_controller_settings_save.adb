@@ -39,7 +39,7 @@ separate (Files_Suite.Settings)
              (Files.Commands.Toggle_Settings_Pane_Command, Draft_Model, Draft_Settings);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Focus (Draft_Model),
-            Files.Types.Focus_Settings_Input,
+            Files.UI_Types.Focus_Settings_Input,
             "controller settings command opens editable settings focus");
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Right);
          Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "details");

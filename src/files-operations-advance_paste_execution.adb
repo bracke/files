@@ -102,7 +102,7 @@ begin
                   else
                      Record_Paste_Write
                        (Model, Action.Dest_Path, Action.Source_Path,
-                        Files.Fs_Primitives.Leaf_Text (To_String (Action.Dest_Path)),
+                        Files.Types.Leaf_Of (To_String (Action.Dest_Path)),
                         To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision));
                   end if;
                end if;
@@ -113,7 +113,7 @@ begin
                end if;
                Record_Paste_Write
                  (Model, Action.Dest_Path, Action.Source_Path,
-                  Files.Fs_Primitives.Leaf_Text (To_String (Action.Dest_Path)),
+                  Files.Types.Leaf_Of (To_String (Action.Dest_Path)),
                   To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision),
                   Retain_Verified_Snapshot => Result.Recovered);
                if Result.Recovered then
@@ -157,7 +157,7 @@ begin
                   elsif Length (Created_Identity) > 0 then
                      Record_Paste_Write
                        (Model, Action.Dest_Path, Action.Source_Path,
-                        Files.Fs_Primitives.Leaf_Text (To_String (Action.Dest_Path)),
+                        Files.Types.Leaf_Of (To_String (Action.Dest_Path)),
                         To_String (Created_Identity), To_String (Created_Tree_Revision));
                   end if;
                   return Finalize_Paste_Execution (Model, Settings, To_String (Mutation.Error_Key));
@@ -166,7 +166,7 @@ begin
                  (Model,
                   Action.Dest_Path,
                   Action.Source_Path,
-                  Files.Fs_Primitives.Leaf_Text (To_String (Action.Dest_Path)),
+                  Files.Types.Leaf_Of (To_String (Action.Dest_Path)),
                   To_String (Created_Identity),
                   To_String (Created_Tree_Revision));
             end;

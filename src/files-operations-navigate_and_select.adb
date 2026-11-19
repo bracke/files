@@ -15,7 +15,7 @@ begin
          declare
             --  An item gone since stays unselected; the folder still opens.
             Selected : constant Boolean :=
-              Files.Model.Selection.Select_By_Name (Model, Files.Fs_Primitives.Leaf_Text (Path));
+              Files.Model.Selection.Select_By_Name (Model, Files.Types.Leaf_Of (Path));
             pragma Unreferenced (Selected);
          begin
             null;

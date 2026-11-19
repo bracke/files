@@ -26,7 +26,7 @@ separate (Files_Suite.Rendering)
       end;
 
       Invalid.Path_Input_Valid := False;
-      Invalid.Focus            := Files.Types.Focus_Path_Input;
+      Invalid.Focus            := Files.UI_Types.Focus_Path_Input;
       Invalid.Path_Input_Text  := To_Unbounded_String ("/does/not/exist");
       declare
          Frame : constant Frame_Commands := Build_Frame_Commands (Invalid, 1000, 800, 20);

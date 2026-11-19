@@ -60,7 +60,7 @@ begin
               First_Free_Leaf
                 (Link_Directory, Files.Types.Name_Stem (Name, Is_Folder),
                  Files.Types.Name_Extension (Name, Is_Folder), Link_Marker'Access));
-         Dest_Name : constant String := Files.Fs_Primitives.Leaf_Text (Dest_Path);
+         Dest_Name : constant String := Files.Types.Leaf_Of (Dest_Path);
          Mutation  : constant Files.File_System.Mutation_Result :=
            (if Hard
             then Files.File_System.Create_Hard_Link (Source, Dest_Path)

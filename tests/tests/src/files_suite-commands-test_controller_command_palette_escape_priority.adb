@@ -20,7 +20,7 @@ separate (Files_Suite.Commands)
       Assert (Files.Model.Command_Palette.Is_Open (Model), "Control+P opens palette over rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Command_Palette,
+         Files.UI_Types.Focus_Command_Palette,
          "palette takes focus");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
@@ -36,7 +36,7 @@ separate (Files_Suite.Commands)
       Assert (Files.Model.Rename.Is_Active (Model), "Escape does not cancel rename while palette is open");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Rename_Input,
+         Files.UI_Types.Focus_Rename_Input,
          "the closed palette hands the keyboard back to the rename it was opened over");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
@@ -51,16 +51,16 @@ separate (Files_Suite.Commands)
          "second Escape clears stale rename cursor");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "second Escape leaves focus clear");
-      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Rename_Input, Cursor_Position => 2);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Rename_Input, Cursor_Position => 2);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "inactive rename text click is ignored");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "inactive rename text click does not focus input");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Controller.Controller_Ignored, "idle Escape is ignored");

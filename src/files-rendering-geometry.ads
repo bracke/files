@@ -302,7 +302,7 @@ private package Files.Rendering.Geometry is
      (if Outer > Inner then (Outer - Inner) / 2 else 0);
 
    --  Whether a popup or modal panel is open, owning the pointer
-   --  (Files.Rendering.Overlay_Open of any Files.Types.Input_Overlay).
+   --  (Files.Rendering.Overlay_Open of any Files.UI_Types.Input_Overlay).
    --  Tooltips of the controls it covers are not drawn then, or one could be
    --  painted over the popup.
    --

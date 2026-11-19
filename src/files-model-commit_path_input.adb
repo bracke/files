@@ -7,7 +7,7 @@ begin
    Touch (Model);
    if Result.Status = Files.File_System.Path_Valid then
       Navigate_To (Model, To_String (Result.Directory_Path), Items);
-      Model.Focus_Value := Files.Types.Focus_None;
+      Model.Focus_Value := Files.UI_Types.Focus_None;
    else
       Model.Path_Input.Valid := False;
       Model.Path_Input.Error := Result.Error_Key;

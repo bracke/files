@@ -46,7 +46,7 @@ begin
    begin
       --  Files_Directory is the item's own parent, so only the base needs
       --  checking (Valid_Volume_Trash_Base refuses a linked files/).
-      if Files.Fs_Primitives.Leaf_Text (Files_Directory) = "files"
+      if Files.Types.Leaf_Of (Files_Directory) = "files"
         and then Valid_Original_Path (Trashed_Path)
         and then Valid_Volume_Trash_Base (Base)
       then

@@ -16,6 +16,7 @@ with Files.Rendering;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 with Guikit.Layout;
 with Files_Suite.Support;
 with Files_Suite.Interaction_Support;
@@ -29,7 +30,7 @@ package body Files_Suite.Text_Input is
    use type Files.Commands.Command_Id;
    use type Files.Controller.Controller_Status;
    use type Files.Events.Input_Action_Kind;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Files.Types.Search_Scope;
    use Files_Suite.Interaction_Support;
 

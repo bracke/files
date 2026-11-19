@@ -36,7 +36,7 @@ separate (Files.Rendering.Layouts)
          return Sum;
       end Total_Cells;
    begin
-      if Snapshot.Focus = Files.Types.Focus_Path_Input then
+      if Snapshot.Focus = Files.UI_Types.Focus_Path_Input then
          return Result;
       elsif Snapshot.Breadcrumb_Segments.Is_Empty or else Inner_W = 0 then
          return Result;

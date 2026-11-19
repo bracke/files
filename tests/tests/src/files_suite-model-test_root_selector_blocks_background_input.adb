@@ -37,14 +37,14 @@ separate (Files_Suite.Model)
          1,
          "blocked root selector delete keeps selection");
       Assert (Files.Model.Root_Selector.Is_Open (Model), "blocked root selector delete keeps selector open");
-      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Path_Input, Cursor_Position => 1);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Path_Input, Cursor_Position => 1);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "root selector blocks background text focus");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "blocked text focus leaves focus clear");
       --  The wheel over the main view, through the real translator, is
       --  swallowed by the selector on top.
@@ -85,7 +85,7 @@ separate (Files_Suite.Model)
       Assert
         (not Snapshot.Root_Selector_Open,
          "snapshot suppresses root selector drawing while the palette is above it");
-      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Command_Palette, Cursor_Position => 0);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Command_Palette, Cursor_Position => 0);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -99,7 +99,7 @@ separate (Files_Suite.Model)
          "root selector blocks direct path focus command");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "blocked direct path focus leaves focus clear");
       Files.Model.Set_Error (Model, "error.path.missing");
       Result := Files.Controller.Execute_Non_Settings_Command

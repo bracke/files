@@ -24,7 +24,7 @@ separate (Files_Suite.Commands)
          "F2 reports rename command");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Rename_Input,
+         Files.UI_Types.Focus_Rename_Input,
          "F2 focuses rename input");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),

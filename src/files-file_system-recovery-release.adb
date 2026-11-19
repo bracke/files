@@ -47,7 +47,7 @@ separate (Files.File_System.Recovery)
       declare
          Original : constant String := Original_Path (Path);
          Leaf     : constant String :=
-           (if Valid_Absolute_Path (Original) then Files.Fs_Primitives.Leaf_Text (Original) else "recovered");
+           (if Valid_Absolute_Path (Original) then Files.Types.Leaf_Of (Original) else "recovered");
          --  A folder of its own, so the original's name cannot meet the
          --  stage's own files.
          Named    : constant String := Hostkit.Fs.Join (Holder, Leaf);

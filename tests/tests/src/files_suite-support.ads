@@ -4,6 +4,7 @@ with Files.Controller;
 with Files.Events;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 with Files_Suite.Generic_Assert_Equal;
 
 package Files_Suite.Support is
@@ -111,7 +112,7 @@ package Files_Suite.Support is
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Operation_Results.Operation_Status);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Commands.Command_Id);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Controller.Controller_Status);
-   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Focus_Target);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.UI_Types.Focus_Target);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Guikit.Input.Key_Code);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Events.Input_Action_Kind);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Color_Label);

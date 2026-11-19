@@ -9,7 +9,7 @@ function Release_Recovery_Payload (Path : String) return Mutation_Result is
    function Natively (Entry_Path, Original : String) return Mutation_Result is
       Ignored   : Files.Types.UString;
       Directory : constant String := Files.Fs_Primitives.Parent_Directory (Original);
-      Leaf      : constant String := Files.Fs_Primitives.Leaf_Text (Original);
+      Leaf      : constant String := Files.Types.Leaf_Of (Original);
       Is_Folder : constant Boolean := Files.Fs_Primitives.Is_Plain_Directory (Entry_Path);
       Limit     : constant Hostkit.Fs.Leaf_Name_Limit := Hostkit.Fs.Leaf_Name_Limit_At (Directory);
    begin

@@ -80,7 +80,7 @@ separate (Files_Suite.Drags)
       Files.Model.Sort_Menu.Close (Model);
 
       Seed_Type_Ahead;
-      Files.Model.Context_Menu.Open (Model, 10, 10, Files.Types.Context_Menu_Empty);
+      Files.Model.Context_Menu.Open (Model, 10, 10, Files.UI_Types.Context_Menu_Empty);
       Assert_Contained ("the context menu");
       Files.Model.Context_Menu.Close (Model);
 

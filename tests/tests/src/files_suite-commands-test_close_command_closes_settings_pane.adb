@@ -20,6 +20,6 @@ separate (Files_Suite.Commands)
          "the close command closes the settings pane rather than only dropping focus");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "closing the settings pane releases its keyboard focus");
    end Test_Close_Command_Closes_Settings_Pane;

@@ -27,6 +27,7 @@ with Files.Settings_Form;
 with Guikit.Settings_Panel;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 with Files_Suite.Support;
 with Files.Settings.Open_Actions;
 with Files_Suite.Support.Disk;

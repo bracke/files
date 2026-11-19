@@ -3,7 +3,7 @@ with Files.Model.Command_Palette;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
-   --  The wheel goes to the overlay on top of Files.Types.Overlay_Stack, as
+   --  The wheel goes to the overlay on top of Files.UI_Types.Overlay_Stack, as
    --  clicks and keys do: a paste dialog over the palette swallows it, the
    --  palette over the settings pane takes it, and a targeted scroll of a
    --  region that is not the top overlay's own is contained.
@@ -45,11 +45,11 @@ separate (Files_Suite.Interaction)
 
       --  The window layer draws only the top one of the palette and the pane.
       Files.Model.Settings_Pane.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
-      Assert (Files.Model.Window_Overlay_Shown (Model, Files.Types.Settings_Pane_Overlay),
+      Assert (Files.Model.Window_Overlay_Shown (Model, Files.UI_Types.Settings_Pane_Overlay),
               "the settings pane alone is drawn");
       Files.Model.Command_Palette.Open (Model);
-      Assert (Files.Model.Window_Overlay_Shown (Model, Files.Types.Command_Palette_Overlay)
-              and then not Files.Model.Window_Overlay_Shown (Model, Files.Types.Settings_Pane_Overlay),
+      Assert (Files.Model.Window_Overlay_Shown (Model, Files.UI_Types.Command_Palette_Overlay)
+              and then not Files.Model.Window_Overlay_Shown (Model, Files.UI_Types.Settings_Pane_Overlay),
               "the palette over the pane is drawn, the pane under it is not");
 
       --  A targeted scroll of a region the top overlay does not own is contained.

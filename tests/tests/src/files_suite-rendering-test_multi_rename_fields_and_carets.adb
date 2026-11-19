@@ -22,7 +22,7 @@ separate (Files_Suite.Rendering)
       Set_Rename (2, 4);
       Snapshot.Selected_Count := 2;
       Snapshot.Rename_Active := True;
-      Snapshot.Focus := Files.Types.Focus_Rename_Input;
+      Snapshot.Focus := Files.UI_Types.Focus_Rename_Input;
 
       declare
          Frame : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);

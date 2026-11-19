@@ -25,7 +25,7 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "Escape closes the palette");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Focus (Model), Files.Types.Focus_Rename_Input, "the rename has the keyboard again");
+        (Files.Model.Focus (Model), Files.UI_Types.Focus_Rename_Input, "the rename has the keyboard again");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model), 6, "its caret is where the typing left it");
       Result := Files.Controller.Append_Focused_Text (Model, "me.txt");
@@ -42,6 +42,6 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Focus (Model), Files.Types.Focus_Rename_Input, "the new file row has the keyboard again");
+        (Files.Model.Focus (Model), Files.UI_Types.Focus_Rename_Input, "the new file row has the keyboard again");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "and is still pending");
    end Test_Palette_Over_Rename_Returns_The_Keyboard;

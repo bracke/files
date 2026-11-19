@@ -23,8 +23,8 @@ package Files.Model.Label_Picker is
       return Boolean;
 
    --  Move the keyboard highlight across the label picker's swatches (one per
-   --  real color, then Files.Types.Clear_Swatch), clamped to
-   --  1 .. Files.Types.Swatch_Count.
+   --  real color, then Files.UI_Types.Clear_Swatch), clamped to
+   --  1 .. Files.UI_Types.Swatch_Count.
    --
    --  @param Model Model to update.
    --  @param Delta_Value Signed number of swatches to move.
@@ -35,7 +35,7 @@ package Files.Model.Label_Picker is
    --  The one-based index of the highlighted label-picker swatch, for rendering.
    --
    --  @param Model Model to inspect.
-   --  @return Highlighted swatch index in 1 .. Files.Types.Swatch_Count.
+   --  @return Highlighted swatch index in 1 .. Files.UI_Types.Swatch_Count.
    function Highlight
      (Model : Window_Model)
       return Positive;

@@ -19,7 +19,7 @@ separate (Files_Suite.Rendering)
       end;
       Snapshot.Selected_Count := 1;
       Snapshot.Rename_Active := True;
-      Snapshot.Focus := Files.Types.Focus_Rename_Input;
+      Snapshot.Focus := Files.UI_Types.Focus_Rename_Input;
 
       declare
          Frame : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
@@ -41,7 +41,7 @@ separate (Files_Suite.Rendering)
                "clicking the rename field produces a text-click action");
             Files_Suite.Support.Assert_Equal
               (Action.Focus_Target,
-               Files.Types.Focus_Rename_Input,
+               Files.UI_Types.Focus_Rename_Input,
                "the click targets the rename input");
             Files_Suite.Support.Assert_Equal
               (Action.Cursor_Position,

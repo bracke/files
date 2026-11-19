@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
@@ -7,7 +8,7 @@ with Files.Grouping;
 package body Files.Model.Support is
 
    use Ada.Strings.Unbounded;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Files.Types.Group_Mode;
 
    procedure Invalidate_Visible (Model : in out Window_Model) is
@@ -93,8 +94,8 @@ package body Files.Model.Support is
       Model.Rename.Active := False;
       Model.Rename.Fields.Clear;
       --  A rename that has ended has no field to type into.
-      if Model.Focus_Value = Files.Types.Focus_Rename_Input then
-         Model.Focus_Value := Files.Types.Focus_None;
+      if Model.Focus_Value = Files.UI_Types.Focus_Rename_Input then
+         Model.Focus_Value := Files.UI_Types.Focus_None;
       end if;
    end Reset_Rename_State;
 
@@ -279,8 +280,8 @@ package body Files.Model.Support is
 
       if Model.Rename.Fields.Is_Empty then
          Model.Rename.Active := False;
-         if Model.Focus_Value = Files.Types.Focus_Rename_Input then
-            Model.Focus_Value := Files.Types.Focus_None;
+         if Model.Focus_Value = Files.UI_Types.Focus_Rename_Input then
+            Model.Focus_Value := Files.UI_Types.Focus_None;
          end if;
       end if;
    end Reconcile_Rename_With_Selection;
@@ -512,7 +513,7 @@ package body Files.Model.Support is
       Model.Selected_Item_Index := Temporary_Item_Index;
       Model.Selected_Item_Indexes.Clear;
       Add_Selected_Index (Model, Temporary_Item_Index);
-      Model.Focus_Value := Files.Types.Focus_Rename_Input;
+      Model.Focus_Value := Files.UI_Types.Focus_Rename_Input;
    end Begin_Create_Temporary;
 
    procedure Claim_Overlay_Input
@@ -536,15 +537,15 @@ package body Files.Model.Support is
    begin
       Touch (Model);
       Hide_Command_Palette (Model);
-      if Model.Focus_Value = Files.Types.Focus_Command_Palette then
+      if Model.Focus_Value = Files.UI_Types.Focus_Command_Palette then
          --  What the palette was opened over keeps going: the settings pane
          --  beneath it, or a rename (or a new item's name) in progress, gets
          --  the keyboard back, its caret where it was, instead of leaving the
          --  edit drawn but deaf while Enter opens the item.
          Model.Focus_Value :=
-           (if Model.Settings_Pane_Open then Files.Types.Focus_Settings_Input
-            elsif Model.Rename.Active then Files.Types.Focus_Rename_Input
-            else Files.Types.Focus_None);
+           (if Model.Settings_Pane_Open then Files.UI_Types.Focus_Settings_Input
+            elsif Model.Rename.Active then Files.UI_Types.Focus_Rename_Input
+            else Files.UI_Types.Focus_None);
       end if;
    end Close_Command_Palette;
 
@@ -615,8 +616,8 @@ package body Files.Model.Support is
       end if;
       Touch (Model);
       Model.Settings_Pane_Open := False;
-      if Model.Focus_Value = Files.Types.Focus_Settings_Input then
-         Model.Focus_Value := Files.Types.Focus_None;
+      if Model.Focus_Value = Files.UI_Types.Focus_Settings_Input then
+         Model.Focus_Value := Files.UI_Types.Focus_None;
       end if;
    end Close_Settings_Pane;
 

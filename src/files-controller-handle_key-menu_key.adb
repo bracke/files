@@ -8,12 +8,12 @@ begin
    Handled := True;
    if ((Key = Guikit.Input.Key_F10 and then Modifiers (Guikit.Input.Shift_Key))
        or else (Key = Guikit.Input.Key_Menu and then Modifiers = Guikit.Input.No_Modifiers))
-     and then Files.Model.Focus (Model) = Files.Types.Focus_None
+     and then Files.Model.Focus (Model) = Files.UI_Types.Focus_None
    then
       if Files.Model.Selection.Selected_Count (Model) > 0 then
-         Files.Model.Context_Menu.Open (Model, 0, 0, Files.Types.Context_Menu_Item);
+         Files.Model.Context_Menu.Open (Model, 0, 0, Files.UI_Types.Context_Menu_Item);
       else
-         Files.Model.Context_Menu.Open (Model, 0, 0, Files.Types.Context_Menu_Empty);
+         Files.Model.Context_Menu.Open (Model, 0, 0, Files.UI_Types.Context_Menu_Empty);
       end if;
       Result := Make_Result (Controller_Selection_Moved);
       return;

@@ -16,7 +16,7 @@ package body Files.Events is
 
    use Ada.Strings.Unbounded;
    use type Files.Commands.Command_Id;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
 

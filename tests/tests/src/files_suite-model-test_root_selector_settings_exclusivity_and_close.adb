@@ -105,7 +105,7 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Root_Selector.Is_Open (Model), "blocked path focus keeps root selector open");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "blocked path focus leaves focus clear");
       Files.Model.Root_Selector.Close (Model);
       Files_Suite.Support.Assert_Equal
@@ -122,7 +122,7 @@ separate (Files_Suite.Model)
          "palette command is routed");
       Assert (Files.Model.Command_Palette.Is_Open (Model), "palette opens from toolbar state");
       Assert (Files.Model.Root_Selector.Is_Open (Model), "palette opening preserves root selector");
-      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Command_Palette, Cursor_Position => 0);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Command_Palette, Cursor_Position => 0);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -141,7 +141,7 @@ separate (Files_Suite.Model)
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "drive selector closes command palette");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "drive selector clears palette focus");
       Files.Model.Root_Selector.Close (Model);
    end Test_Root_Selector_Settings_Exclusivity_And_Close;

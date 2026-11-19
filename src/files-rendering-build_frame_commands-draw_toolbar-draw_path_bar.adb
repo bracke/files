@@ -6,7 +6,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
       --  The box, as the click zone hit-tests it.
       Path_X      : constant Natural := Text_Region.Field_X;
       Path_W      : constant Natural := Text_Region.Field_Width;
-      Focused     : constant Boolean := Snapshot.Focus = Files.Types.Focus_Path_Input;
+      Focused     : constant Boolean := Snapshot.Focus = Files.UI_Types.Focus_Path_Input;
    begin
       declare
          Star         : constant Path_Favorite_Star_Bounds :=

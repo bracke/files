@@ -118,7 +118,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       if Files.Fs_Primitives.Directory_Exists (Path)
       then
          Full := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
-         Name := To_Unbounded_String (Files.Fs_Primitives.Leaf_Text (To_String (Full)));
+         Name := To_Unbounded_String (Files.Types.Leaf_Of (To_String (Full)));
          if Length (Name) = 0 then
             Name := Full;
          end if;
@@ -272,7 +272,7 @@ begin
                Name  => Null_Unbounded_String,
                Detail => Null_Unbounded_String,
                Kind  => Root_Current,
-               Volume_Name => To_Unbounded_String (Files.Fs_Primitives.Leaf_Text (Full)),
+               Volume_Name => To_Unbounded_String (Files.Types.Leaf_Of (Full)),
                Ready => Root_Ready,
                Removable => False));
       end;

@@ -8,5 +8,5 @@ begin
       return "";
    end if;
 
-   return Files.Fs_Primitives.Leaf_Text (Path);
+   return Files.Types.Leaf_Of (Path);
 end Mutation_Leaf_Name;

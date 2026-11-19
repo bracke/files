@@ -4,7 +4,7 @@ function Calculate_Label_Picker_Layout
    Line_Height : Positive)
    return Label_Picker_Layout
 is
-   Count           : constant Positive := Files.Types.Swatch_Count;
+   Count           : constant Positive := Files.UI_Types.Swatch_Count;
    Padding         : constant Natural := Titled_Panel_Padding (Line_Height);
    Desired_Gap     : constant Natural := Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4);
    --  A compact centered panel: a single row of square swatches under a

@@ -186,7 +186,7 @@ begin
    end if;
    declare
       Recorded : constant String := Read_Original_Path
-        (Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Files.Fs_Primitives.Leaf_Text (Trashed_Path) & ".trashinfo"));
+        (Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Files.Types.Leaf_Of (Trashed_Path) & ".trashinfo"));
    begin
       if Recorded = "" then
          return "";

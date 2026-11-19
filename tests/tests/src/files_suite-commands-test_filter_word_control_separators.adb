@@ -42,7 +42,7 @@ separate (Files_Suite.Commands)
          "Control+Backspace removes previous word across vertical tab");
 
       Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & ASCII.FF & "beta");
-      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 5);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
          5,
@@ -69,7 +69,7 @@ separate (Files_Suite.Commands)
             "Control+Backspace removes previous word across C1 NEL");
 
          Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & C1_Break & "beta");
-         Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
+         Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 5);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             5,

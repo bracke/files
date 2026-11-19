@@ -12,22 +12,22 @@ separate (Files.Controller)
          return Make_Result (Controller_Ignored);
       end if;
 
-      --  The overlay on top takes the wheel (Files.Types.Overlay_Stack): a
+      --  The overlay on top takes the wheel (Files.UI_Types.Overlay_Stack): a
       --  target that is not its own region is contained, as it contains
       --  clicks and character input. The folder-pick's own region is the tree.
       if Has_Top
         and then Target /=
           (case Top is
-              when Files.Types.Command_Palette_Overlay => Files.Events.Scroll_Command_Palette,
-              when Files.Types.Settings_Pane_Overlay   => Files.Events.Scroll_Settings_Pane,
-              when Files.Types.Tree_Pick_Overlay       => Files.Events.Scroll_Tree_Panel,
-              when Files.Types.Foreground_Job_Overlay
-                 | Files.Types.Paste_Conflict_Overlay
-                 | Files.Types.Root_Selector_Overlay
-                 | Files.Types.Sort_Menu_Overlay
-                 | Files.Types.Context_Menu_Overlay
-                 | Files.Types.Label_Picker_Overlay
-                 | Files.Types.Quick_Look_Overlay        => Files.Events.No_Scroll_Target)
+              when Files.UI_Types.Command_Palette_Overlay => Files.Events.Scroll_Command_Palette,
+              when Files.UI_Types.Settings_Pane_Overlay   => Files.Events.Scroll_Settings_Pane,
+              when Files.UI_Types.Tree_Pick_Overlay       => Files.Events.Scroll_Tree_Panel,
+              when Files.UI_Types.Foreground_Job_Overlay
+                 | Files.UI_Types.Paste_Conflict_Overlay
+                 | Files.UI_Types.Root_Selector_Overlay
+                 | Files.UI_Types.Sort_Menu_Overlay
+                 | Files.UI_Types.Context_Menu_Overlay
+                 | Files.UI_Types.Label_Picker_Overlay
+                 | Files.UI_Types.Quick_Look_Overlay        => Files.Events.No_Scroll_Target)
       then
          return Make_Result (Controller_Ignored);
       end if;

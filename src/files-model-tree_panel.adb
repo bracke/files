@@ -1,10 +1,11 @@
+with Files.UI_Types;
 with Guikit.Layout;
 with Files.Model.Support;
 
 package body Files.Model.Tree_Panel is
 
    use Ada.Strings.Unbounded;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use Files.Model.Support;
 
    procedure Clamp_Tree_Panel_Scroll
@@ -275,7 +276,7 @@ package body Files.Model.Tree_Panel is
      (Model.Tree_Panel.Keyboard
        and then Model.Tree_Panel.Open
        and then Model.Tree_Pick.Mode = Pick_None
-       and then Model.Focus_Value = Files.Types.Focus_None);
+       and then Model.Focus_Value = Files.UI_Types.Focus_None);
 
    function Cursor
      (Model : Window_Model)

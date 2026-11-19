@@ -21,7 +21,7 @@ begin
       Full   : constant String :=
         (if Hostkit.Fs.Is_Link (Full_Path) then Files.Fs_Primitives.Absolute_Name (Full_Path)
          else Files.Fs_Primitives.Full_Name (Full_Path));
-      Name   : constant String := Files.Fs_Primitives.Leaf_Text (Full);
+      Name   : constant String := Files.Types.Leaf_Of (Full);
       Parent : constant String := Files.Fs_Primitives.Parent_Directory (Full);
       Kind   : constant Files.Types.Item_Kind := Kind_From_Path (Full);
    begin

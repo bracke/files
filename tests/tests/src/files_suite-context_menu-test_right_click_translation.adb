@@ -79,7 +79,7 @@ separate (Files_Suite.Context_Menu)
 
             Apply (On_Item);
             Assert (Files.Model.Context_Menu.Is_Open (Model), "applied, the item's menu opens");
-            Assert (Files.Model.Context_Menu.Target_Of (Model) = Files.Types.Context_Menu_Item,
+            Assert (Files.Model.Context_Menu.Target_Of (Model) = Files.UI_Types.Context_Menu_Item,
                     "for the item");
             Assert (Files.Model.Selection.Is_Selected (Model, 2), "and the item right-clicked is selected");
 
@@ -96,7 +96,7 @@ separate (Files_Suite.Context_Menu)
                        "a right click on the open menu is on the menu, not the item beneath it");
                Apply (On_Menu);
                Assert (Files.Model.Context_Menu.Is_Open (Model)
-                       and then Files.Model.Context_Menu.Target_Of (Model) = Files.Types.Context_Menu_Item,
+                       and then Files.Model.Context_Menu.Target_Of (Model) = Files.UI_Types.Context_Menu_Item,
                        "and leaves the menu as it is");
             end;
          end;

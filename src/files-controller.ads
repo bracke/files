@@ -8,6 +8,7 @@ with Files.Operations;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 
 --  Focus-aware input controller for command, text, palette, and filesystem operations.
 package Files.Controller is
@@ -404,7 +405,7 @@ package Files.Controller is
    --  @return Controller result describing whether text focus changed.
    function Handle_Text_Click
      (Model           : in out Files.Model.Window_Model;
-      Target          : Files.Types.Focus_Target;
+      Target          : Files.UI_Types.Focus_Target;
       Cursor_Position : Natural;
       Item_Index      : Natural := 0)
       return Controller_Result;

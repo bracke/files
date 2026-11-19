@@ -117,7 +117,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
                Cell             => Item_Rect,
                View             => Grid_View (Snapshot.View_Mode),
                Renaming         => Renaming,
-               Focused          => Snapshot.Focus = Files.Types.Focus_Rename_Input,
+               Focused          => Snapshot.Focus = Files.UI_Types.Focus_Rename_Input,
                Dim              => Item.Cut_Pending,
                Text             => (if Renaming then Item.Rename_Value else Displayed_Name (Item)),
                Cursor           => Item.Rename_Cursor,
@@ -171,7 +171,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
             Selected => Item.Selected,
             Focused  =>
               Item.Selected
-              and then Snapshot.Focus = Files.Types.Focus_None
+              and then Snapshot.Focus = Files.UI_Types.Focus_None
               and then not Snapshot.Tree_Keyboard_Active
               and then not Snapshot.Tree_Pick_Active
               and then Item.Visible_Index =

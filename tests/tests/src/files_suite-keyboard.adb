@@ -18,6 +18,7 @@ with Files.Rendering;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 with Guikit.Settings_Panel;
 with Files_Suite.Support;
 with Files_Suite.Interaction_Support;

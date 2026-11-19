@@ -35,7 +35,7 @@ separate (Files_Suite.Commands)
          "filter input updates visible projection");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Name (Model), "Beta.txt", "filter reconciles selection");
-      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 2);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Text_Updated,
@@ -44,23 +44,23 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "filter Escape clears focus before refocus");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Filter_Input,
+         Files.UI_Types.Focus_Filter_Input,
          "filter shortcut refocuses filter input");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
          4,
          "filter shortcut refocus places cursor at text end");
-      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 2);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Text_Updated,
          "filter click can reposition after refocus");
-      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 2);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,

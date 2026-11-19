@@ -30,7 +30,7 @@ separate (Files_Suite.Commands)
          "filter Return reports successful state-only commit");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "filter Return clears focus");
       Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "beta", "filter Return preserves text");
       Files_Suite.Support.Assert_Equal (Files.Model.Current_Path (Model), Root, "filter Return does not navigate");

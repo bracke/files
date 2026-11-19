@@ -1,6 +1,7 @@
 with Files.Items;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 
 --  Central command registry, shortcuts, enablement, and execution routing.
 package Files.Commands is
@@ -396,7 +397,7 @@ package Files.Commands is
    --  @param Target Which context menu (item / empty area / column header).
    --  @return The rows for that target (Count is zero for Context_Menu_None).
    function Context_Menu_Rows_For
-     (Target : Files.Types.Context_Menu_Target)
+     (Target : Files.UI_Types.Context_Menu_Target)
       return Context_Menu_Rows;
 
    --  Return whether a command may execute while the root selector is open.

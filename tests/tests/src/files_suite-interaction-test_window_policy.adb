@@ -47,11 +47,11 @@ separate (Files_Suite.Interaction)
                  "a header that does not sort does nothing");
       end;
 
-      Assert (P.Activation_Presses_Space (True, Files.Types.Focus_Settings_Input, Guikit.Settings_Panel.Toggle),
+      Assert (P.Activation_Presses_Space (True, Files.UI_Types.Focus_Settings_Input, Guikit.Settings_Panel.Toggle),
               "activating a focused toggle presses Space");
-      Assert (not P.Activation_Presses_Space (False, Files.Types.Focus_Settings_Input, Guikit.Settings_Panel.Toggle),
+      Assert (not P.Activation_Presses_Space (False, Files.UI_Types.Focus_Settings_Input, Guikit.Settings_Panel.Toggle),
               "selecting it does not");
-      Assert (not P.Activation_Presses_Space (True, Files.Types.Focus_None, Guikit.Settings_Panel.Toggle),
+      Assert (not P.Activation_Presses_Space (True, Files.UI_Types.Focus_None, Guikit.Settings_Panel.Toggle),
               "nor does activating anything else");
 
       Assert (not P.Zoom_Save_Due (True, False, Now, Now), "a zoom still moving is not saved");

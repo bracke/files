@@ -514,7 +514,7 @@ package body Files.Commands is
       return String is (Name_Key (Sort_Commands (Field)));
 
    function Context_Menu_Rows_For
-     (Target : Files.Types.Context_Menu_Target)
+     (Target : Files.UI_Types.Context_Menu_Target)
       return Context_Menu_Rows
    is
       Result : Context_Menu_Rows;
@@ -532,7 +532,7 @@ package body Files.Commands is
       end Separator;
    begin
       case Target is
-         when Files.Types.Context_Menu_Item =>
+         when Files.UI_Types.Context_Menu_Item =>
             Add (Open_Selected_Items_Command);
             Add (Open_With_Command);
             Add (Open_Containing_Folder_Command);
@@ -557,7 +557,7 @@ package body Files.Commands is
             Add (Rename_Selected_Items_Command);
             Add (Delete_Selected_Items_Command);
             Add (Restore_From_Trash_Command);
-         when Files.Types.Context_Menu_Empty =>
+         when Files.UI_Types.Context_Menu_Empty =>
             Add (Create_File_Command);
             Add (New_Folder_Command);
             Add (Paste_Items_Command);
@@ -567,7 +567,7 @@ package body Files.Commands is
             Separator;
             Add (Empty_Trash_Command);
             Add (Clear_Recent_Command);
-         when Files.Types.Context_Menu_Header =>
+         when Files.UI_Types.Context_Menu_Header =>
             Add (Toggle_Column_Modified_Command);
             Add (Toggle_Column_Size_Command);
             Add (Toggle_Column_Type_Command);
@@ -575,7 +575,7 @@ package body Files.Commands is
             Add (Toggle_Column_Permissions_Command);
             Separator;
             Add (Cycle_Group_By_Command);
-         when Files.Types.Context_Menu_None =>
+         when Files.UI_Types.Context_Menu_None =>
             null;
       end case;
 

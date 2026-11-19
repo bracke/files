@@ -87,7 +87,7 @@ separate (Files_Suite.Context_Menu)
 
       --  A click that misses every menu row still closes the menu and must not
       --  leak follow-up flags from an earlier result stored in the same object.
-      Files.Model.Context_Menu.Open (Model, X, Y, Files.Types.Context_Menu_Empty);
+      Files.Model.Context_Menu.Open (Model, X, Y, Files.UI_Types.Context_Menu_Empty);
       Run_Menu_Command
         (Model             => Model,
          Settings          => Settings,

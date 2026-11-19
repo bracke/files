@@ -148,17 +148,17 @@ begin
    if not Handled then
       return;
    end if;
-   case Files.Types.Overlay_Stack (Position) is
-      when Files.Types.Foreground_Job_Overlay  => Result := Progress_Click;
-      when Files.Types.Paste_Conflict_Overlay  => Result := Conflict_Click;
-      when Files.Types.Command_Palette_Overlay => Result := Palette_Click;
-      when Files.Types.Settings_Pane_Overlay   => Result := Settings_Pane_Click;
-      when Files.Types.Root_Selector_Overlay   => Result := Root_Selector_Click;
-      when Files.Types.Label_Picker_Overlay    => Result := Label_Picker_Click;
-      when Files.Types.Quick_Look_Overlay      => Result := Quick_Look_Click;
-      when Files.Types.Context_Menu_Overlay    => Result := Context_Menu_Click;
-      when Files.Types.Sort_Menu_Overlay
-         | Files.Types.Tree_Pick_Overlay       =>
+   case Files.UI_Types.Overlay_Stack (Position) is
+      when Files.UI_Types.Foreground_Job_Overlay  => Result := Progress_Click;
+      when Files.UI_Types.Paste_Conflict_Overlay  => Result := Conflict_Click;
+      when Files.UI_Types.Command_Palette_Overlay => Result := Palette_Click;
+      when Files.UI_Types.Settings_Pane_Overlay   => Result := Settings_Pane_Click;
+      when Files.UI_Types.Root_Selector_Overlay   => Result := Root_Selector_Click;
+      when Files.UI_Types.Label_Picker_Overlay    => Result := Label_Picker_Click;
+      when Files.UI_Types.Quick_Look_Overlay      => Result := Quick_Look_Click;
+      when Files.UI_Types.Context_Menu_Overlay    => Result := Context_Menu_Click;
+      when Files.UI_Types.Sort_Menu_Overlay
+         | Files.UI_Types.Tree_Pick_Overlay       =>
          Handled := False;
    end case;
 end Overlay_Click;

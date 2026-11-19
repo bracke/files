@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Model.Support;
 
 package body Files.Model.Root_Selector is
@@ -43,7 +44,7 @@ package body Files.Model.Root_Selector is
          Claim_Overlay_Input (Model);
          Close_Settings_Pane (Model);
          Hide_Command_Palette (Model);
-         Model.Focus_Value := Files.Types.Focus_None;
+         Model.Focus_Value := Files.UI_Types.Focus_None;
       end if;
    end Open;
 

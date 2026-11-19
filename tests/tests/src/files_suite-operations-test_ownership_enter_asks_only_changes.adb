@@ -29,7 +29,7 @@ separate (Files_Suite.Operations)
          Select_Name (Model, "enter_own.txt");
          Files.Model.Focus_Ownership_Input (Model, Editing_Group => Group, Account_Name => "");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Focus (Model), Files.Types.Focus_Ownership_Input, "the ownership field is edited");
+           (Files.Model.Focus (Model), Files.UI_Types.Focus_Ownership_Input, "the ownership field is edited");
          Files.Controller.Testing.Replace_Focused_Text (Model, Text);
          Routed := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       end Commit;
@@ -57,7 +57,7 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status, Files.Operation_Results.Operation_Success, "an unchanged group commits");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Focus (Model), Files.Types.Focus_None, "and the field is closed");
+        (Files.Model.Focus (Model), Files.UI_Types.Focus_None, "and the field is closed");
       Files_Suite.Support.Assert_Equal
         (Files.File_System.Testing.Ownership_Changes, 0, "no ownership change is asked of the host");
       Assert (not Files.Model.History.Undo_Available (Model), "and no Undo is recorded");

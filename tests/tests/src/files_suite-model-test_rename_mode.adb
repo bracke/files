@@ -54,7 +54,7 @@ separate (Files_Suite.Model)
       Assert (not Files.Model.Rename.Is_Active (Model), "selection change cancels stale rename mode");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "selection change clears stale rename focus");
 
       Files.Model.Selection.Select_Visible (Model, 2);
@@ -101,13 +101,13 @@ separate (Files_Suite.Model)
         (Files.Commands.Focus_Path_Input_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Path_Input,
+         Files.UI_Types.Focus_Path_Input,
          "path focus can move away from rename");
       Assert (Files.Model.Rename.Is_Active (Model), "path focus does not implicitly cancel rename");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "Escape clears focused path input");
       Assert (not Files.Model.Rename.Is_Active (Model), "Escape cancels rename state after path focus");
 
@@ -117,13 +117,13 @@ separate (Files_Suite.Model)
         (Files.Commands.Focus_Filter_Input_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Filter_Input,
+         Files.UI_Types.Focus_Filter_Input,
          "focus can move away from rename");
       Assert (Files.Model.Rename.Is_Active (Model), "moving focus does not implicitly cancel rename");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "first Escape clears focused filter input");
       Assert (not Files.Model.Rename.Is_Active (Model), "Escape cancels pending rename state after focus moved");
    end Test_Rename_Mode;

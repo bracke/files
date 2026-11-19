@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Guikit.Bidi;
 with Guikit.Utf8.Editing;
 with Files.Model.Support;
@@ -6,7 +7,7 @@ package body Files.Model.Rename is
 
    use Files.Model.Support;
    use Ada.Strings.Unbounded;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Guikit.Input.Navigation_Direction;
 
    --  The 1-based index into the rename fields for the field shown at
@@ -179,7 +180,7 @@ package body Files.Model.Rename is
 
          if not Model.Rename.Fields.Is_Empty then
             Model.Rename.Active := True;
-            Model.Focus_Value := Files.Types.Focus_Rename_Input;
+            Model.Focus_Value := Files.UI_Types.Focus_Rename_Input;
          end if;
       end if;
    end Toggle;
@@ -445,7 +446,7 @@ package body Files.Model.Rename is
            (Item_Index => Effective_Selected_Item_Index (Model),
             Edit       => (Text => To_Unbounded_String (Text), Cursor => Text'Length)));
       Model.Rename.Active := True;
-      Model.Focus_Value := Files.Types.Focus_Rename_Input;
+      Model.Focus_Value := Files.UI_Types.Focus_Rename_Input;
    end Resume;
 
 end Files.Model.Rename;

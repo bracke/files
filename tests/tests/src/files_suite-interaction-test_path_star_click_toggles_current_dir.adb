@@ -50,7 +50,7 @@ separate (Files_Suite.Interaction)
       Assert (Result.Settings_Changed, "toggling the path star reports a settings change");
       Assert (Ada.Directories.Exists (Path), "toggling the path star persists the settings file");
       Assert
-        (Files.Model.Focus (Model) /= Files.Types.Focus_Path_Input,
+        (Files.Model.Focus (Model) /= Files.UI_Types.Focus_Path_Input,
          "toggling the path star does not focus the path input");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),

@@ -26,7 +26,7 @@ separate (Files_Suite.Commands)
             "Control+Backspace removes previous word across UTF-8 NBSP");
 
          Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & NBSP & "beta");
-         Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
+         Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 5);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             5,
@@ -59,10 +59,10 @@ separate (Files_Suite.Commands)
             "Control+Backspace removes a whole multibyte word");
 
          Files.Controller.Testing.Replace_Focused_Text (Model, Cafe & " " & Uber);
-         Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 0);
+         Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 0);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right, Ctrl);
          Assert (Files.Model.Text_Cursor_Position (Model) in 5 | 6, "Control+Right ends after the whole first word");
-         Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
+         Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 5);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Filter_Text (Model),

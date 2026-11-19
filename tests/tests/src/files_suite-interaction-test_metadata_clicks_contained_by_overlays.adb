@@ -31,7 +31,7 @@ separate (Files_Suite.Interaction)
          Guikit.Input.No_Modifiers, Result);
       Assert
         (Files.Model.Revision (Model) = Before
-         and then Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette,
+         and then Files.Model.Focus (Model) = Files.UI_Types.Focus_Command_Palette,
          "a stale ownership click cannot steal focus from the command palette");
 
       Files.Interaction.Apply_Input_Action

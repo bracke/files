@@ -79,7 +79,8 @@ separate (Check_All)
           To_Unbounded_String ("Files.Model"),
           To_Unbounded_String ("Files.Quick_Look"),
           To_Unbounded_String ("Files.Settings"),
-          To_Unbounded_String ("Files.Types")]);
+          To_Unbounded_String ("Files.Types"),
+          To_Unbounded_String ("Files.UI_Types")]);
       Require_Only_Allowed_With_Clauses
         (Rendering_Body,
          "Files.",
@@ -106,7 +107,8 @@ separate (Check_All)
         (Layouts_Spec,
          "Files.",
          [To_Unbounded_String ("Files.Commands"),
-          To_Unbounded_String ("Files.Types")]);
+          To_Unbounded_String ("Files.Types"),
+          To_Unbounded_String ("Files.UI_Types")]);
       Require_Only_Allowed_With_Clauses
         (Text_Spec,
          "Files.",
@@ -158,7 +160,8 @@ separate (Check_All)
             To_Unbounded_String ("Files.Settings"),
             To_Unbounded_String ("Files.Settings.Path_References"),
             To_Unbounded_String ("Files.Timing"),
-            To_Unbounded_String ("Files.Types")];
+            To_Unbounded_String ("Files.Types"),
+            To_Unbounded_String ("Files.UI_Types")];
       begin
          for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-rendering-*.adb", Generated_Directories) loop
             Require_Only_Allowed_With_Clauses (To_String (Item), "Files.", Family_Allowed);

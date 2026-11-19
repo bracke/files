@@ -2,6 +2,7 @@ with Files.Commands;
 with Files.Rendering;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 
 --  GLFW-style input translation into internal command and selection events.
 package Files.Events is
@@ -89,7 +90,7 @@ package Files.Events is
             --  is a click on the column: this sort.
             Sort_Command : Files.Commands.Command_Id := Files.Commands.No_Command;
          when Text_Click_Input_Action =>
-            Focus_Target    : Files.Types.Focus_Target := Files.Types.Focus_None;
+            Focus_Target    : Files.UI_Types.Focus_Target := Files.UI_Types.Focus_None;
             Cursor_Position : Natural := 0;
             --  The item whose rename field was clicked (0 for another field).
             Field_Item      : Natural := 0;

@@ -9,10 +9,10 @@ separate (Files.Rendering.Layouts)
       Result : Context_Menu_Layout;
 
       use type Files.Commands.Context_Menu_Row_Kind;
-      use type Files.Types.Context_Menu_Target;
+      use type Files.UI_Types.Context_Menu_Target;
    begin
       if not Snapshot.Context_Menu_Open
-        or else Snapshot.Context_Menu_Target = Files.Types.Context_Menu_None
+        or else Snapshot.Context_Menu_Target = Files.UI_Types.Context_Menu_None
       then
          return Result;
       end if;

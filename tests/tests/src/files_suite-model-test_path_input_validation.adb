@@ -16,7 +16,7 @@ separate (Files_Suite.Model)
       Files.Model.Focus_Path_Input (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Path_Input,
+         Files.UI_Types.Focus_Path_Input,
          "path input receives focus directly");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Path_Input_Text (Model),
@@ -35,7 +35,7 @@ separate (Files_Suite.Model)
          "invalid input does not change current path");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_Path_Input,
+         Files.UI_Types.Focus_Path_Input,
          "invalid path input keeps focus");
       Files.Model.Focus_Filter_Input (Model);
       Files.Model.Focus_Path_Input (Model);
@@ -59,7 +59,7 @@ separate (Files_Suite.Model)
          "escape clears path validation error");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "escape clears path input focus");
 
       Files.Model.Command_Palette.Open (Model);
@@ -78,6 +78,6 @@ separate (Files_Suite.Model)
          "valid input changes path");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "valid path input clears focus");
    end Test_Path_Input_Validation;

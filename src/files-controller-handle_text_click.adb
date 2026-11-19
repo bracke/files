@@ -1,67 +1,68 @@
 separate (Files.Controller)
    function Handle_Text_Click
      (Model           : in out Files.Model.Window_Model;
-      Target          : Files.Types.Focus_Target;
+      Target          : Files.UI_Types.Focus_Target;
       Cursor_Position : Natural;
       Item_Index      : Natural := 0)
       return Controller_Result
    is
-      Old_Focus  : constant Files.Types.Focus_Target := Files.Model.Focus (Model);
+      Old_Focus  : constant Files.UI_Types.Focus_Target := Files.Model.Focus (Model);
       Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
       Top        : Files.Model.Input_Overlay;
-      use type Files.Types.Input_Overlay;
+      use type Files.UI_Types.Input_Overlay;
    begin
-      if Target = Files.Types.Focus_Command_Palette
+      if Target = Files.UI_Types.Focus_Command_Palette
         and then not Files.Model.Command_Palette.Is_Open (Model)
       then
          return Make_Result (Controller_Ignored);
-      elsif Target = Files.Types.Focus_Settings_Input
+      elsif Target = Files.UI_Types.Focus_Settings_Input
         and then not Files.Model.Settings_Pane.Is_Open (Model)
       then
          return Make_Result (Controller_Ignored);
-      elsif Target = Files.Types.Focus_Rename_Input
+      elsif Target = Files.UI_Types.Focus_Rename_Input
         and then not Files.Model.Rename.Is_Active (Model)
       then
          return Make_Result (Controller_Ignored);
       end if;
 
-      --  The overlay on top (Files.Types.Overlay_Stack) takes the click: only
+      --  The overlay on top (Files.UI_Types.Overlay_Stack) takes the click: only
       --  the palette's and the pane's own fields are text it owns.
       if Files.Model.Topmost_Overlay (Model, Top)
-        and then not (Top = Files.Types.Command_Palette_Overlay and then Target = Files.Types.Focus_Command_Palette)
-        and then not (Top = Files.Types.Settings_Pane_Overlay and then Target = Files.Types.Focus_Settings_Input)
+        and then not (Top = Files.UI_Types.Command_Palette_Overlay
+                      and then Target = Files.UI_Types.Focus_Command_Palette)
+        and then not (Top = Files.UI_Types.Settings_Pane_Overlay and then Target = Files.UI_Types.Focus_Settings_Input)
       then
          return Make_Result (Controller_Ignored);
       end if;
 
       case Target is
-         when Files.Types.Focus_Path_Input =>
-            if Files.Model.Focus (Model) /= Files.Types.Focus_Path_Input then
+         when Files.UI_Types.Focus_Path_Input =>
+            if Files.Model.Focus (Model) /= Files.UI_Types.Focus_Path_Input then
                Files.Model.Focus_Path_Input (Model);
             end if;
-         when Files.Types.Focus_Filter_Input =>
-            if Files.Model.Focus (Model) /= Files.Types.Focus_Filter_Input then
+         when Files.UI_Types.Focus_Filter_Input =>
+            if Files.Model.Focus (Model) /= Files.UI_Types.Focus_Filter_Input then
                Files.Model.Focus_Filter_Input (Model);
             end if;
-         when Files.Types.Focus_Rename_Input =>
+         when Files.UI_Types.Focus_Rename_Input =>
             Files.Model.Focus_Rename_Input (Model);
-         when Files.Types.Focus_Command_Palette =>
+         when Files.UI_Types.Focus_Command_Palette =>
             Files.Model.Command_Palette.Focus_Input (Model);
-         when Files.Types.Focus_Settings_Input =>
+         when Files.UI_Types.Focus_Settings_Input =>
             --  Settings clicks route through Handle_Settings_Click (the panel
             --  hit-tests them), not the generic text-click path.
             null;
-         when Files.Types.Focus_Ownership_Input =>
+         when Files.UI_Types.Focus_Ownership_Input =>
             --  The ownership editor is opened through its own click action, not
             --  the generic text-click path.
             return Make_Result (Controller_Ignored);
-         when Files.Types.Focus_None =>
+         when Files.UI_Types.Focus_None =>
             return Make_Result (Controller_Ignored);
       end case;
 
       --  A rename click moves only the clicked field's caret, keeping the
       --  other synchronized carets in place.
-      if Target = Files.Types.Focus_Rename_Input then
+      if Target = Files.UI_Types.Focus_Rename_Input then
          Files.Model.Rename.Set_Caret (Model, Item_Index, Cursor_Position);
          return Make_Result (Controller_Text_Updated);
       end if;

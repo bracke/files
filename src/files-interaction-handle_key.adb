@@ -23,8 +23,8 @@ separate (Files.Interaction)
       --  A focused text field edits the text, which keeps its reading order
       --  in a mirrored window: its arrows move the caret as they point.
       Editing_Text  : constant Boolean :=
-        Files.Model.Focus (Model) in Files.Types.Focus_Path_Input | Files.Types.Focus_Filter_Input
-                                   | Files.Types.Focus_Rename_Input | Files.Types.Focus_Ownership_Input
+        Files.Model.Focus (Model) in Files.UI_Types.Focus_Path_Input | Files.UI_Types.Focus_Filter_Input
+                                   | Files.UI_Types.Focus_Rename_Input | Files.UI_Types.Focus_Ownership_Input
         and then not Files.Model.Input_Owning_Overlay_Is_Open (Model);
       --  In a mirrored (right-to-left) window everything else is laid out
       --  the other way round -- the grid, the tree, menus, the toolbar's
@@ -100,8 +100,8 @@ separate (Files.Interaction)
       --  focused text field keeps its character event and types a space; one
       --  that flipped a settings toggle or choice is dropped like the grid's.
       if Key = Guikit.Input.Key_Space
-        and then (Files.Model.Focus (Model) = Files.Types.Focus_None
-                  or else (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input
+        and then (Files.Model.Focus (Model) = Files.UI_Types.Focus_None
+                  or else (Files.Model.Focus (Model) = Files.UI_Types.Focus_Settings_Input
                            and then Files.Model.Settings_Pane.Focused_Kind (Model) in
                              Guikit.Settings_Panel.Toggle | Guikit.Settings_Panel.Choice))
       then

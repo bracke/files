@@ -100,7 +100,7 @@ package body Files.Model is
 
    use type Ada.Calendar.Time;
    use type Files.File_System.Path_Status;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Guikit.Input.Navigation_Direction;
    use type Files.Types.Search_Scope;
 
@@ -224,13 +224,13 @@ package body Files.Model is
 
    function Topmost_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean is
    begin
-      for Candidate of Files.Types.Overlay_Stack loop
+      for Candidate of Files.UI_Types.Overlay_Stack loop
          if Overlay_Is_Open (Model, Candidate) then
             Overlay := Candidate;
             return True;
          end if;
       end loop;
-      Overlay := Files.Types.Overlay_Stack (Files.Types.Overlay_Stack'First);
+      Overlay := Files.UI_Types.Overlay_Stack (Files.UI_Types.Overlay_Stack'First);
       return False;
    end Topmost_Overlay;
 
@@ -240,7 +240,7 @@ package body Files.Model is
          return False;
       end if;
       --  Nothing above it in Overlay_Stack is open.
-      for Candidate of Files.Types.Overlay_Stack loop
+      for Candidate of Files.UI_Types.Overlay_Stack loop
          exit when Candidate = Overlay;
          if Overlay_Is_Open (Model, Candidate) then
             return False;
@@ -256,7 +256,7 @@ package body Files.Model is
       Overlay : Input_Overlay;
    begin
       return Escape_Overlay (Model, Overlay)
-        or else Model.Focus /= Files.Types.Focus_None
+        or else Model.Focus /= Files.UI_Types.Focus_None
         or else Model.Rename.Active
         or else Model.Temporary.Active;
    end Has_Something_To_Close;
@@ -301,9 +301,9 @@ package body Files.Model is
       end if;
       case Top is
          when Command_Palette_Overlay =>
-            return Model.Focus_Value /= Files.Types.Focus_Command_Palette;
+            return Model.Focus_Value /= Files.UI_Types.Focus_Command_Palette;
          when Settings_Pane_Overlay =>
-            return Model.Focus_Value /= Files.Types.Focus_Settings_Input;
+            return Model.Focus_Value /= Files.UI_Types.Focus_Settings_Input;
          when Root_Selector_Overlay
             | Sort_Menu_Overlay
             | Context_Menu_Overlay
@@ -373,7 +373,7 @@ package body Files.Model is
       Model.Results_Hide_Hidden := False;
       Support.Invalidate_Visible (Model);
       Model.Recent_Open_Queue.Clear;
-      Model.Focus_Value := Files.Types.Focus_None;
+      Model.Focus_Value := Files.UI_Types.Focus_None;
       Model.Path_Input :=
         (Edit => (Text => To_Unbounded_String (Directory_Path), Cursor => Directory_Path'Length), others => <>);
       Model.Info_Pane_Open := False;
@@ -608,7 +608,7 @@ package body Files.Model is
 
    function Focus
      (Model : Window_Model)
-      return Files.Types.Focus_Target is
+      return Files.UI_Types.Focus_Target is
      (Model.Focus_Value);
 
    function Reveal_Is_Pending
@@ -684,7 +684,7 @@ package body Files.Model is
       Support.Invalidate_Visible (Model);
       Model.Filter.Cursor := 0;
       Hide_Command_Palette (Model);
-      Model.Focus_Value := Files.Types.Focus_None;
+      Model.Focus_Value := Files.UI_Types.Focus_None;
       Reset_Quick_Look (Model);
    end Leave_View;
 
@@ -849,21 +849,21 @@ package body Files.Model is
         ((Text => To_Unbounded_String (Text), Cursor => Text'Length));
    begin
       case Model.Focus_Value is
-         when Files.Types.Focus_Path_Input =>
+         when Files.UI_Types.Focus_Path_Input =>
             return Model.Path_Input.Edit;
-         when Files.Types.Focus_Filter_Input =>
+         when Files.UI_Types.Focus_Filter_Input =>
             return Model.Filter;
-         when Files.Types.Focus_Rename_Input =>
+         when Files.UI_Types.Focus_Rename_Input =>
             return (if Model.Rename.Fields.Is_Empty then (others => <>) else Model.Rename.Fields.First_Element.Edit);
-         when Files.Types.Focus_Command_Palette =>
+         when Files.UI_Types.Focus_Command_Palette =>
             --  The palette query has no separate caret.
             return At_End (Guikit.Command_Palette.Query (Model.Command_Palette.View));
-         when Files.Types.Focus_Settings_Input =>
+         when Files.UI_Types.Focus_Settings_Input =>
             --  The panel edits whole values.
             return At_End (Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View));
-         when Files.Types.Focus_Ownership_Input =>
+         when Files.UI_Types.Focus_Ownership_Input =>
             return Model.Ownership_Input.Edit;
-         when Files.Types.Focus_None =>
+         when Files.UI_Types.Focus_None =>
             return (others => <>);
       end case;
    end Focused_Field;
@@ -891,11 +891,11 @@ package body Files.Model is
    begin
       Support.Touch (Model);
       case Model.Focus_Value is
-         when Files.Types.Focus_Path_Input =>
+         when Files.UI_Types.Focus_Path_Input =>
             Model.Path_Input.Edit.Cursor := Clamped;
-         when Files.Types.Focus_Filter_Input =>
+         when Files.UI_Types.Focus_Filter_Input =>
             Model.Filter.Cursor := Clamped;
-         when Files.Types.Focus_Rename_Input =>
+         when Files.UI_Types.Focus_Rename_Input =>
             if not Model.Rename.Fields.Is_Empty then
                declare
                   Field : Rename_Field := Model.Rename.Fields.First_Element;
@@ -904,15 +904,15 @@ package body Files.Model is
                   Model.Rename.Fields.Replace_Element (Model.Rename.Fields.First_Index, Field);
                end;
             end if;
-         when Files.Types.Focus_Command_Palette =>
+         when Files.UI_Types.Focus_Command_Palette =>
             --  The palette query is append-only; it has no movable caret.
             null;
-         when Files.Types.Focus_Settings_Input =>
+         when Files.UI_Types.Focus_Settings_Input =>
             --  The panel edits whole values; there is no movable caret.
             null;
-         when Files.Types.Focus_Ownership_Input =>
+         when Files.UI_Types.Focus_Ownership_Input =>
             Model.Ownership_Input.Edit.Cursor := Clamped;
-         when Files.Types.Focus_None =>
+         when Files.UI_Types.Focus_None =>
             null;
       end case;
    end Set_Text_Cursor_Position;
@@ -946,7 +946,7 @@ package body Files.Model is
       Support.Touch (Model);
       Clear_Root_Selector_State (Model);
 
-      if Model.Focus_Value = Files.Types.Focus_Path_Input then
+      if Model.Focus_Value = Files.UI_Types.Focus_Path_Input then
          Model.Path_Input :=
            (Edit => (Text => Model.Current_Path_Value, Cursor => Length (Model.Current_Path_Value)), others => <>);
       end if;
@@ -957,7 +957,7 @@ package body Files.Model is
          Reset_Rename_State (Model);
       end if;
 
-      Model.Focus_Value := Files.Types.Focus_None;
+      Model.Focus_Value := Files.UI_Types.Focus_None;
    end Cancel_Focus_Or_Edit;
 
    procedure Clear_Tree_Pick
@@ -1093,8 +1093,8 @@ package body Files.Model is
          Reset_Rename_State (Model);
       end if;
       Hide_Command_Palette (Model);
-      if Model.Focus_Value = Files.Types.Focus_Command_Palette then
-         Model.Focus_Value := Files.Types.Focus_None;
+      if Model.Focus_Value = Files.UI_Types.Focus_Command_Palette then
+         Model.Focus_Value := Files.UI_Types.Focus_None;
       end if;
       Model.Items := Items;
       Support.Invalidate_Visible (Model);

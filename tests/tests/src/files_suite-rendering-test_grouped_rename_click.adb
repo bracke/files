@@ -36,7 +36,7 @@ separate (Files_Suite.Rendering)
       Snapshot.Group_By := Files.Types.Group_By_Type;
       Snapshot.Selected_Count := 1;
       Snapshot.Rename_Active := True;
-      Snapshot.Focus := Files.Types.Focus_Rename_Input;
+      Snapshot.Focus := Files.UI_Types.Focus_Rename_Input;
       Snapshot.Text_Cursor_Position := Long_Name'Length;
       Files_Suite.Support.Assert_Equal
         (Row_Position_Of (Snapshot, Renamed), Renamed + 2, "the renamed item sits two header rows further down");

@@ -75,7 +75,7 @@ separate (Files_Suite.Model)
       --  character selects the first matching item.
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "fresh grid model starts unfocused");
       Feed ("d");
       Files_Suite.Support.Assert_Equal
@@ -208,7 +208,7 @@ separate (Files_Suite.Model)
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
-         Files.Types.Focus_None,
+         Files.UI_Types.Focus_None,
          "cancelling returns focus to the grid");
       Feed ("d");
       Files_Suite.Support.Assert_Equal

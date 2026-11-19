@@ -13,7 +13,7 @@ package body Files.Rendering.Layouts is
    use Files.Rendering.Labels;
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Files.Types.View_Mode;
 
    function Free_Space_Label_Width

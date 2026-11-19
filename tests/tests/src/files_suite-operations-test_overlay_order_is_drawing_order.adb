@@ -19,17 +19,17 @@ separate (Files_Suite.Operations)
       Assert (Files.Model.Selection.Select_By_Name (Model, "look.txt"), "an item to look at");
       Files.Model.Quick_Look.Open
         (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
-      Assert (Files.Model.Topmost_Overlay (Model, Overlay) and then Overlay = Files.Types.Quick_Look_Overlay,
+      Assert (Files.Model.Topmost_Overlay (Model, Overlay) and then Overlay = Files.UI_Types.Quick_Look_Overlay,
               "Quick Look alone is on top");
-      Assert (Files.Model.Escape_Overlay (Model, Overlay) and then Overlay = Files.Types.Quick_Look_Overlay,
+      Assert (Files.Model.Escape_Overlay (Model, Overlay) and then Overlay = Files.UI_Types.Quick_Look_Overlay,
               "Escape closes Quick Look, by the rule every overlay but a paste dialog follows");
 
       Files.Model.Command_Palette.Open (Model);
-      Assert (Files.Model.Topmost_Overlay (Model, Overlay) and then Overlay = Files.Types.Command_Palette_Overlay,
+      Assert (Files.Model.Topmost_Overlay (Model, Overlay) and then Overlay = Files.UI_Types.Command_Palette_Overlay,
               "the palette, drawn over Quick Look, is on top of it");
-      Assert (Files.Model.Escape_Overlay (Model, Overlay) and then Overlay = Files.Types.Command_Palette_Overlay,
+      Assert (Files.Model.Escape_Overlay (Model, Overlay) and then Overlay = Files.UI_Types.Command_Palette_Overlay,
               "and Escape closes it first");
-      Assert (Files.Model.Window_Overlay_Shown (Model, Files.Types.Command_Palette_Overlay),
+      Assert (Files.Model.Window_Overlay_Shown (Model, Files.UI_Types.Command_Palette_Overlay),
               "the window layer draws it");
       --  The pane under the palette is not drawn, and the frame leaves no
       --  hole for it.

@@ -20,6 +20,7 @@ with Files.Rendering.Hit;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 with Files_Config;
 with Files_Suite.Support;
 with Files_Suite.Interaction_Support;
@@ -32,7 +33,7 @@ package body Files_Suite.Tree is
    use AUnit.Assertions;
    use type Files.Controller.Controller_Status;
    use type Files.File_System.Path_Status;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use Files_Suite.Interaction_Support;
 
    type Tree_Test_Case is new AUnit.Test_Cases.Test_Case with null record;

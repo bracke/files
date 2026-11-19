@@ -54,6 +54,7 @@ separate (Files_Suite.Refresh)
          "home operation reports normalized home path");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "home clears temporary create state");
       Assert (not Files.Model.Rename.Is_Active (Model), "home clears rename state");
-      Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_None, "home clears rename focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model), Files.UI_Types.Focus_None, "home clears rename focus");
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "home clears command palette");
    end Test_Controller_Home_Loading;

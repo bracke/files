@@ -51,7 +51,7 @@ separate (Files_Suite.Context_Menu)
 
       Assert (Files.Model.Context_Menu.Is_Open (Model), "the header menu opens on the column header");
       Assert
-        (Files.Model.Context_Menu.Target_Of (Model) = Files.Types.Context_Menu_Header,
+        (Files.Model.Context_Menu.Target_Of (Model) = Files.UI_Types.Context_Menu_Header,
          "the right-click targets the details-header menu");
 
       --  Every column toggle and the grouping cycle are offered (rule a).

@@ -76,7 +76,7 @@ separate (Files_Suite.Text_Input)
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Names,
          "the first chip click cycles to the Search_Names scope");
       Assert
-        (Files.Model.Focus (Model) /= Files.Types.Focus_Filter_Input,
+        (Files.Model.Focus (Model) /= Files.UI_Types.Focus_Filter_Input,
          "the chip click does not focus the filter input");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),

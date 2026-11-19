@@ -96,7 +96,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
       --  the info pane shows the editor buffer and draws the caret.
       if Snapshot.Ownership_Editable
         and then Natural (Snapshot.Selected_Info.Length) = 1
-        and then Files.Model.Focus (Model) = Files.Types.Focus_Ownership_Input
+        and then Files.Model.Focus (Model) = Files.UI_Types.Focus_Ownership_Input
       then
          declare
             Editing : Info_Snapshot := Snapshot.Selected_Info.First_Element;

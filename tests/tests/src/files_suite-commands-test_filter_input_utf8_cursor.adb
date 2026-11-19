@@ -13,7 +13,7 @@ separate (Files_Suite.Commands)
            "e" & Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#0301#));
       begin
          Files.Controller.Testing.Replace_Focused_Text (Model, "a" & Utf8_Text & "b");
-         Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
+         Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 2);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             1,

@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Command_Palette;
 with Guikit.Layout;
 with Files.Model.Support;
@@ -48,7 +49,7 @@ package body Files.Model.Command_Palette is
       Guikit.Command_Palette.Reset (Model.Command_Palette.View);
       Guikit.Command_Palette.Set_Commands
         (Model.Command_Palette.View, Files.Command_Palette.Commands (Model));
-      Model.Focus_Value := Files.Types.Focus_Command_Palette;
+      Model.Focus_Value := Files.UI_Types.Focus_Command_Palette;
    end Open;
 
    procedure Close
@@ -157,7 +158,7 @@ package body Files.Model.Command_Palette is
       Touch (Model);
       if Model.Command_Palette.Open then
          Reset_Type_Ahead (Model);
-         Model.Focus_Value := Files.Types.Focus_Command_Palette;
+         Model.Focus_Value := Files.UI_Types.Focus_Command_Palette;
       end if;
    end Focus_Input;
 

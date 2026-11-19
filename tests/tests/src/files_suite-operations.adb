@@ -47,6 +47,7 @@ with Files.Rendering;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
+with Files.UI_Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files.Model.Pasting;
@@ -68,7 +69,7 @@ package body Files_Suite.Operations is
    use type Files.Operation_Results.Operation_Status;
    use type Files.Operations.Archive_Format;
    use type Files.Model.Undo_Action_Kind;
-   use type Files.Types.Focus_Target;
+   use type Files.UI_Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use type Files.Types.Search_Scope;
    use type Files.Types.View_Mode;

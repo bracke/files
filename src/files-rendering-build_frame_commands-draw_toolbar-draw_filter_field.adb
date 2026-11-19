@@ -6,7 +6,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
       --  The box, as the click zone hit-tests it.
       Filter_X    : constant Natural := Text_Region.Field_X;
       Filter_W    : constant Natural := Text_Region.Field_Width;
-      Focused     : constant Boolean := Snapshot.Focus = Files.Types.Focus_Filter_Input;
+      Focused     : constant Boolean := Snapshot.Focus = Files.UI_Types.Focus_Filter_Input;
    begin
       declare
          --  The chip is sized to its localized label so it never abbreviates;
