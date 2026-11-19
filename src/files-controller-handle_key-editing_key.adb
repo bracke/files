@@ -28,10 +28,14 @@ procedure Editing_Key (Handled : out Boolean; Result : out Controller_Result) is
       case Move is
          when Word_Left =>
             Files.Model.Set_Text_Cursor_Position
-              (Model, Guikit.Utf8.Editing.Previous_Word_Boundary (Files.Model.Focused_Text (Model), Old_Position));
+              (Model,
+               Guikit.Bidi.Caret_Step
+                 (Files.Model.Focused_Text (Model), Old_Position, Rightward => False, By_Word => True));
          when Word_Right =>
             Files.Model.Set_Text_Cursor_Position
-              (Model, Guikit.Utf8.Editing.Next_Word_Boundary (Files.Model.Focused_Text (Model), Old_Position));
+              (Model,
+               Guikit.Bidi.Caret_Step
+                 (Files.Model.Focused_Text (Model), Old_Position, Rightward => True, By_Word => True));
          when Char_Left =>
             Files.Model.Move_Text_Cursor (Model, Guikit.Input.Move_Left);
          when Char_Right =>

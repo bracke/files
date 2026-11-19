@@ -11,6 +11,7 @@ with Files.Breadcrumbs;
 with Files.Command_Palette;
 with Files.Folder_Tree;
 with Files.Settings_Form;
+with Guikit.Bidi;
 with Guikit.Utf8.Editing;
 with Files.Model.Command_Palette;
 with Files.Model.Root_Selector;

@@ -1,3 +1,4 @@
+with Guikit.Bidi;
 with Guikit.Utf8.Editing;
 with Files.Model.Support;
 
@@ -291,7 +292,11 @@ package body Files.Model.Rename is
             Text       : constant String := To_String (Field.Edit.Text);
             New_Cursor : Natural := Field.Edit.Cursor;
          begin
-            if By_Word then
+            if Direction in Guikit.Input.Move_Left | Guikit.Input.Move_Right then
+               New_Cursor :=
+                 Guikit.Bidi.Caret_Step
+                   (Text, Field.Edit.Cursor, Rightward => Direction = Guikit.Input.Move_Right, By_Word => By_Word);
+            elsif By_Word then
                New_Cursor :=
                  (if Backward then Guikit.Utf8.Editing.Previous_Word_Boundary (Text, Field.Edit.Cursor)
                   else Guikit.Utf8.Editing.Next_Word_Boundary (Text, Field.Edit.Cursor));

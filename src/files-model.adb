@@ -1,4 +1,5 @@
 with Guikit.Layout;
+with Guikit.Bidi;
 with Guikit.Utf8.Editing;
 
 with Files.Model.Support;
@@ -904,13 +905,19 @@ package body Files.Model is
       Text   : constant String := Focused_Text (Model);
    begin
       Support.Touch (Model);
-      if Direction = Guikit.Input.Move_Left or else Direction = Guikit.Input.Move_Up then
-         if Cursor > 0 then
-            Set_Text_Cursor_Position (Model, Guikit.Utf8.Editing.Previous_Boundary (Text, Cursor));
-         end if;
-      elsif Cursor < Text'Length then
-         Set_Text_Cursor_Position (Model, Guikit.Utf8.Editing.Next_Boundary (Text, Cursor));
-      end if;
+      case Direction is
+         when Guikit.Input.Move_Left | Guikit.Input.Move_Right =>
+            Set_Text_Cursor_Position
+              (Model, Guikit.Bidi.Caret_Step (Text, Cursor, Rightward => Direction = Guikit.Input.Move_Right));
+         when Guikit.Input.Move_Up =>
+            if Cursor > 0 then
+               Set_Text_Cursor_Position (Model, Guikit.Utf8.Editing.Previous_Boundary (Text, Cursor));
+            end if;
+         when Guikit.Input.Move_Down =>
+            if Cursor < Text'Length then
+               Set_Text_Cursor_Position (Model, Guikit.Utf8.Editing.Next_Boundary (Text, Cursor));
+            end if;
+      end case;
    end Move_Text_Cursor;
 
    procedure Cancel_Focus_Or_Edit

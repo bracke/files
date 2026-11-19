@@ -69,7 +69,8 @@ package Files.Model.Rename is
    --  Move every rename field's caret one character or word in Direction.
    --
    --  @param Model Model to update.
-   --  @param Direction Left/Up moves back, Right/Down moves forward.
+   --  @param Direction Left and right move the way they point on the screen (Guikit.Bidi.Caret_Step); up
+   --  moves back and down forward in the text.
    --  @param By_Word To the next word boundary rather than the next character.
    --  @return True when any caret moved (the revision moves only then).
    function Move_All_Carets

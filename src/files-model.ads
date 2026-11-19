@@ -786,7 +786,8 @@ package Files.Model is
    --  Move the cursor in the currently focused text input.
    --
    --  @param Model Model to update.
-   --  @param Direction Left moves before the previous character; right moves after the next character.
+   --  @param Direction Left and right move to the next character boundary that way on the screen, so through
+   --  right-to-left text in the opposite byte order (Guikit.Bidi.Caret_Step); up moves back and down forward.
    procedure Move_Text_Cursor
      (Model     : in out Window_Model;
       Direction : Guikit.Input.Navigation_Direction);
