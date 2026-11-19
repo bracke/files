@@ -65,7 +65,7 @@ separate (Files.Application.Windows)
       else
          Refresh_Snapshot (Runtime);
          declare
-            X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
+            X        : constant Natural := Scale_X (Cursor_X, Window_W, Frame_W);
             Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
             Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Current_Slot);
          begin

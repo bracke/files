@@ -3,6 +3,7 @@ with Files.Window_Polls;
 with Files.Items;
 with Ada.Strings.Unbounded;
 
+with Guikit.Bidi;
 with Guikit.Layout;
 with Guikit.Settings_Panel;
 

@@ -22,7 +22,7 @@ separate (Files.Application.Windows)
          return;
       end if;
 
-      X_Frame := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
+      X_Frame := Scale_X (Cursor_X, Window_W, Frame_W);
       Y_Frame := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
 
       if not Mouse_Down then

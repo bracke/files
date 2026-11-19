@@ -44,6 +44,7 @@ package body Files_Suite.Keyboard is
    procedure Test_Shortcut_Capture_Routing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Tab_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Grid_Nav_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Mirrored_Layout_Keys_And_Pointer (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Zoom (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Picker_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Undo_Shortcut_Ctrl_Z (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -78,6 +79,9 @@ package body Files_Suite.Keyboard is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Grid_Nav_Keys'Access,
          "Home/End/PageUp/PageDown page the grid selection through the key seam");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Mirrored_Layout_Keys_And_Pointer'Access,
+         "in a mirrored window Left and Right trade places except in a text field, and the pointer is reflected");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Keyboard_Zoom'Access,
          "Ctrl+plus/equal grows, Ctrl+minus shrinks and Ctrl+0 resets the font size through the key seam");
@@ -115,6 +119,8 @@ package body Files_Suite.Keyboard is
    procedure Test_Settings_Tab_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Grid_Nav_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Mirrored_Layout_Keys_And_Pointer (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Keyboard_Zoom (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

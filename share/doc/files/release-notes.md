@@ -8,6 +8,16 @@ it under a dated version heading when a release is cut.
 
 ## [Unreleased]
 
+### Added
+- Hebrew and Arabic names read right to left, Arabic letters join, and the
+  caret and clicks follow the drawn text.
+- The arrow keys move the caret through right-to-left text the way they point
+  on the screen; Control+arrows step by word in reading order.
+- With an Arabic, Persian, Urdu, Hebrew or Yiddish locale the window is
+  mirrored: the folder tree and the info pane swap sides, the toolbar, grid,
+  columns and menus run from the right, and Left and Right trade places
+  everywhere except in a text field.
+
 ### Fixed
 - A move that fails after copying keeps one Undo entry: undoing it removes the
   copies left beside their sources and restores any replaced originals.

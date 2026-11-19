@@ -20,6 +20,20 @@ separate (Files.Interaction)
                         | Guikit.Input.Key_0;
       Zoom_Allowed  : constant Boolean :=
         not Files.Model.Input_Owning_Overlay_Is_Open (Model);
+      --  A focused text field edits the text, which keeps its reading order
+      --  in a mirrored window: its arrows move the caret as they point.
+      Editing_Text  : constant Boolean :=
+        Files.Model.Focus (Model) in Files.Types.Focus_Path_Input | Files.Types.Focus_Filter_Input
+                                   | Files.Types.Focus_Rename_Input | Files.Types.Focus_Ownership_Input
+        and then not Files.Model.Input_Owning_Overlay_Is_Open (Model);
+      --  In a mirrored (right-to-left) window everything else is laid out
+      --  the other way round -- the grid, the tree, menus, the toolbar's
+      --  Back and Forward -- so Left and Right trade meanings.
+      Laid_Out_Key  : constant Guikit.Input.Key_Code :=
+        (if not Guikit.Bidi.Mirrored_Layout or else Editing_Text then Key
+         elsif Key = Guikit.Input.Key_Left then Guikit.Input.Key_Right
+         elsif Key = Guikit.Input.Key_Right then Guikit.Input.Key_Left
+         else Key);
    begin
       --  Start from a clean result so no flag leaks from a previous call when a
       --  caller reuses the same Result object across keystrokes.
@@ -57,7 +71,7 @@ separate (Files.Interaction)
            Files.Controller.Handle_Key
              (Model          => Model,
               Settings       => Settings,
-              Key            => Key,
+              Key            => Laid_Out_Key,
               Modifiers      => Modifiers,
               Tree_Page_Rows => Tree_Page_Rows);
       begin

@@ -26,6 +26,8 @@ with Files.Job_Scavenger;
 with Files.Operations;
 with Files.Process_Jobs;
 with Files.Rendering.Hit;
+with Guikit.Bidi;
+with Guikit.Mirroring;
 with Guikit.Utf8;
 with Files.Model.Clipboard;
 with Files.Model.Tree_Panel;
@@ -602,6 +604,20 @@ package body Files.Application.Windows is
          return 0;
    end Scale_Coordinate;
 
+   function Scale_X
+     (Value  : Glfw.Input.Mouse.Coordinate;
+      Source : Glfw.Size;
+      Target : Glfw.Size)
+      return Natural
+   is
+      Scaled : constant Natural := Scale_Coordinate (Value, Source, Target);
+   begin
+      if not Guikit.Bidi.Mirrored_Layout or else Target <= 0 or else Scaled >= Natural (Target) then
+         return Scaled;
+      end if;
+      return Guikit.Mirroring.Mirror_X (Scaled, Natural (Target));
+   end Scale_X;
+
    function Scrollbar_Drag_Offset
      (Thumb_Top    : Natural;
       Track_Length : Natural;
@@ -758,7 +774,7 @@ package body Files.Application.Windows is
       end if;
 
       declare
-         X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
+         X        : constant Natural := Scale_X (Cursor_X, Window_W, Frame_W);
          Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
          Slot     : constant Snapshot_Slot := Hit_Slot (Runtime);
          Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Slot);
@@ -1000,7 +1016,7 @@ package body Files.Application.Windows is
          Column       => Runtime.Column_Resize.Target,
          Origin_X     => Runtime.Column_Resize.Origin_X,
          Origin_Width => Runtime.Column_Resize.Origin_W,
-         Current_X    => Scale_Coordinate (Cursor_X, Window_W, Frame_W),
+         Current_X    => Scale_X (Cursor_X, Window_W, Frame_W),
          Result       => Result,
          Line_Height  => Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
       if Result.Settings_Changed then

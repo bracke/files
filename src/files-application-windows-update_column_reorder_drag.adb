@@ -21,7 +21,7 @@ begin
       return;
    end if;
 
-   X_Frame := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
+   X_Frame := Scale_X (Cursor_X, Window_W, Frame_W);
 
    if Mouse_Down then
       if abs (X_Frame - Runtime.Column_Reorder.Origin_X)

@@ -123,6 +123,21 @@ package Files.Application.Windows is
       Target : Glfw.Size)
       return Natural;
 
+   --  Scale_Coordinate for the pointer's X, reflected in a right-to-left
+   --  (mirrored) layout so it names the column of the frame as drawn before
+   --  mirroring, where layouts and hit tests work. The framebuffer extent,
+   --  which names no pixel, stays as it is.
+   --
+   --  @param Value Mouse X in the source window width.
+   --  @param Source Window width.
+   --  @param Target Framebuffer width.
+   --  @return The column hit tests use.
+   function Scale_X
+     (Value  : Glfw.Input.Mouse.Coordinate;
+      Source : Glfw.Size;
+      Target : Glfw.Size)
+      return Natural;
+
    --  Convert a scrollbar thumb position into its logical scroll offset.
    --
    --  Thumb_Top is relative to the beginning of the track. Positions beyond

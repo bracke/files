@@ -6,7 +6,7 @@ separate (Files.Application.Windows.Render_Window)
       --  from the cached one.
       Overlay_Merged : constant Boolean := Palette.Shown or else Settings.Shown;
 
-      procedure Present (Frame : Files.Rendering.Frame_Commands) is separate;
+      procedure Present (Unmirrored : Files.Rendering.Frame_Commands) is separate;
    begin
       if Overlay_Merged then
          declare

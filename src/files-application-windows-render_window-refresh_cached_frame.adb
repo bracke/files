@@ -1,7 +1,7 @@
 separate (Files.Application.Windows.Render_Window)
    procedure Refresh_Cached_Frame
    is
-      Hover_X  : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Width);
+      Hover_X  : constant Natural := Scale_X (Cursor_X, Window_W, Width);
       Hover_Y  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Height);
       Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
       Has_Hover_Now : constant Boolean :=

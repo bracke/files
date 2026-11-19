@@ -21,6 +21,13 @@ package Files.Localization is
    --  @return Normalized locale from LC_ALL, LC_MESSAGES, or LANG; en when none is usable.
    function System_Locale return String;
 
+   --  Whether the interface reads right to left: System_Locale is Arabic,
+   --  Persian, Urdu, Hebrew, Yiddish or another locale I18N.Locales calls
+   --  right to left. The window is then drawn mirrored.
+   --
+   --  @return True for a right-to-left interface locale.
+   function Layout_Is_Right_To_Left return Boolean;
+
    --  Return the process date/time locale inferred from the environment.
    --
    --  @return Normalized locale from LC_ALL, LC_TIME, or LANG; en when none is usable.

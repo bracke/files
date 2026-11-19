@@ -169,6 +169,9 @@ package body Files.Localization is
       end;
    end Normalize_Locale;
 
+   function Layout_Is_Right_To_Left return Boolean is
+     (I18N.Locales.Is_Right_To_Left (System_Locale));
+
    function System_Locale return String is
       LC_All      : constant String := Files.Environment.Value ("LC_ALL");
       LC_Messages : constant String := Files.Environment.Value ("LC_MESSAGES");

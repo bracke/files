@@ -180,7 +180,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                     (X => Label_X, Y => Label_Y, Width => Draw_W, Height => Draw_H,
                      Text => To_Unbounded_String (Wrapped (First .. Last)),
                      Color => Text_Color, Truncated => False,
-                     Scale_To_Box => False, Italic => False));
+                     Scale_To_Box => False, Align_End => False, Italic => False));
             end if;
          end Emit_Line;
       begin

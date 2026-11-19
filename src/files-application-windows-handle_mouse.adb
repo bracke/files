@@ -25,7 +25,7 @@ separate (Files.Application.Windows)
             Action : Files.Events.Input_Action :=
               Files.Events.Translate_Right_Click
                 (Snapshot    => Runtime.View.Snapshots (Slot),
-                 X           => Scale_Coordinate (Event.X, Window_W, Frame_W),
+                 X           => Scale_X (Event.X, Window_W, Frame_W),
                  Y           => Scale_Coordinate (Event.Y, Window_H, Frame_H),
                  Width       => Natural (Frame_W),
                  Height      => Natural (Frame_H),
@@ -70,7 +70,7 @@ separate (Files.Application.Windows)
               and then Path = To_String (Runtime.Last_Click_Path)
               and then Now <= Runtime.Last_Click_Time + Double_Click_Interval;
          begin
-            Runtime.Press_X := Scale_Coordinate (Event.X, Window_W, Frame_W);
+            Runtime.Press_X := Scale_X (Event.X, Window_W, Frame_W);
             Runtime.Press_Y := Scale_Coordinate (Event.Y, Window_H, Frame_H);
             Runtime.Deferred_Click_Pending := False;
             if Is_Item and then not Activate then

@@ -29,6 +29,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                Color        => Color,
                Truncated    => Was_Truncated,
                Scale_To_Box => Scale_To_Box,
+               Align_End    => False,
                Italic       => Italic));
       end if;
    end Append_Text;
