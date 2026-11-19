@@ -1,3 +1,4 @@
+with I18N.Number_Format;
 with Files.Grouping;
 with Ada.Calendar.Arithmetic;
 with Ada.Calendar.Formatting;
@@ -270,6 +271,12 @@ package body Files.Display_Text is
 
    function Grouped_Integer_Text (Value : Long_Long_Integer) return String is
       Text        : constant String := Integer_Text (Value);
+      --  CLDR's form first, in the number locale: its digits (Arabic-Indic
+      --  in Arabic, as sizes have them), its grouping and when it starts.
+      Formatted   : String (1 .. I18N.Number_Format.Max_Formatted_Length);
+      Last        : Natural;
+      Ok          : Boolean;
+      Overflow    : Boolean;
       --  The sign is not a digit: "-123" must not read "-,123".
       Signed      : constant Boolean := Text'Length > 0 and then Text (Text'First) = '-';
       Number_Text : constant String := (if Signed then Text (Text'First + 1 .. Text'Last) else Text);
@@ -277,6 +284,12 @@ package body Files.Display_Text is
       First_Size : Natural := Number_Text'Length mod 3;
       Result     : Unbounded_String;
    begin
+      I18N.Number_Format.Format_Into
+        (Text, Files.Localization.System_Number_Locale, "", Formatted, Last, Ok, Overflow);
+      if Ok and then not Overflow and then Last >= Formatted'First then
+         return Formatted (Formatted'First .. Last);
+      end if;
+
       if Separator'Length = 0 or else Number_Text'Length <= 3 then
          return Text;
       end if;
