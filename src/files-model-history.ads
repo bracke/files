@@ -156,8 +156,10 @@ package Files.Model.History is
    --  Forget the newest undo entry when it is the one numbered Sequence: a
    --  background Undo did it, but the helper's record of the result (where
    --  it would have gone on the redo stack) was lost, so it must not be
-   --  offered again. Nothing is retired: what the step left behind is not
-   --  touched. Queues the journal save for Take_Retired.
+   --  offered again. What the step left behind is not touched. The redo
+   --  stack is retired as a newly recorded action retires it (its payloads
+   --  queued for Take_Retired): an older step there must not be redone in
+   --  its place. Queues the journal save for Take_Retired.
    --
    --  @param Model    Model to update.
    --  @param Sequence The Sequence of the entry the Undo took.

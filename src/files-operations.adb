@@ -91,17 +91,6 @@ package body Files.Operations is
       return Boolean
    is separate;
 
-   function Execute_Open_Action
-     (Action      : Files.Settings.Open_Action;
-      Exit_Status : out Integer;
-      Detach      : Boolean := False)
-      return Boolean
-   is
-      Ignored_Key : UString;
-   begin
-      return Execute_Open_Action (Action, Exit_Status, Ignored_Key, Detach);
-   end Execute_Open_Action;
-
    function Open_Action_Executable_Is_Available
      (Action : Files.Settings.Open_Action)
       return Boolean is separate;

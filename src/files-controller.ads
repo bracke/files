@@ -1,7 +1,7 @@
 with Files.Operation_Results;
 with Files.Commands;
 with Files.Drop_Events;
-with Files.Events;
+with Files.Input_Actions;
 with Files.File_System;
 with Files.Model;
 with Files.Operations;
@@ -392,7 +392,7 @@ package Files.Controller is
    --  @return Controller result describing whether visible state changed.
    function Handle_Targeted_Scroll
      (Model  : in out Files.Model.Window_Model;
-      Target : Files.Events.Scroll_Target;
+      Target : Files.Input_Actions.Scroll_Target;
       Lines  : Integer)
       return Controller_Result;
 
@@ -446,7 +446,7 @@ package Files.Controller is
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Key       : Guikit.Input.Key_Code;
-      Action    : Files.Events.Input_Action;
+      Action    : Files.Input_Actions.Input_Action;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Tree_Page_Rows : Natural := 0)
       return Controller_Result;

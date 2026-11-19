@@ -4,12 +4,17 @@ separate (Check_All)
       Events_Body : constant String := Root & "/src/files-events.adb";
 
       --  Of files' own units, translation may only import the pure
-      --  Files.Rendering.Hit and Files.Rendering.Layouts geometry, which
-      --  forbids the mutable model, filesystem-operation, and
+      --  Files.Rendering.Hit and Files.Rendering.Layouts geometry and the
+      --  value types its actions carry, which forbids the mutable model, filesystem-operation, and
       --  filesystem-inspection units.
       Body_Allowed : constant String_List :=
         [To_Unbounded_String ("Files.Rendering.Hit"),
-         To_Unbounded_String ("Files.Rendering.Layouts")];
+         To_Unbounded_String ("Files.Rendering.Layouts"),
+         --  The value types the actions carry (command ids, item and focus
+         --  values), read only: the checks below forbid executing a command.
+         To_Unbounded_String ("Files.Commands"),
+         To_Unbounded_String ("Files.Types"),
+         To_Unbounded_String ("Files.UI_Types")];
 
       --  Nor does it bind to foreign code itself: no import, export or
       --  machine-level representation.
@@ -65,20 +70,23 @@ separate (Check_All)
       --  body and every subunit.
       Require_Only_Allowed_With_Clauses (Events_Body, "Files.", Body_Allowed);
       Check_Subunit_With_Clauses;
-      --  The spec names the types translation reads and produces: a
-      --  Command_Id in an Input_Action (Files.Commands), the View_Snapshot and
-      --  Frame_Commands that Translate_Click hit-tests (Files.Rendering), and
-      --  the shared value types (Files.Types, and Files.UI_Types for the focus
-      --  and overlay values). Those are allowed there and nothing else -- the
+      --  The spec names the types translation reads and produces: the input
+      --  actions (Files.Input_Actions, which re-exports them) and the
+      --  View_Snapshot and Frame_Commands that Translate_Click hit-tests
+      --  (Files.Rendering). Those are allowed there and nothing else -- the
       --  body checks below still forbid any call into them beyond reading
       --  those values.
       Require_Only_Allowed_With_Clauses
         (Events_Spec,
          "Files.",
-         [To_Unbounded_String ("Files.Commands"),
-          To_Unbounded_String ("Files.Rendering"),
-          To_Unbounded_String ("Files.Types"),
-          To_Unbounded_String ("Files.UI_Types")]);
+         [To_Unbounded_String ("Files.Input_Actions"),
+          To_Unbounded_String ("Files.Rendering")]);
+      --  The controller applies input actions (Files.Input_Actions) without
+      --  depending on their translation, nor through it on the rendering
+      --  snapshot: no controller unit names Files.Events.
+      for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-controller*.ad?", Generated_Directories) loop
+         Require_Only_Allowed_With_Clauses (To_String (Item), "Files.Events", No_Units);
+      end loop;
       Require_Not_Contains
         (Events_Spec,
          "Files.Model.",
@@ -138,6 +146,8 @@ separate (Check_All)
         ("files-model", "Files.Settings",
          [To_Unbounded_String ("Settings_Model"),
           To_Unbounded_String ("Settings_Draft"),
+          --  Pairs a draft's mapping lists up, in memory.
+          To_Unbounded_String ("Normalize_Draft"),
           To_Unbounded_String ("Path_Label_Vectors"),
           To_Unbounded_String ("Path_References"),
           To_Unbounded_String ("Path_Sets")],
@@ -160,26 +170,6 @@ separate (Check_All)
          "the model reads no disk");
       Require_Only_Names_From
         ("files-model", "GNAT.OS_Lib", [To_Unbounded_String ("Is_Absolute_Path")],
-         "the model reads no disk");
-      Require_Only_Names_From
-        ("files-model",
-         "Files.File_System",
-         [To_Unbounded_String ("Directory_Signature"),
-          To_Unbounded_String ("Directory_Size_Result"),
-          To_Unbounded_String ("Drop_Copy"),
-          To_Unbounded_String ("Drop_Move"),
-          To_Unbounded_String ("Drop_Import_Mode"),
-          To_Unbounded_String ("Make_Item"),
-          To_Unbounded_String ("Path_Result"),
-          To_Unbounded_String ("Path_Status"),
-          To_Unbounded_String ("Path_Valid"),
-          To_Unbounded_String ("Root_Entry"),
-          To_Unbounded_String ("Root_Entry_Vectors"),
-          To_Unbounded_String ("Root_Filesystem"),
-          To_Unbounded_String ("Root_Kind"),
-          To_Unbounded_String ("Root_Ready"),
-          To_Unbounded_String ("Sort_Items"),
-          To_Unbounded_String ("Unknown_Signature")],
          "the model reads no disk");
       for Banned of String_List'
         [To_Unbounded_String ("Hostkit."),
@@ -215,7 +205,6 @@ separate (Check_All)
             To_Unbounded_String ("Files.Diagnostics"),
             --  The info pane's extra line as data: the model only keeps it.
             To_Unbounded_String ("Files.Extra_Info"),
-            To_Unbounded_String ("Files.File_System"),
             --  The filesystem layer's value types alone, no I/O: what the
             --  model's spec holds of it.
             To_Unbounded_String ("Files.File_System_Types"),
@@ -223,6 +212,8 @@ separate (Check_All)
             To_Unbounded_String ("Files.Folder_Size"),
             To_Unbounded_String ("Files.Folder_Tree"),
             To_Unbounded_String ("Files.Grouping"),
+            --  Items built from a name and sorted, reading no disk.
+            To_Unbounded_String ("Files.Item_Lists"),
             To_Unbounded_String ("Files.Items"),
             To_Unbounded_String ("Files.Model.Support"),
             To_Unbounded_String ("Files.Paste"),
@@ -231,7 +222,6 @@ separate (Check_All)
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Settings"),
             To_Unbounded_String ("Files.Settings.Path_References"),
-            To_Unbounded_String ("Files.Settings_Form"),
             To_Unbounded_String ("Files.Transfer_Jobs"),
             To_Unbounded_String ("Files.Type_Ahead"),
             To_Unbounded_String ("Files.Types"),
@@ -252,10 +242,14 @@ separate (Check_All)
             end loop;
          end loop;
       end;
-      --  The model's spec holds the filesystem layer's values through their
-      --  leaf package only, so the whole filesystem layer is not a
-      --  dependency of every unit that names a window model.
-      Require_Only_Allowed_With_Clauses
-        (Root & "/src/files-model.ads", "Files.File_System",
-         [To_Unbounded_String ("Files.File_System_Types")]);
+      --  The model holds the filesystem layer's values through their leaf
+      --  package only, in its spec (so the whole filesystem layer is not a
+      --  dependency of every unit that names a window model) and in every
+      --  body: the items it sorts and the placeholders it builds come from
+      --  Files.Items, which touches no disk.
+      for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-model*.ad?", Generated_Directories) loop
+         Require_Only_Allowed_With_Clauses
+           (To_String (Item), "Files.File_System",
+            [To_Unbounded_String ("Files.File_System_Types")]);
+      end loop;
    end Check_Event_Translation_Contract;

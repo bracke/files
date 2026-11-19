@@ -1,3 +1,4 @@
+with Files.Settings_Form;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Settings)
@@ -31,7 +32,8 @@ separate (Files_Suite.Settings)
         ((Kind => SP.Value_Changed, Key => To_Unbounded_String (Key), Value => To_Unbounded_String (Value)));
 
       function Row_Value (Key : String) return String is
-         Fields : constant SP.Field_Vectors.Vector := Files.Model.Settings_Pane.Fields (Model);
+         Fields : constant SP.Field_Vectors.Vector :=
+           Files.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model));
       begin
          for F of Fields loop
             if To_String (F.Key) = Key then
@@ -46,7 +48,7 @@ separate (Files_Suite.Settings)
           (Files.Commands.Default_Shortcut_For (Files.Commands.Select_Small_Icons_Command));
    begin
       Files.Commands.Reset_Shortcut_Overrides;
-      Files.Model.Settings_Pane.Begin_Edit (Model, Draft);
+      Files.Settings_Form.Begin_Edit (Model, Draft);
 
       --  The form emits a row per command, keyed by "shortcut.<identifier>",
       --  showing the command's current shortcut.
@@ -56,7 +58,7 @@ separate (Files_Suite.Settings)
          "the shortcut row shows the command's current binding");
 
       --  Rebind Small Icons to a fresh chord (a key added by the expansion).
-      Saved := Files.Model.Settings_Pane.Apply_Change (Model, Change ("shortcut.view.small", New_Chord));
+      Saved := Files.Settings_Form.Apply_Change (Model, Change ("shortcut.view.small", New_Chord));
       Assert (Saved, "rebinding a shortcut saves");
       declare
          SC : constant Files.Commands.Shortcut :=
@@ -78,7 +80,7 @@ separate (Files_Suite.Settings)
       end;
 
       --  Binding the same chord to a different command is rejected as a conflict.
-      Saved := Files.Model.Settings_Pane.Apply_Change (Model, Change ("shortcut.view.large", New_Chord));
+      Saved := Files.Settings_Form.Apply_Change (Model, Change ("shortcut.view.large", New_Chord));
       Assert (not Saved, "a conflicting rebind does not save");
       Assert (Files.Commands.Find_By_Shortcut
                 (Guikit.Input.Key_5,
@@ -87,13 +89,13 @@ separate (Files_Suite.Settings)
               "the chord still resolves to its original command after a rejected clash");
 
       --  An empty chord unbinds the command.
-      Saved := Files.Model.Settings_Pane.Apply_Change (Model, Change ("shortcut.view.small", ""));
+      Saved := Files.Settings_Form.Apply_Change (Model, Change ("shortcut.view.small", ""));
       Assert (Saved, "unbinding saves");
       Assert (not Files.Commands.Shortcut_For (Files.Commands.Select_Small_Icons_Command).Present,
               "the command has no shortcut after an empty-chord unbind");
 
       --  Setting a command back to its built-in default clears the override.
-      Saved := Files.Model.Settings_Pane.Apply_Change (Model, Change ("shortcut.view.small", Small_Text));
+      Saved := Files.Settings_Form.Apply_Change (Model, Change ("shortcut.view.small", Small_Text));
       Assert (Saved, "restoring the default saves");
       declare
          Is_Set : Boolean;
@@ -108,7 +110,7 @@ separate (Files_Suite.Settings)
       --  too, not just the draft values.
       Files.Commands.Set_Shortcut_Override
         (Files.Commands.Select_Small_Icons_Command, Files.Commands.Parse_Shortcut ("control+shift+5"));
-      Saved := Files.Model.Settings_Pane.Apply_Change
+      Saved := Files.Settings_Form.Apply_Change
         (Model,
          (Kind  => SP.Button_Pressed,
           Key   => To_Unbounded_String ("form.actions"),
@@ -126,7 +128,8 @@ separate (Files_Suite.Settings)
       --  A command with a built-in secondary shortcut surfaces it (read-only) in
       --  its row help, so an "already used" rejection is explicable.
       declare
-         Fields   : constant SP.Field_Vectors.Vector := Files.Model.Settings_Pane.Fields (Model);
+         Fields   : constant SP.Field_Vectors.Vector :=
+           Files.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model));
          Sec_Cmd  : constant Files.Commands.Command_Id := Files.Commands.Refresh_Directory_Command;
          Sec_Key  : constant String := "shortcut." & Files.Commands.Identifier (Sec_Cmd);
          Sec_Text : constant String :=

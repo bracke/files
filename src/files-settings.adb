@@ -771,6 +771,9 @@ package body Files.Settings is
      (Settings : Settings_Model)
       return Settings_Draft is separate;
 
+   procedure Normalize_Draft
+     (Draft : in out Settings_Draft) is separate;
+
    function Refresh_Draft
      (Draft  : Settings_Draft;
       Before : Settings_Model;

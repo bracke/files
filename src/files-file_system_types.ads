@@ -1,5 +1,6 @@
 with Ada.Calendar;
 with Ada.Containers.Vectors;
+with Ada.Strings.Unbounded;
 with Files.Types;
 
 --  The value types Files.File_System's results are made of, in a leaf
@@ -36,6 +37,15 @@ package Files.File_System_Types is
       Latest_Modified    : Ada.Calendar.Time := Files.Types.Unknown_Time;
       Latest_Modified_Known : Boolean := False;
    end record;
+
+   --  The signature of a listing not read from the directory (search
+   --  results, items handed in) or one that could not be signed: the next
+   --  check of Path reads it again.
+   --
+   --  @param Path The directory it stands for.
+   --  @return A signature that was not taken.
+   function Unknown_Signature (Path : String := "") return Directory_Signature is
+     ((Path => Ada.Strings.Unbounded.To_Unbounded_String (Path), others => <>));
 
    --  Whether a drop copies its sources or moves them.
    type Drop_Import_Mode is

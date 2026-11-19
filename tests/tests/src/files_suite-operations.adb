@@ -65,7 +65,6 @@ package body Files_Suite.Operations is
    use type Ada.Directories.File_Kind;
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
-   use type Files.Events.Input_Action_Kind;
    use type Files.File_System.Thumbnails.Thumbnail_Status;
    use type Files.Operation_Results.Operation_Status;
    use type Files.Operations.Archive_Format;

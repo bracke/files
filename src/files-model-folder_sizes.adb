@@ -1,4 +1,3 @@
-with Files.File_System;
 with Files.Model.Support;
 
 package body Files.Model.Folder_Sizes is
@@ -103,7 +102,7 @@ package body Files.Model.Folder_Sizes is
    function Value
      (Model : Window_Model;
       Path  : String)
-      return Files.File_System.Directory_Size_Result is
+      return Files.File_System_Types.Directory_Size_Result is
       Key : constant UString := To_Unbounded_String (Path);
    begin
       if Model.Folder_Sizes.Contains (Key) then

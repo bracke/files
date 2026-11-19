@@ -1,3 +1,4 @@
+with Files.Settings_Form;
 with Ada.Strings.Unbounded;
 
 with Guikit.Command_Palette;
@@ -112,7 +113,8 @@ package body Files.Overlays is
          Config.Status := To_Unbounded_String (Files.Localization.Text (To_String (Draft.Error_Key)));
          Config.Status_Is_Error := True;
       end if;
-      Files.Model.Settings_Pane.With_Panel (Model, Config, Files.Model.Settings_Pane.Fields (Model), Draw'Access);
+      Files.Model.Settings_Pane.With_Panel
+        (Model, Config, Files.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model)), Draw'Access);
    end Build_Settings_Frame;
 
 end Files.Overlays;

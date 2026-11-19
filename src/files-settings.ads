@@ -388,6 +388,14 @@ package Files.Settings is
      (Settings : Settings_Model)
       return Settings_Draft;
 
+   --  Bring a draft into a consistent state: pair up its parallel key/value
+   --  mapping lists to equal length (dropping orphan rows) and clamp each
+   --  mapping's selection index, refreshing the selected key and value.
+   --
+   --  @param Draft Settings draft to normalize in place.
+   procedure Normalize_Draft
+     (Draft : in out Settings_Draft);
+
    --  Bring the pane-edited scalars of Draft up to date with a change made
    --  outside the pane (a command run while it is open), so the pane shows
    --  the change and its next save keeps it. A setting that did not change

@@ -330,7 +330,7 @@ package Files.File_System is
       return Files.Extra_Info.Info;
 
    --  Sort Items in place into the display order for the given sort field and
-   --  direction. Shared by directory loading and by the window model so that
+   --  direction (Files.Item_Lists.Sort_Items). Shared by directory loading and by the window model so that
    --  keyboard navigation follows exactly the order shown on screen, in either
    --  sort direction.
    --
@@ -434,7 +434,8 @@ package Files.File_System is
    --  @return The name, which may hold any character a file name can.
    function Root_Name (Path : String; Kind : Root_Kind) return String;
 
-   --  Build an item value for tests and pure model setup.
+   --  Build an item value for tests and pure model setup, reading no disk
+   --  (Files.Item_Lists.Make_Item): hidden when its name starts with a dot.
    --
    --  @param Parent_Path Parent directory path.
    --  @param Name Item name.

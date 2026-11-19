@@ -1,4 +1,4 @@
-with Files.File_System;
+with Files.Item_Lists;
 with Files.UI_Types;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Indefinite_Hashed_Sets;
@@ -147,11 +147,11 @@ package body Files.Model.Support is
 
    function Temporary_Item (Model : Window_Model) return Files.Items.Directory_Item is
      (if Model.Temporary.Is_Directory
-      then Files.File_System.Make_Item
+      then Files.Item_Lists.Make_Item
         (Parent_Path => Current_Path (Model),
          Name        => To_String (Model.Temporary.Name),
          Kind        => Files.Types.Directory_Item)
-      else Files.File_System.Make_Item
+      else Files.Item_Lists.Make_Item
         (Parent_Path => Current_Path (Model),
          Name        => To_String (Model.Temporary.Name),
          Kind        => Files.Types.Regular_File_Item,
@@ -420,7 +420,7 @@ package body Files.Model.Support is
       end loop;
 
       if Field_Sort then
-         Files.File_System.Sort_Items
+         Files.Item_Lists.Sort_Items
            (Model.Items,
             Model.Sort_Field_Value,
             Model.Sort_Ascending);
@@ -682,7 +682,7 @@ package body Files.Model.Support is
       Item_Index : constant Natural := Effective_Selected_Item_Index (Model);
    begin
       if Selected_Count (Model) = 0 then
-         return Files.File_System.Make_Item ("", "", Files.Types.Unknown_Item);
+         return Files.Item_Lists.Make_Item ("", "", Files.Types.Unknown_Item);
       elsif Item_Index = Temporary_Item_Index then
          return Temporary_Item (Model);
       end if;

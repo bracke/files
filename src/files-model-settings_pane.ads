@@ -4,7 +4,9 @@ with Guikit.Settings_Panel;
 --
 --  Guikit.Settings_Panel owns the focus, scroll, hit-testing and rendering;
 --  the operations here forward input to it, and the caller drains the
---  emitted change with Take_Change to apply it. Shortcut fields capture by
+--  emitted change with Take_Change to apply it; the localized fields and
+--  the mapping of a change onto the draft are built outside the model
+--  (by the settings form) and handed in. Shortcut fields capture by
 --  press: arming a focused Shortcut row (by click, or Begin_Capture on a
 --  keyboard activation) makes Is_Capturing true; the controller then routes
 --  the next physical chord here instead of acting on it, formats it to text,
@@ -13,7 +15,7 @@ with Guikit.Settings_Panel;
 package Files.Model.Settings_Pane is
 
    --  Close the settings pane, handing back its focus. It opens only through
-   --  Begin_Edit, with a draft of the settings.
+   --  Begin_Edit, with a draft of the settings and the panel's fields for it.
    --
    --  @param Model Model to update.
    procedure Close
@@ -27,13 +29,17 @@ package Files.Model.Settings_Pane is
      (Model : Window_Model)
       return Boolean;
 
-   --  Begin editing settings values in the settings pane.
+   --  Begin editing settings values in the settings pane. The model never
+   --  builds the panel's (localized) fields itself: the caller hands them in,
+   --  built from the normalized draft (Files.Settings.Normalize_Draft).
    --
    --  @param Model Model to update.
    --  @param Draft Draft values to edit.
+   --  @param Fields The panel's fields for Draft.
    procedure Begin_Edit
-     (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft);
+     (Model  : in out Window_Model;
+      Draft  : Files.Settings.Settings_Draft;
+      Fields : Guikit.Settings_Panel.Field_Vectors.Vector);
 
    --  Return the current settings draft.
    --
@@ -50,33 +56,6 @@ package Files.Model.Settings_Pane is
    procedure Set_Draft
      (Model : in out Window_Model;
       Draft : Files.Settings.Settings_Draft);
-
-   --  The panel's fields for the current draft (Files.Settings_Form.Fields).
-   --
-   --  @param Model Model whose draft the fields show.
-   --  @return The fields to hand to the panel.
-   function Fields
-     (Model : Window_Model)
-      return Guikit.Settings_Panel.Field_Vectors.Vector;
-
-   --  Apply a change the panel emitted to the draft
-   --  (Files.Settings_Form.Apply). A No_Change leaves the model as it is.
-   --
-   --  @param Model Model whose draft is updated.
-   --  @param Change The change the panel produced.
-   --  @return True when a persisted setting changed and the caller should save.
-   function Apply_Change
-     (Model  : in out Window_Model;
-      Change : Guikit.Settings_Panel.Change)
-      return Boolean;
-
-   --  Return the draft to the defaults and drop every shortcut override:
-   --  what the pane's Reset button and the reset command both do before
-   --  saving.
-   --
-   --  @param Model Model whose draft is reset.
-   procedure Reset_To_Defaults
-     (Model : in out Window_Model);
 
    --  Move keyboard focus over the panel's fields (sections are skipped).
    --

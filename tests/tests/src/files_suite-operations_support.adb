@@ -31,7 +31,6 @@ package body Files_Suite.Operations_Support is
 
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
-   use type Files.Events.Input_Action_Kind;
    use Files_Suite.Support;
    use Files_Suite.Support.Models;
    use Files_Suite.Support.Disk;

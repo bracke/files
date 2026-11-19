@@ -379,9 +379,9 @@ package body Files.Operation_Jobs is
    --  read, may still have published entries: read from its own journal of
    --  what it created, they join the history. An Undo whose journal was
    --  lost though it succeeded (Undone) did the step its request named:
-   --  that entry leaves the undo stack, so Undo is not offered for it again
-   --  (Redo is not offered either: what the helper would have recorded for
-   --  it is lost).
+   --  that entry leaves the undo stack, so Undo is not offered for it again,
+   --  and Redo is not offered: what the helper would have recorded for it is
+   --  lost, and the older steps the redo stack held are retired with it.
    procedure Recover_Undo
      (Model  : in out Files.Model.Window_Model;
       Job    : Files.Process_Jobs.Session;

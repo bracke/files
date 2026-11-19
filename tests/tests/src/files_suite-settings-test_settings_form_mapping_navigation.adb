@@ -1,3 +1,4 @@
+with Files.Settings_Form;
 with Files.Model.Settings_Pane;
 separate (Files_Suite.Settings)
    procedure Test_Settings_Form_Mapping_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -21,7 +22,8 @@ separate (Files_Suite.Settings)
         (Natural (Files.Model.Settings_Pane.Draft_Of (Model).Filetype_Keys.Length));
 
       function Ext_Label return String is
-         Fields : constant SP.Field_Vectors.Vector := Files.Model.Settings_Pane.Fields (Model);
+         Fields : constant SP.Field_Vectors.Vector :=
+           Files.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model));
       begin
          for F of Fields loop
             if To_String (F.Key) = "settings.filetype_extension" then
@@ -38,7 +40,7 @@ separate (Files_Suite.Settings)
       Draft.Filetype_Keys.Append (To_Unbounded_String ("md"));
       Draft.Filetype_Values.Append (To_Unbounded_String ("text/markdown"));
       Draft.Filetype_Index := 1;
-      Files.Model.Settings_Pane.Begin_Edit (Model, Draft);
+      Files.Settings_Form.Begin_Edit (Model, Draft);
 
       Files_Suite.Support.Assert_Equal
 
@@ -49,17 +51,17 @@ separate (Files_Suite.Settings)
          "the first mapping entry is selected");
       Assert (Ada.Strings.Fixed.Index (Ext_Label, "(1/2)") > 0, "the key field label shows the entry counter");
 
-      Saved := Files.Model.Settings_Pane.Apply_Change (Model, Button ("next"));
+      Saved := Files.Settings_Form.Apply_Change (Model, Button ("next"));
       Assert (not Saved, "paging to the next entry does not save");
       Files_Suite.Support.Assert_Equal (Ext, "md", "Next selects the second entry");
       Assert (Ada.Strings.Fixed.Index (Ext_Label, "(2/2)") > 0, "the counter follows the selection");
 
-      Saved := Files.Model.Settings_Pane.Apply_Change (Model, Button ("next"));
+      Saved := Files.Settings_Form.Apply_Change (Model, Button ("next"));
       Files_Suite.Support.Assert_Equal (Ext, "txt", "Next wraps to the first entry");
-      Saved := Files.Model.Settings_Pane.Apply_Change (Model, Button ("prev"));
+      Saved := Files.Settings_Form.Apply_Change (Model, Button ("prev"));
       Files_Suite.Support.Assert_Equal (Ext, "md", "Prev wraps back to the last entry");
 
-      Saved := Files.Model.Settings_Pane.Apply_Change (Model, Button ("add"));
+      Saved := Files.Settings_Form.Apply_Change (Model, Button ("add"));
       Assert (Saved, "adding an entry saves");
       Files_Suite.Support.Assert_Equal (Count, 3, "Add appends a mapping entry");
       Assert
@@ -67,7 +69,7 @@ separate (Files_Suite.Settings)
            (Files.Settings.Default_Settings, Files.Model.Settings_Pane.Draft_Of (Model)).Success,
          "a freshly added, still blank row does not block saving other settings");
 
-      Saved := Files.Model.Settings_Pane.Apply_Change (Model, Button ("remove"));
+      Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
       Assert (Saved, "removing an entry saves");
       Files_Suite.Support.Assert_Equal (Count, 2, "Remove drops the mapping entry");
    end Test_Settings_Form_Mapping_Navigation;

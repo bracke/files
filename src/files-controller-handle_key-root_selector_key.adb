@@ -25,7 +25,7 @@ begin
          when others =>
             null;
       end case;
-   elsif Action.Kind = Files.Events.Command_Input_Action
+   elsif Action.Kind = Files.Input_Actions.Command_Input_Action
      and then Action.Command = Files.Commands.Open_Command_Palette_Command
    then
       Handled := False;

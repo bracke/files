@@ -59,8 +59,9 @@ separate (Files_Suite.Open_Actions)
       --  synchronously: it goes through the same quoting on the way in.
       declare
          Exit_Status : Integer := -1;
+         Failure_Key : Ada.Strings.Unbounded.Unbounded_String;
          Ran         : constant Boolean :=
-           Files.Operations.Execute_Open_Action (Result.Action, Exit_Status);
+           Files.Operations.Execute_Open_Action (Result.Action, Exit_Status, Failure_Key);
       begin
          Assert (Ran, "the quoted shell action runs to completion when awaited");
          Files_Suite.Support.Assert_Equal

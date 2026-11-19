@@ -1,8 +1,11 @@
 with Ada.Strings.Unbounded;
 
 with Guikit.Layout;
+with Files.Commands;
 with Files.Rendering.Hit;
 with Files.Rendering.Layouts;
+with Files.Types;
+with Files.UI_Types;
 
 package body Files.Events is
 
@@ -16,6 +19,7 @@ package body Files.Events is
 
    use Ada.Strings.Unbounded;
    use type Files.Commands.Command_Id;
+   use type Files.Input_Actions.Input_Action_Kind;
    use type Files.UI_Types.Focus_Target;
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;

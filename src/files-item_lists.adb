@@ -1,0 +1,192 @@
+with Ada.Calendar;
+with Ada.Containers;
+with Ada.Containers.Vectors;
+with Ada.Strings.Unbounded;
+
+with Hostkit.Fs;
+
+with Files.File_Types;
+with Files.Settings;
+
+package body Files.Item_Lists is
+
+   use Ada.Strings.Unbounded;
+   use type Files.Types.Sort_Field;
+   use type Ada.Calendar.Time;
+
+   subtype Directory_Item is Files.Items.Directory_Item;
+   package Item_Vectors renames Files.Items.Item_Vectors;
+
+   --  The built-in type and icon tables Make_Item reads, built once when the
+   --  program starts and only read after: building them per item cost a
+   --  hundred map inserts for each row a snapshot rebuild asked about.
+   Default_Item_Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+
+   function Make_Item
+     (Parent_Path : String;
+      Name        : String;
+      Kind        : Files.Types.Item_Kind;
+      Filetype    : String := "")
+      return Directory_Item
+   is
+      Settings  : Files.Settings.Settings_Model renames Default_Item_Settings;
+      Type_Name : constant String :=
+        (if Filetype /= "" then Filetype else Files.File_Types.Detect_Filetype (Settings, Kind, Name));
+      --  Hostkit.Fs.Join only joins the text.
+      Full      : constant String := Hostkit.Fs.Join (Parent_Path, Name);
+   begin
+      return
+        (Name        => To_Unbounded_String (Name),
+         Full_Path   => To_Unbounded_String (Full),
+         Parent_Path => To_Unbounded_String (Parent_Path),
+         Hidden      => Name'Length > 0 and then Name (Name'First) = '.',
+         Kind        => Kind,
+         Filetype    => To_Unbounded_String (Type_Name),
+         Icon_Id     => To_Unbounded_String (Files.File_Types.Icon_Id_For (Settings, Kind, Type_Name)),
+         others      => <>);
+   end Make_Item;
+
+   procedure Sort_Items
+     (Items     : in out Item_Vectors.Vector;
+      Field     : Files.Types.Sort_Field;
+      Ascending : Boolean)
+   is
+      Count : constant Natural := Natural (Items.Length);
+   begin
+      if Count <= 1 then
+         return;
+      end if;
+
+      declare
+         --  Decorate-sort: a case-insensitive comparison would recompute the
+         --  fold key on both names for every one of the sort's O(N log N)
+         --  comparisons. Here each item's accent-folded key is built once
+         --  (N times), the sort reorders a cheap index permutation reading those
+         --  keys, and the items are moved into place a single time at the end.
+         type Sort_Key is record
+            Name_Lower     : Unbounded_String;
+            Filetype_Lower : Unbounded_String;
+         end record;
+
+         package Key_Vectors is new Ada.Containers.Vectors
+           (Index_Type => Positive, Element_Type => Sort_Key);
+         package Index_Vectors is new Ada.Containers.Vectors
+           (Index_Type => Positive, Element_Type => Positive);
+
+         --  Name_Lower is always needed -- it is the final tie-break for every
+         --  field; Filetype_Lower only when sorting by filetype.
+         Keys  : Key_Vectors.Vector;
+         Order : Index_Vectors.Vector;
+
+         function Name_Less (Left, Right : Positive) return Boolean is
+         begin
+            if Keys (Left).Name_Lower /= Keys (Right).Name_Lower then
+               return Keys (Left).Name_Lower < Keys (Right).Name_Lower;
+            elsif Items (Left).Name /= Items (Right).Name then
+               return Items (Left).Name < Items (Right).Name;
+            --  One name in several folders (search results): by path, and the
+            --  listing's own order last, so the order never depends on the sort.
+            elsif Items (Left).Full_Path /= Items (Right).Full_Path then
+               return Items (Left).Full_Path < Items (Right).Full_Path;
+            else
+               return Left < Right;
+            end if;
+         end Name_Less;
+
+         function Text_Less (Left, Right : Positive) return Boolean is
+         begin
+            if Keys (Left).Filetype_Lower /= Keys (Right).Filetype_Lower then
+               return Keys (Left).Filetype_Lower < Keys (Right).Filetype_Lower;
+            else
+               return Items (Left).Filetype < Items (Right).Filetype;
+            end if;
+         end Text_Less;
+
+         function Less (Left, Right : Positive) return Boolean is
+            Forward_Order : Boolean := False;
+            Reverse_Order : Boolean := False;
+         begin
+            case Field is
+               when Files.Types.Sort_Name =>
+                  Forward_Order := Name_Less (Left => Left, Right => Right);
+                  Reverse_Order := Name_Less (Left => Right, Right => Left);
+               when Files.Types.Sort_Type =>
+                  Forward_Order := Text_Less (Left => Left, Right => Right);
+                  Reverse_Order := Text_Less (Left => Right, Right => Left);
+               when Files.Types.Sort_Size =>
+                  if Items (Left).Size_Available /= Items (Right).Size_Available then
+                     return Items (Left).Size_Available;
+                  elsif Items (Left).Size /= Items (Right).Size then
+                     Forward_Order := Items (Left).Size < Items (Right).Size;
+                     Reverse_Order := Items (Right).Size < Items (Left).Size;
+                  end if;
+               when Files.Types.Sort_Created =>
+                  if Items (Left).Creation_Available /= Items (Right).Creation_Available then
+                     return Items (Left).Creation_Available;
+                  elsif Items (Left).Creation_Time /= Items (Right).Creation_Time then
+                     Forward_Order := Items (Left).Creation_Time < Items (Right).Creation_Time;
+                     Reverse_Order := Items (Right).Creation_Time < Items (Left).Creation_Time;
+                  end if;
+               when Files.Types.Sort_Changed =>
+                  if Items (Left).Modified_Available /= Items (Right).Modified_Available then
+                     return Items (Left).Modified_Available;
+                  elsif Items (Left).Modified_Time /= Items (Right).Modified_Time then
+                     Forward_Order := Items (Left).Modified_Time < Items (Right).Modified_Time;
+                     Reverse_Order := Items (Right).Modified_Time < Items (Left).Modified_Time;
+                  end if;
+            end case;
+
+            if Field /= Files.Types.Sort_Name
+              and then not Forward_Order
+              and then not Reverse_Order
+            then
+               return Name_Less (Left, Right);
+            elsif Ascending then
+               return Forward_Order;
+            else
+               return Reverse_Order;
+            end if;
+         end Less;
+
+         package Sorting is new Index_Vectors.Generic_Sorting ("<" => Less);
+
+         Sorted : Item_Vectors.Vector;
+      begin
+         Keys.Reserve_Capacity (Ada.Containers.Count_Type (Count));
+         Order.Reserve_Capacity (Ada.Containers.Count_Type (Count));
+         for Index in 1 .. Count loop
+            declare
+               Key : Sort_Key;
+            begin
+               Key.Name_Lower :=
+                 To_Unbounded_String (Files.Types.Fold_For_Sort (To_String (Items (Index).Name)));
+               if Field = Files.Types.Sort_Type then
+                  Key.Filetype_Lower :=
+                    To_Unbounded_String
+                      (Files.Types.Fold_For_Sort (To_String (Items (Index).Filetype)));
+               end if;
+               Keys.Append (Key);
+            end;
+            Order.Append (Index);
+         end loop;
+
+         --  Generic_Sorting is not stable (GNAT's is a heapsort): Less is a total
+         --  order, ending in the listing's own order, so no two items compare
+         --  equal.
+         Sorting.Sort (Order);
+
+         --  Already in order (a listing the helper sorted the same way): keep
+         --  the items where they are instead of copying every one.
+         if (for all Position in Order.First_Index .. Order.Last_Index => Order (Position) = Position) then
+            return;
+         end if;
+         Sorted.Reserve_Capacity (Ada.Containers.Count_Type (Count));
+         for Index of Order loop
+            Sorted.Append (Items (Index));
+         end loop;
+
+         Item_Vectors.Move (Target => Items, Source => Sorted);
+      end;
+   end Sort_Items;
+
+end Files.Item_Lists;

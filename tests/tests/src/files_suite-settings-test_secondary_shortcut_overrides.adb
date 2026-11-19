@@ -1,3 +1,4 @@
+with Files.Settings_Form;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Settings)
@@ -24,7 +25,7 @@ separate (Files_Suite.Settings)
         (Files.Commands.Shortcut_Text (Files.Commands.Parse_Shortcut (Chord)));
    begin
       Files.Commands.Reset_Shortcut_Overrides;
-      Files.Model.Settings_Pane.Begin_Edit
+      Files.Settings_Form.Begin_Edit
         (Model, Files.Settings.Make_Draft (Files.Settings.Default_Settings));
 
       --  By default Backspace deletes too.
@@ -33,7 +34,7 @@ separate (Files_Suite.Settings)
               "Backspace is Delete's built-in secondary");
 
       --  Unbinding Delete clears both of its bindings.
-      Saved := Files.Model.Settings_Pane.Apply_Change (Model, Change ("shortcut.file.delete_selected", ""));
+      Saved := Files.Settings_Form.Apply_Change (Model, Change ("shortcut.file.delete_selected", ""));
       Assert (Saved, "unbinding Delete saves");
       Assert (not Files.Commands.Secondary_Shortcut_For (Files.Commands.Delete_Selected_Items_Command).Present,
               "an unbound command has no secondary either");
@@ -42,7 +43,7 @@ separate (Files_Suite.Settings)
 
       --  Back to the default restores the secondary.
       Saved :=
-        Files.Model.Settings_Pane.Apply_Change (Model, Change ("shortcut.file.delete_selected", Text ("delete")));
+        Files.Settings_Form.Apply_Change (Model, Change ("shortcut.file.delete_selected", Text ("delete")));
       Assert (Saved, "restoring Delete's default saves");
       Assert (Files.Commands.Find_By_Shortcut (GI.Key_Backspace, GI.No_Modifiers)
               = Files.Commands.Delete_Selected_Items_Command,
@@ -50,7 +51,7 @@ separate (Files_Suite.Settings)
 
       --  Ctrl+Y is only Redo's secondary, so it can be bound to Undo; Redo
       --  keeps its primary.
-      Saved := Files.Model.Settings_Pane.Apply_Change (Model, Change ("shortcut.edit.undo", Text ("control+y")));
+      Saved := Files.Settings_Form.Apply_Change (Model, Change ("shortcut.edit.undo", Text ("control+y")));
       Assert (Saved, "a chord held only by a secondary is not a conflict");
       Assert (Files.Commands.Find_By_Shortcut (GI.Key_Y, Ctrl) = Files.Commands.Undo_Command,
               "Ctrl+Y now runs Undo");
@@ -62,7 +63,7 @@ separate (Files_Suite.Settings)
               "Redo gave up its secondary");
 
       --  A live primary still conflicts.
-      Saved := Files.Model.Settings_Pane.Apply_Change (Model, Change ("shortcut.edit.undo", Text ("control+c")));
+      Saved := Files.Settings_Form.Apply_Change (Model, Change ("shortcut.edit.undo", Text ("control+c")));
       Assert (not Saved, "another command's primary is a conflict");
       Assert (Files.Commands.Find_By_Shortcut (GI.Key_C, Ctrl) = Files.Commands.Copy_Selected_Items_Command,
               "Ctrl+C still copies after the rejected rebind");

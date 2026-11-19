@@ -1,7 +1,7 @@
 separate (Files.Controller)
    function Handle_Targeted_Scroll
      (Model  : in out Files.Model.Window_Model;
-      Target : Files.Events.Scroll_Target;
+      Target : Files.Input_Actions.Scroll_Target;
       Lines  : Integer)
       return Controller_Result
    is
@@ -18,25 +18,25 @@ separate (Files.Controller)
       if Has_Top
         and then Target /=
           (case Top is
-              when Files.UI_Types.Command_Palette_Overlay => Files.Events.Scroll_Command_Palette,
-              when Files.UI_Types.Settings_Pane_Overlay   => Files.Events.Scroll_Settings_Pane,
-              when Files.UI_Types.Tree_Pick_Overlay       => Files.Events.Scroll_Tree_Panel,
+              when Files.UI_Types.Command_Palette_Overlay => Files.Input_Actions.Scroll_Command_Palette,
+              when Files.UI_Types.Settings_Pane_Overlay   => Files.Input_Actions.Scroll_Settings_Pane,
+              when Files.UI_Types.Tree_Pick_Overlay       => Files.Input_Actions.Scroll_Tree_Panel,
               when Files.UI_Types.Foreground_Job_Overlay
                  | Files.UI_Types.Paste_Conflict_Overlay
                  | Files.UI_Types.Root_Selector_Overlay
                  | Files.UI_Types.Sort_Menu_Overlay
                  | Files.UI_Types.Context_Menu_Overlay
                  | Files.UI_Types.Label_Picker_Overlay
-                 | Files.UI_Types.Quick_Look_Overlay        => Files.Events.No_Scroll_Target)
+                 | Files.UI_Types.Quick_Look_Overlay        => Files.Input_Actions.No_Scroll_Target)
       then
          return Make_Result (Controller_Ignored);
       end if;
 
       case Target is
          --  Not over any scrollable region: nothing moves.
-         when Files.Events.No_Scroll_Target =>
+         when Files.Input_Actions.No_Scroll_Target =>
             null;
-         when Files.Events.Scroll_Command_Palette =>
+         when Files.Input_Actions.Scroll_Command_Palette =>
             if Files.Model.Command_Palette.Is_Open (Model) then
                Files.Command_Palette.Ensure_Listed (Model);
                if Files.Model.Command_Palette.Result_Count (Model) = 0 then
@@ -46,19 +46,19 @@ separate (Files.Controller)
                   return Make_Result (Controller_Palette_Updated);
                end if;
             end if;
-         when Files.Events.Scroll_Info_Pane =>
+         when Files.Input_Actions.Scroll_Info_Pane =>
             if Files.Model.Info_Pane_Is_Open (Model) then
                return Scroll_Info_Result (Model, Lines);
             end if;
-         when Files.Events.Scroll_Tree_Panel =>
+         when Files.Input_Actions.Scroll_Tree_Panel =>
             if Files.Model.Tree_Panel.Is_Open (Model) then
                return Scroll_Tree_Result (Model, Lines);
             end if;
-         when Files.Events.Scroll_Settings_Pane =>
+         when Files.Input_Actions.Scroll_Settings_Pane =>
             if Files.Model.Settings_Pane.Is_Open (Model) then
                return Scroll_Settings_Result (Model, Lines);
             end if;
-         when Files.Events.Scroll_Main_View =>
+         when Files.Input_Actions.Scroll_Main_View =>
             return Scroll_Main_Result (Model, Lines);
       end case;
 

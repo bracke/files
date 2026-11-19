@@ -76,9 +76,11 @@ separate (Files.Rendering.Build_Frame_Commands)
          Icon_Y   : constant Natural :=
            (if Visible_H > Icon_Size then Visible_Y + (Visible_H - Icon_Size) / 2 else Visible_Y);
          Enabled  : constant Boolean := Snapshot.Command_Enabled (Command);
+         Live     : constant Boolean := Toggles_Topmost_Overlay (Command);
          Hovered  : constant Boolean :=
-           Has_Hover and then Contains_Point (Button_X, Button_Y, Button_W, Button_H, Hover_X, Hover_Y);
-         Pressed  : constant Boolean := Is_Pressed (Button_X, Button_Y, Button_W, Button_H);
+           (Has_Hover or else (Live and then Pointer.Has_Hover))
+           and then Contains_Point (Button_X, Button_Y, Button_W, Button_H, Hover_X, Hover_Y);
+         Pressed  : constant Boolean := Is_Pressed (Button_X, Button_Y, Button_W, Button_H, Live);
       begin
          if Visible_W > 0 and then Visible_H > 0 then
             --  Disabled buttons render with no fill and no border, exactly

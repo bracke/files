@@ -1,99 +1,9 @@
 with Files.UI_Types;
 with Files.Model.Support;
-with Files.Settings_Form;
 
 package body Files.Model.Settings_Pane is
 
-   use Ada.Strings.Unbounded;
    use Files.Model.Support;
-
-   --  Reset the panel component and rebuild its field list from the draft.
-   --
-   --  @param Model Model whose settings panel is rebuilt.
-   procedure Reset_Settings_Panel (Model : in out Window_Model) is
-   begin
-      Touch (Model);
-      Guikit.Settings_Panel.Reset (Model.Settings_Panel_View);
-      Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Fields (Model));
-   end Reset_Settings_Panel;
-
-   --  The number of complete key/value pairs across two parallel lists (the
-   --  shorter of the two lengths).
-   --
-   --  @param Keys Key list.
-   --  @param Values Value list.
-   --  @return Min of the two list lengths.
-   function Pair_Count
-     (Keys   : Files.Types.String_Vectors.Vector;
-      Values : Files.Types.String_Vectors.Vector)
-      return Natural is
-   begin
-      return Natural'Min (Natural (Keys.Length), Natural (Values.Length));
-   end Pair_Count;
-
-   --  Truncate Values to at most Count entries.
-   --
-   --  @param Values List to truncate in place.
-   --  @param Count Maximum number of entries to keep.
-   procedure Trim_To_Count
-     (Values : in out Files.Types.String_Vectors.Vector;
-      Count  : Natural) is
-   begin
-      while Natural (Values.Length) > Count loop
-         Values.Delete (Natural (Values.Length));
-      end loop;
-   end Trim_To_Count;
-
-   --  Bring a settings draft into a consistent state: pair up its parallel
-   --  key/value mapping lists to equal length and clamp each selection index.
-   --
-   --  @param Draft Settings draft to normalize in place.
-   procedure Normalize_Settings_Draft
-     (Draft : in out Files.Settings.Settings_Draft)
-   is
-      procedure Normalize_Pair
-        (Keys          : in out Files.Types.String_Vectors.Vector;
-         Values        : in out Files.Types.String_Vectors.Vector;
-         Index         : in out Natural;
-         Selected_Key   : out Unbounded_String;
-         Selected_Value : out Unbounded_String)
-      is
-         Count : constant Natural := Pair_Count (Keys, Values);
-      begin
-         Trim_To_Count (Keys, Count);
-         Trim_To_Count (Values, Count);
-         if Count = 0 then
-            Index := 0;
-            Selected_Key := Null_Unbounded_String;
-            Selected_Value := Null_Unbounded_String;
-         else
-            if Index = 0 or else Index > Count then
-               Index := 1;
-            end if;
-            Selected_Key := Keys.Element (Index);
-            Selected_Value := Values.Element (Index);
-         end if;
-      end Normalize_Pair;
-   begin
-      Normalize_Pair
-        (Draft.Filetype_Keys,
-         Draft.Filetype_Values,
-         Draft.Filetype_Index,
-         Draft.Filetype_Extension,
-         Draft.Filetype_Value);
-      Normalize_Pair
-        (Draft.Icon_Keys,
-         Draft.Icon_Values,
-         Draft.Icon_Index,
-         Draft.Icon_Filetype,
-         Draft.Icon_Value);
-      Normalize_Pair
-        (Draft.Open_Action_Keys,
-         Draft.Open_Action_Commands,
-         Draft.Open_Action_Index,
-         Draft.Open_Action_Token,
-         Draft.Open_Action_Command);
-   end Normalize_Settings_Draft;
 
    procedure Close
      (Model : in out Window_Model)
@@ -105,20 +15,22 @@ package body Files.Model.Settings_Pane is
      (Model.Settings_Pane_Open);
 
    procedure Begin_Edit
-     (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft)
+     (Model  : in out Window_Model;
+      Draft  : Files.Settings.Settings_Draft;
+      Fields : Guikit.Settings_Panel.Field_Vectors.Vector)
    is
       Normalized_Draft : Files.Settings.Settings_Draft := Draft;
    begin
       Touch (Model);
-      Normalize_Settings_Draft (Normalized_Draft);
+      Files.Settings.Normalize_Draft (Normalized_Draft);
       Model.Settings_Draft_Value := Normalized_Draft;
       Model.Settings_Pane_Open := True;
       Claim_Overlay_Input (Model);
       Clear_Edit_State (Model);
       Clear_Root_Selector_State (Model);
       Hide_Command_Palette (Model);
-      Reset_Settings_Panel (Model);
+      Guikit.Settings_Panel.Reset (Model.Settings_Panel_View);
+      Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Fields);
       Model.Focus_Value := Files.UI_Types.Focus_Settings_Input;
    end Begin_Edit;
 
@@ -134,37 +46,9 @@ package body Files.Model.Settings_Pane is
       Normalized_Draft : Files.Settings.Settings_Draft := Draft;
    begin
       Touch (Model);
-      Normalize_Settings_Draft (Normalized_Draft);
+      Files.Settings.Normalize_Draft (Normalized_Draft);
       Model.Settings_Draft_Value := Normalized_Draft;
    end Set_Draft;
-
-   function Fields
-     (Model : Window_Model)
-      return Guikit.Settings_Panel.Field_Vectors.Vector is
-     (Files.Settings_Form.Fields (Model.Settings_Draft_Value));
-
-   function Apply_Change
-     (Model  : in out Window_Model;
-      Change : Guikit.Settings_Panel.Change)
-      return Boolean
-   is
-      use type Guikit.Settings_Panel.Change_Kind;
-      Draft : Files.Settings.Settings_Draft := Model.Settings_Draft_Value;
-      Save  : Boolean;
-   begin
-      if Change.Kind = Guikit.Settings_Panel.No_Change then
-         return False;
-      end if;
-      Save := Files.Settings_Form.Apply (Draft, Change);
-      Set_Draft (Model, Draft);
-      return Save;
-   end Apply_Change;
-
-   procedure Reset_To_Defaults
-     (Model : in out Window_Model) is
-   begin
-      Set_Draft (Model, Files.Settings_Form.Reset_To_Defaults);
-   end Reset_To_Defaults;
 
    procedure Move_Focus (Model : in out Window_Model; Delta_Rows : Integer) is
    begin

@@ -1,4 +1,4 @@
-with Files.File_System;
+with Files.Item_Lists;
 with Guikit.Layout;
 with Guikit.Bidi;
 with Guikit.Utf8.Editing;
@@ -94,7 +94,7 @@ package body Files.Model is
    function Background_Refresh (Model : Window_Model) return Files.Process_Jobs.Session is (Model.Refresh_Job);
 
    use type Ada.Calendar.Time;
-   use type Files.File_System.Path_Status;
+   use type Files.File_System_Types.Path_Status;
    use type Files.UI_Types.Focus_Target;
    use type Guikit.Input.Navigation_Direction;
    use type Files.Types.Search_Scope;
@@ -350,7 +350,7 @@ package body Files.Model is
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
       Model.Items := Items;
       Support.Invalidate_Visible (Model);
-      Model.Directory_Signature := Files.File_System.Unknown_Signature (Directory_Path);
+      Model.Directory_Signature := Files.File_System_Types.Unknown_Signature (Directory_Path);
       Model.Filter.Text := Null_Unbounded_String;
       Support.Invalidate_Visible (Model);
       Model.Filter.Cursor := 0;
@@ -391,12 +391,12 @@ package body Files.Model is
 
    function Directory_Signature_Of
      (Model : Window_Model)
-      return Files.File_System.Directory_Signature is
+      return Files.File_System_Types.Directory_Signature is
      (Model.Directory_Signature);
 
    procedure Set_Directory_Signature
      (Model     : in out Window_Model;
-      Signature : Files.File_System.Directory_Signature) is separate;
+      Signature : Files.File_System_Types.Directory_Signature) is separate;
 
    function Home_Path
      (Model : Window_Model)
@@ -702,9 +702,9 @@ package body Files.Model is
       Support.Invalidate_Visible (Model);
       --  The model's order is the displayed order: keyboard and range
       --  selection walk it, so it must already be sorted by the model's field.
-      Files.File_System.Sort_Items
+      Files.Item_Lists.Sort_Items
         (Model.Items, Model.Sort_Field_Value, Model.Sort_Ascending);
-      Model.Directory_Signature := Files.File_System.Unknown_Signature (Directory_Path);
+      Model.Directory_Signature := Files.File_System_Types.Unknown_Signature (Directory_Path);
    end Navigate_To;
 
    procedure Navigate_Recent
@@ -725,7 +725,7 @@ package body Files.Model is
       Leave_View (Model, Null_Unbounded_String);
       Model.Items := Items;
       Support.Invalidate_Visible (Model);
-      Model.Directory_Signature := Files.File_System.Unknown_Signature ("");
+      Model.Directory_Signature := Files.File_System_Types.Unknown_Signature ("");
    end Navigate_Recent;
 
    procedure Go_Back
@@ -795,7 +795,7 @@ package body Files.Model is
 
    procedure Commit_Path_Input
      (Model  : in out Window_Model;
-      Result : Files.File_System.Path_Result;
+      Result : Files.File_System_Types.Path_Result;
       Items  : Files.Items.Item_Vectors.Vector) is separate;
 
    function Path_Input_Is_Valid
@@ -1101,12 +1101,12 @@ package body Files.Model is
       --  or any non-default sort, because Build_Snapshot sorts for display but
       --  Load_Directory cannot know the model's current sort direction.
       if Sorted then
-         Files.File_System.Sort_Items
+         Files.Item_Lists.Sort_Items
            (Model.Items,
             Model.Sort_Field_Value,
             Model.Sort_Ascending);
       end if;
-      Model.Directory_Signature := Files.File_System.Unknown_Signature (Current_Path (Model));
+      Model.Directory_Signature := Files.File_System_Types.Unknown_Signature (Current_Path (Model));
       Model.Main_View_Scroll := 0;
       Model.Info_Pane_Scroll := 0;
       Model.Selected_Item_Index := 0;

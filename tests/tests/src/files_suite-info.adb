@@ -47,7 +47,6 @@ package body Files_Suite.Info is
    use type Ada.Calendar.Time;
    use type Ada.Directories.File_Kind;
    use type Files.Commands.Command_Id;
-   use type Files.Events.Input_Action_Kind;
    use type Guikit.Draw.Accessibility_Role;
    use type Files.Types.Item_Kind;
    use Files_Suite.Support;

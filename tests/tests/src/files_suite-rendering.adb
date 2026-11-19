@@ -124,6 +124,7 @@ package body Files_Suite.Rendering is
    procedure Test_Text_Fields_Are_Focused_By_Requests (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Mirrored_Text_Fields_Are_Focused_By_Requests (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Pressed_Only_Where_Press_Began (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Overlay_Toggle_Button_Takes_Pointer (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Panel_Leaves_Items_Visible (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Uses_Shadow_Color (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Has_Modal_Backdrop (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -338,6 +339,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Pressed_Only_Where_Press_Began'Access,
          "a control is drawn pressed only where the press began");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Overlay_Toggle_Button_Takes_Pointer'Access,
+         "the button toggling the overlay on top is drawn with the pointer's hover and press");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Tree_Panel_Leaves_Items_Visible'Access,
          "the folder tree takes the view's left side instead of covering items");
@@ -807,6 +811,7 @@ package body Files_Suite.Rendering is
    procedure Test_Mirrored_Text_Fields_Are_Focused_By_Requests (T : in out AUnit.Test_Cases.Test_Case'Class)
      is separate;
    procedure Test_Pressed_Only_Where_Press_Began (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Overlay_Toggle_Button_Takes_Pointer (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Tree_Panel_Leaves_Items_Visible (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -7,7 +7,6 @@ with Files.UI_Types;
 package body Files.Application.Windows.Gestures is
    use Ada.Strings.Unbounded;
    use type Glfw.Size;
-   use type Files.Events.Input_Action_Kind;
    use type Files.Commands.Command_Id;
    use type Files.Types.Detail_Column;
 

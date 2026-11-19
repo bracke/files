@@ -18,9 +18,8 @@ separate (Files.Rendering)
       Hover_Y         : Natural renames Pointer.Hover_Y;
       --  Whether the pointer hovers or presses what is drawn now. An open
       --  input-owning overlay (Any_Overlay_Open) takes the pointer, so the
-      --  window under it -- toolbar, bottom bar, main view, info pane, the
-      --  tree when it is not picking -- is drawn with neither;
-      --  Release_Pointer hands both to the overlay drawn above it.
+      --  window under it is drawn with neither (bar the button toggling the
+      --  overlay on top, Toggles_Topmost_Overlay); Release_Pointer hands both to the overlay drawn above it.
       Has_Hover       : Boolean := Pointer.Has_Hover and then not Any_Overlay_Open (Snapshot);
       Has_Press       : Boolean := Pointer.Pressed and then not Any_Overlay_Open (Snapshot);
       Press_X         : Natural renames Pointer.Press_X;
@@ -384,16 +383,22 @@ separate (Files.Rendering)
          return Null_Unbounded_String;
       end Tooltip_At;
 
+      --  Whether Command's button toggles the overlay on top: the one control
+      --  under an open overlay whose click still reaches it (and closes it),
+      --  so it is drawn with the pointer's hover and press (Live).
+      function Toggles_Topmost_Overlay (Command : Files.Commands.Command_Id) return Boolean is separate;
+
       function Is_Pressed
         (X     : Natural;
          Y     : Natural;
          Box_W : Natural;
-         Box_H : Natural)
+         Box_H : Natural;
+         Live  : Boolean := False)
          return Boolean is
       begin
          --  Under the pointer, and where the press began: a drag (scrollbar,
          --  column, marquee) that crosses a button does not press it.
-         return Has_Press
+         return (Has_Press or else (Live and then Pointer.Pressed))
            and then Contains_Point (X, Y, Box_W, Box_H, Hover_X, Hover_Y)
            and then Contains_Point (X, Y, Box_W, Box_H, Press_X, Press_Y);
       end Is_Pressed;

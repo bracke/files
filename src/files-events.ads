@@ -1,148 +1,149 @@
-with Files.Commands;
+with Files.Input_Actions;
 with Files.Rendering;
 with Guikit.Input;
-with Files.Types;
-with Files.UI_Types;
 
 --  GLFW-style input translation into internal command and selection events.
 package Files.Events is
 
-   --  What a right click landed on, from the top of what is drawn down:
-   --  the open context menu, the details view's column header, the main
-   --  view (an item, or the space between), or anything else.
-   type Right_Click_Target is (On_Context_Menu, On_Details_Header, On_Main_View, Elsewhere);
+   --  The input action values (Files.Input_Actions), by their names here.
 
-   type Input_Action_Kind is
-     (No_Input_Action,
-      Command_Input_Action,
-      Selection_Input_Action,
-      Scroll_Input_Action,
-      Scrollbar_Drag_Begin_Input_Action,
-      Column_Resize_Begin_Input_Action,
-      Column_Reorder_Begin_Input_Action,
-      Marquee_Begin_Input_Action,
-      Text_Click_Input_Action,
-      Settings_Click_Input_Action,
-      Item_Click_Input_Action,
-      Item_Drop_Input_Action,
-      Root_Click_Input_Action,
-      Breadcrumb_Click_Input_Action,
-      Path_Favorite_Toggle_Input_Action,
-      Tree_Click_Input_Action,
-      Tree_Pick_Confirm_Input_Action,
-      Command_Result_Click_Input_Action,
-      Permission_Toggle_Input_Action,
-      Ownership_Edit_Input_Action,
-      Conflict_Click_Input_Action,
-      Foreground_Job_Cancel_Input_Action,
-      Search_Scope_Toggle_Input_Action,
-      Label_Picker_Choice_Input_Action,
-      Context_Menu_Command_Input_Action,
-      Right_Click_Input_Action);
+   subtype Right_Click_Target is Files.Input_Actions.Right_Click_Target;
+   --  @return The literal On_Context_Menu of Right_Click_Target, as Files.Input_Actions names it.
+   function On_Context_Menu return Right_Click_Target
+     renames Files.Input_Actions.On_Context_Menu;
+   --  @return The literal On_Details_Header of Right_Click_Target, as Files.Input_Actions names it.
+   function On_Details_Header return Right_Click_Target
+     renames Files.Input_Actions.On_Details_Header;
+   --  @return The literal On_Main_View of Right_Click_Target, as Files.Input_Actions names it.
+   function On_Main_View return Right_Click_Target
+     renames Files.Input_Actions.On_Main_View;
+   --  @return The literal Elsewhere of Right_Click_Target, as Files.Input_Actions names it.
+   function Elsewhere return Right_Click_Target
+     renames Files.Input_Actions.Elsewhere;
 
-   --  Which paste-conflict-dialog control a Conflict_Click_Input_Action hit.
-   type Conflict_Button_Kind is
-     (No_Conflict_Button,
-      Conflict_Button_Replace,
-      Conflict_Button_Skip,
-      Conflict_Button_Rename,
-      Conflict_Button_Cancel,
-      Conflict_Button_Apply_All);
+   subtype Input_Action_Kind is Files.Input_Actions.Input_Action_Kind;
+   --  @return The literal No_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function No_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.No_Input_Action;
+   --  @return The literal Command_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Command_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Command_Input_Action;
+   --  @return The literal Selection_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Selection_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Selection_Input_Action;
+   --  @return The literal Scroll_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Scroll_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Scroll_Input_Action;
+   --  @return The literal Scrollbar_Drag_Begin_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Scrollbar_Drag_Begin_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Scrollbar_Drag_Begin_Input_Action;
+   --  @return The literal Column_Resize_Begin_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Column_Resize_Begin_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Column_Resize_Begin_Input_Action;
+   --  @return The literal Column_Reorder_Begin_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Column_Reorder_Begin_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Column_Reorder_Begin_Input_Action;
+   --  @return The literal Marquee_Begin_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Marquee_Begin_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Marquee_Begin_Input_Action;
+   --  @return The literal Text_Click_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Text_Click_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Text_Click_Input_Action;
+   --  @return The literal Settings_Click_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Settings_Click_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Settings_Click_Input_Action;
+   --  @return The literal Item_Click_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Item_Click_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Item_Click_Input_Action;
+   --  @return The literal Item_Drop_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Item_Drop_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Item_Drop_Input_Action;
+   --  @return The literal Root_Click_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Root_Click_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Root_Click_Input_Action;
+   --  @return The literal Breadcrumb_Click_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Breadcrumb_Click_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Breadcrumb_Click_Input_Action;
+   --  @return The literal Path_Favorite_Toggle_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Path_Favorite_Toggle_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Path_Favorite_Toggle_Input_Action;
+   --  @return The literal Tree_Click_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Tree_Click_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Tree_Click_Input_Action;
+   --  @return The literal Tree_Pick_Confirm_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Tree_Pick_Confirm_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Tree_Pick_Confirm_Input_Action;
+   --  @return The literal Command_Result_Click_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Command_Result_Click_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Command_Result_Click_Input_Action;
+   --  @return The literal Permission_Toggle_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Permission_Toggle_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Permission_Toggle_Input_Action;
+   --  @return The literal Ownership_Edit_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Ownership_Edit_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Ownership_Edit_Input_Action;
+   --  @return The literal Conflict_Click_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Conflict_Click_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Conflict_Click_Input_Action;
+   --  @return The literal Foreground_Job_Cancel_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Foreground_Job_Cancel_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Foreground_Job_Cancel_Input_Action;
+   --  @return The literal Search_Scope_Toggle_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Search_Scope_Toggle_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Search_Scope_Toggle_Input_Action;
+   --  @return The literal Label_Picker_Choice_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Label_Picker_Choice_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Label_Picker_Choice_Input_Action;
+   --  @return The literal Context_Menu_Command_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Context_Menu_Command_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Context_Menu_Command_Input_Action;
+   --  @return The literal Right_Click_Input_Action of Input_Action_Kind, as Files.Input_Actions names it.
+   function Right_Click_Input_Action return Input_Action_Kind
+     renames Files.Input_Actions.Right_Click_Input_Action;
 
-   --  A permission bit as the info pane's grid numbers them: 0 is others'
-   --  execute, 8 the owner's read.
-   subtype Permission_Bit is Natural range 0 .. 8;
+   subtype Conflict_Button_Kind is Files.Input_Actions.Conflict_Button_Kind;
+   --  @return The literal No_Conflict_Button of Conflict_Button_Kind, as Files.Input_Actions names it.
+   function No_Conflict_Button return Conflict_Button_Kind
+     renames Files.Input_Actions.No_Conflict_Button;
+   --  @return The literal Conflict_Button_Replace of Conflict_Button_Kind, as Files.Input_Actions names it.
+   function Conflict_Button_Replace return Conflict_Button_Kind
+     renames Files.Input_Actions.Conflict_Button_Replace;
+   --  @return The literal Conflict_Button_Skip of Conflict_Button_Kind, as Files.Input_Actions names it.
+   function Conflict_Button_Skip return Conflict_Button_Kind
+     renames Files.Input_Actions.Conflict_Button_Skip;
+   --  @return The literal Conflict_Button_Rename of Conflict_Button_Kind, as Files.Input_Actions names it.
+   function Conflict_Button_Rename return Conflict_Button_Kind
+     renames Files.Input_Actions.Conflict_Button_Rename;
+   --  @return The literal Conflict_Button_Cancel of Conflict_Button_Kind, as Files.Input_Actions names it.
+   function Conflict_Button_Cancel return Conflict_Button_Kind
+     renames Files.Input_Actions.Conflict_Button_Cancel;
+   --  @return The literal Conflict_Button_Apply_All of Conflict_Button_Kind, as Files.Input_Actions names it.
+   function Conflict_Button_Apply_All return Conflict_Button_Kind
+     renames Files.Input_Actions.Conflict_Button_Apply_All;
 
-   --  The region a wheel step or a scrollbar drag moves. No_Scroll_Target is
-   --  over no scrollable region, and for the window's drag state, no drag.
-   type Scroll_Target is
-     (No_Scroll_Target,
-      Scroll_Main_View,
-      Scroll_Info_Pane,
-      Scroll_Tree_Panel,
-      Scroll_Settings_Pane,
-      Scroll_Command_Palette);
+   subtype Scroll_Target is Files.Input_Actions.Scroll_Target;
+   --  @return The literal No_Scroll_Target of Scroll_Target, as Files.Input_Actions names it.
+   function No_Scroll_Target return Scroll_Target
+     renames Files.Input_Actions.No_Scroll_Target;
+   --  @return The literal Scroll_Main_View of Scroll_Target, as Files.Input_Actions names it.
+   function Scroll_Main_View return Scroll_Target
+     renames Files.Input_Actions.Scroll_Main_View;
+   --  @return The literal Scroll_Info_Pane of Scroll_Target, as Files.Input_Actions names it.
+   function Scroll_Info_Pane return Scroll_Target
+     renames Files.Input_Actions.Scroll_Info_Pane;
+   --  @return The literal Scroll_Tree_Panel of Scroll_Target, as Files.Input_Actions names it.
+   function Scroll_Tree_Panel return Scroll_Target
+     renames Files.Input_Actions.Scroll_Tree_Panel;
+   --  @return The literal Scroll_Settings_Pane of Scroll_Target, as Files.Input_Actions names it.
+   function Scroll_Settings_Pane return Scroll_Target
+     renames Files.Input_Actions.Scroll_Settings_Pane;
+   --  @return The literal Scroll_Command_Palette of Scroll_Target, as Files.Input_Actions names it.
+   function Scroll_Command_Palette return Scroll_Target
+     renames Files.Input_Actions.Scroll_Command_Palette;
 
-   --  Translated input action: a kind, and only the fields that kind carries.
-   type Input_Action (Kind : Input_Action_Kind := No_Input_Action) is record
-      case Kind is
-         when Command_Input_Action =>
-            Command : Files.Commands.Command_Id := Files.Commands.No_Command;
-         when Selection_Input_Action =>
-            Direction : Guikit.Input.Navigation_Direction := Guikit.Input.Move_Right;
-            --  Shift held: the selection extends from its anchor.
-            Extend    : Boolean := False;
-         when Scroll_Input_Action | Scrollbar_Drag_Begin_Input_Action =>
-            Scroll_Lines       : Integer := 0;
-            Scroll_Area        : Scroll_Target := No_Scroll_Target;
-            --  Where on the thumb a scrollbar drag took hold.
-            Scroll_Drag_Anchor : Integer := 0;
-         when Column_Resize_Begin_Input_Action | Column_Reorder_Begin_Input_Action | Marquee_Begin_Input_Action =>
-            --  Where the drag began (framebuffer pixels); for a column drag
-            --  the column, and for a resize its width when it began; for a
-            --  marquee, whether it adds to the selection (Ctrl or Shift).
-            Origin_X     : Natural := 0;
-            Origin_Y     : Natural := 0;
-            Column       : Files.Types.Optional_Detail_Column := Files.Types.Optional_Detail_Column'First;
-            Column_Width : Natural := 0;
-            Additive     : Boolean := False;
-            --  A reorder press that ends without crossing the drag threshold
-            --  is a click on the column: this sort.
-            Sort_Command : Files.Commands.Command_Id := Files.Commands.No_Command;
-         when Text_Click_Input_Action =>
-            Focus_Target    : Files.UI_Types.Focus_Target := Files.UI_Types.Focus_None;
-            Cursor_Position : Natural := 0;
-            --  The item whose rename field was clicked (0 for another field).
-            Field_Item      : Natural := 0;
-         when Settings_Click_Input_Action | Command_Result_Click_Input_Action =>
-            --  Where the click landed, for the component's own hit test.
-            Click_X : Integer := 0;
-            Click_Y : Integer := 0;
-         when Item_Click_Input_Action =>
-            --  Which modifiers toggle or extend the selection is the
-            --  controller's (Handle_Item_Click), read from the click's own.
-            Item_Index      : Natural := 0;
-            Activate        : Boolean := False;
-         when Item_Drop_Input_Action =>
-            --  The item a drag of the selection was released on; the
-            --  release's Ctrl copies, otherwise the selection moves.
-            Drop_Target : Natural := 0;
-         when Root_Click_Input_Action =>
-            Root_Index : Natural := 0;
-         when Breadcrumb_Click_Input_Action =>
-            Segment_Index : Natural := 0;
-         when Tree_Click_Input_Action =>
-            Tree_Node : Natural := 0;
-            --  The click hit the node's expander, not its name.
-            Expander  : Boolean := False;
-         when Permission_Toggle_Input_Action =>
-            Bit : Permission_Bit := 0;
-         when Ownership_Edit_Input_Action =>
-            --  The group is edited, else the owner.
-            Edit_Group : Boolean := False;
-         when Conflict_Click_Input_Action =>
-            Conflict_Button : Conflict_Button_Kind := No_Conflict_Button;
-         when Label_Picker_Choice_Input_Action =>
-            --  The chosen swatch (No_Label clears).
-            Label : Files.Types.Color_Label := Files.Types.No_Label;
-         when Context_Menu_Command_Input_Action =>
-            --  The command of the context-menu row clicked.
-            Menu_Command : Files.Commands.Command_Id := Files.Commands.No_Command;
-         when Right_Click_Input_Action =>
-            --  Where the context menu opens, what lies there, and the item
-            --  drawn there in the snapshot (0 for none).
-            Menu_X      : Natural := 0;
-            Menu_Y      : Natural := 0;
-            Clicked_On  : Right_Click_Target := Elsewhere;
-            Target_Item : Natural := 0;
-         when No_Input_Action
-            | Path_Favorite_Toggle_Input_Action
-            | Tree_Pick_Confirm_Input_Action
-            | Foreground_Job_Cancel_Input_Action
-            | Search_Scope_Toggle_Input_Action =>
-            null;
-      end case;
-   end record;
+   subtype Permission_Bit is Files.Input_Actions.Permission_Bit;
+
+   subtype Input_Action is Files.Input_Actions.Input_Action;
 
    --  Translate a key and modifier state into an internal input action.
    --

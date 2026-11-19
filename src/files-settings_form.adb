@@ -3,6 +3,7 @@ with Ada.Strings.Unbounded;
 
 with Files.Commands;
 with Files.Localization;
+with Files.Model.Settings_Pane;
 with Files.Types;
 
 package body Files.Settings_Form is
@@ -567,5 +568,37 @@ package body Files.Settings_Form is
 
       return Save;
    end Apply;
+
+   procedure Begin_Edit
+     (Model : in out Files.Model.Window_Model;
+      Draft : Files.Settings.Settings_Draft)
+   is
+      Normalized : Files.Settings.Settings_Draft := Draft;
+   begin
+      Files.Settings.Normalize_Draft (Normalized);
+      Files.Model.Settings_Pane.Begin_Edit (Model, Normalized, Fields (Normalized));
+   end Begin_Edit;
+
+   function Apply_Change
+     (Model  : in out Files.Model.Window_Model;
+      Change : Guikit.Settings_Panel.Change)
+      return Boolean
+   is
+      Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
+      Save  : Boolean;
+   begin
+      if Change.Kind = SP.No_Change then
+         return False;
+      end if;
+      Save := Apply (Draft, Change);
+      Files.Model.Settings_Pane.Set_Draft (Model, Draft);
+      return Save;
+   end Apply_Change;
+
+   procedure Reset_Draft
+     (Model : in out Files.Model.Window_Model) is
+   begin
+      Files.Model.Settings_Pane.Set_Draft (Model, Reset_To_Defaults);
+   end Reset_Draft;
 
 end Files.Settings_Form;

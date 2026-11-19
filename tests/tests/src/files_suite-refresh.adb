@@ -41,7 +41,6 @@ package body Files_Suite.Refresh is
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
    use type Files.Commands.Command_Id;
-   use type Files.Events.Input_Action_Kind;
    use type Files.Operation_Results.Operation_Status;
    use type Files.Operations.Archive_Format;
    use type Files.UI_Types.Focus_Target;

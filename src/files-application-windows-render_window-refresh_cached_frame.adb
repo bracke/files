@@ -35,13 +35,16 @@ separate (Files.Application.Windows.Render_Window)
             Pressed         => Has_Press_Now,
             Press_X         => (if Has_Press_Now then Runtime.Press_X else 0),
             Press_Y         => (if Has_Press_Now then Runtime.Press_Y else 0),
+            --  The drag source and the marquee's rectangle, like the
+            --  position, only while the frame draws them: a plain press on an
+            --  item sets the drag source, which must not rebuild the frame.
             Dragging        => Has_Drag_Now,
-            Drag_Item_Index => Runtime.Drag_Source_Index,
+            Drag_Item_Index => (if Has_Drag_Now then Runtime.Drag_Source_Index else 0),
             Marquee_Active  => Runtime.Marquee.Active,
-            Marquee_X       => Runtime.Marquee.Rect_X,
-            Marquee_Y       => Runtime.Marquee.Rect_Y,
-            Marquee_W       => Runtime.Marquee.Rect_W,
-            Marquee_H       => Runtime.Marquee.Rect_H));
+            Marquee_X       => (if Runtime.Marquee.Active then Runtime.Marquee.Rect_X else 0),
+            Marquee_Y       => (if Runtime.Marquee.Active then Runtime.Marquee.Rect_Y else 0),
+            Marquee_W       => (if Runtime.Marquee.Active then Runtime.Marquee.Rect_W else 0),
+            Marquee_H       => (if Runtime.Marquee.Active then Runtime.Marquee.Rect_H else 0)));
       Inputs_Match : constant Boolean :=
         Runtime.Frame_Cache_Valid and then Runtime.Cached_Inputs = Inputs;
 

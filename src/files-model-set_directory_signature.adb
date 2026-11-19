@@ -1,9 +1,9 @@
 separate (Files.Model)
 procedure Set_Directory_Signature
   (Model     : in out Window_Model;
-   Signature : Files.File_System.Directory_Signature)
+   Signature : Files.File_System_Types.Directory_Signature)
 is
-   use type Files.File_System.Directory_Signature;
+   use type Files.File_System_Types.Directory_Signature;
 begin
    --  The watch poll stores what it found every time; only a change is news,
    --  and a revision forces a full snapshot rebuild.

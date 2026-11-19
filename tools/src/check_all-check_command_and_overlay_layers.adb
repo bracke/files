@@ -19,11 +19,13 @@ separate (Check_All)
          end if;
       end loop;
       --  Files.Command_Palette builds the palette's rows in the current
-      --  language: the window layer and the controller list them, not the model.
+      --  language, and Files.Settings_Form the settings panel's fields: the
+      --  window layer and the controller list and hand them in, not the model.
       for Pattern of String_List'
         [To_Unbounded_String ("Build_Frame"),
          To_Unbounded_String ("Files.Localization"),
-         To_Unbounded_String ("Files.Command_Palette")]
+         To_Unbounded_String ("Files.Command_Palette"),
+         To_Unbounded_String ("Files.Settings_Form")]
       loop
          Require_Not_Contains_In_Unit
            (Root & "/src/files-model.adb", To_String (Pattern),

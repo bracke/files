@@ -628,6 +628,12 @@ package body Files.Model.History is
       end if;
       Touch (Model);
       Model.History.Undo_Stack.Delete_Last;
+      --  The step the helper would have pushed for Redo is lost, so what the
+      --  redo stack holds would be offered out of order: it is retired as a
+      --  newly recorded action retires it (payloads for Take_Retired).
+      Retire_Payloads (Model.History.Retired_Discards, Model.History.Redo_Stack);
+      Model.History.Redo_Stack.Clear;
+      Model.History.Journal.Redo_Retired := True;
       Model.History.Journal_Dirty := True;
       return True;
    end Drop_Undone;

@@ -11,6 +11,6 @@ begin
    elsif Temporary_Is_Visible (Model) and then Visible_Index = Visible_Count (Model) then
       return Support.Temporary_Item (Model);
    else
-      return Files.File_System.Make_Item ("", "", Files.Types.Unknown_Item);
+      return Files.Item_Lists.Make_Item ("", "", Files.Types.Unknown_Item);
    end if;
 end Visible_Item;

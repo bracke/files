@@ -1,8 +1,10 @@
 separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
    --  The sort button: the sort field and its direction arrow.
    procedure Draw_Sort_Button is
+      --  The open sort menu leaves its button the pointer (a click closes it).
+      Live    : constant Boolean := Toggles_Topmost_Overlay (Files.Commands.Toggle_Sort_Menu_Command);
       Hovered : constant Boolean :=
-        Has_Hover
+        (Has_Hover or else (Live and then Pointer.Has_Hover))
         and then Contains_Point
           (Bottom.Sort_Button_X,
            Bottom_Y,
@@ -11,9 +13,15 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
            Hover_X,
            Hover_Y);
       Pressed : constant Boolean :=
-        Is_Pressed (Bottom.Sort_Button_X, Bottom_Y, Bottom.Sort_Button_Width, Layout.Bottom_Bar_Height);
+        Is_Pressed (Bottom.Sort_Button_X, Bottom_Y, Bottom.Sort_Button_Width, Layout.Bottom_Bar_Height, Live);
    begin
-      Add_Button (Bottom.Sort_Button_X, Bottom.Sort_Button_Width, Snapshot.Sort_Menu_Open, Hovered, Pressed);
+      --  Open, it is drawn selected, but pressed while a click on it is held.
+      Add_Button
+        (Bottom.Sort_Button_X,
+         Bottom.Sort_Button_Width,
+         Snapshot.Sort_Menu_Open and then not Pressed,
+         Hovered,
+         Pressed);
       declare
          Field_Label : constant String := Sort_Field_Label (Snapshot.Sort_Field);
          Arrow_Text  : constant String := Direction_Text (Snapshot.Sort_Ascending);

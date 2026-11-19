@@ -1,3 +1,4 @@
+with Files.Settings_Form;
 with Files.Rendering.Layouts;
 with Files.Model.Command_Palette;
 with Files.Model.Settings_Pane;
@@ -44,7 +45,7 @@ separate (Files_Suite.Interaction)
       end;
 
       --  The window layer draws only the top one of the palette and the pane.
-      Files.Model.Settings_Pane.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
+      Files.Settings_Form.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
       Assert (Files.Model.Window_Overlay_Shown (Model, Files.UI_Types.Settings_Pane_Overlay),
               "the settings pane alone is drawn");
       Files.Model.Command_Palette.Open (Model);

@@ -1,3 +1,4 @@
+with Files.Events;
 package body Files.Controller.Testing is
 
    procedure Replace_Focused_Text

@@ -3,7 +3,7 @@ separate (Files.Controller)
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Key       : Guikit.Input.Key_Code;
-      Action    : Files.Events.Input_Action;
+      Action    : Files.Input_Actions.Input_Action;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Tree_Page_Rows : Natural := 0)
       return Controller_Result
@@ -12,7 +12,7 @@ separate (Files.Controller)
       --  owner that closes, cancels or hands the keyboard back answers it,
       --  never a literal Escape.
       Is_Close_Key : constant Boolean :=
-        Action.Kind = Files.Events.Command_Input_Action
+        Action.Kind = Files.Input_Actions.Command_Input_Action
         and then Files.Commands."=" (Action.Command, Files.Commands.Close_Overlay_Command);
 
       function Control_Only return Boolean is
@@ -146,7 +146,7 @@ separate (Files.Controller)
       end loop;
 
       case Action.Kind is
-         when Files.Events.Command_Input_Action =>
+         when Files.Input_Actions.Command_Input_Action =>
             if Files.Model.Focus (Model) /= Files.UI_Types.Focus_None
               and then not Files.Commands.Allowed_With_Text_Focus (Action.Command)
               --  F2 inside the rename field toggles that rename off.
@@ -159,33 +159,33 @@ separate (Files.Controller)
                return Make_Result (Controller_Ignored);
             end if;
             return Execute_Non_Settings_Command (Action.Command, Model, Settings, Modifiers);
-         when Files.Events.Selection_Input_Action =>
+         when Files.Input_Actions.Selection_Input_Action =>
             return Selection_Move_Key;
          --  The wheel is pointer input (Translate_Scroll_At): no key makes it.
-         when Files.Events.No_Input_Action
-            | Files.Events.Scroll_Input_Action
-            | Files.Events.Text_Click_Input_Action
-            | Files.Events.Settings_Click_Input_Action
-            | Files.Events.Item_Click_Input_Action
-            | Files.Events.Item_Drop_Input_Action
-            | Files.Events.Root_Click_Input_Action
-            | Files.Events.Breadcrumb_Click_Input_Action
-            | Files.Events.Path_Favorite_Toggle_Input_Action
-            | Files.Events.Tree_Click_Input_Action
-            | Files.Events.Tree_Pick_Confirm_Input_Action
-            | Files.Events.Command_Result_Click_Input_Action
-            | Files.Events.Scrollbar_Drag_Begin_Input_Action
-            | Files.Events.Column_Resize_Begin_Input_Action
-            | Files.Events.Column_Reorder_Begin_Input_Action
-            | Files.Events.Marquee_Begin_Input_Action
-            | Files.Events.Permission_Toggle_Input_Action
-            | Files.Events.Ownership_Edit_Input_Action
-            | Files.Events.Conflict_Click_Input_Action
-            | Files.Events.Label_Picker_Choice_Input_Action
-            | Files.Events.Context_Menu_Command_Input_Action
-            | Files.Events.Right_Click_Input_Action
-            | Files.Events.Search_Scope_Toggle_Input_Action
-            | Files.Events.Foreground_Job_Cancel_Input_Action =>
+         when Files.Input_Actions.No_Input_Action
+            | Files.Input_Actions.Scroll_Input_Action
+            | Files.Input_Actions.Text_Click_Input_Action
+            | Files.Input_Actions.Settings_Click_Input_Action
+            | Files.Input_Actions.Item_Click_Input_Action
+            | Files.Input_Actions.Item_Drop_Input_Action
+            | Files.Input_Actions.Root_Click_Input_Action
+            | Files.Input_Actions.Breadcrumb_Click_Input_Action
+            | Files.Input_Actions.Path_Favorite_Toggle_Input_Action
+            | Files.Input_Actions.Tree_Click_Input_Action
+            | Files.Input_Actions.Tree_Pick_Confirm_Input_Action
+            | Files.Input_Actions.Command_Result_Click_Input_Action
+            | Files.Input_Actions.Scrollbar_Drag_Begin_Input_Action
+            | Files.Input_Actions.Column_Resize_Begin_Input_Action
+            | Files.Input_Actions.Column_Reorder_Begin_Input_Action
+            | Files.Input_Actions.Marquee_Begin_Input_Action
+            | Files.Input_Actions.Permission_Toggle_Input_Action
+            | Files.Input_Actions.Ownership_Edit_Input_Action
+            | Files.Input_Actions.Conflict_Click_Input_Action
+            | Files.Input_Actions.Label_Picker_Choice_Input_Action
+            | Files.Input_Actions.Context_Menu_Command_Input_Action
+            | Files.Input_Actions.Right_Click_Input_Action
+            | Files.Input_Actions.Search_Scope_Toggle_Input_Action
+            | Files.Input_Actions.Foreground_Job_Cancel_Input_Action =>
             null;
       end case;
 

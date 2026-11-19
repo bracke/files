@@ -39,18 +39,8 @@ package Files.Operations is
    --  When Detach is False the process is run to completion and its exit status is
    --  reported, which is what a caller wants from a short-lived helper.
    --
-   --  @param Action Open action describing the executable and arguments.
-   --  @param Exit_Status Exit status, or -1 when none was awaited or none started.
-   --  @param Detach Whether to launch the process without waiting for it.
-   --  @return True when the process ran successfully, or (detached) was started.
-   function Execute_Open_Action
-     (Action      : Files.Settings.Open_Action;
-      Exit_Status : out Integer;
-      Detach      : Boolean := False)
-      return Boolean;
-
-   --  As Execute_Open_Action, also saying why a launch did not start when
-   --  there is more to say than that it failed.
+   --  On failure, Failure_Key says why a launch did not start when there is
+   --  more to say than that it failed.
    --
    --  @param Action Open action describing the executable and arguments.
    --  @param Exit_Status Exit status, or -1 when none was awaited or none started.

@@ -1,4 +1,3 @@
-with Files.File_System;
 with Files.UI_Types;
 with Files.Model.Support;
 
@@ -12,18 +11,18 @@ package body Files.Model.Root_Selector is
      (Model : in out Window_Model;
       Roots : Files.Types.String_Vectors.Vector)
    is
-      Entries : Files.File_System.Root_Entry_Vectors.Vector;
+      Entries : Files.File_System_Types.Root_Entry_Vectors.Vector;
    begin
       Touch (Model);
       for Root of Roots loop
          Entries.Append
-           (Files.File_System.Root_Entry'
+           (Files.File_System_Types.Root_Entry'
               (Path  => Root,
                Label => Root,
                Name | Detail => <>,
-               Kind  => Files.File_System.Root_Filesystem,
+               Kind  => Files.File_System_Types.Root_Filesystem,
                Volume_Name => Root,
-               Ready => Files.File_System.Root_Ready,
+               Ready => Files.File_System_Types.Root_Ready,
                Removable => False));
       end loop;
 
@@ -32,7 +31,7 @@ package body Files.Model.Root_Selector is
 
    procedure Open
      (Model : in out Window_Model;
-      Roots : Files.File_System.Root_Entry_Vectors.Vector) is
+      Roots : Files.File_System_Types.Root_Entry_Vectors.Vector) is
    begin
       Touch (Model);
       Model.Root_Selector.Entries := Roots;
@@ -137,7 +136,7 @@ package body Files.Model.Root_Selector is
    function Entry_At
      (Model : Window_Model;
       Index : Positive)
-      return Files.File_System.Root_Entry is
+      return Files.File_System_Types.Root_Entry is
    begin
       if Model.Root_Selector.Entries.Is_Empty or else Index > Model.Root_Selector.Entries.Last_Index then
          return (others => <>);
@@ -149,10 +148,10 @@ package body Files.Model.Root_Selector is
    function Kind
      (Model : Window_Model;
       Index : Positive)
-      return Files.File_System.Root_Kind is
+      return Files.File_System_Types.Root_Kind is
    begin
       if Model.Root_Selector.Entries.Is_Empty or else Index > Model.Root_Selector.Entries.Last_Index then
-         return Files.File_System.Root_Filesystem;
+         return Files.File_System_Types.Root_Filesystem;
       end if;
 
       return Model.Root_Selector.Entries.Element (Index).Kind;

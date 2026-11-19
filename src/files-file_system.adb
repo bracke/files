@@ -13,6 +13,7 @@ with System;
 with GNAT.OS_Lib;
 
 with Files.File_Types;
+with Files.Item_Lists;
 
 with Hostkit.Metadata;
 with Hostkit.Fs;
@@ -46,7 +47,6 @@ package body Files.File_System is
 
    use type System.Address;
    use type GNAT.OS_Lib.File_Descriptor;
-   use type Files.Types.Sort_Field;
    use type Files.Types.Item_Kind;
 
    function Read_Bounded_Regular_File
@@ -127,7 +127,7 @@ package body Files.File_System is
      (Items     : in out Item_Vectors.Vector;
       Field     : Files.Types.Sort_Field;
       Ascending : Boolean)
-   is separate;
+     renames Files.Item_Lists.Sort_Items;
 
    function Permission_String
      (Path       : String;
@@ -292,8 +292,8 @@ package body Files.File_System is
 
    function Load_Recent_Items (Settings : Files.Settings.Settings_Model) return Item_Vectors.Vector is separate;
 
-   function Unknown_Signature (Path : String := "") return Directory_Signature is
-     ((Path => To_Unbounded_String (Path), others => <>));
+   function Unknown_Signature (Path : String := "") return Directory_Signature
+     renames Files.File_System_Types.Unknown_Signature;
 
    function Same_State (Left, Right : Directory_Signature) return Boolean is
      (Left.Taken
@@ -319,18 +319,13 @@ package body Files.File_System is
       return Directory_Change_Result
    is separate;
 
-   --  The built-in type and icon tables Make_Item reads, built once when the
-   --  program starts and only read after: building them per item cost a
-   --  hundred map inserts for each row a snapshot rebuild asked about.
-   Default_Item_Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-
    function Make_Item
      (Parent_Path : String;
       Name        : String;
       Kind        : Files.Types.Item_Kind;
       Filetype    : String := "")
       return Directory_Item
-   is separate;
+     renames Files.Item_Lists.Make_Item;
 
    function Make_Item
      (Parent_Path : String;
