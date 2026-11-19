@@ -2,7 +2,6 @@ with Ada.Strings.Unbounded;
 
 with Guikit.Command_Palette;
 with Guikit.Settings_Panel;
-with Guikit.Text;
 
 with Files.Command_Palette;
 with Files.Localization;
@@ -40,8 +39,7 @@ package body Files.Overlays is
             Rectangles    => Rectangles,
             Text          => Text,
             Icons         => Icons,
-            Accessibility => Accessibility,
-            Has_Glyph     => Guikit.Text.Can_Draw_Form'Access);
+            Accessibility => Accessibility);
       end Draw;
    begin
       --  An out vector keeps what it held (it is passed by reference): the
@@ -94,8 +92,7 @@ package body Files.Overlays is
             Hover_Y       => Hover_Y,
             Rectangles    => Rectangles,
             Text          => Text,
-            Accessibility => Accessibility,
-            Has_Glyph     => Guikit.Text.Can_Draw_Form'Access);
+            Accessibility => Accessibility);
       end Draw;
    begin
       --  An out vector keeps what it held (it is passed by reference): the

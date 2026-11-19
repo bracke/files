@@ -10,7 +10,6 @@ with Files.Desktop_Applications;
 with Files.Breadcrumbs;
 with Files.Folder_Tree;
 with Guikit.Bidi;
-with Guikit.Text;
 with Guikit.Utf8.Editing;
 with Files.Command_Palette;
 with Files.Model.Command_Palette;

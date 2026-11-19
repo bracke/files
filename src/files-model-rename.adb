@@ -1,6 +1,5 @@
 with Files.UI_Types;
 with Guikit.Bidi;
-with Guikit.Text;
 with Guikit.Utf8.Editing;
 with Files.Model.Support;
 
@@ -297,8 +296,7 @@ package body Files.Model.Rename is
             if Direction in Guikit.Input.Move_Left | Guikit.Input.Move_Right then
                New_Cursor :=
                  Guikit.Bidi.Caret_Step
-                   (Text, Field.Edit.Cursor, Rightward => Direction = Guikit.Input.Move_Right, By_Word => By_Word,
-                    Has_Glyph => Guikit.Text.Can_Draw_Form'Access);
+                   (Text, Field.Edit.Cursor, Rightward => Direction = Guikit.Input.Move_Right, By_Word => By_Word);
             elsif By_Word then
                New_Cursor :=
                  (if Backward then Guikit.Utf8.Editing.Previous_Word_Boundary (Text, Field.Edit.Cursor)

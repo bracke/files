@@ -30,14 +30,12 @@ procedure Editing_Key (Handled : out Boolean; Result : out Controller_Result) is
             Files.Model.Set_Text_Cursor_Position
               (Model,
                Guikit.Bidi.Caret_Step
-                 (Files.Model.Focused_Text (Model), Old_Position, Rightward => False, By_Word => True,
-                  Has_Glyph => Guikit.Text.Can_Draw_Form'Access));
+                 (Files.Model.Focused_Text (Model), Old_Position, Rightward => False, By_Word => True));
          when Word_Right =>
             Files.Model.Set_Text_Cursor_Position
               (Model,
                Guikit.Bidi.Caret_Step
-                 (Files.Model.Focused_Text (Model), Old_Position, Rightward => True, By_Word => True,
-                  Has_Glyph => Guikit.Text.Can_Draw_Form'Access));
+                 (Files.Model.Focused_Text (Model), Old_Position, Rightward => True, By_Word => True));
          when Char_Left =>
             Files.Model.Move_Text_Cursor (Model, Guikit.Input.Move_Left);
          when Char_Right =>

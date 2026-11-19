@@ -74,12 +74,15 @@ package body Files.Extension_Labels is
       end loop;
       Status :=
         Guikit.Text.Initialize
-          (R              => R,
-           Font_Path      => Files.Fonts.Default_Font_Path,
-           Fallback_Paths => Fallbacks,
-           Pixel_Size     => Height,
-           Cell_Width     => Positive'Max (1, Height * 3 / 5),
-           Cell_Height    => Height);
+          (R               => R,
+           Font_Path       => Files.Fonts.Default_Font_Path,
+           Fallback_Paths  => Fallbacks,
+           Pixel_Size      => Height,
+           Cell_Width      => Positive'Max (1, Height * 3 / 5),
+           Cell_Height     => Height,
+           --  Labels only: the window renderer's fonts decide how laid-out
+           --  text (and its carets) is shaped, not this one's.
+           Record_Coverage => False);
       R_Pixel_Height := Height;
       Failed_Height := (if Guikit.Text.Loaded (R) then 0 else Height);
       Failed_At := Ada.Real_Time.Clock;

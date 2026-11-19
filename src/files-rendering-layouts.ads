@@ -6,7 +6,6 @@ with Files.UI_Types;
 with Guikit.Item_Grid;
 with Guikit.Layout;
 with Guikit.Segmented;
-with Guikit.Text;
 with Guikit.Text_Fields;
 
 --  Where everything a frame draws lies: the window's regions, the items, the
@@ -700,7 +699,7 @@ package Files.Rendering.Layouts is
       Line_Height : Positive)
       return Guikit.Text_Fields.View
    is (Guikit.Text_Fields.View_Of
-         (Text, Cursor, Text_Width, Line_Height, Field_Caret_Width, Has_Glyph => Guikit.Text.Can_Draw_Form'Access));
+         (Text, Cursor, Text_Width, Line_Height, Field_Caret_Width));
 
    --  Height of the font box a line of text is drawn in: four fifths of the
    --  line height, the size guikit renders glyphs at.
