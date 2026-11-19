@@ -1,10 +1,8 @@
 separate (Files.Rendering.Build_Frame_Commands)
    procedure Draw_Popups is
       --  The chrome of a centered, titled modal panel (Quick Look, the label
-      --  picker): drop shadow, pane, border, the accent band along its top,
-      --  its accessibility node, title and close button. The panel owns
-      --  pointer and keyboard input while open, so the inactive file-view
-      --  controls behind it leave the accessibility frame.
+      --  picker): the modal chrome on the pane colour, the accent band along
+      --  its top, its title and close button.
       procedure Draw_Titled_Panel
         (X, Y, W, H                : Natural;
          Title_X, Title_Y, Title_W : Natural;
@@ -15,12 +13,8 @@ separate (Files.Rendering.Build_Frame_Commands)
       is
          Accent_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (3, Line_Height), H);
       begin
-         Result.Accessibility.Clear;
-         Add_Overlay_Drop_Shadow (X, Y, W, H);
-         Add_Overlay_Rect (X, Y, W, H, Pane_Color);
-         Add_Overlay_Border (X, Y, W, H, Border_Color);
+         Draw_Modal_Chrome (X, Y, W, H, Pane_Color, Role_Dialog, Name, Description);
          Add_Overlay_Rect (X, Y, W, Accent_H, Selection_Color);
-         Add_Accessibility_Node (Role_Dialog, X, Y, W, H, Name, Description);
          Add_Overlay_Text (Title_X, Title_Y, Title_W, Line_Height, Title, Fit => True);
          Draw_Close_Button (Close_Button, Overlay => True);
       end Draw_Titled_Panel;
@@ -119,17 +113,8 @@ separate (Files.Rendering.Build_Frame_Commands)
                begin
                   --  Keyboard and pointer routing are confined to the open menu;
                   --  publish the same scope to assistive technology.
-                  Result.Accessibility.Clear;
-                  Add_Overlay_Drop_Shadow (Menu_X, Menu_Y, Menu_W, Menu_H);
-                  Add_Overlay_Rect (Menu_X, Menu_Y, Menu_W, Menu_H, Overlay_Color);
-                  Add_Overlay_Border (Menu_X, Menu_Y, Menu_W, Menu_H, Border_Color);
-                  Add_Accessibility_Node
-                    (Role_List,
-                     Menu_X,
-                     Menu_Y,
-                     Menu_W,
-                     Menu_H,
-                     Localized ("command.sort.menu"));
+                  Draw_Modal_Chrome
+                    (Menu_X, Menu_Y, Menu_W, Menu_H, Overlay_Color, Role_List, Localized ("command.sort.menu"));
 
                   declare
                      --  Row backgrounds and label text are the shared list geometry --

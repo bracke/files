@@ -84,6 +84,13 @@ private package Files.File_System.Recovery is
       To_Trash : not null access function (Path, Original : String) return Mutation_Result)
       return Mutation_Result;
 
+   --  What Move_By_Copy does with a published copy when the source cannot
+   --  then be removed (it changed, it is not the item copied, or a sync or
+   --  removal failed). A move takes the copy back, so the source stays the
+   --  one item. A restore from the trash keeps it: the item is back, and the
+   --  source stays in the trash, still listed there with its info file.
+   type Unremoved_Source_Rule is (Take_Copy_Back, Keep_Both);
+
    --  The cross-device half of a move, where rename cannot go: copy Source
    --  to the new path Destination, then remove Source. Rename, trash, drop
    --  import and restore-from-trash all fall back to this.
@@ -93,9 +100,13 @@ private package Files.File_System.Recovery is
    --  @param Identity The copy's identity, empty if no copy was published.
    --  @param Revision The copy's tree revision.
    --  @param Copy_Kept Set when, after a failure, the copy is still at
-   --    Destination: its removal was refused, or the source was set aside.
+   --    Destination: its removal was refused, the source was set aside, or
+   --    If_Source_Stays is Keep_Both.
    --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
    --  @param Batch Shared hard-link journal of a multi-item job.
+   --  @param If_Source_Stays What becomes of the copy when Source cannot be removed.
+   --  @param After_Copy Called with Source once the copy is published,
+   --    before Source is checked and removed; null for none.
    --  @return Success when Destination holds the item and Source is gone;
    --    otherwise Source is where it was (unless set aside, see Copy_Kept).
    function Move_By_Copy
@@ -104,6 +115,8 @@ private package Files.File_System.Recovery is
       Identity, Revision  : out Files.Types.UString;
       Copy_Kept           : out Boolean;
       Cancel              : Cancellation_Check := Job_Cancelled;
-      Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
+      If_Source_Stays     : Unremoved_Source_Rule := Take_Copy_Back;
+      After_Copy          : Copy_Hook := null)
       return Mutation_Result;
 end Files.File_System.Recovery;

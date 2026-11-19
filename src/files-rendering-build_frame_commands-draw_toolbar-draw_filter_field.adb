@@ -1,6 +1,12 @@
+with Guikit.Text_Fields;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
    --  The filter field and its search-scope chip.
    procedure Draw_Filter_Field is
+      Text_Region : constant Field_Text_Region := Filter_Field_Text_Region (Toolbar, Line_Height);
+      --  The box, as the click zone hit-tests it.
+      Filter_X    : constant Natural := Text_Region.Field_X;
+      Filter_W    : constant Natural := Text_Region.Field_Width;
+      Focused     : constant Boolean := Snapshot.Focus = Files.Types.Focus_Filter_Input;
    begin
       declare
          --  The chip is sized to its localized label so it never abbreviates;
@@ -8,22 +14,15 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          Scope_Chip_W : constant Natural := Files.Rendering.Layouts.Filter_Scope_Chip_Width (Line_Height);
          Scope_Chip : constant Guikit.Layout.Scope_Chip_Region :=
            Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Scope_Chip_W, Line_Height);
-         Text_Region   : constant Field_Text_Region := Filter_Field_Text_Region (Toolbar, Line_Height);
-         --  The box, as the click zone hit-tests it.
-         Filter_X      : constant Natural := Text_Region.Field_X;
-         Filter_W      : constant Natural := Text_Region.Field_Width;
          Filter_Text_W : constant Natural := Text_Region.Width;
          Filter_Raw    : constant String := To_String (Snapshot.Filter_Text);
-         Filter_Skip   : constant Natural :=
-           (if Snapshot.Focus = Files.Types.Focus_Filter_Input
-            then Guikit.Utf8.Byte_Offset_For_Display_Column
-                   (Filter_Raw,
-                    Input_Scroll_Columns
-                      (Filter_Raw, Snapshot.Text_Cursor_Position, Filter_Text_W, Line_Height))
-            else 0);
+         --  While focused, start the text far enough in that the caret shows.
+         View          : constant Guikit.Text_Fields.View :=
+           (if Focused
+            then Field_View (Filter_Raw, Snapshot.Text_Cursor_Position, Filter_Text_W, Line_Height)
+            else (Skip_Bytes => 0, Caret_X => 0));
          Filter_Shown  : constant UString :=
-           To_Unbounded_String
-             (Filter_Raw (Filter_Raw'First + Natural'Min (Filter_Skip, Filter_Raw'Length) .. Filter_Raw'Last));
+           To_Unbounded_String (Filter_Raw (Filter_Raw'First + View.Skip_Bytes .. Filter_Raw'Last));
          Scope_Key : constant String :=
            (case Snapshot.Search_Scope is
               when Files.Types.Filter_Here => "search.scope.here",
@@ -47,25 +46,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
              else Filter_Shown),
             (if Length (Snapshot.Filter_Text) = 0 then Muted_Text_Color else Text_Color),
             Fit => True);
-         if Snapshot.Focus = Files.Types.Focus_Filter_Input then
-            Add_Border (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Border_Color);
-            Add_Focus_Ring (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H);
-            Add_Caret
-              (Text_Region,
-               Toolbar_Input_Y,
-               Toolbar_Input_H,
-               Filter_Shown,
-               (if Snapshot.Text_Cursor_Position > Filter_Skip
-                then Snapshot.Text_Cursor_Position - Filter_Skip else 0));
-         elsif Has_Hover
-           and then Contains_Point
-             (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Hover_X, Hover_Y)
-         then
-            Add_Border (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Hover_Color);
-         end if;
-         if Is_Pressed (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H) then
-            Add_Border (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Pressed_Color);
-         end if;
+         Draw_Field_State (Text_Region, Focused, Valid => True, Caret_X => View.Caret_X);
 
          if Scope_Chip.Visible then
             declare
@@ -124,23 +105,19 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          end if;
       end;
       Add_Command_Tooltip
-        (Filter_Field_Text_Region (Toolbar, Line_Height).Field_X,
-         Toolbar_Input_Y,
-         Filter_Field_Text_Region (Toolbar, Line_Height).Field_Width,
-         Toolbar_Input_H,
-         Files.Commands.Focus_Filter_Input_Command);
+        (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Files.Commands.Focus_Filter_Input_Command);
       --  The field's own box, not its whole toolbar section: a screen
       --  reader's request on it is answered by focusing the field
       --  (Files.Events.Translate_Field_Request matches exactly this box).
       Add_Accessibility_Node
         (Role_Text_Input,
-         Filter_Field_Text_Region (Toolbar, Line_Height).Field_X,
+         Filter_X,
          Toolbar_Input_Y,
-         Filter_Field_Text_Region (Toolbar, Line_Height).Field_Width,
+         Filter_W,
          Toolbar_Input_H,
          Localized (Files.Commands.Name_Key (Files.Commands.Focus_Filter_Input_Command)),
          Snapshot.Filter_Text,
          Enabled => True,
-         Focused => Snapshot.Focus = Files.Types.Focus_Filter_Input);
+         Focused => Focused);
 
    end Draw_Filter_Field;

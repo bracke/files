@@ -210,12 +210,6 @@ package body Files.Rendering.Hit is
       return Files.Types.Detail_Column_Count;
    end Details_Header_Drop_Index;
 
-   --  Half-width, in pixels, of the invisible hot zone straddling a header
-   --  column separator. A press within this band of a separator's edge begins a
-   --  resize; it is wide enough to be grabbable yet narrow enough that clicks
-   --  well inside a header cell still resolve to a sort.
-   Detail_Separator_Hot_Zone : constant := 5;
-
    function Details_Header_Separator_At
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
@@ -229,9 +223,6 @@ package body Files.Rendering.Hit is
       Content_Y : constant Natural := Header.Content.Y;
       Header_H  : constant Natural := Header.Height;
       Columns   : Detail_Column_Geometry_Array renames Header.Columns;
-      Zone      : constant Natural := Guikit.Layout.Scaled (Detail_Separator_Hot_Zone, Line_Height);
-      Low       : constant Natural := (if X > Zone then X - Zone else 0);
-      High      : constant Natural := Saturating_Add (X, Zone);
    begin
       if Snapshot.View_Mode /= Files.Types.Details
         or else Header_H = 0
@@ -243,8 +234,7 @@ package body Files.Rendering.Hit is
 
       for Column in Files.Types.Optional_Detail_Column loop
          if Columns (Column).Visible
-           and then Columns (Column).X >= Low
-           and then Columns (Column).X <= High
+           and then On_Column_Separator (Columns (Column).X, X, Line_Height)
          then
             return
               (Present  => True,

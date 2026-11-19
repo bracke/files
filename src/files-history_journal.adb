@@ -532,12 +532,9 @@ package body Files.History_Journal is
    is
       Kept_Undo : Files.Model.Undo_Entry_Vectors.Vector := Undo;
       Kept_Redo : Files.Model.Undo_Entry_Vectors.Vector := Redo;
-      Published : Files.Durable_Writes.Publication_Result;
       Total : Byte_Count := Journal_Header'Length + 32;
       Fields : Natural := 0;
-      Temporary : constant String := Hostkit.Fs.Join (Directory, "history.tmp");
       Target : constant String := Hostkit.Fs.Join (Directory, "history");
-      Temporary_Identity : Unbounded_String;
 
       --  Past every Sequence handed out: the journal's own count, or past
       --  an entry an older journal numbered beyond it.
@@ -587,10 +584,6 @@ package body Files.History_Journal is
         --  refusal-safe: a refused folder refuses the save
         or else not Files.Fs_Primitives.Exists (Directory)
         or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
-        or else Hostkit.Fs.Is_Link (Temporary)
-        --  refusal-safe: a refused temporary is not removed; writing it then refuses
-        or else (Files.Fs_Primitives.Exists (Temporary)
-          and then Files.Fs_Primitives.Kind (Temporary) /= Ada.Directories.Ordinary_File)
         or else Hostkit.Fs.Is_Link (Target)
         --  refusal-safe: a refused target is replaced only through Publish, which checks it
         or else (Files.Fs_Primitives.Exists (Target)
@@ -598,26 +591,15 @@ package body Files.History_Journal is
       then
          raise Ada.Directories.Use_Error;
       end if;
-      --  A temporary a crash left behind (a plain file, checked above) would
-      --  refuse every later save: the journal is ours, so it goes.
-      --  refusal-safe: a refused temporary stays; writing it then refuses
-      if Files.Fs_Primitives.Exists (Temporary) then
-         Files.Fs_Primitives.Delete_File (Temporary);
-      end if;
-      Files.Durable_Writes.Write_Private_File (Temporary, Write_Journal'Access, Temporary_Identity);
-      Published := Files.Durable_Writes.Publish
-        (Temporary, Target);
-      if Files.Durable_Writes.Published (Published) then
-         Temporary_Identity := Null_Unbounded_String;
-      else
-         Files.Durable_Writes.Remove_Owned (Temporary, To_String (Temporary_Identity));
-         if Required then
-            raise Ada.Directories.Use_Error;
-         end if;
+      --  A temporary a crash left behind is passed over (Write_And_Publish),
+      --  so it never refuses a later save.
+      if not Files.Durable_Writes.Published (Files.Durable_Writes.Write_And_Publish (Target, Write_Journal'Access))
+        and then Required
+      then
+         raise Ada.Directories.Use_Error;
       end if;
    exception
       when Failure : others =>
-         Files.Durable_Writes.Remove_Owned (Temporary, To_String (Temporary_Identity));
          if Required then
             raise;
          end if;

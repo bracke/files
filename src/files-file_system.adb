@@ -345,9 +345,22 @@ package body Files.File_System is
    --  sit under a top its group can write to.
    function Safe_Trash_Parent (Parent : String; Shared : Boolean; Existing : Boolean := False) return Boolean;
 
-   --  Path below Top, relative to it ("" when Path is not under Top). Top
-   --  may be "/" (or end in a separator): the prefix is Top with exactly one
-   --  separator after it either way.
+   --  The one rule every "is this path inside that one" check here follows:
+   --  Hostkit.Fs.Is_Same_Or_Inside on the text (a root such as "/" or "C:\"
+   --  holds every longer path; /a/bc is not inside /a/b), and on the
+   --  case-folded text too where the volume holding Parent folds names
+   --  (Hostkit.Fs.Folds_Name_Case), since there C:\Data and c:\data are
+   --  one folder. The volume is asked only when the spellings differ by
+   --  case alone, so an exact match never waits on a slow mount. Making
+   --  the paths absolute or resolving links is the caller's choice.
+   --  @param Child Candidate path.
+   --  @param Parent Candidate ancestor.
+   --  @return True when Child is Parent or lies inside it.
+   function Path_Is_Within (Child, Parent : String) return Boolean;
+
+   --  Path below Top, relative to it ("" when Path is not under Top, by
+   --  Path_Is_Within). Top may be "/" (or end in a separator): the tail
+   --  starts after the separator that ends Top's spelling in Path.
    function Relative_To_Top (Path, Top : String) return String;
 
    --  The top of the volume a volume trash Base belongs to: the parent of
@@ -541,15 +554,31 @@ package body Files.File_System is
    function Safe_Trash_Parent (Parent : String; Shared : Boolean; Existing : Boolean := False) return Boolean
      is separate;
 
+   function Path_Is_Within (Child, Parent : String) return Boolean is
+     (Hostkit.Fs.Is_Same_Or_Inside (Child, Parent)
+      or else (Hostkit.Fs.Is_Same_Or_Inside (Files.Types.Fold_Case (Child), Files.Types.Fold_Case (Parent))
+               and then Hostkit.Fs.Folds_Name_Case (Parent)));
+
    function Relative_To_Top (Path, Top : String) return String is
-      Prefix : constant String :=
-        (if Top'Length > 0 and then Top (Top'Last) in '/' | '\' then Top else Top & "/");
+      Top_Ends_In_Separator : constant Boolean := Top /= "" and then Hostkit.Fs.Is_Separator (Top (Top'Last));
    begin
-      if Path'Length > Prefix'Length
-        and then Path (Path'First .. Path'First + Prefix'Length - 1) = Prefix
-      then
-         return Path (Path'First + Prefix'Length .. Path'Last);
+      if Top = "" or else not Path_Is_Within (Path, Top) then
+         return "";
       end if;
+      --  Top's spelling in Path ends at the separator whose head is Top, or
+      --  folds to it where Path_Is_Within matched by folding.
+      for Last in Path'First .. Path'Last - 1 loop
+         if Hostkit.Fs.Is_Separator (Path (Last)) then
+            declare
+               Head : constant String :=
+                 (if Top_Ends_In_Separator then Path (Path'First .. Last) else Path (Path'First .. Last - 1));
+            begin
+               if Head = Top or else Files.Types.Fold_Case (Head) = Files.Types.Fold_Case (Top) then
+                  return Path (Last + 1 .. Path'Last);
+               end if;
+            end;
+         end if;
+      end loop;
       return "";
    end Relative_To_Top;
 

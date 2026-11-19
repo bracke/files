@@ -3,7 +3,6 @@ with Ada.Strings.Unbounded;
 with Guikit.Layout;
 with Files.Rendering.Hit;
 with Files.Rendering.Layouts;
-with Guikit.Utf8;
 
 package body Files.Events is
 

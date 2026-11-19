@@ -141,30 +141,19 @@ package body Files.Job_Context is
    procedure Sync_Journal (Path : String);
 
    procedure Publish_Record
-     (Temporary, Target : String;
+     (Target : String;
       Write_Record : not null access procedure
-        (Stream : not null access Ada.Streams.Root_Stream_Type'Class))
-   is
-      Temporary_Identity : Files.Types.UString;
+        (Stream : not null access Ada.Streams.Root_Stream_Type'Class)) is
    begin
-      if Hostkit.Fs.Is_Link (Temporary)
-        or else not Files.Fs_Primitives.Entry_Is_Absent (Temporary)
-        or else Hostkit.Fs.Is_Link (Target)
+      if Hostkit.Fs.Is_Link (Target)
         or else (not Files.Fs_Primitives.Entry_Is_Absent (Target)
           and then not Files.Fs_Primitives.File_Exists (Target))
       then
          raise Ada.Directories.Use_Error;
       end if;
-      Files.Durable_Writes.Write_Private_File (Temporary, Write_Record, Temporary_Identity);
-      if not Files.Durable_Writes.Published
-        (Files.Durable_Writes.Publish (Temporary, Target))
-      then
+      if not Files.Durable_Writes.Published (Files.Durable_Writes.Write_And_Publish (Target, Write_Record)) then
          raise Ada.Directories.Use_Error;
       end if;
-   exception
-      when others =>
-         Files.Durable_Writes.Remove_Owned (Temporary, To_String (Temporary_Identity));
-         raise;
    end Publish_Record;
 
    procedure Append_Journal_Record
@@ -311,7 +300,6 @@ package body Files.Job_Context is
      (Record_Directory, Path, Identity : String)
    is
       Data : constant String := Hostkit.Fs.Join (Record_Directory, "data");
-      Temp : constant String := Hostkit.Fs.Join (Record_Directory, "data.tmp");
       procedure Write
         (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
       begin
@@ -325,7 +313,7 @@ package body Files.Job_Context is
       then
          raise Ada.Directories.Use_Error;
       end if;
-      Publish_Record (Temp, Data, Write'Access);
+      Publish_Record (Data, Write'Access);
    end Write_Stage_Record;
 
    function Begin_Stage_Record (Path : String) return String is
@@ -676,8 +664,6 @@ package body Files.Job_Context is
      (Path, Identity, Record_Directory : String)
    is
       Owner : constant String := Hostkit.Fs.Join (Path, Files.Protocol_Names.Stage_Owner_File);
-      Owner_Temp : constant String :=
-        Hostkit.Fs.Join (Path, Files.Process_Jobs.Staged_Name (Files.Protocol_Names.Stage_Owner_File));
       Owner_Directory : constant String := Stage_Owner_Directory;
       procedure Write
         (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
@@ -694,7 +680,7 @@ package body Files.Job_Context is
       then
          raise Ada.Directories.Use_Error;
       end if;
-      Publish_Record (Owner_Temp, Owner, Write'Access);
+      Publish_Record (Owner, Write'Access);
       Write_Stage_Record (Record_Directory, Path, Identity);
    end Register_Stage_Internal;
 

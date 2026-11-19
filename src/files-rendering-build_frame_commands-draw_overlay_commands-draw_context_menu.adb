@@ -6,6 +6,19 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
       declare
          Menu : constant Context_Menu_Layout :=
            Calculate_Context_Menu_Layout (Snapshot, Width, Height, Line_Height);
+
+         --  A thin divider centered in a separator row, inset by the menu's
+         --  padding, so the command groups above and below read as distinct.
+         procedure Add_Separator (Row_X, Row_Y, Row_W : Natural) is
+            Line_Inset : constant Natural := Menu.Padding;
+         begin
+            Add_Overlay_Rect
+              (Row_X + Line_Inset,
+               Row_Y + Menu.Separator_Height / 2,
+               (if Row_W > 2 * Line_Inset then Row_W - 2 * Line_Inset else Row_W),
+               1,
+               Border_Color);
+         end Add_Separator;
       begin
          if Menu.Visible then
             --  The shell consumes the next click to choose or dismiss this
@@ -42,41 +55,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                      Row_W : constant Natural := Context_Menu_Row_Width (Menu, Row);
                   begin
                      if Menu.Rows (Row).Kind = Files.Commands.Menu_Separator then
-                        --  Draw a thin divider centered in the separator row so
-                        --  the command groups above and below read as distinct.
-                        declare
-                           Line_Inset : constant Natural := Menu.Padding;
-                           Line_Width : constant Natural :=
-                             (if Row_W > 2 * Line_Inset
-                              then Row_W - 2 * Line_Inset
-                              else Row_W);
-                           Line_Y     : constant Natural :=
-                             Row_Y + Menu.Separator_Height / 2;
-                        begin
-                           Guikit.Widgets.Draw_Menu_Row
-                             (Rectangles      => Result.Overlay_Rectangles,
-                              Text            => Result.Overlay_Text,
-                              Clip_Width      => Layout.Width,
-                              Clip_Height     => Layout.Height,
-                              Row_X           => Row_X,
-                              Row_Y           => Row_Y,
-                              Row_Width       => Row_W,
-                              Row_Height      => Menu.Separator_Height,
-                              Is_Separator    => True,
-                              Separator_X     => Row_X + Line_Inset,
-                              Separator_Y     => Line_Y,
-                              Separator_Width => Line_Width,
-                              Separator_Color => Border_Color,
-                              Highlight       => False,
-                              Highlight_Color => Hover_Color,
-                              Label_X         => 0,
-                              Label_Y         => 0,
-                              Label_Width     => 0,
-                              Label_Height    => 0,
-                              Label_Text      => Null_Unbounded_String,
-                              Label_Truncated => False,
-                              Label_Color     => Text_Color);
-                        end;
+                        Add_Separator (Row_X, Row_Y, Row_W);
                      else
                         declare
                            Command : constant Files.Commands.Command_Id :=

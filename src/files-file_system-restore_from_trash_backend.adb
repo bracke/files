@@ -122,45 +122,32 @@ begin
             --  taken meanwhile, no permission): no copy.
             return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
          elsif Outcome /= Hostkit.Fs.Moved then
+            --  The trash is on another device: the move by copy every move
+            --  uses (copied into a private stage on the destination's
+            --  filesystem, journaled, published without replacing), so a
+            --  failed copy leaves Original absent. Cancellation stops new
+            --  work, but must not interrupt a restore, which is recovery.
+            --  Once the copy is on the device the restore is done. Only the
+            --  item that was copied then leaves the trash, checked by
+            --  identity and content as it is removed: one that is not it, or
+            --  cannot be synced or removed, stays with its info file
+            --  (Keep_Both), so it is still listed in the trash rather than
+            --  hidden there for good, or someone else's lost.
             declare
-               Trashed_Identity : constant String := Files.File_Identities.Token (Trashed_Path);
-               --  Its content too where the host gives it (none for a link):
-               --  the item must not have changed while it was copied either.
-               Trashed_Revision : constant String := Tree_Revision (Trashed_Path);
+               Identity, Revision : UString;
+               Copy_Kept : Boolean;
+               Moved     : constant Mutation_Result :=
+                 Recovery.Move_By_Copy
+                   (Trashed_Path, To_String (Original), "error.trash.restore_failed",
+                    Identity, Revision, Copy_Kept,
+                    Cancel          => null,
+                    If_Source_Stays => Recovery.Keep_Both,
+                    After_Copy      => After_Restore_Copy);
             begin
-               --  The trash is on another device: the staged copy every move
-               --  uses (copied into a private stage on the destination's
-               --  filesystem, journaled, published without replacing), so a
-               --  failed copy leaves Original absent. Cancellation stops new
-               --  work, but must not interrupt a restore, which is recovery.
-               declare
-                  Identity, Revision : UString;
-               begin
-                  Support.Copy_To_New_Path
-                    (Trashed_Path, To_String (Original), Identity, Revision,
-                     Cancel => null, Preserve_Ownership => True, Durable => True);
-               exception
-                  when Swallowed : others =>
-                     Files.Diagnostics.Note (Swallowed, "Files.File_System");
-                     return
-                       (Success   => False,
-                        Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
-               end;
-               if After_Restore_Copy /= null then
-                  After_Restore_Copy (Trashed_Path);
-               end if;
-               --  The restore is done; the trash copy is now redundant once the
-               --  restored copy is on the device. Only the item that was copied
-               --  goes, checked by identity and content as it is removed: one
-               --  that is not it, or cannot be synced or removed, stays with its
-               --  info file, so it is still listed in the trash rather than
-               --  hidden there for good, or someone else's lost.
-               if Trashed_Identity = ""
-                 or else not Support.Sync_Copy (Trashed_Path, To_String (Original), Files_Too => False)
-                 or else not Delete_Verified_Entry
-                   (Trashed_Path, Trashed_Identity, Trashed_Revision, Verify_Tree => Trashed_Revision /= "").Success
-               then
+               if Copy_Kept then
                   return (Success => True, Error_Key => Null_Unbounded_String);
+               elsif not Moved.Success then
+                  return Moved;
                end if;
             end;
          end if;

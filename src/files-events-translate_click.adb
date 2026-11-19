@@ -36,7 +36,7 @@ separate (Files.Events)
          return Boolean renames Guikit.Layout.Within;
 
       --  Text_Width and Focused let a click on a focused, scrolled field
-      --  (see Files.Rendering.Layouts.Input_Scroll_Columns) land on the character
+      --  (see Files.Rendering.Layouts.Field_View) land on the character
       --  drawn under it rather than one from the unscrolled text. Caret is
       --  the field's own caret, which a rename field of a multi-rename keeps
       --  per item rather than in the snapshot's single text cursor.
@@ -51,21 +51,19 @@ separate (Files.Events)
       is
          Char_W : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
          Raw    : constant String := To_String (Text);
-         Scroll : constant Natural :=
+         --  The bytes scrolled off the left edge, as the field is drawn.
+         Skip   : constant Natural :=
            (if Focused
-            then Files.Rendering.Layouts.Input_Scroll_Columns (Raw, Caret, Text_Width, Line_Height)
+            then Files.Rendering.Layouts.Field_View (Raw, Caret, Text_Width, Line_Height).Skip_Bytes
             else 0);
-         --  The drawn text starts at the byte offset for Scroll, which is
-         --  before a wide character that straddles column Scroll.
-         Skip   : constant Natural := Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Scroll);
-         Shown  : constant String := Raw (Raw'First + Natural'Min (Skip, Raw'Length) .. Raw'Last);
+         Shown  : constant String := Raw (Raw'First + Skip .. Raw'Last);
          --  Where the click is, in half cells from the start of what is drawn:
          --  which half of a character it lands on decides the side of it the
          --  caret goes, and in right-to-left text that is the other side.
          Half   : constant Natural :=
            (if Click_X <= Text_X then 0 else Guikit.Layout.Saturating_Multiply (Click_X - Text_X, 2) / Char_W);
       begin
-         return Natural'Min (Skip, Raw'Length)
+         return Skip
            + Guikit.Bidi.Cursor_At_Half_Column
                (Shown, Half, Columns => (if Text_Width = 0 then Natural'Last else Text_Width / Char_W));
       end Cursor_At;

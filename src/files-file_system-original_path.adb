@@ -146,7 +146,7 @@ function Original_Path (Trashed_Path : String) return String is
             declare
                Real : constant String := Hostkit.Fs.Canonical_Path (To_String (Current));
             begin
-               return Real /= "" and then (Real = Real_Top or else Relative_To_Top (Real, Real_Top) /= "");
+               return Real /= "" and then Path_Is_Within (Real, Real_Top);
             end;
          elsif not Files.Fs_Primitives.Entry_Is_Absent (To_String (Current)) then
             --  One that cannot be looked at may be the link off the volume:

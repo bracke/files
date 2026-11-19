@@ -33,11 +33,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
 
       procedure Add_Column_Separator (Column_X : Natural) is
       begin
-         Add_Rect
-           ((if Column_X > Guikit.Layout.Scaled (2, Line_Height)
-             then Column_X - Guikit.Layout.Scaled (2, Line_Height)
-             else 0),
-            Separator_Y, 1, Separator_H, Border_Color);
+         Add_Rect (Column_Separator_X (Column_X, Line_Height), Separator_Y, 1, Separator_H, Border_Color);
       end Add_Column_Separator;
    begin
       for Column in Files.Types.Optional_Detail_Column loop

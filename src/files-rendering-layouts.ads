@@ -5,6 +5,7 @@ with Files.Types;
 with Guikit.Item_Grid;
 with Guikit.Layout;
 with Guikit.Segmented;
+with Guikit.Text_Fields;
 
 --  Where everything a frame draws lies: the window's regions, the items, the
 --  panels and overlays, the rows of lists and menus -- worked out from a view
@@ -657,9 +658,9 @@ package Files.Rendering.Layouts is
      renames Guikit.Layout.Toolbar_Field_Margin;
 
    --  Display columns a focused single-line input scrolls off its left edge so
-   --  the caret stays visible: typing at the end of a long path used to happen
-   --  behind the field's ellipsis. Stateless, so drawing and click-to-caret
-   --  mapping derive the same offset from the same text, cursor and width.
+   --  the caret stays visible (Guikit.Layout.Input_Scroll_Columns, the rule
+   --  Field_View starts from). Stateless: the same text, cursor and width
+   --  always give the same offset.
    --
    --  @param Text Field text (UTF-8).
    --  @param Cursor Caret byte offset within Text.
@@ -672,6 +673,36 @@ package Files.Rendering.Layouts is
       Text_Width  : Natural;
       Line_Height : Positive)
       return Natural;
+
+   --  Pixel width of the caret drawn in a single-line input field.
+   Field_Caret_Width : constant := 2;
+
+   --  The visible part of a focused single-line input: the leading bytes
+   --  scrolled off its left edge and where its caret is drawn, by guikit's
+   --  one scroll and caret rule (Guikit.Text_Fields.View_Of). Drawing and
+   --  click-to-caret mapping both read it, so a click lands on the character
+   --  drawn under it.
+   --
+   --  @param Text Field text (UTF-8).
+   --  @param Cursor Caret byte offset within Text.
+   --  @param Text_Width Pixel width available to the text.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Bytes skipped and the caret's offset from the text's left edge.
+   function Field_View
+     (Text        : String;
+      Cursor      : Natural;
+      Text_Width  : Natural;
+      Line_Height : Positive)
+      return Guikit.Text_Fields.View
+   is (Guikit.Text_Fields.View_Of (Text, Cursor, Text_Width, Line_Height, Field_Caret_Width));
+
+   --  Height of the font box a line of text is drawn in: four fifths of the
+   --  line height, the size guikit renders glyphs at.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Font box height in pixels.
+   function Font_Box_Height (Line_Height : Positive) return Natural
+   is (Guikit.Layout.Saturating_Multiply (Line_Height, 4) / 5);
 
    --  Horizontal extent of a toolbar input field: the box drawn for it, which
    --  is also where a click focuses it, and inside it where the first
@@ -1122,6 +1153,31 @@ package Files.Rendering.Layouts is
      (Content_H   : Natural;
       Line_Height : Positive)
       return Natural;
+
+   --  Where the divider before a detail column is drawn: this far left of
+   --  the column's edge, in the column padding.
+   --
+   --  @param Column_X Left edge of the column in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return X of the one-pixel divider line.
+   function Column_Separator_X (Column_X : Natural; Line_Height : Positive) return Natural
+   is (Column_X - Natural'Min (Column_X, Guikit.Layout.Scaled (2, Line_Height)));
+
+   --  Half-width, in reference pixels, of the invisible band around a column
+   --  divider where a press begins a column resize: wide enough to grab,
+   --  narrow enough that a click well inside a header cell still sorts.
+   Column_Separator_Grab_Half_Width : constant := 5;
+
+   --  Whether X is within the resize grab band centred on the divider drawn
+   --  before a detail column.
+   --
+   --  @param Column_X Left edge of the column in pixels.
+   --  @param X Pointer X in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return True when a press at X grabs that column's divider.
+   function On_Column_Separator (Column_X : Natural; X : Natural; Line_Height : Positive) return Boolean
+   is (abs (Integer (X) - Integer (Column_Separator_X (Column_X, Line_Height)))
+       <= Guikit.Layout.Scaled (Column_Separator_Grab_Half_Width, Line_Height));
 
    --  Geometry of the details-view sticky column header: the content rectangle
    --  it spans the top of, its height and inner padding, and the column layout

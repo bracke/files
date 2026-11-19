@@ -16,7 +16,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
       --  bottom of the row (the leading is above it), so centre the
       --  cell square within that font box -- not the whole line --
       --  to line it up with the row label text.
-      Font_H : constant Natural := Saturating_Multiply (Line_Height, 4) / 5;
+      Font_H : constant Natural := Font_Box_Height (Line_Height);
       Cell_Top : constant Natural :=
         (if 2 * Line_Height > Font_H + Cell then Line_Height - (Font_H + Cell) / 2 + 1 else 0);
       --  Horizontal inset that centres a header letter over a cell.

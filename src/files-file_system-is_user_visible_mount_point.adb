@@ -5,8 +5,7 @@ separate (Files.File_System)
 --  gvfs folder, but not that folder itself.
 function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean is
    function Under (Container : String) return Boolean is
-     (Mount_Point'Length > Container'Length + 1
-      and then Mount_Point (Mount_Point'First .. Mount_Point'First + Container'Length) = Container & "/");
+     (Mount_Point /= Container and then Path_Is_Within (Mount_Point, Container));
 begin
    if Mount_Point = "/" then
       return True;

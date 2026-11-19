@@ -44,31 +44,15 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
          --  inactive view from assistive technology as well as dimming it;
          --  otherwise screen readers can still navigate controls that the
          --  click reducer deliberately makes unavailable.
-         Result.Accessibility.Clear;
-
-         --  Modal backdrop and panel body.
-         Add_Overlay_Rect (0, 0, Width, Height, Modal_Backdrop_Color);
-         Add_Overlay_Drop_Shadow (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height);
-         Add_Overlay_Rect (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, Overlay_Color);
-         Add_Overlay_Border (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, Border_Color);
-         Add_Accessibility_Node
-           (Role_Dialog, Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height,
-            Localized ("dialog.paste_conflict.title"));
+         Draw_Modal_Chrome
+           (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, Overlay_Color, Role_Dialog,
+            Localized ("dialog.paste_conflict.title"),
+            Backdrop => True);
 
          --  Conflicting name and the "already exists" line.
-         if Dialog.Message_Height > 0 then
-            Add_Overlay_Text
-              (Dialog.Message_X, Dialog.Message_Y,
-               Dialog.Message_Width, Natural'Min (Line_Height, Dialog.Message_Height),
-               Snapshot.Paste_Conflict_Name, Text_Color, Fit => True);
-         end if;
-         if Dialog.Message_Height > Line_Height then
-            Add_Overlay_Text
-              (Dialog.Message_X, Guikit.Layout.Saturating_Add (Dialog.Message_Y, Line_Height),
-               Dialog.Message_Width,
-               Natural'Min (Line_Height, Dialog.Message_Height - Line_Height),
-               Localized ("dialog.paste_conflict.exists"), Text_Color, Fit => True);
-         end if;
+         Draw_Dialog_Message
+           (Dialog.Message_X, Dialog.Message_Y, Dialog.Message_Width, Dialog.Message_Height,
+            Snapshot.Paste_Conflict_Name, Localized ("dialog.paste_conflict.exists"), Text_Color);
 
          --  "Apply to all remaining" toggle row.
          declare

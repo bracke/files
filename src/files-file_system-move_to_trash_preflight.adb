@@ -63,7 +63,7 @@ is
      (Child  : String;
       Parent : String)
       return Boolean is
-     (Hostkit.Fs.Is_Same_Or_Inside (Normalized_Text (Child), Normalized_Text (Parent)));
+     (Path_Is_Within (Normalized_Text (Child), Normalized_Text (Parent)));
 
    --  A volume's trash (.Trash-$uid, .Trash/$uid), or anything in it: its
    --  files/ and info/ would go into themselves.

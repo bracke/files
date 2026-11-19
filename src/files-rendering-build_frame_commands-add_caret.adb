@@ -1,21 +1,14 @@
-with Guikit.Bidi;
 separate (Files.Rendering.Build_Frame_Commands)
    procedure Add_Caret
      (Region  : Files.Rendering.Layouts.Field_Text_Region;
       Y       : Natural;
       Field_H : Natural;
-      Text    : UString;
-      Cursor  : Natural)
+      Caret_X : Natural)
    is
-      Char_W  : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
-      Raw     : constant String := To_String (Text);
-      --  From the text's own origin (padding and any star reserve already
-      --  taken, as the click-to-caret mapping reads them), clamped inside the box;
-      --  in right-to-left text, beside the character as it is drawn.
-      Raw_X   : constant Natural :=
-        Guikit.Layout.Saturating_Add
-          (Region.X,
-           Saturating_Multiply (Guikit.Bidi.Caret_Column (Raw, Cursor, Columns => Region.Width / Char_W), Char_W));
+      --  Caret_X pixels from the text's own origin (padding and any star
+      --  reserve already taken, as the click-to-caret mapping reads them),
+      --  clamped inside the box.
+      Raw_X   : constant Natural := Guikit.Layout.Saturating_Add (Region.X, Caret_X);
       Field_W : constant Natural := Region.Field_Width;
       Max_X   : constant Natural :=
         (if Field_W > 2 then Guikit.Layout.Saturating_Add (Region.Field_X, Field_W - 2) else Region.Field_X);
@@ -26,7 +19,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       Caret_H : constant Natural :=
         Natural'Min
           ((if Field_H > 2 then Field_H - 2 else Field_H),
-           Positive'Max (1, Saturating_Multiply (Line_Height, 4) / 5));
+           Positive'Max (1, Font_Box_Height (Line_Height)));
       --  Glyph ink sits in the lower part of its cell, so a geometrically
       --  centered caret reads as floating too high above the text. Nudge it
       --  down toward the baseline, clamped so it stays inside the field.
@@ -39,7 +32,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                 (Centered (Field_H, Caret_H),
                  Descent_Bias)),
            (if Field_H > Caret_H then Guikit.Layout.Saturating_Add (Y, Field_H - Caret_H) else Y));
-      Caret_W : constant Natural := Natural'Min (2, Field_W);
+      Caret_W : constant Natural := Natural'Min (Field_Caret_Width, Field_W);
    begin
       if Field_W > 0 and then Caret_H > 4 then
          Guikit.Widgets.Draw_Caret

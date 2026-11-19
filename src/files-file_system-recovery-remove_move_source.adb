@@ -3,7 +3,8 @@ separate (Files.File_System.Recovery)
      (Path         : String;
       Expected     : Support.Source_Snapshot;
       Fallback_Key : String;
-      Set_Aside    : out Boolean) return Mutation_Result
+      Set_Aside    : out Boolean;
+      Cancel       : Cancellation_Check := Job_Cancelled) return Mutation_Result
    is
       use type Files.Types.String_Vectors.Vector;
       Backup : UString;
@@ -20,7 +21,7 @@ separate (Files.File_System.Recovery)
       --  A metadata-only early check: the full content check below runs on
       --  the privately renamed source, which nothing else can then replace,
       --  so reading every file here as well only doubled the cost.
-      if not Same_Shape (Snapshot (Path, Content => False), Expected) then
+      if not Same_Shape (Snapshot (Path, Content => False, Cancel => Cancel), Expected) then
          return Changed;
       end if;
       declare
@@ -40,7 +41,9 @@ separate (Files.File_System.Recovery)
       --  Check the private source too. Its rename changes the root's ctime;
       --  descendants and all identities, sizes, modes and mtimes must match.
       begin
-         if Snapshot (To_String (Backup), Change_Times => Trust_Of (Expected)).Entries /= Expected.Entries then
+         if Snapshot (To_String (Backup), Cancel => Cancel, Change_Times => Trust_Of (Expected)).Entries /=
+           Expected.Entries
+         then
             raise Ada.Directories.Use_Error;
          end if;
       exception

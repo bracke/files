@@ -35,13 +35,16 @@ package body Files.File_System.Recovery is
    --  @param Set_Aside Set when the source had changed since the copy and
    --    could not be put back: it is then only in its recovery stage, still
    --    registered, and the caller must keep its copy.
+   --  @param Cancel What stops its checks: the job's cancellation unless
+   --    given another, null for none.
    --  @return Failure leaves the source at its pathname unless Set_Aside;
    --    success vacates its pathname.
    function Remove_Move_Source
      (Path         : String;
       Expected     : Support.Source_Snapshot;
       Fallback_Key : String;
-      Set_Aside    : out Boolean) return Mutation_Result;
+      Set_Aside    : out Boolean;
+      Cancel       : Cancellation_Check := Job_Cancelled) return Mutation_Result;
 
    use Ada.Strings.Unbounded;
    use Files.File_System.Support;
@@ -591,7 +594,8 @@ package body Files.File_System.Recovery is
      (Path         : String;
       Expected     : Support.Source_Snapshot;
       Fallback_Key : String;
-      Set_Aside    : out Boolean) return Mutation_Result
+      Set_Aside    : out Boolean;
+      Cancel       : Cancellation_Check := Job_Cancelled) return Mutation_Result
    is separate;
 
    function Move_By_Copy
@@ -600,7 +604,9 @@ package body Files.File_System.Recovery is
       Identity, Revision  : out Files.Types.UString;
       Copy_Kept           : out Boolean;
       Cancel              : Cancellation_Check := Job_Cancelled;
-      Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
+      If_Source_Stays     : Unremoved_Source_Rule := Take_Copy_Back;
+      After_Copy          : Copy_Hook := null)
       return Mutation_Result
    is separate;
 

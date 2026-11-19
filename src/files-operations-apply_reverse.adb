@@ -19,6 +19,33 @@ is
    function Trashed (Item : Files.Model.Undo_Item) return Files.Model.Replaced_Original is
      ((Trash => Item.From, Identity => Item.Identity, Target => Item.To));
    Restored  : Path_Sets.Set := To_Set (Action.Restores_Completed);
+
+   --  Remove Path, an entry this action created, if it is still that entry:
+   --  Identity matches, and Delete_Created_Entry checks Tree_Revision as it
+   --  removes it. A path gone for sure is already removed; one the host will
+   --  not answer for, or another entry under the name, is not, and a retry
+   --  repeats the step. A removed path is marked reversed and the journal
+   --  checkpointed (Force: written now rather than when next due), so a
+   --  retry never deletes what a restore has since put there.
+   function Remove_Created
+     (Path : Files.Types.UString; Identity, Tree_Revision : String; Force : Boolean) return Boolean
+   is
+      Target : constant String := To_String (Path);
+   begin
+      if Reversed.Contains (Target) then
+         return True;
+      elsif not Files.Fs_Primitives.Entry_Is_Absent (Target)
+        and then (Identity = ""
+          or else Files.File_Identities.Token (Target) /= Identity
+          or else not Files.File_System.Delete_Created_Entry (Target, Identity, Tree_Revision).Success)
+      then
+         return False;
+      end if;
+      Action.Reverse_Completed.Append (Path);
+      Reversed.Include (Target);
+      Files.History_Journal.Checkpoint (Model, Action, Files.Model.Undo_Side, Force => Force);
+      return True;
+   end Remove_Created;
 begin
    --  Copies a failed move kept beside their sources leave first: before
    --  anything moves back, and before an original a replace preserved is
@@ -28,27 +55,9 @@ begin
       if Files.Job_Context.Cancelled then
          return False;
       end if;
-      declare
-         Target : constant String := To_String (Copy.Path);
-         Identity : constant String := To_String (Copy.Identity);
-         Tree_Revision : constant String := To_String (Copy.Tree_Revision);
-      begin
-         if Reversed.Contains (Target) then
-            null;
-         --  A copy the host will not answer for is not taken as gone: the
-         --  step fails and a retry repeats it.
-         elsif not Files.Fs_Primitives.Entry_Is_Absent (Target)
-           and then (Identity = ""
-             or else Files.File_Identities.Token (Target) /= Identity
-             or else not Files.File_System.Delete_Created_Entry (Target, Identity, Tree_Revision).Success)
-         then
-            Succeeded := False;
-         else
-            Action.Reverse_Completed.Append (Copy.Path);
-            Reversed.Include (Target);
-            Files.History_Journal.Checkpoint (Model, Action, Files.Model.Undo_Side);
-         end if;
-      end;
+      if not Remove_Created (Copy.Path, To_String (Copy.Identity), To_String (Copy.Tree_Revision), Force => True) then
+         Succeeded := False;
+      end if;
    end loop;
    --  An original goes back only to a path no kept copy still holds.
    if not Succeeded then
@@ -91,27 +100,14 @@ begin
                return False;
             end if;
             declare
-               Target : constant String := To_String (Action.Items (Index).From);
-               Expected_Identity : constant String := To_String (Action.Items (Index).Identity);
-               Expected_Tree_Revision : constant String := To_String (Action.Items (Index).Tree_Revision);
+               Item : constant Files.Model.Undo_Item := Action.Items (Index);
             begin
-               if Reversed.Contains (To_String (Action.Items (Index).From)) then
-                  null;
-               elsif not Files.Fs_Primitives.Entry_Is_Absent (Target)
-                 and then (Expected_Identity = ""
-                           or else Files.File_Identities.Token (Target) /= Expected_Identity)
+               --  A retry treats a path already gone as removed, so its
+               --  checkpoint can wait.
+               if not Remove_Created
+                 (Item.From, To_String (Item.Identity), To_String (Item.Tree_Revision), Force => False)
                then
                   Succeeded := False;
-               elsif not Files.Fs_Primitives.Entry_Is_Absent (Target)
-                 and then not Files.File_System.Delete_Created_Entry
-                   (Target, Expected_Identity, Expected_Tree_Revision).Success
-               then
-                  Succeeded := False;
-               else
-                  Action.Reverse_Completed.Append (Action.Items (Index).From);
-                  Reversed.Include (To_String (Action.Items (Index).From));
-                  --  A retry treats a path already gone as removed.
-                  Files.History_Journal.Checkpoint (Model, Action, Files.Model.Undo_Side, Force => False);
                end if;
             end;
          end loop;

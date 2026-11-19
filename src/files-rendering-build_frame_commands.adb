@@ -602,6 +602,17 @@ separate (Files.Rendering)
          Overlay : Boolean)
  is separate;
 
+      --  The chrome of a modal overlay panel, which owns input while open: the inactive view leaves the
+      --  accessibility frame, a Backdrop dims the window, then its shadow, Fill, border and accessibility node.
+      procedure Draw_Modal_Chrome
+        (X, Y, Panel_W, Panel_H : Natural;
+         Fill                   : Render_Color;
+         Role                   : Accessibility_Role;
+         Name                   : UString;
+         Description            : UString := Null_Unbounded_String;
+         Backdrop               : Boolean := False)
+ is separate;
+
       procedure Add_Hover_Tooltip is separate;
 
       function Icon_Theme_Name return String is (Files.Icon_Themes.Image (Snapshot.Icon_Theme));
@@ -625,8 +636,7 @@ separate (Files.Rendering)
         (Region  : Files.Rendering.Layouts.Field_Text_Region;
          Y       : Natural;
          Field_H : Natural;
-         Text    : UString;
-         Cursor  : Natural)
+         Caret_X : Natural)
  is separate;
 
       function Icon_Color (Kind : Files.Types.Item_Kind) return Render_Color is separate;

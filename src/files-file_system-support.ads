@@ -27,7 +27,7 @@ private package Files.File_System.Support is
    --  @return False when any sync failed; a host that cannot sync
    --    directories (Not_Supported) does not count as a failure.
    --  @param Files_Too False when the walk already flushed every file
-   --    (Copy_To_New_Path's Durable): then only the folders are synced.
+   --    (a For_Move Copy_To_New_Path): then only the folders are synced.
    function Sync_Copy (Source, Destination : String; Files_Too : Boolean := True) return Boolean;
 
    --  Whether environment variable Name equals Expected, compared
@@ -102,6 +102,12 @@ private package Files.File_System.Support is
    function Copy_May_Replace_Move (Outcome : Hostkit.Fs.Move_Outcome) return Boolean is
      (Outcome in Hostkit.Fs.Move_Cross_Device | Hostkit.Fs.Move_Unsupported);
 
+   --  What a copy is for: a plain copy, or the copy a move makes before it
+   --  removes the source. A move's copy must keep the source's owner before
+   --  it is published, and flushes each file to the device as it writes it
+   --  (Sync_Copy then needs only the folders).
+   type Copy_Purpose is (For_Copy, For_Move);
+
    type Copied_File is record
       Path, Identity, Source_Revision, Destination_Revision, Content_Digest : Files.Types.UString;
    end record;
@@ -112,18 +118,18 @@ private package Files.File_System.Support is
    --  @param Source_Path Source file, directory, or symbolic link.
    --  @param Destination_Path New destination pathname.
    --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
-   --  @param Preserve_Ownership Require original ownership before publishing a move.
+   --  @param Purpose A plain copy, or a move's (see Copy_Purpose).
    --  @param Batch Shared journal for hard links across copied roots.
    procedure Copy_To_New_Path
      (Source_Path : String; Destination_Path : String; Cancel : Cancellation_Check := Job_Cancelled;
-      Preserve_Ownership : Boolean := False;
+      Purpose : Copy_Purpose := For_Copy;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
 
    --  @param Source_Path Source file, directory, or symbolic link.
    --  @param Destination_Path New destination pathname.
    --  @param Identity Identity captured before publishing the new destination.
    --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
-   --  @param Preserve_Ownership Require original ownership before publishing a move.
+   --  @param Purpose A plain copy, or a move's (see Copy_Purpose).
    --  @param Batch Shared journal for hard links across copied roots.
    --  @param Times Source times captured before a move's verification traversal.
    procedure Copy_To_New_Path
@@ -131,7 +137,7 @@ private package Files.File_System.Support is
       Identity : out Files.Types.UString;
       Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
-      Preserve_Ownership : Boolean := False;
+      Purpose : Copy_Purpose := For_Copy;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
 
    --  Copy and return identity plus a directory or regular-file revision.
@@ -141,22 +147,18 @@ private package Files.File_System.Support is
    --  @param Tree_Revision_Value Stable revision captured before publication; empty for links.
    --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
    --  @param Times Source times captured before verification reads the source.
-   --  @param Preserve_Ownership Require original ownership before publishing a move.
+   --  @param Purpose A plain copy, or a move's (see Copy_Purpose).
    --  @param Batch Shared journal for hard links across copied roots.
    --  @param Root_Digest When given, set to the SHA-256 of the bytes copied
    --    for a regular-file root, as read during the copy; empty otherwise.
-   --  @param Durable Flush each copied file to the device as it is written
-   --    (a move, which removes its source afterwards); Sync_Copy then needs
-   --    only the folders.
    procedure Copy_To_New_Path
      (Source_Path, Destination_Path : String;
       Identity, Tree_Revision_Value : out Files.Types.UString;
       Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
-      Preserve_Ownership : Boolean := False;
+      Purpose : Copy_Purpose := For_Copy;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
-      Root_Digest : access Files.Types.UString := null;
-      Durable : Boolean := False);
+      Root_Digest : access Files.Types.UString := null);
 
    --  Whether the change times of the filesystem holding Path cannot pin an
    --  edit: a DOS-family one (FAT, exFAT), where setting the modification
@@ -254,7 +256,7 @@ private package Files.File_System.Support is
    --  @param Cancel Checked between entries and file chunks: the job's
    --    cancellation unless given another, null for none.
    --  @param Times Optional times captured before verification reads the source.
-   --  @param Preserve_Ownership Require original ownership for a copy-based move.
+   --  @param Purpose A plain copy, or a move's (see Copy_Purpose).
    --  @param Batch Shared journal for hard links across copied roots.
    procedure Copy_Tree
      (Source_Path      : String;
@@ -262,7 +264,7 @@ private package Files.File_System.Support is
       Depth            : Natural := 0;
       Cancel           : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
-      Preserve_Ownership : Boolean := False;
+      Purpose : Copy_Purpose := For_Copy;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
 
    --  Remove a private or identity-verified owned copy, releasing directory

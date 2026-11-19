@@ -175,15 +175,11 @@ package body Files.Copy_Context is
       Path : constant String :=
         (if Batch_Directory = "" then ""
          else Hostkit.Fs.Join (Batch_Directory, "links"));
-      Temp : constant String :=
-        (if Batch_Directory = "" then ""
-         else Hostkit.Fs.Join (Batch_Directory, "links.tmp"));
       --  Attribute encodings have a small implementation-defined overhead.
       --  Charge a conservative 16 bytes per string and enough for the header
       --  and vector count so the writer cannot create a journal its reader
       --  must reject for exceeding Max_Links_File_Bytes.
       Total : Natural := Links_Header'Length + 32;
-      Temp_Identity : Unbounded_String;
 
       procedure Write_Links (Output : not null access Ada.Streams.Root_Stream_Type'Class) is
       begin
@@ -198,8 +194,9 @@ package body Files.Copy_Context is
          return;
       end if;
       --  refusal-safe: a batch folder not seen refuses the write; a links
-      --  file or temporary not seen is still never written over -- the
-      --  temporary is created exclusively, and only it replaces the file.
+      --  file not seen is still never written over -- the temporary is
+      --  created exclusively (Write_And_Publish), and only it replaces the
+      --  file.
       if Hostkit.Fs.Is_Link (Batch_Directory)
         --  refusal-safe: as above.
         or else not Files.Fs_Primitives.Exists (Batch_Directory)
@@ -208,9 +205,6 @@ package body Files.Copy_Context is
         --  refusal-safe: as above.
         or else (Files.Fs_Primitives.Exists (Path)
           and then Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Ordinary_File)
-        or else Hostkit.Fs.Is_Link (Temp)
-        --  refusal-safe: as above.
-        or else Files.Fs_Primitives.Exists (Temp)
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -225,16 +219,8 @@ package body Files.Copy_Context is
          end if;
          Total := Total + Length (Item) + 16;
       end loop;
-      Files.Durable_Writes.Write_Private_File (Temp, Write_Links'Access, Temp_Identity);
-      if not Files.Durable_Writes.Published
-        (Files.Durable_Writes.Publish (Temp, Path))
-      then
+      if not Files.Durable_Writes.Published (Files.Durable_Writes.Write_And_Publish (Path, Write_Links'Access)) then
          raise Ada.Directories.Use_Error;
       end if;
-      Temp_Identity := Null_Unbounded_String;
-   exception
-      when others =>
-         Files.Durable_Writes.Remove_Owned (Temp, To_String (Temp_Identity));
-         raise;
    end Save;
 end Files.Copy_Context;

@@ -5,17 +5,21 @@ separate (Files.File_System.Recovery)
       Identity, Revision  : out Files.Types.UString;
       Copy_Kept           : out Boolean;
       Cancel              : Cancellation_Check := Job_Cancelled;
-      Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
+      If_Source_Stays     : Unremoved_Source_Rule := Take_Copy_Back;
+      After_Copy          : Copy_Hook := null)
       return Mutation_Result
    is
       Copied : Boolean := False;
 
-      --  Against the revision published, so anything added to the copy
-      --  since is never deleted.
+      --  The published copy, once the source cannot be removed: taken back
+      --  against the revision published, so anything added to it since is
+      --  never deleted, or kept where If_Source_Stays says so.
       procedure Discard_Copy is
       begin
          Copy_Kept :=
-           not Delete_Created_Entry (Destination, To_String (Identity), To_String (Revision)).Success;
+           If_Source_Stays = Keep_Both
+           or else not Delete_Created_Entry (Destination, To_String (Identity), To_String (Revision)).Success;
       end Discard_Copy;
    begin
       Identity := Null_Unbounded_String;
@@ -31,6 +35,7 @@ separate (Files.File_System.Recovery)
            Support.Snapshot
              (Source,
               Content      => Weak_Change_Time,
+              Cancel       => Cancel,
               Change_Times =>
                 (if Weak_Change_Time then Support.Distrust_Change_Times else Support.Trust_Change_Times));
          Digest    : aliased Files.Types.UString;
@@ -38,8 +43,11 @@ separate (Files.File_System.Recovery)
       begin
          Support.Copy_To_New_Path
            (Source, Destination, Identity, Revision, Cancel, Shape.Times,
-            Preserve_Ownership => True, Batch => Batch, Root_Digest => Digest'Access, Durable => True);
+            Purpose => Support.For_Move, Batch => Batch, Root_Digest => Digest'Access);
          Copied := True;
+         if After_Copy /= null then
+            After_Copy (Source);
+         end if;
          --  The source goes next; the copy must be on the device first. Its
          --  files were flushed as they were written; its folders are now.
          if not Support.Sync_Copy (Source, Destination, Files_Too => False) then
@@ -49,7 +57,7 @@ separate (Files.File_System.Recovery)
             Expected : constant Support.Source_Snapshot :=
               (if Weak_Change_Time then Shape else Support.With_Root_Content (Shape, To_String (Digest)));
             Removed : constant Mutation_Result :=
-              Remove_Move_Source (Source, Expected, Fallback_Key, Set_Aside);
+              Remove_Move_Source (Source, Expected, Fallback_Key, Set_Aside, Cancel);
          begin
             if not Removed.Success then
                if Set_Aside then

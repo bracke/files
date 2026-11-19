@@ -152,7 +152,6 @@ separate (Files_Suite.History)
            (Rejected
             and then not Ada.Directories.Exists ("relative-history-directory"),
             "history snapshots reject relative transport directories");
-         Rejected := False;
          Assert
            (not Files.History_Journal.Restore
               (Root & Character'Val (0) & "history-directory", Model),
@@ -163,19 +162,16 @@ separate (Files_Suite.History)
          if Hostkit.Fs.Create_Link
            (Victim, Join (Write_Directory, "history.tmp"))
          then
-            begin
-               Files.History_Journal.Save_Stacks
-                 (Write_Directory,
-                  Files.Model.History.Undo_Entries (Model),
-                  Files.Model.History.Redo_Entries (Model),
-                  Required => True);
-            exception
-               when Ada.Directories.Use_Error =>
-                  Rejected := True;
-            end;
+            Files.History_Journal.Save_Stacks
+              (Write_Directory,
+               Files.Model.History.Undo_Entries (Model),
+               Files.Model.History.Redo_Entries (Model),
+               Required => True);
             Assert
-              (Rejected and then File_Is (Victim, "protected history target"),
-               "history snapshots refuse a temporary symlink without truncating its target");
+              (File_Is (Victim, "protected history target")
+               and then Hostkit.Fs.Is_Link (Join (Write_Directory, "history.tmp"))
+               and then Ada.Directories.Exists (Join (Write_Directory, "history")),
+               "history snapshots pass over a temporary symlink without truncating its target");
          else
             Files_Suite.Support.Disk.Link_Not_Made ("Test_Undo_Redo_History", Files_Suite.Support.Disk.Symbolic_Link);
          end if;

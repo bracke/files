@@ -30,32 +30,16 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
          --  or cancellation.  Match that blocking behavior visually and in
          --  the accessibility tree instead of leaving inactive controls
          --  apparently available behind the panel.
-         Result.Accessibility.Clear;
-         Add_Overlay_Rect (0, 0, Width, Height, Modal_Backdrop_Color);
-         Add_Overlay_Drop_Shadow (Panel.X, Panel.Y, Panel.Width, Panel.Height);
-
-         --  Blocking progress panel body and border.
-         Add_Overlay_Rect (Panel.X, Panel.Y, Panel.Width, Panel.Height, Overlay_Color);
-         Add_Overlay_Border (Panel.X, Panel.Y, Panel.Width, Panel.Height, Border_Color);
-         Add_Accessibility_Node
-           (Role_Dialog, Panel.X, Panel.Y, Panel.Width, Panel.Height,
+         Draw_Modal_Chrome
+           (Panel.X, Panel.Y, Panel.Width, Panel.Height, Overlay_Color, Role_Dialog,
             (if Length (Progress.Operation_Label) > 0 then Localized (Verb_Key)
-             else Localized ("dialog.paste_progress.title")));
+             else Localized ("dialog.paste_progress.title")),
+            Backdrop => True);
 
          --  "Copying/Moving N of M" plus the current item name.
-         if Panel.Message_Height > 0 then
-            Add_Overlay_Text
-              (Panel.Message_X, Panel.Message_Y,
-               Panel.Message_Width, Natural'Min (Line_Height, Panel.Message_Height),
-               Count_Line, Text_Color, Fit => True);
-         end if;
-         if Panel.Message_Height > Line_Height then
-            Add_Overlay_Text
-              (Panel.Message_X, Guikit.Layout.Saturating_Add (Panel.Message_Y, Line_Height),
-               Panel.Message_Width,
-               Natural'Min (Line_Height, Panel.Message_Height - Line_Height),
-               Progress.Name, Muted_Text_Color, Fit => True);
-         end if;
+         Draw_Dialog_Message
+           (Panel.Message_X, Panel.Message_Y, Panel.Message_Width, Panel.Message_Height,
+            Count_Line, Progress.Name, Muted_Text_Color);
 
          --  Progress bar: track + fill proportional to Done/Total, top border.
          Guikit.Widgets.Draw_Meter

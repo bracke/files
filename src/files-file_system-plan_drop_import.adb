@@ -85,10 +85,7 @@ is
       --  otherwise conceal that it points into the source tree. A root path
       --  already ends in a separator, so every longer path is beneath it.
       --  Where names fold case, C:\Data\Proj and c:\data\proj are one folder.
-      if Hostkit.Fs.Is_Same_Or_Inside (I, O)
-        or else (Hostkit.Fs.Folds_Name_Case (O)
-                 and then Hostkit.Fs.Is_Same_Or_Inside (Files.Types.Fold_Case (I), Files.Types.Fold_Case (O)))
-      then
+      if Path_Is_Within (I, O) then
          return True;
       end if;
       --  And by identity, whatever the spelling: Outer is the folder itself

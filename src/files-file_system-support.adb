@@ -672,12 +672,12 @@ package body Files.File_System.Support is
 
    procedure Copy_To_New_Path
      (Source_Path : String; Destination_Path : String; Cancel : Cancellation_Check := Job_Cancelled;
-      Preserve_Ownership : Boolean := False;
+      Purpose : Copy_Purpose := For_Copy;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session) is
       Identity : Files.Types.UString;
    begin
       Copy_To_New_Path (Source_Path, Destination_Path, Identity, Cancel,
-                        Preserve_Ownership => Preserve_Ownership, Batch => Batch);
+                        Purpose => Purpose, Batch => Batch);
    end Copy_To_New_Path;
 
    procedure Copy_To_New_Path
@@ -685,14 +685,14 @@ package body Files.File_System.Support is
       Identity : out Files.Types.UString;
       Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
-      Preserve_Ownership : Boolean := False;
+      Purpose : Copy_Purpose := For_Copy;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
    is
       Tree_Revision_Value : Files.Types.UString;
    begin
       Copy_To_New_Path
         (Source_Path, Destination_Path, Identity, Tree_Revision_Value, Cancel, Times,
-         Preserve_Ownership, Batch);
+         Purpose, Batch);
    end Copy_To_New_Path;
 
    --  Give a copy just published from its private stage the access its new
@@ -743,19 +743,18 @@ package body Files.File_System.Support is
       Identity, Tree_Revision_Value : out Files.Types.UString;
       Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
-      Preserve_Ownership : Boolean := False;
+      Purpose : Copy_Purpose := For_Copy;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
-      Root_Digest : access Files.Types.UString := null;
-      Durable : Boolean := False)
+      Root_Digest : access Files.Types.UString := null)
    is
       Stage : UString;
       Walk  : Copy_Walk :=
         (Cancel                 => Cancel,
          Times                  => Times,
-         Preserve_Ownership     => Preserve_Ownership,
+         Preserve_Ownership     => Purpose = For_Move,
          Copied_Files           => Load_Links (Batch),
          Shared_Batch           => Files.Copy_Context.Directory (Batch) /= "",
-         Durable                => Durable,
+         Durable                => Purpose = For_Move,
          Want_Root_Digest       => True,
          Root_Digest            => Null_Unbounded_String);
       Copied_Digest : Files.Types.UString renames Walk.Root_Digest;
@@ -1329,14 +1328,15 @@ package body Files.File_System.Support is
       Depth : Natural := 0;
       Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
-      Preserve_Ownership : Boolean := False;
+      Purpose : Copy_Purpose := For_Copy;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session) is
       Walk : Copy_Walk :=
         (Cancel                 => Cancel,
          Times                  => Times,
-         Preserve_Ownership     => Preserve_Ownership,
+         Preserve_Ownership     => Purpose = For_Move,
          Copied_Files           => Load_Links (Batch),
          Shared_Batch           => Files.Copy_Context.Directory (Batch) /= "",
+         Durable                => Purpose = For_Move,
          others                 => <>);
    begin
       Check_Copy_Destination (Source_Path, Destination_Path);

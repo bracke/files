@@ -4,30 +4,9 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
    begin
       --  The selector owns pointer and keyboard input while open.  Keep the
       --  inactive file view out of the accessibility frame.
-      Result.Accessibility.Clear;
-      if Root_Selector.Width > 0 and then Root_Selector.Height > 0 then
-         Add_Overlay_Drop_Shadow
-           (Root_Selector.X,
-            Root_Selector.Y,
-            Root_Selector.Width,
-            Root_Selector.Height);
-         Add_Overlay_Rect
-           (Root_Selector.X,
-            Root_Selector.Y,
-            Root_Selector.Width,
-            Root_Selector.Height,
-            Overlay_Color);
-         Add_Overlay_Border
-           (Root_Selector.X, Root_Selector.Y,
-            Root_Selector.Width, Root_Selector.Height, Border_Color);
-      end if;
-      Add_Accessibility_Node
-        (Role_List,
-         Root_Selector.X,
-         Root_Selector.Y,
-         Root_Selector.Width,
-         Root_Selector.Height,
-         Localized ("accessibility.root_selector"));
+      Draw_Modal_Chrome
+        (Root_Selector.X, Root_Selector.Y, Root_Selector.Width, Root_Selector.Height,
+         Overlay_Color, Role_List, Localized ("accessibility.root_selector"));
 
       if Natural (Root_Rows.Length) > 0 then
          declare

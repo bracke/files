@@ -1,6 +1,36 @@
 separate (Files.Rendering.Build_Frame_Commands)
    --  The window background and the toolbar: its buttons, then its fields.
    procedure Draw_Toolbar is
+      --  A toolbar field's state drawn over its box: the border while it is
+      --  focused or its text is invalid (in the error colour then), else the
+      --  hover border; the pressed border; and while focused the focus ring
+      --  and the caret, Caret_X pixels from the text's left edge.
+      procedure Draw_Field_State
+        (Region  : Field_Text_Region;
+         Focused : Boolean;
+         Valid   : Boolean;
+         Caret_X : Natural)
+      is
+         Box_X : constant Natural := Region.Field_X;
+         Box_W : constant Natural := Region.Field_Width;
+      begin
+         if Focused or else not Valid then
+            Add_Border
+              (Box_X, Toolbar_Input_Y, Box_W, Toolbar_Input_H, (if Valid then Border_Color else Input_Error_Color));
+         elsif Has_Hover
+           and then Contains_Point (Box_X, Toolbar_Input_Y, Box_W, Toolbar_Input_H, Hover_X, Hover_Y)
+         then
+            Add_Border (Box_X, Toolbar_Input_Y, Box_W, Toolbar_Input_H, Hover_Color);
+         end if;
+         if Is_Pressed (Box_X, Toolbar_Input_Y, Box_W, Toolbar_Input_H) then
+            Add_Border (Box_X, Toolbar_Input_Y, Box_W, Toolbar_Input_H, Pressed_Color);
+         end if;
+         if Focused then
+            Add_Focus_Ring (Box_X, Toolbar_Input_Y, Box_W, Toolbar_Input_H);
+            Add_Caret (Region, Toolbar_Input_Y, Toolbar_Input_H, Caret_X);
+         end if;
+      end Draw_Field_State;
+
       procedure Draw_Path_Bar is separate;
       procedure Draw_Filter_Field is separate;
       procedure Draw_View_Switcher is separate;

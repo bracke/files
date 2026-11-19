@@ -108,16 +108,12 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
 
       if Header_H > 0 then
          declare
-            --  The separator sits this far left of its column, in the
-            --  (scaled) column padding; the accent rule is this tall.
-            Offset : constant Natural := Guikit.Layout.Scaled (2, Line_Height);
+            --  The accent rule is this tall.
             Rule_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (2, Line_Height), Header_H);
          begin
             for Column in Files.Types.Optional_Detail_Column loop
                if Columns (Column).Visible then
-                  Add_Rect
-                    ((if Columns (Column).X > Offset then Columns (Column).X - Offset else 0),
-                     Header_Y, 1, Header_H, Border_Color);
+                  Add_Rect (Column_Separator_X (Columns (Column).X, Line_Height), Header_Y, 1, Header_H, Border_Color);
                end if;
             end loop;
             Add_Rect

@@ -1,8 +1,7 @@
 separate (Files_Suite.Rendering)
-   --  A focused filter field scrolled so that column Scroll falls inside a
-   --  wide character: the drawing starts at that character, one column
-   --  before Scroll, so a click must count columns from there. Counting from
-   --  Scroll put the caret one character to the right of the one clicked.
+   --  A focused filter field scrolled so that column 2 falls inside a wide
+   --  character: the character scrolls off whole and the drawing starts after
+   --  it, so a click must count columns from there, not from column 2.
    procedure Test_Click_In_Scrolled_Field_Hits_Drawn_Character
      (T : in out AUnit.Test_Cases.Test_Case'Class)
    is
@@ -28,8 +27,8 @@ separate (Files_Suite.Rendering)
       end loop;
       Assert (Caret > 0, "some caret scrolls the field by exactly two columns");
       Files_Suite.Support.Assert_Equal
-        (Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, 2), 1,
-         "the drawing starts before the wide character that straddles column 2");
+        (Field_View (Raw, Caret, Filter.Width, LH).Skip_Bytes, 1 + Wide'Length,
+         "the wide character that straddles column 2 scrolls off with the a before it");
 
       declare
          Snapshot : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
@@ -39,8 +38,8 @@ separate (Files_Suite.Rendering)
          Snapshot.Text_Cursor_Position := Caret;
          declare
             Frame  : constant Frame_Commands := Build_Frame_Commands (Snapshot, Width, Height, LH);
-            --  Drawn from column 1: the wide character, b, c, then d at four
-            --  columns in. A click on that boundary puts the caret before d.
+            --  Drawn from column 3: b, c, d, e, then f at four columns in. A
+            --  click on that boundary puts the caret before f.
             Action : constant Files.Events.Input_Action :=
               Files.Events.Translate_Click
                 (Snapshot, Frame, Filter.X + 4 * Char_W, Guikit.Layout.Toolbar_Input_Y (LH) + 2,
@@ -48,8 +47,8 @@ separate (Files_Suite.Rendering)
          begin
             Assert (Action.Kind = Files.Events.Text_Click_Input_Action, "the click focuses the filter text");
             Files_Suite.Support.Assert_Equal
-              (Action.Cursor_Position, 1 + Wide'Length + 2,
-               "the caret lands before d, the character drawn under the click");
+              (Action.Cursor_Position, 1 + Wide'Length + 4,
+               "the caret lands before f, the character drawn under the click");
          end;
       end;
    end Test_Click_In_Scrolled_Field_Hits_Drawn_Character;

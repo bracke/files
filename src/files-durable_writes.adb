@@ -166,4 +166,27 @@ package body Files.Durable_Writes is
       raise Ada.Directories.Use_Error with "no_free_temporary=" & Base;
    end Write_Private_Temporary;
 
+   function Write_And_Publish
+     (Target : String;
+      Write  : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class))
+      return Publication_Result
+   is
+      use Ada.Strings.Unbounded;
+      Temporary, Identity : Files.Types.UString;
+      Result : Publication_Result;
+   begin
+      Write_Private_Temporary (Target, Write, Temporary, Identity);
+      Result := Publish (To_String (Temporary), Target);
+      if not Published (Result) then
+         Remove_Owned (To_String (Temporary), To_String (Identity));
+      end if;
+      return Result;
+   exception
+      when others =>
+         if Length (Temporary) > 0 then
+            Remove_Owned (To_String (Temporary), To_String (Identity));
+         end if;
+         raise;
+   end Write_And_Publish;
+
 end Files.Durable_Writes;

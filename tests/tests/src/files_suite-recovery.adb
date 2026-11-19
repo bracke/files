@@ -120,6 +120,7 @@ package body Files_Suite.Recovery is
    procedure Test_Helper_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transport_Protocol_Gaps (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Journal_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Stale_Links_Temporary_Passed_Over (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Job_Request_Path_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Job_Item_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Job_Item_Large_Account_Ids (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -228,6 +229,9 @@ package body Files_Suite.Recovery is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Copy_Journal_Validation'Access,
          "copy journals reject trailing transport data");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Stale_Links_Temporary_Passed_Over'Access,
+         "a stale links.tmp a stopped helper left does not stop the next copy journal save");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Job_Request_Path_Validation'Access,
          "refresh, operation and watch requests reject relative or NUL-containing paths");
@@ -394,6 +398,8 @@ package body Files_Suite.Recovery is
    procedure Test_Transport_Protocol_Gaps (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Copy_Journal_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Stale_Links_Temporary_Passed_Over (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Job_Request_Path_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

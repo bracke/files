@@ -1,27 +1,26 @@
+with Guikit.Text_Fields;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
    --  The path field: its breadcrumbs or the text typed in it.
    procedure Draw_Path_Bar is
+      Text_Region : constant Field_Text_Region := Path_Field_Text_Region (Toolbar, Width, Line_Height);
+      --  The box, as the click zone hit-tests it.
+      Path_X      : constant Natural := Text_Region.Field_X;
+      Path_W      : constant Natural := Text_Region.Field_Width;
+      Focused     : constant Boolean := Snapshot.Focus = Files.Types.Focus_Path_Input;
    begin
       declare
          Star         : constant Path_Favorite_Star_Bounds :=
            Path_Favorite_Star_Region (Width, Line_Height);
-         Text_Region  : constant Field_Text_Region := Path_Field_Text_Region (Toolbar, Width, Line_Height);
-         --  The box, as the click zone hit-tests it.
-         Path_X       : constant Natural := Text_Region.Field_X;
-         Path_W       : constant Natural := Text_Region.Field_Width;
          Text_Start   : constant Natural := Text_Region.X;
          Path_Text_W  : constant Natural := Text_Region.Width;
          Path_Raw     : constant String := To_String (Snapshot.Path_Input_Text);
          --  While focused, start the text far enough in that the caret shows.
-         Path_Skip    : constant Natural :=
-           (if Snapshot.Focus = Files.Types.Focus_Path_Input
-            then Guikit.Utf8.Byte_Offset_For_Display_Column
-                   (Path_Raw,
-                    Input_Scroll_Columns
-                      (Path_Raw, Snapshot.Text_Cursor_Position, Path_Text_W, Line_Height))
-            else 0);
+         View         : constant Guikit.Text_Fields.View :=
+           (if Focused
+            then Field_View (Path_Raw, Snapshot.Text_Cursor_Position, Path_Text_W, Line_Height)
+            else (Skip_Bytes => 0, Caret_X => 0));
          Path_Shown   : constant UString :=
-           To_Unbounded_String (Path_Raw (Path_Raw'First + Natural'Min (Path_Skip, Path_Raw'Length) .. Path_Raw'Last));
+           To_Unbounded_String (Path_Raw (Path_Raw'First + View.Skip_Bytes .. Path_Raw'Last));
       begin
          Add_Input_Field
            (Path_X,
@@ -75,9 +74,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
                   Selected => Snapshot.Current_Path_Is_Favorite);
             end;
          end if;
-         if Snapshot.Focus = Files.Types.Focus_Path_Input
-           or else Breadcrumb_Rows.Is_Empty
-         then
+         if Focused or else Breadcrumb_Rows.Is_Empty then
             Add_Text
               (Text_Start,
                Toolbar_Input_Text_Y,
@@ -136,50 +133,20 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
                end;
             end loop;
          end if;
-         if Snapshot.Focus = Files.Types.Focus_Path_Input or else not Snapshot.Path_Input_Valid then
-            Add_Border
-              (Path_X,
-               Toolbar_Input_Y,
-               Path_W,
-               Toolbar_Input_H,
-               (if Snapshot.Path_Input_Valid then Border_Color else Input_Error_Color));
-         elsif Has_Hover
-           and then Contains_Point
-             (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H, Hover_X, Hover_Y)
-         then
-            Add_Border (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H, Hover_Color);
-         end if;
-         if Is_Pressed (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H) then
-            Add_Border (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H, Pressed_Color);
-         end if;
-         if Snapshot.Focus = Files.Types.Focus_Path_Input then
-            Add_Focus_Ring (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H);
-            Add_Caret
-              (Text_Region,
-               Toolbar_Input_Y,
-               Toolbar_Input_H,
-               Path_Shown,
-               (if Snapshot.Text_Cursor_Position > Path_Skip
-                then Snapshot.Text_Cursor_Position - Path_Skip else 0));
-         end if;
+         Draw_Field_State (Text_Region, Focused, Snapshot.Path_Input_Valid, View.Caret_X);
       end;
-      Add_Command_Tooltip
-        (Path_Field_Text_Region (Toolbar, Width, Line_Height).Field_X,
-         Toolbar_Input_Y,
-         Path_Field_Text_Region (Toolbar, Width, Line_Height).Field_Width,
-         Toolbar_Input_H,
-         Files.Commands.Focus_Path_Input_Command);
+      Add_Command_Tooltip (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H, Files.Commands.Focus_Path_Input_Command);
       --  The field's own box, not its whole toolbar section: a screen
       --  reader's request on it is answered by focusing the field
       --  (Files.Events.Translate_Field_Request matches exactly this box).
       Add_Accessibility_Node
         (Role_Text_Input,
-         Path_Field_Text_Region (Toolbar, Width, Line_Height).Field_X,
+         Path_X,
          Toolbar_Input_Y,
-         Path_Field_Text_Region (Toolbar, Width, Line_Height).Field_Width,
+         Path_W,
          Toolbar_Input_H,
          Localized (Files.Commands.Name_Key (Files.Commands.Focus_Path_Input_Command)),
          Path_Input_Accessible_Description,
          Enabled => True,
-         Focused => Snapshot.Focus = Files.Types.Focus_Path_Input);
+         Focused => Focused);
    end Draw_Path_Bar;

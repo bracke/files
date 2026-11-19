@@ -95,15 +95,12 @@ separate (Files_Suite.Recovery)
 
       if Hostkit.Fs.Create_Link (Victim, Join (Root, "links.tmp")) then
          Write_Binary_File (Victim, "preserve me");
-         Rejected := False;
-         begin
-            Files.Copy_Context.Save (Batch, Expected);
-         exception
-            when Ada.Directories.Use_Error => Rejected := True;
-         end;
+         Files.Copy_Context.Save (Batch, Expected);
          Assert
-           (Rejected and then File_Is (Victim, "preserve me"),
-            "copy journals refuse a temporary symlink without truncating its target");
+           (File_Is (Victim, "preserve me")
+            and then Hostkit.Fs.Is_Link (Join (Root, "links.tmp"))
+            and then Files.Copy_Context.Records (Batch) = Expected,
+            "copy journals pass over a temporary symlink without truncating its target");
          declare
             Removed : constant Boolean :=
               Hostkit.Fs.Delete_Link (Join (Root, "links.tmp"));

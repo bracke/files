@@ -83,6 +83,22 @@ package Files.Durable_Writes is
       Temporary : out Files.Types.UString;
       Identity  : out Files.Types.UString);
 
+   --  Write a file and publish it over Target: Write_Private_Temporary
+   --  beside Target, then Publish. A temporary a crash or a stopped helper
+   --  left there is passed over, never followed, truncated or removed, so it
+   --  never stops a later save. A temporary that is not published is
+   --  removed (Remove_Owned). Raises as Write_Private_Temporary does, or with
+   --  what Publish raised, having removed the temporary. The caller checks
+   --  Target beforehand.
+   --
+   --  @param Target The file to replace or create.
+   --  @param Write Writes the file to the stream given.
+   --  @return As Publish.
+   function Write_And_Publish
+     (Target : String;
+      Write  : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class))
+      return Publication_Result;
+
    --  Remove Temporary if it is still the file Write_Private_File made
    --  (Identity matches), after a refused publish; never raises.
    --
