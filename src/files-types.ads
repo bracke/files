@@ -337,6 +337,17 @@ package Files.Types is
      (Text'Length >= Prefix'Length
       and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix);
 
+   --  Return whether Raw_Bytes looks like binary (non-text) data: it contains a
+   --  NUL byte, or too large a share of non-printable control bytes to render as
+   --  monospace text. An empty input is not considered binary. What Quick Look
+   --  will not show as text, and content search will not search.
+   --
+   --  @param Raw_Bytes Leading bytes of a file.
+   --  @return True when the bytes should not be read as text.
+   function Looks_Binary
+     (Raw_Bytes : String)
+      return Boolean;
+
    --  Text folded for a case-insensitive match: every script's letters, not
    --  only Latin-1 (Привет, Łódź, Ελλάδα), and one Unicode form, so a name
    --  stored decomposed (é as e and a combining accent, as older Macs write

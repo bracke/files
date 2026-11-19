@@ -1,10 +1,8 @@
 separate (Files.Operations)
 function Open_Terminal
-  (Model    : in out Files.Model.Window_Model;
-   Settings : Files.Settings.Settings_Model)
+  (Model : in out Files.Model.Window_Model)
    return Operation_Result
 is
-   pragma Unreferenced (Settings);
    Directory : constant String := Files.Model.Current_Path (Model);
    Terminal  : constant String := Detected_Terminal;
 begin

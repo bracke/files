@@ -12,6 +12,7 @@ with Files.Folder_Tree;
 with Guikit.Bidi;
 with Guikit.Text;
 with Guikit.Utf8.Editing;
+with Files.Command_Palette;
 with Files.Model.Command_Palette;
 with Files.Model.Root_Selector;
 with Files.Model.Settings_Pane;
@@ -318,6 +319,9 @@ package body Files.Controller is
             Files.Model.Rename.Set_Text (Model, Text);
          when Files.UI_Types.Focus_Command_Palette =>
             Files.Model.Command_Palette.Set_Query (Model, Text);
+            --  The query's matches are there before the next frame: a key
+            --  queued behind the typing (Enter) acts on them.
+            Files.Command_Palette.Ensure_Listed (Model);
          when Files.UI_Types.Focus_Settings_Input =>
             Files.Model.Settings_Pane.Set_Focused_Value (Model, Text);
             declare
@@ -791,8 +795,11 @@ package body Files.Controller is
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result
    is
-      Id : constant Natural := Files.Model.Command_Palette.Selected_Id (Model);
+      Id : Natural;
    begin
+      --  Enter may come before the first frame since the palette opened.
+      Files.Command_Palette.Ensure_Listed (Model);
+      Id := Files.Model.Command_Palette.Selected_Id (Model);
       if Files.Model.Command_Palette.Mode_Of (Model) = Files.Model.Palette_Open_With then
          declare
             Apps : constant Files.Desktop_Applications.Application_Vectors.Vector :=

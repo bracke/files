@@ -53,15 +53,14 @@ package Files.Quick_Look is
       Source_Stamp   : UString;
    end record;
 
-   --  Return whether Raw_Bytes looks like binary (non-text) data: it contains a
-   --  NUL byte, or too large a share of non-printable control bytes to render as
-   --  monospace text. An empty input is not considered binary.
+   --  Whether Raw_Bytes looks like binary (non-text) data: Files.Types's
+   --  test, which content search shares.
    --
    --  @param Raw_Bytes Leading bytes of the file.
    --  @return True when the bytes should not be shown as text.
    function Looks_Binary
      (Raw_Bytes : String)
-      return Boolean;
+      return Boolean renames Files.Types.Looks_Binary;
 
    --  Classify a Quick Look preview from item metadata and a bounded read.
    --

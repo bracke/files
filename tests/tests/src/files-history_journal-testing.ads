@@ -7,4 +7,7 @@ package Files.History_Journal.Testing is
    --  @param Count How many reads to refuse.
    procedure Refuse_Reads (Count : Natural);
 
+   --  @return How many of the refusals Refuse_Reads armed are still to come.
+   function Refusals_Left return Natural;
+
 end Files.History_Journal.Testing;

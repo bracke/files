@@ -9,6 +9,9 @@ begin
    if not Handled then
       return;
    end if;
+   --  The keys below act on the rows, which may come before the first
+   --  frame since the palette opened.
+   Files.Command_Palette.Ensure_Listed (Model);
    case Key is
       when Guikit.Input.Key_Return =>
          Result := Commit_Focused_Text (Model, Settings, Modifiers);

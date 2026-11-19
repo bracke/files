@@ -11,7 +11,7 @@ begin
         "thumb_"
         & Sanitized_Thumbnail_Extension (Source_Path)
         & "_"
-        & Natural_Text (Size)
+        & Files.Types.Natural_Text (Size)
         & "_"
         & Thumbnail_Cache_Key (Source_Path)
         & ".ppm");

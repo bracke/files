@@ -52,6 +52,9 @@ private
       Settings : Files.Settings.Settings_Model;
       Context_Revision : Natural;
       View_Incarnation : Natural;
+      --  For an Undo, the Sequence of the entry it takes (the window's
+      --  newest); 0 otherwise.
+      Undo_Sequence    : Natural;
    end record;
 
    type Outcome is record

@@ -206,13 +206,11 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
       end if;
 
       declare
-         --  Suppress the main-grid item hover highlight while the context
-         --  menu is open: the pointer is interacting with the menu, so the
-         --  cell under the cursor must not also light up. The menu's own row
-         --  hover (drawn separately) is unaffected.
+         --  No hover while an overlay (the context menu, Quick Look, a paste
+         --  dialog, ...) is open: Has_Hover is then off for the main view,
+         --  so the cell under the cursor does not light up under it.
          Hovered   : constant Boolean :=
            Has_Hover
-           and then not Snapshot.Context_Menu_Open
            and then Contains_Point
              (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Hover_X, Hover_Y);
          Drop_Target : constant Boolean :=

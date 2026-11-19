@@ -5,7 +5,7 @@ separate (Files.Application.Windows.Render_Window)
       Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
       --  The frame Refresh_Cached_Frame just built for this size and snapshot.
       Layout      : Files.Rendering.Layout_Metrics renames Runtime.Cached_Frame.Layout;
-      Pointer     : Files.Rendering.Pointer_State renames Runtime.Cached_Inputs.Pointer;
+      Pointer     : Files.Rendering.Pointer_State renames Overlay_Pointer;
       Pane        : constant Guikit.Layout.Settings_Pane_Layout :=
         Files.Rendering.Layouts.Settings_Pane_Region (Layout, Line_Height);
 
@@ -26,7 +26,6 @@ separate (Files.Application.Windows.Render_Window)
          return
            (Model_Revision    => Files.Model.Revision (Runtime.Model),
             Settings_Revision => Files.Model.Settings_Revision (Runtime.Model),
-            Theme             => Runtime.Settings.Theme,
             Region            =>
               (X           => X,
                Y           => Y,

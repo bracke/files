@@ -33,6 +33,16 @@ separate (Files_Suite.Startup)
         (not Files.Timing.Elapsed (Today, Today, 2.0) and then Files.Timing.Elapsed (Today + 2.0, Today, 2.0),
          "a calendar interval elapses at its end");
       Assert
+        (Files.Timing.Time_Since (Ada.Calendar.Time_Of (2399, 12, 31), Ada.Calendar.Time_Of (1901, 1, 1))
+           = Duration'Last,
+         "a wall-clock span longer than Duration reaches answers Duration'Last, without raising");
+      Assert
+        (Files.Timing.Time_Since (Today, Today + 2.0) = 0.0
+         and then Files.Timing.Time_Since (Today, Today) = 0.0,
+         "a wall-clock span from a later time (the clock set back) is none");
+      Assert
+        (Files.Timing.Time_Since (Today + 2.5, Today) = 2.5, "a wall-clock span is the time between");
+      Assert
         (Files.Timing.Until_Due (Now, Now, 1.0) = 0.0
          and then Files.Timing.Until_Due (Now + Second, Now, 1.0) = 0.0,
          "a time already due is due now");

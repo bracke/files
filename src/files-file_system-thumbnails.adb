@@ -13,7 +13,6 @@ with GNAT.OS_Lib;
 with Files.File_Types;
 
 with Hostkit.Fs;
-with Files.File_System.Support;
 with Files.Images;
 with Interfaces;
 with Files.File_Identities;
@@ -24,7 +23,6 @@ with CryptoLib.Hashes;
 
 package body Files.File_System.Thumbnails is
 
-   use Files.File_System.Support;
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
    use type Ada.Directories.File_Kind;

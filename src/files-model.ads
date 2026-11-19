@@ -1,6 +1,7 @@
 with Files.Extra_Info;
 with Files.Items;
 with Ada.Calendar;
+with Ada.Real_Time;
 with Files.Copy_Context;
 private with Files.Desktop_Applications;
 with Files.Process_Jobs;
@@ -1121,6 +1122,22 @@ package Files.Model is
    --  @return The modal operation's helper session; inactive for a paste.
    function Background_Operation (Model : Window_Model) return Files.Process_Jobs.Session;
 
+   --  Wait for the modal operation's finished helper's history journal, not
+   --  readable yet, until Deadline (Files.Operation_Jobs). Forgotten with
+   --  the job: End_Foreground_Job, a new modal job, or the window going.
+   --
+   --  @param Model Window running a modal operation.
+   --  @param Deadline When the journal is given up if still unreadable.
+   procedure Defer_Operation_Merge (Model : in out Window_Model; Deadline : Ada.Real_Time.Time);
+
+   --  @param Model Window to inspect.
+   --  @return True while its modal operation's journal is waited for.
+   function Operation_Merge_Deferred (Model : Window_Model) return Boolean;
+
+   --  @param Model Window to inspect.
+   --  @return When that wait ends; meaningful while Operation_Merge_Deferred.
+   function Operation_Merge_Deadline (Model : Window_Model) return Ada.Real_Time.Time;
+
    --  @param Model Window whose nonmodal directory-read session to replace.
    --  @param Job Shared helper session, or empty to cancel the pending read.
    --  Transport changes do not change the visible model revision.
@@ -1313,8 +1330,8 @@ private
    --  The command palette overlay: whether it is shown, what it lists, the
    --  guikit component holding its query, scroll and selection, the paths
    --  and applications an Open With listing is for, and the model revision
-   --  its command list was built at, so a frame rebuilds it (every command's
-   --  enablement) only after a change. Every default is the closed state.
+   --  its command list was handed over at (Files.Model.Command_Palette.List),
+   --  so it is built again (every command's enablement) only after a change. Every default is the closed state.
    type Command_Palette_State is record
       Open                   : Boolean := False;
       Mode                   : Palette_Mode := Palette_Commands;
@@ -1495,6 +1512,9 @@ private
       Paste_Exec_Job                 : Files.Transfer_Jobs.Session;
       Foreground_Kind               : Foreground_Job_Kind := No_Foreground_Job;
       Operation_Job                 : Files.Process_Jobs.Session;
+      --  Defer_Operation_Merge's wait for the job's journal.
+      Operation_Merge_Deferred      : Boolean := False;
+      Operation_Merge_Deadline      : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
       --  The folder the modal operation runs in, for its progress.
       Operation_Name                : UString;
       Refresh_Job                   : Files.Process_Jobs.Session;

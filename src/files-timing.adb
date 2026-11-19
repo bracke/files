@@ -36,6 +36,23 @@ package body Files.Timing is
          return Duration'Last;
    end Time_Since;
 
+   function Time_Since
+     (Now   : Ada.Calendar.Time;
+      Since : Ada.Calendar.Time)
+      return Duration
+   is
+      use type Ada.Calendar.Time;
+   begin
+      if Now <= Since then
+         return 0.0;
+      end if;
+      return Ada.Calendar."-" (Now, Since);
+   exception
+      --  The two are further apart than Duration reaches.
+      when Ada.Calendar.Time_Error | Constraint_Error =>
+         return Duration'Last;
+   end Time_Since;
+
    function Until_Due
      (Now   : Ada.Real_Time.Time;
       Due   : Ada.Real_Time.Time;

@@ -5,4 +5,6 @@ package body Files.History_Journal.Testing is
       Refused_Reads := Count;
    end Refuse_Reads;
 
+   function Refusals_Left return Natural is (Refused_Reads);
+
 end Files.History_Journal.Testing;

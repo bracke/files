@@ -531,6 +531,17 @@ package body Files.Application.Windows is
       return Files.Rendering.Item_Now (Runtime.View.Snapshots (Slot), Index, Runtime.Model);
    end Current_Item_Index;
 
+   function Hit_Position_At
+     (Runtime  : in out Runtime_Window;
+      Window_W : Glfw.Size;
+      Window_H : Glfw.Size;
+      Frame_W  : Glfw.Size;
+      Frame_H  : Glfw.Size;
+      Cursor_X : Glfw.Input.Mouse.Coordinate;
+      Cursor_Y : Glfw.Input.Mouse.Coordinate)
+      return Hit_Position
+ is separate;
+
    function Current_Click_Action
      (Runtime   : in out Runtime_Window;
       Window_W  : Glfw.Size;
@@ -541,39 +552,7 @@ package body Files.Application.Windows is
       Cursor_Y  : Glfw.Input.Mouse.Coordinate;
       Modifiers : Guikit.Input.Modifier_Set)
       return Files.Events.Input_Action
-   is
-   begin
-      if not Files.Window_Policy.Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H)
-        or else Frame_W <= 0 or else Frame_H <= 0
-      then
-         return (Kind => Files.Events.No_Input_Action);
-      end if;
-
-      declare
-         X        : constant Natural := Files.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W);
-         Y        : constant Natural := Files.Window_Policy.Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-         Slot     : constant Snapshot_Slot := Hit_Slot (Runtime);
-         Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Slot);
-         Action   : Files.Events.Input_Action :=
-           Files.Events.Translate_Click
-             (Snapshot    => Snapshot,
-              Frame       => Runtime.Cached_Frame,
-              X           => X,
-              Y           => Y,
-              Width       => Natural (Frame_W),
-              Height      => Natural (Frame_H),
-              Modifiers   => Modifiers,
-              Line_Height => Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
-      begin
-         if Action.Kind = Files.Events.Item_Click_Input_Action then
-            Action.Item_Index := Current_Item_Index (Runtime, Slot, Action.Item_Index);
-            if Action.Item_Index = 0 then
-               return (Kind => Files.Events.No_Input_Action);
-            end if;
-         end if;
-         return Action;
-      end;
-   end Current_Click_Action;
+ is separate;
 
    --  Carry out what the screen reader asked, as a click on the node's centre
    --  would: "focus" selects it, "activate" also opens an item (as a double

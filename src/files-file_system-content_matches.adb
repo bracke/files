@@ -1,4 +1,3 @@
-with Files.Quick_Look;
 separate (Files.File_System)
 function Content_Matches
   (Bytes : String;
@@ -11,7 +10,7 @@ begin
 
    --  Skip binary payloads: a decisive NUL or a heavy share of control bytes
    --  means the file is not text, so it can never be a content match.
-   if Files.Quick_Look.Looks_Binary (Bytes) then
+   if Files.Types.Looks_Binary (Bytes) then
       return False;
    end if;
 

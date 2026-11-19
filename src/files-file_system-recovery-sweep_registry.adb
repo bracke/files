@@ -10,7 +10,7 @@ separate (Files.File_System.Recovery)
          Payload, Expected : UString;
          Directory : constant String := Hostkit.Fs.Join (Root, Name);
       begin
-         if not Starts_With (Name, Files.Protocol_Names.Recovery_Stage_Prefix)
+         if not Files.Types.Starts_With (Name, Files.Protocol_Names.Recovery_Stage_Prefix)
            or else not Files.Fs_Primitives.Directory_Exists (Directory)
          then
             return;

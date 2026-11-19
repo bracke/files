@@ -19,6 +19,10 @@ separate (Files.Application.Windows)
       Palette         : Overlay_Commands renames Runtime.Palette_Overlay;
       Settings        : Overlay_Commands renames Runtime.Settings_Overlay;
       Overlay_Changed : Boolean := False;
+      --  The pointer over the window as the overlays merged over the frame
+      --  read it (set by Refresh_Cached_Frame): unlike the frame's, it is not
+      --  masked while they are shown.
+      Overlay_Pointer : Files.Rendering.Pointer_State := Files.Rendering.No_Pointer;
 
       --  Build the command palette's or the settings panel's commands, when
       --  shown, over the frame drawn now (their state lives in their

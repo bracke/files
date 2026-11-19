@@ -38,6 +38,7 @@ separate (Files.Controller)
             null;
          when Files.Events.Scroll_Command_Palette =>
             if Files.Model.Command_Palette.Is_Open (Model) then
+               Files.Command_Palette.Ensure_Listed (Model);
                if Files.Model.Command_Palette.Result_Count (Model) = 0 then
                   return Make_Result (Controller_Ignored);
                else

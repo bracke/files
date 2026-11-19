@@ -125,7 +125,7 @@ separate (Files_Suite.Refresh)
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then Files.Model.Current_Path (Trash_Model) = To_String (Trash_Load.Path),
                   "direct parent navigation cannot expose trash metadata beside the payload directory");
-               Trash_Result := Files.Operations.Open_Terminal (Trash_Model, Settings);
+               Trash_Result := Files.Operations.Open_Terminal (Trash_Model);
                Files_Suite.Support.Assert_Equal
                  (Trash_Result.Status,
                   Files.Operation_Results.Operation_Disabled,

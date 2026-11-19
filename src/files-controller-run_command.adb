@@ -61,7 +61,7 @@ separate (Files.Controller)
          when Files.Commands.Create_Hardlink_Command =>
             Operation := Files.Operations.Create_Hardlink_Selected (Model, Settings);
          when Files.Commands.Open_Terminal_Command =>
-            Operation := Files.Operations.Open_Terminal (Model, Settings);
+            Operation := Files.Operations.Open_Terminal (Model);
          when Files.Commands.Compress_Zip_Command =>
             Operation :=
               Files.Operation_Commands.Compress_Selected

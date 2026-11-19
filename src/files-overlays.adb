@@ -4,6 +4,7 @@ with Guikit.Command_Palette;
 with Guikit.Settings_Panel;
 with Guikit.Text;
 
+with Files.Command_Palette;
 with Files.Localization;
 with Files.Settings;
 with Files.Model.Command_Palette;
@@ -49,6 +50,9 @@ package body Files.Overlays is
       Text.Clear;
       Icons.Clear;
       Accessibility.Clear;
+      --  The commands in the current language, listed here: the model does
+      --  not localize.
+      Files.Command_Palette.Ensure_Listed (Model);
       Files.Model.Command_Palette.With_Panel
         (Model,
          Region.Line_Height,

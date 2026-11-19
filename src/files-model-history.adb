@@ -615,6 +615,23 @@ package body Files.Model.History is
       Take_Newest (Model.History.Redo_Stack, Action, Found);
    end Take_Redo;
 
+   function Drop_Undone
+     (Model    : in out Window_Model;
+      Sequence : Natural)
+      return Boolean is
+   begin
+      if Sequence = 0
+        or else Model.History.Undo_Stack.Is_Empty
+        or else Model.History.Undo_Stack.Last_Element.Sequence /= Sequence
+      then
+         return False;
+      end if;
+      Touch (Model);
+      Model.History.Undo_Stack.Delete_Last;
+      Model.History.Journal_Dirty := True;
+      return True;
+   end Drop_Undone;
+
    procedure Push_Redo
      (Model  : in out Window_Model;
       Action : Files.Undo_History.Undo_Entry) is

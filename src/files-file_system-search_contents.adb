@@ -1,4 +1,3 @@
-with Files.Quick_Look;
 separate (Files.File_System)
 function Search_Contents
   (Root_Path : String;
@@ -39,7 +38,7 @@ is
             return Undecided;
          elsif Content_Matches (Searched, Query) then
             return Found;
-         elsif Bytes'Length > Max_Bytes and then not Files.Quick_Look.Looks_Binary (Bytes) then
+         elsif Bytes'Length > Max_Bytes and then not Files.Types.Looks_Binary (Bytes) then
             --  A text file longer than is read and no match in what was:
             --  its match could lie past it.
             return Undecided;

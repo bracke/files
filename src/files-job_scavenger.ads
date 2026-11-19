@@ -28,9 +28,6 @@ package Files.Job_Scavenger is
    --  @param Reaped True when the monitor has terminated after reaping its child.
    procedure Shutdown (Reaped : out Boolean);
 
-   --  Compatibility wrapper for callers that do not need the outcome.
-   procedure Shutdown;
-
    --  Sequentially clean validated abandoned transports while retaining one
    --  exclusive claim at a time. Used only by the internal helper mode.
    --  @param Minimum_Unmarked_Age Grace period before claiming a directory

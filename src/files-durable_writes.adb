@@ -164,9 +164,18 @@ package body Files.Durable_Writes is
 
    --  When this process started, near enough: when this unit was elaborated.
    Process_Start : constant Ada.Calendar.Time := Ada.Calendar.Clock;
-   --  The same moment on the monotonic clock, for how long this process has
-   --  run (a wall-clock difference can overflow and can go backwards).
+   --  The same moment on the monotonic clock. How long this process has run
+   --  is the longer of the two clocks' answers (Run_Time).
    Process_Start_Monotonic : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
+
+   --  How long this process has run, on whichever clock says longer: the
+   --  monotonic one does not count a suspend, and the wall clock can be set
+   --  back. A run time too long only makes the start it gives earlier, and
+   --  so fewer temporaries stale: the safe direction.
+   function Run_Time return Duration is
+     (Duration'Max
+        (Files.Timing.Time_Since (Ada.Real_Time.Clock, Process_Start_Monotonic),
+         Files.Timing.Time_Since (Ada.Calendar.Clock, Process_Start)));
 
    --  How much older than Process_Start a temporary must be to be stale.
    Stale_Margin : constant Duration := 60.0;
@@ -174,7 +183,7 @@ package body Files.Durable_Writes is
    --  When this process started, by the clock of the folder Base is in (a
    --  network share's server, say), not this machine's: a fresh temporary
    --  of Base's is written there and its modification time read, less the
-   --  time this process has run. Found is False, and nothing may be judged
+   --  time this process has run (Run_Time). Found is False, and nothing may be judged
    --  stale, when that marker cannot be written or its time read (which
    --  raises inside, and is noted).
    procedure Folder_Process_Start
@@ -197,7 +206,7 @@ package body Files.Durable_Writes is
          Now  : constant Ada.Calendar.Time := Hostkit.Fs.Modification_Time_Of (Path, Follow_Links => False);
       begin
          Remove_Owned (Path, Ada.Strings.Unbounded.To_String (Identity));
-         Start := Now - Files.Timing.Time_Since (Ada.Real_Time.Clock, Process_Start_Monotonic);
+         Start := Now - Run_Time;
          Found := True;
       end;
    exception

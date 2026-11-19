@@ -7,22 +7,34 @@ separate (Files.Application.Windows.Render_Window)
       Has_Hover_Now : constant Boolean :=
         Width > 0 and then Height > 0
         and then Files.Window_Policy.Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H);
-      Has_Press_Now : constant Boolean := Mouse_Down and then Has_Hover_Now;
       Has_Drag_Now  : constant Boolean :=
         Mouse_Down
         and then Runtime.Drag_Source_Index /= 0
         and then Runtime.Handle.Drag_Moved;
+      --  The command palette and the settings pane, merged over the frame
+      --  by the window layer, own the pointer while shown: the frame under
+      --  them is drawn with no hover or press.
+      Window_Overlay_Up : constant Boolean :=
+        Files.Model.Window_Overlay_Shown (Runtime.Model, Files.UI_Types.Command_Palette_Overlay)
+        or else Files.Model.Window_Overlay_Shown (Runtime.Model, Files.UI_Types.Settings_Pane_Overlay);
+      Frame_Hover   : constant Boolean := Has_Hover_Now and then not Window_Overlay_Up;
+      Has_Press_Now : constant Boolean := Mouse_Down and then Frame_Hover;
+      --  The pointer's position is kept only where the frame reads it: under
+      --  hover, or for the drag preview that follows it. Anywhere else (off
+      --  the window, where X11 still reports it, or under the palette or
+      --  settings pane) it is 0, so moving it there rebuilds nothing.
+      Track_Pointer : constant Boolean := Frame_Hover or else Has_Drag_Now;
       Inputs : constant Frame_Inputs :=
         (Width       => Natural (Width),
          Height      => Natural (Height),
          Line_Height => Line_Height,
          Pointer     =>
-           (Hover_X         => Hover_X,
-            Hover_Y         => Hover_Y,
-            Has_Hover       => Has_Hover_Now,
+           (Hover_X         => (if Track_Pointer then Hover_X else 0),
+            Hover_Y         => (if Track_Pointer then Hover_Y else 0),
+            Has_Hover       => Frame_Hover,
             Pressed         => Has_Press_Now,
-            Press_X         => Runtime.Press_X,
-            Press_Y         => Runtime.Press_Y,
+            Press_X         => (if Has_Press_Now then Runtime.Press_X else 0),
+            Press_Y         => (if Has_Press_Now then Runtime.Press_Y else 0),
             Dragging        => Has_Drag_Now,
             Drag_Item_Index => Runtime.Drag_Source_Index,
             Marquee_Active  => Runtime.Marquee.Active,
@@ -62,6 +74,13 @@ separate (Files.Application.Windows.Render_Window)
          end;
       end Rebuild_Frame;
    begin
+      --  The window-layer overlays read the pointer unmasked: the settings
+      --  pane draws its own hover.
+      Overlay_Pointer :=
+        (Hover_X   => Hover_X,
+         Hover_Y   => Hover_Y,
+         Has_Hover => Has_Hover_Now,
+         others    => <>);
       --  Build_Snapshot is O(items) with a sort and per-item work, so the
       --  snapshot is rebuilt only when the model, the snapshot settings or
       --  the minute moved since it was built -- here or by an input handler

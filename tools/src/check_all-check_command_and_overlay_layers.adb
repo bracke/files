@@ -18,13 +18,23 @@ separate (Check_All)
             Check (To_String (Item));
          end if;
       end loop;
+      --  Files.Command_Palette builds the palette's rows in the current
+      --  language: the window layer and the controller list them, not the model.
       for Pattern of String_List'
         [To_Unbounded_String ("Build_Frame"),
-         To_Unbounded_String ("Files.Localization")]
+         To_Unbounded_String ("Files.Localization"),
+         To_Unbounded_String ("Files.Command_Palette")]
       loop
          Require_Not_Contains_In_Unit
            (Root & "/src/files-model.adb", To_String (Pattern),
             "the model holds overlay state; Files.Overlays draws and localizes it (" & To_String (Pattern) & ")");
+         --  Each concern child's body (and its subunits) as well.
+         for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-model-*.adb", Generated_Directories) loop
+            Require_Not_Contains
+              (To_String (Item), To_String (Pattern),
+               "the model holds overlay state; Files.Overlays draws and localizes it (" & To_String (Pattern)
+               & ", " & Ada.Directories.Simple_Name (To_String (Item)) & ")");
+         end loop;
          --  The specs too: a with clause there reaches every model body,
          --  which could then use the unit by a name this check never sees.
          for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-model*.ads", Generated_Directories) loop

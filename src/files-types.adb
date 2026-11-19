@@ -506,4 +506,39 @@ package body Files.Types is
       return Result;
    end Move_Column;
 
+   function Looks_Binary
+     (Raw_Bytes : String)
+      return Boolean
+   is
+      Control_Count : Natural := 0;
+   begin
+      if Raw_Bytes'Length = 0 then
+         return False;
+      end if;
+
+      for Char of Raw_Bytes loop
+         declare
+            Code : constant Natural := Character'Pos (Char);
+         begin
+            if Code = 0 then
+               --  A NUL byte is a decisive signal of non-text content.
+               return True;
+            elsif Code < 32
+              and then Char /= ASCII.HT
+              and then Char /= ASCII.LF
+              and then Char /= ASCII.CR
+              and then Char /= ASCII.FF
+            then
+               Control_Count := Control_Count + 1;
+            end if;
+         end;
+      end loop;
+
+      --  Treat a large share of stray control bytes as binary; ordinary text
+      --  and source files stay well under this threshold.
+      --  Equivalent to Control_Count * 10 > Length, without overflowing for a
+      --  very large caller-supplied buffer.
+      return Control_Count > Raw_Bytes'Length / 10;
+   end Looks_Binary;
+
 end Files.Types;

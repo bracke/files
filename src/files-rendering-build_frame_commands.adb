@@ -16,8 +16,13 @@ separate (Files.Rendering)
       --  The pointer's parts by their own names, as the drawing reads them.
       Hover_X         : Natural renames Pointer.Hover_X;
       Hover_Y         : Natural renames Pointer.Hover_Y;
-      Has_Hover       : Boolean renames Pointer.Has_Hover;
-      Has_Press       : Boolean renames Pointer.Pressed;
+      --  Whether the pointer hovers or presses what is drawn now. An open
+      --  input-owning overlay (Any_Overlay_Open) takes the pointer, so the
+      --  window under it -- toolbar, bottom bar, main view, info pane, the
+      --  tree when it is not picking -- is drawn with neither;
+      --  Release_Pointer hands both to the overlay drawn above it.
+      Has_Hover       : Boolean := Pointer.Has_Hover and then not Any_Overlay_Open (Snapshot);
+      Has_Press       : Boolean := Pointer.Pressed and then not Any_Overlay_Open (Snapshot);
       Press_X         : Natural renames Pointer.Press_X;
       Press_Y         : Natural renames Pointer.Press_Y;
       Drag_Item_Index : Natural renames Pointer.Drag_Item_Index;
@@ -95,6 +100,7 @@ separate (Files.Rendering)
          Append_Rect (Result.Rectangles, X, Y, Rect_W, Rect_H, Color);
       end Add_Rect;
 
+      --  A filled triangle, dropped when any corner is off the frame.
       procedure Add_Triangle
         (X1    : Float;
          Y1    : Float;
@@ -102,37 +108,7 @@ separate (Files.Rendering)
          Y2    : Float;
          X3    : Float;
          Y3    : Float;
-         Color : Render_Color)
-      is
-      begin
-         if Layout.Width = 0 or else Layout.Height = 0 then
-            return;
-         end if;
-
-         --  Triangle commands have no clip rectangle in the draw protocol.
-         --  Suppress a partially off-frame primitive instead of handing the
-         --  backend coordinates outside its framebuffer; callers scale their
-         --  geometry down first when a partial compact rendering is useful.
-         if X1 < 0.0 or else X1 > Float (Layout.Width)
-           or else X2 < 0.0 or else X2 > Float (Layout.Width)
-           or else X3 < 0.0 or else X3 > Float (Layout.Width)
-           or else Y1 < 0.0 or else Y1 > Float (Layout.Height)
-           or else Y2 < 0.0 or else Y2 > Float (Layout.Height)
-           or else Y3 < 0.0 or else Y3 > Float (Layout.Height)
-         then
-            return;
-         end if;
-
-         Result.Triangles.Append
-           (Triangle_Command'
-              (X1    => X1,
-               Y1    => Y1,
-               X2    => X2,
-               Y2    => Y2,
-               X3    => X3,
-               Y3    => Y3,
-               Color => Color));
-      end Add_Triangle;
+         Color : Render_Color) is separate;
 
       --  Unit rim offsets of a five-pointed star, point-up, outer radius 1.0 and
       --  inner radius ~0.382 (a regular pentagram). Even indices are the outer
@@ -636,6 +612,14 @@ separate (Files.Rendering)
 
       --  The Quick Look panel, the label picker and the sort menu.
       procedure Draw_Popups is separate;
+
+      --  Give the pointer's hover and press back to what is drawn next: the
+      --  overlays, which own the pointer while they are open.
+      procedure Release_Pointer is
+      begin
+         Has_Hover := Pointer.Has_Hover;
+         Has_Press := Pointer.Pressed;
+      end Release_Pointer;
    begin
       Draw_Toolbar;
       Draw_Bottom_Bar;
@@ -646,8 +630,13 @@ separate (Files.Rendering)
 
       --  Before the transient overlays, which cover it as they own input.
       if Snapshot.Tree_Panel_Open then
+         --  Picking a destination, the tree is the overlay itself.
+         if Overlay_Open (Snapshot, Files.UI_Types.Tree_Pick_Overlay) then
+            Release_Pointer;
+         end if;
          Draw_Tree_Panel;
       end if;
+      Release_Pointer;
 
       --  Popups and modal panels own the pointer while they are open.  Drop
       --  tooltip regions registered by the inactive toolbar, grid, and status

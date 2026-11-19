@@ -117,6 +117,7 @@ package body Files_Suite.Rendering is
    procedure Test_Text_Pool_Evicts_Least_Recent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Modal_Suppresses_Base_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Overlay_Suppresses_Background_Tooltips (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Tooltips_Over_Tree_Panel (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Header_Cells_Are_Accessible_Buttons (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -316,6 +317,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Context_Menu_Suppresses_Item_Hover'Access,
          "an open context menu suppresses the main-grid item hover highlight");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Modal_Suppresses_Base_Hover'Access,
+         "Quick Look or a paste dialog open: the item under the pointer is not drawn hovered");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Overlay_Suppresses_Background_Tooltips'Access,
          "an open overlay suppresses tooltips from controls behind it");
@@ -789,6 +793,8 @@ package body Files_Suite.Rendering is
    end Has_Close_Button_Node;
 
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Modal_Suppresses_Base_Hover (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Overlay_Suppresses_Background_Tooltips
      (T : in out AUnit.Test_Cases.Test_Case'Class)

@@ -550,7 +550,10 @@ package body Files.Job_Context is
    --  records before it are kept, as a crash mid-append tears only the last
    --  one, and nothing after it is trusted. A failed append cuts its torn
    --  record back off (Append_Journal_Record), so a later record never
-   --  follows one. A journal whose header is wrong is not read at all.
+   --  follows one. A journal whose header is wrong is not read at all. One
+   --  the host says is not there is none; one that cannot be opened (or
+   --  whose folder is refused) is read as none too, but traced, as a
+   --  refused lookup is not an absent journal.
    procedure Read_Journal
      (Directory, Name, Header : String;
       Shape                   : Record_Shape;
@@ -562,12 +565,19 @@ package body Files.Job_Context is
       Size : Long_Long_Integer;
    begin
       Entries.Clear;
+      if Valid_Absolute_Path (Directory)
+        and then not Hostkit.Fs.Is_Link (Directory)
+        and then Files.Fs_Primitives.Entry_Is_Absent (Path)
+      then
+         return;
+      end if;
       if not Valid_Absolute_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
         or else not Files.Fs_Primitives.Directory_Exists (Directory)
         or else Files.Lease_Streams.Open (Path, Input) /=
           Hostkit.Lease_Files.Opened
       then
+         Files.Diagnostics.Trace ("Files.Job_Context", "journal_refused=" & Path);
          return;
       end if;
       Size := Files.Lease_Streams.Size (Input);

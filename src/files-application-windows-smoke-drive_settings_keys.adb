@@ -128,8 +128,10 @@ separate (Files.Application.Windows.Smoke)
          --  dispatch). The switch sits at the focused row's right; sweep the
          --  row from that edge until the value changes.
          declare
-            --  A copy: each click re-renders, which replaces the shown list.
-            Shown   : constant Guikit.Draw.Accessibility_Node_Vectors.Vector := Runtime.Shown_Accessibility;
+            --  The nodes of the frame shown, the settings pane merged in
+            --  (Shown_Frame, as the pane is open). A copy: each click
+            --  re-renders, which replaces the shown frame.
+            Shown   : constant Guikit.Draw.Accessibility_Node_Vectors.Vector := Runtime.Shown_Frame.Accessibility;
             Flipped : Boolean := False;
          begin
             for Node of Shown loop
@@ -153,7 +155,7 @@ separate (Files.Application.Windows.Smoke)
          --  through the path its requests take (a click on the node's
          --  centre, which only focuses a settings row, then its change).
          declare
-            Shown  : constant Guikit.Draw.Accessibility_Node_Vectors.Vector := Runtime.Shown_Accessibility;
+            Shown  : constant Guikit.Draw.Accessibility_Node_Vectors.Vector := Runtime.Shown_Frame.Accessibility;
             Was    : constant String := Files.Model.Settings_Pane.Focused_Value (Runtime.Model);
             Asked  : Boolean := False;
          begin

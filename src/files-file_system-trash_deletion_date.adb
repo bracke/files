@@ -31,7 +31,7 @@ begin
    end loop;
 
    return
-     Natural_Text (Natural (Year)) & "-"
+     Files.Types.Natural_Text (Natural (Year)) & "-"
      & Two_Digit_Text (Natural (Month)) & "-"
      & Two_Digit_Text (Natural (Day)) & "T"
      & Two_Digit_Text (Hour) & ":"

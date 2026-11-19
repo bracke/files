@@ -617,7 +617,7 @@ package body Files.File_System.Recovery is
       Original, Identity : UString;
    begin
       return Files.Types.Leaf_Of (Path) = "payload"
-        and then Starts_With (Files.Types.Leaf_Of (Parent), Files.Protocol_Names.Recovery_Stage_Prefix)
+        and then Files.Types.Starts_With (Files.Types.Leaf_Of (Parent), Files.Protocol_Names.Recovery_Stage_Prefix)
         and then not Hostkit.Fs.Is_Link (Parent)
         and then Files.Fs_Primitives.Directory_Exists (Parent)
         --  refusal-safe: a refused payload is not recognized, so nothing acts on it

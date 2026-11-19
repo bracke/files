@@ -36,7 +36,7 @@ separate (Files_Suite.Names)
 
       Items := Files.Model.Selection.Selected_Items (Model);
       Files.Model.Navigate_Recent (Model, Items);
-      Result := Files.Operations.Open_Terminal (Model, Settings);
+      Result := Files.Operations.Open_Terminal (Model);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Disabled,

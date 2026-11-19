@@ -109,8 +109,7 @@ package body Files.Operations is
    function Detected_Terminal return String renames Hostkit.Process.Default_Terminal;
 
    function Open_Terminal
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
+     (Model : in out Files.Model.Window_Model)
       return Operation_Result
    is separate;
 

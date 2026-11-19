@@ -66,6 +66,7 @@ package body Files_Suite.History is
    procedure Test_A_Briefly_Unreadable_Journal_Is_Read_Again (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_An_Unreadable_Journal_Waits_Then_Reports (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Failure_After_Merge_Keeps_History (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Lost_Journal_Undo_Leaves_The_Stack (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Batch_Undo_Covers_Every_Item (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Duplicate_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Undo_Same_Size_Edits (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -186,6 +187,9 @@ package body Files_Suite.History is
         (T, Test_Failure_After_Merge_Keeps_History'Access,
          "an operation failing after its journal merge keeps what was recorded since");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Lost_Journal_Undo_Leaves_The_Stack'Access,
+         "a background Undo whose journal is lost does not offer the undone step again");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Batch_Undo_Covers_Every_Item'Access,
          "a batch's throttled Undo records still end in one entry covering every item");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -249,6 +253,7 @@ package body Files_Suite.History is
    procedure Test_An_Unreadable_Journal_Waits_Then_Reports (T : in out AUnit.Test_Cases.Test_Case'Class)
      is separate;
    procedure Test_Failure_After_Merge_Keeps_History (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Lost_Journal_Undo_Leaves_The_Stack (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Batch_Undo_Covers_Every_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

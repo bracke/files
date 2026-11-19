@@ -208,11 +208,9 @@ package Files.Operations is
    --  "Open With" launch policy.
    --
    --  @param Model Window model providing the current directory.
-   --  @param Settings Settings model (unused; kept for routing symmetry).
    --  @return Structured operation result; failed when no terminal was launched.
    function Open_Terminal
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
+     (Model : in out Files.Model.Window_Model)
       return Operation_Result;
 
    --  Replace the current view with the recursive search results for the

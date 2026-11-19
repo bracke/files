@@ -21,7 +21,7 @@ begin
       return False;
    end if;
    declare
-      Id     : constant String := Natural_Text (Uid);
+      Id     : constant String := Files.Types.Natural_Text (Uid);
       Name   : constant String := Files.Types.Leaf_Of (Base);
       Parent : constant String := Files.Fs_Primitives.Parent_Directory (Base);
       --  A part surely not made yet, or our own real directory: one that

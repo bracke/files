@@ -30,6 +30,19 @@ package Files.Timing is
       Since : Ada.Real_Time.Time)
       return Duration;
 
+   --  How long has passed since Since by the wall clock, which -- unlike
+   --  the monotonic clock -- keeps counting while the machine is suspended,
+   --  and can be set back or forward.
+   --
+   --  @param Now The current time.
+   --  @param Since An earlier moment (a process's start, say).
+   --  @return Now - Since, or 0.0 when Since is not earlier. Never raises:
+   --  a span too long for Duration answers Duration'Last.
+   function Time_Since
+     (Now   : Ada.Calendar.Time;
+      Since : Ada.Calendar.Time)
+      return Duration;
+
    --  How long until Due, at most Limit.
    --
    --  @param Now The current time.

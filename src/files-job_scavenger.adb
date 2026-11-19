@@ -523,12 +523,6 @@ package body Files.Job_Scavenger is
          end if;
    end Shutdown;
 
-   procedure Shutdown is
-      Reaped : Boolean;
-   begin
-      Shutdown (Reaped);
-   end Shutdown;
-
    function Run
      (Minimum_Unmarked_Age : Duration := 1.0;
       Wait_For_Grace       : Boolean := True;

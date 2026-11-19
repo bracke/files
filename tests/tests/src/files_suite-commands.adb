@@ -15,6 +15,7 @@ with AUnit.Assertions;
 with AUnit.Test_Cases;
 
 with Files.Window_Policy;
+with Files.Command_Palette;
 with Files.Model.Command_Palette;
 with Files.Commands;
 with Files.Controller;

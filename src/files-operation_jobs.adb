@@ -21,32 +21,29 @@ with Files.Model.History;
 with Files.Model.Selection;
 with Files.Settings.Path_References;
 with Files.Undo_History;
+with Ada.Real_Time;
 
 package body Files.Operation_Jobs is
    use Ada.Strings.Unbounded;
    use type Files.Operation_Results.Operation_Status;
    use type Files.History_Journal.Read_Outcome;
 
-   --  How many times one poll reads a finished helper's journal before it
-   --  leaves the merge to a later poll (Merge_Journal); the waits between
-   --  add up to 0.06 s.
-   Merge_Attempts : constant := 3;
-
-   --  How many later polls a finished helper whose journal could not be
-   --  read is kept for, its transport and all, before its history is given
-   --  up and the operation reported with Undo_Lost_Key.
-   Max_Merge_Deferrals : constant := 20;
+   --  How long a finished helper whose journal could not be read is kept,
+   --  its transport and all, its journal read once a poll, before its
+   --  history is given up and the operation reported with Undo_Lost_Key.
+   Merge_Grace : constant Duration := 2.0;
 
    --  What an operation whose helper's history could not be taken back
    --  reports beside its own outcome: what it did may not be undoable.
    Undo_Lost_Key : constant String := "error.operation.undo_unavailable";
 
-   Request_Header : constant String := "files-operation-request-3";
+   Request_Header : constant String := "files-operation-request-4";
    --  Version 2 dropped the operation result's copies of its action's
    --  executable, argument count and shell flag. The header changes with the
    --  layout so a helper from another build is refused, not misread.
    --  Version 3 carries the path moves as one list of (kind, from, to)
-   --  records instead of two parallel path lists.
+   --  records instead of two parallel path lists. Request version 4 adds
+   --  the Sequence of the entry an Undo takes.
    Result_Header : constant String := "files-operation-result-3";
 
    package Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
@@ -98,6 +95,7 @@ package body Files.Operation_Jobs is
       Files.Job_Records.Write_Settings (Stream, Work.Settings);
       Natural'Output (Stream, Work.Context_Revision);
       Natural'Output (Stream, Work.View_Incarnation);
+      Natural'Output (Stream, Work.Undo_Sequence);
    end Write_Request;
 
    procedure Read_Request_Body
@@ -113,6 +111,7 @@ package body Files.Operation_Jobs is
       Work.Settings := Files.Job_Records.Read_Settings (Stream);
       Work.Context_Revision := Natural'Input (Stream);
       Work.View_Incarnation := Natural'Input (Stream);
+      Work.Undo_Sequence := Natural'Input (Stream);
    end Read_Request_Body;
 
    function Request_Is_Consistent (Work : Request) return Boolean is
@@ -180,7 +179,11 @@ package body Files.Operation_Jobs is
          Recent => Files.Model.In_Recent_View (Model), Query => To_Unbounded_String (Files.Model.Filter_Text (Model)),
          Selected => Files.Model.Selection.Selected_Items (Model), Settings => Settings,
          Context_Revision => 0,
-         View_Incarnation => Files.Model.View_Incarnation (Model));
+         View_Incarnation => Files.Model.View_Incarnation (Model),
+         Undo_Sequence    =>
+           (if Kind = Undo and then not Files.Model.History.Undo_Entries (Model).Is_Empty
+            then Files.Model.History.Undo_Entries (Model).Last_Element.Sequence
+            else 0));
    begin
       if Files.Model.Foreground_Job_Is_Active (Model) or else Files.Model.Pasting.Conflict_Is_Active (Model) then
          return (Status => Files.Operation_Results.Operation_Disabled, others => <>);
@@ -334,71 +337,69 @@ package body Files.Operation_Jobs is
       end if;
    end Record_Untracked_Creations;
 
-   --  A finished helper's journal merged into the window's history. One
-   --  there but not readable this moment (another process holding it, a
-   --  transient refusal) is tried again a few times, briefly, and answers
-   --  Unreadable if it still cannot be read: Advance then keeps the job and
-   --  asks again on a later poll (Defer_Merge). None at all is not waited
-   --  for.
+   --  A finished helper's journal merged into the window's history: read
+   --  once, without waiting. One there but not readable this moment
+   --  (another process holding it, a transient refusal) answers Unreadable,
+   --  and Advance keeps the job and reads it again on a later poll
+   --  (Defer_Merge). None at all is not waited for.
    function Merge_Journal
      (Directory : String;
       Model     : in out Files.Model.Window_Model)
       return Files.History_Journal.Read_Outcome
    is
-      Outcome : Files.History_Journal.Read_Outcome := Files.History_Journal.Unreadable;
       Journal : Files.History_Journal.Journal_Contents;
+      Outcome : constant Files.History_Journal.Read_Outcome := Files.History_Journal.Read (Directory, Journal);
    begin
-      for Attempt in 1 .. Merge_Attempts loop
-         Outcome := Files.History_Journal.Read (Directory, Journal);
-         exit when Outcome /= Files.History_Journal.Unreadable or else Attempt = Merge_Attempts;
-         delay Duration (Attempt) * 0.02;
-      end loop;
       if Outcome = Files.History_Journal.Read_Whole then
          Files.Model.History.Merge (Model, Journal.Undo, Journal.Redo, Journal.State);
       end if;
       return Outcome;
    end Merge_Journal;
 
-   --  The finished helpers whose journal merge was left to a later poll, by
-   --  transport directory, with how many polls so far.
-   Merge_Deferrals : Index_Maps.Map;
-
-   --  Leave the merge of the journal in Directory to a later poll, unless it
-   --  has been left Max_Merge_Deferrals times already.
+   --  Leave the merge of the modal job's unreadable journal to a later
+   --  poll, unless Merge_Grace has passed since its first refusal. The wait
+   --  is the window's (Files.Model.Defer_Operation_Merge), so it ends with
+   --  the job however the job ends.
    --  @return True when it is left to a later poll.
-   function Defer_Merge (Directory : String) return Boolean is
+   function Defer_Merge (Model : in out Files.Model.Window_Model; Directory : String) return Boolean is
+      use type Ada.Real_Time.Time;
+      Now : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
    begin
-      if not Merge_Deferrals.Contains (Directory) then
-         Merge_Deferrals.Insert (Directory, 1);
+      if not Files.Model.Operation_Merge_Deferred (Model) then
+         Files.Model.Defer_Operation_Merge (Model, Now + Ada.Real_Time.To_Time_Span (Merge_Grace));
          return True;
-      elsif Merge_Deferrals.Element (Directory) < Max_Merge_Deferrals then
-         Merge_Deferrals.Replace (Directory, Merge_Deferrals.Element (Directory) + 1);
+      elsif Now < Files.Model.Operation_Merge_Deadline (Model) then
          return True;
       end if;
-      Merge_Deferrals.Delete (Directory);
       Files.Diagnostics.Trace ("Files.Operation_Jobs", "history_journal_given_up=" & Directory);
       return False;
    end Defer_Merge;
 
-   --  The merge for Directory is settled, one way or the other.
-   procedure Forget_Deferral (Directory : String) is
-   begin
-      if Merge_Deferrals.Contains (Directory) then
-         Merge_Deferrals.Delete (Directory);
-      end if;
-   end Forget_Deferral;
-
    --  A helper that ended without success, or whose journal could not be
    --  read, may still have published entries: read from its own journal of
-   --  what it created, they join the history.
-   procedure Recover_Undo (Model : in out Files.Model.Window_Model; Job : Files.Process_Jobs.Session) is
-      Kind : constant Operation_Kind :=
-        Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File)).Kind;
+   --  what it created, they join the history. An Undo whose journal was
+   --  lost though it succeeded (Undone) did the step its request named:
+   --  that entry leaves the undo stack, so Undo is not offered for it again
+   --  (Redo is not offered either: what the helper would have recorded for
+   --  it is lost).
+   procedure Recover_Undo
+     (Model  : in out Files.Model.Window_Model;
+      Job    : Files.Process_Jobs.Session;
+      Undone : Boolean := False)
+   is
+      Work : constant Request := Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
    begin
-      if Kind = Redo then
+      if Work.Kind = Redo then
          Recover_Redo_Progress (Model, Files.Job_Context.Read_Created (Files.Process_Jobs.Path (Job, "")));
-      elsif Kind in Duplicate | Compress_Zip | Compress_Seven_Zip | Extract then
+      elsif Work.Kind in Duplicate | Compress_Zip | Compress_Seven_Zip | Extract then
          Record_Untracked_Creations (Model, Files.Job_Context.Read_Created (Files.Process_Jobs.Path (Job, "")));
+      elsif Work.Kind = Undo and then Undone then
+         if Files.Model.History.Drop_Undone (Model, Work.Undo_Sequence) then
+            Files.Undo_Recording.Settle_History (Model);
+         else
+            Files.Diagnostics.Trace
+              ("Files.Operation_Jobs", "undone_entry_not_newest=" & Files.Types.Natural_Text (Work.Undo_Sequence));
+         end if;
       end if;
    exception
       when Swallowed : others =>
@@ -438,7 +439,7 @@ package body Files.Operation_Jobs is
       Settled         : Boolean := False;
       Recovered       : Boolean := False;
       --  The helper's journal could not be read even after Defer_Merge's
-      --  later polls: its history is given up, and the operation reports
+      --  grace: its history is given up, and the operation reports
       --  Undo_Lost_Key beside its own outcome.
       History_Lost    : Boolean := False;
 
@@ -573,17 +574,18 @@ package body Files.Operation_Jobs is
       --  Merged, not replaced: entries the journal left out stay, and what
       --  the merge retires has its payloads released here. A journal that
       --  cannot be read yet is asked for again on later polls, nothing else
-      --  done meanwhile; only once those run out is its history given up.
+      --  done meanwhile; only once Merge_Grace has passed is its history
+      --  given up. None at all fails the operation, without reading again.
       case Merge_Journal (Transport, Model) is
          when Files.History_Journal.Read_Whole =>
-            Forget_Deferral (Transport);
+            null;
          when Files.History_Journal.Unreadable =>
-            if Defer_Merge (Transport) then
+            if Defer_Merge (Model, Transport) then
                return Still_Finishing;
             end if;
             History_Lost := True;
          when Files.History_Journal.No_Journal =>
-            Forget_Deferral (Transport);
+            Merged := True;
             raise Ada.IO_Exceptions.Data_Error;
       end case;
       Merged := True;
@@ -609,7 +611,11 @@ package body Files.Operation_Jobs is
          if Choice /= Discard
            and then (History_Lost or else Done.Result.Status /= Files.Operation_Results.Operation_Success)
          then
-            Recover_Undo (Model, Job);
+            Recover_Undo
+              (Model, Job,
+               Undone =>
+                 History_Lost and then not Cancelled
+                 and then Done.Result.Status = Files.Operation_Results.Operation_Success);
             Recovered := True;
          end if;
          if After_Merge /= null then
@@ -666,12 +672,12 @@ package body Files.Operation_Jobs is
          if not Merged then
             case Merge_Journal (Transport, Model) is
                when Files.History_Journal.Unreadable =>
-                  if Defer_Merge (Transport) then
+                  if Defer_Merge (Model, Transport) then
                      return Still_Finishing;
                   end if;
                   History_Lost := True;
                when Files.History_Journal.Read_Whole | Files.History_Journal.No_Journal =>
-                  Forget_Deferral (Transport);
+                  null;
             end case;
          end if;
          --  Outcome decoding can fail before the request was read. Recover its

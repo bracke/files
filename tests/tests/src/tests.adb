@@ -39,6 +39,15 @@ procedure Tests is
    --  in every helper process, which inherits it.
    Owned_Temp : Ada.Strings.Unbounded.Unbounded_String;
 
+   --  Stop the recovery coordinator at exit, whether or not it was reaped:
+   --  the run ends either way.
+   procedure Shutdown_Scavenger is
+      Reaped : Boolean;
+      pragma Warnings (Off, Reaped);
+   begin
+      Files.Job_Scavenger.Shutdown (Reaped);
+   end Shutdown_Scavenger;
+
    procedure Drop_Backup_Privileges is
       function Drop return Interfaces.C.int
         with Import, Convention => C, External_Name => "files_test_drop_backup_privileges";
@@ -121,7 +130,7 @@ begin
       Files.File_System.Testing.Install_From_Environment;
       if Files.Job_Helpers.Run_If_Requested then
          Test_Helpers.Damage_Result (Mode);
-         Files.Job_Scavenger.Shutdown;
+         Shutdown_Scavenger;
          Files.Job_Context.Shutdown;
          declare
             Stopped : Boolean;
@@ -226,7 +235,7 @@ begin
       begin
          null;
       end;
-      Files.Job_Scavenger.Shutdown;
+      Shutdown_Scavenger;
       Files.Job_Context.Shutdown;
       declare
          Stopped : Boolean;
@@ -260,7 +269,7 @@ begin
    end;
 exception
    when others =>
-      Files.Job_Scavenger.Shutdown;
+      Shutdown_Scavenger;
       Files.Job_Context.Shutdown;
       declare
          --  Exiting anyway: the reaper's outcome changes nothing here.

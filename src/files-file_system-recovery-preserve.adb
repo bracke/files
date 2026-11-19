@@ -32,7 +32,7 @@ separate (Files.File_System.Recovery)
       for N in 1 .. 9_999 loop
          declare
             Candidate : constant String :=
-              Hostkit.Fs.Join (Parent, Files.Protocol_Names.Recovery_Stage_Prefix & Natural_Text (N));
+              Hostkit.Fs.Join (Parent, Files.Protocol_Names.Recovery_Stage_Prefix & Files.Types.Natural_Text (N));
          begin
             if Files.Private_Directories.Try_Create (Candidate) =
               Files.Private_Directories.Collision

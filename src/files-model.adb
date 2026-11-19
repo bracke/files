@@ -66,6 +66,7 @@ package body Files.Model is
       --  by its last handle going (Files.Process_Jobs).
       Model.Paste_Exec_Job := Released_Transfer;
       Model.Operation_Job := Support.Released_Process;
+      Model.Operation_Merge_Deferred := False;
       Model.Operation_Label_Key := Null_Unbounded_String;
       Model.Operation_Name := Null_Unbounded_String;
       Model.Paste_Exec := (others => <>);
@@ -74,6 +75,17 @@ package body Files.Model is
    end End_Foreground_Job;
 
    function Background_Operation (Model : Window_Model) return Files.Process_Jobs.Session is (Model.Operation_Job);
+
+   procedure Defer_Operation_Merge (Model : in out Window_Model; Deadline : Ada.Real_Time.Time) is
+   begin
+      Model.Operation_Merge_Deferred := True;
+      Model.Operation_Merge_Deadline := Deadline;
+   end Defer_Operation_Merge;
+
+   function Operation_Merge_Deferred (Model : Window_Model) return Boolean is (Model.Operation_Merge_Deferred);
+
+   function Operation_Merge_Deadline (Model : Window_Model) return Ada.Real_Time.Time is
+     (Model.Operation_Merge_Deadline);
 
    procedure Set_Background_Refresh (Model : in out Window_Model; Job : Files.Process_Jobs.Session) is
    begin

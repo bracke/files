@@ -3,6 +3,7 @@ with Ada.Strings.Unbounded;
 with Files.Commands;
 with Files.Commands.Status;
 with Files.Localization;
+with Files.Model.Command_Palette;
 
 package body Files.Command_Palette is
    use Ada.Strings.Unbounded;
@@ -60,5 +61,17 @@ package body Files.Command_Palette is
       end if;
       return Result;
    end Commands;
+
+   procedure Ensure_Listed (Model : in out Files.Model.Window_Model) is
+   begin
+      if not Files.Model.Command_Palette.Is_Listed (Model) then
+         Files.Model.Command_Palette.List
+           (Model,
+            Commands
+              (Model,
+               Files.Model.Command_Palette.Mode_Of (Model),
+               Files.Model.Command_Palette.Open_With_Applications (Model)));
+      end if;
+   end Ensure_Listed;
 
 end Files.Command_Palette;

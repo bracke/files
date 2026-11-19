@@ -2,9 +2,15 @@ with Ada.Containers.Indefinite_Ordered_Maps;
 with Hostkit.Fs;
 with Hostkit.Metadata_Copy;
 
---  Shared low-level helpers of Files.File_System (safe close / end-search,
---  environment access, small text formatting), extracted so the concern
---  children and the parent can all use them. A private child.
+--  The machinery Files.File_System's parent and concern children share. A
+--  private child. It holds the copy and move engine (Copy_To_New_Path,
+--  Copy_Tree, Move_No_Replace, Sync_Copy, Delete_Owned_Tree) with the
+--  source snapshots that verify a copy or move against its source
+--  (Snapshot, Same_Shape, Tree_Revision, Weak_Change_Times); the one
+--  publication of a staged entry (Create_Stage, Publish_From_Stage,
+--  Inherit_Destination_Access); listing a folder (For_Each_Entry); and
+--  where files keeps its own data (Application_Data_Directory, the
+--  volume-trash list's path) and how an environment variable is read.
 private package Files.File_System.Support is
    use type Hostkit.Metadata_Copy.Entry_Times;
 
@@ -90,22 +96,6 @@ private package Files.File_System.Support is
      (Name     : String;
       Expected : String)
       return Boolean;
-
-   --  Whether Value begins with Prefix.
-   --
-   --  @param Value String to test.
-   --  @param Prefix Candidate leading substring.
-   --  @return True when Value starts with Prefix.
-   function Starts_With
-     (Value  : String;
-      Prefix : String)
-      return Boolean renames Files.Types.Starts_With;
-
-   --  Decimal text of Value: Natural'Image with the leading space guarded off.
-   --
-   --  @param Value Number to format.
-   --  @return Value's decimal text, without a leading space.
-   function Natural_Text (Value : Natural) return String renames Files.Types.Natural_Text;
 
    --  @param Parent Existing directory on the destination filesystem.
    --  @return Exclusively created, journaled private staging directory.

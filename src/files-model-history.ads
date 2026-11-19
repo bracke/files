@@ -153,6 +153,20 @@ package Files.Model.History is
       Action : out Files.Undo_History.Undo_Entry;
       Found  : out Boolean);
 
+   --  Forget the newest undo entry when it is the one numbered Sequence: a
+   --  background Undo did it, but the helper's record of the result (where
+   --  it would have gone on the redo stack) was lost, so it must not be
+   --  offered again. Nothing is retired: what the step left behind is not
+   --  touched. Queues the journal save for Take_Retired.
+   --
+   --  @param Model    Model to update.
+   --  @param Sequence The Sequence of the entry the Undo took.
+   --  @return True when the newest entry was that one, and is gone.
+   function Drop_Undone
+     (Model    : in out Window_Model;
+      Sequence : Natural)
+      return Boolean;
+
    --  Push an action onto the redo stack (after a successful undo), queueing
    --  the journal save for Take_Retired.
    --

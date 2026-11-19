@@ -195,15 +195,15 @@ private
    --  What a window-layer overlay's commands are built from: the model (the
    --  palette's query and selection, the settings panel's state and draft),
    --  the window's live settings (their revision, Files.Model.Settings_Revision,
-   --  and the colour theme, which another window's change also moves), the
-   --  overlay's region and line height, its focus and the pointer over it
-   --  (-1 off the overlay, and always for the palette, which draws no
-   --  hover). The commands are rebuilt only when this moves, or when the
-   --  window adopts another window's settings (Share_Settings_From).
+   --  which a theme change moves too -- the commands carry colour roles the
+   --  frame's palette resolves when it is submitted), the overlay's region
+   --  and line height, its focus and the pointer over it (-1 off the
+   --  overlay, and always for the palette, which draws no hover). The
+   --  commands are rebuilt only when this moves, or when the window adopts
+   --  another window's settings (Share_Settings_From).
    type Overlay_Inputs is record
       Model_Revision    : Natural := 0;
       Settings_Revision : Natural := 0;
-      Theme             : Files.Settings.Theme_Choice := Files.Settings.Theme_Dark;
       Region            : Files.Overlays.Overlay_Region;
       Focused           : Boolean := False;
       Hover_X           : Integer := -1;
@@ -281,8 +281,6 @@ private
       Handle          : Window_Access;
       A11y_Key        : Files.Accessibility.Window_Key := 0;
       --  This window's part of the screen reader's tree.
-      Shown_Accessibility : Guikit.Draw.Accessibility_Node_Vectors.Vector;
-      --  The accessibility nodes of the frame last shown, overlays included.
       Model           : Files.Model.Window_Model;
       Settings        : Files.Settings.Settings_Model;
       --  The model's settings revision (Files.Model.Settings_Revision) as of
@@ -428,6 +426,42 @@ private
      (Runtime  : in out Runtime_Window;
       Action   : Files.Events.Input_Action;
       Modifiers : Guikit.Input.Modifier_Set);
+
+   --  Where a pointer event lands in a window's frame, and what to hit-test
+   --  it against: framebuffer coordinates, the frame's size and line
+   --  height, and the snapshot slot drawn there (Hit_Slot). Inside is False
+   --  for a cursor on or beyond the window's edge, or an empty frame: such a
+   --  position names no pixel (Scale_Coordinate returns the framebuffer
+   --  extent there), and the rest is then not set.
+   type Hit_Position is record
+      Inside      : Boolean := False;
+      X           : Natural := 0;
+      Y           : Natural := 0;
+      Width       : Natural := 0;
+      Height      : Natural := 0;
+      Line_Height : Positive := Guikit.Layout.Reference_Line_Height;
+      Slot        : Snapshot_Slot := Snapshot_Slot'First;
+   end record;
+
+   --  Where a cursor position lands in a window's frame.
+   --
+   --  @param Runtime Window hit; its snapshot is refreshed before any frame.
+   --  @param Window_W Window width in screen coordinates.
+   --  @param Window_H Window height in screen coordinates.
+   --  @param Frame_W Framebuffer width in pixels.
+   --  @param Frame_H Framebuffer height in pixels.
+   --  @param Cursor_X Cursor X in window coordinates.
+   --  @param Cursor_Y Cursor Y in window coordinates.
+   --  @return The position and what to hit-test it against.
+   function Hit_Position_At
+     (Runtime  : in out Runtime_Window;
+      Window_W : Glfw.Size;
+      Window_H : Glfw.Size;
+      Frame_W  : Glfw.Size;
+      Frame_H  : Glfw.Size;
+      Cursor_X : Glfw.Input.Mouse.Coordinate;
+      Cursor_Y : Glfw.Input.Mouse.Coordinate)
+      return Hit_Position;
 
    --  The input action a click at a cursor position makes.
    function Current_Click_Action

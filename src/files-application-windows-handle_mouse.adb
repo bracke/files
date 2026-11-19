@@ -11,28 +11,26 @@ separate (Files.Application.Windows)
       --  Files.Events translates it against the snapshot on screen; an item
       --  drawn there is found again in the model as it is now.
       procedure Right_Press (Event : Guikit.Input.Mouse_Buttons.Button_Event) is
+         --  A press on or beyond the window's edge names no pixel and must
+         --  not close or replace a context menu (Hit_Position_At).
+         At_Press : constant Hit_Position :=
+           Hit_Position_At (Runtime, Window_W, Window_H, Frame_W, Frame_H, Event.X, Event.Y);
       begin
-         --  Scale_Coordinate deliberately returns the framebuffer extent for
-         --  a cursor on/beyond the bottom or right edge. Such a coordinate
-         --  names no pixel and must not close or replace a context menu.
-         if not Files.Window_Policy.Cursor_Is_Inside_Window (Event.X, Event.Y, Window_W, Window_H)
-           or else Frame_W <= 0 or else Frame_H <= 0
-         then
+         if not At_Press.Inside then
             return;
          end if;
          declare
-            Slot   : constant Snapshot_Slot := Hit_Slot (Runtime);
             Action : Files.Events.Input_Action :=
               Files.Events.Translate_Right_Click
-                (Snapshot    => Runtime.View.Snapshots (Slot),
-                 X           => Files.Window_Policy.Scale_X (Event.X, Window_W, Frame_W),
-                 Y           => Files.Window_Policy.Scale_Coordinate (Event.Y, Window_H, Frame_H),
-                 Width       => Natural (Frame_W),
-                 Height      => Natural (Frame_H),
-                 Line_Height => Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
+                (Snapshot    => Runtime.View.Snapshots (At_Press.Slot),
+                 X           => At_Press.X,
+                 Y           => At_Press.Y,
+                 Width       => At_Press.Width,
+                 Height      => At_Press.Height,
+                 Line_Height => At_Press.Line_Height);
          begin
             if Action.Kind = Files.Events.Right_Click_Input_Action then
-               Action.Target_Item := Current_Item_Index (Runtime, Slot, Action.Target_Item);
+               Action.Target_Item := Current_Item_Index (Runtime, At_Press.Slot, Action.Target_Item);
                Dispatch_Click_Action (Runtime, Action, Event.Modifiers);
             end if;
          end;

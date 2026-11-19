@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`files` is an Ada 2022 desktop file manager. Core logic (~82K lines in `src/`) is platform-agnostic; rendering uses Vulkan + GLFW + `textrender`. Linux is the only production-validated platform.
+`files` is an Ada 2022 desktop file manager. Core logic (~88K lines in `src/`) is platform-agnostic; rendering uses Vulkan + GLFW + `textrender`. Linux is the only production-validated platform.
 
 ## Build, test, verify
 
@@ -54,7 +54,7 @@ Two-phase render, each phase a subunit of `Files.Rendering`: `Files.Model` → `
 Reusable UI pieces are black-box components in `../guikit` (`Guikit.Command_Palette`, `Settings_Panel`, `Segmented`, `Item_Grid`, `List_Panel`, `Menu_Tree`, `Widgets`); files also delegates shared non-visual helpers there (`Guikit.Utf8.Editing`, `Guikit.Input.Mouse_Buttons`, `Guikit.Fonts`). files owns the domain (selection, rename, icon assets, localization) and maps it to each component's neutral inputs. **Whether a component is stateful fixes how it integrates — do not re-decide per component:**
 
 - **Stateless render helpers** (`Segmented`, `Item_Grid`, `List_Panel`, `Menu_Tree`, `Widgets`) are called from inside `Build_Frame_Commands`, driven by the snapshot. Prefer this.
-- **Stateful overlays** (`Command_Palette`, `Settings_Panel` — they hold query/scroll/focus state across frames) cannot pass through the immutable snapshot: their instance lives in the `Window_Model`, `Files.Overlays` draws them from that state, and the window layer (`files-application-windows-render_window.adb`) merges the result into the cached frame via `Append_Overlay`.
+- **Stateful overlays** (`Command_Palette`, `Settings_Panel` — they hold query/scroll/focus state across frames) cannot pass through the immutable snapshot: their instance lives in the `Window_Model`, `Files.Overlays` draws them from that state, and the window layer merges the result into the cached frame: `files-application-windows-render_window-present_frame.adb` calls `Append_Overlay`, which is defined in `files-application-windows.adb`.
 
 `Files.Model` keeps the `Window_Model` record and the cross-cutting operations (navigation, focus, text caret, overlay stack); each concern is a public child that sees the private record: one per overlay (`Command_Palette`, `Settings_Pane`, `Root_Selector`, `Sort_Menu`, `Context_Menu`, `Label_Picker`, `Quick_Look`, `Tree_Panel`, `Pasting`, `Clipboard`) and `Selection`, `History` (undo/redo), `Rename`, `Folder_Sizes` and `Status_Samples`. The overlays stack in one order, `Files.UI_Types.Overlay_Stack`: the model's `Topmost_Overlay`, the keyboard (`Controller.Handle_Key` offers keys to the top overlay only) and the pointer (`Events` routes clicks through `Rendering.Topmost_Overlay_Position`) all follow it. Callers name the child (`Files.Model.Selection.Select_Visible`). **Model children never `with` each other.** What the parent or another child needs from a concern — an overlay's close/reset (so `Close_Overlay` and `Claim_Overlay_Input` reach it), the selection queries the overlays read — lives in the private child `Files.Model.Support`, and the concern's public subprogram renames it; everything only its own child uses stays in that child's body.
 

@@ -483,7 +483,7 @@ package body Files.File_System.Support is
          declare
             Text : constant String := To_String (Item);
          begin
-            Add (Natural_Text (Text'Length) & ":" & Text);
+            Add (Files.Types.Natural_Text (Text'Length) & ":" & Text);
          end;
       end loop;
       Restore_Directory_Times;
