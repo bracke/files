@@ -11,6 +11,10 @@ separate (Files.File_System.Recovery)
       return Mutation_Result
    is
       Copied : Boolean := False;
+      --  What the source checks stop for: the job's cancellation, unless the
+      --  caller wants none (a restore must finish once it has begun). Cancel
+      --  itself governs the copy.
+      Check  : constant Cancellation_Check := (if Cancel = null then null else Job_Cancelled);
 
       --  The published copy, once the source cannot be removed: taken back
       --  against the revision published, so anything added to it since is
@@ -35,7 +39,7 @@ separate (Files.File_System.Recovery)
            Support.Snapshot
              (Source,
               Content      => Weak_Change_Time,
-              Cancel       => Cancel,
+              Cancel       => Check,
               Change_Times =>
                 (if Weak_Change_Time then Support.Distrust_Change_Times else Support.Trust_Change_Times));
          Digest    : aliased Files.Types.UString;
@@ -57,7 +61,7 @@ separate (Files.File_System.Recovery)
             Expected : constant Support.Source_Snapshot :=
               (if Weak_Change_Time then Shape else Support.With_Root_Content (Shape, To_String (Digest)));
             Removed : constant Mutation_Result :=
-              Remove_Move_Source (Source, Expected, Fallback_Key, Set_Aside, Cancel);
+              Remove_Move_Source (Source, Expected, Fallback_Key, Set_Aside, Check);
          begin
             if not Removed.Success then
                if Set_Aside then
