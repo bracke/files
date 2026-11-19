@@ -7,9 +7,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       --  is comfortably taller than the text with matching top/bottom bands.
       Padding_V   : constant Natural :=
         Natural'Max (Padding, Guikit.Layout.Saturating_Add (Line_Height / 3, Guikit.Layout.Scaled (2, Line_Height)));
-      Margin      : constant Natural := Guikit.Layout.Scaled (4, Line_Height);
-      Horizontal_Gap : constant Natural := Guikit.Layout.Scaled (12, Line_Height);
-      Vertical_Gap   : constant Natural := Guikit.Layout.Scaled (18, Line_Height);
+      Margin      : constant Natural := Files.Rendering.Layouts.Tooltip_Margin (Line_Height);
       Cell_W      : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
       Max_Tip_W   : constant Natural :=
         (if Width > 2 * Margin then Width - 2 * Margin else Width);
@@ -78,40 +76,11 @@ separate (Files.Rendering.Build_Frame_Commands)
                    (Saturating_Multiply (Natural (Rows.Length), Line_Height),
                     Saturating_Multiply (Padding_V, 2));
 
-               function Fits_Right return Boolean is
-                 (Width > Margin
-                  and then Hover_X <= Natural'Last - Horizontal_Gap
-                  and then Guikit.Layout.Saturating_Add (Hover_X, Horizontal_Gap) <= Natural'Last - Tip_W
-                  and then Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Hover_X, Horizontal_Gap), Tip_W)
-                    <= Width - Margin);
-
-               function Fits_Left return Boolean is
-                 (Hover_X
-                  >= Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Tip_W, Horizontal_Gap), Margin));
-
-               function Fits_Below return Boolean is
-                 (Height > Margin
-                  and then Hover_Y <= Natural'Last - Vertical_Gap
-                  and then Guikit.Layout.Saturating_Add (Hover_Y, Vertical_Gap) <= Natural'Last - Tip_H
-                  and then Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Hover_Y, Vertical_Gap), Tip_H)
-                    <= Height - Margin);
-
-               function Fits_Above return Boolean is
-                 (Hover_Y
-                  >= Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Tip_H, Vertical_Gap), Margin));
-
-               Tip_X   : constant Natural :=
-                 (if Fits_Right then Guikit.Layout.Saturating_Add (Hover_X, Horizontal_Gap)
-                  elsif Fits_Left then Hover_X - Tip_W - Horizontal_Gap
-                  elsif Width > Guikit.Layout.Saturating_Add (Tip_W, Margin)
-                  then Natural'Min (Hover_X, Width - Tip_W - Margin)
-                  else 0);
-               Tip_Y   : constant Natural :=
-                 (if Fits_Below then Guikit.Layout.Saturating_Add (Hover_Y, Vertical_Gap)
-                  elsif Fits_Above then Hover_Y - Tip_H - Vertical_Gap
-                  elsif Height > Guikit.Layout.Saturating_Add (Tip_H, Margin)
-                  then Natural'Min (Hover_Y, Height - Tip_H - Margin)
-                  else 0);
+               Place   : constant Files.Rendering.Layouts.Tooltip_Placement :=
+                 Files.Rendering.Layouts.Calculate_Tooltip_Placement
+                   (Width, Height, Hover_X, Hover_Y, Tip_W, Tip_H, Line_Height);
+               Tip_X   : constant Natural := Place.X;
+               Tip_Y   : constant Natural := Place.Y;
                Label_X : constant Natural := Guikit.Layout.Saturating_Add (Tip_X, Padding);
                Draw_W  : constant Natural := Clipped_Size (Label_X, Draw_Text_W, Layout.Width);
                Line    : Natural := 0;

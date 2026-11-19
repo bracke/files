@@ -29,51 +29,35 @@ separate (Files.Rendering)
       Marquee_H       : Natural renames Pointer.Marquee_H;
 
       Result        : Frame_Commands;
-      Layout        : constant Layout_Metrics := Calculate_Layout (Snapshot, Width, Height, Line_Height);
+      --  The frame's regions, laid out once; each by its own name below.
+      Frame         : constant Files.Rendering.Layouts.Frame_Layout :=
+        Files.Rendering.Layouts.Calculate_Frame_Layout (Snapshot, Width, Height, Line_Height);
+      Layout        : Layout_Metrics renames Frame.Layout;
+      Main_View     : Main_View_Layout renames Frame.Main_View;
+      Toolbar       : Guikit.Layout.Toolbar_Layout renames Frame.Toolbar;
+      Bottom        : Guikit.Layout.Bottom_Bar_Layout renames Frame.Bottom;
+      Palette       : Command_Palette_Layout renames Frame.Palette;
+      Root_Selector : Root_Selector_Layout renames Frame.Root_Selector;
+      Tree_Panel    : Tree_Panel_Layout renames Frame.Tree_Panel;
+      Info_Pane     : Info_Pane_Layout renames Frame.Info_Pane;
+      Settings_Pane : Guikit.Layout.Settings_Pane_Layout renames Frame.Settings_Pane;
+      Toolbar_Input_Y      : Natural renames Frame.Toolbar_Input_Y;
+      Toolbar_Input_H      : Natural renames Frame.Toolbar_Input_H;
+      Toolbar_Input_Text_Y : Natural renames Frame.Toolbar_Input_Text_Y;
+      Toolbar_Input_Text_H : Natural renames Frame.Toolbar_Input_Text_H;
+      Bottom_Y             : Natural renames Frame.Bottom_Y;
+      Bottom_Content_Y     : Natural renames Frame.Bottom_Content_Y;
+      Bottom_Content_H     : Natural renames Frame.Bottom_Content_H;
+
+      --  The per-row layouts: items, root-selector rows, breadcrumbs and tree rows.
       Items         : constant Item_Layout_Vectors.Vector :=
         Calculate_Item_Layout (Snapshot, Layout, Line_Height);
-      Main_View     : constant Main_View_Layout := Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
-      Toolbar       : constant Guikit.Layout.Toolbar_Layout :=
-        Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
-      Bottom        : constant Guikit.Layout.Bottom_Bar_Layout :=
-        Files.Rendering.Layouts.Calculate_Bottom_Bar_Layout (Width, Snapshot.Sort_Field, Line_Height);
-      Palette       : constant Command_Palette_Layout := Calculate_Command_Palette_Layout (Layout, Line_Height);
-      Toolbar_Input_Y : constant Natural := Guikit.Layout.Toolbar_Input_Y (Line_Height);
-      Toolbar_Input_H : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
-      --  The text origin is pulled up by the optical bias above the geometric
-      --  centre. This matches the bottom bar's optical text centring
-      --  (Bottom_Content_Y) exactly -- the fields share the same height -- so the
-      --  toolbar text reads centred in its field, aligning with the
-      --  geometric-centred toolbar icons and favourite star rather than sitting
-      --  a pixel low.
-      Toolbar_Input_Text_Y : constant Natural :=
-        (if Toolbar_Input_H > Line_Height
-         then Optically_Raised
-           (Guikit.Layout.Saturating_Add (Toolbar_Input_Y, (Toolbar_Input_H - Line_Height) / 2), Line_Height)
-         else Toolbar_Input_Y);
-      Toolbar_Input_Text_H : constant Natural :=
-        Natural'Min (Line_Height, Toolbar_Input_H);
-      Root_Selector : constant Root_Selector_Layout :=
-        Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height);
       Root_Rows     : constant Root_Path_Layout_Vectors.Vector :=
         Calculate_Root_Path_Layout (Snapshot, Root_Selector);
       Breadcrumb_Rows : constant Breadcrumb_Segment_Layout_Vectors.Vector :=
         Calculate_Breadcrumb_Layout (Snapshot, Width, Line_Height);
-      Tree_Panel    : constant Tree_Panel_Layout :=
-        Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
       Tree_Rows_Layout : constant Tree_Row_Layout_Vectors.Vector :=
         Calculate_Tree_Row_Layout (Snapshot, Tree_Panel, Line_Height);
-      Info_Pane     : constant Info_Pane_Layout := Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
-      Settings_Pane : constant Guikit.Layout.Settings_Pane_Layout :=
-        Settings_Pane_Region (Layout, Line_Height);
-      Bottom_Y      : constant Natural := Files.Rendering.Layouts.Bottom_Bar_Y (Height, Line_Height);
-      Bottom_Pad    : constant Natural := Guikit.Layout.Scaled (Guikit.Layout.Bottom_Bar_Padding, Line_Height);
-      Bottom_Content_Y : constant Natural :=
-        Guikit.Layout.Saturating_Add (Bottom_Y, Optically_Raised (Bottom_Pad, Line_Height));
-      Bottom_Content_H : constant Natural :=
-        (if Layout.Bottom_Bar_Height > Saturating_Multiply (Bottom_Pad, 2)
-         then Layout.Bottom_Bar_Height - Saturating_Multiply (Bottom_Pad, 2)
-         else Layout.Bottom_Bar_Height);
 
       function Intersects
         (Left_X   : Natural;

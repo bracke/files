@@ -46,104 +46,137 @@ is
       Files.History_Journal.Checkpoint (Model, Action, Files.Model.Undo_Side, Force => Force);
       return True;
    end Remove_Created;
-begin
+
    --  Copies a failed move kept beside their sources leave first: before
    --  anything moves back, and before an original a replace preserved is
    --  restored to the path one of them holds. Each step is marked, so a
    --  retry never deletes what a restore has since put there.
-   for Copy of Action.Kept loop
-      if Files.Job_Context.Cancelled then
-         return False;
-      end if;
-      if not Remove_Created (Copy.Path, To_String (Copy.Identity), To_String (Copy.Tree_Revision), Force => True) then
-         Succeeded := False;
-      end if;
-   end loop;
-   --  An original goes back only to a path no kept copy still holds.
-   if not Succeeded then
-      return False;
-   end if;
+   function Remove_Kept_Copies return Replay_Outcome is
+      Outcome : Replay_Outcome := Replayed;
+   begin
+      for Copy of Action.Kept loop
+         if Files.Job_Context.Cancelled then
+            return Stopped;
+         end if;
+         if not Remove_Created (Copy.Path, To_String (Copy.Identity), To_String (Copy.Tree_Revision), Force => True)
+         then
+            Outcome := Item_Failed;
+         end if;
+      end loop;
+      return Outcome;
+   end Remove_Kept_Copies;
 
-   case Action.Kind is
-      when Files.Model.Undo_Rename | Files.Model.Undo_Move =>
-         Succeeded := Move_Back (Action, Model, Files.Model.Undo_Side);
-
-      when Files.Model.Undo_Restore_Trash =>
-         for Item of Action.Items loop
-            if Files.Job_Context.Cancelled then
-               return False;
+   --  Put each item a trashing moved back from the trash, skipping those a
+   --  retry finds already reversed.
+   function Restore_Trashed_Items return Replay_Outcome is
+      Outcome : Replay_Outcome := Replayed;
+   begin
+      for Item of Action.Items loop
+         if Files.Job_Context.Cancelled then
+            return Stopped;
+         end if;
+         if Reversed.Contains (To_String (Item.From)) then
+            null;
+         elsif not Restore_Recorded_Trash (Trashed (Item)) then
+            Outcome := Item_Failed;
+         else
+            --  Its labels come back out of the trash with it.
+            if Length (Item.To) > 0 then
+               Files.Model.Note_Path_Move (Model, To_String (Item.From), To_String (Item.To));
             end if;
-            if Reversed.Contains (To_String (Item.From)) then
-               null;
-            elsif not Restore_Recorded_Trash (Trashed (Item)) then
-               Succeeded := False;
-            else
-               --  Its labels come back out of the trash with it.
-               if Length (Item.To) > 0 then
-                  Files.Model.Note_Path_Move (Model, To_String (Item.From), To_String (Item.To));
-               end if;
-               Action.Reverse_Completed.Append (Item.From);
-               Reversed.Include (To_String (Item.From));
-               --  A retry finds a finished restore by its identity at the
-               --  original path (Restore_Recorded_Trash) -- unless it was a
-               --  copy across devices, which has a new one: written now.
-               Files.History_Journal.Checkpoint
-                 (Model, Action, Files.Model.Undo_Side, Force => not Restored_In_Place (Trashed (Item)));
+            Action.Reverse_Completed.Append (Item.From);
+            Reversed.Include (To_String (Item.From));
+            --  A retry finds a finished restore by its identity at the
+            --  original path (Restore_Recorded_Trash) -- unless it was a
+            --  copy across devices, which has a new one: written now.
+            Files.History_Journal.Checkpoint
+              (Model, Action, Files.Model.Undo_Side, Force => not Restored_In_Place (Trashed (Item)));
+         end if;
+      end loop;
+      return Outcome;
+   end Restore_Trashed_Items;
+
+   --  Undo a created path by removing it again. A path gone for sure is
+   --  already undone; one the host will not answer for is not.
+   function Remove_Created_Items return Replay_Outcome is
+      Outcome : Replay_Outcome := Replayed;
+   begin
+      for Index in Action.Items.First_Index .. Action.Items.Last_Index loop
+         if Files.Job_Context.Cancelled then
+            return Stopped;
+         end if;
+         declare
+            Item : constant Files.Model.Undo_Item := Action.Items (Index);
+         begin
+            --  A retry treats a path already gone as removed, so its
+            --  checkpoint can wait.
+            if not Remove_Created
+              (Item.From, To_String (Item.Identity), To_String (Item.Tree_Revision), Force => False)
+            then
+               Outcome := Item_Failed;
             end if;
-         end loop;
-
-      when Files.Model.Undo_Delete_Created =>
-         --  Undo a created path by removing it again. A path gone for sure
-         --  is already undone; one the host will not answer for is not.
-         for Index in Action.Items.First_Index .. Action.Items.Last_Index loop
-            if Files.Job_Context.Cancelled then
-               return False;
-            end if;
-            declare
-               Item : constant Files.Model.Undo_Item := Action.Items (Index);
-            begin
-               --  A retry treats a path already gone as removed, so its
-               --  checkpoint can wait.
-               if not Remove_Created
-                 (Item.From, To_String (Item.Identity), To_String (Item.Tree_Revision), Force => False)
-               then
-                  Succeeded := False;
-               end if;
-            end;
-         end loop;
-
-      when Files.Model.Undo_Set_Permissions | Files.Model.Undo_Set_Ownership =>
-         --  Put back the mode or owner the change replaced (To).
-         case Replay_Metadata (Action, Before_Change) is
-            when Stopped     => return False;
-            when Item_Failed => Succeeded := False;
-            when Replayed    => null;
-         end case;
-
-      when Files.Model.Undo_None =>
-         Succeeded := False;
-   end case;
+         end;
+      end loop;
+      return Outcome;
+   end Remove_Created_Items;
 
    --  Paste-replace: after the main reverse has vacated each destination
    --  (deleted the pasted copy / moved the source back), restore the original
    --  that the Replace moved to the trash, so undo returns the pre-paste state.
-   for Original of Action.Replaced loop
-      if Files.Job_Context.Cancelled then
-         return False;
-      end if;
-      if Restored.Contains (To_String (Original.Trash)) then
-         null;
-      elsif not Restore_Recorded_Trash (Original) then
-         Succeeded := False;
-      else
-         --  Its labels, favorite and recent entry come back with it.
-         Files.Model.Note_Path_Move (Model, To_String (Original.Trash), To_String (Original.Target));
-         Action.Restores_Completed.Append (Original.Trash);
-         Restored.Include (To_String (Original.Trash));
-         Files.History_Journal.Checkpoint
-           (Model, Action, Files.Model.Undo_Side, Force => not Restored_In_Place (Original));
-      end if;
-   end loop;
+   function Restore_Replaced_Originals return Replay_Outcome is
+      Outcome : Replay_Outcome := Replayed;
+   begin
+      for Original of Action.Replaced loop
+         if Files.Job_Context.Cancelled then
+            return Stopped;
+         end if;
+         if Restored.Contains (To_String (Original.Trash)) then
+            null;
+         elsif not Restore_Recorded_Trash (Original) then
+            Outcome := Item_Failed;
+         else
+            --  Its labels, favorite and recent entry come back with it.
+            Files.Model.Note_Path_Move (Model, To_String (Original.Trash), To_String (Original.Target));
+            Action.Restores_Completed.Append (Original.Trash);
+            Restored.Include (To_String (Original.Trash));
+            Files.History_Journal.Checkpoint
+              (Model, Action, Files.Model.Undo_Side, Force => not Restored_In_Place (Original));
+         end if;
+      end loop;
+      return Outcome;
+   end Restore_Replaced_Originals;
 
+   --  The reverse of the action's own kind of change.
+   function Reverse_Main return Replay_Outcome is
+   begin
+      case Action.Kind is
+         when Files.Model.Undo_Rename | Files.Model.Undo_Move =>
+            return (if Move_Back (Action, Model, Files.Model.Undo_Side) then Replayed else Item_Failed);
+         when Files.Model.Undo_Restore_Trash =>
+            return Restore_Trashed_Items;
+         when Files.Model.Undo_Delete_Created =>
+            return Remove_Created_Items;
+         when Files.Model.Undo_Set_Permissions | Files.Model.Undo_Set_Ownership =>
+            --  Put back the mode or owner the change replaced (To).
+            return Replay_Metadata (Action, Before_Change);
+         when Files.Model.Undo_None =>
+            return Item_Failed;
+      end case;
+   end Reverse_Main;
+begin
+   --  An original goes back only to a path no kept copy still holds.
+   if Remove_Kept_Copies /= Replayed then
+      return False;
+   end if;
+   case Reverse_Main is
+      when Stopped     => return False;
+      when Item_Failed => Succeeded := False;
+      when Replayed    => null;
+   end case;
+   case Restore_Replaced_Originals is
+      when Stopped     => return False;
+      when Item_Failed => Succeeded := False;
+      when Replayed    => null;
+   end case;
    return Succeeded;
 end Apply_Reverse;

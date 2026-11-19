@@ -864,6 +864,37 @@ package Files.Rendering.Layouts is
    function Dialog_Padding (Line_Height : Positive) return Natural is
      (Guikit.Layout.Scaled (12, Line_Height));
 
+   --  The least distance a hover tooltip keeps from the frame's edges: 4 px
+   --  at Guikit.Layout.Reference_Line_Height, scaled with the text.
+   --
+   --  @param Line_Height The line height in use.
+   --  @return The margin in pixels.
+   function Tooltip_Margin (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Scaled (4, Line_Height));
+
+   --  Where a hover tooltip's box goes: its top-left corner.
+   type Tooltip_Placement is record
+      X : Natural := 0;
+      Y : Natural := 0;
+   end record;
+
+   --  Place a hover tooltip box beside the pointer: right of it if it fits
+   --  inside the frame's margin, else left of it, else clamped to the frame;
+   --  below it if it fits, else above it, else clamped likewise.
+   --
+   --  @param Frame_Width Frame width in pixels.
+   --  @param Frame_Height Frame height in pixels.
+   --  @param Pointer_X Pointer X in the frame.
+   --  @param Pointer_Y Pointer Y in the frame.
+   --  @param Box_Width The tooltip box's width.
+   --  @param Box_Height The tooltip box's height.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The box's top-left corner.
+   function Calculate_Tooltip_Placement
+     (Frame_Width, Frame_Height, Pointer_X, Pointer_Y, Box_Width, Box_Height : Natural;
+      Line_Height                                                            : Positive)
+      return Tooltip_Placement;
+
    --  A window's size when the settings name none, and the size the smoke
    --  runs render at.
    Default_Window_Width  : constant := 1024;
@@ -913,6 +944,52 @@ package Files.Rendering.Layouts is
    --  @param Line_Height Text line height in pixels.
    --  @return The bar's top Y in pixels.
    function Bottom_Bar_Y (Height : Natural; Line_Height : Positive) return Natural;
+
+   --  Everything a frame lays out once but the per-row vectors: the window's
+   --  regions, and the text bands of its two bars that every toolbar field
+   --  and bottom-bar status shares.
+   type Frame_Layout is record
+      Layout        : Layout_Metrics;
+      Main_View     : Main_View_Layout;
+      Toolbar       : Guikit.Layout.Toolbar_Layout;
+      Bottom        : Guikit.Layout.Bottom_Bar_Layout;
+      Palette       : Command_Palette_Layout;
+      Root_Selector : Root_Selector_Layout;
+      Tree_Panel    : Tree_Panel_Layout;
+      Info_Pane     : Info_Pane_Layout;
+      Settings_Pane : Guikit.Layout.Settings_Pane_Layout;
+      --  The toolbar fields' box: its top and height.
+      Toolbar_Input_Y      : Natural := 0;
+      Toolbar_Input_H      : Natural := 0;
+      --  The band the toolbar fields' text is drawn in. The text origin is
+      --  pulled up by the optical bias above the geometric centre, matching
+      --  the bottom bar's optical centring (Bottom_Content_Y) exactly -- the
+      --  fields share the same height -- so the text reads centred in its
+      --  field, aligning with the geometric-centred toolbar icons and
+      --  favourite star rather than sitting a pixel low.
+      Toolbar_Input_Text_Y : Natural := 0;
+      Toolbar_Input_Text_H : Natural := 0;
+      --  The bottom bar's top, and the band inside its padding, optically
+      --  raised, that its content is drawn in.
+      Bottom_Y         : Natural := 0;
+      Bottom_Content_Y : Natural := 0;
+      Bottom_Content_H : Natural := 0;
+   end record;
+
+   --  Lay out a frame's regions and bar text bands, as Build_Frame_Commands
+   --  draws them.
+   --
+   --  @param Snapshot View snapshot to lay out.
+   --  @param Width Window width in pixels.
+   --  @param Height Window height in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The frame's layout.
+   function Calculate_Frame_Layout
+     (Snapshot    : View_Snapshot;
+      Width       : Natural;
+      Height      : Natural;
+      Line_Height : Positive)
+      return Frame_Layout;
 
    --  Geometry of the open sort dropdown: the menu rectangle (it opens upward
    --  from the bottom bar, left-aligned with the sort button), the top of its

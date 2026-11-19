@@ -41,12 +41,12 @@ package body Files.Rendering.Layouts is
    end Metrics_For;
 
    function Calculate_Layout
-     (Snapshot    : View_Snapshot;
-      Width       : Natural;
-      Height      : Natural;
-      Line_Height : Positive)
-      return Layout_Metrics
- is separate;
+     (Snapshot : View_Snapshot; Width : Natural; Height : Natural; Line_Height : Positive) return Layout_Metrics
+   is separate;
+
+   function Calculate_Frame_Layout
+     (Snapshot : View_Snapshot; Width : Natural; Height : Natural; Line_Height : Positive) return Frame_Layout
+   is separate;
 
    function Calculate_Item_Layout
      (Snapshot      : View_Snapshot;
@@ -118,12 +118,12 @@ package body Files.Rendering.Layouts is
  is separate;
 
    function Calculate_Context_Menu_Layout
-     (Snapshot    : View_Snapshot;
-      Width       : Natural;
-      Height      : Natural;
-      Line_Height : Positive)
-      return Context_Menu_Layout
- is separate;
+     (Snapshot : View_Snapshot; Width : Natural; Height : Natural; Line_Height : Positive) return Context_Menu_Layout
+   is separate;
+
+   function Calculate_Tooltip_Placement
+     (Frame_Width, Frame_Height, Pointer_X, Pointer_Y, Box_Width, Box_Height : Natural; Line_Height : Positive)
+      return Tooltip_Placement is separate;
 
    procedure Marquee_Rect
      (Start_X   : Natural;

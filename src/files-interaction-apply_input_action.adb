@@ -13,6 +13,33 @@ separate (Files.Interaction)
       --  What a controller entry answered, when one was asked (Asked).
       Outcome : Files.Controller.Controller_Result;
       Asked   : Boolean := False;
+
+      --  The paste-conflict dialog's answer buttons, and the choice each one
+      --  gives (Apply_All toggles instead of answering).
+      subtype Conflict_Answer_Button is Files.Events.Conflict_Button_Kind
+        range Files.Events.Conflict_Button_Replace .. Files.Events.Conflict_Button_Cancel;
+      Conflict_Choices : constant array (Conflict_Answer_Button) of Files.Operations.Conflict_Choice :=
+        [Files.Events.Conflict_Button_Replace => Files.Operations.Choice_Replace,
+         Files.Events.Conflict_Button_Skip    => Files.Operations.Choice_Skip,
+         Files.Events.Conflict_Button_Rename  => Files.Operations.Choice_Rename,
+         Files.Events.Conflict_Button_Cancel  => Files.Operations.Choice_Cancel];
+
+      --  Toggle the current directory's favorite state directly by path,
+      --  independent of the selection, under the policy every settings
+      --  change has (Commit_Settings). The recent view has no path.
+      procedure Toggle_Current_Favorite is
+      begin
+         if Files.Model.Input_Owning_Overlay_Is_Open (Model) or else Files.Model.Current_Path (Model) = "" then
+            return;
+         end if;
+         declare
+            Updated : Files.Settings.Settings_Model := Settings;
+         begin
+            Files.Settings.Path_References.Toggle_Favorite_Path (Updated, Files.Model.Current_Path (Model));
+            Files.Controller.Commit_Settings
+              (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
+         end;
+      end Toggle_Current_Favorite;
    begin
       --  Callers reuse this record across input events. Reset every field before
       --  applying the branch-specific observations so a prior command's follow-up
@@ -72,20 +99,7 @@ separate (Files.Interaction)
             Apply_Context_Menu_Command
               (Model, Settings, Settings_Path, Action.Menu_Command, Modifiers, Result);
          when Files.Events.Path_Favorite_Toggle_Input_Action =>
-            --  Toggle the current directory's favorite state directly by path,
-            --  independent of the selection, under the policy every settings
-            --  change has (Commit_Settings). The recent view has no path.
-            if not Files.Model.Input_Owning_Overlay_Is_Open (Model)
-              and then Files.Model.Current_Path (Model) /= ""
-            then
-               declare
-                  Updated : Files.Settings.Settings_Model := Settings;
-               begin
-                  Files.Settings.Path_References.Toggle_Favorite_Path (Updated, Files.Model.Current_Path (Model));
-                  Files.Controller.Commit_Settings
-                    (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
-               end;
-            end if;
+            Toggle_Current_Favorite;
          when Files.Events.Tree_Click_Input_Action =>
             Asked := True;
             Outcome :=
@@ -133,21 +147,14 @@ separate (Files.Interaction)
             Outcome := Files.Controller.Handle_Ownership_Edit (Model, Group => Action.Edit_Group);
          when Files.Events.Conflict_Click_Input_Action =>
             case Action.Conflict_Button is
+               when Conflict_Answer_Button =>
+                  Asked := True;
+                  Outcome :=
+                    Files.Controller.Handle_Conflict_Choice
+                      (Model, Settings, Conflict_Choices (Action.Conflict_Button));
                when Files.Events.Conflict_Button_Apply_All =>
                   Asked := True;
                   Outcome := Files.Controller.Handle_Conflict_Apply_All_Toggle (Model);
-               when Files.Events.Conflict_Button_Replace =>
-                  Asked := True;
-                  Outcome := Files.Controller.Handle_Conflict_Choice (Model, Settings, Files.Operations.Choice_Replace);
-               when Files.Events.Conflict_Button_Skip =>
-                  Asked := True;
-                  Outcome := Files.Controller.Handle_Conflict_Choice (Model, Settings, Files.Operations.Choice_Skip);
-               when Files.Events.Conflict_Button_Rename =>
-                  Asked := True;
-                  Outcome := Files.Controller.Handle_Conflict_Choice (Model, Settings, Files.Operations.Choice_Rename);
-               when Files.Events.Conflict_Button_Cancel =>
-                  Asked := True;
-                  Outcome := Files.Controller.Handle_Conflict_Choice (Model, Settings, Files.Operations.Choice_Cancel);
                when Files.Events.No_Conflict_Button =>
                   Outcome := (others => <>);
             end case;

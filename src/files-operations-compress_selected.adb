@@ -102,23 +102,17 @@ is
          Files.Diagnostics.Note (Swallowed, "Files.Operations");
          return Make_Result (Operation_Failed, "error.compress.failed", Directory);
    end Failed;
-begin
-   declare
-      Refusal : constant Operation_Result := Creation_Refusal (Model, "error.compress.failed");
-   begin
-      if Refusal.Status /= Operation_Success then
-         return Refusal;
-      end if;
-   end;
-   if Items.Is_Empty or else Directory = "" then
-      return Failed;
-   end if;
 
-   --  Items from a search or Recent can share a name ("readme.txt" from two
-   --  folders): the later one is stored as "readme 2.txt" rather than the
-   --  archive failing. Compared folded, so it also extracts on a volume
-   --  that folds case.
-   declare
+   --  How collecting the selection ended: entries to archive, nothing usable
+   --  (a walk that failed or found nothing), or a name neither writer stores.
+   type Collect_Outcome is (Collected, Collection_Error, Unportable_Name);
+
+   --  Walk each selected item into Input_Paths and Entry_Names. Items from
+   --  a search or Recent can share a name ("readme.txt" from two folders):
+   --  the later one is stored as "readme 2.txt" rather than the archive
+   --  failing. Compared folded, so it also extracts on a volume that folds
+   --  case.
+   function Collect_Inputs return Collect_Outcome is
       Top_Names : Archive_Name_Sets.Set;
 
       --  An archive entry's name is bounded only by the format's 16-bit
@@ -147,19 +141,120 @@ begin
             Collect (To_String (Item.Full_Path), Name);
          end;
       end loop;
-   end;
 
-   if Collection_Failed or else Input_Paths.Is_Empty then
+      if Collection_Failed or else Input_Paths.Is_Empty then
+         return Collection_Error;
+      end if;
+      --  Both writers refuse such names; the caller says why rather than
+      --  failing the archive with the generic error.
+      for Name of Entry_Names loop
+         if not Files.Archive_Writing.Portable_Entry_Name (To_String (Name)) then
+            return Unportable_Name;
+         end if;
+      end loop;
+      return Collected;
+   end Collect_Inputs;
+
+   --  Write the collected entries as one archive in Format at Staged and
+   --  return the writer's status. The name arrays are freed on every path.
+   function Write_Staged (Staged : String) return Zlib.Status_Code is
+      Count  : constant Natural := Natural (Input_Paths.Length);
+      Inputs : Text_Array_Access := null;
+      Names  : Text_Array_Access := null;
+      Status : Zlib.Status_Code;
+   begin
+      Inputs := new Zlib.Text_Array (1 .. Count);
+      Names := new Zlib.Text_Array (1 .. Count);
+      for I in 1 .. Count loop
+         Inputs.all (I) := Input_Paths.Element (I);
+         Names.all (I) := Entry_Names.Element (I);
+      end loop;
+
+      case Format is
+         when Zip_Archive =>
+            Files.Archive_Writing.ZIP_Files
+              (Inputs.all, Staged, Names.all, Status);
+         when Seven_Zip_Archive =>
+            Zlib.Seven_Zip_Deflate_Files
+              (Inputs.all, Staged, Names.all, Status => Status);
+      end case;
+      Free_Text_Array (Inputs);
+      Free_Text_Array (Names);
+      return Status;
+   exception
+      when others =>
+         Free_Text_Array (Inputs);
+         Free_Text_Array (Names);
+         raise;
+   end Write_Staged;
+
+   --  Remove Stage; a removal that fails is traced with its path.
+   procedure Discard_Stage (Stage : String) is
+   begin
+      if not Files.Job_Context.Discard_Stage (Stage) then
+         Files.Diagnostics.Trace ("Files.Operations", "stage_discard_failed=" & Stage);
+      end if;
+   end Discard_Stage;
+
+   --  Publish the archive written at Staged (with Status) as Output_Path,
+   --  discard Stage, record the Undo that deletes it, and reload with it
+   --  selected. A failed write, a cancel or a refused publish fails the
+   --  operation and publishes nothing.
+   function Publish_Archive
+     (Stage, Staged, Output_Path, Archive_Name : String; Status : Zlib.Status_Code)
+      return Operation_Result
+   is
+      --  What identifies the published archive, for its Undo.
+      Identity, Tree_Revision : Unbounded_String;
+   begin
+      if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
+        or else not Publish_Staged (Staged, Output_Path, Identity, Tree_Revision)
+      then
+         Discard_Stage (Stage);
+         return Failed;
+      end if;
+      Discard_Stage (Stage);
+      Record_Undo
+        (Model, Files.Model.Undo_Delete_Created,
+         Published
+           (Files.Model.Undo_Item_Vectors.To_Vector
+              ((From          => To_Unbounded_String (Output_Path),
+                Identity      => Identity,
+                Tree_Revision => Tree_Revision,
+                others        => <>), 1)),
+         Redoable => False);
+
+      --  Reload so the new archive appears, and select it.
+      declare
+         Reloaded : constant Operation_Result := Reload_Current_Directory (Model, Settings, Archive_Name);
+      begin
+         if Links_Skipped > 0 and then Reloaded.Status = Operation_Success then
+            Files.Model.Set_Error (Model, "error.compress.links_skipped");
+         end if;
+         return Reloaded;
+      end;
+   end Publish_Archive;
+begin
+   declare
+      Refusal : constant Operation_Result := Creation_Refusal (Model, "error.compress.failed");
+   begin
+      if Refusal.Status /= Operation_Success then
+         return Refusal;
+      end if;
+   end;
+   if Items.Is_Empty or else Directory = "" then
       return Failed;
    end if;
-   --  Both writers refuse such names; say why rather than failing the
-   --  archive with the generic error.
-   for Name of Entry_Names loop
-      if not Files.Archive_Writing.Portable_Entry_Name (To_String (Name)) then
+
+   case Collect_Inputs is
+      when Collected =>
+         null;
+      when Collection_Error =>
+         return Failed;
+      when Unportable_Name =>
          Files.Model.Set_Error (Model, "error.compress.unportable_name");
          return Make_Result (Operation_Failed, "error.compress.unportable_name", Directory);
-      end if;
-   end loop;
+   end case;
 
    declare
       Extension : constant String :=
@@ -180,72 +275,13 @@ begin
 
       Archive_Name : constant String := Unique_Name;
       Output_Path  : constant String := Hostkit.Fs.Join (Directory, Archive_Name);
-      Count        : constant Natural := Natural (Input_Paths.Length);
-      Inputs       : Text_Array_Access := null;
-      Names        : Text_Array_Access := null;
-      Status       : Zlib.Status_Code;
       Stage        : constant String := Files.Job_Context.Create_Stage (Directory);
       Staged       : constant String := Hostkit.Fs.Join (Stage, Archive_Name);
-      --  What identifies the published archive, for its Undo.
-      Identity, Tree_Revision : Unbounded_String;
-
-      --  Remove the stage; a removal that fails is traced with its path.
-      procedure Discard_Stage is
-      begin
-         if not Files.Job_Context.Discard_Stage (Stage) then
-            Files.Diagnostics.Trace ("Files.Operations", "stage_discard_failed=" & Stage);
-         end if;
-      end Discard_Stage;
    begin
-      Inputs := new Zlib.Text_Array (1 .. Count);
-      Names := new Zlib.Text_Array (1 .. Count);
-      for I in 1 .. Count loop
-         Inputs.all (I) := Input_Paths.Element (I);
-         Names.all (I) := Entry_Names.Element (I);
-      end loop;
-
-      case Format is
-         when Zip_Archive =>
-            Files.Archive_Writing.ZIP_Files
-              (Inputs.all, Staged, Names.all, Status);
-         when Seven_Zip_Archive =>
-            Zlib.Seven_Zip_Deflate_Files
-              (Inputs.all, Staged, Names.all, Status => Status);
-      end case;
-      Free_Text_Array (Inputs);
-      Free_Text_Array (Names);
-
-      if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
-        or else not Publish_Staged (Staged, Output_Path, Identity, Tree_Revision)
-      then
-         Discard_Stage;
-         return Failed;
-      end if;
-      Discard_Stage;
-      Record_Undo
-        (Model, Files.Model.Undo_Delete_Created,
-         Published
-           (Files.Model.Undo_Item_Vectors.To_Vector
-              ((From          => To_Unbounded_String (Output_Path),
-                Identity      => Identity,
-                Tree_Revision => Tree_Revision,
-                others        => <>), 1)),
-         Redoable => False);
-
-      --  Reload so the new archive appears, and select it.
-      declare
-         Reloaded : constant Operation_Result := Reload_Current_Directory (Model, Settings, Archive_Name);
-      begin
-         if Links_Skipped > 0 and then Reloaded.Status = Operation_Success then
-            Files.Model.Set_Error (Model, "error.compress.links_skipped");
-         end if;
-         return Reloaded;
-      end;
+      return Publish_Archive (Stage, Staged, Output_Path, Archive_Name, Write_Staged (Staged));
    exception
       when others =>
-         Free_Text_Array (Inputs);
-         Free_Text_Array (Names);
-         Discard_Stage;
+         Discard_Stage (Stage);
          raise;
    end;
 exception

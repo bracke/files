@@ -301,6 +301,72 @@ package body Files.Process_Jobs is
       Destroy (Item);
    end Submit_Or_Abandon;
 
+   --  What disposing of a job found, gathered in the order the probes run;
+   --  a probe that was not reached keeps its default.
+   type Cleanup_Run is
+     (No_Cleanup,     --  No cleanup worker was running.
+      Running,        --  One is still running, within its time.
+      Overdue,        --  One is still running past Cleanup_Timeout.
+      Exited_Done,    --  One exited cleanly and the transport is gone.
+      Exited_Failed); --  One exited otherwise, or left the transport behind.
+
+   type Disposal_Facts is record
+      --  The orphan queue was closed: nothing else was looked at.
+      Queue_Closed   : Boolean := False;
+      Cleanup        : Cleanup_Run := No_Cleanup;
+      --  No worker ran, and stage records may be there (the host will not
+      --  say counts as there).
+      Stages_Present : Boolean := False;
+      --  Stage records are there and the delay after a failed cleanup has
+      --  passed.
+      Retry_Due      : Boolean := False;
+      --  No worker ran and no stage records: the direct removal was tried
+      --  and removed the transport.
+      Removed        : Boolean := False;
+      --  The direct removal did not remove it, but the transport is gone.
+      Transport_Gone : Boolean := False;
+   end record;
+
+   --  How a job is disposed of.
+   type Disposal is
+     (Destroy_State,      --  Drop the in-memory owner.
+      Retain,             --  Keep it queued, watching its cleanup worker.
+      Stop_And_Retain,    --  Stop an overdue worker, then keep it queued.
+      Defer_Failure,      --  Count a failed cleanup: retry later or give up.
+      Launch_Then_Retain); --  Start a cleanup worker; failing to is a failed cleanup.
+
+   --  The disposal Facts call for. Stopping: shutdown has begun, so nothing
+   --  is retained or launched.
+   function Decide (Facts : Disposal_Facts; Stopping : Boolean) return Disposal is
+   begin
+      if Facts.Queue_Closed then
+         return Destroy_State;
+      end if;
+      case Facts.Cleanup is
+         when Running | Overdue =>
+            if Stopping then
+               return Destroy_State;
+            end if;
+            return (if Facts.Cleanup = Overdue then Stop_And_Retain else Retain);
+         when Exited_Done =>
+            return Destroy_State;
+         when Exited_Failed =>
+            return Defer_Failure;
+         when No_Cleanup =>
+            null;
+      end case;
+      if Facts.Stages_Present then
+         if Stopping then
+            return Destroy_State;
+         end if;
+         return (if Facts.Retry_Due then Launch_Then_Retain else Retain);
+      end if;
+      if Facts.Removed or else Facts.Transport_Gone or else Stopping then
+         return Destroy_State;
+      end if;
+      return Launch_Then_Retain;
+   end Decide;
+
    --  Stopping: shutdown has begun, and the queue must drain within its
    --  bound. Then nothing is handed to a cleanup worker or queued again: the
    --  direct removal is tried once and the in-memory owner dropped; a
@@ -356,88 +422,89 @@ package body Files.Process_Jobs is
             Retain_For_Cleanup (Delay_Retry => True);
          end if;
       end Defer_After_Cleanup_Failure;
+
+      --  Look at the job in order, stopping at the first fact that settles
+      --  it: a closed queue, a cleanup worker (collected if it exited), stage
+      --  records, then a direct removal of the transport when none are there.
+      function Gather return Disposal_Facts is
+         Facts : Disposal_Facts;
+      begin
+         if Orphan_Queue.Closed then
+            Facts.Queue_Closed := True;
+            return Facts;
+         end if;
+         if Item.Cleanup.Started and then not Item.Cleanup.Finished then
+            declare
+               Status : Hostkit.Spawn.Status;
+            begin
+               if not Collect (Item.Cleanup, Status) then
+                  Facts.Cleanup :=
+                    (if Files.Timing.Elapsed (Ada.Real_Time.Clock, Item.Cleanup.Started_At, Cleanup_Timeout)
+                     then Overdue
+                     else Running);
+               elsif Status.State = Hostkit.Spawn.Wait_Exited
+                 and then Status.Exit_Code = 0 and then Transport_Gone (Item)
+               then
+                  --  A successful exit is only authoritative once the
+                  --  transport has actually disappeared.
+                  Facts.Cleanup := Exited_Done;
+               else
+                  Facts.Cleanup := Exited_Failed;
+               end if;
+            end;
+            return Facts;
+         end if;
+         --  Stage records that may be there (the host will not say) are kept
+         --  as surely as present ones: the transport is the only pointer to
+         --  the staged entries they name.
+         if not Files.Fs_Primitives.Entry_Is_Absent (Stages) then
+            Facts.Stages_Present := True;
+            Facts.Retry_Due := Ada.Real_Time.Clock >= Item.Cleanup_Retry_At;
+            return Facts;
+         end if;
+         begin
+            Test_Removal_Attempts :=
+              (if Test_Removal_Attempts = Natural'Last then 0 else Test_Removal_Attempts + 1);
+            Facts.Removed :=
+              Files.Job_Transports.Matches (To_String (Item.Directory), To_String (Item.Identity))
+              and then Files.File_System.Delete_Transport_Entry
+                (To_String (Item.Directory), To_String (Item.Identity)).Success;
+         exception
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs");
+         end;
+         --  A transport without staging records can still resist removal: an
+         --  unreadable child, a sharing violation, or a transient filesystem
+         --  error is enough. Then the same independent cleanup worker takes
+         --  it, so the failure is retried during application idleness instead
+         --  of being forgotten when this state is freed.
+         if not Facts.Removed then
+            Facts.Transport_Gone := Transport_Gone (Item);
+         end if;
+         return Facts;
+      end Gather;
    begin
       --  From here onward the job no longer has a live owner. Releasing the
       --  lease lets this process or a later startup recover the transport if
       --  the immediate guarded cleanup cannot finish.
       Files.Job_Transports.Release (Item.Owner);
-      if Orphan_Queue.Closed then
-         Destroy (Item);
-         return;
-      end if;
-      if Item.Cleanup.Started and then not Item.Cleanup.Finished then
-         declare
-            Status : Hostkit.Spawn.Status;
-         begin
-            if not Collect (Item.Cleanup, Status) then
-               if Stopping then
-                  Destroy (Item);
-                  return;
-               end if;
-               if Files.Timing.Elapsed (Ada.Real_Time.Clock, Item.Cleanup.Started_At, Cleanup_Timeout) then
-                  Stop (Item.Cleanup);
-               end if;
+      case Decide (Gather, Stopping) is
+         when Destroy_State =>
+            Destroy (Item);
+         when Retain =>
+            Retain_For_Cleanup (Delay_Retry => False);
+         when Stop_And_Retain =>
+            Stop (Item.Cleanup);
+            Retain_For_Cleanup (Delay_Retry => False);
+         when Defer_Failure =>
+            Defer_After_Cleanup_Failure;
+         when Launch_Then_Retain =>
+            if Launch_Cleanup then
                Retain_For_Cleanup (Delay_Retry => False);
-               return;
-            end if;
-            if Status.State = Hostkit.Spawn.Wait_Exited
-              and then Status.Exit_Code = 0 and then Transport_Gone (Item)
-            then
-               --  A successful exit is only authoritative once the transport
-               --  has actually disappeared.
-               Destroy (Item);
             else
                Defer_After_Cleanup_Failure;
             end if;
-            return;
-         end;
-      end if;
-      --  Stage records that may be there (the host will not say) are kept
-      --  as surely as present ones: the transport is the only pointer to
-      --  the staged entries they name.
-      if not Files.Fs_Primitives.Entry_Is_Absent (Stages) then
-         if Stopping then
-            Destroy (Item);
-            return;
-         elsif Ada.Real_Time.Clock < Item.Cleanup_Retry_At then
-            Retain_For_Cleanup (Delay_Retry => False);
-            return;
-         end if;
-         if Launch_Cleanup then
-            Retain_For_Cleanup (Delay_Retry => False);
-         else
-            Defer_After_Cleanup_Failure;
-         end if;
-         return;
-      end if;
-      begin
-         Test_Removal_Attempts :=
-           (if Test_Removal_Attempts = Natural'Last then 0 else Test_Removal_Attempts + 1);
-         if Files.Job_Transports.Matches
-           (To_String (Item.Directory), To_String (Item.Identity))
-           and then Files.File_System.Delete_Transport_Entry
-             (To_String (Item.Directory), To_String (Item.Identity)).Success
-         then
-            Destroy (Item);
-            return;
-         end if;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs");
-      end;
-
-      --  A transport without staging records can still resist removal: an
-      --  unreadable child, a sharing violation, or a transient filesystem
-      --  error is enough.  Hand it to the same independent cleanup worker so
-      --  the failure is retried during application idleness instead of being
-      --  forgotten when this state is freed.
-      if Transport_Gone (Item) or else Stopping then
-         Destroy (Item);
-      elsif Launch_Cleanup then
-         Retain_For_Cleanup (Delay_Retry => False);
-      else
-         Defer_After_Cleanup_Failure;
-      end if;
+      end case;
    end Dispose;
 
    --  Once a session gives up its last reference, this task becomes the sole
