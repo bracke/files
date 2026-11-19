@@ -110,14 +110,16 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
                end if;
                if not Is_Last then
                   --  Draw '>' in the middle of the three separator cells so
-                  --  it has a full character width of space on each side.
+                  --  it has a full character width of space on each side. It
+                  --  points along the path: a mirrored frame draws it '<'.
                   Add_Text
                     (Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Seg.X, Seg.Width), Advance),
                      Toolbar_Input_Text_Y,
                      Advance,
                      Toolbar_Input_Text_H,
                      To_Unbounded_String (Breadcrumb_Separator_Text),
-                     Color => Muted_Text_Color);
+                     Color        => Muted_Text_Color,
+                     Mirror_Glyph => True);
                end if;
             end;
          end loop;

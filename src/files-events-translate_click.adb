@@ -1,4 +1,5 @@
 with Guikit.Layout;
+with Guikit.Text;
 with Guikit.Text_Fields;
 with Files.Rendering.Layouts;
 separate (Files.Events)
@@ -57,7 +58,8 @@ separate (Files.Events)
               Skip_Bytes  => Skip,
               Click_X     => (if Click_X <= Text_X then 0 else Click_X - Text_X),
               Field_Width => (if Text_Width = 0 then Natural'Last else Text_Width),
-              Line_Height => Line_Height);
+              Line_Height => Line_Height,
+              Has_Glyph   => Guikit.Text.Can_Draw_Form'Access);
       end Cursor_At;
 
       function Text_Click

@@ -119,7 +119,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                              (X => Label_X, Y => Label_Y, Width => Draw_W, Height => Draw_H,
                               Text => To_Unbounded_String (Raw (Row.First .. Row.Last)),
                               Color => Text_Color, Truncated => False,
-                              Scale_To_Box => False, Align_End => False, Italic => False));
+                              Scale_To_Box => False, Align_End => False, Italic => False, Mirror_Glyph => False));
                      end if;
                   end;
                   Line := Guikit.Layout.Saturating_Add (Line, 1);

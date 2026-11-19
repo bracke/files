@@ -1,3 +1,4 @@
+with Guikit.Text;
 with Guikit.Text_Fields;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents.Draw_Single_Item_Info)
    --  Draw an editable owner or group value and register one
@@ -45,7 +46,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
                  Guikit.Layout.Saturating_Add
                    (Text_X,
                     Guikit.Text_Fields.Caret_X
-                      (To_String (Value), Snapshot.Text_Cursor_Position, Text_W, Line_Height, Caret_Width => 2));
+                      (To_String (Value), Snapshot.Text_Cursor_Position, Text_W, Line_Height, Caret_Width => 2,
+                       Has_Glyph => Guikit.Text.Can_Draw_Form'Access));
             begin
                --  A 2 px stroke, inset from the row by a
                --  scaled margin above and below.

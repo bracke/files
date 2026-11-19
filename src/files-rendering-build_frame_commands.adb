@@ -239,7 +239,8 @@ separate (Files.Rendering)
       is (To_Unbounded_String (Guikit.Utf8.Fit_With_Ellipsis (To_String (Text), Capacity)));
 
       --  One text command into Target, its box clipped to the window and
-      --  its text fitted to the box when Fit says so.
+      --  its text fitted to the box when Fit says so; Mirror_Glyph marks a
+      --  one-way symbol a mirrored frame draws as its mirror image.
       procedure Append_Text
         (Target : in out Text_Command_Vectors.Vector;
          X      : Natural;
@@ -250,7 +251,8 @@ separate (Files.Rendering)
          Color  : Render_Color;
          Fit    : Boolean;
          Scale_To_Box : Boolean;
-         Italic : Boolean)
+         Italic : Boolean;
+         Mirror_Glyph : Boolean := False)
  is separate;
 
       --  Main-layer text. Every overlay panel is drawn in the overlay layer,
@@ -265,9 +267,10 @@ separate (Files.Rendering)
          Color  : Render_Color := Text_Color;
          Fit    : Boolean := False;
          Scale_To_Box : Boolean := False;
-         Italic : Boolean := False) is
+         Italic : Boolean := False;
+         Mirror_Glyph : Boolean := False) is
       begin
-         Append_Text (Result.Text, X, Y, Text_W, Text_H, Text, Color, Fit, Scale_To_Box, Italic);
+         Append_Text (Result.Text, X, Y, Text_W, Text_H, Text, Color, Fit, Scale_To_Box, Italic, Mirror_Glyph);
       end Add_Text;
 
       procedure Add_Overlay_Text

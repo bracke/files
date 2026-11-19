@@ -6,6 +6,7 @@ with Files.UI_Types;
 with Guikit.Item_Grid;
 with Guikit.Layout;
 with Guikit.Segmented;
+with Guikit.Text;
 with Guikit.Text_Fields;
 
 --  Where everything a frame draws lies: the window's regions, the items, the
@@ -684,7 +685,8 @@ package Files.Rendering.Layouts is
    --  scrolled off its left edge and where its caret is drawn, by guikit's
    --  one scroll and caret rule (Guikit.Text_Fields.View_Of). Drawing and
    --  click-to-caret mapping both read it, so a click lands on the character
-   --  drawn under it.
+   --  drawn under it, and both lay Arabic out with the fonts the text is
+   --  drawn with (Guikit.Text.Can_Draw_Form).
    --
    --  @param Text Field text (UTF-8).
    --  @param Cursor Caret byte offset within Text.
@@ -697,7 +699,8 @@ package Files.Rendering.Layouts is
       Text_Width  : Natural;
       Line_Height : Positive)
       return Guikit.Text_Fields.View
-   is (Guikit.Text_Fields.View_Of (Text, Cursor, Text_Width, Line_Height, Field_Caret_Width));
+   is (Guikit.Text_Fields.View_Of
+         (Text, Cursor, Text_Width, Line_Height, Field_Caret_Width, Has_Glyph => Guikit.Text.Can_Draw_Form'Access));
 
    --  Height of the font box a line of text is drawn in: four fifths of the
    --  line height, the size guikit renders glyphs at.

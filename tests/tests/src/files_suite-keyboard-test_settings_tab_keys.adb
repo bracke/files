@@ -45,6 +45,22 @@ separate (Files_Suite.Keyboard)
         (Files.Model.Revision (Model),
          Revision_Before,
          "building a settings frame does not manufacture a semantic model revision");
+      --  The window keeps the last built frame and builds again into the same
+      --  vectors when the panel changes: a rebuild replaces, never adds.
+      declare
+         Rect_Count : constant Natural := Natural (Rects.Length);
+         Text_Count : constant Natural := Natural (Text.Length);
+         Node_Count : constant Natural := Natural (Nodes.Length);
+      begin
+         Files.Overlays.Build_Settings_Frame
+           (Model => Model, Region => (X => 0, Y => 0, Width => 600, Height => 500,
+                        Clip_Width => 600, Clip_Height => 500, Line_Height => 20), Focused => True,
+            Rectangles => Rects, Text => Text, Accessibility => Nodes);
+         Assert
+           (Natural (Rects.Length) = Rect_Count and then Natural (Text.Length) = Text_Count
+              and then Natural (Nodes.Length) = Node_Count,
+            "rebuilding the settings frame into the same vectors replaces it");
+      end;
 
       --  Resolve a genuine settings control from the component's accessibility
       --  output and prove a newer top-most overlay owns that same click.

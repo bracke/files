@@ -1,3 +1,4 @@
+with Guikit.Text;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
    --  One item of the grid or list: nothing for an item the layout put off
    --  screen, a caption for a group header, otherwise the whole cell.
@@ -100,7 +101,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
             Dim_Color        => Disabled_Text_Color,
             Border_Color     => Border_Color,
             Focus_Ring_Color => Snapshot.Theme_Focus_Ring,
-            Caret_Color      => Text_Color);
+            Caret_Color      => Text_Color,
+            Has_Glyph        => Guikit.Text.Can_Draw_Form'Access);
       end Draw_Name;
 
       --  The Details row's columns. The full-date tooltips of the time cells

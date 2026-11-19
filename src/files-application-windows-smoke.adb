@@ -292,6 +292,10 @@ package body Files.Application.Windows.Smoke is
       Runtime.Synced_Settings_Revision := Files.Model.Settings_Revision (Runtime.Model);
       Runtime.Frame_Cache_Valid := False;
       Runtime.View.Snapshot_Valid := False;
+      --  Every scenario starts from the same model, so its revision repeats:
+      --  the overlays' caches, keyed on it, are dropped with the frame's.
+      Runtime.Palette_Overlay_Built := False;
+      Runtime.Settings_Overlay_Built := False;
       Apply_Scenario (Runtime, Scenario);
    end Prepare_Scenario;
 

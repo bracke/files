@@ -9,7 +9,8 @@ separate (Files.Rendering.Build_Frame_Commands)
       Color  : Render_Color;
       Fit    : Boolean;
       Scale_To_Box : Boolean;
-      Italic : Boolean)
+      Italic : Boolean;
+      Mirror_Glyph : Boolean := False)
    is
       Draw_W   : constant Natural := Clipped_Size (X, Text_W, Layout.Width);
       Draw_H   : constant Natural := Clipped_Size (Y, Text_H, Layout.Height);
@@ -30,6 +31,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                Truncated    => Was_Truncated,
                Scale_To_Box => Scale_To_Box,
                Align_End    => False,
-               Italic       => Italic));
+               Italic       => Italic,
+               Mirror_Glyph => Mirror_Glyph));
       end if;
    end Append_Text;

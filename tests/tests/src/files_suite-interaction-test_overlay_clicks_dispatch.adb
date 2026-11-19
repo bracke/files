@@ -71,6 +71,15 @@ separate (Files_Suite.Interaction)
            (Model => Model, Region => (X => 0, Y => 0, Width => 600, Height => 500,
                      Clip_Width => 600, Clip_Height => 500, Line_Height => 20), Focused => True,
             Rectangles => Rects, Text => Text, Icons => Icons, Accessibility => Nodes);
+         declare
+            Text_Count : constant Natural := Natural (Text.Length);
+         begin
+            Files.Overlays.Build_Palette_Frame
+              (Model => Model, Region => (X => 0, Y => 0, Width => 600, Height => 500,
+                        Clip_Width => 600, Clip_Height => 500, Line_Height => 20), Focused => True,
+               Rectangles => Rects, Text => Text, Icons => Icons, Accessibility => Nodes);
+            Assert (Natural (Text.Length) = Text_Count, "rebuilding the palette frame replaces it");
+         end;
          Found := False;
          for Node of Nodes loop
             if Node.Role = Guikit.Draw.Role_List_Item and then Node.Width > 0 then

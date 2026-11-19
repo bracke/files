@@ -2,6 +2,7 @@ with Ada.Strings.Unbounded;
 
 with Guikit.Command_Palette;
 with Guikit.Settings_Panel;
+with Guikit.Text;
 
 with Files.Localization;
 with Files.Settings;
@@ -39,9 +40,16 @@ package body Files.Overlays is
             Rectangles    => Rectangles,
             Text          => Text,
             Icons         => Icons,
-            Accessibility => Accessibility);
+            Accessibility => Accessibility,
+            Has_Glyph     => Guikit.Text.Can_Draw_Form'Access);
       end Draw;
    begin
+      --  An out vector keeps what it held (it is passed by reference): the
+      --  frame replaces the previous one, it is not added to it.
+      Rectangles.Clear;
+      Text.Clear;
+      Icons.Clear;
+      Accessibility.Clear;
       Files.Model.Command_Palette.With_Panel
         (Model,
          Region.Line_Height,
@@ -83,9 +91,15 @@ package body Files.Overlays is
             Hover_Y       => Hover_Y,
             Rectangles    => Rectangles,
             Text          => Text,
-            Accessibility => Accessibility);
+            Accessibility => Accessibility,
+            Has_Glyph     => Guikit.Text.Can_Draw_Form'Access);
       end Draw;
    begin
+      --  An out vector keeps what it held (it is passed by reference): the
+      --  frame replaces the previous one, it is not added to it.
+      Rectangles.Clear;
+      Text.Clear;
+      Accessibility.Clear;
       Config.Line_Height := Region.Line_Height;
       Config.Title := To_Unbounded_String (Files.Localization.Text ("settings.title"));
       Config.Switch_Tooltip := To_Unbounded_String (Files.Localization.Text ("settings.tabs.hint"));

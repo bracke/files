@@ -1,5 +1,6 @@
 with Guikit.Layout;
 with Guikit.Bidi;
+with Guikit.Text;
 with Guikit.Utf8.Editing;
 
 with Files.Model.Support;
@@ -910,7 +911,10 @@ package body Files.Model is
       case Direction is
          when Guikit.Input.Move_Left | Guikit.Input.Move_Right =>
             Set_Text_Cursor_Position
-              (Model, Guikit.Bidi.Caret_Step (Text, Cursor, Rightward => Direction = Guikit.Input.Move_Right));
+              (Model,
+               Guikit.Bidi.Caret_Step
+                 (Text, Cursor, Rightward => Direction = Guikit.Input.Move_Right,
+                  Has_Glyph => Guikit.Text.Can_Draw_Form'Access));
          when Guikit.Input.Move_Up =>
             if Cursor > 0 then
                Set_Text_Cursor_Position (Model, Guikit.Utf8.Editing.Previous_Boundary (Text, Cursor));
