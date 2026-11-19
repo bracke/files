@@ -12,10 +12,9 @@ separate (Files.Rendering.Build_Frame_Commands)
       Field_W : constant Natural := Region.Field_Width;
       Max_X   : constant Natural :=
         (if Field_W > 2 then Guikit.Layout.Saturating_Add (Region.Field_X, Field_W - 2) else Region.Field_X);
-      --  The caret height tracks the font: a fixed fraction of the line
-      --  height (so it scales linearly with the font size), clamped to the
-      --  field, and centered vertically. Using Line_Height minus fixed
-      --  insets under-scaled it (stubby at small fonts, near-full at large).
+      --  The caret height tracks the font: the font box's height (a fixed
+      --  fraction of the line height, so it scales linearly with the font
+      --  size), clamped to the field, and centered vertically.
       Caret_H : constant Natural :=
         Natural'Min
           ((if Field_H > 2 then Field_H - 2 else Field_H),

@@ -27,7 +27,7 @@ separate (Files_Suite.Model)
       Roots_A.Append (To_Unbounded_String (Ada.Directories.Full_Name (Root)));
       Files.Model.Root_Selector.Open (Model, Roots_A);
       Files.Model.Selection.Select_Visible (Model, 1);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -73,7 +73,7 @@ separate (Files_Suite.Model)
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "root selector blocks targeted main scroll");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Open_Command_Palette_Command,

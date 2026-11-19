@@ -9,10 +9,10 @@ separate (Files_Suite.Model)
       Ctrl (Guikit.Input.Control_Key) := True;
       --  Start from an open info pane with nothing selected.
       Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
       Files.Model.Selection.Clear (Model);
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_2, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_2, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Select_Large_Icons_Command,
@@ -22,7 +22,7 @@ separate (Files_Suite.Model)
          Files.Types.Large_Icons,
          "large mode shortcut works");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_3, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_3, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Select_Details_Command,
@@ -32,7 +32,7 @@ separate (Files_Suite.Model)
          Files.Types.Details,
          "details shortcut works");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_1, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_1, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Select_Small_Icons_Command,

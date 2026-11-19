@@ -147,15 +147,6 @@ package Files.Rendering.Layouts is
       Close_Button : Close_Button_Layout;
    end record;
 
-   --  Return the color label a picker swatch index selects. Indices 1 .. 7 map
-   --  to Red .. Gray; index 8 (and any out-of-range value) maps to No_Label.
-   --
-   --  @param Index One-based swatch index.
-   --  @return The color label the swatch assigns.
-   function Label_For_Swatch
-     (Index : Positive)
-      return Files.Types.Color_Label renames Files.UI_Types.Label_For_Swatch;
-
    type Root_Selector_Layout is record
       X          : Natural := 0;
       Y          : Natural := 0;
@@ -425,6 +416,28 @@ package Files.Rendering.Layouts is
       Up          : Boolean)
       return Natural;
 
+   --  Where one wheel step of a main view whose rows are at least a line
+   --  tall takes its scroll, in lines. The view draws its offset snapped down
+   --  to whole row periods, and a row period (an icon cell plus its gap) is
+   --  rarely a whole number of lines, so a step in lines alone can land
+   --  inside the row already shown and move nothing. The step is therefore
+   --  made in rows -- at least one, as many as the lines asked for cover --
+   --  from the offset actually drawn, then expressed as the fewest lines
+   --  whose snapped offset is that row (Lines_For_Offset); at the end the
+   --  exact maximum takes over, as the drawing does.
+   --
+   --  @param Main Main-view layout (row period, drawn offset).
+   --  @param Line_Height Text line height in pixels.
+   --  @param Maximum The view's largest scroll, in lines.
+   --  @param Lines The wheel step in lines, negative towards the top.
+   --  @return The scroll position the step reaches, in lines.
+   function Main_View_Wheel_Lines
+     (Main        : Main_View_Layout;
+      Line_Height : Positive;
+      Maximum     : Natural;
+      Lines       : Integer)
+      return Natural;
+
    --  The main-view scroll, in lines, that shows the item with Visible_Index
    --  whole: unchanged when it already is, otherwise just far enough that it
    --  becomes the first or the last row in view.
@@ -647,17 +660,6 @@ package Files.Rendering.Layouts is
       Line_Height : Positive)
       return Path_Favorite_Star_Bounds;
 
-   --  Inset of the path and filter input boxes inside their toolbar sections,
-   --  scaled with the text (guikit's margin, which also spaces the filter box
-   --  from the scope chip). Drawing, breadcrumb layout and click-to-caret
-   --  mapping must all use it, or a click lands the caret beside the
-   --  character it was aimed at.
-   --
-   --  @param Line_Height Text line height in pixels.
-   --  @return The inset in pixels.
-   function Toolbar_Field_Margin (Line_Height : Positive) return Natural
-     renames Guikit.Layout.Toolbar_Field_Margin;
-
    --  Display columns a focused single-line input scrolls off its left edge so
    --  the caret stays visible (Guikit.Layout.Input_Scroll_Columns, the rule
    --  Field_View starts from). Stateless: the same text, cursor and width
@@ -863,37 +865,6 @@ package Files.Rendering.Layouts is
    --  @return The inset in pixels.
    function Dialog_Padding (Line_Height : Positive) return Natural is
      (Guikit.Layout.Scaled (12, Line_Height));
-
-   --  The least distance a hover tooltip keeps from the frame's edges: 4 px
-   --  at Guikit.Layout.Reference_Line_Height, scaled with the text.
-   --
-   --  @param Line_Height The line height in use.
-   --  @return The margin in pixels.
-   function Tooltip_Margin (Line_Height : Positive) return Natural is
-     (Guikit.Layout.Scaled (4, Line_Height));
-
-   --  Where a hover tooltip's box goes: its top-left corner.
-   type Tooltip_Placement is record
-      X : Natural := 0;
-      Y : Natural := 0;
-   end record;
-
-   --  Place a hover tooltip box beside the pointer: right of it if it fits
-   --  inside the frame's margin, else left of it, else clamped to the frame;
-   --  below it if it fits, else above it, else clamped likewise.
-   --
-   --  @param Frame_Width Frame width in pixels.
-   --  @param Frame_Height Frame height in pixels.
-   --  @param Pointer_X Pointer X in the frame.
-   --  @param Pointer_Y Pointer Y in the frame.
-   --  @param Box_Width The tooltip box's width.
-   --  @param Box_Height The tooltip box's height.
-   --  @param Line_Height Text line height in pixels.
-   --  @return The box's top-left corner.
-   function Calculate_Tooltip_Placement
-     (Frame_Width, Frame_Height, Pointer_X, Pointer_Y, Box_Width, Box_Height : Natural;
-      Line_Height                                                            : Positive)
-      return Tooltip_Placement;
 
    --  A window's size when the settings name none, and the size the smoke
    --  runs render at.
@@ -1105,18 +1076,6 @@ package Files.Rendering.Layouts is
    --  Shared by the drawing and the hit tests (Files.Rendering.Hit), so what
    --  is drawn and what is hit resolve against one geometry.
 
-   --  Horizontal space reserved at the left of the path bar's interior for the
-   --  favorite star, in pixels. Breadcrumbs and the editable path field start
-   --  this many pixels further right so they never overlap the star.
-   --
-   --  @param Width Window width in pixels.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Reserved width in pixels, or zero when the star is not shown.
-   function Path_Bar_Content_Offset
-     (Width       : Natural;
-      Line_Height : Positive)
-      return Natural;
-
    --  Return the top Y coordinate of a menu row, accounting for the smaller
    --  height of any separator rows above it. Rows have variable heights, so a
    --  simple row * Row_Height offset is not correct; callers (renderer and
@@ -1216,18 +1175,6 @@ package Files.Rendering.Layouts is
       Pad         : Natural)
       return Detail_Column_Geometry_Array;
 
-   --  Height of the details-view sticky column header: one text line plus the
-   --  row padding above and below, clamped to the content height. The header
-   --  drawing, its click hit-tests, and the main-view scroll viewport share it.
-   --
-   --  @param Content_H Height of the main content rectangle.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Header height in pixels.
-   function Details_Header_Height
-     (Content_H   : Natural;
-      Line_Height : Positive)
-      return Natural;
-
    --  Where the divider before a detail column is drawn: this far left of
    --  the column's edge, in the column padding.
    --
@@ -1313,5 +1260,42 @@ package Files.Rendering.Layouts is
    --  before it form the navigation group. The renderer widens the padding on
    --  both sides of this boundary and draws a divider at its left edge.
    First_File_Action_Button : constant Toolbar_Button_Index := 5;
+
+private
+
+   --  Inset of the path and filter input boxes inside their toolbar sections,
+   --  scaled with the text (guikit's margin, which also spaces the filter box
+   --  from the scope chip). Drawing, breadcrumb layout and click-to-caret
+   --  mapping must all use it, or a click lands the caret beside the
+   --  character it was aimed at.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return The inset in pixels.
+   function Toolbar_Field_Margin (Line_Height : Positive) return Natural
+     renames Guikit.Layout.Toolbar_Field_Margin;
+
+   --  Horizontal space reserved at the left of the path bar's interior for the
+   --  favorite star, in pixels. Breadcrumbs and the editable path field start
+   --  this many pixels further right so they never overlap the star.
+   --
+   --  @param Width Window width in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Reserved width in pixels, or zero when the star is not shown.
+   function Path_Bar_Content_Offset
+     (Width       : Natural;
+      Line_Height : Positive)
+      return Natural;
+
+   --  Height of the details-view sticky column header: one text line plus the
+   --  row padding above and below, clamped to the content height. The header
+   --  drawing, its click hit-tests, and the main-view scroll viewport share it.
+   --
+   --  @param Content_H Height of the main content rectangle.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Header height in pixels.
+   function Details_Header_Height
+     (Content_H   : Natural;
+      Line_Height : Positive)
+      return Natural;
 
 end Files.Rendering.Layouts;

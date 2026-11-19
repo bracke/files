@@ -2,24 +2,25 @@ with Files.Extra_Info;
 with Files.Items;
 with Ada.Calendar;
 with Files.Copy_Context;
-with Files.Desktop_Applications;
+private with Files.Desktop_Applications;
 with Files.Process_Jobs;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
 with Files.File_System;
-with Files.Folder_Tree;
-with Files.Folder_Size;
+private with Files.Folder_Tree;
+private with Files.Folder_Size;
 with Files.Paste;
-with Files.Quick_Look;
+private with Files.Quick_Look;
 with Files.Settings;
-with Guikit.Command_Palette;
+private with Guikit.Command_Palette;
 with Guikit.Input;
-with Guikit.Settings_Panel;
+private with Guikit.Settings_Panel;
 with Files.Types;
 with Files.UI_Types;
-with Files.Transfer_Jobs;
+with Files.Undo_History;
+private with Files.Transfer_Jobs;
 
 --  Directory state, selection, filtering, history, input state, and pane state.
 package Files.Model is
@@ -1021,184 +1022,76 @@ package Files.Model is
 
    type Clipboard_Mode is (Clipboard_None, Clipboard_Copy, Clipboard_Cut);
 
-   --  Which of the two history stacks, and so which way an entry is applied:
-   --  undone (reversed) from the undo stack, redone (re-applied, "forward")
-   --  from the redo stack.
-   type History_Side is (Undo_Side, Redo_Side);
+   --  The undo history's values are Files.Undo_History's; these names keep
+   --  them at hand here, as the model's own.
+   subtype History_Side is Files.Undo_History.History_Side;
+   --  @return Files.Undo_History.Undo_Side.
+   function Undo_Side return History_Side renames Files.Undo_History.Undo_Side;
+   --  @return Files.Undo_History.Redo_Side.
+   function Redo_Side return History_Side renames Files.Undo_History.Redo_Side;
 
-   --  Multi-level undo/redo history. Each entry stores enough to BOTH reverse
-   --  (undo) and re-apply (redo) one action: its items, each a path with what
-   --  the action recorded for it; Create_Kind names the kind of creation to
-   --  re-run for Undo_Delete_Created entries.
-   type Undo_Action_Kind is
-     (Undo_None,
-      Undo_Rename,
-      Undo_Move,
-      Undo_Restore_Trash,
-      Undo_Delete_Created,
-      Undo_Set_Permissions,
-      Undo_Set_Ownership);
+   subtype Undo_Action_Kind is Files.Undo_History.Undo_Action_Kind;
+   --  @return Files.Undo_History.Undo_None.
+   function Undo_None return Undo_Action_Kind renames Files.Undo_History.Undo_None;
+   --  @return Files.Undo_History.Undo_Rename.
+   function Undo_Rename return Undo_Action_Kind renames Files.Undo_History.Undo_Rename;
+   --  @return Files.Undo_History.Undo_Move.
+   function Undo_Move return Undo_Action_Kind renames Files.Undo_History.Undo_Move;
+   --  @return Files.Undo_History.Undo_Restore_Trash.
+   function Undo_Restore_Trash return Undo_Action_Kind renames Files.Undo_History.Undo_Restore_Trash;
+   --  @return Files.Undo_History.Undo_Delete_Created.
+   function Undo_Delete_Created return Undo_Action_Kind renames Files.Undo_History.Undo_Delete_Created;
+   --  @return Files.Undo_History.Undo_Set_Permissions.
+   function Undo_Set_Permissions return Undo_Action_Kind renames Files.Undo_History.Undo_Set_Permissions;
+   --  @return Files.Undo_History.Undo_Set_Ownership.
+   function Undo_Set_Ownership return Undo_Action_Kind renames Files.Undo_History.Undo_Set_Ownership;
 
-   --  How an Undo_Delete_Created entry re-creates its paths on redo.
-   type Undo_Create_Kind is
-     (Create_None,
-      Create_Copy,
-      Create_Symbolic_Link,
-      Create_Hard_Link);
+   subtype Undo_Create_Kind is Files.Undo_History.Undo_Create_Kind;
+   --  @return Files.Undo_History.Create_None.
+   function Create_None return Undo_Create_Kind renames Files.Undo_History.Create_None;
+   --  @return Files.Undo_History.Create_Copy.
+   function Create_Copy return Undo_Create_Kind renames Files.Undo_History.Create_Copy;
+   --  @return Files.Undo_History.Create_Symbolic_Link.
+   function Create_Symbolic_Link return Undo_Create_Kind renames Files.Undo_History.Create_Symbolic_Link;
+   --  @return Files.Undo_History.Create_Hard_Link.
+   function Create_Hard_Link return Undo_Create_Kind renames Files.Undo_History.Create_Hard_Link;
 
-   --  One path an action changed, and what the action recorded for it.
-   --
-   --  Undo runs the reverse direction, redo the forward direction:
-   --    * Rename/Move: reverse moves From back to To, redo re-does the original
-   --      To -> From transition. Forward is empty.
-   --    * Restore_Trash: reverse restores the trashed From to To; it is
-   --      undo-only (Redoable is False), so redo never re-runs it.
-   --    * Delete_Created: reverse deletes From; redo re-creates it from the
-   --      source path in Forward using Create_Kind. To is empty.
-   --    * Set_Permissions: To holds the old value (reverse) and Forward the new
-   --      value (redo).
-   --    * Set_Ownership likewise, with each value encoded as
-   --      "uid gid<NUL>user-name<NUL>group-name".  The names let a helper
-   --      process reconstruct platform identities whose numeric token is only
-   --      meaningful inside the process that obtained it.
-   --  A value an action does not use is empty.
-   type Undo_Item is record
-      From          : UString;
-      To            : UString;
-      Forward       : UString;
-      --  The entry at From as the action left it: for creations, moves, trash
-      --  and metadata changes the current entry at either end, including a
-      --  new identity after a copy-based move. An empty token never
-      --  authorizes deletion, a history move, a trash restoration or a
-      --  metadata change.
-      Identity      : UString;
-      --  A created directory's recursive revision at publication (empty for
-      --  files and links): Undo refuses a directory whose complete tree no
-      --  longer matches it.
-      Tree_Revision : UString;
-   end record;
+   subtype Undo_Item is Files.Undo_History.Undo_Item;
+   package Undo_Item_Vectors renames Files.Undo_History.Undo_Item_Vectors;
+   subtype Replaced_Original is Files.Undo_History.Replaced_Original;
+   package Replaced_Original_Vectors renames Files.Undo_History.Replaced_Original_Vectors;
+   subtype Kept_Copy is Files.Undo_History.Kept_Copy;
+   package Kept_Copy_Vectors renames Files.Undo_History.Kept_Copy_Vectors;
 
-   package Undo_Item_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Undo_Item);
+   subtype Item_Provenance is Files.Undo_History.Item_Provenance;
+   --  @return Files.Undo_History.Captured.
+   function Captured return Item_Provenance renames Files.Undo_History.Captured;
+   --  @return Files.Undo_History.Published.
+   function Published return Item_Provenance renames Files.Undo_History.Published;
+   --  @return Files.Undo_History.Verified.
+   function Verified return Item_Provenance renames Files.Undo_History.Verified;
 
-   --  An original a paste-replace overwrote, preserved in the trash: on undo,
-   --  once the main reverse has vacated its path, it is put back from there.
-   type Replaced_Original is record
-      --  Where it is preserved, and its identity there.
-      Trash    : UString;
-      Identity : UString;
-      --  Where Undo puts it back.
-      Target   : UString;
-   end record;
+   subtype Recorded_Item is Files.Undo_History.Recorded_Item;
+   package Recorded_Item_Vectors renames Files.Undo_History.Recorded_Item_Vectors;
+   subtype Recorded_Original is Files.Undo_History.Recorded_Original;
+   package Recorded_Original_Vectors renames Files.Undo_History.Recorded_Original_Vectors;
 
-   package Replaced_Original_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Replaced_Original);
-
-   --  A copy a failed move left beside its still present source: reverse
-   --  deletes it, verified by its identity and tree revision, before it moves
-   --  anything back or restores an original a replace preserved, so one paste
-   --  is one Undo.
-   type Kept_Copy is record
-      Path          : UString;
-      Identity      : UString;
-      Tree_Revision : UString;
-   end record;
-
-   package Kept_Copy_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Kept_Copy);
-
-   --  How an action's record knows an item or a replaced original beyond
-   --  what it carries (Files.Undo_Recording.Try_Record_Undo). Captured: its
-   --  identity -- and a creation's tree revision, an original's target -- is
-   --  read when the record is made. Published: they are as the action
-   --  published them, even when empty, and an empty one never verifies.
-   --  Verified: published and checked against the live entry then, so it is
-   --  trusted without a fresh check and may survive a later pathname
-   --  replacement.
-   type Item_Provenance is (Captured, Published, Verified);
-
-   --  An item as an action hands it to the record, with its provenance.
-   type Recorded_Item is record
-      Item       : Undo_Item;
-      Provenance : Item_Provenance := Captured;
-   end record;
-
-   package Recorded_Item_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Recorded_Item);
-
-   --  A replaced original as an action hands it to the record.
-   type Recorded_Original is record
-      Original   : Replaced_Original;
-      Provenance : Item_Provenance := Captured;
-   end record;
-
-   package Recorded_Original_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Recorded_Original);
-
-   --  A single reversible/re-applicable action.
-   type Undo_Entry is record
-      Kind        : Undo_Action_Kind := Undo_None;
-      Items       : Undo_Item_Vectors.Vector;
-      Create_Kind : Undo_Create_Kind := Create_None;
-      Redoable    : Boolean := True;
-      --  Originals a paste-replace overwrote. Empty for every other action.
-      --  Undo-only (a paste that replaced anything is not redoable).
-      Replaced : Replaced_Original_Vectors.Vector;
-      --  Successful reverse steps retained after a partial Undo (a From path
-      --  or a kept copy's). A retry must never delete or move an original
-      --  that an earlier pass restored.
-      Reverse_Completed : Files.Types.String_Vectors.Vector;
-      --  The Trash paths of originals already put back.
-      Restores_Completed : Files.Types.String_Vectors.Vector;
-      --  Successful creation/move steps retained after a partial Redo, so a
-      --  retry skips committed items instead of treating them as collisions.
-      Forward_Completed : Files.Types.String_Vectors.Vector;
-      --  Verified hard-link families retained across partial copy Redo retries.
-      Copy_Records : Files.Types.String_Vectors.Vector;
-      --  Set only on a non-redoable Undo_Move. Their completion markers join
-      --  Reverse_Completed.
-      Kept : Kept_Copy_Vectors.Vector;
-      --  Who the entry is across processes: a background helper's history
-      --  journal names entries by it, so the window can tell an entry the
-      --  helper left out of its journal from one it retired. Given by
-      --  Commit_Undo_Record; 0 until then.
-      Sequence : Natural := 0;
-   end record;
+   subtype Undo_Entry is Files.Undo_History.Undo_Entry;
 
    --  @param Action Entry to read.
    --  @return Each item's From path, in order.
-   function From_Paths (Action : Undo_Entry) return Files.Types.String_Vectors.Vector;
+   function From_Paths (Action : Undo_Entry) return Files.Types.String_Vectors.Vector
+     renames Files.Undo_History.From_Paths;
 
    --  @param Action Entry to read.
    --  @return Where each replaced original is preserved, in order.
-   function Replaced_Trash (Action : Undo_Entry) return Files.Types.String_Vectors.Vector;
+   function Replaced_Trash (Action : Undo_Entry) return Files.Types.String_Vectors.Vector
+     renames Files.Undo_History.Replaced_Trash;
 
-   --  Stack of undo/redo entries; the last element is the top of the stack.
-   package Undo_Entry_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Undo_Entry);
-
-   --  Undo_Entry.Sequence values.
-   package Sequence_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Positive);
-
-   --  What a history journal holds besides its stacks.
-   type History_Journal_State is record
-      --  The Sequence the next recorded entry gets.
-      Next_Sequence : Positive := 1;
-      --  Sequences of entries still in the history but left out of the
-      --  journal (too old, or too large, to fit it).
-      Unjournaled   : Sequence_Vectors.Vector;
-      --  Whether a new record retired the redo stack since the history was
-      --  loaded: redo entries the loader never saw are retired with it.
-      Redo_Retired  : Boolean := False;
-      --  Sequences of entries still in the history but neither in the journal
-      --  nor listed in Unjournaled: the journal's cap on that list left them
-      --  out. A window merging the journal retires them, releasing what they
-      --  preserved, rather than taking them for entries a helper retired.
-      Dropped       : Sequence_Vectors.Vector;
-   end record;
+   package Undo_Entry_Vectors renames Files.Undo_History.Undo_Entry_Vectors;
+   package Sequence_Vectors renames Files.Undo_History.Sequence_Vectors;
+   subtype History_Journal_State is Files.Undo_History.History_Journal_State;
+   subtype Undo_History_State is Files.Undo_History.Undo_History_State;
 
    --  The replace-or-skip prompt shown when a paste meets existing names.
    --  Every default is the closed state, as for Paste_Execution_State.
@@ -1525,20 +1418,6 @@ private
    type Rename_State is record
       Active : Boolean := False;
       Fields : Rename_Field_Vectors.Vector;
-   end record;
-
-   --  The undo history: the two stacks, the work owed to the operations
-   --  layer (History.Take_Retired) -- payloads of retired entries to delete,
-   --  payloads of a released history to send to the trash -- whether the
-   --  history changed since it was last saved, and what its journal holds
-   --  besides the stacks. Every default is the empty history.
-   type Undo_History_State is record
-      Undo_Stack       : Undo_Entry_Vectors.Vector;
-      Redo_Stack       : Undo_Entry_Vectors.Vector;
-      Retired_Discards : Files.Types.String_Vectors.Vector;
-      Retired_Releases : Files.Types.String_Vectors.Vector;
-      Journal_Dirty    : Boolean := False;
-      Journal          : History_Journal_State;
    end record;
 
    --  The clipboard: the paths cut or copied in this window and how, and a

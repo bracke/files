@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 procedure Count_Text_Lines
   (Path   : String;
    Count  : out Natural;

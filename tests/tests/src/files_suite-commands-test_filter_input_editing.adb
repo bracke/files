@@ -41,12 +41,12 @@ separate (Files_Suite.Commands)
          Files.Controller.Controller_Text_Updated,
          "filter click updates text cursor");
       Files_Suite.Support.Assert_Equal (Files.Model.Text_Cursor_Position (Model), 2, "filter click positions cursor");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_None,
          "filter Escape clears focus before refocus");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_Filter_Input,
@@ -71,7 +71,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Text_Cursor_Position (Model),
          3,
          "filter insert advances cursor from insertion point");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Text_Updated,
@@ -88,7 +88,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Text_Cursor_Position (Model),
          2,
          "filter Backspace moves cursor backward");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Text_Updated,
@@ -110,7 +110,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Selection.Selected_Name (Model),
          "Beta.txt",
          "text delete preserves selected visible item");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Text_Updated,
@@ -119,17 +119,17 @@ separate (Files_Suite.Commands)
         (Files.Model.Text_Cursor_Position (Model),
          0,
          "filter Home moves cursor to start");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "filter Home at start is ignored");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "filter Left at start is ignored");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -138,19 +138,19 @@ separate (Files_Suite.Commands)
         (Files.Model.Filter_Text (Model),
          "beta",
          "filter Backspace at start leaves text unchanged");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_End);
       Files_Suite.Support.Assert_Equal (Files.Model.Text_Cursor_Position (Model), 4, "filter End moves cursor to end");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_End);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "filter End at end is ignored");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "filter Right at end is ignored");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,

@@ -1,3 +1,4 @@
+with Files.Bounded_Streams;
 separate (Files_Suite.Recovery)
    procedure Test_Path_Move_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -33,8 +34,8 @@ separate (Files_Suite.Recovery)
       begin
          Natural'Output (Stream, 1);
          Natural'Output (Stream, Files.Types.Path_Move_Kind'Pos (Files.Types.Removed));
-         Files.Job_Records.Write_String (Stream, "/a", Files.Job_Records.Max_Path_Length);
-         Files.Job_Records.Write_String (Stream, "/b", Files.Job_Records.Max_Path_Length);
+         Files.Bounded_Streams.Output_String (Stream, "/a", Files.Job_Records.Max_Path_Length);
+         Files.Bounded_Streams.Output_String (Stream, "/b", Files.Job_Records.Max_Path_Length);
       end Write_Removal_With_Target;
 
       --  A kind past the last one there is.
@@ -42,8 +43,8 @@ separate (Files_Suite.Recovery)
       begin
          Natural'Output (Stream, 1);
          Natural'Output (Stream, Files.Types.Path_Move_Kind'Pos (Files.Types.Path_Move_Kind'Last) + 1);
-         Files.Job_Records.Write_String (Stream, "/a", Files.Job_Records.Max_Path_Length);
-         Files.Job_Records.Write_String (Stream, "/b", Files.Job_Records.Max_Path_Length);
+         Files.Bounded_Streams.Output_String (Stream, "/a", Files.Job_Records.Max_Path_Length);
+         Files.Bounded_Streams.Output_String (Stream, "/b", Files.Job_Records.Max_Path_Length);
       end Write_Unknown_Kind;
 
       --  More moves than one record may carry.

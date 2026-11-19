@@ -38,23 +38,6 @@ package Files.Job_Records is
    --  @param Size Encoded transport size to validate.
    procedure Validate_Size (Size : Long_Long_Integer);
 
-   --  Write a string after enforcing its protocol-specific bound.
-   --  @param Stream Destination stream.
-   --  @param Value String to encode.
-   --  @param Maximum Maximum permitted byte length.
-   procedure Write_String
-     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value : String;
-      Maximum : Natural);
-
-   --  Read a string without allocating beyond its protocol-specific bound.
-   --  @param Stream Source stream.
-   --  @param Maximum Maximum permitted byte length.
-   --  @return Decoded string.
-   function Read_String
-     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Maximum : Natural) return String;
-
    --  Encode settings through their bounded, stable textual representation.
    --  @param Stream Destination stream.
    --  @param Value Settings snapshot to encode.

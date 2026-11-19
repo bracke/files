@@ -27,11 +27,6 @@ separate (Files.Rendering.Build_Frame_Commands)
            (if Btn.Height > Line_Height
             then Guikit.Layout.Saturating_Add (Btn.Y, (Btn.Height - Line_Height) / 2)
             else Btn.Y);
-         --  Base-layer glyph text is suppressed when covered by the settings
-         --  pane or command palette; overlay glyphs are never hidden.
-         Show_Glyph : constant Boolean :=
-           Overlay
-           or else not Hidden_By_Overlays (Glyph_X, Glyph_Y, Glyph_W, Line_Height);
 
          --  The button into one layer's rectangles and text.
          procedure Draw_Into
@@ -55,7 +50,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                Glyph_Height  => Line_Height,
                Glyph         => To_Unbounded_String (Close_Glyph_Text),
                Glyph_Color   => Text_Color,
-               Show_Glyph    => Show_Glyph);
+               Show_Glyph    => True);
          end Draw_Into;
       begin
          if Overlay then

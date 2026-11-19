@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 function Executable_Format_Info (Path : String) return Files.Extra_Info.Info is
    File   : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
    Buffer : Ada.Streams.Stream_Element_Array (1 .. 4);

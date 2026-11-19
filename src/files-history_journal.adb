@@ -15,7 +15,6 @@ with Files.Fs_Primitives;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 with Files.Path_Checks;
-with Files.Model.History;
 
 package body Files.History_Journal is
    use Ada.Strings.Unbounded;
@@ -96,7 +95,7 @@ package body Files.History_Journal is
 
    --  The vector fields of a journal entry, in the order the journal holds
    --  them: the one list Write_Entry, Read_Entry and Add_Cost go through.
-   --  Each is a column of the entry's records (Files.Model.Undo_Item and the
+   --  Each is a column of the entry's records (Files.Undo_History.Undo_Item and the
    --  rest), written whole; the kept-copy columns came with version 2.
    type Vector_Field is
      (From_Field, To_Field, Forward_Field,
@@ -115,7 +114,10 @@ package body Files.History_Journal is
 
    --  Value's column Which. A To or Forward no item carries is written
    --  empty, as the action has none.
-   function Column (Value : Files.Model.Undo_Entry; Which : Vector_Field) return Files.Types.String_Vectors.Vector is
+   function Column
+     (Value : Files.Undo_History.Undo_Entry;
+      Which : Vector_Field) return Files.Types.String_Vectors.Vector
+   is
       Result : Files.Types.String_Vectors.Vector;
    begin
       case Which is
@@ -162,7 +164,7 @@ package body Files.History_Journal is
    --  and Forward). One that is not was never written by Write_Entry, so the
    --  entry is made unusable (Undo_None) and History_Entry_Usable drops it,
    --  its replaced originals still named for release.
-   procedure Assemble (Value : in out Files.Model.Undo_Entry; Columns : Field_Columns) is
+   procedure Assemble (Value : in out Files.Undo_History.Undo_Entry; Columns : Field_Columns) is
       function Matches (Which, Leading : Vector_Field; Optional : Boolean := False) return Boolean is
         (Columns (Which).Length = Columns (Leading).Length or else (Optional and then Columns (Which).Is_Empty));
 
@@ -171,7 +173,7 @@ package body Files.History_Journal is
    begin
       for Index in 1 .. Natural (Columns (From_Field).Length) loop
          Value.Items.Append
-           (Files.Model.Undo_Item'
+           (Files.Undo_History.Undo_Item'
               (From          => Columns (From_Field) (Index),
                To            => At_Index (To_Field, Index),
                Forward       => At_Index (Forward_Field, Index),
@@ -180,14 +182,14 @@ package body Files.History_Journal is
       end loop;
       for Index in 1 .. Natural (Columns (Restore_Trash_Field).Length) loop
          Value.Replaced.Append
-           (Files.Model.Replaced_Original'
+           (Files.Undo_History.Replaced_Original'
               (Trash    => Columns (Restore_Trash_Field) (Index),
                Identity => At_Index (Restore_Identities_Field, Index),
                Target   => At_Index (Restore_Targets_Field, Index)));
       end loop;
       for Index in 1 .. Natural (Columns (Kept_Copies_Field).Length) loop
          Value.Kept.Append
-           (Files.Model.Kept_Copy'
+           (Files.Undo_History.Kept_Copy'
               (Path          => Columns (Kept_Copies_Field) (Index),
                Identity      => At_Index (Kept_Copy_Identities_Field, Index),
                Tree_Revision => At_Index (Kept_Copy_Tree_Revisions_Field, Index)));
@@ -205,13 +207,13 @@ package body Files.History_Journal is
               and then Matches (Kept_Copy_Identities_Field, Kept_Copies_Field)
               and then Matches (Kept_Copy_Tree_Revisions_Field, Kept_Copies_Field))
       then
-         Value.Kind := Files.Model.Undo_None;
+         Value.Kind := Files.Undo_History.Undo_None;
       end if;
    end Assemble;
 
    procedure Write_Entry
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value  : Files.Model.Undo_Entry;
+      Value  : Files.Undo_History.Undo_Entry;
       Total  : in out Byte_Count;
       Fields : in out Natural)
    is
@@ -220,11 +222,11 @@ package body Files.History_Journal is
          raise Ada.Directories.Use_Error;
       end if;
       Total := Total + 32;
-      Files.Model.Undo_Action_Kind'Output (Stream, Value.Kind);
+      Files.Undo_History.Undo_Action_Kind'Output (Stream, Value.Kind);
       for Which in Leading_Field loop
          Write_Vector (Stream, Column (Value, Which), Total, Fields);
       end loop;
-      Files.Model.Undo_Create_Kind'Output (Stream, Value.Create_Kind);
+      Files.Undo_History.Undo_Create_Kind'Output (Stream, Value.Create_Kind);
       Boolean'Output (Stream, Value.Redoable);
       for Which in Trailing_Field loop
          Write_Vector (Stream, Column (Value, Which), Total, Fields);
@@ -236,16 +238,16 @@ package body Files.History_Journal is
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Fields : in out Natural;
       Version_1 : Boolean)
-      return Files.Model.Undo_Entry
+      return Files.Undo_History.Undo_Entry
    is
-      Result  : Files.Model.Undo_Entry;
+      Result  : Files.Undo_History.Undo_Entry;
       Columns : Field_Columns;
    begin
-      Result.Kind := Files.Model.Undo_Action_Kind'Input (Stream);
+      Result.Kind := Files.Undo_History.Undo_Action_Kind'Input (Stream);
       for Which in Leading_Field loop
          Columns (Which) := Read_Vector (Stream, Fields);
       end loop;
-      Result.Create_Kind := Files.Model.Undo_Create_Kind'Input (Stream);
+      Result.Create_Kind := Files.Undo_History.Undo_Create_Kind'Input (Stream);
       Result.Redoable := Boolean'Input (Stream);
       for Which in Trailing_Field loop
          if Which in Version_1_Field or else not Version_1 then
@@ -261,7 +263,7 @@ package body Files.History_Journal is
 
    procedure Write_Stack
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value  : Files.Model.Undo_Entry_Vectors.Vector;
+      Value  : Files.Undo_History.Undo_Entry_Vectors.Vector;
       Total  : in out Byte_Count;
       Fields : in out Natural)
    is
@@ -279,10 +281,10 @@ package body Files.History_Journal is
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Fields : in out Natural;
       Version_1 : Boolean)
-      return Files.Model.Undo_Entry_Vectors.Vector
+      return Files.Undo_History.Undo_Entry_Vectors.Vector
    is
       Count : constant Natural := Natural'Input (Stream);
-      Result : Files.Model.Undo_Entry_Vectors.Vector;
+      Result : Files.Undo_History.Undo_Entry_Vectors.Vector;
    begin
       if Count > Max_History_Entries then
          raise Ada.IO_Exceptions.Data_Error;
@@ -295,7 +297,7 @@ package body Files.History_Journal is
    end Read_Stack;
 
    --  What Value adds to the journal, counted as Write_Entry counts it.
-   procedure Add_Cost (Value : Files.Model.Undo_Entry; Bytes, Fields : in out Long_Long_Integer) is
+   procedure Add_Cost (Value : Files.Undo_History.Undo_Entry; Bytes, Fields : in out Long_Long_Integer) is
       procedure Add (Vector : Files.Types.String_Vectors.Vector) is
       begin
          Bytes := Bytes + 16;
@@ -327,9 +329,9 @@ package body Files.History_Journal is
    --  recover; Left_Out gains the Sequence of each entry left out, so a
    --  window merging a helper's journal keeps them (Files.Model.History.Merge).
    procedure Fit
-     (Undo, Redo : in out Files.Model.Undo_Entry_Vectors.Vector;
+     (Undo, Redo : in out Files.Undo_History.Undo_Entry_Vectors.Vector;
       Header     : Byte_Count;
-      Left_Out   : in out Files.Model.Sequence_Vectors.Vector)
+      Left_Out   : in out Files.Undo_History.Sequence_Vectors.Vector)
    is
       Margin : constant Long_Long_Integer := 1024;
       function Over return Boolean is
@@ -346,14 +348,14 @@ package body Files.History_Journal is
          return Bytes > Max_Journal_Bytes or else Fields > Max_Journal_Fields;
       end Over;
 
-      function Cost (Value : Files.Model.Undo_Entry) return Long_Long_Integer is
+      function Cost (Value : Files.Undo_History.Undo_Entry) return Long_Long_Integer is
          Bytes, Fields : Long_Long_Integer := 0;
       begin
          Add_Cost (Value, Bytes, Fields);
          return Bytes + 16 * Fields;
       end Cost;
 
-      procedure Leave_Out (Stack : in out Files.Model.Undo_Entry_Vectors.Vector; Oldest : Boolean) is
+      procedure Leave_Out (Stack : in out Files.Undo_History.Undo_Entry_Vectors.Vector; Oldest : Boolean) is
          Sequence : constant Natural :=
            (if Oldest then Stack.First_Element.Sequence else Stack.Last_Element.Sequence);
       begin
@@ -368,7 +370,7 @@ package body Files.History_Journal is
       end Leave_Out;
 
       --  Whether Value does not fit the journal even alone.
-      function Unfit (Value : Files.Model.Undo_Entry) return Boolean is
+      function Unfit (Value : Files.Undo_History.Undo_Entry) return Boolean is
          Bytes  : Long_Long_Integer := Header + Margin;
          Fields : Long_Long_Integer := 0;
       begin
@@ -379,7 +381,7 @@ package body Files.History_Journal is
       --  Leave out every entry too large for the journal even alone ("not
       --  journaled"), wherever it is, rather than costing the entries around
       --  it their place.
-      procedure Leave_Out_Unfit (Stack : in out Files.Model.Undo_Entry_Vectors.Vector) is
+      procedure Leave_Out_Unfit (Stack : in out Files.Undo_History.Undo_Entry_Vectors.Vector) is
          Index : Natural := Stack.Last_Index;
       begin
          while Index >= Stack.First_Index loop
@@ -421,15 +423,15 @@ package body Files.History_Journal is
    --  so the window retires those entries on merge, releasing what they
    --  preserved (Files.Model.History.Merge).
    function Pruned_Left_Out
-     (Left_Out   : Files.Model.Sequence_Vectors.Vector;
-      Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
+     (Left_Out   : Files.Undo_History.Sequence_Vectors.Vector;
+      Undo, Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
       Next       : Positive;
-      Dropped    : in out Files.Model.Sequence_Vectors.Vector) return Files.Model.Sequence_Vectors.Vector
+      Dropped    : in out Files.Undo_History.Sequence_Vectors.Vector) return Files.Undo_History.Sequence_Vectors.Vector
    is
       package Sequence_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Positive);
-      package Sequence_Sorting is new Files.Model.Sequence_Vectors.Generic_Sorting;
+      package Sequence_Sorting is new Files.Undo_History.Sequence_Vectors.Generic_Sorting;
       Held, Listed : Sequence_Sets.Set;
-      Result : Files.Model.Sequence_Vectors.Vector;
+      Result : Files.Undo_History.Sequence_Vectors.Vector;
    begin
       for Action of Undo loop
          if Action.Sequence > 0 then
@@ -466,15 +468,15 @@ package body Files.History_Journal is
    --  (that entry is listed after all); past Max_Unjournaled -- more than
    --  any history holds -- the oldest go, with a trace.
    function Pruned_Dropped
-     (Dropped    : Files.Model.Sequence_Vectors.Vector;
-      Left_Out   : Files.Model.Sequence_Vectors.Vector;
-      Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
-      Next       : Positive) return Files.Model.Sequence_Vectors.Vector
+     (Dropped    : Files.Undo_History.Sequence_Vectors.Vector;
+      Left_Out   : Files.Undo_History.Sequence_Vectors.Vector;
+      Undo, Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
+      Next       : Positive) return Files.Undo_History.Sequence_Vectors.Vector
    is
       package Sequence_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Positive);
-      package Sequence_Sorting is new Files.Model.Sequence_Vectors.Generic_Sorting;
+      package Sequence_Sorting is new Files.Undo_History.Sequence_Vectors.Generic_Sorting;
       Excluded : Sequence_Sets.Set;
-      Result   : Files.Model.Sequence_Vectors.Vector;
+      Result   : Files.Undo_History.Sequence_Vectors.Vector;
    begin
       for Action of Undo loop
          if Action.Sequence > 0 then
@@ -505,20 +507,23 @@ package body Files.History_Journal is
       return Result;
    end Pruned_Dropped;
 
-   function Journals_Newest (Model : Files.Model.Window_Model; Side : Files.Model.History_Side) return Boolean is
-      use type Files.Model.History_Side;
-      Redo       : constant Boolean := Side = Files.Model.Redo_Side;
-      Undo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Undo_Entries (Model);
-      Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Redo_Entries (Model);
-      Original   : constant Files.Model.Undo_Entry_Vectors.Vector := (if Redo then Redo_Stack else Undo_Stack);
-      Left_Out   : Files.Model.Sequence_Vectors.Vector := Files.Model.History.Journal_State (Model).Unjournaled;
+   function Journals_Newest
+     (History : Files.Undo_History.Undo_History_State;
+      Side    : Files.Undo_History.History_Side) return Boolean
+   is
+      use type Files.Undo_History.History_Side;
+      Redo       : constant Boolean := Side = Files.Undo_History.Redo_Side;
+      Undo_Stack : Files.Undo_History.Undo_Entry_Vectors.Vector := History.Undo_Stack;
+      Redo_Stack : Files.Undo_History.Undo_Entry_Vectors.Vector := History.Redo_Stack;
+      Original   : constant Files.Undo_History.Undo_Entry_Vectors.Vector := (if Redo then Redo_Stack else Undo_Stack);
+      Left_Out   : Files.Undo_History.Sequence_Vectors.Vector := History.Journal.Unjournaled;
    begin
       if Original.Is_Empty then
          return True;
       end if;
       Fit (Undo_Stack, Redo_Stack, Journal_Header'Length + 32, Left_Out);
       declare
-         Kept : constant Files.Model.Undo_Entry_Vectors.Vector := (if Redo then Redo_Stack else Undo_Stack);
+         Kept : constant Files.Undo_History.Undo_Entry_Vectors.Vector := (if Redo then Redo_Stack else Undo_Stack);
       begin
          return not Kept.Is_Empty and then Kept.Last_Element.Sequence = Original.Last_Element.Sequence;
       end;
@@ -526,12 +531,12 @@ package body Files.History_Journal is
 
    procedure Save_Stacks
      (Directory : String;
-      Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
+      Undo, Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
       Required : Boolean := False;
-      State : Files.Model.History_Journal_State := (others => <>))
+      State : Files.Undo_History.History_Journal_State := (others => <>))
    is
-      Kept_Undo : Files.Model.Undo_Entry_Vectors.Vector := Undo;
-      Kept_Redo : Files.Model.Undo_Entry_Vectors.Vector := Redo;
+      Kept_Undo : Files.Undo_History.Undo_Entry_Vectors.Vector := Undo;
+      Kept_Redo : Files.Undo_History.Undo_Entry_Vectors.Vector := Redo;
       Total : Byte_Count := Journal_Header'Length + 32;
       Fields : Natural := 0;
       Target : constant String := Hostkit.Fs.Join (Directory, "history");
@@ -552,9 +557,9 @@ package body Files.History_Journal is
 
       procedure Write_Journal (Output : not null access Ada.Streams.Root_Stream_Type'Class) is
          Next     : constant Positive := Sequence_Bound;
-         Dropped  : Files.Model.Sequence_Vectors.Vector := State.Dropped;
+         Dropped  : Files.Undo_History.Sequence_Vectors.Vector := State.Dropped;
          --  Pruned before Fit too, so stale markers cost no entry its place.
-         Left_Out : Files.Model.Sequence_Vectors.Vector :=
+         Left_Out : Files.Undo_History.Sequence_Vectors.Vector :=
            Pruned_Left_Out (State.Unjournaled, Undo, Redo, Next, Dropped);
       begin
          String'Output (Output, Journal_Header);
@@ -584,15 +589,12 @@ package body Files.History_Journal is
         --  refusal-safe: a refused folder refuses the save
         or else not Files.Fs_Primitives.Exists (Directory)
         or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
-        or else Hostkit.Fs.Is_Link (Target)
-        --  refusal-safe: a refused target is replaced only through Publish, which checks it
-        or else (Files.Fs_Primitives.Exists (Target)
-          and then Files.Fs_Primitives.Kind (Target) /= Ada.Directories.Ordinary_File)
       then
          raise Ada.Directories.Use_Error;
       end if;
       --  A temporary a crash left behind is passed over (Write_And_Publish),
-      --  so it never refuses a later save.
+      --  so it never refuses a later save; a Target that is a link or not a
+      --  file refuses it there.
       if not Files.Durable_Writes.Published (Files.Durable_Writes.Write_And_Publish (Target, Write_Journal'Access))
         and then Required
       then
@@ -606,16 +608,17 @@ package body Files.History_Journal is
          Files.Diagnostics.Note (Failure, "Files.History_Journal");
    end Save_Stacks;
 
-   procedure Save (Model : Files.Model.Window_Model; Required : Boolean := False) is
+   procedure Save (History : Files.Undo_History.Undo_History_State; Required : Boolean := False) is
    begin
-      Save_To (Files.Job_Context.Directory, Model, Required);
+      Save_To (Files.Job_Context.Directory, History, Required);
    end Save;
 
-   procedure Save_To (Directory : String; Model : Files.Model.Window_Model; Required : Boolean := False) is
+   procedure Save_To
+     (Directory : String;
+      History   : Files.Undo_History.Undo_History_State;
+      Required  : Boolean := False) is
    begin
-      Save_Stacks
-        (Directory, Files.Model.History.Undo_Entries (Model),
-         Files.Model.History.Redo_Entries (Model), Required, Files.Model.History.Journal_State (Model));
+      Save_Stacks (Directory, History.Undo_Stack, History.Redo_Stack, Required, History.Journal);
    end Save_To;
 
    --  When the journal was last written by Checkpoint.
@@ -623,37 +626,37 @@ package body Files.History_Journal is
    Checkpoint_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
 
    procedure Checkpoint
-     (Model  : Files.Model.Window_Model;
-      Action : Files.Model.Undo_Entry;
-      Side   : Files.Model.History_Side;
-      Force  : Boolean := True)
+     (History : Files.Undo_History.Undo_History_State;
+      Action  : Files.Undo_History.Undo_Entry;
+      Side    : Files.Undo_History.History_Side;
+      Force   : Boolean := True)
    is
       use type Ada.Real_Time.Time;
-      use type Files.Model.History_Side;
-      Undo_Stack : Files.Model.Undo_Entry_Vectors.Vector;
-      Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector;
+      use type Files.Undo_History.History_Side;
+      Undo_Stack : Files.Undo_History.Undo_Entry_Vectors.Vector;
+      Redo_Stack : Files.Undo_History.Undo_Entry_Vectors.Vector;
    begin
       if not Force and then Ada.Real_Time.Clock < Last_Checkpoint + Checkpoint_Interval then
          return;
       end if;
-      Undo_Stack := Files.Model.History.Undo_Entries (Model);
-      Redo_Stack := Files.Model.History.Redo_Entries (Model);
-      if Side = Files.Model.Redo_Side then
+      Undo_Stack := History.Undo_Stack;
+      Redo_Stack := History.Redo_Stack;
+      if Side = Files.Undo_History.Redo_Side then
          Redo_Stack.Append (Action);
       else
          Undo_Stack.Append (Action);
       end if;
       Save_Stacks
         (Files.Job_Context.Directory, Undo_Stack, Redo_Stack,
-         Required => True, State => Files.Model.History.Journal_State (Model));
+         Required => True, State => History.Journal);
       Last_Checkpoint := Ada.Real_Time.Clock;
    end Checkpoint;
 
    --  Read the journal in Directory; False when there is none to read.
    function Read_Journal
      (Directory : String;
-      Undo, Redo : out Files.Model.Undo_Entry_Vectors.Vector;
-      State : out Files.Model.History_Journal_State) return Boolean
+      Undo, Redo : out Files.Undo_History.Undo_Entry_Vectors.Vector;
+      State : out Files.Undo_History.History_Journal_State) return Boolean
    is
       Input : aliased Files.Lease_Streams.Input_Stream;
       Fields : Natural := 0;
@@ -689,7 +692,7 @@ package body Files.History_Journal is
          Version_2 : constant Boolean := Header = Version_2_Header;
 
          --  A list of at most Max_Unjournaled Sequences.
-         procedure Read_Sequences (Into : in out Files.Model.Sequence_Vectors.Vector) is
+         procedure Read_Sequences (Into : in out Files.Undo_History.Sequence_Vectors.Vector) is
             Count : constant Natural := Natural'Input (Input'Access);
          begin
             if Count > Max_Unjournaled then
@@ -725,33 +728,16 @@ package body Files.History_Journal is
          raise;
    end Read_Journal;
 
-   function Restore (Directory : String; Model : in out Files.Model.Window_Model) return Boolean is
-      Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
-      State : Files.Model.History_Journal_State;
+   function Read (Directory : String; Contents : out Journal_Contents) return Read_Outcome is
    begin
-      if not Read_Journal (Directory, Undo, Redo, State) then
-         return False;
-      end if;
-      Files.Model.History.Restore (Model, Undo, Redo, State);
-      return True;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.History_Journal");
-         return False;
-   end Restore;
-
-   function Merge (Directory : String; Model : in out Files.Model.Window_Model) return Merge_Outcome is
-      Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
-      State : Files.Model.History_Journal_State;
-   begin
-      if not Read_Journal (Directory, Undo, Redo, State) then
+      if not Read_Journal (Directory, Contents.Undo, Contents.Redo, Contents.State) then
          return No_Journal;
       end if;
-      Files.Model.History.Merge (Model, Undo, Redo, State);
-      return Merged;
+      return Read_Whole;
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.History_Journal");
+         Contents := (others => <>);
          return Unreadable;
-   end Merge;
+   end Read;
 end Files.History_Journal;

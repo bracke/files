@@ -607,7 +607,8 @@ package body Files.File_System.Recovery is
       Cancel              : Cancellation_Check := Job_Cancelled;
       Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
       If_Source_Stays     : Unremoved_Source_Rule := Take_Copy_Back;
-      After_Copy          : Copy_Hook := null)
+      After_Copy          : Copy_Hook := null;
+      Expected_Identity   : String := "")
       return Mutation_Result
    is separate;
 

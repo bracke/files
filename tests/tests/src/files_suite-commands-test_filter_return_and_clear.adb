@@ -15,7 +15,7 @@ separate (Files_Suite.Commands)
       Files.Model.Selection.Select_Visible (Model, 2);
       Files.Controller.Testing.Replace_Focused_Text (Model, "beta");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -35,7 +35,7 @@ separate (Files_Suite.Commands)
       Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "beta", "filter Return preserves text");
       Files_Suite.Support.Assert_Equal (Files.Model.Current_Path (Model), Root, "filter Return does not navigate");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl_Shift);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl_Shift);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,

@@ -7,6 +7,11 @@ function Execute_Drop_Import
    return Mutation_Result
 is
    Context : Files.Copy_Context.Session := Batch;
+
+   --  Whether a failure says no more than that the drop failed: only such
+   --  a failure is reported as the cancel that stopped it.
+   function Generic_Failure (Key : UString) return Boolean is
+     (Length (Key) = 0 or else To_String (Key) = "error.drop.failed");
 begin
    Created.Clear;
    if Natural (Plans.Length) > 1 and then Files.Copy_Context.Directory (Context) = "" then
@@ -103,10 +108,16 @@ begin
                            --  Otherwise nothing is at the destination and the
                            --  source stays canonical, so paste-replace can
                            --  restore its original destination. A copy the
-                           --  cancel stopped says so.
-                           if Cancel /= null and then Cancel.all then
-                              return (Success => False, Error_Key => To_Unbounded_String (Cancelled_Error_Key));
-                           end if;
+                           --  cancel stopped says so -- but only a failure
+                           --  with no cause of its own: a kept copy (a source
+                           --  set aside) or a full disk is reported as such.
+                           declare
+                              Cancelled : constant Boolean := Cancel /= null and then Cancel.all;
+                           begin
+                              if Cancelled and then not Copy_Kept and then Generic_Failure (Moved.Error_Key) then
+                                 return (Success => False, Error_Key => To_Unbounded_String (Cancelled_Error_Key));
+                              end if;
+                           end;
                            return Moved;
                         end if;
                         Files.Job_Context.Record_Moved
@@ -133,13 +144,18 @@ begin
             --  removes its own private stage when it raises, and nothing it
             --  does after publishing raises, so no partial destination is
             --  left and nothing is cleaned up here; the source is untouched.
-            --  A cancelled copy says so: the helper reads it as cancelled.
-            return
-              (Success   => False,
-               Error_Key =>
-                 (if Cancel /= null and then Cancel.all
-                  then To_Unbounded_String (Cancelled_Error_Key)
-                  else Files.Io_Errors.Error_Key ("error.drop.failed")));
+            --  A cancelled copy says so (the helper reads it as cancelled),
+            --  unless the failure has a cause of its own, a full disk say.
+            declare
+               Cancelled : constant Boolean := Cancel /= null and then Cancel.all;
+               Key       : constant UString := Files.Io_Errors.Error_Key ("error.drop.failed");
+            begin
+               return
+                 (Success   => False,
+                  Error_Key =>
+                    (if Cancelled and then Generic_Failure (Key) then To_Unbounded_String (Cancelled_Error_Key)
+                     else Key));
+            end;
       end;
    end loop;
 

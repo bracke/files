@@ -24,32 +24,32 @@ separate (Files_Suite.Commands)
             1,
             "model cursor setter snaps UTF-8 cursor to character boundary");
          Files.Model.Set_Text_Cursor_Position (Model, 4);
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             3,
             "filter Left moves before ASCII after UTF-8");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             1,
             "filter Left moves over whole UTF-8 input");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             0,
             "filter Left reaches start before UTF-8 input");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             1,
             "filter Right moves over ASCII before UTF-8");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             3,
             "filter Right moves over whole UTF-8 input");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Filter_Text (Model),
             "ab",
@@ -60,7 +60,7 @@ separate (Files_Suite.Commands)
             "filter Backspace lands before removed UTF-8 input");
          Files.Controller.Testing.Replace_Focused_Text (Model, "a" & Utf8_Text & "b");
          Files.Model.Set_Text_Cursor_Position (Model, 1);
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Filter_Text (Model),
             "ab",
@@ -76,28 +76,28 @@ separate (Files_Suite.Commands)
            (Files.Model.Text_Cursor_Position (Model),
             0,
             "model cursor setter snaps combining mark starts to the base boundary");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
          Files_Suite.Support.Assert_Equal
            (Result.Status,
             Files.Controller.Controller_Ignored,
             "filter Left at combining base is ignored");
          Files.Model.Set_Text_Cursor_Position (Model, Combining_Text'Length + 1);
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             Combining_Text'Length,
             "filter Left moves before ASCII after combining text");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             0,
             "filter Left moves over base and trailing combining marks together");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             Combining_Text'Length,
             "filter Right moves over base and trailing combining marks together");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Filter_Text (Model),
             "b",
@@ -108,7 +108,7 @@ separate (Files_Suite.Commands)
             "filter Backspace lands before removed combining sequence");
          Files.Controller.Testing.Replace_Focused_Text (Model, Combining_Text & "b");
          Files.Model.Set_Text_Cursor_Position (Model, 0);
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Filter_Text (Model),
             "b",

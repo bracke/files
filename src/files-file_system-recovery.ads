@@ -107,6 +107,11 @@ private package Files.File_System.Recovery is
    --  @param If_Source_Stays What becomes of the copy when Source cannot be removed.
    --  @param After_Copy Called with Source once the copy is published,
    --    before Source is checked and removed; null for none.
+   --  @param Expected_Identity The identity Source must have when it is
+   --    snapshotted for the copy, or "" for no check: another entry under
+   --    its name is then refused with Fallback_Key, nothing copied. The
+   --    snapshot is what the removal checks Source against afterwards, so
+   --    only the entry named is ever copied and removed.
    --  @return Success when Destination holds the item and Source is gone;
    --    otherwise Source is where it was (unless set aside, see Copy_Kept).
    function Move_By_Copy
@@ -117,6 +122,7 @@ private package Files.File_System.Recovery is
       Cancel              : Cancellation_Check := Job_Cancelled;
       Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
       If_Source_Stays     : Unremoved_Source_Rule := Take_Copy_Back;
-      After_Copy          : Copy_Hook := null)
+      After_Copy          : Copy_Hook := null;
+      Expected_Identity   : String := "")
       return Mutation_Result;
 end Files.File_System.Recovery;

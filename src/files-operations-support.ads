@@ -227,13 +227,10 @@ private package Files.Operations.Support is
      (Model    : in out Files.Model.Window_Model;
       Progress : in out Progressive_Undo);
 
-   --  Put a staged file or folder at Target, never over an entry already
-   --  there: its identity and tree revision taken first, the whole of it
-   --  flushed to the device (a power cut leaves no recorded but empty or cut
-   --  short output), renamed into place, given the destination's inherited
-   --  permissions (on Windows that writes the change times a revision reads,
-   --  so it is read again), and recorded as created. The one way Compress
-   --  and Extract publish what they made.
+   --  Put a staged file or folder at Target, as Files.File_System.Publish_Staged
+   --  does: never over an entry already there, flushed before and named
+   --  after, intended and recorded as created. The one way Compress and
+   --  Extract publish what they made.
    --
    --  @param Staged The finished file or folder inside a stage.
    --  @param Target Where it is published.

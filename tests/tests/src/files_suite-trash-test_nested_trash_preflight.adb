@@ -43,7 +43,7 @@ separate (Files_Suite.Trash)
             Files.Model.Selection.Select_Visible (Guard_Model, 1);
             Files.Model.Selection.Toggle_Visible_Selection (Guard_Model, 2);
 
-            Guard_Result := Files.Controller.Handle_Key (Guard_Model, Guard_Settings, Guikit.Input.Key_Delete);
+            Guard_Result := Files.Controller.Testing.Handle_Key (Guard_Model, Guard_Settings, Guikit.Input.Key_Delete);
             Files_Suite.Support.Assert_Equal
               (Guard_Result.Operation.Status,
                Files.Operation_Results.Operation_Failed,

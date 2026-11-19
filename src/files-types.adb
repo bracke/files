@@ -78,6 +78,12 @@ package body Files.Types is
       return (if Dot = 0 then "" else Name (Dot + 1 .. Name'Last));
    end Extension_Of;
 
+   --  Whether a folder named Name is a package that shows as one item, its
+   --  extension naming what it is (macOS's "Mail.app", "Photos.photoslibrary",
+   --  "Notes.rtfd"): app, appex, bundle, component, framework, kext, mpkg,
+   --  pkg, plugin, prefpane, qlgenerator, mdimporter, saver, xpc, rtfd,
+   --  photoslibrary, xcodeproj, xcworkspace, playground, matched without
+   --  regard to ASCII case.
    function Is_Package_Name (Name : String) return Boolean is
       E : constant String := To_Lower_Ascii (Extension_Of (Name));
    begin

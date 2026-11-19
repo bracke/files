@@ -106,7 +106,7 @@ separate (Files_Suite.Model)
          "clear selection empties deterministic selection set");
       Files.Model.Selection.Select_Visible (Model, 2);
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Selection_Moved,
@@ -114,7 +114,7 @@ separate (Files_Suite.Model)
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Index (Model), 3, "controller down advances selection");
       Files.Model.Selection.Select_Visible (Model, 1);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Selection_Moved,
@@ -129,7 +129,7 @@ separate (Files_Suite.Model)
          "shift-down keeps anchor and target selected");
       Assert (Files.Model.Selection.Is_Selected (Model, 1), "shift-down keeps anchor item selected");
       Assert (Files.Model.Selection.Is_Selected (Model, 2), "shift-down selects target item");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Selection_Moved,
@@ -201,7 +201,7 @@ separate (Files_Suite.Model)
          "Alpha.txt",
          "filtered select-all selects visible item");
       Files.Model.Set_Filter (Model, "");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_A, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_A, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Select_All_Command,
@@ -243,7 +243,7 @@ separate (Files_Suite.Model)
          "Alpha.txt",
          "invert selects the visible filtered item");
       Files.Model.Set_Filter (Model, "");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_I, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_I, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Invert_Selection_Command,
@@ -257,7 +257,7 @@ separate (Files_Suite.Model)
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model), 0, "deselect all clears the selection");
       Files.Model.Selection.Select_All_Visible (Model);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_A, Ctrl_Shift);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_A, Ctrl_Shift);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Deselect_All_Command,
@@ -284,7 +284,7 @@ separate (Files_Suite.Model)
       declare
          Before_Focused_Key : constant Natural := Files.Model.Selection.Selected_Index (Model);
       begin
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
          Files_Suite.Support.Assert_Equal
            (Result.Status,
             Files.Controller.Controller_Ignored,

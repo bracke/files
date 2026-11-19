@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 function Extra_Info_Of
   (Path        : String;
    Kind        : Files.Types.Item_Kind;

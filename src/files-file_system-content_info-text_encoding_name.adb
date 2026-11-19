@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 function Text_Encoding_Name (Path : String) return String is
    --  Classify by sampling a bounded prefix, the way file(1) does. Scanning
    --  the whole file would turn a passive directory browse into an

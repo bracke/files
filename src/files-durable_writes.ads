@@ -68,6 +68,27 @@ package Files.Durable_Writes is
       Identity  : out Files.Types.UString;
       Max_Bytes : Long_Long_Integer := Long_Long_Integer'Last);
 
+   --  Write_Private_File, telling a name already taken from every other
+   --  failure: when the exclusive create is refused and an entry (any kind,
+   --  a link included) is then seen at Temporary, it returns with Name_Taken
+   --  set, nothing created or written. Every other failure raises as
+   --  Write_Private_File does.
+   --
+   --  @param Temporary Path to create.
+   --  @param Write Writes the record to the stream given.
+   --  @param Identity Set to the file's identity token, for Remove_Owned;
+   --    empty when the name was taken.
+   --  @param Name_Taken True only when the create was refused and an entry
+   --    was then seen at Temporary. A lookup that is itself refused is not
+   --    a taken name: the create's failure is raised as it is.
+   --  @param Max_Bytes The most the record may hold.
+   procedure Write_Private_File
+     (Temporary  : String;
+      Write      : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
+      Identity   : out Files.Types.UString;
+      Name_Taken : out Boolean;
+      Max_Bytes  : Long_Long_Integer := Long_Long_Integer'Last);
+
    --  Write_Private_File at the first free temporary name beside Base:
    --  Base & ".tmp", then ".tmp-2" up to ".tmp-9999", so a temporary another
    --  writer still holds (or a stale one, or a hostile link) is passed over,
@@ -84,12 +105,16 @@ package Files.Durable_Writes is
       Identity  : out Files.Types.UString);
 
    --  Write a file and publish it over Target: Write_Private_Temporary
-   --  beside Target, then Publish. A temporary a crash or a stopped helper
-   --  left there is passed over, never followed, truncated or removed, so it
-   --  never stops a later save. A temporary that is not published is
-   --  removed (Remove_Owned). Raises as Write_Private_Temporary does, or with
-   --  what Publish raised, having removed the temporary. The caller checks
-   --  Target beforehand.
+   --  beside Target, then Publish. Target must be absent or a plain file,
+   --  never a link (one is not replaced, since the publish would put the
+   --  file in the link's place and a reader of the link would lose its
+   --  target); anything else, or a Target that cannot be looked at, raises
+   --  Ada.Directories.Use_Error before anything is written. A temporary a
+   --  crash or a stopped helper left there is passed over, never followed,
+   --  truncated or removed, so it never stops a later save. A temporary
+   --  that is not published is removed (Remove_Owned). Raises as
+   --  Write_Private_Temporary does, or with what Publish raised, having
+   --  removed the temporary.
    --
    --  @param Target The file to replace or create.
    --  @param Write Writes the file to the stream given.
@@ -98,6 +123,20 @@ package Files.Durable_Writes is
      (Target : String;
       Write  : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class))
       return Publication_Result;
+
+   --  Remove the temporaries a crash or a killed process left beside Base:
+   --  each entry named as Write_Private_Temporary names them (Base & ".tmp",
+   --  or ".tmp-" and a number) that is a regular file, not a link, owned by
+   --  this user, open to no one else (no group or other mode bits), and
+   --  last written more than a minute before this process started -- so a
+   --  temporary another running writer (a background job) is filling is
+   --  never taken from it. Each is removed only while its identity is still
+   --  the one checked (Remove_Owned). Where mode bits or the user's id are
+   --  not the host's own (Windows), none can be shown owner-only and
+   --  nothing is removed. Never raises.
+   --
+   --  @param Base The path the temporaries are named after (the target).
+   procedure Sweep_Stale_Temporaries (Base : String);
 
    --  Remove Temporary if it is still the file Write_Private_File made
    --  (Identity matches), after a refused publish; never raises.

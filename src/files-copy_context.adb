@@ -194,17 +194,13 @@ package body Files.Copy_Context is
          return;
       end if;
       --  refusal-safe: a batch folder not seen refuses the write; a links
-      --  file not seen is still never written over -- the temporary is
-      --  created exclusively (Write_And_Publish), and only it replaces the
-      --  file.
+      --  file that is a link, not a file, or not seen refuses it in
+      --  Write_And_Publish, whose temporary is created exclusively and alone
+      --  replaces the file.
       if Hostkit.Fs.Is_Link (Batch_Directory)
         --  refusal-safe: as above.
         or else not Files.Fs_Primitives.Exists (Batch_Directory)
         or else Files.Fs_Primitives.Kind (Batch_Directory) /= Ada.Directories.Directory
-        or else Hostkit.Fs.Is_Link (Path)
-        --  refusal-safe: as above.
-        or else (Files.Fs_Primitives.Exists (Path)
-          and then Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Ordinary_File)
       then
          raise Ada.Directories.Use_Error;
       end if;

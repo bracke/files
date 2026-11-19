@@ -1,3 +1,5 @@
+with Files.Desktop_Applications;
+with Guikit.Command_Palette;
 --  The command palette overlay: opening and closing it, its query and selection, the
 --  Open With listing it can show instead of the commands, and the visit
 --  through which the window layer drives its guikit component.

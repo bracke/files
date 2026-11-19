@@ -64,11 +64,8 @@ separate (Check_All)
       --  info pane's worker runs.
       Check_All ("files-background_slots.ad?");
       Check_All ("files-extra_info_reader.ad?");
-      Check_All ("files-file_system-*_info.adb");
-      Check_All ("files-file_system-extra_info_of.adb");
+      Check_All ("files-file_system-content_info*.ad?");
       Check_All ("files-extra_info.ads");
-      Check_All ("files-file_system-count_text_lines.adb");
-      Check_All ("files-file_system-text_encoding_name.adb");
       --  Its worker runs a tree walk on a large stack while the caller waits.
       Check_All ("files-file_system-support.adb");
 

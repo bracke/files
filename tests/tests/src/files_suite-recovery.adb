@@ -82,7 +82,6 @@ package body Files_Suite.Recovery is
    use type Files.Operations.Archive_Format;
    use type Interfaces.Unsigned_8;
    use type Hostkit.Lease_Files.Open_Outcome;
-   use type Files.Model.Undo_Action_Kind;
    use type Files.Types.Item_Kind;
    use type Files.Types.String_Vectors.Vector;
    use type Files.Types.Search_Scope;
@@ -160,6 +159,7 @@ package body Files_Suite.Recovery is
    procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Foreground_Forgets_Removed_Stage (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Private_Record_Writes (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Stale_Temporaries_Swept (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Helper_Mode_Flags (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Recovery_Test_Case) return AUnit.Message_String is
@@ -345,6 +345,9 @@ package body Files_Suite.Recovery is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Private_Record_Writes'Access, "private records are owner-only, never over an entry, never left half");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Stale_Temporaries_Swept'Access,
+         "stale temporaries of our own are swept, every other entry is kept");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Helper_Mode_Flags'Access, "every helper flag reads back as its mode, and only those do");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Stage_Markers_Outlast_Failed_Delete'Access,
@@ -359,6 +362,8 @@ package body Files_Suite.Recovery is
    procedure Test_Destructive_Helper_Lifecycle (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Private_Record_Writes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Stale_Temporaries_Swept (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Helper_Mode_Flags (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

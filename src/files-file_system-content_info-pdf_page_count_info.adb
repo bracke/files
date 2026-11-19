@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 --  Counts page objects: the name /Type, any PDF white-space (none, or
 --  several -- /Type/Page is as common as /Type /Page), then the name /Page
 --  ended by a delimiter, so /Pages (the page tree) does not count. Streamed

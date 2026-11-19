@@ -26,7 +26,7 @@ separate (Files_Suite.Trash)
             Files.Operation_Results.Operation_Success,
             "refresh loads second delete target");
          Select_Name (Model, "doomed2.txt");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
          Files_Suite.Support.Assert_Equal
            (Result.Command,
             Files.Commands.Delete_Selected_Items_Command,
@@ -45,7 +45,7 @@ separate (Files_Suite.Trash)
             Files.Operation_Results.Operation_Success,
             "refresh loads encoded trash target");
          Select_Name (Model, "space % file.txt");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
             Files.Operation_Results.Operation_Success,

@@ -5,6 +5,9 @@ with Files.Undo_Payloads;
 with Files.Model.Support;
 
 package body Files.Model.History is
+   use type Files.Undo_History.History_Side;
+   use type Files.Undo_History.Undo_Action_Kind;
+   use type Files.Undo_History.Undo_Create_Kind;
 
    use Files.Model.Support;
    use Ada.Strings.Unbounded;
@@ -324,6 +327,8 @@ package body Files.Model.History is
    end Restore;
 
    function Journal_State (Model : Window_Model) return History_Journal_State is (Model.History.Journal);
+
+   function State (Model : Window_Model) return Undo_History_State is (Model.History);
 
    procedure Merge
      (Model : in out Window_Model;

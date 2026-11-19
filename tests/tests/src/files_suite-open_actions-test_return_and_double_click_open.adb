@@ -34,7 +34,7 @@ separate (Files_Suite.Open_Actions)
         (To_String (Result.Action.Arguments.Element (2)),
          Join (Root, "Alpha.txt"),
          "prepared modifier-specific action expands path");
-      Routed := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return, Modifiers);
+      Routed := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Routed.Command,
          Files.Commands.Open_Selected_Items_Command,

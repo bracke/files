@@ -1,5 +1,5 @@
 with Files.Rendering.Layouts;
-separate (Files.Application.Windows)
+separate (Files.Application.Windows.Gestures)
 procedure Update_Column_Reorder_Drag
   (Runtime    : in out Runtime_Window;
    Cursor_X   : Glfw.Input.Mouse.Coordinate;

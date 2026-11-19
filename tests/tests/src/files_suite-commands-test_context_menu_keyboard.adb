@@ -17,14 +17,14 @@ separate (Files_Suite.Commands)
       Files.Model.Initialize (Model, Root, Items, Root);
 
       --  The Menu key opens the context menu; Escape closes it again.
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Menu);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Menu);
       Assert (Files.Model.Context_Menu.Is_Open (Model), "the Menu key opens the context menu");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Context_Menu.Is_Open (Model), "Escape closes the context menu");
 
       --  Shift+F10 opens the context menu (empty-area, since nothing is selected).
       Shift (Guikit.Input.Shift_Key) := True;
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F10, Shift);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F10, Shift);
       Assert (Files.Model.Context_Menu.Is_Open (Model), "Shift+F10 opens the context menu");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Context_Menu.Highlight (Model),
@@ -39,7 +39,7 @@ separate (Files_Suite.Commands)
          Previous : Natural := 0;
       begin
          for Step in 1 .. Files.Commands.Max_Context_Menu_Rows loop
-            Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+            Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
             declare
                Highlight : constant Natural := Files.Model.Context_Menu.Highlight (Model);
             begin
@@ -59,6 +59,6 @@ separate (Files_Suite.Commands)
       end;
 
       --  Escape closes it.
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Context_Menu.Is_Open (Model), "Escape closes the context menu");
    end Test_Context_Menu_Keyboard;

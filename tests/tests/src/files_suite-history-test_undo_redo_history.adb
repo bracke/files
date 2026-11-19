@@ -125,7 +125,7 @@ separate (Files_Suite.History)
            (Ada.Streams.Stream_IO.Stream (File), Integer'Last);
          Ada.Streams.Stream_IO.Close (File);
          Assert
-           (not Files.History_Journal.Restore (Directory, Model)
+           (not Files.Model.Testing.Restore_Journal (Directory, Model)
             and then Files.Model.History.Undo_Available (Model),
             "forged history string bounds are rejected without replacing live history");
       end;
@@ -153,7 +153,7 @@ separate (Files_Suite.History)
             and then not Ada.Directories.Exists ("relative-history-directory"),
             "history snapshots reject relative transport directories");
          Assert
-           (not Files.History_Journal.Restore
+           (not Files.Model.Testing.Restore_Journal
               (Root & Character'Val (0) & "history-directory", Model),
             "history restore rejects NUL-containing transport directories");
 
@@ -187,7 +187,7 @@ separate (Files_Suite.History)
            (Join (Source_Directory, "history"), Join (Read_Directory, "history"))
          then
             Assert
-              (not Files.History_Journal.Restore (Read_Directory, Model)
+              (not Files.Model.Testing.Restore_Journal (Read_Directory, Model)
                and then Files.Model.History.Undo_Available (Model),
                "history restore refuses a linked snapshot without replacing live history");
          else
@@ -199,7 +199,7 @@ separate (Files_Suite.History)
             Join (Hard_Directory, "history"))
          then
             Assert
-              (not Files.History_Journal.Restore (Hard_Directory, Model)
+              (not Files.Model.Testing.Restore_Journal (Hard_Directory, Model)
                and then Files.Model.History.Undo_Available (Model),
                "history restore refuses a multiply-linked snapshot without replacing live history");
          else

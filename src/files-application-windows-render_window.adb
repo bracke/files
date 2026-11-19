@@ -16,7 +16,7 @@ separate (Files.Application.Windows)
       Frame_Rebuilt : Boolean := False;
       --  The overlays this render shows, and whether they differ from the
       --  ones last presented.
-      Palette         : Overlay_Commands;
+      Palette         : Overlay_Commands renames Runtime.Palette_Overlay;
       Settings        : Overlay_Commands renames Runtime.Settings_Overlay;
       Overlay_Changed : Boolean := False;
 

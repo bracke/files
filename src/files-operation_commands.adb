@@ -1,4 +1,5 @@
 with Files.History_Journal;
+with Files.Model.History;
 with Files.Operation_Jobs;
 
 package body Files.Operation_Commands is
@@ -150,7 +151,7 @@ package body Files.Operation_Commands is
       return Operation_Result is
    begin
       if Files.Model.Background_Transfers (Model)
-        and then Files.History_Journal.Journals_Newest (Model, Files.Model.Undo_Side)
+        and then Files.History_Journal.Journals_Newest (Files.Model.History.State (Model), Files.Model.Undo_Side)
       then
          return Start_Unless_Refused (Model, Settings, Files.Operation_Jobs.Undo, No_Refusal);
       end if;
@@ -163,7 +164,7 @@ package body Files.Operation_Commands is
       return Operation_Result is
    begin
       if Files.Model.Background_Transfers (Model)
-        and then Files.History_Journal.Journals_Newest (Model, Files.Model.Redo_Side)
+        and then Files.History_Journal.Journals_Newest (Files.Model.History.State (Model), Files.Model.Redo_Side)
       then
          return Start_Unless_Refused (Model, Settings, Files.Operation_Jobs.Redo, No_Refusal);
       end if;

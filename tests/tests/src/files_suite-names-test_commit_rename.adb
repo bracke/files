@@ -183,8 +183,8 @@ separate (Files_Suite.Names)
          "disappeared source reports source-missing error key");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Path),
-         Join (Root, "missing-result.txt"),
-         "source-missing rename reports attempted destination path");
+         Join (Root, "old.txt"),
+         "source-missing rename reports the missing source's path");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
          "error.rename.source_missing",

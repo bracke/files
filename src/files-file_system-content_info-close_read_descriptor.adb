@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 procedure Close_Read_Descriptor
   (File : in out GNAT.OS_Lib.File_Descriptor)
 is

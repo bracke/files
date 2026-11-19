@@ -7,7 +7,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       --  is comfortably taller than the text with matching top/bottom bands.
       Padding_V   : constant Natural :=
         Natural'Max (Padding, Guikit.Layout.Saturating_Add (Line_Height / 3, Guikit.Layout.Scaled (2, Line_Height)));
-      Margin      : constant Natural := Files.Rendering.Layouts.Tooltip_Margin (Line_Height);
+      Margin      : constant Natural := Files.Rendering.Geometry.Tooltip_Margin (Line_Height);
       Cell_W      : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
       Max_Tip_W   : constant Natural :=
         (if Width > 2 * Margin then Width - 2 * Margin else Width);
@@ -76,8 +76,8 @@ separate (Files.Rendering.Build_Frame_Commands)
                    (Saturating_Multiply (Natural (Rows.Length), Line_Height),
                     Saturating_Multiply (Padding_V, 2));
 
-               Place   : constant Files.Rendering.Layouts.Tooltip_Placement :=
-                 Files.Rendering.Layouts.Calculate_Tooltip_Placement
+               Place   : constant Files.Rendering.Geometry.Tooltip_Placement :=
+                 Files.Rendering.Geometry.Calculate_Tooltip_Placement
                    (Width, Height, Hover_X, Hover_Y, Tip_W, Tip_H, Line_Height);
                Tip_X   : constant Natural := Place.X;
                Tip_Y   : constant Natural := Place.Y;

@@ -61,7 +61,7 @@ separate (Files_Suite.Model)
             Upper_Name,
             "UTF-8 Latin-1 filter selects the matching visible item");
       end;
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -102,7 +102,7 @@ separate (Files_Suite.Model)
         (Files.Model.Selection.Selected_Count (Model),
          0,
          "moving selection with no visible items stays empty");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,

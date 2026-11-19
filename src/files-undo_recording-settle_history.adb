@@ -29,6 +29,6 @@ begin
       end if;
    end loop;
    if Journal_Dirty then
-      Files.History_Journal.Save (Model);
+      Files.History_Journal.Save (Files.Model.History.State (Model));
    end if;
 end Settle_History;

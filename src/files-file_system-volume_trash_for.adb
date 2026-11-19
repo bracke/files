@@ -86,6 +86,8 @@ function Volume_Trash_For (Path : String) return String is
          Identity  : Files.Types.UString;
       begin
          Files.Fs_Primitives.Create_Path (Support.Files_Data_Directory);
+         --  A temporary a crash left before this process started goes first.
+         Files.Durable_Writes.Sweep_Stale_Temporaries (List);
          Files.Durable_Writes.Write_Private_Temporary (List, Lines'Access, Temporary, Identity);
          case Files.Durable_Writes.Publish (To_String (Temporary), List) is
             when Files.Durable_Writes.Published_Durable | Files.Durable_Writes.Published_Not_Durable =>

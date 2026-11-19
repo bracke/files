@@ -7,6 +7,8 @@ separate (Files.Events.Translate_Click)
 procedure Scrollbar_Click (Handled : out Boolean; Result : out Input_Action) is
    Main_View : constant Files.Rendering.Layouts.Main_View_Layout :=
      Files.Rendering.Layouts.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
+   Info_Pane : constant Files.Rendering.Layouts.Info_Pane_Layout :=
+     Files.Rendering.Layouts.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
 
    --  Whole lines of Line_Height in Viewport pixels, at least one.
    function Page_Lines (Viewport : Natural) return Positive is

@@ -1,3 +1,4 @@
+with Files.Folder_Size;
 --  Recursive folder-size measurements cached for the selected folders.
 package Files.Model.Folder_Sizes is
 

@@ -41,18 +41,18 @@ separate (Files_Suite.Tree)
 
       --  The first Down lands on the first row; the next moves down one.
       Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
-      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Assert
         (CResult.Status = Files.Controller.Controller_Selection_Moved
          and then Files.Model.Tree_Panel.Pick_Target (Model) = To_String (Rows.Element (1).Path),
          "the first arrow highlights the first tree row");
-      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Assert
         (CResult.Status = Files.Controller.Controller_Selection_Moved
          and then Files.Model.Tree_Panel.Pick_Target (Model) = To_String (Rows.Element (2).Path),
          "Down moves the highlight to the next row");
       CResult :=
-        Files.Controller.Handle_Key
+        Files.Controller.Testing.Handle_Key
           (Model, Settings, Guikit.Input.Key_Down, Tree_Page_Rows => 2);
       Files_Suite.Support.Assert_Equal
         (CResult.Status, Files.Controller.Controller_Selection_Moved,
@@ -69,7 +69,7 @@ separate (Files_Suite.Tree)
       declare
          Before : constant Natural := Natural (Files.Model.Tree_Panel.Visible_Rows (Model).Length);
       begin
-         CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+         CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
          Assert
            (CResult.Status = Files.Controller.Controller_Command_Executed
             and then Natural (Files.Model.Tree_Panel.Visible_Rows (Model).Length) > Before,
@@ -78,7 +78,7 @@ separate (Files_Suite.Tree)
          --  Select alpha's child, then collapse alpha through the independent
          --  disclosure-triangle path. The now-hidden child must not remain the
          --  destination that Choose would silently use.
-         CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+         CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Tree_Panel.Pick_Target (Model),
             A1,

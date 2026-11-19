@@ -78,13 +78,13 @@ separate (Files_Suite.Model)
       Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
       Assert (not Files.Model.Rename.Is_Active (Model), "F2 while renaming cancels rename mode");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Rename_Selected_Items_Command,
          "F2 routes rename through controller");
       Assert (Files.Model.Rename.Is_Active (Model), "controller F2 enters rename mode");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Close_Overlay_Command,
@@ -95,7 +95,7 @@ separate (Files_Suite.Model)
          "rename Escape reports successful state-only cancel");
       Assert (not Files.Model.Rename.Is_Active (Model), "Escape cancels focused rename mode");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Assert (Files.Model.Rename.Is_Active (Model), "rename can be entered again");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Focus_Path_Input_Command, Model, Settings);
@@ -104,14 +104,14 @@ separate (Files_Suite.Model)
          Files.UI_Types.Focus_Path_Input,
          "path focus can move away from rename");
       Assert (Files.Model.Rename.Is_Active (Model), "path focus does not implicitly cancel rename");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_None,
          "Escape clears focused path input");
       Assert (not Files.Model.Rename.Is_Active (Model), "Escape cancels rename state after path focus");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Assert (Files.Model.Rename.Is_Active (Model), "rename can be entered after path focus Escape");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Focus_Filter_Input_Command, Model, Settings);
@@ -120,7 +120,7 @@ separate (Files_Suite.Model)
          Files.UI_Types.Focus_Filter_Input,
          "focus can move away from rename");
       Assert (Files.Model.Rename.Is_Active (Model), "moving focus does not implicitly cancel rename");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_None,

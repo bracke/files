@@ -10,7 +10,7 @@ separate (Files_Suite.Commands)
       Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Set_Error (Model, "error.path.missing");
       Files.Model.Command_Palette.Open (Model);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -28,7 +28,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_Filter_Input,
          "filter input receives focus");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -42,7 +42,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_Command_Palette,
          "Control+P transfers focus from filter input to palette");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Close_Overlay_Command,

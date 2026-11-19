@@ -1,4 +1,4 @@
-with Files.Model;
+with Files.Undo_History;
 
 --  Atomic helper-local snapshots retain partial history across cancellation.
 package Files.History_Journal is
@@ -18,28 +18,35 @@ package Files.History_Journal is
    --  @param State The history's journal state, written with the stacks.
    procedure Save_Stacks
      (Directory : String;
-      Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
+      Undo, Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
       Required : Boolean := False;
-      State : Files.Model.History_Journal_State := (others => <>));
+      State : Files.Undo_History.History_Journal_State := (others => <>));
 
-   --  @param Model Helper model whose history to persist.
+   --  Save_Stacks of History's stacks and journal state, into the current
+   --  job's transport (Files.Job_Context.Directory).
+   --  @param History Helper history to persist (Files.Model.History.State).
    --  @param Required Stop the helper if this snapshot cannot be committed.
-   procedure Save (Model : Files.Model.Window_Model; Required : Boolean := False);
+   procedure Save (History : Files.Undo_History.Undo_History_State; Required : Boolean := False);
 
-   --  Save_Stacks of Model's history and journal state, into Directory.
+   --  Save_Stacks of History's stacks and journal state, into Directory.
    --  @param Directory Absolute private helper transport directory.
-   --  @param Model Model whose history to persist.
+   --  @param History History to persist.
    --  @param Required Raise when the snapshot cannot be committed.
-   procedure Save_To (Directory : String; Model : Files.Model.Window_Model; Required : Boolean := False);
+   procedure Save_To
+     (Directory : String;
+      History   : Files.Undo_History.Undo_History_State;
+      Required  : Boolean := False);
 
-   --  Whether a journal of Model's history would hold the newest entry of
-   --  the undo (or redo) stack: a helper can undo (or redo) only what its
-   --  journal gave it, so an entry too large for the journal is undone or
-   --  redone in the window instead.
-   --  @param Model Model whose history to measure.
+   --  Whether a journal of History would hold the newest entry of the undo
+   --  (or redo) stack: a helper can undo (or redo) only what its journal
+   --  gave it, so an entry too large for the journal is undone or redone in
+   --  the window instead.
+   --  @param History History to measure.
    --  @param Side Which stack.
    --  @return True when that stack is empty or its newest entry is journaled.
-   function Journals_Newest (Model : Files.Model.Window_Model; Side : Files.Model.History_Side) return Boolean;
+   function Journals_Newest
+     (History : Files.Undo_History.Undo_History_State;
+      Side    : Files.Undo_History.History_Side) return Boolean;
 
    --  Write the history with Action's progress in it, for a crashed helper's
    --  retry to resume from. Each write rewrites (and syncs) the whole
@@ -47,32 +54,35 @@ package Files.History_Journal is
    --  whose step checks its result on disk -- is written at most once a
    --  second (Force False); one a retry could not reconstruct is written now.
    --
-   --  @param Model Helper model with the active action removed from its stack.
+   --  @param History Helper history with the active action removed from its stack.
    --  @param Action Updated retry progress for the active action.
    --  @param Side The stack the action belongs on.
    --  @param Force Write now, rather than within the second.
    procedure Checkpoint
-     (Model  : Files.Model.Window_Model;
-      Action : Files.Model.Undo_Entry;
-      Side   : Files.Model.History_Side;
-      Force  : Boolean := True);
+     (History : Files.Undo_History.Undo_History_State;
+      Action  : Files.Undo_History.Undo_Entry;
+      Side    : Files.Undo_History.History_Side;
+      Force   : Boolean := True);
 
-   --  @param Directory Absolute private helper transport directory.
-   --  @param Model Parent model receiving the checkpointed stacks.
-   --  @return True when a complete snapshot was recovered.
-   function Restore (Directory : String; Model : in out Files.Model.Window_Model) return Boolean;
+   --  What a journal holds: its stacks and its state.
+   type Journal_Contents is record
+      Undo, Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
+      State      : Files.Undo_History.History_Journal_State;
+   end record;
 
-   --  What taking a helper's journal back came to: merged; no journal there
+   --  What reading a helper's journal came to: read whole; no journal there
    --  at all (surely absent); or one there that could not be read whole
    --  this time (held, refused, torn), which a later try may read.
-   type Merge_Outcome is (Merged, No_Journal, Unreadable);
+   type Read_Outcome is (Read_Whole, No_Journal, Unreadable);
 
-   --  Take back a helper's journal into the window's history without losing
-   --  what the journal left out (Files.Model.History.Merge).
+   --  Read the journal in Directory, for the window's history to take back
+   --  (Files.Model.History.Restore replaces the history with it, a helper's
+   --  side, where the journal is the whole history; Files.Model.History.Merge
+   --  merges it into a window's without losing what it left out).
    --  @param Directory Absolute private helper transport directory.
-   --  @param Model Window model whose history to merge into.
-   --  @return Merged when a complete snapshot was read and merged.
-   function Merge (Directory : String; Model : in out Files.Model.Window_Model) return Merge_Outcome;
+   --  @param Contents Set to what the journal holds; empty unless Read_Whole.
+   --  @return Read_Whole when a complete snapshot was read.
+   function Read (Directory : String; Contents : out Journal_Contents) return Read_Outcome;
 
 private
 

@@ -9,10 +9,10 @@ separate (Files_Suite.Commands)
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Selection.Select_Visible (Model, 2);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Assert (Files.Model.Rename.Is_Active (Model), "F2 enters rename before palette opens");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Open_Command_Palette_Command,
@@ -23,7 +23,7 @@ separate (Files_Suite.Commands)
          Files.UI_Types.Focus_Command_Palette,
          "palette takes focus");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -39,7 +39,7 @@ separate (Files_Suite.Commands)
          Files.UI_Types.Focus_Rename_Input,
          "the closed palette hands the keyboard back to the rename it was opened over");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Close_Overlay_Command,
@@ -62,7 +62,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_None,
          "inactive rename text click does not focus input");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Controller.Controller_Ignored, "idle Escape is ignored");
       Files_Suite.Support.Assert_Equal
         (Result.Command,

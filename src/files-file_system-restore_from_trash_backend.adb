@@ -141,8 +141,9 @@ begin
                    (Trashed_Path, To_String (Original), "error.trash.restore_failed",
                     Identity, Revision, Copy_Kept,
                     Cancel          => null,
-                    If_Source_Stays => Recovery.Keep_Both,
-                    After_Copy      => After_Restore_Copy);
+                    If_Source_Stays   => Recovery.Keep_Both,
+                    After_Copy        => After_Restore_Copy,
+                    Expected_Identity => Expected_Identity);
             begin
                if Copy_Kept then
                   return (Success => True, Error_Key => Null_Unbounded_String);

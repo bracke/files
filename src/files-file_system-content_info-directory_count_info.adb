@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 --  Names read straight from the directory: no stat per entry (Ada.Directories'
 --  search makes one, on the UI thread whenever the info pane shows a folder),
 --  and a dangling link counted, as the listing shows it. Hidden entries count

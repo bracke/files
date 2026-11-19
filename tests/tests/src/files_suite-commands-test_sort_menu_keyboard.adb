@@ -18,20 +18,20 @@ separate (Files_Suite.Commands)
         (Files.Model.Sort_Menu.Highlight (Model),
          1,
          "the sort menu opens highlighting the current field");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Up);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Up);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Menu.Highlight (Model),
          1,
          "Up at the first row stays clamped");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Menu.Highlight (Model),
          2,
          "Down moves the highlight to the next row");
 
       --  Enter applies the highlighted field and closes the menu.
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Assert (not Files.Model.Sort_Menu.Is_Open (Model), "Enter closes the sort menu");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),

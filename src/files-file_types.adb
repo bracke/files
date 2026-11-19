@@ -1,7 +1,6 @@
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
-with Hostkit.Path_Text;
 with Guikit.Utf8.Editing;
 
 package body Files.File_Types is
@@ -57,23 +56,10 @@ package body Files.File_Types is
       return Name (Name'First + First_Offset .. Last_Content_Last);
    end Trim_Name;
 
-   function Leaf_Name (Name : String) return String is
-      Clean : constant String := Trim_Name (Name);
-      First : Natural := Clean'First;
-   begin
-      for Index in reverse Clean'Range loop
-         if Hostkit.Path_Text.Is_Separator_In (Clean, Clean (Index)) then
-            First := Index + 1;
-            exit;
-         end if;
-      end loop;
-
-      if Clean = "" or else First > Clean'Last then
-         return "";
-      end if;
-
-      return Clean (First .. Clean'Last);
-   end Leaf_Name;
+   --  The last component of Name, blanks around it trimmed: a path's
+   --  trailing separators are dropped (Files.Types.Leaf_Of), as everywhere
+   --  else a leaf is taken.
+   function Leaf_Name (Name : String) return String is (Files.Types.Leaf_Of (Trim_Name (Name)));
 
    function Normalized_Extension_Of
      (Name     : String;

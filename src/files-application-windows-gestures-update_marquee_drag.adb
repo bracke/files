@@ -1,5 +1,5 @@
 with Files.Rendering.Layouts;
-separate (Files.Application.Windows)
+separate (Files.Application.Windows.Gestures)
    procedure Update_Marquee_Drag
      (Runtime    : in out Runtime_Window;
       Cursor_X   : Glfw.Input.Mouse.Coordinate;
@@ -46,8 +46,9 @@ separate (Files.Application.Windows)
          end if;
       end if;
 
-      --  Held still, with no auto-scroll going: the band is where it was.
-      --  Laying out every item to find that out again held a core.
+      --  Held still, with no scroll since the last pass: the band and its
+      --  selection are what they were, so the items are not laid out again
+      --  (which, every pass of a held button, would keep a core busy).
       if X_Frame = Runtime.Marquee.Last_X
         and then Y_Frame = Runtime.Marquee.Last_Y
         and then Files.Model.Main_View_Scroll_Lines (Runtime.Model) = Runtime.Marquee.Last_Scroll
@@ -70,18 +71,30 @@ separate (Files.Application.Windows)
          Main_View : Files.Rendering.Layouts.Main_View_Layout :=
            Files.Rendering.Layouts.Calculate_Main_View_Layout
              (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height);
+
+         --  The origin is a screen point on content that scrolls: shift it by
+         --  however far the rows moved since it was last placed (a wheel turn,
+         --  the auto-scroll below, measured in pixels as the renderer may snap
+         --  to a row period), so it stays on the row the press was on.
+         procedure Follow_Scroll is
+            Now_Pixels : constant Natural := Main_View.Scroll_Pixels;
+         begin
+            Runtime.Marquee.Origin_Y :=
+              Runtime.Marquee.Origin_Y - (Integer (Now_Pixels) - Integer (Runtime.Marquee.Scroll_Pixels));
+            Runtime.Marquee.Scroll_Pixels := Now_Pixels;
+         end Follow_Scroll;
       begin
+         Follow_Scroll;
+
          --  Auto-scroll: while the cursor is dragged to (or past) the top or
          --  bottom of the scrollable rows area, scroll the list so items beyond
-         --  the current view can be rubber-banded in one gesture. The origin is
-         --  kept anchored to the content it started on by shifting it opposite
-         --  the actual scroll, so items already inside the band are not dropped
-         --  as they move off screen. Nothing to do when it all fits (no bar).
+         --  the current view can be rubber-banded in one gesture; the origin
+         --  follows the scroll, so items already inside the band stay in it as
+         --  they move off screen. Nothing to do when it all fits (no bar).
          if Main_View.Scrollbar_Visible then
             declare
                Max_Lines  : constant Natural := Files.Rendering.Layouts.Main_View_Max_Scroll (Main_View, Line_Height);
                Current    : constant Natural := Files.Model.Main_View_Scroll_Lines (Runtime.Model);
-               Old_Px     : constant Natural := Main_View.Scroll_Pixels;
                Step       : constant Integer :=
                  Files.Rendering.Layouts.Marquee_Auto_Scroll_Step
                    (Cursor_Y      => Y_Frame,
@@ -100,9 +113,6 @@ separate (Files.Application.Windows)
                      if New_Lines /= Current then
                         Runtime.Marquee.Auto_Scrolled := True;
                         Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, New_Lines);
-                        --  Rebuild against the new scroll, then re-anchor the
-                        --  origin by the scroll's actual pixel shift (which the
-                        --  renderer may snap to a row period, so measure it).
                         Refresh_Snapshot (Runtime);
                         Layout := Files.Rendering.Layouts.Calculate_Layout
                           (Runtime.View.Snapshots (Runtime.View.Current_Slot), Natural (Frame_W), Natural (Frame_H),
@@ -110,9 +120,7 @@ separate (Files.Application.Windows)
                         Main_View :=
                           Files.Rendering.Layouts.Calculate_Main_View_Layout
                             (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height);
-                        Runtime.Marquee.Origin_Y :=
-                          Runtime.Marquee.Origin_Y
-                          - (Integer (Main_View.Scroll_Pixels) - Integer (Old_Px));
+                        Follow_Scroll;
                      end if;
                   end;
                end if;

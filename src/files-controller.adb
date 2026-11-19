@@ -1071,6 +1071,7 @@ package body Files.Controller is
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Key       : Guikit.Input.Key_Code;
+      Action    : Files.Events.Input_Action;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Tree_Page_Rows : Natural := 0)
       return Controller_Result

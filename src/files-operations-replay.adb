@@ -51,7 +51,7 @@ begin
       return Make_Result (Operation_Failed, "error.undo.failed", Directory);
    end if;
 
-   Files.History_Journal.Checkpoint (Model, Action, Side);
+   Files.History_Journal.Checkpoint (Files.Model.History.State (Model), Action, Side);
    if Redo then
       Succeeded := Apply_Forward (Action, Model);
    else

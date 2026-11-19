@@ -17,22 +17,22 @@ separate (Files_Suite.Commands)
       Files.Model.Focus_Filter_Input (Model);
       Files.Controller.Testing.Replace_Focused_Text (Model, Hebrew);
       Files.Model.Set_Text_Cursor_Position (Model, 0);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model), 2, "Left from the right edge passes alef, reading on");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model), 0, "Right goes back to the right edge");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Files_Suite.Support.Assert_Equal
         (Result.Status, Files.Controller.Controller_Ignored, "nothing lies right of the right edge");
 
       Files.Controller.Testing.Replace_Focused_Text (Model, U8 ("אב גא"));
       Files.Model.Set_Text_Cursor_Position (Model, 0);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model), 4, "Control+Left reads on to the end of the first word");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model), 0, "Control+Right reads back");
 

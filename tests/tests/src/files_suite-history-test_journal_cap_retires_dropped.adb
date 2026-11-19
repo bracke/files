@@ -71,11 +71,11 @@ separate (Files_Suite.History)
       end loop;
       Files.Model.Initialize (Window, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Files.Model.History.Restore (Window, Undo, Files.Model.Undo_Entry_Vectors.Empty_Vector, State);
-      Files.History_Journal.Save_To (Directory, Window, Required => True);
+      Files.Model.Testing.Save_Journal_To (Directory, Window, Required => True);
 
       --  The helper carries the dropped markers on into its own journal.
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Assert (Files.History_Journal.Restore (Directory, Helper), "the helper reads the window's journal");
+      Assert (Files.Model.Testing.Restore_Journal (Directory, Helper), "the helper reads the window's journal");
       declare
          Helper_State : constant Files.Model.History_Journal_State := Files.Model.History.Journal_State (Helper);
       begin
@@ -86,11 +86,11 @@ separate (Files_Suite.History)
       end;
       Assert (Files.Model.History.Commit_Undo_Record (Helper, Item ("d", 1, Large => False, Preserving => False)),
               "the helper records an action");
-      Files.History_Journal.Save_To (Directory, Helper, Required => True);
+      Files.Model.Testing.Save_Journal_To (Directory, Helper, Required => True);
 
       Assert
            (Files.History_Journal."="
-              (Files.History_Journal.Merge (Directory, Window), Files.History_Journal.Merged),
+              (Files.Model.Testing.Merge_Journal (Directory, Window), Files.History_Journal.Read_Whole),
             "the window merges the helper's journal");
       Assert (Names (Files.Model.History.Undo_Entries (Window)) = "c,d",
               "the dropped entries leave the history: " & Names (Files.Model.History.Undo_Entries (Window)));
@@ -124,7 +124,7 @@ separate (Files_Suite.History)
          Ada.Streams.Stream_IO.Close (File);
       end;
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Assert (Files.History_Journal.Restore (Directory, Helper), "a version 2 journal reads");
+      Assert (Files.Model.Testing.Restore_Journal (Directory, Helper), "a version 2 journal reads");
       Assert (Files.Model.History.Journal_State (Helper).Unjournaled.Contains (3),
               "with its left-out list");
       Assert (Files.Model.History.Journal_State (Helper).Dropped.Is_Empty, "and no dropped list");

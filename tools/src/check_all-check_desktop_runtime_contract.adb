@@ -1,6 +1,7 @@
 separate (Check_All)
    procedure Check_Desktop_Runtime_Contract is
       Windows_Body : constant String := Root & "/src/files-application-windows.adb";
+      Watch_Body   : constant String := Root & "/src/files-application-windows-watch.adb";
       Tests        : constant String := Combined_Suite;
       Wait_Body    : constant String := Root & "/src/files-application-windows-event_loop_wait.adb";
       Share_Body   : constant String := Root & "/src/files-application-windows-share_settings_from.adb";
@@ -131,7 +132,7 @@ separate (Check_All)
 
       --  A background job's finish (Advance, on its success path and on its
       --  failure path alike) merges the history the helper journalled into
-      --  the window's and then settles it: History_Journal.Restore there
+      --  the window's and then settles it: Files.Model.History.Restore there
       --  would replace the window's history with the journal's, dropping
       --  entries the journal left out, and an unsettled merge would leave the
       --  payloads of retired entries behind. Restore stays in Run_Helper,
@@ -151,8 +152,11 @@ separate (Check_All)
          Fail (Jobs_Body & ": a background job's finish must merge the helper's history "
                & "(Merge_Journal) on its success and its failure path");
       end if;
-      if not Names (Journal_Merge, "Files.History_Journal.Merge") then
-         Fail (Jobs_Body & ": Merge_Journal must merge through Files.History_Journal.Merge");
+      if not Names (Journal_Merge, "Files.History_Journal.Read")
+        or else not Names (Journal_Merge, "Files.Model.History.Merge")
+      then
+         Fail (Jobs_Body & ": Merge_Journal must read through Files.History_Journal.Read and merge "
+               & "through Files.Model.History.Merge");
       end if;
       if Count_Names (Job_Finish, "Files.Undo_Recording.Settle_History") < 2 then
          Fail (Jobs_Body & ": a background job's finish must settle the merged history "
@@ -163,9 +167,9 @@ separate (Check_All)
       then
          Fail (Jobs_Body & ": a background job's finish must settle the history after merging it, not before");
       end if;
-      if Names (Job_Finish, "History_Journal.Restore") then
+      if Names (Job_Finish, "History.Restore") then
          Fail (Jobs_Body & ": a background job's finish must merge the helper's history, "
-               & "not replace the window's with it (History_Journal.Restore)");
+               & "not replace the window's with it (Files.Model.History.Restore)");
       end if;
       if not Names (Drop_Input, "Files.Controller.Import_Pending_Drops") then
          Fail (Windows_Body & ": Handle_Drop_Input must import drops through Files.Controller.Import_Pending_Drops");
@@ -206,8 +210,8 @@ separate (Check_All)
       Require_Contains (Windows_Body, "Files.Window_Icon.Set", "every window must show the application icon");
       Require_Contains
         (Windows_Body, "Guikit.Vulkan.Wait_For_Events", "the event loop must wait for events, not spin");
-      Require_Contains
-        (Windows_Body, "Files.Refresh_Jobs.Poll_Watch", "the event loop must poll the folder watch");
+      Require_Contains (Windows_Body, "Watch.Poll", "the event loop must poll the folder watch");
+      Require_Contains (Watch_Body, "Files.Refresh_Jobs.Poll_Watch", "the watch poll must ask the folder watch");
       --  The event loop's wait and the cross-window settings sync are decided
       --  by the folds the suite tests (Files.Event_Wait.Fold, and
       --  Files.Settings_Sharing.Share_From with Adopt_Window as its Adopt):

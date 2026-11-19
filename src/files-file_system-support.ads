@@ -30,6 +30,19 @@ private package Files.File_System.Support is
    --    (a For_Move Copy_To_New_Path): then only the folders are synced.
    function Sync_Copy (Source, Destination : String; Files_Too : Boolean := True) return Boolean;
 
+   --  Give an entry just published from its private stage (a copy, or what
+   --  Compress or Extract made) the access its new folder hands down, and
+   --  its revision afresh where that changed it. The entry is already
+   --  published, so nothing here raises: a caller must still record it.
+   --  Cancellation is no longer heeded (the work is done), and a failure
+   --  keeps the revision it was published with.
+   --  @param Path The published entry.
+   --  @param Revision Its revision at publication; read again for a folder
+   --    on Windows, where inheriting wrote the change times it reads.
+   procedure Inherit_Destination_Access
+     (Path     : String;
+      Revision : in out Files.Types.UString);
+
    --  Whether environment variable Name equals Expected, compared
    --  case-insensitively.
    --
@@ -67,6 +80,8 @@ private package Files.File_System.Support is
 
    type Source_Snapshot is record
       Root_Revision : Files.Types.UString;
+      --  The root's identity token, as read when it was snapshotted.
+      Root_Identity : Files.Types.UString;
       Entries : Files.Types.String_Vectors.Vector;
       --  Entries without their content digests, for Same_Shape.
       Shapes : Files.Types.String_Vectors.Vector;

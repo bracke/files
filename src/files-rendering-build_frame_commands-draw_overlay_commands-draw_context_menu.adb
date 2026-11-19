@@ -102,23 +102,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
       end if;
       --  The shell consumes the next click to choose or dismiss this
       --  menu, so publish only its active choices to screen readers.
-      Result.Accessibility.Clear;
-      Add_Overlay_Drop_Shadow (Menu.X, Menu.Y, Menu.Width, Menu.Height);
-      Guikit.Widgets.Draw_Menu_Panel
-        (Rectangles   => Result.Overlay_Rectangles,
-         Clip_Width   => Layout.Width,
-         Clip_Height  => Layout.Height,
-         X            => Menu.X,
-         Y            => Menu.Y,
-         Width        => Menu.Width,
-         Height       => Menu.Height,
-         Fill_Color   => Overlay_Color,
-         Border_Color => Border_Color);
-
-      Add_Accessibility_Node
-        (Role_List,
-         Menu.X, Menu.Y, Menu.Width, Menu.Height,
-         Localized ("accessibility.context_menu"));
+      Draw_Modal_Chrome
+        (Menu.X, Menu.Y, Menu.Width, Menu.Height, Overlay_Color, Role_List, Localized ("accessibility.context_menu"));
 
       for Row in 1 .. Menu.Row_Count loop
          declare

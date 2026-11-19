@@ -9,7 +9,7 @@ separate (Files_Suite.Model)
       Ctrl (Guikit.Input.Control_Key) := True;
 
       --  The info pane can always be toggled, even with nothing selected.
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Toggle_Info_Pane_Command,
@@ -21,10 +21,10 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Info_Pane_Is_Open (Model), "info pane opens without a selection");
       --  Close it again, then reopen with a selection so the rest of the
       --  scenario starts from an open, selection-backed info pane.
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
       Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second Control+4 closes the info pane");
       Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Toggle_Info_Pane_Command,
@@ -45,7 +45,7 @@ separate (Files_Suite.Model)
       declare
          Before : constant Natural := Files.Model.Revision (Model);
       begin
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
          Files_Suite.Support.Assert_Equal
            (Result.Status,
             Files.Controller.Controller_Ignored,
@@ -62,7 +62,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Ignored,
          "negative info scroll at top is ignored");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -92,13 +92,13 @@ separate (Files_Suite.Model)
          0,
          "large negative info scroll clamps to top");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Info_Pane_Scroll_Lines (Model),
          10,
          "info pane scroll resumes after saturation");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,

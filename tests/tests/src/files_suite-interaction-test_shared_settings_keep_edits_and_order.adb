@@ -40,7 +40,7 @@ separate (Files_Suite.Interaction)
 
       --  A rename in progress over the results.
       Select_Name (Model, "Beta.txt");
-      Outcome := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
+      Outcome := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Files.Controller.Testing.Replace_Focused_Text (Model, "Beta-2.txt");
       Shared := Settings;
       Shared.Show_Hidden_Files := False;
@@ -49,7 +49,7 @@ separate (Files_Suite.Interaction)
       Assert (Files.Model.Rename.Text (Model) = "Beta-2.txt", "with the name typed so far");
       Assert_Equal (Files.Model.Focus (Model), Files.UI_Types.Focus_Rename_Input, "and keeps the keyboard");
       Assert_Equal (Files.Model.Visible_Count (Model), 2, "while the hidden result leaves the view");
-      Outcome := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Outcome := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
 
       --  Quick Look on a result.
       Files.Model.Quick_Look.Open

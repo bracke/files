@@ -28,35 +28,7 @@ separate (Files.Application.Windows.Render_Window)
         Glfw.Windows.Mouse_Button_State (As_Window (Runtime.Handle), Glfw.Input.Mouse.Left_Button) =
         Glfw.Input.Pressed;
 
-      Cancel_Background_Gestures_For_Overlay (Runtime);
-
-      Update_Scrollbar_Drag
-        (Runtime    => Runtime,
-         Cursor_Y   => Cursor_Y,
-         Window_W   => Window_W,
-         Window_H   => Window_H,
-         Frame_W    => Width,
-         Frame_H    => Height,
-         Mouse_Down => Mouse_Down);
-
-      Update_Column_Resize_Drag
-        (Runtime    => Runtime,
-         Cursor_X   => Cursor_X,
-         Window_W   => Window_W,
-         Frame_W    => Width,
-         Mouse_Down => Mouse_Down);
-
-      Update_Column_Reorder_Drag
-        (Runtime    => Runtime,
-         Cursor_X   => Cursor_X,
-         Cursor_Y   => Cursor_Y,
-         Window_W   => Window_W,
-         Window_H   => Window_H,
-         Frame_W    => Width,
-         Frame_H    => Height,
-         Mouse_Down => Mouse_Down);
-
-      Update_Marquee_Drag
+      Gestures.Update
         (Runtime    => Runtime,
          Cursor_X   => Cursor_X,
          Cursor_Y   => Cursor_Y,

@@ -86,16 +86,16 @@ package body Files.Refresh_Jobs is
          raise Ada.Directories.Use_Error;
       end if;
       String'Output (Stream, Request_Header);
-      Files.Job_Records.Write_String
+      Files.Bounded_Streams.Output_String
         (Stream, To_String (Work.Root), Files.Job_Records.Max_Path_Length);
       Natural'Output (Stream, Work.Context_Revision);
       Files.Job_Records.Write_Settings (Stream, Work.Settings);
       Files.Job_Records.Write_Signature (Stream, Work.Previous);
       Boolean'Output (Stream, Work.Recent);
       Boolean'Output (Stream, Work.Force);
-      Files.Job_Records.Write_String
+      Files.Bounded_Streams.Output_String
         (Stream, To_String (Work.Selection), Files.Job_Records.Max_Path_Length);
-      Files.Job_Records.Write_String
+      Files.Bounded_Streams.Output_String
         (Stream, To_String (Work.Error_Key), Files.Job_Records.Max_Error_Length);
    end Write_Request;
 
@@ -103,15 +103,16 @@ package body Files.Refresh_Jobs is
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Work   : out Request) is
    begin
-      Work.Root := To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Path_Length));
+      Work.Root := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Job_Records.Max_Path_Length));
       Work.Context_Revision := Natural'Input (Stream);
       Work.Settings := Files.Job_Records.Read_Settings (Stream);
       Work.Previous := Files.Job_Records.Read_Signature (Stream);
       Work.Recent := Boolean'Input (Stream);
       Work.Force := Boolean'Input (Stream);
-      Work.Selection := To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Path_Length));
+      Work.Selection :=
+        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Job_Records.Max_Path_Length));
       Work.Error_Key :=
-        To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Error_Length));
+        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Job_Records.Max_Error_Length));
    end Read_Request_Body;
 
    function Request_Is_Consistent (Work : Request) return Boolean is
@@ -133,7 +134,8 @@ package body Files.Refresh_Jobs is
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Ident  : out Request_Identity) is
    begin
-      Ident.Root := To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Path_Length));
+      Ident.Root :=
+        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Job_Records.Max_Path_Length));
       Ident.Context_Revision := Natural'Input (Stream);
    end Read_Identity_Body;
 
@@ -159,7 +161,7 @@ package body Files.Refresh_Jobs is
       Boolean'Output (Stream, Done.Reloaded);
       Files.Job_Records.Write_Items (Stream, Done.Items);
       Files.Job_Records.Write_Signature (Stream, Done.Signature);
-      Files.Job_Records.Write_String
+      Files.Bounded_Streams.Output_String
         (Stream, To_String (Done.Error_Key), Files.Job_Records.Max_Error_Length);
    end Write_Outcome;
 
@@ -172,7 +174,7 @@ package body Files.Refresh_Jobs is
       Done.Items := Files.Job_Records.Read_Items (Stream);
       Done.Signature := Files.Job_Records.Read_Signature (Stream);
       Done.Error_Key :=
-        To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Error_Length));
+        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Job_Records.Max_Error_Length));
    end Read_Outcome_Body;
 
    function Read_Outcome_Record is new Files.Lease_Streams.Read_Record
@@ -579,7 +581,7 @@ package body Files.Refresh_Jobs is
       procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
       begin
          String'Output (Stream, Watch_Request_Header);
-         Files.Job_Records.Write_String (Stream, Path, Max_Watch_Path_Length);
+         Files.Bounded_Streams.Output_String (Stream, Path, Max_Watch_Path_Length);
       end Write;
 
       procedure Note_Failure is

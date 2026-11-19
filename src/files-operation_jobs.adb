@@ -1,3 +1,4 @@
+with Files.Bounded_Streams;
 with Files.Undo_Recording;
 with Files.Window_Polls;
 with Files.Helper_Modes;
@@ -23,8 +24,7 @@ with Files.Settings.Path_References;
 package body Files.Operation_Jobs is
    use Ada.Strings.Unbounded;
    use type Files.Operation_Results.Operation_Status;
-   use type Files.Model.Undo_Action_Kind;
-   use type Files.History_Journal.Merge_Outcome;
+   use type Files.History_Journal.Read_Outcome;
 
    --  How many times a finished helper's journal is read before its history
    --  is given up (Merge_Journal); the waits between add up to 0.06 s.
@@ -78,10 +78,10 @@ package body Files.Operation_Jobs is
       end if;
       String'Output (Stream, Request_Header);
       Operation_Kind'Output (Stream, Work.Kind);
-      Files.Job_Records.Write_String
+      Files.Bounded_Streams.Output_String
         (Stream, To_String (Work.Root), Files.Job_Records.Max_Path_Length);
       Boolean'Output (Stream, Work.Recent);
-      Files.Job_Records.Write_String
+      Files.Bounded_Streams.Output_String
         (Stream, To_String (Work.Query), Files.Job_Records.Max_Text_Length);
       Files.Job_Records.Write_Items (Stream, Work.Selected);
       Files.Job_Records.Write_Settings (Stream, Work.Settings);
@@ -94,9 +94,10 @@ package body Files.Operation_Jobs is
       Work   : out Request) is
    begin
       Work.Kind := Operation_Kind'Input (Stream);
-      Work.Root := To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Path_Length));
+      Work.Root := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Job_Records.Max_Path_Length));
       Work.Recent := Boolean'Input (Stream);
-      Work.Query := To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Text_Length));
+      Work.Query :=
+        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Job_Records.Max_Text_Length));
       Work.Selected := Files.Job_Records.Read_Items (Stream);
       Work.Settings := Files.Job_Records.Read_Settings (Stream);
       Work.Context_Revision := Natural'Input (Stream);
@@ -122,9 +123,9 @@ package body Files.Operation_Jobs is
       Boolean'Output (Stream, Done.Recent);
       Files.Job_Records.Write_Operation_Result (Stream, Done.Result);
       Files.Job_Records.Write_Items (Stream, Done.Items);
-      Files.Job_Records.Write_String
+      Files.Bounded_Streams.Output_String
         (Stream, To_String (Done.Selection), Files.Job_Records.Max_Path_Length);
-      Files.Job_Records.Write_String
+      Files.Bounded_Streams.Output_String
         (Stream, To_String (Done.Visible_Error),
          Files.Job_Records.Max_Error_Length);
       Files.Job_Records.Write_Signature (Stream, Done.Signature);
@@ -139,9 +140,10 @@ package body Files.Operation_Jobs is
       Done.Recent := Boolean'Input (Stream);
       Done.Result := Files.Job_Records.Read_Operation_Result (Stream);
       Done.Items := Files.Job_Records.Read_Items (Stream);
-      Done.Selection := To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Path_Length));
+      Done.Selection :=
+        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Job_Records.Max_Path_Length));
       Done.Visible_Error :=
-        To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Error_Length));
+        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Job_Records.Max_Error_Length));
       Done.Signature := Files.Job_Records.Read_Signature (Stream);
       Done.Moves := Files.Job_Records.Read_Path_Moves (Stream);
    end Read_Outcome_Body;
@@ -208,7 +210,8 @@ package body Files.Operation_Jobs is
       Files.Model.Set_Error (Model, "");
       Work.Context_Revision := Files.Model.Listing_Revision (Model);
       Files.Process_Jobs.Reserve (Job);
-      Files.History_Journal.Save_To (Files.Process_Jobs.Path (Job, ""), Model, Required => True);
+      Files.History_Journal.Save_To
+        (Files.Process_Jobs.Path (Job, ""), Files.Model.History.State (Model), Required => True);
       declare
          procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
          begin
@@ -327,15 +330,19 @@ package body Files.Operation_Jobs is
    function Merge_Journal
      (Directory : String;
       Model     : in out Files.Model.Window_Model)
-      return Files.History_Journal.Merge_Outcome
+      return Files.History_Journal.Read_Outcome
    is
-      Outcome : Files.History_Journal.Merge_Outcome := Files.History_Journal.Unreadable;
+      Outcome : Files.History_Journal.Read_Outcome := Files.History_Journal.Unreadable;
+      Journal : Files.History_Journal.Journal_Contents;
    begin
       for Attempt in 1 .. Merge_Attempts loop
-         Outcome := Files.History_Journal.Merge (Directory, Model);
+         Outcome := Files.History_Journal.Read (Directory, Journal);
          exit when Outcome /= Files.History_Journal.Unreadable or else Attempt = Merge_Attempts;
          delay Duration (Attempt) * 0.02;
       end loop;
+      if Outcome = Files.History_Journal.Read_Whole then
+         Files.Model.History.Merge (Model, Journal.Undo, Journal.Redo, Journal.State);
+      end if;
       return Outcome;
    end Merge_Journal;
 
@@ -504,7 +511,7 @@ package body Files.Operation_Jobs is
       end loop;
       --  Merged, not replaced: entries the journal left out stay, and what
       --  the merge retires has its payloads released here.
-      if Merge_Journal (Files.Process_Jobs.Path (Job, ""), Model) /= Files.History_Journal.Merged then
+      if Merge_Journal (Files.Process_Jobs.Path (Job, ""), Model) /= Files.History_Journal.Read_Whole then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
       Merged := True;
@@ -577,7 +584,7 @@ package body Files.Operation_Jobs is
          --  was recorded since.
          if not Merged then
             declare
-               Restored : constant Files.History_Journal.Merge_Outcome :=
+               Restored : constant Files.History_Journal.Read_Outcome :=
                  Merge_Journal (Files.Process_Jobs.Path (Job, ""), Model);
                pragma Unreferenced (Restored);
             begin

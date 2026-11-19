@@ -2,7 +2,9 @@ with Guikit.Menu_Tree;
 
 separate (Files.Rendering.Build_Frame_Commands)
    --  The folder tree panel, and its pick bar when choosing a destination.
-   procedure Draw_Tree_Panel (As_Overlay : Boolean) is
+   procedure Draw_Tree_Panel is
+      --  Over everything while it picks a destination.
+      As_Overlay : constant Boolean := Snapshot.Tree_Pick_Active;
       --  Drawn here, then added to the layer the panel is on.
       Rectangles : Rectangle_Command_Vectors.Vector;
       Texts      : Text_Command_Vectors.Vector;
@@ -79,12 +81,10 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Pressed => Is_Pressed (Pick.Cancel_X, Pick.Y, Pick.Button_Width, Pick.Height)));
          end if;
 
+         --  Destination picking blocks the rest of the window; the ordinary
+         --  folder tree sidebar is not modal.
          if Snapshot.Tree_Pick_Active then
-            --  Destination picking blocks the rest of the window.  Dim and
-            --  hide that inactive content while leaving the ordinary folder
-            --  tree sidebar non-modal.
-            Result.Accessibility.Clear;
-            Add_Overlay_Rect (0, 0, Width, Height, Modal_Backdrop_Color);
+            Draw_Modal_Backdrop;
          end if;
 
          Guikit.Menu_Tree.Draw_Frame

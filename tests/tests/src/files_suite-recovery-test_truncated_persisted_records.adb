@@ -118,7 +118,7 @@ separate (Files_Suite.Recovery)
       Files.Model.Initialize
         (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert
-        (Files.History_Journal.Restore (History_Directory, Model),
+        (Files.Model.Testing.Restore_Journal (History_Directory, Model),
          "the complete history record decodes before prefix mutation");
 
       declare
@@ -128,7 +128,7 @@ separate (Files_Suite.Recovery)
          for Prefix_Length in 0 .. Natural (Data'Length) - 1 loop
             Write_Prefix (History_Path, Data, Prefix_Length);
             Assert
-              (not Files.History_Journal.Restore
+              (not Files.Model.Testing.Restore_Journal
                  (History_Directory, Model),
                "strict history-record prefix is rejected at byte"
                & Natural'Image (Prefix_Length));

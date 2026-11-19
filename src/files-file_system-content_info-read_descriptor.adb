@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 procedure Read_Descriptor
   (File   : GNAT.OS_Lib.File_Descriptor;
    Buffer : out Ada.Streams.Stream_Element_Array;

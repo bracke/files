@@ -17,7 +17,7 @@ separate (Files_Suite.Commands)
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Set_Error (Model, "error.path.missing");
       Ctrl (Guikit.Input.Control_Key) := True;
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_L, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_L, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -47,7 +47,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Text_Cursor_Position (Model),
          Root'Length,
          "path append advances cursor");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Open_Command_Palette_Command,
@@ -57,14 +57,14 @@ separate (Files_Suite.Commands)
         (Files.Model.Path_Input_Text (Model),
          Root,
          "palette shortcut preserves edited path input text");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Close_Overlay_Command,
          "Escape closes palette after path shortcut");
       Files.Model.Focus_Path_Input (Model);
       Files.Controller.Testing.Replace_Focused_Text (Model, Join (Root, "missing-path-target"));
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -111,7 +111,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Path_Input_Error_Key (Model),
          "",
          "path input edit clears stale validation diagnostic");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -125,7 +125,7 @@ separate (Files_Suite.Commands)
          Files.UI_Types.Focus_Path_Input,
          "modified Return keeps path input focus");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -161,7 +161,7 @@ separate (Files_Suite.Commands)
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Focus_Path_Input (Model);
       Files.Controller.Testing.Replace_Focused_Text (Model, Join (Target, "loaded.txt"));
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,

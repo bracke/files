@@ -64,7 +64,7 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
             Swatch : constant Files.Rendering.Layouts.Label_Swatch_Bounds := Picker.Swatches (Index);
          begin
             if Within (X, Swatch.X, Swatch.Width) and then Within (Y, Swatch.Y, Swatch.Height) then
-               return Label_Choice_Action (Files.Rendering.Layouts.Label_For_Swatch (Index));
+               return Label_Choice_Action (Files.UI_Types.Label_For_Swatch (Index));
             end if;
          end;
       end loop;
@@ -81,6 +81,8 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
    --  Guikit.Command_Palette hit-tests (a search-box or gap click resolves to
    --  no row). Clicks outside dismiss nothing.
    function Palette_Click return Input_Action is
+      Palette_Layout : constant Files.Rendering.Layouts.Command_Palette_Layout :=
+        Files.Rendering.Layouts.Calculate_Command_Palette_Layout (Layout, Line_Height);
    begin
       if Close_Button_Hit (Palette_Layout.X, Palette_Layout.Y, Palette_Layout.Width, Palette_Layout.Height) then
          return Command_Action (Files.Commands.Close_Overlay_Command);
@@ -92,14 +94,21 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
       return No_Action;
    end Palette_Click;
 
-   --  The settings pane: its close button closes it; a click inside it is
-   --  the panel's to hit-test (Settings_Click_Hit); one outside is swallowed.
+   --  The settings pane: its close button closes it; any other click inside
+   --  it becomes a settings click carrying the coordinates, which
+   --  Guikit.Settings_Panel hit-tests (focusing, toggling, choosing, stepping
+   --  or pressing a button); one outside is swallowed.
    function Settings_Pane_Click return Input_Action is
+      Settings_Pane : constant Guikit.Layout.Settings_Pane_Layout :=
+        Files.Rendering.Layouts.Settings_Pane_Region (Layout, Line_Height);
    begin
       if Close_Button_Hit (Settings_Pane.X, Settings_Pane.Y, Settings_Pane.Width, Settings_Pane.Height) then
          return Command_Action (Files.Commands.Toggle_Settings_Pane_Command);
+      elsif Within (X, Settings_Pane.X, Settings_Pane.Width) and then Within (Y, Settings_Pane.Y, Settings_Pane.Height)
+      then
+         return (Kind => Settings_Click_Input_Action, Click_X => X, Click_Y => Y);
       end if;
-      return Settings_Click_Hit;
+      return No_Action;
    end Settings_Pane_Click;
 
    --  The root selector: its close button closes it, a row opens that root,

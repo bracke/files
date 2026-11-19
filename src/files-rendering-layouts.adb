@@ -71,6 +71,10 @@ package body Files.Rendering.Layouts is
       return Natural
  is separate;
 
+   function Main_View_Wheel_Lines
+     (Main : Main_View_Layout; Line_Height : Positive; Maximum : Natural; Lines : Integer) return Natural
+   is separate;
+
    function Lines_For_Offset
      (Main        : Main_View_Layout;
       Line_Height : Positive;
@@ -120,10 +124,6 @@ package body Files.Rendering.Layouts is
    function Calculate_Context_Menu_Layout
      (Snapshot : View_Snapshot; Width : Natural; Height : Natural; Line_Height : Positive) return Context_Menu_Layout
    is separate;
-
-   function Calculate_Tooltip_Placement
-     (Frame_Width, Frame_Height, Pointer_X, Pointer_Y, Box_Width, Box_Height : Natural; Line_Height : Positive)
-      return Tooltip_Placement is separate;
 
    procedure Marquee_Rect
      (Start_X   : Natural;

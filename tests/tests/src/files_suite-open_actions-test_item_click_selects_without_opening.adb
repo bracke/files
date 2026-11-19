@@ -25,7 +25,7 @@ separate (Files_Suite.Open_Actions)
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_None,
          "item click clears text input focus");
-      Routed := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Routed := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal
         (Routed.Status,
          Files.Controller.Controller_Selection_Moved,

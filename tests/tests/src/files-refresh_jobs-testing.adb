@@ -1,9 +1,8 @@
+with Files.Bounded_Streams;
 with Ada.Directories;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
-
-with Files.Job_Records;
 
 package body Files.Refresh_Jobs.Testing is
    use type Ada.Streams.Stream_Element_Offset;
@@ -40,7 +39,7 @@ package body Files.Refresh_Jobs.Testing is
       Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
       declare
          Header : constant String :=
-           Files.Job_Records.Read_String
+           Files.Bounded_Streams.Input_String
              (Ada.Streams.Stream_IO.Stream (File), 128);
          Original_Success : Boolean;
          Original_Reloaded : Boolean;

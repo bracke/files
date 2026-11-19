@@ -3,6 +3,7 @@ with Ada.Environment_Variables;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
 with Files.Diagnostics;
+with Files.File_System.Recovery;
 with Files.File_System.Support;
 with Hostkit.Fs;
 
@@ -466,5 +467,23 @@ package body Files.File_System.Testing is
    begin
       return Files.File_System.Execute_Drop_Import (Plans, Created, Cancel, Batch);
    end Execute_Drop_Import;
+
+   function Path_Is_Within
+     (Child, Parent : String;
+      Folds         : not null access function (Directory : String) return Boolean)
+      return Boolean is (Path_Is_Within_By (Child, Parent, Folds));
+
+   function Move_By_Copy
+     (Source, Destination : String;
+      Expected_Identity   : String)
+      return Mutation_Result
+   is
+      Identity, Revision : UString;
+      Copy_Kept : Boolean;
+   begin
+      return Files.File_System.Recovery.Move_By_Copy
+        (Source, Destination, "error.move.failed", Identity, Revision, Copy_Kept,
+         Expected_Identity => Expected_Identity);
+   end Move_By_Copy;
 
 end Files.File_System.Testing;

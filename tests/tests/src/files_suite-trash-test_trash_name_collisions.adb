@@ -36,7 +36,7 @@ separate (Files_Suite.Trash)
             Files.Operation_Results.Operation_Success,
             "refresh loads collision target");
          Select_Name (Model, "doomed.txt");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
             Files.Operation_Results.Operation_Success,

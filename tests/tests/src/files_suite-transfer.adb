@@ -101,6 +101,9 @@ package body Files_Suite.Transfer is
    procedure Test_Sparse_Transfers (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Hard_Linked_Symbolic_Links (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Mode_Failure (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Cancelled_Drop_Keeps_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Path_Within_Mount_Case (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Move_By_Copy_Expected_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Exclusive_New_Files (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Deep_Tree_Copy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Batch_Hard_Link_Copy (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -290,6 +293,15 @@ package body Files_Suite.Transfer is
         (T, Test_Recovery_Mode_Failure'Access,
          "failed directory mode restoration retains recoverable originals");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Cancelled_Drop_Keeps_Cause'Access,
+         "a cancelled drop move keeps a set-aside source's own error");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Path_Within_Mount_Case'Access,
+         "a mount's own name compares by the folder holding it, not by its volume");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Move_By_Copy_Expected_Identity'Access,
+         "a move by copy expecting an identity copies only that item");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Exclusive_New_Files'Access,
          "exclusive file creation refuses existing entries and symbolic links");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -352,6 +364,12 @@ package body Files_Suite.Transfer is
    procedure Test_Hard_Linked_Symbolic_Links (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Recovery_Mode_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Cancelled_Drop_Keeps_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Path_Within_Mount_Case (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Move_By_Copy_Expected_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Exclusive_New_Files (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

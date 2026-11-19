@@ -1,3 +1,4 @@
+with Files.History_Journal;
 with Files.Items;
 with Files.Types;
 
@@ -110,5 +111,37 @@ package Files.Model.Testing is
    --  @param Model Model to inspect.
    --  @return Count of items to copy or move (skips excluded).
    function Paste_Execution_Total (Model : Window_Model) return Natural;
+
+   --  Read the journal in Directory and replace Model's history with it, as
+   --  a helper does (Files.History_Journal.Read, Files.Model.History.Restore).
+   --
+   --  @param Directory Helper transport directory.
+   --  @param Model Model whose history to replace.
+   --  @return True when a complete journal was read and restored.
+   function Restore_Journal (Directory : String; Model : in out Window_Model) return Boolean;
+
+   --  Read the journal in Directory and merge it into Model's history, as a
+   --  window does when a job ends (Files.Model.History.Merge).
+   --
+   --  @param Directory Helper transport directory.
+   --  @param Model Model whose history to merge into.
+   --  @return What reading the journal came to; merged when Read_Whole.
+   function Merge_Journal
+     (Directory : String;
+      Model     : in out Window_Model) return Files.History_Journal.Read_Outcome;
+
+   --  Files.History_Journal.Save_To of Model's history.
+   --
+   --  @param Directory Helper transport directory.
+   --  @param Model Model whose history to save.
+   --  @param Required Raise when the snapshot cannot be committed.
+   procedure Save_Journal_To (Directory : String; Model : Window_Model; Required : Boolean := False);
+
+   --  Files.History_Journal.Journals_Newest of Model's history.
+   --
+   --  @param Model Model whose history to measure.
+   --  @param Side Which stack.
+   --  @return True when that stack is empty or its newest entry is journaled.
+   function Journals_Newest (Model : Window_Model; Side : History_Side) return Boolean;
 
 end Files.Model.Testing;

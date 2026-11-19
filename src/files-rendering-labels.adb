@@ -93,33 +93,48 @@ package body Files.Rendering.Labels is
       return UString is
      (Info_Value (Label_Key, To_String (Info_Metadata_Text (Available, Value, Now))));
 
-   function Detail_Names return Detail_Column_Names is
-     ((Modified => To_Unbounded_String (Files.Localization.Text ("details.modified")),
-       Size     => To_Unbounded_String (Files.Localization.Text ("details.size")),
-       Filetype => To_Unbounded_String (Files.Localization.Text ("details.filetype"))));
+   function Detail_Names return Detail_Column_Texts is
+     ([Files.Types.Name_Column        => To_Unbounded_String (Files.Localization.Text ("details.name")),
+       Files.Types.Modified_Column    => To_Unbounded_String (Files.Localization.Text ("details.modified")),
+       Files.Types.Size_Column        => To_Unbounded_String (Files.Localization.Text ("details.size")),
+       Files.Types.Filetype_Column    => To_Unbounded_String (Files.Localization.Text ("details.filetype")),
+       Files.Types.Created_Column     => To_Unbounded_String (Files.Localization.Text ("details.created")),
+       Files.Types.Permissions_Column => To_Unbounded_String (Files.Localization.Text ("details.permissions"))]);
 
    function Item_Accessible_Description
-     (Names    : Detail_Column_Names;
-      Item     : Item_Snapshot;
-      Details  : Boolean;
-      Modified : UString;
-      Size     : UString)
-      return UString is
+     (Names   : Detail_Column_Texts;
+      Cells   : Detail_Column_Texts;
+      Order   : Files.Types.Detail_Column_Order;
+      Visible : Files.Types.Detail_Column_Visibility;
+      Item    : Item_Snapshot;
+      Details : Boolean)
+      return UString
+   is
+      use type Files.Types.Detail_Column;
+      Result : UString;
    begin
       if not Details then
          return Item.Filetype_Detail;
       end if;
-      return
-        To_Unbounded_String
-          (Files.Localization.Text
-             ("accessibility.item.details",
-              Files.Localization.Argument_List'
-                [(To_Unbounded_String ("modified_label"), Names.Modified),
-                 (To_Unbounded_String ("modified"), Modified),
-                 (To_Unbounded_String ("size_label"), Names.Size),
-                 (To_Unbounded_String ("size"), Size),
-                 (To_Unbounded_String ("type_label"), Names.Filetype),
-                 (To_Unbounded_String ("type"), Item.Filetype_Detail)]));
+      --  The name is the node's own name, so it is not said again.
+      for Column of Order loop
+         if Column /= Files.Types.Name_Column and then Visible (Column) and then Length (Cells (Column)) > 0 then
+            declare
+               Field : constant String :=
+                 Files.Localization.Label_Value (To_String (Names (Column)), To_String (Cells (Column)));
+            begin
+               Result :=
+                 (if Length (Result) = 0 then To_Unbounded_String (Field)
+                  else To_Unbounded_String
+                    (Files.Localization.Text
+                       ("accessibility.item.fields",
+                        Files.Localization.Argument_List'
+                          [(To_Unbounded_String ("first"), Result),
+                           (To_Unbounded_String ("rest"), To_Unbounded_String (Field))])));
+            end;
+         end if;
+      end loop;
+      return Result;
    end Item_Accessible_Description;
 
    function Free_Space_Label (Snapshot : View_Snapshot) return String is
@@ -204,6 +219,12 @@ package body Files.Rendering.Labels is
       return
         To_Unbounded_String (Humanized_Time_Text (Value, Now));
    end Info_Metadata_Text;
+
+   function Detail_Time_Text
+     (Available : Boolean;
+      Value     : Ada.Calendar.Time;
+      Now       : Ada.Calendar.Time)
+      return UString renames Info_Metadata_Text;
 
    function Info_Field_Value
      (Info  : Info_Snapshot;

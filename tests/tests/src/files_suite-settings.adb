@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.File_System.Permissions;
 with Files.Settings.Testing;
 with Files.Items;

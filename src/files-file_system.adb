@@ -20,9 +20,9 @@ with Hostkit.Host;
 with Hostkit.Regular_Files;
 with Guikit.Utf8.Editing;
 with Files.Leaf_Names;
+with Files.File_System.Content_Info;
 with Files.File_System.Support;
 with Files.File_System.Thumbnails;
-with Files.Images;
 with Files.File_System.Recovery;
 with Files.File_Identities;
 with Files.File_System.Account_Names;
@@ -42,10 +42,9 @@ package body Files.File_System is
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
    use type Ada.Directories.File_Kind;
-   use type Ada.Streams.Stream_Element;
-   use type Ada.Streams.Stream_Element_Offset;
 
    use type System.Address;
+   use type GNAT.OS_Lib.File_Descriptor;
    use type Files.Types.Sort_Field;
    use type Files.Types.Item_Kind;
 
@@ -85,29 +84,6 @@ package body Files.File_System is
      (Path : String; Max_Bytes : Natural; Success, Complete : out Boolean) return String
    is separate;
 
-   use type Ada.Streams.Stream_Element_Array;
-
-   use type GNAT.OS_Lib.File_Descriptor;
-
-   function Stream_Byte (Value : Ada.Streams.Stream_Element) return Natural;
-
-   function Stream_Byte (Value : Ada.Streams.Stream_Element) return Natural is separate;
-
-   Extra_Line_Limit : constant Natural := 20_000;
-
-   Extra_Scan_Byte_Limit : constant Long_Long_Integer := 8_388_608;
-
-   Max_Directory_Count_Entries : constant Natural := 10_000;
-
-   ELF_Magic    : constant Ada.Streams.Stream_Element_Array (1 .. 4) :=
-     [16#7F#, 16#45#, 16#4C#, 16#46#];   --  7F 'E' 'L' 'F'
-
-   PE_Magic     : constant Ada.Streams.Stream_Element_Array (1 .. 2) :=
-     [16#4D#, 16#5A#];                   --  'M' 'Z'
-
-   Script_Magic : constant Ada.Streams.Stream_Element_Array (1 .. 2) :=
-     [16#23#, 16#21#];                   --  '#' '!'
-
    --  @param Path The item's full path.
    --  @param Kind How the item was already classified, which for most kinds
    --              settles executability without asking the host again.
@@ -120,70 +96,9 @@ package body Files.File_System is
       Mode_Known : Boolean)
       return String;
 
-   --  Path's line count, stopped at Extra_Line_Limit lines or
-   --  Extra_Scan_Byte_Limit bytes; Capped when it stopped there with more
-   --  of the file left.
-   procedure Count_Text_Lines
-     (Path   : String;
-      Count  : out Natural;
-      Capped : out Boolean);
-
-   function Text_Encoding_Name (Path : String) return String;
-
-   function Text_Metadata_Info
-     (Prefix : String;
-      Path   : String)
-      return Files.Extra_Info.Info;
-
-   function Pdf_Page_Count_Info (Path : String) return Files.Extra_Info.Info;
-
-   function Zip_Entry_Count_Info
-     (Path    : String;
-      Of_Kind : Files.Extra_Info.Kind;
-      Subject : String)
-      return Files.Extra_Info.Info;
-
-   function Matches_Signature
-     (Buffer  : Ada.Streams.Stream_Element_Array;
-      Last    : Ada.Streams.Stream_Element_Offset;
-      Pattern : Ada.Streams.Stream_Element_Array)
-      return Boolean;
-
-   function Executable_Format_Info (Path : String) return Files.Extra_Info.Info;
-
-   --  Path's direct entries, hidden ones only when Show_Hidden.
-   function Directory_Count_Info
-     (Path        : String;
-      Show_Hidden : Boolean)
-      return Files.Extra_Info.Info;
-
-   --  The detail line's symlink entry: the target as stored, read no-follow.
-   function Symlink_Target_Info (Path : String) return Files.Extra_Info.Info;
-
-   function U16_BE
-     (Buffer : Ada.Streams.Stream_Element_Array;
-      Start  : Ada.Streams.Stream_Element_Offset)
-      return Natural;
-
-   function Image_Dimensions_Info
-     (Path     : String;
-      Filetype : String)
-      return Files.Extra_Info.Info;
-
    function Kind_From_Path
      (Full : String)
       return Files.Types.Item_Kind;
-
-   --  Whether an entry is hidden: a leading dot in its name, or the host's
-   --  hidden flag (Hostkit.Fs.Is_Hidden: Windows' attribute, macOS's
-   --  UF_HIDDEN). The one rule the listing, the tree, folder counts, Recent
-   --  and made-up items share. A flag that cannot be read leaves the name
-   --  to decide, so an entry is never dropped for it.
-   --
-   --  @param Name The entry's name.
-   --  @param Full Its full path.
-   --  @return True when it is hidden.
-   function Entry_Is_Hidden (Name : String; Full : String) return Boolean;
 
    function Entry_Is_Hidden (Name : String; Full : String) return Boolean is
       Dotted : constant Boolean := Name'Length > 0 and then Name (Name'First) = '.';
@@ -221,72 +136,12 @@ package body Files.File_System is
       return String
    is separate;
 
-   procedure Close_Read_Descriptor
-     (File : in out GNAT.OS_Lib.File_Descriptor)
-   is separate;
-
-   procedure Read_Descriptor
-     (File   : GNAT.OS_Lib.File_Descriptor;
-      Buffer : out Ada.Streams.Stream_Element_Array;
-      Last   : out Ada.Streams.Stream_Element_Offset)
-   is separate;
-
-   procedure Count_Text_Lines
-     (Path   : String;
-      Count  : out Natural;
-      Capped : out Boolean)
-   is separate;
-
-   function Text_Encoding_Name (Path : String) return String is separate;
-
-   function Text_Metadata_Info
-     (Prefix : String;
-      Path   : String)
-      return Files.Extra_Info.Info is separate;
-
-   function Pdf_Page_Count_Info (Path : String) return Files.Extra_Info.Info is separate;
-
-   function Zip_Entry_Count_Info
-     (Path    : String;
-      Of_Kind : Files.Extra_Info.Kind;
-      Subject : String)
-      return Files.Extra_Info.Info
-   is separate;
-
-   function Matches_Signature
-     (Buffer  : Ada.Streams.Stream_Element_Array;
-      Last    : Ada.Streams.Stream_Element_Offset;
-      Pattern : Ada.Streams.Stream_Element_Array)
-      return Boolean
-   is separate;
-
-   function Executable_Format_Info (Path : String) return Files.Extra_Info.Info is separate;
-
-   function Symlink_Target_Info (Path : String) return Files.Extra_Info.Info is separate;
-
-   function Directory_Count_Info
-     (Path        : String;
-      Show_Hidden : Boolean)
-      return Files.Extra_Info.Info
-   is separate;
-
-   function U16_BE
-     (Buffer : Ada.Streams.Stream_Element_Array;
-      Start  : Ada.Streams.Stream_Element_Offset)
-      return Natural is separate;
-
-   function Image_Dimensions_Info
-     (Path     : String;
-      Filetype : String)
-      return Files.Extra_Info.Info
-   is separate;
-
    function Extra_Info_Of
      (Path        : String;
       Kind        : Files.Types.Item_Kind;
       Filetype    : String;
       Show_Hidden : Boolean := True)
-      return Files.Extra_Info.Info is separate;
+      return Files.Extra_Info.Info renames Content_Info.Extra_Info_Of;
 
    function Kind_From_Path
      (Full : String)
@@ -338,11 +193,16 @@ package body Files.File_System is
    --  The one rule every "is this path inside that one" check here follows:
    --  Hostkit.Fs.Is_Same_Or_Inside on the text (a root such as "/" or "C:\"
    --  holds every longer path; /a/bc is not inside /a/b), and on the
-   --  case-folded text too where the volume holding Parent folds names
-   --  (Hostkit.Fs.Folds_Name_Case), since there C:\Data and c:\data are
-   --  one folder. The volume is asked only when the spellings differ by
-   --  case alone, so an exact match never waits on a slow mount. Making
-   --  the paths absolute or resolving links is the caller's choice.
+   --  case-folded text too where the volume holding Parent's own name folds
+   --  names (Hostkit.Fs.Folds_Name_Case of the folder Parent is in, or of a
+   --  root itself), since there C:\Data and c:\data are one folder. That is
+   --  not Parent's own volume: a case-folding stick mounted at
+   --  /media/u/STICK does not make /media/u/stick the same folder, as
+   --  /media/u, where both names are, tells them apart. Below Parent the
+   --  spelling does not matter: Child is inside once its head is Parent.
+   --  The volume is asked only when the spellings differ by case alone, so
+   --  an exact match never waits on a slow mount. Making the paths absolute
+   --  or resolving links is the caller's choice.
    --  @param Child Candidate path.
    --  @param Parent Candidate ancestor.
    --  @return True when Child is Parent or lies inside it.
@@ -544,10 +404,24 @@ package body Files.File_System is
    function Safe_Trash_Parent (Parent : String; Shared : Boolean; Existing : Boolean := False) return Boolean
      is separate;
 
+   function Path_Is_Within_By
+     (Child, Parent : String;
+      Folds         : not null access function (Directory : String) return Boolean)
+      return Boolean
+   is
+      --  The folder Parent's own name is in, whose volume decides how that
+      --  name compares: a stick mounted at /media/u/STICK folds the names
+      --  inside it, but /media/u/stick is another folder of /media/u. A
+      --  root is its own.
+      Holder : constant String := Parent_Directory (Parent);
+   begin
+      return Hostkit.Fs.Is_Same_Or_Inside (Child, Parent)
+        or else (Hostkit.Fs.Is_Same_Or_Inside (Files.Types.Fold_Case (Child), Files.Types.Fold_Case (Parent))
+                 and then Folds (if Holder = "" then Parent else Holder));
+   end Path_Is_Within_By;
+
    function Path_Is_Within (Child, Parent : String) return Boolean is
-     (Hostkit.Fs.Is_Same_Or_Inside (Child, Parent)
-      or else (Hostkit.Fs.Is_Same_Or_Inside (Files.Types.Fold_Case (Child), Files.Types.Fold_Case (Parent))
-               and then Hostkit.Fs.Folds_Name_Case (Parent)));
+     (Path_Is_Within_By (Child, Parent, Hostkit.Fs.Folds_Name_Case'Access));
 
    function Relative_To_Top (Path, Top : String) return String is
       Top_Ends_In_Separator : constant Boolean := Top /= "" and then Hostkit.Fs.Is_Separator (Top (Top'Last));
@@ -1043,6 +917,14 @@ package body Files.File_System is
 
    function Delete_Transport_Entry
      (Path : String; Expected_Identity : String) return Mutation_Result
+   is separate;
+
+   function Publish_Staged
+     (Staged   : String;
+      Target   : String;
+      Identity : out UString;
+      Revision : out UString)
+      return Boolean
    is separate;
 
    function Tree_Revision (Path : String) return String is

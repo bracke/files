@@ -70,7 +70,7 @@ separate (Files_Suite.Model)
          0,
          "blocked targeted scroll leaves main view still");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,

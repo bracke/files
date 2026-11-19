@@ -112,8 +112,9 @@ is
             else
                case Why is
                   when Files.File_System.Rename_Source_Missing =>
+                     --  What is missing is the entry renamed, by its old name.
                      Outcome.Reload := True;
-                     Fail (To_String (Mutation.Error_Key), New_Path);
+                     Fail (To_String (Mutation.Error_Key), Old_Full);
                   when Files.File_System.Rename_Stranded =>
                      --  The entry is at a name the listing does not show yet.
                      Outcome.Reload := True;

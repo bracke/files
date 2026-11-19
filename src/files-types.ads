@@ -2,7 +2,7 @@ with Ada.Calendar;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
-with Guikit.Draw;
+with Guikit.Shared_Bytes;
 with Hostkit.Metadata;
 
 --  Shared value types used across the files model, commands, and rendering.
@@ -38,10 +38,10 @@ package Files.Types is
      (Index_Type   => Positive,
       Element_Type => Path_Move);
 
-   --  Byte buffer type shared with the renderer-agnostic draw model. Re-exported
-   --  from Guikit.Draw so the draw model stays domain-free while application
-   --  code keeps using Files.Types.Byte_Vectors unchanged.
-   package Byte_Vectors renames Guikit.Draw.Byte_Vectors;
+   --  Byte buffer type shared with the renderer-agnostic draw model, which
+   --  renames the same Guikit.Shared_Bytes instance: application code keeps
+   --  using Files.Types.Byte_Vectors without depending on the draw model.
+   package Byte_Vectors renames Guikit.Shared_Bytes.Byte_Vectors;
 
    --  A numeric user or group id. Re-exported from Hostkit.Metadata, which
    --  reads and sets them: uid_t and gid_t are unsigned 32-bit, and ids from
@@ -79,17 +79,6 @@ package Files.Types is
    --  @param Name A leaf name.
    --  @return The extension, or "".
    function Extension_Of (Name : String) return String;
-
-   --  Whether a folder named Name is a package that shows as one item, its
-   --  extension naming what it is (macOS's "Mail.app", "Photos.photoslibrary",
-   --  "Notes.rtfd"): app, appex, bundle, component, framework, kext, mpkg,
-   --  pkg, plugin, prefpane, qlgenerator, mdimporter, saver, xpc, rtfd,
-   --  photoslibrary, xcodeproj, xcworkspace, playground, matched without
-   --  regard to ASCII case.
-   --
-   --  @param Name A folder's leaf name.
-   --  @return True when its extension names a package.
-   function Is_Package_Name (Name : String) return Boolean;
 
    --  Name's stem as a new name is built from it (a copy, a link, an
    --  archive, a numbered paste): a file's and a package's Stem_Of, and all

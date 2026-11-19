@@ -38,7 +38,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Text_Cursor_Position (Model),
          Files.Model.Settings_Pane.Focused_Value (Model)'Length,
          "settings caret rests at the end of the focused value, ignoring a manual cursor");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_S, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_S, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Save_Settings_Command,
@@ -47,31 +47,31 @@ separate (Files_Suite.Commands)
         (Result.Status,
          Files.Controller.Controller_Needs_Settings_Path,
          "control+s reports the settings save for the caller to apply with the path");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_N, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_N, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "scalar settings field ignores add-entry shortcut");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "scalar settings field ignores remove-entry shortcut");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "scalar settings field ignores entry paging");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       declare
          Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       begin
          Bad.Scalars (Files.Settings.Show_Hidden_Files_Setting) := To_Unbounded_String ("maybe");
          Files.Model.Settings_Pane.Set_Draft (Model, Bad);
       end;
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operation_Results.Operation_Failed,
@@ -86,7 +86,7 @@ separate (Files_Suite.Commands)
          Good.Scalars (Files.Settings.Show_Hidden_Files_Setting) := To_Unbounded_String ("true");
          Files.Model.Settings_Pane.Set_Draft (Model, Good);
       end;
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operation_Results.Operation_Success,

@@ -231,6 +231,8 @@ separate (Check_All)
             To_Unbounded_String ("Files.Type_Ahead"),
             To_Unbounded_String ("Files.Types"),
             To_Unbounded_String ("Files.UI_Types"),
+            --  The undo history's values (no I/O): the model holds a history.
+            To_Unbounded_String ("Files.Undo_History"),
             To_Unbounded_String ("Files.Undo_Payloads")];
       begin
          for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-model*.ad?", Generated_Directories) loop

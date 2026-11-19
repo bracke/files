@@ -7,7 +7,8 @@ separate (Files.File_System.Recovery)
       Cancel              : Cancellation_Check := Job_Cancelled;
       Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
       If_Source_Stays     : Unremoved_Source_Rule := Take_Copy_Back;
-      After_Copy          : Copy_Hook := null)
+      After_Copy          : Copy_Hook := null;
+      Expected_Identity   : String := "")
       return Mutation_Result
    is
       Copied : Boolean := False;
@@ -45,6 +46,9 @@ separate (Files.File_System.Recovery)
          Digest    : aliased Files.Types.UString;
          Set_Aside : Boolean;
       begin
+         if Expected_Identity /= "" and then To_String (Shape.Root_Identity) /= Expected_Identity then
+            return (Success => False, Error_Key => To_Unbounded_String (Fallback_Key));
+         end if;
          Support.Copy_To_New_Path
            (Source, Destination, Identity, Revision, Cancel, Shape.Times,
             Purpose => Support.For_Move, Batch => Batch, Root_Digest => Digest'Access);

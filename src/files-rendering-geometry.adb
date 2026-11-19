@@ -267,4 +267,8 @@ package body Files.Rendering.Geometry is
       return Rows;
    end Coalesced_Info_Rows;
 
+   function Calculate_Tooltip_Placement
+     (Frame_Width, Frame_Height, Pointer_X, Pointer_Y, Box_Width, Box_Height : Natural; Line_Height : Positive)
+      return Tooltip_Placement is separate;
+
 end Files.Rendering.Geometry;

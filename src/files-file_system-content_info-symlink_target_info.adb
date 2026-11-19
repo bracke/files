@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 function Symlink_Target_Info (Path : String) return Files.Extra_Info.Info is
    Target : Ada.Strings.Unbounded.Unbounded_String;
 begin

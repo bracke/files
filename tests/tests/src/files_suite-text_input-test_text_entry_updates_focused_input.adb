@@ -62,7 +62,7 @@ separate (Files_Suite.Text_Input)
          "the stacked palette receives native character input");
       declare
          Outcome : constant Files.Controller.Controller_Result :=
-           Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
+           Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
       begin
          Files_Suite.Support.Assert_Equal
            (Outcome.Status,

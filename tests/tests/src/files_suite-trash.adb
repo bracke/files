@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.Operations;
 with Files.Operation_Results;
 with Files.Undo_Recording;
@@ -47,7 +48,6 @@ package body Files_Suite.Trash is
    use type Files.Commands.Command_Id;
    use type Files.File_System.Trash_Backend;
    use type Files.Operation_Results.Operation_Status;
-   use type Files.Model.Undo_Action_Kind;
    use type Files.Types.Item_Kind;
    use Files_Suite.Support;
    use Files_Suite.Support.Models;

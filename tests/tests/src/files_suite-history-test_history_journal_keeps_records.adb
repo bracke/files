@@ -1,3 +1,4 @@
+with Files.Undo_History;
 separate (Files_Suite.History)
    --  The journal writes an entry's records as columns and reads them back as
    --  the same records: each item with its own target and identity, each
@@ -41,14 +42,14 @@ separate (Files_Suite.History)
       Files.History_Journal.Save_Stacks
         (History_Directory, Undo, Files.Model.Undo_Entry_Vectors.Empty_Vector, Required => True);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Assert (Files.History_Journal.Restore (History_Directory, Model), "the journal is saved and reads back");
+      Assert (Files.Model.Testing.Restore_Journal (History_Directory, Model), "the journal is saved and reads back");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "the entry is admitted");
       declare
          Read : Files.Model.Undo_Entry := Files.Model.History.Undo_Entries (Model).First_Element;
       begin
          Read.Sequence := Given.Sequence;
-         Assert (Files.Model."=" (Read, Given), "every record comes back as it was written");
+         Assert (Files.Undo_History."=" (Read, Given), "every record comes back as it was written");
       end;
       Reset_Root;
    end Test_History_Journal_Keeps_Records;

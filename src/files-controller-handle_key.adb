@@ -3,12 +3,11 @@ separate (Files.Controller)
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Key       : Guikit.Input.Key_Code;
+      Action    : Files.Events.Input_Action;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Tree_Page_Rows : Natural := 0)
       return Controller_Result
    is
-      Action : constant Files.Events.Input_Action := Files.Events.Translate_Key (Key, Modifiers);
-
       --  The key bound to Close_Overlay_Command (Escape unless rebound): every
       --  owner that closes, cancels or hands the keyboard back answers it,
       --  never a literal Escape.

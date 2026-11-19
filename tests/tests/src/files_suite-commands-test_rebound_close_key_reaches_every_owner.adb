@@ -27,7 +27,7 @@ separate (Files_Suite.Commands)
          Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       is
          Unused : constant Files.Controller.Controller_Result :=
-           Files.Controller.Handle_Key (Model, Settings, Key, Modifiers);
+           Files.Controller.Testing.Handle_Key (Model, Settings, Key, Modifiers);
          pragma Unreferenced (Unused);
       begin
          null;

@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 function Image_Dimensions_Info
   (Path     : String;
    Filetype : String)

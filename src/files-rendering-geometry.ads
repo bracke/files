@@ -46,13 +46,6 @@ private package Files.Rendering.Geometry is
    --  @return The padding in pixels.
    function Details_Column_Padding (LH : Positive) return Natural renames Guikit.Item_Grid.Column_Padding;
 
-   --  The command palette's padding, scaled with the text.
-   --
-   --  @param LH Text line height in pixels.
-   --  @return The padding in pixels.
-   function Command_Palette_Padding (LH : Positive) return Natural is
-     (Guikit.Layout.Scaled (Guikit.Layout.Palette_Padding, LH));
-
    --  The main-view scrollbar is an overlay drawn over the content's right
    --  margin (Main_Content_Padding), not a reserved gutter, so it must be no
    --  wider than that margin or it paints over -- and steals clicks from -- the
@@ -93,14 +86,6 @@ private package Files.Rendering.Geometry is
      (if Offset >= Guikit.Layout.Scaled (Glyph_Optical_Bias, Line_Height)
       then Offset - Guikit.Layout.Scaled (Glyph_Optical_Bias, Line_Height)
       else 0);
-
-   --  The width every time a listing shows fits in: the widest of today,
-   --  yesterday, each weekday and a full date in the locale, cached per line
-   --  height and locale.
-   --
-   --  @param Line_Height Text line height in pixels.
-   --  @return The width in pixels.
-   function Time_Column_Width (Line_Height : Positive) return Natural;
 
    --  A details column's width when the settings give none.
    --
@@ -155,40 +140,13 @@ private package Files.Rendering.Geometry is
          when Files.Types.Details     => Guikit.Item_Grid.Details);
 
    --  The padding of a centred, titled panel (Quick Look, the label picker),
-   --  which also places its title.
+   --  which also places its title: the command palette's padding, scaled
+   --  with the text, or half a line when that is more.
    --
    --  @param Line_Height Text line height in pixels.
    --  @return The padding in pixels.
    function Titled_Panel_Padding (Line_Height : Positive) return Natural is
-     (Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2));
-
-   --  Return the last byte of the next display line. Prefer an ASCII word
-   --  boundary when one exists; an individual word longer than Capacity is
-   --  still split at a valid UTF-8 display boundary.
-   --
-   --  @param Raw The text.
-   --  @param Start The line's first byte.
-   --  @param Segment_Last The last byte of the text's current line.
-   --  @param Capacity Display cells the line holds.
-   --  @return The line's last byte.
-   function Wrapped_Line_Last
-     (Raw          : String;
-      Start        : Integer;
-      Segment_Last : Integer;
-      Capacity     : Natural)
-      return Integer;
-
-   --  Whitespace used as a wrap boundary belongs to neither rendered line.
-   --
-   --  @param Raw The text.
-   --  @param Start Where the next line would start.
-   --  @param Segment_Last The last byte of the text's current line.
-   --  @return The first byte past the boundary's whitespace.
-   function Skip_Wrap_Whitespace
-     (Raw          : String;
-      Start        : Integer;
-      Segment_Last : Integer)
-      return Integer;
+     (Natural'Max (Guikit.Layout.Scaled (Guikit.Layout.Palette_Padding, Line_Height), Line_Height / 2));
 
    --  Visit each row Text takes when wrapped to Text_W: its index from zero
    --  and its byte range (empty for a blank row). Line breaks start a row;
@@ -336,5 +294,74 @@ private package Files.Rendering.Geometry is
       Point_X  : Natural;
       Point_Y  : Natural)
       return Boolean;
+
+   --  The least distance a hover tooltip keeps from the frame's edges: 4 px
+   --  at Guikit.Layout.Reference_Line_Height, scaled with the text.
+   --
+   --  @param Line_Height The line height in use.
+   --  @return The margin in pixels.
+   function Tooltip_Margin (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Scaled (4, Line_Height));
+
+   --  Where a hover tooltip's box goes: its top-left corner.
+   type Tooltip_Placement is record
+      X : Natural := 0;
+      Y : Natural := 0;
+   end record;
+
+   --  Place a hover tooltip box beside the pointer: right of it if it fits
+   --  inside the frame's margin, else left of it, else clamped to the frame;
+   --  below it if it fits, else above it, else clamped likewise.
+   --
+   --  @param Frame_Width Frame width in pixels.
+   --  @param Frame_Height Frame height in pixels.
+   --  @param Pointer_X Pointer X in the frame.
+   --  @param Pointer_Y Pointer Y in the frame.
+   --  @param Box_Width The tooltip box's width.
+   --  @param Box_Height The tooltip box's height.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The box's top-left corner.
+   function Calculate_Tooltip_Placement
+     (Frame_Width, Frame_Height, Pointer_X, Pointer_Y, Box_Width, Box_Height : Natural;
+      Line_Height                                                            : Positive)
+      return Tooltip_Placement;
+
+private
+
+   --  The width every time a listing shows fits in: the widest of today,
+   --  yesterday, each weekday and a full date in the locale, cached per line
+   --  height and locale.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return The width in pixels.
+   function Time_Column_Width (Line_Height : Positive) return Natural;
+
+   --  Return the last byte of the next display line. Prefer an ASCII word
+   --  boundary when one exists; an individual word longer than Capacity is
+   --  still split at a valid UTF-8 display boundary.
+   --
+   --  @param Raw The text.
+   --  @param Start The line's first byte.
+   --  @param Segment_Last The last byte of the text's current line.
+   --  @param Capacity Display cells the line holds.
+   --  @return The line's last byte.
+   function Wrapped_Line_Last
+     (Raw          : String;
+      Start        : Integer;
+      Segment_Last : Integer;
+      Capacity     : Natural)
+      return Integer;
+
+   --  Whitespace used as a wrap boundary belongs to neither rendered line.
+   --
+   --  @param Raw The text.
+   --  @param Start Where the next line would start.
+   --  @param Segment_Last The last byte of the text's current line.
+   --  @return The first byte past the boundary's whitespace.
+   function Skip_Wrap_Whitespace
+     (Raw          : String;
+      Start        : Integer;
+      Segment_Last : Integer)
+      return Integer;
 
 end Files.Rendering.Geometry;

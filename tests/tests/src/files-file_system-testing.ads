@@ -231,4 +231,31 @@ package Files.File_System.Testing is
       Batch  : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result;
 
+   --  Whether Child is Parent or lies inside it, as the program decides it
+   --  (Path_Is_Within), with Folds standing in for the volumes: whether the
+   --  one holding a folder folds names.
+   --
+   --  @param Child Candidate path.
+   --  @param Parent Candidate ancestor.
+   --  @param Folds Whether the volume holding a folder folds names.
+   --  @return True when Child is Parent or lies inside it.
+   function Path_Is_Within
+     (Child, Parent : String;
+      Folds         : not null access function (Directory : String) return Boolean)
+      return Boolean;
+
+   --  Move Source to the new path Destination by copy, as a cross-device
+   --  move does (Files.File_System.Recovery.Move_By_Copy), refusing a
+   --  Source whose identity is not Expected_Identity when it is copied.
+   --
+   --  @param Source Entry to move.
+   --  @param Destination New pathname; never replaced.
+   --  @param Expected_Identity The identity Source must have, or "".
+   --  @return As Move_By_Copy, with "error.move.failed" for a failure
+   --    with no more specific cause.
+   function Move_By_Copy
+     (Source, Destination : String;
+      Expected_Identity   : String)
+      return Mutation_Result;
+
 end Files.File_System.Testing;

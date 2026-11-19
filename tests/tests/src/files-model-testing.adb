@@ -2,6 +2,7 @@ with Ada.Strings.Unbounded;
 
 with Files.Folder_Size;
 with Files.Folder_Size.Testing;
+with Files.Model.History;
 with Files.Model.Support;
 
 package body Files.Model.Testing is
@@ -127,5 +128,38 @@ package body Files.Model.Testing is
    function Paste_Execution_Done (Model : Window_Model) return Natural is (Model.Paste_Exec.Done);
 
    function Paste_Execution_Total (Model : Window_Model) return Natural is (Model.Paste_Exec.Total);
+
+   function Restore_Journal (Directory : String; Model : in out Window_Model) return Boolean is
+      use type Files.History_Journal.Read_Outcome;
+      Journal : Files.History_Journal.Journal_Contents;
+   begin
+      if Files.History_Journal.Read (Directory, Journal) /= Files.History_Journal.Read_Whole then
+         return False;
+      end if;
+      Files.Model.History.Restore (Model, Journal.Undo, Journal.Redo, Journal.State);
+      return True;
+   end Restore_Journal;
+
+   function Merge_Journal
+     (Directory : String;
+      Model     : in out Window_Model) return Files.History_Journal.Read_Outcome
+   is
+      use type Files.History_Journal.Read_Outcome;
+      Journal : Files.History_Journal.Journal_Contents;
+      Outcome : constant Files.History_Journal.Read_Outcome := Files.History_Journal.Read (Directory, Journal);
+   begin
+      if Outcome = Files.History_Journal.Read_Whole then
+         Files.Model.History.Merge (Model, Journal.Undo, Journal.Redo, Journal.State);
+      end if;
+      return Outcome;
+   end Merge_Journal;
+
+   procedure Save_Journal_To (Directory : String; Model : Window_Model; Required : Boolean := False) is
+   begin
+      Files.History_Journal.Save_To (Directory, Files.Model.History.State (Model), Required);
+   end Save_Journal_To;
+
+   function Journals_Newest (Model : Window_Model; Side : History_Side) return Boolean is
+     (Files.History_Journal.Journals_Newest (Files.Model.History.State (Model), Side));
 
 end Files.Model.Testing;

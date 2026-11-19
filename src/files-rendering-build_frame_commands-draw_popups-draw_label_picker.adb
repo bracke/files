@@ -18,7 +18,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
       for Index in Picker.Swatches'Range loop
          declare
             Swatch  : constant Label_Swatch_Bounds := Picker.Swatches (Index);
-            Label   : constant Files.Types.Color_Label := Label_For_Swatch (Index);
+            Label   : constant Files.Types.Color_Label := Files.UI_Types.Label_For_Swatch (Index);
             Hovered : constant Boolean :=
               Has_Hover
               and then Contains_Point (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height, Hover_X, Hover_Y);

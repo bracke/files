@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.Operation_Results;
 with Ada.Characters.Handling;
 with Files.Items;

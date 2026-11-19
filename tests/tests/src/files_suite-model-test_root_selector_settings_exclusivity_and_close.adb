@@ -62,7 +62,7 @@ separate (Files_Suite.Model)
 
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector.Is_Open (Model), "drive selector reopens after toggle close");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Close_Overlay_Command,
@@ -128,7 +128,7 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Ignored,
          "same palette search cursor click is ignored");
       Assert (Files.Model.Root_Selector.Is_Open (Model), "palette search focus preserves root selector");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "Escape closes palette after selector handoff");
       Assert (Files.Model.Root_Selector.Is_Open (Model), "Escape leaves root selector open after palette closes");
       Files.Model.Root_Selector.Close (Model);

@@ -4,7 +4,8 @@ procedure Info_Pane_Click (Handled : out Boolean; Result : out Input_Action) is
 begin
    Handled := True;
    if Snapshot.Info_Pane_Open
-     and then Close_Button_Hit (Info_Pane.Close_Button)
+     and then Close_Button_Hit
+       (Files.Rendering.Layouts.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height).Close_Button)
    then
       Result := Command_Action (Files.Commands.Toggle_Info_Pane_Command);
       return;

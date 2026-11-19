@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 function U16_BE
   (Buffer : Ada.Streams.Stream_Element_Array;
    Start  : Ada.Streams.Stream_Element_Offset)

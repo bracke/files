@@ -1,5 +1,5 @@
 with Files.Rendering.Layouts;
-separate (Files.Application.Windows)
+separate (Files.Application.Windows.Gestures)
    procedure Update_Scrollbar_Drag
      (Runtime    : in out Runtime_Window;
       Cursor_Y   : Glfw.Input.Mouse.Coordinate;

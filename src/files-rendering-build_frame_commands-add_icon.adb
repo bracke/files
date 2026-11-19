@@ -98,8 +98,6 @@ separate (Files.Rendering.Build_Frame_Commands)
    begin
       if Draw_Size = 0 then
          return;
-      elsif Hidden_By_Overlays (X, Y, Draw_Size, Draw_Size) then
-         return;
       end if;
 
       Add_Extension_Badge;

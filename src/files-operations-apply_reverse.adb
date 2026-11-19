@@ -43,7 +43,8 @@ is
       end if;
       Action.Reverse_Completed.Append (Path);
       Reversed.Include (Target);
-      Files.History_Journal.Checkpoint (Model, Action, Files.Model.Undo_Side, Force => Force);
+      Files.History_Journal.Checkpoint
+        (Files.Model.History.State (Model), Action, Files.Model.Undo_Side, Force => Force);
       return True;
    end Remove_Created;
 
@@ -90,7 +91,8 @@ is
             --  original path (Restore_Recorded_Trash) -- unless it was a
             --  copy across devices, which has a new one: written now.
             Files.History_Journal.Checkpoint
-              (Model, Action, Files.Model.Undo_Side, Force => not Restored_In_Place (Trashed (Item)));
+              (Files.Model.History.State (Model), Action, Files.Model.Undo_Side,
+               Force => not Restored_In_Place (Trashed (Item)));
          end if;
       end loop;
       return Outcome;
@@ -140,7 +142,8 @@ is
             Action.Restores_Completed.Append (Original.Trash);
             Restored.Include (To_String (Original.Trash));
             Files.History_Journal.Checkpoint
-              (Model, Action, Files.Model.Undo_Side, Force => not Restored_In_Place (Original));
+              (Files.Model.History.State (Model), Action, Files.Model.Undo_Side,
+               Force => not Restored_In_Place (Original));
          end if;
       end loop;
       return Outcome;

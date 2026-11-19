@@ -101,7 +101,7 @@ separate (Files_Suite.Model)
 
       --  Through the real controller key seam: plain Home/End move the grid
       --  selection and never navigate (Alt+Home stays the navigate-home key).
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_End);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Selection_Moved,
@@ -112,7 +112,7 @@ separate (Files_Suite.Model)
          "plain End selects the last visible item");
       Files_Suite.Support.Assert_Equal (Files.Model.Current_Path (Model), Home_Dir, "plain End does not navigate");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Selection_Moved,
@@ -126,7 +126,7 @@ separate (Files_Suite.Model)
          Home_Dir,
          "plain Home does not navigate home (that stays Alt+Home)");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,

@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 --  True when the first Pattern'Length bytes read into Buffer (of which Last
 --  were read) equal Pattern. Buffer and Pattern are both 1-based.
 function Matches_Signature

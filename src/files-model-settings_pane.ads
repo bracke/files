@@ -1,3 +1,4 @@
+with Guikit.Settings_Panel;
 --  The settings pane: its draft, and the guikit settings panel holding
 --  its focus, scroll, sections and shortcut capture.
 --

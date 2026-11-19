@@ -185,13 +185,13 @@ separate (Files_Suite.Refresh)
       Write_File (Join (First, "one.txt"));
       Write_File (Join (First, "fresh.txt"));
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_L, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_L, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Focus_Path_Input_Command,
          "Control+L focuses path for branch");
       Files.Controller.Testing.Replace_Focused_Text (Model, Branch);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operation_Results.Operation_Navigated,

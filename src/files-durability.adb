@@ -95,10 +95,18 @@ package body Files.Durability is
    function Sync_Directory (Path : String) return Hostkit.Durability.Outcome is
      (if Faulted (Path) then Hostkit.Durability.Failed else Hostkit.Durability.Sync_Directory (Path));
 
+   --  Walked without recursion: an extracted archive may nest folders far
+   --  deeper than a thread's stack would hold one frame each for (Windows
+   --  gives the main thread 1 MiB). Folders are listed in the order found,
+   --  each one's files flushed as it is listed; then every folder's entries,
+   --  last found first, so a folder's children are on the device before
+   --  the entry naming it is.
    function Sync_Tree (Path : String) return Hostkit.Durability.Outcome is
       use type Hostkit.Durability.Outcome;
       use type Hostkit.Fs.Entry_Kind;
-      Worst : Hostkit.Durability.Outcome := Hostkit.Durability.Synced;
+      Worst   : Hostkit.Durability.Outcome := Hostkit.Durability.Synced;
+      Folders : Files.Types.String_Vectors.Vector;
+      Next    : Positive := 1;
 
       procedure Note (Outcome : Hostkit.Durability.Outcome) is
       begin
@@ -108,25 +116,35 @@ package body Files.Durability is
             Worst := Outcome;
          end if;
       end Note;
-
-      procedure Visit (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean) is
-         pragma Unreferenced (Stop);
-         Full : constant String := Hostkit.Fs.Join (Path, Name);
-      begin
-         if Hostkit.Fs.Is_Link (Full) then
-            null;
-         elsif Kind = Hostkit.Fs.Directory_Entry then
-            Note (Sync_Tree (Full));
-         elsif Kind = Hostkit.Fs.Ordinary_File_Entry then
-            Note (Sync_File (Full));
-         end if;
-      end Visit;
    begin
       if Hostkit.Fs.Is_Link (Path) or else not Files.Fs_Primitives.Directory_Exists (Path) then
          return Sync_File (Path);
       end if;
-      Files.Fs_Primitives.For_Each_Listed (Path, Visit'Access);
-      Note (Sync_Directory (Path));
+      Folders.Append (To_Unbounded_String (Path));
+      while Next <= Natural (Folders.Length) loop
+         declare
+            Folder : constant String := To_String (Folders (Next));
+
+            procedure Visit (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean) is
+               pragma Unreferenced (Stop);
+               Full : constant String := Hostkit.Fs.Join (Folder, Name);
+            begin
+               if Hostkit.Fs.Is_Link (Full) then
+                  null;
+               elsif Kind = Hostkit.Fs.Directory_Entry then
+                  Folders.Append (To_Unbounded_String (Full));
+               elsif Kind = Hostkit.Fs.Ordinary_File_Entry then
+                  Note (Sync_File (Full));
+               end if;
+            end Visit;
+         begin
+            Files.Fs_Primitives.For_Each_Listed (Folder, Visit'Access);
+         end;
+         Next := Next + 1;
+      end loop;
+      for Folder of reverse Folders loop
+         Note (Sync_Directory (To_String (Folder)));
+      end loop;
       return Worst;
    end Sync_Tree;
 

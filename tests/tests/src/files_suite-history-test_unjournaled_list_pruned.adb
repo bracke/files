@@ -70,13 +70,13 @@ separate (Files_Suite.History)
       Assert (Natural (Files.Model.History.Journal_State (Window).Unjournaled.Length) = 900,
               "nothing in range is pruned on restore");
       begin
-         Files.History_Journal.Save_To (Directory, Window, Required => True);
+         Files.Model.Testing.Save_Journal_To (Directory, Window, Required => True);
       exception
          when Ada.Directories.Use_Error =>
             Assert (False, "a list past its cap does not fail a required save");
       end;
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Assert (Files.History_Journal.Restore (Directory, Helper), "the truncated journal reads back");
+      Assert (Files.Model.Testing.Restore_Journal (Directory, Helper), "the truncated journal reads back");
       declare
          Kept : constant Files.Model.Sequence_Vectors.Vector := Files.Model.History.Journal_State (Helper).Unjournaled;
       begin

@@ -106,7 +106,7 @@ separate (Files_Suite.Operations)
          --  id) and commit with Enter through the controller.
          Files.Controller.Testing.Replace_Focused_Text
            (Model, Files.Types.Account_Image (Uid));
-         Routed := Files.Controller.Handle_Key (Model, Settings_Var, Guikit.Input.Key_Return);
+         Routed := Files.Controller.Testing.Handle_Key (Model, Settings_Var, Guikit.Input.Key_Return);
 
          Files_Suite.Support.Assert_Equal
 

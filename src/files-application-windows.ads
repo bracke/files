@@ -298,11 +298,13 @@ private
       Accessibility : Guikit.Draw.Accessibility_Node_Vectors.Vector;
    end record;
 
-   --  What the settings panel's commands are built from: the model (its
-   --  panel state and draft), the settings the snapshot reads (theme, text
-   --  size, language), the panel's region and line height, its focus and the
-   --  pointer over it. The commands are rebuilt only when this moves.
-   type Settings_Overlay_Inputs is record
+   --  What a window-layer overlay's commands are built from: the model (the
+   --  palette's query and selection, the settings panel's state and draft),
+   --  the settings the snapshot reads (theme, text size, language), the
+   --  overlay's region and line height, its focus and the pointer over it
+   --  (-1 for the palette, which draws no hover). The commands are rebuilt
+   --  only when this moves.
+   type Overlay_Inputs is record
       Model_Revision : Natural := 0;
       Settings_Key   : Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key;
       Region         : Files.Overlays.Overlay_Region;
@@ -373,6 +375,9 @@ private
       Last_Y        : Integer := Integer'First;
       Last_Scroll   : Natural := 0;
       Auto_Scrolled : Boolean := False;
+      --  The main view's scroll offset, in pixels, that Origin_Y is a screen
+      --  point for: each pass shifts the origin by the change since.
+      Scroll_Pixels : Natural := 0;
    end record;
 
    type Runtime_Window is record
@@ -443,11 +448,14 @@ private
       Presented_Once             : Boolean := False;
       Last_Palette               : Overlay_Commands;
       Last_Settings              : Overlay_Commands;
-      --  The settings panel's commands while it is shown (Shown False
-      --  otherwise), the inputs they were built from, and whether they were
-      --  built at all: an idle panel is not rebuilt every loop pass.
+      --  Each overlay's commands while it is shown (Shown False otherwise),
+      --  the inputs they were built from, and whether they were built since
+      --  it was last hidden: an idle overlay is not rebuilt every loop pass.
+      Palette_Overlay            : Overlay_Commands;
+      Palette_Overlay_From       : Overlay_Inputs;
+      Palette_Overlay_Built      : Boolean := False;
       Settings_Overlay           : Overlay_Commands;
-      Settings_Overlay_From      : Settings_Overlay_Inputs;
+      Settings_Overlay_From      : Overlay_Inputs;
       Settings_Overlay_Built     : Boolean := False;
       --  Frames still owed a present after the last visible change (grace window,
       --  see Present_Grace_Frames). Nonzero keeps us presenting every frame so
@@ -484,6 +492,27 @@ private
    function As_Window
      (Handle : Window_Access)
       return Glfw.Windows.Window_Reference;
+
+   --  Bring the window's current snapshot up to date with its model.
+   --
+   --  @param Runtime Window whose current snapshot is refreshed.
+   procedure Refresh_Snapshot (Runtime : in out Runtime_Window);
+
+   --  The snapshot slot to hit-test pointer input against.
+   --
+   --  @param Runtime Window asked about.
+   --  @return The drawn slot, or the refreshed current one before any frame.
+   function Hit_Slot (Runtime : in out Runtime_Window) return Snapshot_Slot;
+
+   --  Write the system-clipboard request the model recorded, if any.
+   --
+   --  @param Runtime Window whose request is written and cleared.
+   procedure Flush_System_Clipboard (Runtime : in out Runtime_Window);
+
+   --  Reveal the selection when a step since the last reveal set it by name.
+   --
+   --  @param Runtime Window whose selection may be scrolled into view.
+   procedure Reveal_Pending_Selection (Runtime : in out Runtime_Window);
 
    --  Drain one window's queued key presses and typed text.
    procedure Handle_Keyboard

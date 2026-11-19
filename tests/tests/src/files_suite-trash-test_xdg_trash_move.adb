@@ -49,7 +49,7 @@ separate (Files_Suite.Trash)
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Select_Name (Model, "doomed.txt");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
            (Result.Command,
             Files.Commands.Delete_Selected_Items_Command,

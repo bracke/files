@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.Operations;
 with Files.Undo_Recording;
 with Files.Items;

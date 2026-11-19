@@ -1,3 +1,4 @@
+with Files.Folder_Tree;
 --  The folder-tree side panel: its rows, scroll, keyboard cursor, and the
 --  Copy to.../Move to... destination picker drawn over it.
 package Files.Model.Tree_Panel is

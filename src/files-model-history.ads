@@ -28,6 +28,11 @@ package Files.Model.History is
    --  @return The journal state to write beside its stacks.
    function Journal_State (Model : Window_Model) return History_Journal_State;
 
+   --  @param Model Window whose history to read.
+   --  @return Its whole history: the stacks and the journal state, for the
+   --    journal (Files.History_Journal) to write.
+   function State (Model : Window_Model) return Undo_History_State;
+
    --  Take back the history a background helper journaled, merging it into
    --  the window's own instead of replacing it: an entry the journal does
    --  not hold stays when the journal lists it as unjournaled (it left the

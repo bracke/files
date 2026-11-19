@@ -10,7 +10,7 @@ separate (Files_Suite.Model)
       Ctrl (Guikit.Input.Control_Key) := True;
       --  Start from an open, selection-backed, unscrolled info pane.
       Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
 
       Files.Model.Scroll_Info_Pane (Model, Lines => 3);
       Files_Suite.Support.Assert_Equal
@@ -74,7 +74,7 @@ separate (Files_Suite.Model)
          0,
          "blocked targeted scroll leaves info pane still");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,

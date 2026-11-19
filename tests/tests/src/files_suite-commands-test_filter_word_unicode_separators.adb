@@ -14,12 +14,12 @@ separate (Files_Suite.Commands)
          NBSP : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#));
       begin
          Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & NBSP & "beta");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             7,
             "Control+Left treats UTF-8 NBSP as word separator");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Filter_Text (Model),
             "beta",
@@ -31,7 +31,7 @@ separate (Files_Suite.Commands)
            (Files.Model.Text_Cursor_Position (Model),
             5,
             "filter click positions cursor before UTF-8 NBSP");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Filter_Text (Model),
             "alpha",
@@ -47,12 +47,12 @@ separate (Files_Suite.Commands)
          Tesuto  : constant String := U (16#30C6#) & U (16#30B9#) & U (16#30C8#);  --  9 bytes
       begin
          Files.Controller.Testing.Replace_Focused_Text (Model, Cafe & " " & Uber);
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             6,
             "Control+Left stops before a word of multibyte letters");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Filter_Text (Model),
             Uber,
@@ -60,22 +60,22 @@ separate (Files_Suite.Commands)
 
          Files.Controller.Testing.Replace_Focused_Text (Model, Cafe & " " & Uber);
          Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 0);
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right, Ctrl);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right, Ctrl);
          Assert (Files.Model.Text_Cursor_Position (Model) in 5 | 6, "Control+Right ends after the whole first word");
          Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Filter_Input, Cursor_Position => 5);
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Filter_Text (Model),
             Cafe,
             "Control+Delete removes the next multibyte word");
 
          Files.Controller.Testing.Replace_Focused_Text (Model, Nihongo & " " & Tesuto);
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             10,
             "Control+Left stops before a word of CJK letters");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Filter_Text (Model),
             Tesuto,
@@ -86,7 +86,7 @@ separate (Files_Suite.Commands)
            Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#));
       begin
          Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & Line_Separator & "beta");
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
             8,

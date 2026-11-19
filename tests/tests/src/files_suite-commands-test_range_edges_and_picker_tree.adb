@@ -35,17 +35,17 @@ separate (Files_Suite.Commands)
       --  Shift+Up on the first item would wrap to the last and select all.
       Files.Model.Set_View_Mode (Model, Files.Types.Details);
       Files.Model.Selection.Select_Visible (Model, 1);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Up, Shift);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Up, Shift);
       Assert
         (Files.Model.Selection.Selected_Count (Model) = 1 and then Files.Model.Selection.Selected_Index (Model) = 1,
               "Shift+Up on the first item selects nothing more");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
       Assert (Files.Model.Selection.Selected_Count (Model) = Files.Model.Visible_Count (Model)
               and then Files.Model.Selection.Selected_Index (Model) = Files.Model.Visible_Count (Model),
               "Shift+Down grows the range to the last item and stops there");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Index (Model), 1, "a plain arrow still wraps");
 
       --  Copy To on an already open folder tree leaves it open when the pick
@@ -56,7 +56,7 @@ separate (Files_Suite.Commands)
       Assert (Files.Model.Tree_Panel.Is_Open (Model), "the folder tree is open");
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings);
       Assert (Files.Model.Tree_Panel.Pick_Is_Active (Model), "Copy To starts picking a destination");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Tree_Panel.Pick_Is_Active (Model) and then Files.Model.Tree_Panel.Is_Open (Model),
               "Escape ends the pick and keeps the tree the user had open");
       Result := Files.Controller.Execute_Non_Settings_Command
@@ -69,6 +69,6 @@ separate (Files_Suite.Commands)
         (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings);
       Assert (Files.Model.Tree_Panel.Is_Open (Model), "Copy To opens a closed tree to pick in");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Tree_Panel.Is_Open (Model), "and closes it again when the pick ends");
    end Test_Range_Edges_And_Picker_Tree;

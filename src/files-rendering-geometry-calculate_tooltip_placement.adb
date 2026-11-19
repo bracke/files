@@ -1,4 +1,4 @@
-separate (Files.Rendering.Layouts)
+separate (Files.Rendering.Geometry)
    function Calculate_Tooltip_Placement
      (Frame_Width, Frame_Height, Pointer_X, Pointer_Y, Box_Width, Box_Height : Natural; Line_Height : Positive)
       return Tooltip_Placement

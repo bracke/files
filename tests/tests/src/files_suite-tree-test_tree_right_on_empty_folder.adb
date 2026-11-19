@@ -29,7 +29,7 @@ separate (Files_Suite.Tree)
       Files.Model.Tree_Panel.Set_Cursor (Model, Alpha);
 
       --  The first Right expands the empty folder (and finds nothing in it).
-      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Assert (CResult.Status = Files.Controller.Controller_Command_Executed
               and then Files.Model.Tree_Panel.Has_Keyboard (Model),
               "Right expands the folder and the tree keeps the keyboard");
@@ -37,13 +37,13 @@ separate (Files_Suite.Tree)
         (Files.Model.Tree_Panel.Cursor (Model), Alpha, "expanding keeps the highlight on the folder");
 
       --  The second has no child to step into: nothing moves.
-      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Tree_Panel.Cursor (Model), Alpha,
          "Right on an expanded folder with no children does not jump to the next sibling");
 
       --  Down still reaches the sibling.
-      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal (Files.Model.Tree_Panel.Cursor (Model), Beta, "Down moves on to the sibling");
       Files_Suite.Support.Disk.Reset_Root;
    end Test_Tree_Right_On_Empty_Folder;

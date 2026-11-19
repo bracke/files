@@ -20,7 +20,7 @@ separate (Files_Suite.Model)
       --  Row 2 is Target.
       Files.Model.Root_Selector.Open (Model, Roots_A);
       Files.Model.Root_Selector.Set_Selected_Index (Model, 2);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Open_Selected_Root_Command,

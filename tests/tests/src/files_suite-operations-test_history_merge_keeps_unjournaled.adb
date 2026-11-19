@@ -65,23 +65,23 @@ separate (Files_Suite.Operations)
       procedure Run_Helper (Name : String) is
       begin
          Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-         Assert (Files.History_Journal.Restore (Directory, Helper), "the helper reads the window's journal");
+         Assert (Files.Model.Testing.Restore_Journal (Directory, Helper), "the helper reads the window's journal");
          if Name /= "" then
             Assert (Files.Model.History.Commit_Undo_Record (Helper, Item (Name)), "the helper records " & Name);
          end if;
-         Files.History_Journal.Save_To (Directory, Helper, Required => True);
+         Files.Model.Testing.Save_Journal_To (Directory, Helper, Required => True);
       end Run_Helper;
 
       procedure Start_Job is
       begin
-         Files.History_Journal.Save_To (Directory, Window, Required => True);
+         Files.Model.Testing.Save_Journal_To (Directory, Window, Required => True);
       end Start_Job;
 
       procedure Merge is
       begin
          Assert
            (Files.History_Journal."="
-              (Files.History_Journal.Merge (Directory, Window), Files.History_Journal.Merged),
+              (Files.Model.Testing.Merge_Journal (Directory, Window), Files.History_Journal.Read_Whole),
             "the window merges the helper's journal");
       end Merge;
    begin
@@ -103,7 +103,7 @@ separate (Files_Suite.Operations)
       --  What the helper retired goes; what it never saw stays.
       Start_Job;
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Assert (Files.History_Journal.Restore (Directory, Helper), "the second helper reads the journal");
+      Assert (Files.Model.Testing.Restore_Journal (Directory, Helper), "the second helper reads the journal");
       declare
          Taken : Files.Model.Undo_Entry;
          Found : Boolean;
@@ -111,7 +111,7 @@ separate (Files_Suite.Operations)
          Files.Model.History.Take_Undo (Helper, Taken, Found);
          Assert (Found and then Names (Stack (Taken)) = "c", "the helper consumes its newest entry");
       end;
-      Files.History_Journal.Save_To (Directory, Helper, Required => True);
+      Files.Model.Testing.Save_Journal_To (Directory, Helper, Required => True);
       Merge;
       Assert (Names (Files.Model.History.Undo_Entries (Window)) = "a,b",
               "the consumed entry goes, the left-out one stays: " & Names (Files.Model.History.Undo_Entries (Window)));
@@ -120,7 +120,7 @@ separate (Files_Suite.Operations)
       --  instead of failing, a helper may not undo it, and it stays in place.
       Files.Model.Initialize (Window, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Files.Model.History.Restore (Window, Stack (Item ("b"), Item ("x", Large => True)), Empty);
-      Assert (not Files.History_Journal.Journals_Newest (Window, Files.Model.Undo_Side),
+      Assert (not Files.Model.Testing.Journals_Newest (Window, Files.Model.Undo_Side),
               "a newest entry too large for the journal is not journaled");
       Start_Job;
       Run_Helper ("d");
@@ -129,7 +129,7 @@ separate (Files_Suite.Operations)
       Merge;
       Assert (Names (Files.Model.History.Undo_Entries (Window)) = "b,x,d",
               "the unjournaled newest entry keeps its place: " & Names (Files.Model.History.Undo_Entries (Window)));
-      Assert (Files.History_Journal.Journals_Newest (Window, Files.Model.Undo_Side),
+      Assert (Files.Model.Testing.Journals_Newest (Window, Files.Model.Undo_Side),
               "with a small newest entry the journal holds it");
 
       --  Redo: kept while the helper records nothing, retired with the

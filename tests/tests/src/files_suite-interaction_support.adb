@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Ada.Strings.Unbounded;
 
 with AUnit.Assertions;
@@ -398,14 +399,14 @@ package body Files_Suite.Interaction_Support is
    end Menu_Offers;
 
    --  Commit the active focused text (rename / create) through the real key seam
-   --  the shell uses -- Enter routed via Files.Controller.Handle_Key (rule d),
+   --  the shell uses -- Enter routed via Files.Controller.Testing.Handle_Key (rule d),
    --  not a direct Commit_Rename call.
    procedure Commit_Focused_Text
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
    is
       Outcome : constant Files.Controller.Controller_Result :=
-        Files.Controller.Handle_Key
+        Files.Controller.Testing.Handle_Key
           (Model, Settings, Guikit.Input.Key_Return, Guikit.Input.No_Modifiers);
       pragma Unreferenced (Outcome);
    begin

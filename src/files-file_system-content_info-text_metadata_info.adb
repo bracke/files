@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 function Text_Metadata_Info
   (Prefix : String;
    Path   : String)

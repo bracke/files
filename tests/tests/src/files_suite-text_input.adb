@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
 with AUnit;

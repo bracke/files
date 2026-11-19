@@ -18,7 +18,7 @@ separate (Files_Suite.Tree)
       procedure Tab (Backward : Boolean := False) is
       begin
          CResult :=
-           Files.Controller.Handle_Key
+           Files.Controller.Testing.Handle_Key
              (Model, Settings, Guikit.Input.Key_Tab,
               (if Backward then [Guikit.Input.Shift_Key => True, others => False]
                else Guikit.Input.No_Modifiers));
@@ -54,7 +54,7 @@ separate (Files_Suite.Tree)
       --  Arrows move the tree's highlight and leave the grid's selection alone.
       Selected := Files.Model.Selection.Selected_Index (Model);
       Files.Model.Tree_Panel.Set_Cursor (Model, Tree_Dir);
-      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal
         (CResult.Status, Files.Controller.Controller_Selection_Moved,
          "Down moves the tree highlight, not the grid selection (status)");
@@ -64,21 +64,21 @@ separate (Files_Suite.Tree)
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Index (Model), Selected,
          "Down moves the tree highlight, not the grid selection (grid selection)");
-      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Assert (CResult.Status = Files.Controller.Controller_Command_Executed
               and then Files.Model.Tree_Panel.Has_Keyboard (Model),
               "Right expands the highlighted folder and the tree keeps the keyboard");
-      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Tree_Panel.Cursor (Model),
          A1,
          "Right on an expanded folder steps into it");
-      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Tree_Panel.Cursor (Model), Alpha, "Left steps out to the parent folder");
 
       --  Enter opens the highlighted folder in the main view.
-      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
          Alpha,
@@ -86,7 +86,7 @@ separate (Files_Suite.Tree)
 
       --  Escape gives the keyboard back to the grid; Shift+Tab from the grid
       --  comes back to the tree, and from the tree goes on to the filter.
-      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Tree_Panel.Has_Keyboard (Model), "Escape hands the keyboard back to the grid");
       Tab (Backward => True);
       Assert (Files.Model.Tree_Panel.Has_Keyboard (Model), "Shift+Tab from the grid reaches the open tree");

@@ -36,11 +36,9 @@ separate (Files.Rendering)
       Main_View     : Main_View_Layout renames Frame.Main_View;
       Toolbar       : Guikit.Layout.Toolbar_Layout renames Frame.Toolbar;
       Bottom        : Guikit.Layout.Bottom_Bar_Layout renames Frame.Bottom;
-      Palette       : Command_Palette_Layout renames Frame.Palette;
       Root_Selector : Root_Selector_Layout renames Frame.Root_Selector;
       Tree_Panel    : Tree_Panel_Layout renames Frame.Tree_Panel;
       Info_Pane     : Info_Pane_Layout renames Frame.Info_Pane;
-      Settings_Pane : Guikit.Layout.Settings_Pane_Layout renames Frame.Settings_Pane;
       Toolbar_Input_Y      : Natural renames Frame.Toolbar_Input_Y;
       Toolbar_Input_H      : Natural renames Frame.Toolbar_Input_H;
       Toolbar_Input_Text_Y : Natural renames Frame.Toolbar_Input_Text_Y;
@@ -59,28 +57,6 @@ separate (Files.Rendering)
       Tree_Rows_Layout : constant Tree_Row_Layout_Vectors.Vector :=
         Calculate_Tree_Row_Layout (Snapshot, Tree_Panel, Line_Height);
 
-      function Intersects
-        (Left_X   : Natural;
-         Left_Y   : Natural;
-         Left_W   : Natural;
-         Left_H   : Natural;
-         Right_X  : Natural;
-         Right_Y  : Natural;
-         Right_W  : Natural;
-         Right_H  : Natural)
-         return Boolean
-      is
-      begin
-         return Left_W > 0
-           and then Left_H > 0
-           and then Right_W > 0
-           and then Right_H > 0
-           and then Left_X < Guikit.Layout.Saturating_Add (Right_X, Right_W)
-           and then Right_X < Guikit.Layout.Saturating_Add (Left_X, Left_W)
-           and then Left_Y < Guikit.Layout.Saturating_Add (Right_Y, Right_H)
-           and then Right_Y < Guikit.Layout.Saturating_Add (Left_Y, Left_H);
-      end Intersects;
-
       function Clipped_Size
         (Start : Natural;
          Size  : Natural;
@@ -94,41 +70,6 @@ separate (Files.Rendering)
             return Natural'Min (Size, Limit - Start);
          end if;
       end Clipped_Size;
-
-      --  Whether an item's rectangle lies under an overlay's rectangle while
-      --  that overlay is open.
-      function Hidden_By_Overlay
-        (Open      : Boolean;
-         Overlay_X : Natural;
-         Overlay_Y : Natural;
-         Overlay_W : Natural;
-         Overlay_H : Natural;
-         X         : Natural;
-         Y         : Natural;
-         Item_W    : Natural;
-         Item_H    : Natural)
-         return Boolean is
-        (Open and then Intersects (X, Y, Item_W, Item_H, Overlay_X, Overlay_Y, Overlay_W, Overlay_H));
-
-      --  Whether the settings pane or the command palette covers it.
-      function Hidden_By_Overlays
-        (X      : Natural;
-         Y      : Natural;
-         Item_W : Natural;
-         Item_H : Natural)
-         return Boolean is
-        (Hidden_By_Overlay
-           (Snapshot.Settings_Pane_Open,
-            Settings_Pane.X,
-            Settings_Pane.Y,
-            Settings_Pane.Width,
-            Settings_Pane.Height,
-            X,
-            Y,
-            Item_W,
-            Item_H)
-         or else Hidden_By_Overlay
-           (Snapshot.Command_Palette_Open, Palette.X, Palette.Y, Palette.Width, Palette.Height, X, Y, Item_W, Item_H));
 
       --  One rectangle into Target, clipped to the window; nothing when
       --  none of it is inside.
@@ -312,7 +253,9 @@ separate (Files.Rendering)
          Italic : Boolean)
  is separate;
 
-      --  Main-layer text, unless the settings pane or the palette covers it.
+      --  Main-layer text. Every overlay panel is drawn in the overlay layer,
+      --  composited after all of the main layer, so a panel covers the text
+      --  under it without the text having to be left out.
       procedure Add_Text
         (X      : Natural;
          Y      : Natural;
@@ -324,11 +267,7 @@ separate (Files.Rendering)
          Scale_To_Box : Boolean := False;
          Italic : Boolean := False) is
       begin
-         if not Hidden_By_Overlays
-           (X, Y, Clipped_Size (X, Text_W, Layout.Width), Clipped_Size (Y, Text_H, Layout.Height))
-         then
-            Append_Text (Result.Text, X, Y, Text_W, Text_H, Text, Color, Fit, Scale_To_Box, Italic);
-         end if;
+         Append_Text (Result.Text, X, Y, Text_W, Text_H, Text, Color, Fit, Scale_To_Box, Italic);
       end Add_Text;
 
       procedure Add_Overlay_Text
@@ -585,6 +524,17 @@ separate (Files.Rendering)
          Overlay : Boolean)
  is separate;
 
+      --  The window under a modal panel, which owns input while open: the
+      --  inactive view leaves the accessibility frame and the whole window
+      --  is dimmed, in the overlay layer.
+      procedure Draw_Modal_Backdrop is
+      begin
+         Result.Accessibility.Clear;
+         if Width > 0 and then Height > 0 then
+            Result.Overlay_Rectangles.Append (Modal_Backdrop (Width, Height));
+         end if;
+      end Draw_Modal_Backdrop;
+
       --  The chrome of a modal overlay panel, which owns input while open: the inactive view leaves the
       --  accessibility frame, a Backdrop dims the window, then its shadow, Fill, border and accessibility node.
       procedure Draw_Modal_Chrome
@@ -642,16 +592,6 @@ separate (Files.Rendering)
          Overlay       : Boolean := False)
  is separate;
 
-      procedure Add_Details_Icon
-        (Item : Item_Snapshot;
-         X    : Natural;
-         Y    : Natural;
-         Size : Natural)
-      is
-      begin
-         Add_Icon (Item, X, Y, Size);
-      end Add_Details_Icon;
-
       procedure Add_Button
         (X        : Natural;
          Button_W : Natural;
@@ -675,10 +615,10 @@ separate (Files.Rendering)
 
       --  The folder tree beside the view; over everything while it picks a
       --  destination, which blocks the rest of the window.
-      procedure Draw_Tree_Panel (As_Overlay : Boolean) is separate;
+      procedure Draw_Tree_Panel is separate;
 
       --  The details column names a row's accessibility description repeats.
-      Detail_Column_Labels : constant Detail_Column_Names := Detail_Names;
+      Detail_Column_Labels : constant Detail_Column_Texts := Detail_Names;
       --  The window background and the toolbar.
       procedure Draw_Toolbar is separate;
 
@@ -703,7 +643,7 @@ separate (Files.Rendering)
 
       --  Before the transient overlays, which cover it as they own input.
       if Snapshot.Tree_Panel_Open then
-         Draw_Tree_Panel (As_Overlay => Snapshot.Tree_Pick_Active);
+         Draw_Tree_Panel;
       end if;
 
       --  Popups and modal panels own the pointer while they are open.  Drop

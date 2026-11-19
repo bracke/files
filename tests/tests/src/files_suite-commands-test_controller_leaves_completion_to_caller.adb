@@ -48,8 +48,8 @@ separate (Files_Suite.Commands)
       --  Enter on the label picker asks for its highlighted swatch to be applied.
       Files.Model.Label_Picker.Open (Model);
       --  From the clear swatch (the last) onto a colour.
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Assert
         (Result.Status = Files.Controller.Controller_Activation_Requested
          and then Result.Activation = Files.Controller.Choose_Label
@@ -61,13 +61,13 @@ separate (Files_Suite.Commands)
 
       --  Enter on a highlighted context-menu row asks for that row to be run.
       Files.Model.Context_Menu.Open (Model, 10, 10, Files.UI_Types.Context_Menu_Item);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       declare
          Rows : constant Files.Commands.Context_Menu_Rows :=
            Files.Commands.Context_Menu_Rows_For (Files.Model.Context_Menu.Target_Of (Model));
          Row  : constant Positive := Files.Model.Context_Menu.Highlight (Model);
       begin
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
          Assert
            (Result.Status = Files.Controller.Controller_Activation_Requested
             and then Result.Activation = Files.Controller.Run_Menu_Row
@@ -79,7 +79,7 @@ separate (Files_Suite.Commands)
       --  With nothing highlighted, Enter only dismisses the menu.
       Files.Model.Context_Menu.Close (Model);
       Files.Model.Context_Menu.Open (Model, 10, 10, Files.UI_Types.Context_Menu_Item);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Assert
         (Result.Activation = Files.Controller.No_Activation
          and then not Files.Model.Context_Menu.Is_Open (Model),

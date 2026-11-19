@@ -31,7 +31,7 @@ separate (Files_Suite.Operations)
          Files_Suite.Support.Assert_Equal
            (Files.Model.Focus (Model), Files.UI_Types.Focus_Ownership_Input, "the ownership field is edited");
          Files.Controller.Testing.Replace_Focused_Text (Model, Text);
-         Routed := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+         Routed := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       end Commit;
    begin
       if not Files.File_System.Permissions.Supports_Ownership then

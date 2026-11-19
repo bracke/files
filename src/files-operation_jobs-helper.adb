@@ -3,6 +3,7 @@ with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Files.History_Journal;
 with Files.Job_Records;
+with Files.Model.History;
 with Files.Model.Selection;
 with Files.Operations;
 with Files.Process_Jobs;
@@ -27,10 +28,17 @@ package body Files.Operation_Jobs.Helper is
       if Work.Recent then
          Files.Model.Navigate_Recent (Model, Work.Selected);
       end if;
-      if not Files.History_Journal.Restore (Directory, Model) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Files.History_Journal.Save (Model, Required => Work.Kind in Trash | Undo | Redo);
+      declare
+         use type Files.History_Journal.Read_Outcome;
+         Journal : Files.History_Journal.Journal_Contents;
+      begin
+         if Files.History_Journal.Read (Directory, Journal) /= Files.History_Journal.Read_Whole then
+            raise Ada.IO_Exceptions.Data_Error;
+         end if;
+         Files.Model.History.Restore (Model, Journal.Undo, Journal.Redo, Journal.State);
+      end;
+      Files.History_Journal.Save
+        (Files.Model.History.State (Model), Required => Work.Kind in Trash | Undo | Redo);
       if Work.Kind in Search_Names | Search_Contents then
          Files.Model.Set_Filter (Model, To_String (Work.Query));
       else
@@ -52,7 +60,7 @@ package body Files.Operation_Jobs.Helper is
             when Empty_Trash => Files.Operations.Empty_Trash (Model, Work.Settings),
             when Undo => Files.Operations.Undo_Last (Model, Work.Settings),
             when Redo => Files.Operations.Redo_Last (Model, Work.Settings));
-      Files.History_Journal.Save (Model);
+      Files.History_Journal.Save (Files.Model.History.State (Model));
       Done.Visible_Error := To_Unbounded_String
         (if Files.Model.Last_Error_Key (Model) = "" then To_String (Done.Result.Error_Key)
          else Files.Model.Last_Error_Key (Model));

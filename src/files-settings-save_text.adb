@@ -84,7 +84,10 @@ separate (Files.Settings)
       --  removable media, the process killed mid-write) leaves the existing
       --  settings intact rather than truncating them to nothing. Exclusive
       --  creation also refuses a stale or hostile .tmp symlink instead of
-      --  following it and truncating its target.
+      --  following it and truncating its target. What a crash left there
+      --  before this process started goes first, so temporaries do not pile
+      --  up beside the settings.
+      Files.Durable_Writes.Sweep_Stale_Temporaries (Target);
       Files.Durable_Writes.Write_Private_Temporary (Target, Write_Text'Access, Temp, Temp_Identity);
       Publication := Files.Durable_Writes.Publish (To_String (Temp), Target);
       if not Files.Durable_Writes.Published (Publication) then

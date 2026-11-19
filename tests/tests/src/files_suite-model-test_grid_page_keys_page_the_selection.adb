@@ -10,7 +10,7 @@ separate (Files_Suite.Model)
       --  still scrolls through the wheel / targeted-scroll seam, which
       --  Test_Main_View_Scroll_And_Settings_Block covers.
       Files.Model.Selection.Select_Visible (Model, 1);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -34,7 +34,7 @@ separate (Files_Suite.Model)
             "ignored main-view scrolling leaves the model revision unchanged");
       end;
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Selection_Moved,
@@ -44,7 +44,7 @@ separate (Files_Suite.Model)
          Files.Model.Visible_Count (Model),
          "grid PageDown moves the selection a full page down to the last item");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -54,7 +54,7 @@ separate (Files_Suite.Model)
          Files.Model.Visible_Count (Model),
          "grid PageDown keeps the last item selected");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Selection_Moved,

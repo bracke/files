@@ -1,3 +1,4 @@
+with Files.Transfer_Jobs;
 --  A paste, a drop or a Copy to.../Move to... as the model holds it: the
 --  conflict dialog that resolves its collisions, and the execution that
 --  works through its resolved actions, with the transfer job that runs

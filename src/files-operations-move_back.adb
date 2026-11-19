@@ -22,7 +22,7 @@ is
          Action.Reverse_Completed.Append (Path);
       end if;
       --  A retry finds a finished move by its identity at the target.
-      Files.History_Journal.Checkpoint (Model, Action, Side, Force => not Recognisable);
+      Files.History_Journal.Checkpoint (Files.Model.History.State (Model), Action, Side, Force => not Recognisable);
    end Completed;
 begin
    for Step in 0 .. Count - 1 loop
@@ -50,7 +50,7 @@ begin
             if Marked then
                Remove_Completion (Action, Source_Path, Side);
                Done.Exclude (Source);
-               Files.History_Journal.Checkpoint (Model, Action, Side);
+               Files.History_Journal.Checkpoint (Files.Model.History.State (Model), Action, Side);
             end if;
             if Identity = "" then
                Succeeded := False;

@@ -657,6 +657,30 @@ package Files.File_System is
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result;
 
+   --  Put a staged file or folder at Target, never over an entry already
+   --  there: its identity and tree revision taken first, the whole of it
+   --  flushed to the device (a power cut leaves no recorded but empty or cut
+   --  short output), named as intended (Files.Job_Context.Intend_Created),
+   --  renamed into place, given the access its new folder hands down (as a
+   --  published copy is, its revision read again where that changed it),
+   --  recorded as created, and its new name flushed. A failure of that last
+   --  flush is traced, not returned: the entry is published and recorded,
+   --  as a Durable_Writes publication that is Published_Not_Durable. The one
+   --  way Compress and Extract publish what they made.
+   --
+   --  @param Staged The finished file or folder inside a stage.
+   --  @param Target Where it is published.
+   --  @param Identity Set to its identity token, for its Undo.
+   --  @param Revision Set to its tree revision, for its Undo.
+   --  @return False when it was not published; Staged is then left for the
+   --    caller to discard with its stage.
+   function Publish_Staged
+     (Staged   : String;
+      Target   : String;
+      Identity : out UString;
+      Revision : out UString)
+      return Boolean;
+
    --  Create a symbolic link at Link_Path that refers to Source_Path.
    --
    --  Link_Path must not already exist and its parent directory must exist.
@@ -872,6 +896,31 @@ package Files.File_System is
    function Read_Preview_Text
      (Path : String; Max_Bytes : Natural; Success, Complete : out Boolean) return String;
 private
+
+   --  Whether an entry is hidden: a leading dot in its name, or the host's
+   --  hidden flag (Hostkit.Fs.Is_Hidden: Windows' attribute, macOS's
+   --  UF_HIDDEN). The one rule the listing, the tree, folder counts, Recent
+   --  and made-up items share. A flag that cannot be read leaves the name
+   --  to decide, so an entry is never dropped for it.
+   --
+   --  @param Name The entry's name.
+   --  @param Full Its full path.
+   --  @return True when it is hidden.
+   function Entry_Is_Hidden (Name : String; Full : String) return Boolean;
+
+   --  Whether Child is Parent or lies inside it, by Path_Is_Within's rule
+   --  with Folds answering whether a volume folds names in place of
+   --  Hostkit.Fs.Folds_Name_Case: the rule apart from the volumes there are,
+   --  for the test suite (Files.File_System.Testing).
+   --
+   --  @param Child Candidate path.
+   --  @param Parent Candidate ancestor.
+   --  @param Folds Whether the volume holding a folder folds names.
+   --  @return True when Child is Parent or lies inside it.
+   function Path_Is_Within_By
+     (Child, Parent : String;
+      Folds         : not null access function (Directory : String) return Boolean)
+      return Boolean;
 
    --  Declared for Permissions (renamed there) and for the parent's own
    --  bodies and private children, which keep calling them by these names.

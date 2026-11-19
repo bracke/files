@@ -72,6 +72,7 @@ separate (Files.Interaction)
              (Model          => Model,
               Settings       => Settings,
               Key            => Laid_Out_Key,
+              Action         => Files.Events.Translate_Key (Laid_Out_Key, Modifiers),
               Modifiers      => Modifiers,
               Tree_Page_Rows => Tree_Page_Rows);
       begin

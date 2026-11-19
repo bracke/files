@@ -77,7 +77,7 @@ separate (Files_Suite.Commands)
          "the shell clears the request once consumed");
 
       --  Control+Shift+C routes to the command through the controller.
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_C, Ctrl_Shift);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_C, Ctrl_Shift);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Copy_Path_Command,

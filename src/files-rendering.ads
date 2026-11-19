@@ -388,6 +388,15 @@ package Files.Rendering is
       Dialog_Hits : Dialog_Hit_Region_Vectors.Vector;
    end record;
 
+   --  The rectangle that dims the whole window under a modal panel: what the
+   --  frame builder and the window layer both lay under one.
+   --
+   --  @param Width Window width in pixels.
+   --  @param Height Window height in pixels.
+   --  @return The backdrop, in the modal backdrop colour.
+   function Modal_Backdrop (Width, Height : Natural) return Guikit.Draw.Rectangle_Command is
+     ((X => 0, Y => 0, Width => Width, Height => Height, Color => Guikit.Draw.Modal_Backdrop_Color));
+
    --  Whether Snapshot shows Overlay open: the snapshot's own flag for each
    --  Files.UI_Types.Input_Overlay.
    --

@@ -47,53 +47,25 @@ separate (Files.Events)
          return Scroll_Action (Target, Adjustment);
       end Bounded_Scroll_Action;
 
-      --  One wheel step of the main view. The view draws its offset snapped
-      --  down to whole row periods, and a row period (an icon cell plus its
-      --  gap) is rarely a whole number of lines, so a step in lines alone can
-      --  land inside the row already shown and move nothing. The step is
-      --  therefore made in rows -- at least one, as many as the lines asked
-      --  for cover -- from the offset actually drawn, then expressed as the
-      --  fewest lines whose snapped offset is that row; at the end the exact
-      --  maximum takes over, as the drawing does.
+      --  One wheel step of the main view: in rows when its rows are at least
+      --  a line tall (Layouts.Main_View_Wheel_Lines), in lines otherwise,
+      --  where a line step always moves a row.
       function Main_View_Scroll_Action
         (Main    : Files.Rendering.Layouts.Main_View_Layout;
          Raw     : Natural;
          Maximum : Natural)
          return Input_Action
       is
-         Stride : constant Long_Long_Integer := Long_Long_Integer (Main.Row_Stride);
-         LH     : constant Long_Long_Integer := Long_Long_Integer (Line_Height);
-         Up     : constant Boolean := Action.Scroll_Lines < 0;
-         Lines  : constant Long_Long_Integer := abs Long_Long_Integer (Action.Scroll_Lines);
+         Wanted : Natural;
       begin
-         if Stride < LH then
-            --  Rows no taller than a line: a line step always moves a row.
+         if Main.Row_Stride < Line_Height then
             return Bounded_Scroll_Action (Scroll_Main_View, Raw, Maximum);
          end if;
-         declare
-            Rows    : constant Long_Long_Integer := Long_Long_Integer'Max (1, Lines * LH / Stride);
-            Drawn   : constant Long_Long_Integer := Long_Long_Integer (Main.Scroll_Pixels);
-            --  The row boundary at or above (going up) or below (going down)
-            --  the drawn offset, which is off a boundary only at the very end.
-            Floor   : constant Long_Long_Integer := Drawn / Stride * Stride;
-            Ceiling : constant Long_Long_Integer :=
-              (if Floor = Drawn then Drawn else Floor + Stride);
-            Target  : constant Long_Long_Integer :=
-              (if Up then Long_Long_Integer'Max (0, Ceiling - Rows * Stride)
-               else Floor + Rows * Stride);
-            --  The lines the drawing turns into Target (Layouts, which
-            --  revealing an item asks too).
-            Bounded : constant Natural := Natural (Long_Long_Integer'Min (Target, Long_Long_Integer (Natural'Last)));
-            Reached : constant Long_Long_Integer := Long_Long_Integer
-              (Files.Rendering.Layouts.Lines_For_Offset (Main, Line_Height, Bounded, Up));
-            Wanted  : constant Long_Long_Integer := Long_Long_Integer'Min (Long_Long_Integer (Maximum), Reached);
-            Change  : constant Long_Long_Integer := Wanted - Long_Long_Integer (Raw);
-         begin
-            if Change = 0 then
-               return No_Action;
-            end if;
-            return Scroll_Action (Scroll_Main_View, Integer (Change));
-         end;
+         Wanted := Files.Rendering.Layouts.Main_View_Wheel_Lines (Main, Line_Height, Maximum, Action.Scroll_Lines);
+         if Wanted = Raw then
+            return No_Action;
+         end if;
+         return Scroll_Action (Scroll_Main_View, Integer (Wanted) - Integer (Raw));
       end Main_View_Scroll_Action;
 
       --  The wheel over the open folder tree: Over is False, with no action,

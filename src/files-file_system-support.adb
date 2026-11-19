@@ -252,6 +252,9 @@ package body Files.File_System.Support is
             then
                raise Ada.Directories.Use_Error;
             end if;
+            if Depth = 0 then
+               Result.Root_Identity := To_Unbounded_String (Identity);
+            end if;
             Result.Entries.Append (To_Unbounded_String
               (Natural'Image (Relative'Length) & ":" & Relative & Identity & Revision & Digest));
             Result.Shapes.Append (To_Unbounded_String
@@ -695,11 +698,6 @@ package body Files.File_System.Support is
          Purpose, Batch);
    end Copy_To_New_Path;
 
-   --  Give a copy just published from its private stage the access its new
-   --  folder hands down, and its revision afresh where that changed it. The
-   --  copy is already published, so nothing here may raise: a caller must
-   --  still record it. Cancellation is no longer heeded (the copy is done),
-   --  and a failure keeps the revision the copy was published with.
    procedure Inherit_Destination_Access
      (Path     : String;
       Revision : in out Files.Types.UString)

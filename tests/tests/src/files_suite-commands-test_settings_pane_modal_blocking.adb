@@ -11,18 +11,18 @@ separate (Files_Suite.Commands)
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Toggle_Settings_Pane_Command,
          "control+comma routes settings command");
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "control+comma opens settings pane");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "control+comma closes open settings pane");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "control+comma reopens settings pane");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "Escape closes unfocused settings pane");
       Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Settings_Input, Cursor_Position => 2);
       Files_Suite.Support.Assert_Equal
@@ -98,7 +98,7 @@ separate (Files_Suite.Commands)
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "settings clicks route through the panel, not the generic text-click path");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "settings pane closes after focus Escape");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
@@ -110,7 +110,7 @@ separate (Files_Suite.Commands)
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Assert
         (Files.Model.Selection.Selected_Item (Model).Name = "Alpha.txt", "settings modal starts with stable selection");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -123,7 +123,7 @@ separate (Files_Suite.Commands)
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "settings text-clicks are handled by the panel, not the generic path");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Assert (Files.Model.Command_Palette.Is_Open (Model), "palette can open over settings pane");
       Files.Model.Command_Palette.Close (Model);
       Result := Files.Controller.Execute_Non_Settings_Command

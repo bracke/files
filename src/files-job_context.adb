@@ -145,12 +145,7 @@ package body Files.Job_Context is
       Write_Record : not null access procedure
         (Stream : not null access Ada.Streams.Root_Stream_Type'Class)) is
    begin
-      if Hostkit.Fs.Is_Link (Target)
-        or else (not Files.Fs_Primitives.Entry_Is_Absent (Target)
-          and then not Files.Fs_Primitives.File_Exists (Target))
-      then
-         raise Ada.Directories.Use_Error;
-      end if;
+      --  Write_And_Publish refuses a Target that is a link or not a file.
       if not Files.Durable_Writes.Published (Files.Durable_Writes.Write_And_Publish (Target, Write_Record)) then
          raise Ada.Directories.Use_Error;
       end if;
@@ -219,16 +214,20 @@ package body Files.Job_Context is
          raise;
    end Append_Journal_Record;
 
+   --  Flush a journal just appended to, then its folder. The record is
+   --  written either way, so a failed flush does not fail the append: the
+   --  record holds unless the machine stops before the device catches up.
+   --  It is traced, for a dying disk shows here first.
    procedure Sync_Journal (Path : String) is
+      File_Sync : constant Hostkit.Durability.Outcome := Files.Durability.Sync_File (Path);
    begin
-      if Files.Durability.Sync_File (Path) = Hostkit.Durability.Synced then
-         declare
-            Outcome : constant Hostkit.Durability.Outcome :=
-              Files.Durability.Sync_Directory (Files.Fs_Primitives.Parent_Directory (Path));
-            pragma Unreferenced (Outcome);
-         begin
-            null;
-         end;
+      if File_Sync = Hostkit.Durability.Failed then
+         Files.Diagnostics.Trace ("Files.Job_Context", "journal_sync_failed=" & Path);
+      elsif File_Sync = Hostkit.Durability.Synced
+        and then Files.Durability.Sync_Directory (Files.Fs_Primitives.Parent_Directory (Path)) =
+          Hostkit.Durability.Failed
+      then
+         Files.Diagnostics.Trace ("Files.Job_Context", "journal_folder_sync_failed=" & Path);
       end if;
    exception
       when Swallowed : others =>

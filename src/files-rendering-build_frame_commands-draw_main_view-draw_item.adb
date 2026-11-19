@@ -55,7 +55,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
       procedure Draw_Icon is
       begin
          if Snapshot.View_Mode = Files.Types.Details then
-            Add_Details_Icon (Item, Item_Rect.Icon_X, Item_Rect.Icon_Y, Item_Rect.Icon_Size);
+            Add_Icon (Item, Item_Rect.Icon_X, Item_Rect.Icon_Y, Item_Rect.Icon_Size);
          else
             Add_Icon
               (Item,
@@ -106,7 +106,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
       --  The Details row's columns. The full-date tooltips of the time cells
       --  only for the row under the pointer: only its tooltip can show in
       --  this frame.
-      procedure Draw_Details_Columns (Hovered : Boolean; Modified, Size : UString) is
+      procedure Draw_Details_Columns (Hovered : Boolean; Cells : Detail_Column_Texts) is
       begin
          Guikit.Item_Grid.Draw_Details_Row
            (Rectangles       => Result.Rectangles,
@@ -116,17 +116,18 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
             Clip_Height      => Layout.Height,
             Cell             => Item_Rect,
             Line_Height      => Line_Height,
-            Modified         => Modified,
-            Size             => Size,
-            Filetype         => Item.Filetype_Detail,
-            Created          => Detail_Time_Text (Item.Creation_Available, Item.Creation_Time, Snapshot.Now),
-            Permissions      => Item.Permissions,
+            Modified         => Cells (Files.Types.Modified_Column),
+            Size             => Cells (Files.Types.Size_Column),
+            Filetype         => Cells (Files.Types.Filetype_Column),
+            Created          => Cells (Files.Types.Created_Column),
+            Permissions      => Cells (Files.Types.Permissions_Column),
             Modified_Tooltip =>
               (if Hovered and then Item.Modified_Available
                then To_Unbounded_String (Full_Time_Text (Item.Modified_Time))
                else Null_Unbounded_String),
             Created_Tooltip  =>
               (if Hovered and then Item.Creation_Available
+                 and then Snapshot.Detail_Columns_Visible (Files.Types.Created_Column)
                then To_Unbounded_String (Full_Time_Text (Item.Creation_Time))
                else Null_Unbounded_String),
             Dim              => Item.Cut_Pending,
@@ -135,10 +136,39 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
             Border_Color     => Border_Color);
       end Draw_Details_Columns;
 
+      --  The Details row's cell texts for the columns shown, empty for the
+      --  hidden ones and in the icon views.
+      function Detail_Cells return Detail_Column_Texts is
+         Shown  : Files.Types.Detail_Column_Visibility renames Snapshot.Detail_Columns_Visible;
+         Result : Detail_Column_Texts := [others => Null_Unbounded_String];
+      begin
+         if not Details then
+            return Result;
+         end if;
+         if Shown (Files.Types.Modified_Column) then
+            Result (Files.Types.Modified_Column) :=
+              Detail_Time_Text (Item.Modified_Available, Item.Modified_Time, Snapshot.Now);
+         end if;
+         if Shown (Files.Types.Size_Column) then
+            Result (Files.Types.Size_Column) := Detail_Size_Text (Item);
+         end if;
+         if Shown (Files.Types.Filetype_Column) then
+            Result (Files.Types.Filetype_Column) := Item.Filetype_Detail;
+         end if;
+         if Shown (Files.Types.Created_Column) then
+            Result (Files.Types.Created_Column) :=
+              Detail_Time_Text (Item.Creation_Available, Item.Creation_Time, Snapshot.Now);
+         end if;
+         if Shown (Files.Types.Permissions_Column) then
+            Result (Files.Types.Permissions_Column) := Item.Permissions;
+         end if;
+         return Result;
+      end Detail_Cells;
+
       --  The item's accessibility node: a table row in Details, else a list
       --  item; focused when it is the primary selection and the keyboard is
       --  on the grid.
-      procedure Add_Item_Accessibility (Modified, Size : UString) is
+      procedure Add_Item_Accessibility (Cells : Detail_Column_Texts) is
       begin
          Add_Accessibility_Node
            ((if Details then Role_Table_Row else Role_List_Item),
@@ -147,7 +177,9 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
             Item_Rect.Width,
             Item_Rect.Height,
             Item.Name,
-            Item_Accessible_Description (Detail_Column_Labels, Item, Details, Modified, Size),
+            Item_Accessible_Description
+              (Detail_Column_Labels, Cells, Snapshot.Detail_Column_Order, Snapshot.Detail_Columns_Visible,
+               Item, Details),
             Enabled  => True,
             Selected => Item.Selected,
             Focused  =>
@@ -186,21 +218,17 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
            and then Item.Visible_Index /= Drag_Item_Index
            and then Item.Kind = Files.Types.Directory_Item
            and then Hovered;
-         --  Details mode needs the formatted modified/size text twice -- once
-         --  to draw the row, once for the accessibility description. Format
-         --  each once here; other view modes never touch them.
-         Detail_Modified : constant UString :=
-           (if Details
-            then Detail_Time_Text (Item.Modified_Available, Item.Modified_Time, Snapshot.Now)
-            else Null_Unbounded_String);
-         Detail_Size : constant UString := (if Details then Detail_Size_Text (Item) else Null_Unbounded_String);
+         --  The Details row's cells, each formatted once for both the row and
+         --  its accessibility description, and only for a shown column: the
+         --  icon views draw none of them.
+         Cells : constant Detail_Column_Texts := Detail_Cells;
       begin
          Draw_Background (Hovered, Drop_Target);
          Draw_Icon;
          Draw_Name;
          if Details then
-            Draw_Details_Columns (Hovered, Detail_Modified, Detail_Size);
+            Draw_Details_Columns (Hovered, Cells);
          end if;
-         Add_Item_Accessibility (Detail_Modified, Detail_Size);
+         Add_Item_Accessibility (Cells);
       end;
    end Draw_Item;

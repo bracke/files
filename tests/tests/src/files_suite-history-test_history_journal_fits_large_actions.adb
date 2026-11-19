@@ -33,7 +33,7 @@ separate (Files_Suite.History)
       Files.History_Journal.Save_Stacks
         (History_Directory, Undo, Files.Model.Undo_Entry_Vectors.Empty_Vector, Required => True);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Assert (Files.History_Journal.Restore (History_Directory, Model), "the journal is saved and reads back");
+      Assert (Files.Model.Testing.Restore_Journal (History_Directory, Model), "the journal is saved and reads back");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "with the newest action, the older left out");
       Assert (Ada.Strings.Fixed.Index

@@ -14,7 +14,7 @@ separate (Files_Suite.History)
          Files.Model.Undo_Entry_Vectors.Empty_Vector,
          Required => True);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Assert (Files.History_Journal.Restore (History_Directory, Model), "the journal is saved over the leftover");
+      Assert (Files.Model.Testing.Restore_Journal (History_Directory, Model), "the journal is saved over the leftover");
       Assert (File_Is (Join (History_Directory, "history.tmp"), "half a journal"),
               "the leftover is passed over, not followed or removed");
       Assert (not Ada.Directories.Exists (Join (History_Directory, "history.tmp-2")),

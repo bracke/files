@@ -1,3 +1,4 @@
+with Files.Quick_Look;
 with Guikit.Shared_Bytes;
 
 --  The Quick Look overlay: the item it previews and the content prepared

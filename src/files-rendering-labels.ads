@@ -67,12 +67,6 @@ private package Files.Rendering.Labels is
    --  @return It as a size ("1.2 MB").
    function Size_Text (Value : Long_Long_Integer) return String renames Files.Display_Text.Size_Text;
 
-   --  @param Value A count.
-   --  @return It with the locale's digit grouping (12.345, not 12345), as
-   --    sizes and paste-progress counts are shown.
-   function Grouped_Natural_Text (Value : Natural) return String is
-     (Grouped_Integer_Text (Long_Long_Integer (Value)));
-
    --  @param Id A command.
    --  @return Its localized name.
    function Command_Label (Id : Files.Commands.Command_Id) return UString;
@@ -96,16 +90,6 @@ private package Files.Rendering.Labels is
    --  @param Ascending The sort direction.
    --  @return The sort button's label: the field and the direction.
    function Sort_Button_Label (Field : Files.Types.Sort_Field; Ascending : Boolean) return UString;
-
-   --  @param Mode A view mode.
-   --  @return Its localized name.
-   function View_Mode_Label (Mode : Files.Types.View_Mode) return String;
-
-   --  @param Snapshot The view snapshot.
-   --  @return The labelled hidden, visible and selected counts ("3 hidden
-   --    12 visible  1 selected (4 KB)"); a selection's total size carries
-   --    " ..." while a folder in it is still measured.
-   function Count_Status_Text (Snapshot : View_Snapshot) return UString;
 
    --  @param Snapshot The view snapshot.
    --  @return The three counts alone, "hidden/visible/selected", for a bar
@@ -132,11 +116,6 @@ private package Files.Rendering.Labels is
    function Empty_State_Key (Snapshot : View_Snapshot) return String;
 
    --  @param Label_Key Localization key of the label.
-   --  @param Value The value.
-   --  @return "Label: Value".
-   function Info_Value (Label_Key : String; Value : String) return UString;
-
-   --  @param Label_Key Localization key of the label.
    --  @param Available The time is known.
    --  @param Value The time.
    --  @param Now The time it is shown at (the snapshot's).
@@ -153,31 +132,32 @@ private package Files.Rendering.Labels is
    function Detail_Size_Text (Item : Item_Snapshot) return UString is
      (if Item.Size_Available then To_Unbounded_String (Size_Text (Item.Size)) else Null_Unbounded_String);
 
-   --  The details view's column names, which a row's accessibility
-   --  description repeats: looked up once a frame, not once a row.
-   type Detail_Column_Names is record
-      Modified : UString;
-      Size     : UString;
-      Filetype : UString;
-   end record;
+   --  One text per details column: the column names a row's accessibility
+   --  description repeats (Detail_Names), or one row's cells.
+   type Detail_Column_Texts is array (Files.Types.Detail_Column) of UString;
 
-   --  @return The localized details column names.
-   function Detail_Names return Detail_Column_Names;
+   --  The localized details column names, looked up once a frame, not once
+   --  a row.
+   --
+   --  @return Each column's name.
+   function Detail_Names return Detail_Column_Texts;
 
    --  @param Names The details column names (Detail_Names).
+   --  @param Cells The row's cells as drawn; only the visible columns' are read.
+   --  @param Order The details columns' left-to-right order.
+   --  @param Visible Which details columns are shown.
    --  @param Item The row.
    --  @param Details The view is the details view.
-   --  @param Modified The row's modified cell as drawn.
-   --  @param Size The row's size cell as drawn.
    --  @return What a screen reader says of the row beyond its name: in the
-   --    details view its modified time, size and type, each named; in an
-   --    icon view its type.
+   --    details view each shown column after the name with a value, named,
+   --    in the order they are drawn; in an icon view its type.
    function Item_Accessible_Description
-     (Names    : Detail_Column_Names;
-      Item     : Item_Snapshot;
-      Details  : Boolean;
-      Modified : UString;
-      Size     : UString)
+     (Names   : Detail_Column_Texts;
+      Cells   : Detail_Column_Texts;
+      Order   : Files.Types.Detail_Column_Order;
+      Visible : Files.Types.Detail_Column_Visibility;
+      Item    : Item_Snapshot;
+      Details : Boolean)
       return UString;
 
    --  Whether the free-space field should render the graphical used/free bar
@@ -209,13 +189,6 @@ private package Files.Rendering.Labels is
    function Permission_Text (Permissions : String; Inline : Boolean := False) return String
      renames Files.Display_Text.Permission_Text;
 
-   --  What a folder's info pane says it holds: its size and item count once
-   --  measured, or that it is being measured.
-   --
-   --  @param Info The folder's info block.
-   --  @return The text.
-   function Folder_Contents_Text (Info : Info_Snapshot) return UString;
-
    --  Build the ordered coalesced sections for the current multi-item selection.
    --  Each section carries one value per selected item so the layout and the
    --  renderer stay in lock-step. Intended for Selected_Info.Length >= 2.
@@ -236,19 +209,8 @@ private package Files.Rendering.Labels is
       return Coalesced_Section_Vectors.Vector is
      (if Snapshot.Info_Sections_Built then Snapshot.Info_Sections else Build_Coalesced_Info_Sections (Snapshot));
 
-   --  A time the info pane shows, or that it is unknown.
-   --
-   --  @param Available The time is known.
-   --  @param Value The time.
-   --  @param Now The time it is shown at (the snapshot's).
-   --  @return The text.
-   function Info_Metadata_Text
-     (Available : Boolean;
-      Value     : Ada.Calendar.Time;
-      Now       : Ada.Calendar.Time)
-      return UString;
-
-   --  A details-view time cell: as Info_Metadata_Text.
+   --  A details-view time cell, or that the time is unknown: as the info
+   --  pane shows a time.
    --
    --  @param Available The time is known.
    --  @param Value The time.
@@ -258,7 +220,7 @@ private package Files.Rendering.Labels is
      (Available : Boolean;
       Value     : Ada.Calendar.Time;
       Now       : Ada.Calendar.Time)
-      return UString renames Info_Metadata_Text;
+      return UString;
 
    --  The fields of an item's info block. Name is the pane's heading; the
    --  remaining fields are the single-item pane's labelled sections, and their
@@ -347,14 +309,6 @@ private package Files.Rendering.Labels is
       Now   : Ada.Calendar.Time)
       return UString;
 
-   --  The " (<name>)" suffix appended to coalesced multi-selection values so a
-   --  row shows which item it describes. A single-item pane renders the name
-   --  once as its heading instead of repeating it after every value.
-   --
-   --  @param Info The selected-item info block.
-   --  @return The parenthesised item-name suffix.
-   function Info_Postfix (Info : Info_Snapshot) return String;
-
    --  Placeholder shown for an item a section does not apply to. ASCII so it is
    --  always covered by the glyph atlas (the live-smoke asserts no missing glyphs).
    Coalesced_Placeholder : constant String := "-";
@@ -368,5 +322,55 @@ private package Files.Rendering.Labels is
    function Label_Render_Color
      (Label : Files.Types.Color_Label)
       return Guikit.Draw.Render_Color;
+
+private
+
+   --  @param Value A count.
+   --  @return It with the locale's digit grouping (12.345, not 12345), as
+   --    sizes and paste-progress counts are shown.
+   function Grouped_Natural_Text (Value : Natural) return String is
+     (Grouped_Integer_Text (Long_Long_Integer (Value)));
+
+   --  @param Mode A view mode.
+   --  @return Its localized name.
+   function View_Mode_Label (Mode : Files.Types.View_Mode) return String;
+
+   --  @param Snapshot The view snapshot.
+   --  @return The labelled hidden, visible and selected counts ("3 hidden
+   --    12 visible  1 selected (4 KB)"); a selection's total size carries
+   --    " ..." while a folder in it is still measured.
+   function Count_Status_Text (Snapshot : View_Snapshot) return UString;
+
+   --  @param Label_Key Localization key of the label.
+   --  @param Value The value.
+   --  @return "Label: Value".
+   function Info_Value (Label_Key : String; Value : String) return UString;
+
+   --  What a folder's info pane says it holds: its size and item count once
+   --  measured, or that it is being measured.
+   --
+   --  @param Info The folder's info block.
+   --  @return The text.
+   function Folder_Contents_Text (Info : Info_Snapshot) return UString;
+
+   --  A time the info pane shows, or that it is unknown.
+   --
+   --  @param Available The time is known.
+   --  @param Value The time.
+   --  @param Now The time it is shown at (the snapshot's).
+   --  @return The text.
+   function Info_Metadata_Text
+     (Available : Boolean;
+      Value     : Ada.Calendar.Time;
+      Now       : Ada.Calendar.Time)
+      return UString;
+
+   --  The " (<name>)" suffix appended to coalesced multi-selection values so a
+   --  row shows which item it describes. A single-item pane renders the name
+   --  once as its heading instead of repeating it after every value.
+   --
+   --  @param Info The selected-item info block.
+   --  @return The parenthesised item-name suffix.
+   function Info_Postfix (Info : Info_Snapshot) return String;
 
 end Files.Rendering.Labels;

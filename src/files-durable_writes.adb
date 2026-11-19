@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
@@ -8,6 +9,8 @@ with Files.File_Identities;
 with Files.Fs_Primitives;
 with Files.Io_Errors;
 with Hostkit.Fs;
+with Hostkit.Metadata;
+with Hostkit.Process;
 
 package body Files.Durable_Writes is
    use type Hostkit.Durability.Outcome;
@@ -92,17 +95,31 @@ package body Files.Durable_Writes is
    end Remove_Created;
 
    procedure Write_Private_File
-     (Temporary : String;
-      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
-      Identity  : out Files.Types.UString;
-      Max_Bytes : Long_Long_Integer := Long_Long_Integer'Last)
+     (Temporary  : String;
+      Write      : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
+      Identity   : out Files.Types.UString;
+      Name_Taken : out Boolean;
+      Max_Bytes  : Long_Long_Integer := Long_Long_Integer'Last)
    is
       Output  : aliased Files.Exclusive_Streams.Output_Stream;
       Created : Boolean := False;
    begin
       Identity := Files.Types.UString'(Ada.Strings.Unbounded.Null_Unbounded_String);
+      Name_Taken := False;
       Files.Io_Errors.Clear_Os_Error;
-      Files.Exclusive_Streams.Create (Output, Temporary);
+      begin
+         Files.Exclusive_Streams.Create (Output, Temporary);
+      exception
+         when Ada.IO_Exceptions.Use_Error =>
+            --  Asked after the failure, whose errno is already recorded.
+            --  refusal-safe: a refused lookup is not a taken name, and the
+            --  create's own failure is raised.
+            if Files.Fs_Primitives.Entry_Exists (Temporary) then
+               Name_Taken := True;
+               return;
+            end if;
+            raise;
+      end;
       Created := True;
       Identity := Ada.Strings.Unbounded.To_Unbounded_String (Files.File_Identities.Token (Temporary));
       if Ada.Strings.Unbounded.Length (Identity) = 0 then
@@ -128,6 +145,86 @@ package body Files.Durable_Writes is
          raise;
    end Write_Private_File;
 
+   procedure Write_Private_File
+     (Temporary : String;
+      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
+      Identity  : out Files.Types.UString;
+      Max_Bytes : Long_Long_Integer := Long_Long_Integer'Last)
+   is
+      Name_Taken : Boolean;
+   begin
+      Write_Private_File (Temporary, Write, Identity, Name_Taken, Max_Bytes);
+      if Name_Taken then
+         --  The create's own failure, recorded with Files.Io_Errors.
+         raise Ada.Directories.Use_Error;
+      end if;
+   end Write_Private_File;
+
+   --  When this process started, near enough: when this unit was elaborated.
+   Process_Start : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+
+   --  How much older than Process_Start a temporary must be to be stale.
+   Stale_Margin : constant Duration := 60.0;
+
+   procedure Sweep_Stale_Temporaries (Base : String) is
+      use type Ada.Calendar.Time;
+      use type Hostkit.Metadata.Account_Id;
+      Directory : constant String := Files.Fs_Primitives.Parent_Directory (Base);
+      Prefix    : constant String := Files.Types.Leaf_Of (Base) & ".tmp";
+      User      : Hostkit.Metadata.Account_Id;
+      Names     : Files.Types.String_Vectors.Vector;
+
+      --  Base & ".tmp", or Base & ".tmp-" and a number from 2.
+      function Temporary_Name (Name : String) return Boolean is
+        (Name = Prefix
+         or else (Name'Length in Prefix'Length + 2 .. Prefix'Length + 5
+                  and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
+                  and then Name (Name'First + Prefix'Length) = '-'
+                  and then Name (Name'First + Prefix'Length + 1) in '1' .. '9'
+                  and then (for all C of Name (Name'First + Prefix'Length + 2 .. Name'Last) => C in '0' .. '9')));
+
+      procedure Collect (Name : String; Stop : in out Boolean) is
+      begin
+         if Temporary_Name (Name) then
+            Names.Append (Ada.Strings.Unbounded.To_Unbounded_String (Name));
+         end if;
+         Stop := Natural (Names.Length) >= 10_000;
+      end Collect;
+
+      procedure Remove_If_Stale (Path : String) is
+         Identity : constant String := Files.File_Identities.Token (Path);
+         Status   : constant Hostkit.Metadata.Entry_Status := Hostkit.Metadata.Entry_Status_Of (Path);
+      begin
+         if Identity /= ""
+           and then not Hostkit.Fs.Is_Link (Path)
+           and then Files.Fs_Primitives.File_Exists (Path)
+           and then Status.Available
+           and then Status.User_Id = User
+           and then Status.Mode mod 8#100# = 0
+           and then Hostkit.Fs.Modification_Time_Of (Path, Follow_Links => False) < Process_Start - Stale_Margin
+         then
+            Remove_Owned (Path, Identity);
+         end if;
+      exception
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Durable_Writes");
+      end Remove_If_Stale;
+   begin
+      if Directory = ""
+        or else not Hostkit.Metadata.Mode_Bits_Are_Native
+        or else not Hostkit.Process.Current_User_Account (User)
+      then
+         return;
+      end if;
+      Files.Fs_Primitives.For_Each_Name (Directory, Collect'Access);
+      for Name of Names loop
+         Remove_If_Stale (Hostkit.Fs.Join (Directory, Ada.Strings.Unbounded.To_String (Name)));
+      end loop;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Durable_Writes");
+   end Sweep_Stale_Temporaries;
+
    procedure Write_Private_Temporary
      (Base      : String;
       Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
@@ -142,25 +239,18 @@ package body Files.Durable_Writes is
          declare
             Candidate : constant String :=
               Base & ".tmp" & (if Index = 1 then "" else "-" & Files.Types.Natural_Text (Index));
-            Taken     : Boolean := False;
+            Taken     : Boolean;
          begin
-            begin
-               Write_Private_File (Candidate, Write, Identity);
+            --  Only a name already taken moves on to the next one; a refusal
+            --  of any other kind (a full disk, no right to write there, a
+            --  failure after the create) would refuse every name, and is
+            --  raised. refusal-safe: a refused lookup is not a taken name
+            --  (Write_Private_File), so it ends the search.
+            Write_Private_File (Candidate, Write, Identity, Taken);
+            if not Taken then
                Temporary := Ada.Strings.Unbounded.To_Unbounded_String (Candidate);
                return;
-            exception
-               when Ada.Directories.Use_Error =>
-                  --  Only a name already taken moves on to the next one; a
-                  --  refusal of any other kind (a full disk, no right to
-                  --  write there) would refuse every name. Asked after the
-                  --  failure, as its errno is already recorded.
-                  --  refusal-safe: a refused lookup ends the search, failed
-                  Taken := Ada.Strings.Unbounded.Length (Identity) = 0
-                    and then not Files.Fs_Primitives.Entry_Is_Absent (Candidate);
-                  if not Taken then
-                     raise;
-                  end if;
-            end;
+            end if;
          end;
       end loop;
       raise Ada.Directories.Use_Error with "no_free_temporary=" & Base;
@@ -175,6 +265,14 @@ package body Files.Durable_Writes is
       Temporary, Identity : Files.Types.UString;
       Result : Publication_Result;
    begin
+      --  refusal-safe: a Target that cannot be looked at is neither absent
+      --  nor a plain file, so it refuses the write.
+      if Hostkit.Fs.Is_Link (Target)
+        or else (not Files.Fs_Primitives.Entry_Is_Absent (Target)
+          and then not Files.Fs_Primitives.File_Exists (Target))
+      then
+         raise Ada.Directories.Use_Error;
+      end if;
       Write_Private_Temporary (Target, Write, Temporary, Identity);
       Result := Publish (To_String (Temporary), Target);
       if not Published (Result) then

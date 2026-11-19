@@ -14,18 +14,12 @@ separate (Files.Events)
       Line_Height : Positive)
       return Input_Action
    is
-      --  Only the cheap layouts every region shares are computed here; each
-      --  region computes its costlier ones (item rectangles, root and tree
-      --  rows, breadcrumbs) itself, so a click another region takes first
-      --  never pays for them.
-      Layout         : constant Files.Rendering.Layout_Metrics :=
+      --  Only the window layout every region shares is computed here; each
+      --  region computes the layouts it reads (its panel, item rectangles,
+      --  root and tree rows, breadcrumbs) itself, so a click another region
+      --  takes first never pays for them.
+      Layout : constant Files.Rendering.Layout_Metrics :=
         Files.Rendering.Layouts.Calculate_Layout (Snapshot, Width, Height, Line_Height);
-      Palette_Layout : constant Files.Rendering.Layouts.Command_Palette_Layout :=
-        Files.Rendering.Layouts.Calculate_Command_Palette_Layout (Layout, Line_Height);
-      Info_Pane      : constant Files.Rendering.Layouts.Info_Pane_Layout :=
-        Files.Rendering.Layouts.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
-      Settings_Pane  : constant Guikit.Layout.Settings_Pane_Layout :=
-        Files.Rendering.Layouts.Settings_Pane_Region (Layout, Line_Height);
 
       function Within
         (Value  : Natural;
@@ -108,23 +102,6 @@ separate (Files.Events)
 
          return Scroll_Action (Target, Adjustment);
       end Scroll_Click;
-
-      --  Any click inside the open settings pane becomes a settings click
-      --  carrying the coordinates; Guikit.Settings_Panel hit-tests it (focusing /
-      --  toggling / choosing / stepping / pressing a button).
-      function Settings_Click_Hit return Input_Action is
-      begin
-         if not Snapshot.Settings_Pane_Open
-           or else not Within (X, Settings_Pane.X, Settings_Pane.Width)
-           or else not Within (Y, Settings_Pane.Y, Settings_Pane.Height)
-         then
-            return No_Action;
-         end if;
-         return
-           (Kind    => Settings_Click_Input_Action,
-            Click_X => X,
-            Click_Y => Y);
-      end Settings_Click_Hit;
 
       --  A click on a panel's top-right close (X) button: the Close_Button of
       --  the panel's layout, which Build_Frame_Commands drew.

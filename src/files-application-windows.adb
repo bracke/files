@@ -8,7 +8,6 @@ with Files.Extra_Info_Reader;
 with Files.Controller;
 with Files.Diagnostics;
 with Ada.Unchecked_Deallocation;
-with System;
 
 with Glfw.Input;
 with Glfw.Input.Keys.Codes;
@@ -23,14 +22,14 @@ with Hostkit.Host;
 with Files.Interaction;
 with Files.Job_Scavenger;
 with Files.Operations;
-with Files.Process_Jobs;
-with Files.Rendering.Hit;
 with Guikit.Mirroring;
 with Guikit.Utf8;
 with Files.Model.Clipboard;
 with Files.Model.Tree_Panel;
 with Files.Model.Selection;
 with Files.Rendering.Layouts;
+with Files.Application.Windows.Gestures;
+with Files.Application.Windows.Watch;
 
 package body Files.Application.Windows is
    use Ada.Strings.Unbounded;
@@ -40,22 +39,12 @@ package body Files.Application.Windows is
    use type Glfw.Input.Mouse.Coordinate;
    use type Glfw.Size;
    use type Files.Events.Input_Action_Kind;
-   use type Files.Commands.Command_Id;
    use type Files.UI_Types.Focus_Target;
-   use type Files.Types.Detail_Column;
    use type Guikit.Vulkan.Vulkan_Status;
    use type Files.Rendering.View_Snapshot;
-   use type System.Address;
 
    function Key_Repeats (Key : Guikit.Input.Key_Code) return Boolean renames Files.Window_Policy.Key_Repeats;
 
-   --  How long a window whose text failed to load waits before trying again.
-   File_Watch_Poll_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
-   --  With the watch helper reporting changes (Watch_Is_Native), the re-read
-   --  only covers what it can miss (a change made over the network to a
-   --  mounted folder).
-   --  Each re-read stats every entry, so in a large folder it is not free.
-   Native_Watch_Poll_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (10);
    Type_Ahead_Timeout : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
    --  The event loop always waits this long: input, window refresh, and posted
    --  events wake it immediately, and this bounds how long a background file
@@ -88,11 +77,6 @@ package body Files.Application.Windows is
      (Object => Desktop_Window,
       Name   => Window_Access);
 
-   --  Write any pending system-clipboard request the model recorded (for
-   --  example from the Copy Path command) to the GLFW system clipboard, then
-   --  clear it. A no-op when no request is pending.
-   procedure Flush_System_Clipboard (Runtime : in out Runtime_Window);
-
    function As_Window
      (Handle : Window_Access)
       return Glfw.Windows.Window_Reference is
@@ -100,6 +84,9 @@ package body Files.Application.Windows is
       return Glfw.Windows.Window_Reference (Handle);
    end As_Window;
 
+   --  Writes any pending system-clipboard request the model recorded (for
+   --  example from the Copy Path command) to the GLFW system clipboard, then
+   --  clears it. A no-op when no request is pending.
    procedure Flush_System_Clipboard (Runtime : in out Runtime_Window) is
    begin
       if Runtime.Handle = null
@@ -320,16 +307,12 @@ package body Files.Application.Windows is
                Files.Diagnostics.Trace ("Files.Application.Windows", "key=" & Guikit.Input.Key_Code'Image (Event.Key));
                declare
                   Key_Selected_Before : constant Natural := Files.Model.Selection.Selected_Index (Runtime.Model);
-
-                  --  Natural'Image without its leading blank.
-                  function Image_Of (Value : Natural) return String is
-                    (Natural'Image (Value) (2 .. Natural'Image (Value)'Last));
                begin
                   Fire_Key (Runtime, Event.Key, Event.Modifiers, Consumed);
                   Files.Diagnostics.Trace
                     ("Files.Application.Windows",
-                     "selected=" & Image_Of (Key_Selected_Before) & "->"
-                     & Image_Of (Files.Model.Selection.Selected_Index (Runtime.Model)));
+                     "selected=" & Files.Types.Natural_Text (Key_Selected_Before) & "->"
+                     & Files.Types.Natural_Text (Files.Model.Selection.Selected_Index (Runtime.Model)));
                end;
             when Text_Event =>
                if not (Event.Parallel and then Consumed) then
@@ -456,86 +439,11 @@ package body Files.Application.Windows is
      (Model : in out Files.Model.Window_Model;
       Watch : in out Files.Refresh_Jobs.Watch_Session) is separate;
 
-   function Drain_Native_Watch
-     (Runtime : in out Runtime_Window)
-      return Boolean is
-   begin
-      --  Native registration and storage reads happen in the helper process.
-      Files.Refresh_Jobs.Watch_Path
-        (Runtime.Watch, Files.Model.Current_Path (Runtime.Model));
-
-      return Files.Refresh_Jobs.Poll_Watch (Runtime.Watch);
-   end Drain_Native_Watch;
-
-   procedure Handle_File_Watch_Poll
-     (Runtime : in out Runtime_Window)
-   is
-      Now    : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
-      --  A failed refresh leaves its error on the model's error line, and an
-      --  applied listing is drawn from the model: neither answer is needed.
-      Result : Files.Operation_Results.Operation_Result;
-      pragma Unreferenced (Result);
-      Refreshed : Boolean;
-      pragma Unreferenced (Refreshed);
-   begin
-      if Runtime.Handle = null then
-         return;
-      end if;
-      if not Glfw.Windows.Initialized (As_Window (Runtime.Handle))
-        or else Glfw.Windows.Should_Close (As_Window (Runtime.Handle))
-      then
-         Release_Window_Jobs (Runtime.Model, Runtime.Watch);
-         return;
-      end if;
-
-      if Files.Model.Foreground_Job_Is_Active (Runtime.Model) then
-         Files.Refresh_Jobs.Cancel (Runtime.Model);
-         return;
-      end if;
-      Refreshed := Files.Refresh_Jobs.Advance (Runtime.Model, Runtime.Settings);
-      Reveal_Pending_Selection (Runtime);
-      Files.Refresh_Jobs.Resume_Owed (Runtime.Model, Runtime.Settings);
-      --  The selected item's type details, read off the UI thread; this also
-      --  serves selections deferred by a cancelled or failed refresh.
-      Files.Window_Polls.Poll_Selected_Item_Extra
-        (Runtime.Model, Files.Extra_Info_Reader.Requester (Runtime.A11y_Key), Runtime.Settings.Show_Hidden_Files);
-
-      declare
-         Changed     : constant Boolean := Drain_Native_Watch (Runtime);
-         Load_Failed : constant Boolean :=
-           Files.Model.Last_Error_Key (Runtime.Model) = "error.directory.load";
-         Polled      : Boolean;
-      begin
-         --  A burst of writes is paced to one reload per gap, the last one
-         --  owed and paid; a listing that cannot be read is retried slowly.
-         case Files.Refresh_Jobs.Watch_Step
-           (Pacer       => Runtime.Watch_Pacing,
-            Now         => Now,
-            Changed     => Changed,
-            Read_Active => Files.Process_Jobs.Active (Files.Model.Background_Refresh (Runtime.Model)),
-            Load_Failed => Load_Failed,
-            Poll_Due    =>
-              Now >= Runtime.Last_Watch_Poll + File_Watch_Poll_Interval
-              and then (not Files.Refresh_Jobs.Watch_Is_Native (Runtime.Watch)
-                        or else Now >= Runtime.Last_Watch_Poll + Native_Watch_Poll_Interval),
-            Polled      => Polled)
-         is
-            when Files.Refresh_Jobs.Watch_Refresh =>
-               Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
-            when Files.Refresh_Jobs.Watch_Wait =>
-               null;
-         end case;
-         if Polled then
-            Runtime.Last_Watch_Poll := Now;
-         end if;
-      end;
-   end Handle_File_Watch_Poll;
-
    --  Poll every window's watched directory for changes.
    procedure Handle_All_File_Watch_Poll
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      For_Each_Window (Runtime_Windows, Handle_File_Watch_Poll'Access);
+      For_Each_Window (Runtime_Windows, Watch.Poll'Access);
    end Handle_All_File_Watch_Poll;
 
    --  How long the event loop may wait for input: Paste_Wait_Timeout while
@@ -665,54 +573,12 @@ package body Files.Application.Windows is
       Modifiers : Guikit.Input.Modifier_Set)
    is
       Result : Files.Interaction.Interaction_Result;
+      Armed  : Boolean;
    begin
-      --  Scrollbar-drag begin updates the shell-owned drag tracking state and
-      --  never mutates the model, so it stays here rather than in the reducer.
-      if Action.Kind = Files.Events.Scrollbar_Drag_Begin_Input_Action then
-         Runtime.Scrollbar_Drag_Target := Action.Scroll_Area;
-         Runtime.Scrollbar_Drag_Anchor := Action.Scroll_Drag_Anchor;
-         return;
-      end if;
-
-      --  Column-resize begin likewise arms shell-owned drag state; the continuous
-      --  resize is applied per frame by Update_Column_Resize_Drag.
-      if Action.Kind = Files.Events.Column_Resize_Begin_Input_Action then
-         Runtime.Column_Resize.Active := True;
-         Runtime.Column_Resize.Changed := False;
-         Runtime.Column_Resize.Target := Action.Column;
-         Runtime.Column_Resize.Origin_X := Action.Origin_X;
-         Runtime.Column_Resize.Origin_W := Action.Column_Width;
-         return;
-      end if;
-
-      --  Column-reorder begin arms shell-owned drag state; the drop (or the
-      --  sort fallback for a press without a drag) is applied per frame by
-      --  Update_Column_Reorder_Drag.
-      if Action.Kind = Files.Events.Column_Reorder_Begin_Input_Action then
-         Runtime.Column_Reorder.Active := True;
-         Runtime.Column_Reorder.Target := Action.Column;
-         Runtime.Column_Reorder.Origin_X := Action.Origin_X;
-         Runtime.Column_Reorder.Started := False;
-         Runtime.Column_Reorder.Sort := Action.Sort_Command;
-         return;
-      end if;
-
-      --  Marquee begin arms shell-owned rubber-band state; the continuous
-      --  selection is applied per frame by Update_Marquee_Drag. The prior selection is snapshotted now so an
-      --  additive drag can union against it without the per-frame reapply
-      --  erasing it.
-      if Action.Kind = Files.Events.Marquee_Begin_Input_Action then
-         Runtime.Marquee.Active := True;
-         Runtime.Marquee.Moved := False;
-         Runtime.Marquee.Last_X := Integer'First;
-         Runtime.Marquee.Origin_X := Action.Origin_X;
-         Runtime.Marquee.Origin_Y := Action.Origin_Y;
-         Runtime.Marquee.Additive := Action.Additive;
-         Runtime.Marquee.Base := Files.Interaction.Marquee_Base (Runtime.Model);
-         Runtime.Marquee.Rect_X := 0;
-         Runtime.Marquee.Rect_Y := 0;
-         Runtime.Marquee.Rect_W := 0;
-         Runtime.Marquee.Rect_H := 0;
+      --  A drag's begin arms the gesture the window layer tracks frame by
+      --  frame (Gestures); every other action goes to the model.
+      Gestures.Arm (Runtime, Action, Armed);
+      if Armed then
          return;
       end if;
 
@@ -939,134 +805,6 @@ package body Files.Application.Windows is
          raise Desktop_Error with "error.window.create";
    end Append_Runtime_Window;
 
-   procedure Update_Scrollbar_Drag
-     (Runtime    : in out Runtime_Window;
-      Cursor_Y   : Glfw.Input.Mouse.Coordinate;
-      Window_W   : Glfw.Size;
-      Window_H   : Glfw.Size;
-      Frame_W    : Glfw.Size;
-      Frame_H    : Glfw.Size;
-      Mouse_Down : Boolean)
- is separate;
-
-   --  End a column-resize drag. Its moves resized the column in memory only;
-   --  the settings file is written once, here.
-   procedure End_Column_Resize_Drag (Runtime : in out Runtime_Window) is
-   begin
-      if Runtime.Column_Resize.Active then
-         Files.Interaction.End_Column_Resize
-           (Model         => Runtime.Model,
-            Settings      => Runtime.Settings,
-            Settings_Path => To_String (Runtime.Settings_Path),
-            Changed       => Runtime.Column_Resize.Changed);
-      end if;
-      Runtime.Column_Resize.Active := False;
-      Runtime.Column_Resize.Changed := False;
-   end End_Column_Resize_Drag;
-
-   procedure Update_Column_Resize_Drag
-     (Runtime    : in out Runtime_Window;
-      Cursor_X   : Glfw.Input.Mouse.Coordinate;
-      Window_W   : Glfw.Size;
-      Frame_W    : Glfw.Size;
-      Mouse_Down : Boolean)
-   is
-      Result : Files.Interaction.Interaction_Result;
-   begin
-      if not Runtime.Column_Resize.Active then
-         return;
-      elsif not Mouse_Down or else Window_W = 0 or else Frame_W = 0 then
-         End_Column_Resize_Drag (Runtime);
-         return;
-      end if;
-
-      Files.Interaction.Apply_Column_Resize
-        (Model        => Runtime.Model,
-         Settings     => Runtime.Settings,
-         Column       => Runtime.Column_Resize.Target,
-         Origin_X     => Runtime.Column_Resize.Origin_X,
-         Origin_Width => Runtime.Column_Resize.Origin_W,
-         Current_X    => Scale_X (Cursor_X, Window_W, Frame_W),
-         Result       => Result,
-         Line_Height  => Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
-      if Result.Settings_Changed then
-         Runtime.Column_Resize.Changed := True;
-      end if;
-   end Update_Column_Resize_Drag;
-
-   --  Minimum pointer travel, in frame pixels at the reference line height
-   --  (scaled with the text), before an armed header press becomes a reorder
-   --  drag. Below it a press/release is treated as a sort click, matching the
-   --  resize hot zone's grabbable-yet-forgiving feel.
-   Column_Reorder_Threshold : constant := 6;
-
-   procedure Update_Column_Reorder_Drag
-     (Runtime    : in out Runtime_Window;
-      Cursor_X   : Glfw.Input.Mouse.Coordinate;
-      Cursor_Y   : Glfw.Input.Mouse.Coordinate;
-      Window_W   : Glfw.Size;
-      Window_H   : Glfw.Size;
-      Frame_W    : Glfw.Size;
-      Frame_H    : Glfw.Size;
-      Mouse_Down : Boolean)
-   is separate;
-
-   --  Minimum pointer travel, in frame pixels, before an armed empty-space press
-   --  becomes a marquee. Below it the press/release is a plain empty-space click
-   --  that leaves the selection untouched, matching the pre-marquee no-op.
-   Marquee_Drag_Threshold : constant := 4;
-
-   procedure Update_Marquee_Drag
-     (Runtime    : in out Runtime_Window;
-      Cursor_X   : Glfw.Input.Mouse.Coordinate;
-      Cursor_Y   : Glfw.Input.Mouse.Coordinate;
-      Window_W   : Glfw.Size;
-      Window_H   : Glfw.Size;
-      Frame_W    : Glfw.Size;
-      Frame_H    : Glfw.Size;
-      Mouse_Down : Boolean)
- is separate;
-
-   --  Pointer gestures are tracked outside the model so they can update every
-   --  frame.  If a keyboard shortcut opens an overlay while the button remains
-   --  held, cancel every background gesture before its next update; otherwise
-   --  scrolling, selection, or column settings can continue changing invisibly.
-   procedure Cancel_Background_Gestures_For_Overlay
-     (Runtime : in out Runtime_Window)
-   is
-      use type Files.Events.Scroll_Target;
-      --  The destination picker is modal, but its tree scrollbar belongs to the
-      --  modal surface rather than the background. Preserve only that gesture;
-      --  every file-grid drag and any scrollbar owned by covered content still
-      --  gets canceled below.
-      Keep_Tree_Scrollbar : constant Boolean :=
-        Files.Model.Tree_Panel.Pick_Is_Active (Runtime.Model)
-        and then Files.Model.Tree_Panel.Is_Open (Runtime.Model)
-        and then Runtime.Scrollbar_Drag_Target = Files.Events.Scroll_Tree_Panel
-        and then not Files.Model.Other_Input_Owning_Overlay_Is_Open (Runtime.Model, Files.UI_Types.Tree_Pick_Overlay);
-   begin
-      if not Files.Model.Input_Owning_Overlay_Is_Open (Runtime.Model) then
-         return;
-      end if;
-
-      Runtime.Drag_Source_Index := 0;
-      if not Keep_Tree_Scrollbar then
-         Runtime.Scrollbar_Drag_Target := Files.Events.No_Scroll_Target;
-         Runtime.Scrollbar_Drag_Anchor := 0;
-      end if;
-      End_Column_Resize_Drag (Runtime);
-      Runtime.Column_Reorder.Active := False;
-      Runtime.Column_Reorder.Started := False;
-      Runtime.Column_Reorder.Sort := Files.Commands.No_Command;
-      Runtime.Marquee.Active := False;
-      Runtime.Marquee.Moved := False;
-      Runtime.Marquee.Base.Clear;
-      Runtime.Marquee.Rect_X := 0;
-      Runtime.Marquee.Rect_Y := 0;
-      Runtime.Marquee.Rect_W := 0;
-      Runtime.Marquee.Rect_H := 0;
-   end Cancel_Background_Gestures_For_Overlay;
-
    --  Append a component overlay's draw commands (its rectangles, text, icons and
    --  accessibility nodes) onto the window frame.
    procedure Append_Overlay
@@ -1078,21 +816,22 @@ package body Files.Application.Windows is
         Guikit.Draw.Icon_Command_Vectors.Empty_Vector) is
    begin
       --  Panels (command palette, settings) draw into the overlay layer, which
-      --  is composited after the main grid's rectangles, icons and text. Drawing
-      --  them into the main layers instead let the grid's icons and text (later
-      --  passes) paint over the opaque panel, so the grid showed through.
+      --  is composited after all of the main layer's rectangles, icons and
+      --  text, so nothing of the file view shows through an opaque panel; their
+      --  icons go to the overlay icon pass, above the panel's own background.
       for C of Rectangles loop
          Frame.Overlay_Rectangles.Append (C);
       end loop;
       for C of Text loop
          Frame.Overlay_Text.Append (C);
       end loop;
-      --  These panels emit no icons today; keep them in the main icon layer so
-      --  the (unchanged) atlas path handles any that appear. If a panel ever
-      --  needs icons above its own background, route them through the overlay
-      --  icon pass instead.
       for C of Icons loop
-         Frame.Icons.Append (C);
+         declare
+            Command : Guikit.Draw.Icon_Command := C;
+         begin
+            Command.Overlay := True;
+            Frame.Icons.Append (Command);
+         end;
       end loop;
       for N of Accessibility loop
          Frame.Accessibility.Append (N);
@@ -1123,13 +862,7 @@ package body Files.Application.Windows is
       Frame.Accessibility.Clear;
 
       if Width > 0 and then Height > 0 then
-         Frame.Overlay_Rectangles.Append
-           (Guikit.Draw.Rectangle_Command'
-              (X      => 0,
-               Y      => 0,
-               Width  => Width,
-               Height => Height,
-               Color  => Guikit.Draw.Modal_Backdrop_Color));
+         Frame.Overlay_Rectangles.Append (Files.Rendering.Modal_Backdrop (Width, Height));
       end if;
    end Append_Modal_Backdrop;
 

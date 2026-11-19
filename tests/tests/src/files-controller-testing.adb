@@ -26,4 +26,14 @@ package body Files.Controller.Testing is
       return Controller_Result
      renames Files.Controller.Toggle_Free_Space_Display;
 
+   function Handle_Key
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Key       : Guikit.Input.Key_Code;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Tree_Page_Rows : Natural := 0)
+      return Controller_Result is
+     (Files.Controller.Handle_Key
+        (Model, Settings, Key, Files.Events.Translate_Key (Key, Modifiers), Modifiers, Tree_Page_Rows));
+
 end Files.Controller.Testing;

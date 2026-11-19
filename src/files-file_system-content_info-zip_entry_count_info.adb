@@ -1,4 +1,4 @@
-separate (Files.File_System)
+separate (Files.File_System.Content_Info)
 --  The entry count the archive itself records: the End Of Central Directory
 --  record (PK 5 6), found by searching the file's last 64 KiB + 22 bytes (the
 --  record and the longest comment) backwards, and for a ZIP64 archive the

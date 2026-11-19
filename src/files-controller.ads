@@ -430,9 +430,14 @@ package Files.Controller is
    --  Controller_Needs_Settings_Path, and Enter on the label picker or the
    --  context menu with Controller_Activation_Requested.
    --
+   --  The key arrives translated (Files.Interaction.Handle_Key asks
+   --  Files.Events.Translate_Key, as the window layer translates pointer
+   --  input), and raw, which text editing and the overlays read.
+   --
    --  @param Model Window model to update.
    --  @param Settings Settings model used by operations.
    --  @param Key Key code.
+   --  @param Action The input action Key and Modifiers translate to.
    --  @param Modifiers Active modifier keys.
    --  @param Tree_Page_Rows Folder-tree rows visible in the live viewport, or
    --    zero when geometry is unavailable.
@@ -441,6 +446,7 @@ package Files.Controller is
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Key       : Guikit.Input.Key_Code;
+      Action    : Files.Events.Input_Action;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Tree_Page_Rows : Natural := 0)
       return Controller_Result;

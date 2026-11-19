@@ -28,7 +28,7 @@ separate (Files_Suite.Trash)
          Files.Model.Set_Filter (Model, "multi-");
          Files.Model.Selection.Select_Visible (Model, 1);
          Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
             Files.Operation_Results.Operation_Success,
@@ -50,7 +50,7 @@ separate (Files_Suite.Trash)
          Files.Model.Selection.Select_Visible (Model, 1);
          Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
          Ada.Directories.Delete_File (Join (Root, "partial-b.txt"));
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
             Files.Operation_Results.Operation_Failed,

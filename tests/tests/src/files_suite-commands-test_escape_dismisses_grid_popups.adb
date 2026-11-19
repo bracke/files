@@ -26,34 +26,34 @@ separate (Files_Suite.Commands)
       begin
          --  Down navigates the menu (see Test_Context_Menu_Keyboard); the point
          --  here is that it does not leak through to move the grid behind it.
-         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+         Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Selection.Selected_Index (Model),
             Before,
             "the grid does not move behind the context menu");
          Assert (Files.Model.Context_Menu.Is_Open (Model), "a non-Escape key leaves the menu open");
       end;
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Context_Menu.Is_Open (Model), "Escape closes the context menu");
 
       --  Sort menu.
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Sort_Menu_Command, Model, Settings);
       Assert (Files.Model.Sort_Menu.Is_Open (Model), "sort menu opens");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Sort_Menu.Is_Open (Model), "Escape closes the sort menu");
 
       --  Color-label picker.
       Files.Model.Label_Picker.Open (Model);
       Assert (Files.Model.Label_Picker.Is_Open (Model), "label picker opens");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Label_Picker.Is_Open (Model), "Escape closes the label picker");
 
       --  Modal destination-pick tree: Escape cancels the pick and closes the panel.
       Files.Model.Tree_Panel.Begin_Pick (Model, Files.Model.Pick_Move, Sources, "");
       Files.Model.Tree_Panel.Open (Model);
       Assert (Files.Model.Tree_Panel.Pick_Is_Active (Model), "tree pick is active");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Tree_Panel.Pick_Is_Active (Model), "Escape cancels the tree pick");
       Assert (not Files.Model.Tree_Panel.Is_Open (Model), "Escape closes the pick tree panel");
    end Test_Escape_Dismisses_Grid_Popups;

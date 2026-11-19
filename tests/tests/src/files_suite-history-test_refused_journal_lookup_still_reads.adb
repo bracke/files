@@ -27,14 +27,14 @@ separate (Files_Suite.History)
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
 
       Files.Fs_Primitives.Testing.Refuse_Lookups (Join (Directory, "history"));
-      Assert (Files.History_Journal.Restore (Directory, Model),
+      Assert (Files.Model.Testing.Restore_Journal (Directory, Model),
               "a journal whose lookup is refused is still read");
       Files.Fs_Primitives.Testing.Stop_Refusing_Lookups;
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "with its Undo entry");
 
       Ada.Directories.Delete_File (Join (Directory, "history"));
-      Assert (not Files.History_Journal.Restore (Directory, Model), "a journal gone for sure is none");
+      Assert (not Files.Model.Testing.Restore_Journal (Directory, Model), "a journal gone for sure is none");
       Reset_Root;
    exception
       when others =>

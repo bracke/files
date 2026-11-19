@@ -183,6 +183,8 @@ package body Files_Suite.Rendering is
    procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Drawn_In_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Label_Picker_Drawn_In_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Main_Text_Kept_Under_Stacked_Overlays (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Details_Description_Follows_Columns (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Image_High_Res (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Localized_Text_Follows_Locale_Change (T : in out AUnit.Test_Cases.Test_Case'Class);
 
@@ -381,6 +383,12 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Label_Picker_Drawn_In_Overlay'Access,
          "the label picker composites in the overlay layer, not beneath file icons");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Main_Text_Kept_Under_Stacked_Overlays'Access,
+         "the file view's names stay in the frame under the palette opened over settings");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Details_Description_Follows_Columns'Access,
+         "a details row's accessibility description announces the shown columns in order and no hidden one");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Theme_Palette_Selection'Access,
          "light and high-contrast palettes are visually distinct from dark");
@@ -835,6 +843,14 @@ package body Files_Suite.Rendering is
    procedure Test_Quick_Look_Drawn_In_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Label_Picker_Drawn_In_Overlay
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is separate;
+
+   procedure Test_Main_Text_Kept_Under_Stacked_Overlays
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is separate;
+
+   procedure Test_Details_Description_Follows_Columns
      (T : in out AUnit.Test_Cases.Test_Case'Class)
    is separate;
 

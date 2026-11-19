@@ -14,7 +14,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Text_Cursor_Position (Model),
          16,
          "long filter replacement places cursor at end");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Text_Updated,
@@ -23,7 +23,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Text_Cursor_Position (Model),
          11,
          "Control+Left stops before previous word");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Text_Updated,
@@ -36,24 +36,24 @@ separate (Files_Suite.Commands)
         (Files.Model.Text_Cursor_Position (Model),
          6,
          "Control+Backspace leaves cursor at word boundary");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Text_Updated,
          "Control+Delete deletes next word");
       Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "alpha ", "Control+Delete removes next word");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "Control+Delete at end is ignored");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "Control+Left at start is ignored");
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
+      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
