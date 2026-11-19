@@ -1,4 +1,3 @@
-with Guikit.Bidi;
 with Guikit.Mirroring;
 separate (Files.Application.Windows.Render_Window)
    procedure Present_Frame
@@ -26,7 +25,7 @@ separate (Files.Application.Windows.Render_Window)
          Guikit.Mirroring.Mirror (Frame.Layout);
       end Mirror;
 
-      Mirrored : constant Boolean := Guikit.Bidi.Mirrored_Layout;
+      Mirrored : constant Boolean := Guikit.Mirroring.Mirrored_Layout;
    begin
       --  The cached frame keeps the unmirrored coordinates hit tests use, so
       --  what is shown is the cached frame itself only when nothing is merged

@@ -30,7 +30,7 @@ separate (Files.Interaction)
       --  the other way round -- the grid, the tree, menus, the toolbar's
       --  Back and Forward -- so Left and Right trade meanings.
       Laid_Out_Key  : constant Guikit.Input.Key_Code :=
-        (if not Guikit.Bidi.Mirrored_Layout or else Editing_Text then Key
+        (if not Guikit.Mirroring.Mirrored_Layout or else Editing_Text then Key
          elsif Key = Guikit.Input.Key_Left then Guikit.Input.Key_Right
          elsif Key = Guikit.Input.Key_Right then Guikit.Input.Key_Left
          else Key);

@@ -24,8 +24,8 @@ with Files.Icon_Assets;
 with Files.Localization;
 with Files.Operations;
 with Files.Rendering;
-with Guikit.Bidi;
 with Guikit.Frame_Analysis;
+with Guikit.Mirroring;
 with Guikit.Vulkan;
 with Files.Model.Selection;
 with Files.Model.Status_Samples;
@@ -702,7 +702,7 @@ package body Files.Application is
       Files.Icon_Assets.Register;
       --  A right-to-left interface locale draws the window mirrored
       --  (Render_Window mirrors each frame, the pointer is reflected back).
-      Guikit.Bidi.Set_Mirrored_Layout (Files.Localization.Layout_Is_Right_To_Left);
+      Guikit.Mirroring.Set_Mirrored_Layout (Files.Localization.Layout_Is_Right_To_Left);
 
       for Index in 1 .. Ada.Command_Line.Argument_Count loop
          Arguments.Append (To_Unbounded_String (Ada.Command_Line.Argument (Index)));

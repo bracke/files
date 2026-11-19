@@ -1,5 +1,5 @@
-with Guikit.Bidi;
 with Guikit.Layout;
+with Guikit.Text_Fields;
 with Files.Rendering.Layouts;
 separate (Files.Events)
    function Translate_Click
@@ -47,23 +47,23 @@ separate (Files.Events)
          Caret       : Natural := Snapshot.Text_Cursor_Position)
          return Natural
       is
-         Char_W : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
-         Raw    : constant String := To_String (Text);
+         Raw  : constant String := To_String (Text);
          --  The bytes scrolled off the left edge, as the field is drawn.
-         Skip   : constant Natural :=
+         Skip : constant Natural :=
            (if Focused
             then Files.Rendering.Layouts.Field_View (Raw, Caret, Text_Width, Line_Height).Skip_Bytes
             else 0);
-         Shown  : constant String := Raw (Raw'First + Skip .. Raw'Last);
-         --  Where the click is, in half cells from the start of what is drawn:
-         --  which half of a character it lands on decides the side of it the
-         --  caret goes, and in right-to-left text that is the other side.
-         Half   : constant Natural :=
-           (if Click_X <= Text_X then 0 else Guikit.Layout.Saturating_Multiply (Click_X - Text_X, 2) / Char_W);
       begin
-         return Skip
-           + Guikit.Bidi.Cursor_At_Half_Column
-               (Shown, Half, Columns => (if Text_Width = 0 then Natural'Last else Text_Width / Char_W));
+         --  Which half of a character the click lands on decides the side
+         --  of it the caret goes; in right-to-left text, and in a mirrored
+         --  window, that is counted as the text is drawn.
+         return
+           Guikit.Text_Fields.Cursor_At
+             (Raw,
+              Skip_Bytes  => Skip,
+              Click_X     => (if Click_X <= Text_X then 0 else Click_X - Text_X),
+              Field_Width => (if Text_Width = 0 then Natural'Last else Text_Width),
+              Line_Height => Line_Height);
       end Cursor_At;
 
       function Text_Click

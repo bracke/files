@@ -2,7 +2,7 @@ with Files.Application.Windows;
 with Files.Controller.Testing;
 with Files_Suite.Support.Models;
 with Glfw;
-with Guikit.Bidi;
+with Guikit.Mirroring;
 separate (Files_Suite.Keyboard)
    --  A right-to-left interface draws the window mirrored: the grid fills
    --  from the right, so Right steps back through it and Left on; a focused
@@ -20,7 +20,7 @@ separate (Files_Suite.Keyboard)
            (Model => Model, Settings => Settings, Settings_Path => "", Key => Key, Result => Result);
       end Press;
    begin
-      Guikit.Bidi.Set_Mirrored_Layout (True);
+      Guikit.Mirroring.Set_Mirrored_Layout (True);
       Files.Model.Selection.Select_Visible (Model, 2);
       Press (Guikit.Input.Key_Right);
       Files_Suite.Support.Assert_Equal
@@ -41,12 +41,12 @@ separate (Files_Suite.Keyboard)
       Files_Suite.Support.Assert_Equal
         (Files.Application.Windows.Scale_X (150.0, Glfw.Size (100), Glfw.Size (100)), 100,
          "past the right edge stays past every pixel");
-      Guikit.Bidi.Set_Mirrored_Layout (False);
+      Guikit.Mirroring.Set_Mirrored_Layout (False);
       Files_Suite.Support.Assert_Equal
         (Files.Application.Windows.Scale_X (10.2, Glfw.Size (100), Glfw.Size (100)), 10,
          "unmirrored, the column is the one under the pointer");
    exception
       when others =>
-         Guikit.Bidi.Set_Mirrored_Layout (False);
+         Guikit.Mirroring.Set_Mirrored_Layout (False);
          raise;
    end Test_Mirrored_Layout_Keys_And_Pointer;

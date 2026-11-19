@@ -25,7 +25,6 @@ with Files.Job_Scavenger;
 with Files.Operations;
 with Files.Process_Jobs;
 with Files.Rendering.Hit;
-with Guikit.Bidi;
 with Guikit.Mirroring;
 with Guikit.Utf8;
 with Files.Model.Clipboard;
@@ -614,7 +613,7 @@ package body Files.Application.Windows is
    is
       Scaled : constant Natural := Scale_Coordinate (Value, Source, Target);
    begin
-      if not Guikit.Bidi.Mirrored_Layout or else Target <= 0 or else Scaled >= Natural (Target) then
+      if not Guikit.Mirroring.Mirrored_Layout or else Target <= 0 or else Scaled >= Natural (Target) then
          return Scaled;
       end if;
       return Guikit.Mirroring.Mirror_X (Scaled, Natural (Target));

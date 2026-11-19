@@ -1,4 +1,4 @@
-with Guikit.Bidi;
+with Guikit.Text_Fields;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents.Draw_Single_Item_Info)
    --  Draw an editable owner or group value and register one
    --  click hit region over it. While editing, the value shows
@@ -39,15 +39,13 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
                1,
                Selection_Color);
             declare
-               Char_W  : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
-               Raw     : constant String := To_String (Value);
+               --  Where the drawn text has the caret: right-to-left runs
+               --  and a mirrored window included.
                Caret_X : constant Natural :=
                  Guikit.Layout.Saturating_Add
                    (Text_X,
-                    Saturating_Multiply
-                      (Guikit.Bidi.Caret_Column
-                         (Raw, Snapshot.Text_Cursor_Position, Columns => Text_W / Char_W),
-                       Char_W));
+                    Guikit.Text_Fields.Caret_X
+                      (To_String (Value), Snapshot.Text_Cursor_Position, Text_W, Line_Height, Caret_Width => 2));
             begin
                --  A 2 px stroke, inset from the row by a
                --  scaled margin above and below.

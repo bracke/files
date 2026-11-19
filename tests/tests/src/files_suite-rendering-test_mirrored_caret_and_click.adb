@@ -1,4 +1,4 @@
-with Guikit.Bidi;
+with Guikit.Mirroring;
 separate (Files_Suite.Rendering)
    --  In a mirrored (right-to-left) window a field's text keeps its reading
    --  order but stands against the field's mirrored edge, so in the frame as
@@ -8,7 +8,7 @@ separate (Files_Suite.Rendering)
       pragma Unreferenced (T);
       Previous_X : Natural := Natural'Last;
    begin
-      Guikit.Bidi.Set_Mirrored_Layout (True);
+      Guikit.Mirroring.Set_Mirrored_Layout (True);
       for Cursor in 0 .. 3 loop
          declare
             Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
@@ -50,9 +50,9 @@ separate (Files_Suite.Rendering)
             end;
          end;
       end loop;
-      Guikit.Bidi.Set_Mirrored_Layout (False);
+      Guikit.Mirroring.Set_Mirrored_Layout (False);
    exception
       when others =>
-         Guikit.Bidi.Set_Mirrored_Layout (False);
+         Guikit.Mirroring.Set_Mirrored_Layout (False);
          raise;
    end Test_Mirrored_Caret_And_Click;
