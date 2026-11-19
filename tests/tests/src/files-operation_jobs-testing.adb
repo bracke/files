@@ -4,6 +4,7 @@ with Ada.Streams;
 with Ada.Streams.Stream_IO;
 
 with Ada.Strings.Unbounded;
+with Files.Undo_History;
 
 with Files.Undo_Recording;
 
@@ -198,12 +199,12 @@ package body Files.Operation_Jobs.Testing is
    Recorded_Path : Ada.Strings.Unbounded.Unbounded_String;
 
    procedure Record_Then_Fail (Model : in out Files.Model.Window_Model) is
-      Items : Files.Model.Undo_Item_Vectors.Vector;
+      Items : Files.Undo_History.Undo_Item_Vectors.Vector;
    begin
       Items.Append
-        (Files.Model.Undo_Item'(From => Recorded_Path, others => <>));
+        (Files.Undo_History.Undo_Item'(From => Recorded_Path, others => <>));
       Files.Undo_Recording.Record_Undo
-        (Model, Files.Model.Undo_Delete_Created, Files.Undo_Recording.Captured (Items), Redoable => False);
+        (Model, Files.Undo_History.Undo_Delete_Created, Files.Undo_Recording.Captured (Items), Redoable => False);
    end Record_Then_Fail;
 
    procedure Fail_After_Merge (Recording : String) is

@@ -26,7 +26,8 @@ separate (Files_Suite.History)
       Files.Model.Set_Background_Transfers (Model, False);
       Created.Append (To_Unbounded_String (Made));
       Files.Undo_Recording.Record_Undo
-        (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Created), Redoable => False);
+        (Model, Files.Undo_History.Undo_Delete_Created,
+         Files_Suite.Support.Models.Undo_Items (Created), Redoable => False);
 
       Files.Fs_Primitives.Testing.Refuse_Lookups (Made);
       Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));

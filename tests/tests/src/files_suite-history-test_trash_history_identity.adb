@@ -34,7 +34,7 @@ separate (Files_Suite.History)
                Step := Complete_Operation
                  (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
                Await_View (Model, Settings);
-               Paths := Files.Model.Replaced_Trash (Files.Model.History.Undo_Entries (Model).Last_Element);
+               Paths := Files.Undo_History.Replaced_Trash (Files.Model.History.Undo_Entries (Model).Last_Element);
             else
                Selected := Files.Model.Selection.Select_By_Name (Model, "entry");
                Assert (Selected, "select the trash fixture");

@@ -1,5 +1,5 @@
 separate (Files.Operations)
-function Replay_Metadata (Action : Files.Model.Undo_Entry; Side : Metadata_Side) return Replay_Outcome is
+function Replay_Metadata (Action : Files.Undo_History.Undo_Entry; Side : Metadata_Side) return Replay_Outcome is
    Outcome : Replay_Outcome := Replayed;
 begin
    for Index in Action.Items.First_Index .. Action.Items.Last_Index loop
@@ -18,7 +18,7 @@ begin
          Mode  : Natural := 0;
          Owner : Files.Undo_Payloads.Ownership;
       begin
-         if Action.Kind = Files.Model.Undo_Set_Permissions then
+         if Action.Kind = Files.Undo_History.Undo_Set_Permissions then
             --  The access record, where one was kept, is put back whole: on
             --  Windows the DACL the change replaced or set.
             if not Files.Undo_Payloads.Parse_Mode (Text, Mode)

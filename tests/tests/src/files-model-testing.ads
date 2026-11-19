@@ -1,6 +1,7 @@
 with Files.History_Journal;
 with Files.Items;
 with Files.Types;
+with Files.Undo_History;
 
 --  Test-only queries of Files.Model: state the suite inspects and the program
 --  never asks for, kept out of the program.
@@ -52,7 +53,7 @@ package Files.Model.Testing is
    --  @return Undo_None when the undo stack is empty.
    function Undo_Kind_Of
      (Model : Window_Model)
-      return Undo_Action_Kind;
+      return Files.Undo_History.Undo_Action_Kind;
    --  Return the top undo entry's "to" (restore-target) paths.
    --
    --  @param Model Model to inspect.
@@ -145,6 +146,6 @@ package Files.Model.Testing is
    --  @param Model Model whose history to measure.
    --  @param Side Which stack.
    --  @return True when that stack is empty or its newest entry is journaled.
-   function Journals_Newest (Model : Window_Model; Side : History_Side) return Boolean;
+   function Journals_Newest (Model : Window_Model; Side : Files.Undo_History.History_Side) return Boolean;
 
 end Files.Model.Testing;

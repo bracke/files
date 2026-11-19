@@ -40,6 +40,7 @@ with Files.Type_Ahead;
 with Guikit.Input;
 with Files.Types;
 with Files.UI_Types;
+with Files.Undo_History;
 with Files_Suite.Support;
 with Files_Suite.Support.Images;
 with Files_Suite.Support.Models;
@@ -56,7 +57,7 @@ package body Files_Suite.Model is
    use type Files.File_System.Root_Kind;
    use type Files.File_System.Root_Readiness;
    use type Files.Types.Sort_Field;
-   use type Files.Model.Undo_Entry;
+   use type Files.Undo_History.Undo_Entry;
    use type Files.Types.Item_Kind;
    use type Files.Types.View_Mode;
    use Files_Suite.Support;

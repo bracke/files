@@ -15,6 +15,7 @@ with Files.Job_Context;
 with Files.Job_Records;
 with Files.Lease_Streams;
 with Files.Fs_Primitives;
+with Files.Io_Errors;
 with Hostkit.Fs;
 with Hostkit.Watch;
 with Files.Path_Checks;
@@ -203,11 +204,11 @@ package body Files.Refresh_Jobs is
          --  A failed listing must be retried even when the directory signature
          --  is unchanged. Preserve operation errors, which a reload cannot fix.
          Recent => Files.Model.In_Recent_View (Model),
-         Force => Force or else Previous_Error = "error.directory.load",
+         Force => Force or else Previous_Error = Files.Io_Errors.Directory_Load_Key,
          --  An empty value means preserve the selection that is current when
          --  the read completes. A nonempty operation-requested name wins.
          Selection => To_Unbounded_String (Select_Name),
-         Error_Key => (if Previous_Error = "error.directory.load" then Null_Unbounded_String
+         Error_Key => (if Previous_Error = Files.Io_Errors.Directory_Load_Key then Null_Unbounded_String
                        else To_Unbounded_String (Previous_Error)));
    begin
       if not Force and then (Work.Recent or else Files.Model.Search_Results_Are_Active (Model)) then
@@ -248,7 +249,7 @@ package body Files.Refresh_Jobs is
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
          if Length (Work.Error_Key) = 0 then
-            Files.Model.Set_Error (Model, "error.directory.load");
+            Files.Model.Set_Error (Model, Files.Io_Errors.Directory_Load_Key);
          end if;
          return (Status => Files.Operation_Results.Operation_Failed,
                  Error_Key => To_Unbounded_String (Files.Model.Last_Error_Key (Model)), others => <>);
@@ -434,7 +435,7 @@ package body Files.Refresh_Jobs is
          Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
          Cancel (Model);
          if Matching and then Length (Work.Error_Key) = 0 then
-            Files.Model.Set_Error (Model, "error.directory.load");
+            Files.Model.Set_Error (Model, Files.Io_Errors.Directory_Load_Key);
          end if;
          return False;
    end Advance;

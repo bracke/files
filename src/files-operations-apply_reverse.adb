@@ -2,7 +2,7 @@ separate (Files.Operations)
 --  Apply the reverse (undo) direction of Action, one journaled history
 --  entry. Returns True on full success.
 function Apply_Reverse
-  (Action : in out Files.Model.Undo_Entry; Model : in out Files.Model.Window_Model)
+  (Action : in out Files.Undo_History.Undo_Entry; Model : in out Files.Model.Window_Model)
    return Boolean
 is
    Succeeded : Boolean := True;
@@ -10,13 +10,13 @@ is
 
    --  Whether the item restored to Original.Target is the trashed one
    --  itself (a rename keeps its identity), so a retry recognises it there.
-   function Restored_In_Place (Original : Files.Model.Replaced_Original) return Boolean is
+   function Restored_In_Place (Original : Files.Undo_History.Replaced_Original) return Boolean is
      (Length (Original.Target) > 0
       and then Length (Original.Identity) > 0
       and then Files.File_Identities.Token (To_String (Original.Target)) = To_String (Original.Identity));
 
    --  A trashed main item as the original it restores.
-   function Trashed (Item : Files.Model.Undo_Item) return Files.Model.Replaced_Original is
+   function Trashed (Item : Files.Undo_History.Undo_Item) return Files.Undo_History.Replaced_Original is
      ((Trash => Item.From, Identity => Item.Identity, Target => Item.To));
    Restored  : Path_Sets.Set := To_Set (Action.Restores_Completed);
 
@@ -46,7 +46,7 @@ is
       Action.Reverse_Completed.Append (Path);
       Reversed.Include (Target);
       Files.History_Journal.Checkpoint
-        (Files.Model.History.State (Model), Action, Files.Model.Undo_Side, Timing => Timing);
+        (Files.Model.History.State (Model), Action, Files.Undo_History.Undo_Side, Timing => Timing);
       return True;
    end Remove_Created;
 
@@ -94,7 +94,7 @@ is
             --  original path (Restore_Recorded_Trash) -- unless it was a
             --  copy across devices, which has a new one: written now.
             Files.History_Journal.Checkpoint
-              (Files.Model.History.State (Model), Action, Files.Model.Undo_Side,
+              (Files.Model.History.State (Model), Action, Files.Undo_History.Undo_Side,
                Timing =>
                  (if Restored_In_Place (Trashed (Item)) then Files.History_Journal.Within_Second
                   else Files.History_Journal.Write_Now));
@@ -113,7 +113,7 @@ is
             return Stopped;
          end if;
          declare
-            Item : constant Files.Model.Undo_Item := Action.Items (Index);
+            Item : constant Files.Undo_History.Undo_Item := Action.Items (Index);
          begin
             --  A retry treats a path already gone as removed, so its
             --  checkpoint can wait.
@@ -148,7 +148,7 @@ is
             Action.Restores_Completed.Append (Original.Trash);
             Restored.Include (To_String (Original.Trash));
             Files.History_Journal.Checkpoint
-              (Files.Model.History.State (Model), Action, Files.Model.Undo_Side,
+              (Files.Model.History.State (Model), Action, Files.Undo_History.Undo_Side,
                Timing =>
                  (if Restored_In_Place (Original) then Files.History_Journal.Within_Second
                   else Files.History_Journal.Write_Now));
@@ -161,16 +161,16 @@ is
    function Reverse_Main return Replay_Outcome is
    begin
       case Action.Kind is
-         when Files.Model.Undo_Rename | Files.Model.Undo_Move =>
-            return (if Move_Back (Action, Model, Files.Model.Undo_Side) then Replayed else Item_Failed);
-         when Files.Model.Undo_Restore_Trash =>
+         when Files.Undo_History.Undo_Rename | Files.Undo_History.Undo_Move =>
+            return (if Move_Back (Action, Model, Files.Undo_History.Undo_Side) then Replayed else Item_Failed);
+         when Files.Undo_History.Undo_Restore_Trash =>
             return Restore_Trashed_Items;
-         when Files.Model.Undo_Delete_Created =>
+         when Files.Undo_History.Undo_Delete_Created =>
             return Remove_Created_Items;
-         when Files.Model.Undo_Set_Permissions | Files.Model.Undo_Set_Ownership =>
+         when Files.Undo_History.Undo_Set_Permissions | Files.Undo_History.Undo_Set_Ownership =>
             --  Put back the mode or owner the change replaced (To).
             return Replay_Metadata (Action, Before_Change);
-         when Files.Model.Undo_None =>
+         when Files.Undo_History.Undo_None =>
             return Item_Failed;
       end case;
    end Reverse_Main;

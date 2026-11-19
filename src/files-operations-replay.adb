@@ -5,22 +5,23 @@ function Replay
    Direction : Replay_Direction)
    return Operation_Result
 is
-   Side      : constant Files.Model.History_Side :=
-     (if Direction = Replay_Redo then Files.Model.Redo_Side else Files.Model.Undo_Side);
+   Side      : constant Files.Undo_History.History_Side :=
+     (if Direction = Replay_Redo then Files.Undo_History.Redo_Side else Files.Undo_History.Undo_Side);
    Redo      : constant Boolean := Direction = Replay_Redo;
-   Other     : constant array (Files.Model.History_Side) of Files.Model.History_Side :=
-     [Files.Model.Undo_Side => Files.Model.Redo_Side, Files.Model.Redo_Side => Files.Model.Undo_Side];
+   Other     : constant array (Files.Undo_History.History_Side) of Files.Undo_History.History_Side :=
+     [Files.Undo_History.Undo_Side => Files.Undo_History.Redo_Side,
+      Files.Undo_History.Redo_Side => Files.Undo_History.Undo_Side];
    Directory : constant String := Files.Model.Current_Path (Model);
-   Action    : Files.Model.Undo_Entry;
+   Action    : Files.Undo_History.Undo_Entry;
    Found     : Boolean := False;
    Returned_Action : Boolean := False;
    Succeeded : Boolean;
 
    --  Push Action onto the stack of side Onto.
-   procedure Push (Onto : Files.Model.History_Side) is
-      use type Files.Model.History_Side;
+   procedure Push (Onto : Files.Undo_History.History_Side) is
+      use type Files.Undo_History.History_Side;
    begin
-      if Onto = Files.Model.Redo_Side then
+      if Onto = Files.Undo_History.Redo_Side then
          Files.Model.History.Push_Redo (Model, Action);
       else
          Files.Model.History.Push_Undo (Model, Action);

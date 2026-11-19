@@ -30,7 +30,7 @@ begin
       end if;
 
       return Finish_Attribute_Change
-        (Model, Settings, Files.Model.Undo_Set_Permissions, Path, Identity,
+        (Model, Settings, Files.Undo_History.Undo_Set_Permissions, Path, Identity,
          Old_Text => Files.Undo_Payloads.Mode_Text (Old_Mode, To_String (Old_Access)),
          New_Text => Files.Undo_Payloads.Mode_Text (New_Mode, To_String (New_Access)));
    end;

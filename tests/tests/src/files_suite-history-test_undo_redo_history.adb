@@ -117,8 +117,8 @@ separate (Files_Suite.History)
          String'Output
            (Ada.Streams.Stream_IO.Stream (File), "files-history-1");
          Natural'Output (Ada.Streams.Stream_IO.Stream (File), 1);
-         Files.Model.Undo_Action_Kind'Output
-           (Ada.Streams.Stream_IO.Stream (File), Files.Model.Undo_Rename);
+         Files.Undo_History.Undo_Action_Kind'Output
+           (Ada.Streams.Stream_IO.Stream (File), Files.Undo_History.Undo_Rename);
          Natural'Output (Ada.Streams.Stream_IO.Stream (File), 1);
          Integer'Output (Ada.Streams.Stream_IO.Stream (File), 1);
          Integer'Output
@@ -141,8 +141,8 @@ separate (Files_Suite.History)
          begin
             Files.History_Journal.Save_Stacks
               ("relative-history-directory",
-               Files.Model.Undo_Entry_Vectors.Empty_Vector,
-               Files.Model.Undo_Entry_Vectors.Empty_Vector,
+               Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
+               Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
                Mode => Files.History_Journal.Must_Commit);
          exception
             when Ada.Directories.Use_Error =>
@@ -179,8 +179,8 @@ separate (Files_Suite.History)
          Ada.Directories.Create_Directory (Source_Directory);
          Files.History_Journal.Save_Stacks
            (Source_Directory,
-            Files.Model.Undo_Entry_Vectors.Empty_Vector,
-            Files.Model.Undo_Entry_Vectors.Empty_Vector,
+            Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
+            Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
             Mode => Files.History_Journal.Must_Commit);
          Ada.Directories.Create_Directory (Read_Directory);
          if Hostkit.Fs.Create_Link

@@ -1,4 +1,5 @@
 with Files.Model;
+with Files.Undo_History;
 
 --  Recording what an action did in the window's undo history: the one way
 --  operations (Files.Operations) and the helper jobs that run them
@@ -12,26 +13,27 @@ package Files.Undo_Recording is
    --  @param Items What the action changed.
    --  @return Them, each Captured.
    function Captured
-     (Items : Files.Model.Undo_Item_Vectors.Vector) return Files.Model.Recorded_Item_Vectors.Vector;
+     (Items : Files.Undo_History.Undo_Item_Vectors.Vector) return Files.Undo_History.Recorded_Item_Vectors.Vector;
 
    --  @param Originals Originals a replace preserved.
    --  @return Them, each Captured.
    function Captured
-     (Originals : Files.Model.Replaced_Original_Vectors.Vector) return Files.Model.Recorded_Original_Vectors.Vector;
+     (Originals : Files.Undo_History.Replaced_Original_Vectors.Vector)
+      return Files.Undo_History.Recorded_Original_Vectors.Vector;
 
    --  Items carrying what the action published, unverified.
    --
    --  @param Items What the action changed.
    --  @return Them, each Published.
    function Published
-     (Items : Files.Model.Undo_Item_Vectors.Vector) return Files.Model.Recorded_Item_Vectors.Vector;
+     (Items : Files.Undo_History.Undo_Item_Vectors.Vector) return Files.Undo_History.Recorded_Item_Vectors.Vector;
 
    --  Items carrying what the action published and checked at publication.
    --
    --  @param Items What the action changed.
    --  @return Them, each Verified.
    function Verified
-     (Items : Files.Model.Undo_Item_Vectors.Vector) return Files.Model.Recorded_Item_Vectors.Vector;
+     (Items : Files.Undo_History.Undo_Item_Vectors.Vector) return Files.Undo_History.Recorded_Item_Vectors.Vector;
 
    --  Record a performed action in the undo history, keeping only items
    --  whose publication identity still matches the live entry. Created
@@ -40,8 +42,8 @@ package Files.Undo_Recording is
    --  actions are recorded only when every created and preserved entry is
    --  verifiable, since their reverse steps are inseparable.
    --
-   --  Each item is as the action left it (Files.Model.Undo_Item), with its
-   --  provenance (Files.Model.Item_Provenance): a Captured item has its
+   --  Each item is as the action left it (Files.Undo_History.Undo_Item), with its
+   --  provenance (Files.Undo_History.Item_Provenance): a Captured item has its
    --  identity, and a creation its tree revision, captured here; a Verified
    --  one is trusted without a fresh check. A trash restoration without a To
    --  has its trash origin read. A Captured replaced original has its
@@ -65,13 +67,14 @@ package Files.Undo_Recording is
    --  @return True when a usable history entry was added.
    function Try_Record_Undo
      (Model       : in out Files.Model.Window_Model;
-      Kind        : Files.Model.Undo_Action_Kind;
-      Items       : Files.Model.Recorded_Item_Vectors.Vector;
-      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
+      Kind        : Files.Undo_History.Undo_Action_Kind;
+      Items       : Files.Undo_History.Recorded_Item_Vectors.Vector;
+      Create_Kind : Files.Undo_History.Undo_Create_Kind := Files.Undo_History.Create_None;
       Redoable    : Boolean := True;
-      Replaced    : Files.Model.Recorded_Original_Vectors.Vector :=
-        Files.Model.Recorded_Original_Vectors.Empty_Vector;
-      Kept        : Files.Model.Kept_Copy_Vectors.Vector := Files.Model.Kept_Copy_Vectors.Empty_Vector) return Boolean;
+      Replaced    : Files.Undo_History.Recorded_Original_Vectors.Vector :=
+        Files.Undo_History.Recorded_Original_Vectors.Empty_Vector;
+      Kept        : Files.Undo_History.Kept_Copy_Vectors.Vector :=
+        Files.Undo_History.Kept_Copy_Vectors.Empty_Vector) return Boolean;
 
    --  Try_Record_Undo for callers that do not need to know whether an entry
    --  was added.
@@ -87,13 +90,13 @@ package Files.Undo_Recording is
    --    never redoable.
    procedure Record_Undo
      (Model       : in out Files.Model.Window_Model;
-      Kind        : Files.Model.Undo_Action_Kind;
-      Items       : Files.Model.Recorded_Item_Vectors.Vector;
-      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
+      Kind        : Files.Undo_History.Undo_Action_Kind;
+      Items       : Files.Undo_History.Recorded_Item_Vectors.Vector;
+      Create_Kind : Files.Undo_History.Undo_Create_Kind := Files.Undo_History.Create_None;
       Redoable    : Boolean := True;
-      Replaced    : Files.Model.Recorded_Original_Vectors.Vector :=
-        Files.Model.Recorded_Original_Vectors.Empty_Vector;
-      Kept        : Files.Model.Kept_Copy_Vectors.Vector := Files.Model.Kept_Copy_Vectors.Empty_Vector);
+      Replaced    : Files.Undo_History.Recorded_Original_Vectors.Vector :=
+        Files.Undo_History.Recorded_Original_Vectors.Empty_Vector;
+      Kept        : Files.Undo_History.Kept_Copy_Vectors.Vector := Files.Undo_History.Kept_Copy_Vectors.Empty_Vector);
 
    --  Carry out the filesystem work model history mutations queued: delete
    --  the recovery payloads of retired entries, release those of an ended

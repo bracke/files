@@ -4,6 +4,7 @@ with Ada.Real_Time;
 with Files.Items;
 with Files.Model;
 with Files.Settings;
+with Files.Undo_History;
 
 --  Internal helpers shared by the Files.Operations subunits (one per operation).
 --  A private child so only the Files.Operations hierarchy can see it; the public
@@ -155,8 +156,8 @@ private package Files.Operations.Support is
    --  every item.
    type Progressive_Undo is record
       --  How the entry is recorded, as for Try_Record_Undo.
-      Kind        : Files.Model.Undo_Action_Kind := Files.Model.Undo_Delete_Created;
-      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
+      Kind        : Files.Undo_History.Undo_Action_Kind := Files.Undo_History.Undo_Delete_Created;
+      Create_Kind : Files.Undo_History.Undo_Create_Kind := Files.Undo_History.Create_None;
       Redoable    : Boolean := False;
       --  Whether each record also commits the history journal durably
       --  (Files.History_Journal.Save, Must_Commit), stopping a helper that
@@ -164,7 +165,7 @@ private package Files.Operations.Support is
       Durable : Boolean := False;
       --  The batch appends an item for each entry it made, Published; once a
       --  record admitted them all, they are Verified (Try_Record_Undo).
-      Items : Files.Model.Recorded_Item_Vectors.Vector;
+      Items : Files.Undo_History.Recorded_Item_Vectors.Vector;
       --  Kept by Checkpoint_Undo and Finish_Undo: whether the top Undo entry
       --  is this batch's, whether a record was attempted, how many From
       --  members the last attempt covered, and when the last attempt was.

@@ -215,9 +215,9 @@ is
       end if;
       Discard_Stage (Stage);
       Record_Undo
-        (Model, Files.Model.Undo_Delete_Created,
+        (Model, Files.Undo_History.Undo_Delete_Created,
          Published
-           (Files.Model.Undo_Item_Vectors.To_Vector
+           (Files.Undo_History.Undo_Item_Vectors.To_Vector
               ((From          => To_Unbounded_String (Output_Path),
                 Identity      => Identity,
                 Tree_Revision => Tree_Revision,

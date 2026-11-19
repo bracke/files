@@ -20,6 +20,7 @@ with Files.Model.Pasting;
 with Files.Model.History;
 with Files.Model.Selection;
 with Files.Settings.Path_References;
+with Files.Undo_History;
 
 package body Files.Operation_Jobs is
    use Ada.Strings.Unbounded;
@@ -263,14 +264,14 @@ package body Files.Operation_Jobs is
      (Model   : in out Files.Model.Window_Model;
       Created : Files.Job_Context.Journal_Entry_Vectors.Vector)
    is
-      Undo_Stack : constant Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Undo_Entries (Model);
-      Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Redo_Entries (Model);
+      Undo_Stack : constant Files.Undo_History.Undo_Entry_Vectors.Vector := Files.Model.History.Undo_Entries (Model);
+      Redo_Stack : Files.Undo_History.Undo_Entry_Vectors.Vector := Files.Model.History.Redo_Entries (Model);
    begin
       if Redo_Stack.Is_Empty then
          return;
       end if;
       declare
-         Action : Files.Model.Undo_Entry := Redo_Stack.Last_Element;
+         Action : Files.Undo_History.Undo_Entry := Redo_Stack.Last_Element;
          --  Each destination's place in the entry, and what is completed:
          --  looked up per created entry, not scanned for.
          Places    : Index_Maps.Map;
@@ -307,7 +308,7 @@ package body Files.Operation_Jobs is
      (Model   : in out Files.Model.Window_Model;
       Created : Files.Job_Context.Journal_Entry_Vectors.Vector)
    is
-      Untracked : Files.Model.Undo_Item_Vectors.Vector;
+      Untracked : Files.Undo_History.Undo_Item_Vectors.Vector;
       --  Every path the undo history already records as created.
       Recorded : Files.Settings.Path_References.Path_Sets.Set;
    begin
@@ -319,7 +320,7 @@ package body Files.Operation_Jobs is
       for Published of Created loop
          if not Recorded.Contains (To_String (Published.Destination)) then
             Untracked.Append
-              (Files.Model.Undo_Item'
+              (Files.Undo_History.Undo_Item'
                  (From          => Published.Destination,
                   Identity      => Published.Identity,
                   Tree_Revision => Published.Tree_Revision,
@@ -328,7 +329,8 @@ package body Files.Operation_Jobs is
       end loop;
       if not Untracked.Is_Empty then
          Files.Undo_Recording.Record_Undo
-           (Model, Files.Model.Undo_Delete_Created, Files.Undo_Recording.Verified (Untracked), Redoable => False);
+           (Model, Files.Undo_History.Undo_Delete_Created, Files.Undo_Recording.Verified (Untracked),
+            Redoable => False);
       end if;
    end Record_Untracked_Creations;
 

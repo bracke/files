@@ -12,7 +12,7 @@ is
    Created_Any   : Boolean := False;
    --  Created copies (From) and their sources (Forward).
    Progress      : Progressive_Undo :=
-     (Kind => Files.Model.Undo_Delete_Created, Create_Kind => Files.Model.Create_Copy, Redoable => True,
+     (Kind => Files.Undo_History.Undo_Delete_Created, Create_Kind => Files.Undo_History.Create_Copy, Redoable => True,
       others => <>);
 
    --  The " (copy)" / " (copy N)" marker: a fixed, unlocalized file name.
@@ -74,14 +74,14 @@ begin
             end if;
 
             Progress.Items.Append
-              (Files.Model.Recorded_Item'
+              (Files.Undo_History.Recorded_Item'
                  (Item       =>
                     (From          => To_Unbounded_String (Dest_Path),
                      Forward       => To_Unbounded_String (Source),
                      Identity      => Identity,
                      Tree_Revision => Revision,
                      others        => <>),
-                  Provenance => Files.Model.Published));
+                  Provenance => Files.Undo_History.Published));
             Checkpoint_Undo (Model, Progress);
             if not Created_Any then
                First_Created := To_Unbounded_String (Dest_Name);

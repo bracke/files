@@ -40,7 +40,7 @@ begin
          Applied_Group : constant Files.Types.Account_Id := (if Keep_Group then Old_Gid else Group_Id);
       begin
          return Finish_Attribute_Change
-           (Model, Settings, Files.Model.Undo_Set_Ownership, Path, Identity,
+           (Model, Settings, Files.Undo_History.Undo_Set_Ownership, Path, Identity,
             Old_Text =>
               Ownership_Text
                 (Old_Uid, Old_Gid,

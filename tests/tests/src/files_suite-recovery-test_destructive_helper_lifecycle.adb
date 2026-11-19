@@ -14,7 +14,7 @@ separate (Files_Suite.Recovery)
       Before : Instant;
       Started : Unbounded_String;
       Paths, Sources : Files.Types.String_Vectors.Vector;
-      Action : Files.Model.Undo_Entry;
+      Action : Files.Undo_History.Undo_Entry;
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
       --  The stalled helper never finishes, so a command that waited for it
@@ -41,16 +41,18 @@ separate (Files_Suite.Recovery)
          Paths.Append (To_Unbounded_String (Join (Root, "victim.txt")));
          if Job_Kind = Undo_Job then
             Files.Undo_Recording.Record_Undo
-              (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Paths, To => Sources),
-               Redoable => False);
+              (Model, Files.Undo_History.Undo_Delete_Created,
+               Files_Suite.Support.Models.Undo_Items (Paths, To => Sources), Redoable => False);
          elsif Job_Kind = Redo_Job then
             Sources := Paths;
             Paths.Clear;
             Paths.Append (To_Unbounded_String (Join (Root, "new-copy.txt")));
-            Action := (Kind => Files.Model.Undo_Delete_Created, Create_Kind => Files.Model.Create_Copy, others => <>);
+            Action :=
+              (Kind => Files.Undo_History.Undo_Delete_Created, Create_Kind => Files.Undo_History.Create_Copy,
+               others => <>);
             for Index in Paths.First_Index .. Paths.Last_Index loop
                Action.Items.Append
-                 (Files.Model.Undo_Item'(From => Paths (Index), Forward => Sources (Index), others => <>));
+                 (Files.Undo_History.Undo_Item'(From => Paths (Index), Forward => Sources (Index), others => <>));
             end loop;
             Files.Model.History.Push_Redo (Model, Action);
             Files.Undo_Recording.Settle_History (Model);
@@ -188,7 +190,7 @@ separate (Files_Suite.Recovery)
       Paths.Append (To_Unbounded_String (Join (Root, "checkpoint-target")));
 
       Files.Undo_Recording.Record_Undo
-        (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Paths, To => Sources),
+        (Model, Files.Undo_History.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Paths, To => Sources),
          Redoable => False);
       Write_Binary_File (Join (Root, "blocked-transport"), "a file cannot hold a checkpoint");
       Files.Job_Context.Initialize (Join (Root, "blocked-transport"));

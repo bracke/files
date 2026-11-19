@@ -1,13 +1,13 @@
 separate (Files.Undo_Recording)
 function Try_Record_Undo
   (Model       : in out Files.Model.Window_Model;
-   Kind        : Files.Model.Undo_Action_Kind;
-   Items       : Files.Model.Recorded_Item_Vectors.Vector;
-   Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
+   Kind        : Files.Undo_History.Undo_Action_Kind;
+   Items       : Files.Undo_History.Recorded_Item_Vectors.Vector;
+   Create_Kind : Files.Undo_History.Undo_Create_Kind := Files.Undo_History.Create_None;
    Redoable    : Boolean := True;
-   Replaced    : Files.Model.Recorded_Original_Vectors.Vector :=
-     Files.Model.Recorded_Original_Vectors.Empty_Vector;
-   Kept        : Files.Model.Kept_Copy_Vectors.Vector := Files.Model.Kept_Copy_Vectors.Empty_Vector)
+   Replaced    : Files.Undo_History.Recorded_Original_Vectors.Vector :=
+     Files.Undo_History.Recorded_Original_Vectors.Empty_Vector;
+   Kept        : Files.Undo_History.Kept_Copy_Vectors.Vector := Files.Undo_History.Kept_Copy_Vectors.Empty_Vector)
    return Boolean
 is
    function Identity_Matches (Path, Expected : String) return Boolean
@@ -21,18 +21,18 @@ is
    function Valid_Ownership_Image (Value : Unbounded_String) return Boolean is
      (Files.Undo_Payloads.Is_Ownership_Text (To_String (Value)));
 
-   use type Files.Model.Item_Provenance;
+   use type Files.Undo_History.Item_Provenance;
 
    --  The items and originals as given, completed with what was not.
-   Completed : Files.Model.Undo_Item_Vectors.Vector;
-   Restores : Files.Model.Replaced_Original_Vectors.Vector;
+   Completed : Files.Undo_History.Undo_Item_Vectors.Vector;
+   Restores : Files.Undo_History.Replaced_Original_Vectors.Vector;
    --  What the entry keeps: each verified item and kept copy.
-   Kept_Items  : Files.Model.Undo_Item_Vectors.Vector;
-   Kept_Copies : Files.Model.Kept_Copy_Vectors.Vector;
+   Kept_Items  : Files.Undo_History.Undo_Item_Vectors.Vector;
+   Kept_Copies : Files.Undo_History.Kept_Copy_Vectors.Vector;
    --  An entry that deletes kept copies first is undo-only: redoing the move
    --  would collide with the sources the failed move left in place.
    Entry_Redoable : constant Boolean := Redoable and then Kept.Is_Empty;
-   Entry_Kind : Files.Model.Undo_Action_Kind := Kind;
+   Entry_Kind : Files.Undo_History.Undo_Action_Kind := Kind;
    Invalid_Main : Boolean := False;
    Invalid_Restore : Boolean := False;
    Recorded : Boolean;
@@ -51,27 +51,27 @@ is
    --  An item or original verified at publication is trusted without a
    --  fresh check.
    function Main_Was_Verified (Index : Positive) return Boolean is
-     (Items (Index).Provenance = Files.Model.Verified);
+     (Items (Index).Provenance = Files.Undo_History.Verified);
 
    function Restore_Was_Verified (Index : Positive) return Boolean is
-     (Replaced (Index).Provenance = Files.Model.Verified);
+     (Replaced (Index).Provenance = Files.Undo_History.Verified);
 
-   function Payload_Is_Complete (Item : Files.Model.Undo_Item) return Boolean is
+   function Payload_Is_Complete (Item : Files.Undo_History.Undo_Item) return Boolean is
    begin
       case Kind is
-         when Files.Model.Undo_Delete_Created =>
+         when Files.Undo_History.Undo_Delete_Created =>
             return not Redoable
-              or else (Create_Kind /= Files.Model.Create_None and then Length (Item.Forward) > 0);
-         when Files.Model.Undo_Rename | Files.Model.Undo_Move | Files.Model.Undo_Restore_Trash =>
+              or else (Create_Kind /= Files.Undo_History.Create_None and then Length (Item.Forward) > 0);
+         when Files.Undo_History.Undo_Rename | Files.Undo_History.Undo_Move | Files.Undo_History.Undo_Restore_Trash =>
             return Length (Item.To) > 0
-              and then (Kind /= Files.Model.Undo_Restore_Trash or else not Redoable);
-         when Files.Model.Undo_Set_Permissions =>
+              and then (Kind /= Files.Undo_History.Undo_Restore_Trash or else not Redoable);
+         when Files.Undo_History.Undo_Set_Permissions =>
             return Valid_Natural_Image (Item.To)
               and then (not Redoable or else Valid_Natural_Image (Item.Forward));
-         when Files.Model.Undo_Set_Ownership =>
+         when Files.Undo_History.Undo_Set_Ownership =>
             return Valid_Ownership_Image (Item.To)
               and then (not Redoable or else Valid_Ownership_Image (Item.Forward));
-         when Files.Model.Undo_None =>
+         when Files.Undo_History.Undo_None =>
             return False;
       end case;
    end Payload_Is_Complete;
@@ -86,7 +86,7 @@ begin
       Restores.Append (Given.Original);
    end loop;
    Files.Model.History.Begin_Undo_Record (Model, Kind, Completed);
-   if Kind = Files.Model.Undo_None or else (Items.Is_Empty and then Kept.Is_Empty) then
+   if Kind = Files.Undo_History.Undo_None or else (Items.Is_Empty and then Kept.Is_Empty) then
       return False;
    end if;
    if Undo_Record_Attempted /= null then
@@ -95,25 +95,25 @@ begin
 
    for Index in Completed.First_Index .. Completed.Last_Index loop
       declare
-         Item : Files.Model.Undo_Item renames Completed (Index);
+         Item : Files.Undo_History.Undo_Item renames Completed (Index);
       begin
-         if Items (Index).Provenance = Files.Model.Captured then
+         if Items (Index).Provenance = Files.Undo_History.Captured then
             Item.Identity := To_Unbounded_String (Files.File_Identities.Token (To_String (Item.From)));
             Item.Tree_Revision :=
-              (if Kind = Files.Model.Undo_Delete_Created
+              (if Kind = Files.Undo_History.Undo_Delete_Created
                then To_Unbounded_String (Tree_Revision_Or_Empty (To_String (Item.From)))
                else Null_Unbounded_String);
          end if;
-         if Kind = Files.Model.Undo_Restore_Trash and then Length (Item.To) = 0 then
+         if Kind = Files.Undo_History.Undo_Restore_Trash and then Length (Item.To) = 0 then
             Item.To := To_Unbounded_String (Files.File_System.Trash.Trash_Original_Path (To_String (Item.From)));
          end if;
       end;
    end loop;
 
    for Index in Restores.First_Index .. Restores.Last_Index loop
-      if Replaced (Index).Provenance = Files.Model.Captured then
+      if Replaced (Index).Provenance = Files.Undo_History.Captured then
          declare
-            Original : Files.Model.Replaced_Original renames Restores (Index);
+            Original : Files.Undo_History.Replaced_Original renames Restores (Index);
          begin
             Original.Target :=
               To_Unbounded_String (Files.File_System.Trash.Trash_Original_Path (To_String (Original.Trash)));
@@ -138,11 +138,11 @@ begin
 
    for Index in Completed.First_Index .. Completed.Last_Index loop
       declare
-         Item  : Files.Model.Undo_Item := Completed (Index);
+         Item  : Files.Undo_History.Undo_Item := Completed (Index);
          Valid : constant Boolean :=
            Payload_Is_Complete (Item)
            and then
-             (if Kind = Files.Model.Undo_Delete_Created
+             (if Kind = Files.Undo_History.Undo_Delete_Created
               then Creation_Snapshot_Matches
                 (To_String (Item.From), To_String (Item.Identity),
                  To_String (Item.Tree_Revision), Main_Was_Verified (Index))
@@ -152,12 +152,12 @@ begin
       begin
          if Valid then
             --  Only what the entry's kind uses is kept.
-            if Kind = Files.Model.Undo_Delete_Created then
+            if Kind = Files.Undo_History.Undo_Delete_Created then
                Item.To := Null_Unbounded_String;
             end if;
             if not Redoable
-              or else Kind not in Files.Model.Undo_Delete_Created | Files.Model.Undo_Set_Permissions
-                | Files.Model.Undo_Set_Ownership
+              or else Kind not in Files.Undo_History.Undo_Delete_Created | Files.Undo_History.Undo_Set_Permissions
+                | Files.Undo_History.Undo_Set_Ownership
             then
                Item.Forward := Null_Unbounded_String;
             end if;
@@ -173,7 +173,7 @@ begin
    --  not when an original a replace preserved goes back to its path: that
    --  restore would meet the unverified copy, so nothing is recorded.
    for Copy of Kept loop
-      if Kind = Files.Model.Undo_Move
+      if Kind = Files.Undo_History.Undo_Move
         and then Length (Copy.Identity) > 0
         and then Creation_Snapshot_Matches
           (To_String (Copy.Path), To_String (Copy.Identity), To_String (Copy.Tree_Revision), False)
@@ -193,10 +193,10 @@ begin
    elsif Kept_Items.Is_Empty and then not Kept_Copies.Is_Empty then
       --  No moved member is left to move back: the kept copies alone are
       --  undone, as the creations they are.
-      Entry_Kind := Files.Model.Undo_Delete_Created;
+      Entry_Kind := Files.Undo_History.Undo_Delete_Created;
       for Copy of Kept_Copies loop
          Kept_Items.Append
-           (Files.Model.Undo_Item'
+           (Files.Undo_History.Undo_Item'
               (From => Copy.Path, Identity => Copy.Identity, Tree_Revision => Copy.Tree_Revision, others => <>));
       end loop;
       Kept_Copies.Clear;
@@ -207,7 +207,7 @@ begin
    --  journal saved only once the entries have left both stacks.
    Recorded := Files.Model.History.Commit_Undo_Record
      (Model,
-      Files.Model.Undo_Entry'
+      Files.Undo_History.Undo_Entry'
         (Kind        => Entry_Kind,
          Items       => Kept_Items,
          Create_Kind => Create_Kind,

@@ -46,6 +46,7 @@ with Files.Transfer_Jobs.Testing;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files.Model.Pasting;
+with Files.Undo_History;
 with Interfaces.C;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -64,7 +65,7 @@ package body Files_Suite.Transfer is
    use type Interfaces.C.int;
    use type Interfaces.C.long_long;
    use type Files.Model.Tree_Pick_Mode;
-   use type Files.Model.Undo_Action_Kind;
+   use type Files.Undo_History.Undo_Action_Kind;
    use type System.Address;
    use Files_Suite.Support;
    use Files_Suite.Support.Models;

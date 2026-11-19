@@ -16,40 +16,41 @@ separate (Files_Suite.Operations)
       --  A field longer than a journal field may be makes its entry unfit.
       Oversized : constant String := [1 .. 33_000 => 'x'];
       Window, Helper : Files.Model.Window_Model;
-      Empty : Files.Model.Undo_Entry_Vectors.Vector renames Files.Model.Undo_Entry_Vectors.Empty_Vector;
+      Empty : Files.Undo_History.Undo_Entry_Vectors.Vector renames Files.Undo_History.Undo_Entry_Vectors.Empty_Vector;
 
       function Item (Name : String; Large : Boolean := False; Redoable : Boolean := False)
-        return Files.Model.Undo_Entry
+        return Files.Undo_History.Undo_Entry
       is
-         Result : Files.Model.Undo_Entry;
+         Result : Files.Undo_History.Undo_Entry;
       begin
-         Result.Kind := Files.Model.Undo_Delete_Created;
+         Result.Kind := Files.Undo_History.Undo_Delete_Created;
          Result.Redoable := Redoable;
          Result.Items.Append
-           (Files.Model.Undo_Item'
+           (Files.Undo_History.Undo_Item'
               (From => To_Unbounded_String (Join (Root, Name)),
                Identity => To_Unbounded_String ("1:" & Name),
                Tree_Revision => To_Unbounded_String (if Large then Oversized else "rev"),
                others => <>));
          if Redoable then
-            Result.Create_Kind := Files.Model.Create_Copy;
+            Result.Create_Kind := Files.Undo_History.Create_Copy;
             Result.Items (1).Forward := To_Unbounded_String (Join (Root, Name & "-source"));
          end if;
          return Result;
       end Item;
 
-      function Stack (First : Files.Model.Undo_Entry) return Files.Model.Undo_Entry_Vectors.Vector is
-        (Files.Model.Undo_Entry_Vectors.To_Vector (First, 1));
+      function Stack (First : Files.Undo_History.Undo_Entry) return Files.Undo_History.Undo_Entry_Vectors.Vector is
+        (Files.Undo_History.Undo_Entry_Vectors.To_Vector (First, 1));
 
-      function Stack (First, Second : Files.Model.Undo_Entry) return Files.Model.Undo_Entry_Vectors.Vector is
-         Result : Files.Model.Undo_Entry_Vectors.Vector := Stack (First);
+      function Stack
+        (First, Second : Files.Undo_History.Undo_Entry) return Files.Undo_History.Undo_Entry_Vectors.Vector is
+         Result : Files.Undo_History.Undo_Entry_Vectors.Vector := Stack (First);
       begin
          Result.Append (Second);
          return Result;
       end Stack;
 
       --  The names of a stack's entries, oldest first, "a,b".
-      function Names (Entries : Files.Model.Undo_Entry_Vectors.Vector) return String is
+      function Names (Entries : Files.Undo_History.Undo_Entry_Vectors.Vector) return String is
          Result : Unbounded_String;
       begin
          for Action of Entries loop
@@ -105,7 +106,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.Model.Testing.Restore_Journal (Directory, Helper), "the second helper reads the journal");
       declare
-         Taken : Files.Model.Undo_Entry;
+         Taken : Files.Undo_History.Undo_Entry;
          Found : Boolean;
       begin
          Files.Model.History.Take_Undo (Helper, Taken, Found);
@@ -120,7 +121,7 @@ separate (Files_Suite.Operations)
       --  instead of failing, a helper may not undo it, and it stays in place.
       Files.Model.Initialize (Window, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Files.Model.History.Restore (Window, Stack (Item ("b"), Item ("x", Large => True)), Empty);
-      Assert (not Files.Model.Testing.Journals_Newest (Window, Files.Model.Undo_Side),
+      Assert (not Files.Model.Testing.Journals_Newest (Window, Files.Undo_History.Undo_Side),
               "a newest entry too large for the journal is not journaled");
       Start_Job;
       Run_Helper ("d");
@@ -129,7 +130,7 @@ separate (Files_Suite.Operations)
       Merge;
       Assert (Names (Files.Model.History.Undo_Entries (Window)) = "b,x,d",
               "the unjournaled newest entry keeps its place: " & Names (Files.Model.History.Undo_Entries (Window)));
-      Assert (Files.Model.Testing.Journals_Newest (Window, Files.Model.Undo_Side),
+      Assert (Files.Model.Testing.Journals_Newest (Window, Files.Undo_History.Undo_Side),
               "with a small newest entry the journal holds it");
 
       --  Redo: kept while the helper records nothing, retired with the

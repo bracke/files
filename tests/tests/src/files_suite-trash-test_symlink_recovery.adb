@@ -127,7 +127,8 @@ separate (Files_Suite.Trash)
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Paths.Append (To_Unbounded_String (Link));
          Files.Undo_Recording.Record_Undo
-           (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Paths), Redoable => False);
+           (Model, Files.Undo_History.Undo_Delete_Created,
+            Files_Suite.Support.Models.Undo_Items (Paths), Redoable => False);
          Step := Complete_Operation
                        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Hostkit.Fs.Is_Link (Link),

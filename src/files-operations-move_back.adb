@@ -1,12 +1,12 @@
 separate (Files.Operations)
 function Move_Back
-  (Action : in out Files.Model.Undo_Entry;
+  (Action : in out Files.Undo_History.Undo_Entry;
    Model : in out Files.Model.Window_Model;
-   Side : Files.Model.History_Side) return Boolean
+   Side : Files.Undo_History.History_Side) return Boolean
 is
-   use type Files.Model.History_Side;
+   use type Files.Undo_History.History_Side;
    --  Redoing re-does To -> From; undoing moves From back to To.
-   Forward : constant Boolean := Side = Files.Model.Redo_Side;
+   Forward : constant Boolean := Side = Files.Undo_History.Redo_Side;
    Count : constant Natural := Natural (Action.Items.Length);
    Succeeded : Boolean := True;
    Done : Path_Sets.Set := To_Set (if Forward then Action.Forward_Completed else Action.Reverse_Completed);

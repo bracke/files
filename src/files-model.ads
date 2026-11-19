@@ -1022,77 +1022,6 @@ package Files.Model is
 
    type Clipboard_Mode is (Clipboard_None, Clipboard_Copy, Clipboard_Cut);
 
-   --  The undo history's values are Files.Undo_History's; these names keep
-   --  them at hand here, as the model's own.
-   subtype History_Side is Files.Undo_History.History_Side;
-   --  @return Files.Undo_History.Undo_Side.
-   function Undo_Side return History_Side renames Files.Undo_History.Undo_Side;
-   --  @return Files.Undo_History.Redo_Side.
-   function Redo_Side return History_Side renames Files.Undo_History.Redo_Side;
-
-   subtype Undo_Action_Kind is Files.Undo_History.Undo_Action_Kind;
-   --  @return Files.Undo_History.Undo_None.
-   function Undo_None return Undo_Action_Kind renames Files.Undo_History.Undo_None;
-   --  @return Files.Undo_History.Undo_Rename.
-   function Undo_Rename return Undo_Action_Kind renames Files.Undo_History.Undo_Rename;
-   --  @return Files.Undo_History.Undo_Move.
-   function Undo_Move return Undo_Action_Kind renames Files.Undo_History.Undo_Move;
-   --  @return Files.Undo_History.Undo_Restore_Trash.
-   function Undo_Restore_Trash return Undo_Action_Kind renames Files.Undo_History.Undo_Restore_Trash;
-   --  @return Files.Undo_History.Undo_Delete_Created.
-   function Undo_Delete_Created return Undo_Action_Kind renames Files.Undo_History.Undo_Delete_Created;
-   --  @return Files.Undo_History.Undo_Set_Permissions.
-   function Undo_Set_Permissions return Undo_Action_Kind renames Files.Undo_History.Undo_Set_Permissions;
-   --  @return Files.Undo_History.Undo_Set_Ownership.
-   function Undo_Set_Ownership return Undo_Action_Kind renames Files.Undo_History.Undo_Set_Ownership;
-
-   subtype Undo_Create_Kind is Files.Undo_History.Undo_Create_Kind;
-   --  @return Files.Undo_History.Create_None.
-   function Create_None return Undo_Create_Kind renames Files.Undo_History.Create_None;
-   --  @return Files.Undo_History.Create_Copy.
-   function Create_Copy return Undo_Create_Kind renames Files.Undo_History.Create_Copy;
-   --  @return Files.Undo_History.Create_Symbolic_Link.
-   function Create_Symbolic_Link return Undo_Create_Kind renames Files.Undo_History.Create_Symbolic_Link;
-   --  @return Files.Undo_History.Create_Hard_Link.
-   function Create_Hard_Link return Undo_Create_Kind renames Files.Undo_History.Create_Hard_Link;
-
-   subtype Undo_Item is Files.Undo_History.Undo_Item;
-   package Undo_Item_Vectors renames Files.Undo_History.Undo_Item_Vectors;
-   subtype Replaced_Original is Files.Undo_History.Replaced_Original;
-   package Replaced_Original_Vectors renames Files.Undo_History.Replaced_Original_Vectors;
-   subtype Kept_Copy is Files.Undo_History.Kept_Copy;
-   package Kept_Copy_Vectors renames Files.Undo_History.Kept_Copy_Vectors;
-
-   subtype Item_Provenance is Files.Undo_History.Item_Provenance;
-   --  @return Files.Undo_History.Captured.
-   function Captured return Item_Provenance renames Files.Undo_History.Captured;
-   --  @return Files.Undo_History.Published.
-   function Published return Item_Provenance renames Files.Undo_History.Published;
-   --  @return Files.Undo_History.Verified.
-   function Verified return Item_Provenance renames Files.Undo_History.Verified;
-
-   subtype Recorded_Item is Files.Undo_History.Recorded_Item;
-   package Recorded_Item_Vectors renames Files.Undo_History.Recorded_Item_Vectors;
-   subtype Recorded_Original is Files.Undo_History.Recorded_Original;
-   package Recorded_Original_Vectors renames Files.Undo_History.Recorded_Original_Vectors;
-
-   subtype Undo_Entry is Files.Undo_History.Undo_Entry;
-
-   --  @param Action Entry to read.
-   --  @return Each item's From path, in order.
-   function From_Paths (Action : Undo_Entry) return Files.Types.String_Vectors.Vector
-     renames Files.Undo_History.From_Paths;
-
-   --  @param Action Entry to read.
-   --  @return Where each replaced original is preserved, in order.
-   function Replaced_Trash (Action : Undo_Entry) return Files.Types.String_Vectors.Vector
-     renames Files.Undo_History.Replaced_Trash;
-
-   package Undo_Entry_Vectors renames Files.Undo_History.Undo_Entry_Vectors;
-   package Sequence_Vectors renames Files.Undo_History.Sequence_Vectors;
-   subtype History_Journal_State is Files.Undo_History.History_Journal_State;
-   subtype Undo_History_State is Files.Undo_History.Undo_History_State;
-
    --  The replace-or-skip prompt shown when a paste meets existing names.
    --  Every default is the closed state, as for Paste_Execution_State.
    type Paste_Conflict_State is record
@@ -1125,10 +1054,10 @@ package Files.Model is
       --  Each write: the destination (From), its source (To), and the
       --  identity and tree revision it was published with, Verified when
       --  the published entry was checked.
-      Written                 : Recorded_Item_Vectors.Vector;
+      Written                 : Files.Undo_History.Recorded_Item_Vectors.Vector;
       --  Destinations a Replace overwrote during this paste, preserved so the
       --  undo entry can restore each to its own recorded original path.
-      Replaced                : Recorded_Original_Vectors.Vector;
+      Replaced                : Files.Undo_History.Recorded_Original_Vectors.Vector;
    end record;
 
    --  Select helper execution for a live window; headless callers can step synchronously.
@@ -1557,7 +1486,7 @@ private
       Last_Error_Path_Value : UString;
       Last_Error_Notice_Key : UString;
       Clipboard             : Clipboard_State;
-      History               : Undo_History_State;
+      History               : Files.Undo_History.Undo_History_State;
       Folder_Sizes            : Folder_Size_Maps.Map;
       Folder_Scan             : Files.Folder_Size.Session;
       Context_Menu                  : Context_Menu_State;

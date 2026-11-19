@@ -14,7 +14,7 @@ is
    --  items, which stay in the trash, restorable from there; each record is
    --  committed durably.
    Progress   : Progressive_Undo :=
-     (Kind => Files.Model.Undo_Restore_Trash, Redoable => False, Durable => True, others => <>);
+     (Kind => Files.Undo_History.Undo_Restore_Trash, Redoable => False, Durable => True, others => <>);
 begin
    declare
       Refusal : constant Operation_Result := Trash_Refusal (Model);
@@ -81,13 +81,13 @@ begin
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
          end if;
          Progress.Items.Append
-           (Files.Model.Recorded_Item'
+           (Files.Undo_History.Recorded_Item'
               (Item       =>
                  (From     => Trashed,
                   To       => Item.Full_Path,
                   Identity => To_Unbounded_String (Files.File_Identities.Token (To_String (Trashed))),
                   others   => <>),
-               Provenance => Files.Model.Published));
+               Provenance => Files.Undo_History.Published));
          --  Labels go into the trash with the item and come back with it,
          --  so a new file at the old path inherits none. A native trash
          --  that does not say where the item went keeps them in place.

@@ -63,6 +63,7 @@ with Files.Transfer_Jobs.Testing;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files.Job_Scavenger.Testing;
+with Files.Undo_History;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;

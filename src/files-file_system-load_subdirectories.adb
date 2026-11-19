@@ -72,7 +72,7 @@ is
 begin
    if not Files.Fs_Primitives.Directory_Exists (Path) then
       return (Success => False, Path => To_Unbounded_String (Path), Items => Items,
-              Error_Key => To_Unbounded_String ("error.directory.load"), Signature => <>);
+              Error_Key => To_Unbounded_String (Files.Io_Errors.Directory_Load_Key), Signature => <>);
    end if;
    Normalized := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
    Support.For_Each_Entry (Path, Add_Entry'Access);
@@ -83,5 +83,5 @@ exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return (Success => False, Path => To_Unbounded_String (Path), Items => Items,
-              Error_Key => To_Unbounded_String ("error.directory.load"), Signature => <>);
+              Error_Key => To_Unbounded_String (Files.Io_Errors.Directory_Load_Key), Signature => <>);
 end Load_Subdirectories;

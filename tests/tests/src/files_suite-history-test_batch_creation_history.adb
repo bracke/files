@@ -35,7 +35,7 @@ separate (Files_Suite.History)
                Prior.Clear;
                Prior.Append (To_Unbounded_String (Join (Root, "prior")));
                Files.Undo_Recording.Record_Undo
-                 (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Prior),
+                 (Model, Files.Undo_History.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Prior),
                   Redoable => False);
                Files.Model.Set_Filter (Model, (if Extracting then ".zip" else ".txt"));
                Files.Model.Selection.Select_All_Visible (Model);

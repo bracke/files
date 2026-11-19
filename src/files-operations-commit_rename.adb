@@ -7,7 +7,7 @@ is
    Targets     : constant Files.Model.Rename.Target_Vectors.Vector := Files.Model.Rename.Targets (Model);
    Current_Dir : constant String := Files.Model.Current_Path (Model);
    --  Each rename done: the new path, the old one, and the identity there.
-   Renamed     : Files.Model.Undo_Item_Vectors.Vector;
+   Renamed     : Files.Undo_History.Undo_Item_Vectors.Vector;
    Success     : Natural := 0;
    Failure     : Natural := 0;
    Need_Reload : Boolean := False;
@@ -52,7 +52,7 @@ is
       Focus_Path : Unbounded_String;
       --  Succeeded by an actual rename: the Undo item that reverses it.
       Has_Undo   : Boolean := False;
-      Undo       : Files.Model.Undo_Item;
+      Undo       : Files.Undo_History.Undo_Item;
       --  Failed: the message key, the path it names and why; a stranded
       --  entry's path is where it was left.
       Error_Key  : Unbounded_String;
@@ -203,7 +203,7 @@ begin
    --  refresh fails, rather than stranding the model in it.
    Files.Model.Clear_Edit_State (Model);
    if not Renamed.Is_Empty then
-      Record_Undo (Model, Files.Model.Undo_Rename, Published (Renamed));
+      Record_Undo (Model, Files.Undo_History.Undo_Rename, Published (Renamed));
    end if;
 
    if Need_Reload then

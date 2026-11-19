@@ -53,6 +53,7 @@ with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files.Model.Pasting;
 with Files.Resources.Testing;
+with Files.Undo_History;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -68,7 +69,7 @@ package body Files_Suite.Operations is
    use type Files.File_System.Thumbnails.Thumbnail_Status;
    use type Files.Operation_Results.Operation_Status;
    use type Files.Operations.Archive_Format;
-   use type Files.Model.Undo_Action_Kind;
+   use type Files.Undo_History.Undo_Action_Kind;
    use type Files.UI_Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use type Files.Types.Search_Scope;

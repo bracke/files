@@ -53,7 +53,7 @@ separate (Files_Suite.History)
                   Step := Complete_Operation
                     (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
                   Await_View (Model, Settings);
-                  Paths := Files.Model.Replaced_Trash (Files.Model.History.Undo_Entries (Model).Last_Element);
+                  Paths := Files.Undo_History.Replaced_Trash (Files.Model.History.Undo_Entries (Model).Last_Element);
                   Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Replaced.First_Element.Target
                           = To_Unbounded_String (Source), "paste history retains the preserved original destination");
                end if;

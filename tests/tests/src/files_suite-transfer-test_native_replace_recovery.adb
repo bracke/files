@@ -181,7 +181,8 @@ separate (Files_Suite.Transfer)
          "rollback never overwrites a collision");
       Paths.Append (Backup);
       Files.Undo_Recording.Record_Undo
-        (Model, Files.Model.Undo_Restore_Trash, Files_Suite.Support.Models.Undo_Items (Paths), Redoable => False);
+        (Model, Files.Undo_History.Undo_Restore_Trash,
+         Files_Suite.Support.Models.Undo_Items (Paths), Redoable => False);
       Ada.Directories.Delete_File (Dest);
       Step := Complete_Operation
                        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));

@@ -49,15 +49,15 @@ separate (Files_Suite.History)
                Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
                if Scenario = Recovery_Only then
                   Files.Undo_Recording.Record_Undo
-                    (Model, Files.Model.Undo_Restore_Trash, Files_Suite.Support.Models.Undo_Items (Backups,
+                    (Model, Files.Undo_History.Undo_Restore_Trash, Files_Suite.Support.Models.Undo_Items (Backups,
                                                                                                    To => To_Paths),
                      Redoable => False);
                else
                   Files.Undo_Recording.Record_Undo
                     (Model,
                      (case Scenario is
-                         when Move_Replace => Files.Model.Undo_Move,
-                         when Copy_Replace | Recovery_Only => Files.Model.Undo_Delete_Created),
+                         when Move_Replace => Files.Undo_History.Undo_Move,
+                         when Copy_Replace | Recovery_Only => Files.Undo_History.Undo_Delete_Created),
                      Files_Suite.Support.Models.Undo_Items (From_Paths, To => To_Paths), Redoable => False,
                      Replaced => Files_Suite.Support.Models.Replaced_Originals (Backups));
                end if;

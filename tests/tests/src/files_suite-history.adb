@@ -38,6 +38,7 @@ with Files.Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files.Model.Pasting;
+with Files.Undo_History;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
 
@@ -48,7 +49,7 @@ package body Files_Suite.History is
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
    use type Files.Operation_Results.Operation_Status;
-   use type Files.Model.Undo_Action_Kind;
+   use type Files.Undo_History.Undo_Action_Kind;
    use Files_Suite.Support;
    use Files_Suite.Support.Models;
    use Files_Suite.Support.Disk;

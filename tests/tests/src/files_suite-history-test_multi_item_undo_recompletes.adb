@@ -28,7 +28,7 @@ separate (Files_Suite.History)
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Undo_Recording.Record_Undo
-        (Model, Files.Model.Undo_Move, Files_Suite.Support.Models.Undo_Items (From_V, To => To_V));
+        (Model, Files.Undo_History.Undo_Move, Files_Suite.Support.Models.Undo_Items (From_V, To => To_V));
       Assert (Files.Model.History.Undo_Available (Model), "the multi-item move records an undo entry");
 
       --  Occupy the second item's destination so its move-back cannot apply yet.

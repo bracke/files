@@ -2,26 +2,26 @@ separate (Files.Operations)
 --  Apply the forward (redo) direction of Action. Returns True on full
 --  success. Undo_Restore_Trash is undo-only and never reaches here.
 function Apply_Forward
-  (Action : in out Files.Model.Undo_Entry; Model : in out Files.Model.Window_Model)
+  (Action : in out Files.Undo_History.Undo_Entry; Model : in out Files.Model.Window_Model)
    return Boolean
 is
    Succeeded : Boolean := True;
    Copy_Batch : Files.Copy_Context.Session;
    Forwarded  : Path_Sets.Set := To_Set (Action.Forward_Completed);
 begin
-   if Action.Kind = Files.Model.Undo_Delete_Created and then Action.Create_Kind = Files.Model.Create_Copy
+   if Action.Kind = Files.Undo_History.Undo_Delete_Created and then Action.Create_Kind = Files.Undo_History.Create_Copy
      and then Natural (Action.Items.Length) > 1
    then
       Copy_Batch := Files.Copy_Context.Create;
       Files.Copy_Context.Save (Copy_Batch, Action.Copy_Records);
    end if;
    case Action.Kind is
-      when Files.Model.Undo_Rename | Files.Model.Undo_Move =>
+      when Files.Undo_History.Undo_Rename | Files.Undo_History.Undo_Move =>
          --  Re-run the original transition: from the reverted (To) location
          --  back to the post-operation (From) location.
-         Succeeded := Move_Back (Action, Model, Files.Model.Redo_Side);
+         Succeeded := Move_Back (Action, Model, Files.Undo_History.Redo_Side);
 
-      when Files.Model.Undo_Delete_Created =>
+      when Files.Undo_History.Undo_Delete_Created =>
          --  Re-create each destination from its recorded source, retaining
          --  successful publications across retries of a partial Redo.
          for Index in Action.Items.First_Index .. Action.Items.Last_Index loop
@@ -44,7 +44,7 @@ begin
                      Forwarded.Include (To_String (Action.Items (Index).From));
                      --  Recognised again by a retry (Completed_Creation_Matches).
                      Files.History_Journal.Checkpoint
-                       (Files.Model.History.State (Model), Action, Files.Model.Redo_Side,
+                       (Files.Model.History.State (Model), Action, Files.Undo_History.Redo_Side,
                         Timing => Files.History_Journal.Within_Second);
                   end if;
                else
@@ -52,10 +52,10 @@ begin
                      --  Persist the invalidation before attempting to
                      --  recreate a missing publication. A crash must not
                      --  revive a marker that no longer describes Path.
-                     Remove_Completion (Action, Action.Items (Index).From, Files.Model.Redo_Side);
+                     Remove_Completion (Action, Action.Items (Index).From, Files.Undo_History.Redo_Side);
                      Forwarded.Exclude (To_String (Action.Items (Index).From));
                      Files.History_Journal.Checkpoint
-                       (Files.Model.History.State (Model), Action, Files.Model.Redo_Side);
+                       (Files.Model.History.State (Model), Action, Files.Undo_History.Redo_Side);
                   end if;
                   --  A source gone for sure, or a destination that may be
                   --  taken (a refused lookup is not a free one), fails it.
@@ -67,32 +67,32 @@ begin
                      declare
                         Identity, Revision : Files.Types.UString;
                         Link_Source : constant Boolean :=
-                          Action.Create_Kind = Files.Model.Create_Hard_Link
+                          Action.Create_Kind = Files.Undo_History.Create_Hard_Link
                             and then Hostkit.Fs.Is_Link (Source);
                         Source_Snapshot : constant String :=
-                          (if Action.Create_Kind = Files.Model.Create_Hard_Link
+                          (if Action.Create_Kind = Files.Undo_History.Create_Hard_Link
                             and then not Link_Source
                            then Hard_Link_Snapshot (Source) else "");
                         Created : constant Boolean :=
                           (case Action.Create_Kind is
-                              when Files.Model.Create_Copy =>
+                              when Files.Undo_History.Create_Copy =>
                                 Files.File_System.Copy_Tree
                                   (Source, Dest, Identity, Revision, Copy_Batch).Success,
-                              when Files.Model.Create_Symbolic_Link =>
+                              when Files.Undo_History.Create_Symbolic_Link =>
                                 Files.File_System.Create_Symbolic_Link (Source, Dest).Success,
-                              when Files.Model.Create_Hard_Link =>
+                              when Files.Undo_History.Create_Hard_Link =>
                                 (if Link_Source or else Source_Snapshot /= ""
                                  then Files.File_System.Create_Hard_Link (Source, Dest).Success
                                  else False),
-                              when Files.Model.Create_None => False);
+                              when Files.Undo_History.Create_None => False);
                      begin
                         if Created then
-                           if Action.Create_Kind /= Files.Model.Create_Copy then
+                           if Action.Create_Kind /= Files.Undo_History.Create_Copy then
                               Identity := To_Unbounded_String (Files.File_Identities.Token (Dest));
                               Revision := To_Unbounded_String
-                                (if Action.Create_Kind = Files.Model.Create_Hard_Link
+                                (if Action.Create_Kind = Files.Undo_History.Create_Hard_Link
                                  then Source_Snapshot
-                                 elsif Action.Create_Kind = Files.Model.Create_Symbolic_Link
+                                 elsif Action.Create_Kind = Files.Undo_History.Create_Symbolic_Link
                                  then ""
                                  else Files.File_System.Tree_Revision (Dest));
                            end if;
@@ -104,7 +104,7 @@ begin
                            --  Written now: only the journal knows this entry's
                            --  identity, which is what tells a retry it is ours.
                            Files.History_Journal.Checkpoint
-                             (Files.Model.History.State (Model), Action, Files.Model.Redo_Side);
+                             (Files.Model.History.State (Model), Action, Files.Undo_History.Redo_Side);
                         else
                            Succeeded := False;
                         end if;
@@ -114,7 +114,7 @@ begin
             end;
          end loop;
 
-      when Files.Model.Undo_Set_Permissions | Files.Model.Undo_Set_Ownership =>
+      when Files.Undo_History.Undo_Set_Permissions | Files.Undo_History.Undo_Set_Ownership =>
          --  Re-apply the mode or owner the change set (Forward).
          case Replay_Metadata (Action, After_Change) is
             when Stopped     => return False;
@@ -122,7 +122,7 @@ begin
             when Replayed    => null;
          end case;
 
-      when Files.Model.Undo_Restore_Trash | Files.Model.Undo_None =>
+      when Files.Undo_History.Undo_Restore_Trash | Files.Undo_History.Undo_None =>
          Succeeded := False;
    end case;
    return Succeeded;

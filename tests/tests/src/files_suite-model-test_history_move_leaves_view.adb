@@ -19,7 +19,7 @@ separate (Files_Suite.Model)
          Before : constant Natural := Files.Model.Revision (Model);
       begin
          Files.Undo_Recording.Record_Undo
-           (Model, Files.Model.Undo_Move, Files.Model.Recorded_Item_Vectors.Empty_Vector);
+           (Model, Files.Undo_History.Undo_Move, Files.Undo_History.Recorded_Item_Vectors.Empty_Vector);
          Assert (Files.Model.Revision (Model) /= Before, "recording an Undo step is a change the view redraws");
       end;
    end Test_History_Move_Leaves_View;

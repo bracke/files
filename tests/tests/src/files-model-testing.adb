@@ -75,10 +75,10 @@ package body Files.Model.Testing is
 
    function Undo_Kind_Of
      (Model : Window_Model)
-      return Undo_Action_Kind is
+      return Files.Undo_History.Undo_Action_Kind is
    begin
       if Model.History.Undo_Stack.Is_Empty then
-         return Undo_None;
+         return Files.Undo_History.Undo_None;
       end if;
 
       return Model.History.Undo_Stack.Last_Element.Kind;
@@ -162,7 +162,7 @@ package body Files.Model.Testing is
       Files.History_Journal.Save_To (Directory, Files.Model.History.State (Model), Mode);
    end Save_Journal_To;
 
-   function Journals_Newest (Model : Window_Model; Side : History_Side) return Boolean is
+   function Journals_Newest (Model : Window_Model; Side : Files.Undo_History.History_Side) return Boolean is
      (Files.History_Journal.Journals_Newest (Files.Model.History.State (Model), Side));
 
 end Files.Model.Testing;

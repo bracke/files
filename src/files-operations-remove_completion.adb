@@ -1,14 +1,14 @@
 separate (Files.Operations)
 procedure Remove_Completion
-  (Action : in out Files.Model.Undo_Entry;
+  (Action : in out Files.Undo_History.Undo_Entry;
    Path : Files.Types.UString;
-   Side : Files.Model.History_Side)
+   Side : Files.Undo_History.History_Side)
 is
-   use type Files.Model.History_Side;
+   use type Files.Undo_History.History_Side;
 begin
    --  Redone steps are recorded as forward completions, undone ones as
    --  reverse completions.
-   if Side = Files.Model.Redo_Side then
+   if Side = Files.Undo_History.Redo_Side then
       for Index in reverse
         Action.Forward_Completed.First_Index .. Action.Forward_Completed.Last_Index
       loop

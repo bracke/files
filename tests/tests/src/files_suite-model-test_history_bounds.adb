@@ -18,12 +18,13 @@ separate (Files_Suite.Model)
          begin
             From.Append (To_Unbounded_String (History_Path));
             Files.Undo_Recording.Record_Undo
-              (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (From), Redoable => False);
+              (Model, Files.Undo_History.Undo_Delete_Created,
+               Files_Suite.Support.Models.Undo_Items (From), Redoable => False);
          end;
       end loop;
       declare
          Count  : Natural := 0;
-         Action : Files.Model.Undo_Entry;
+         Action : Files.Undo_History.Undo_Entry;
          Found  : Boolean;
       begin
          loop

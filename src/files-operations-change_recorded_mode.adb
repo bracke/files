@@ -1,6 +1,6 @@
 separate (Files.Operations)
 function Change_Recorded_Mode
-  (Action : Files.Model.Undo_Entry; Index : Positive; Mode : Natural; Access_Text : String := "") return Boolean
+  (Action : Files.Undo_History.Undo_Entry; Index : Positive; Mode : Natural; Access_Text : String := "") return Boolean
 is
    Previous : Natural;
    Identity : Files.Types.UString;

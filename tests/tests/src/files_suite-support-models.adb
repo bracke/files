@@ -162,16 +162,16 @@ package body Files_Suite.Support.Models is
       Forward        : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
       Identities     : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
       Tree_Revisions : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
-      Provenance     : Files.Model.Item_Provenance := Files.Model.Captured)
-      return Files.Model.Recorded_Item_Vectors.Vector
+      Provenance     : Files.Undo_History.Item_Provenance := Files.Undo_History.Captured)
+      return Files.Undo_History.Recorded_Item_Vectors.Vector
    is
       function At_Index (Values : Files.Types.String_Vectors.Vector; Index : Positive) return Unbounded_String is
         (if Index <= Values.Last_Index then Values (Index) else Null_Unbounded_String);
    begin
-      return Items : Files.Model.Recorded_Item_Vectors.Vector do
+      return Items : Files.Undo_History.Recorded_Item_Vectors.Vector do
          for Index in From.First_Index .. From.Last_Index loop
             Items.Append
-              (Files.Model.Recorded_Item'
+              (Files.Undo_History.Recorded_Item'
                  (Item       =>
                     (From          => From (Index),
                      To            => At_Index (To, Index),
@@ -184,11 +184,12 @@ package body Files_Suite.Support.Models is
    end Undo_Items;
 
    function Replaced_Originals
-     (Trash : Files.Types.String_Vectors.Vector) return Files.Model.Recorded_Original_Vectors.Vector is
+     (Trash : Files.Types.String_Vectors.Vector) return Files.Undo_History.Recorded_Original_Vectors.Vector is
    begin
-      return Originals : Files.Model.Recorded_Original_Vectors.Vector do
+      return Originals : Files.Undo_History.Recorded_Original_Vectors.Vector do
          for Path of Trash loop
-            Originals.Append (Files.Model.Recorded_Original'(Original => (Trash => Path, others => <>), others => <>));
+            Originals.Append
+              (Files.Undo_History.Recorded_Original'(Original => (Trash => Path, others => <>), others => <>));
          end loop;
       end return;
    end Replaced_Originals;

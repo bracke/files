@@ -112,8 +112,8 @@ separate (Files_Suite.Recovery)
       Ada.Directories.Create_Directory (History_Directory);
       Files.History_Journal.Save_Stacks
         (History_Directory,
-         Files.Model.Undo_Entry_Vectors.Empty_Vector,
-         Files.Model.Undo_Entry_Vectors.Empty_Vector,
+         Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
+         Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
          Mode => Files.History_Journal.Must_Commit);
       Files.Model.Initialize
         (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);

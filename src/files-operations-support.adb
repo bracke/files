@@ -226,7 +226,7 @@ package body Files.Operations.Support is
       Progress : in out Progressive_Undo;
       Now      : Ada.Real_Time.Time)
    is
-      Previous : Files.Model.Undo_Entry;
+      Previous : Files.Undo_History.Undo_Entry;
       Found    : Boolean;
    begin
       if Progress.Recorded then
@@ -250,7 +250,7 @@ package body Files.Operations.Support is
         and then Natural (Files.Model.History.Undo_From_Paths (Model).Length) = Natural (Progress.Items.Length)
       then
          for Item of Progress.Items loop
-            Item.Provenance := Files.Model.Verified;
+            Item.Provenance := Files.Undo_History.Verified;
          end loop;
       end if;
       if Progress.Durable then

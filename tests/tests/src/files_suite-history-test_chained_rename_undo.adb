@@ -20,7 +20,7 @@ separate (Files_Suite.History)
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Undo_Recording.Record_Undo
-        (Model, Files.Model.Undo_Rename,
+        (Model, Files.Undo_History.Undo_Rename,
          Files_Suite.Support.Models.Undo_Items
            (From => [To_Unbounded_String (C), To_Unbounded_String (B)],
             To   => [To_Unbounded_String (B), To_Unbounded_String (A)]));

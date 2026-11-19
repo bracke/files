@@ -64,7 +64,7 @@ separate (Files_Suite.Recovery)
 
       --  The history journal itself.
       Files.History_Journal.Save_Stacks
-        (Root, Files.Model.Undo_Entry_Vectors.Empty_Vector, Files.Model.Undo_Entry_Vectors.Empty_Vector,
+        (Root, Files.Undo_History.Undo_Entry_Vectors.Empty_Vector, Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
          Mode => Files.History_Journal.Must_Commit);
       Assert (Ada.Directories.Exists (Join (Root, "history")), "the history journal is written");
       Assert (Owner_Only (Join (Root, "history")), "owner-only");

@@ -29,8 +29,8 @@ separate (Files_Suite.History)
             Files.Undo_Recording.Record_Undo
               (Model,
                (case Scenario is
-                   when Move_Action   => Files.Model.Undo_Move,
-                   when Rename_Action => Files.Model.Undo_Rename),
+                   when Move_Action   => Files.Undo_History.Undo_Move,
+                   when Rename_Action => Files.Undo_History.Undo_Rename),
                Files_Suite.Support.Models.Undo_Items (Destinations, To => Sources));
             Step := Complete_Operation
                        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));

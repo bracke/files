@@ -6,17 +6,17 @@ separate (Files_Suite.History)
       pragma Unreferenced (T);
       History_Directory : constant String := Join (Root, "history-large");
       Long_Name : constant String := [1 .. 2_000 => 'x'];
-      Undo      : Files.Model.Undo_Entry_Vectors.Vector;
+      Undo      : Files.Undo_History.Undo_Entry_Vectors.Vector;
       Model     : Files.Model.Window_Model;
 
-      function Large (Tag : String) return Files.Model.Undo_Entry is
-         Result : Files.Model.Undo_Entry;
+      function Large (Tag : String) return Files.Undo_History.Undo_Entry is
+         Result : Files.Undo_History.Undo_Entry;
       begin
-         Result.Kind := Files.Model.Undo_Delete_Created;
+         Result.Kind := Files.Undo_History.Undo_Delete_Created;
          Result.Redoable := False;
          for Index in 1 .. 20_000 loop
             Result.Items.Append
-              (Files.Model.Undo_Item'
+              (Files.Undo_History.Undo_Item'
                  (From => To_Unbounded_String ("/" & Tag & Long_Name & Index'Image),
                   Identity => To_Unbounded_String ("1:" & Index'Image),
                   Tree_Revision => To_Unbounded_String ("rev"),
@@ -31,7 +31,7 @@ separate (Files_Suite.History)
       Undo.Append (Large ("older"));
       Undo.Append (Large ("newer"));
       Files.History_Journal.Save_Stacks
-        (History_Directory, Undo, Files.Model.Undo_Entry_Vectors.Empty_Vector,
+        (History_Directory, Undo, Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
          Mode => Files.History_Journal.Must_Commit);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.Model.Testing.Restore_Journal (History_Directory, Model), "the journal is saved and reads back");

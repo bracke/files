@@ -46,7 +46,7 @@ separate (Files_Suite.History)
          "set-permissions operation succeeds");
       Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#600#, "mode reads back as 0600 after chmod");
       Assert
-        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Model.Undo_Set_Permissions,
+        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Undo_History.Undo_Set_Permissions,
          "set-permissions records a permission undo");
 
       Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));

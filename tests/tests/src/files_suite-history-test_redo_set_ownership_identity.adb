@@ -35,7 +35,7 @@ separate (Files_Suite.History)
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                         "identity chown succeeds");
       Assert
-        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Model.Undo_Set_Ownership,
+        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Undo_History.Undo_Set_Ownership,
          "set-ownership records an ownership undo");
 
       Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));

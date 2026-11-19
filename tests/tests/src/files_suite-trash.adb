@@ -35,6 +35,7 @@ with Hostkit.Metadata;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
+with Files.Undo_History;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files_Suite.Support.Disk;

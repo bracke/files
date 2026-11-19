@@ -13,25 +13,26 @@ separate (Files_Suite.History)
       --  A field longer than a journal field may be makes its entry unfit.
       Oversized : constant String := [1 .. 33_000 => 'x'];
       Window, Helper : Files.Model.Window_Model;
-      Undo : Files.Model.Undo_Entry_Vectors.Vector;
-      State : Files.Model.History_Journal_State;
+      Undo : Files.Undo_History.Undo_Entry_Vectors.Vector;
+      State : Files.Undo_History.History_Journal_State;
 
       --  An undo-only entry numbered Sequence; Large ones do not fit the
       --  journal, and Preserving ones hold an original a replace kept.
-      function Item (Name : String; Sequence : Positive; Large, Preserving : Boolean) return Files.Model.Undo_Entry is
-         Result : Files.Model.Undo_Entry;
+      function Item
+        (Name : String; Sequence : Positive; Large, Preserving : Boolean) return Files.Undo_History.Undo_Entry is
+         Result : Files.Undo_History.Undo_Entry;
       begin
-         Result.Kind := Files.Model.Undo_Delete_Created;
+         Result.Kind := Files.Undo_History.Undo_Delete_Created;
          Result.Redoable := False;
          Result.Items.Append
-           (Files.Model.Undo_Item'
+           (Files.Undo_History.Undo_Item'
               (From => To_Unbounded_String (Join (Root, Name)),
                Identity => To_Unbounded_String ("1:" & Name),
                Tree_Revision => To_Unbounded_String (if Large then Oversized else "rev"),
                others => <>));
          if Preserving then
             Result.Replaced.Append
-              (Files.Model.Replaced_Original'
+              (Files.Undo_History.Replaced_Original'
                  (Trash => To_Unbounded_String (Join (Root, "stage-" & Name)),
                   Identity => To_Unbounded_String ("2:" & Name),
                   Target => To_Unbounded_String (Join (Root, Name & "-original"))));
@@ -41,7 +42,7 @@ separate (Files_Suite.History)
       end Item;
 
       --  The names of a stack's entries, oldest first, "a,b".
-      function Names (Entries : Files.Model.Undo_Entry_Vectors.Vector) return String is
+      function Names (Entries : Files.Undo_History.Undo_Entry_Vectors.Vector) return String is
          Result : Unbounded_String;
       begin
          for Action of Entries loop
@@ -70,14 +71,14 @@ separate (Files_Suite.History)
          State.Unjournaled.Append (Sequence);
       end loop;
       Files.Model.Initialize (Window, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Files.Model.History.Restore (Window, Undo, Files.Model.Undo_Entry_Vectors.Empty_Vector, State);
+      Files.Model.History.Restore (Window, Undo, Files.Undo_History.Undo_Entry_Vectors.Empty_Vector, State);
       Files.Model.Testing.Save_Journal_To (Directory, Window, Mode => Files.History_Journal.Must_Commit);
 
       --  The helper carries the dropped markers on into its own journal.
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.Model.Testing.Restore_Journal (Directory, Helper), "the helper reads the window's journal");
       declare
-         Helper_State : constant Files.Model.History_Journal_State := Files.Model.History.Journal_State (Helper);
+         Helper_State : constant Files.Undo_History.History_Journal_State := Files.Model.History.Journal_State (Helper);
       begin
          Assert (Helper_State.Dropped.Contains (1) and then Helper_State.Dropped.Contains (2),
                  "the journal names the entries its cap dropped");

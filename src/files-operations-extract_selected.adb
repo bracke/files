@@ -12,7 +12,8 @@ is
    First_Created : Unbounded_String;
    Extracted_Any : Boolean := False;
    --  The extracted folders (From).
-   Progress      : Progressive_Undo := (Kind => Files.Model.Undo_Delete_Created, Redoable => False, others => <>);
+   Progress      : Progressive_Undo :=
+     (Kind => Files.Undo_History.Undo_Delete_Created, Redoable => False, others => <>);
 
    --  An earlier archive in the same batch may already have committed.
    --  Keep that output visible as well as undoable, while preserving the
@@ -137,13 +138,13 @@ is
          end if;
          Discard_Stage;
          Progress.Items.Append
-           (Files.Model.Recorded_Item'
+           (Files.Undo_History.Recorded_Item'
               (Item       =>
                  (From          => To_Unbounded_String (Dest_Dir),
                   Identity      => Made_Identity,
                   Tree_Revision => Made_Revision,
                   others        => <>),
-               Provenance => Files.Model.Published));
+               Provenance => Files.Undo_History.Published));
          Checkpoint_Undo (Model, Progress);
          if not Extracted_Any then
             First_Created := To_Unbounded_String (Dest_Name);

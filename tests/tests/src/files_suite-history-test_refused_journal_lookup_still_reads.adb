@@ -9,23 +9,24 @@ separate (Files_Suite.History)
    procedure Test_Refused_Journal_Lookup_Still_Reads (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Directory : constant String := Join (Root, "history-refused");
-      Undo      : Files.Model.Undo_Entry_Vectors.Vector;
-      Item      : Files.Model.Undo_Entry;
+      Undo      : Files.Undo_History.Undo_Entry_Vectors.Vector;
+      Item      : Files.Undo_History.Undo_Entry;
       Model     : Files.Model.Window_Model;
    begin
       Reset_Root;
       Ada.Directories.Create_Directory (Directory);
-      Item.Kind := Files.Model.Undo_Delete_Created;
+      Item.Kind := Files.Undo_History.Undo_Delete_Created;
       Item.Redoable := False;
       Item.Items.Append
-        (Files.Model.Undo_Item'
+        (Files.Undo_History.Undo_Item'
            (From => To_Unbounded_String (Join (Root, "made")),
             Identity => To_Unbounded_String ("1:2"),
             Tree_Revision => To_Unbounded_String ("rev"),
             others => <>));
       Undo.Append (Item);
       Files.History_Journal.Save_Stacks
-        (Directory, Undo, Files.Model.Undo_Entry_Vectors.Empty_Vector, Mode => Files.History_Journal.Must_Commit);
+        (Directory, Undo, Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
+         Mode => Files.History_Journal.Must_Commit);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
 
       Files.Fs_Primitives.Testing.Refuse_Lookups (Join (Directory, "history"));

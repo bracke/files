@@ -10,8 +10,8 @@ separate (Files_Suite.History)
       Write_Binary_File (Join (History_Directory, "history.tmp"), "half a journal");
       Files.History_Journal.Save_Stacks
         (History_Directory,
-         Files.Model.Undo_Entry_Vectors.Empty_Vector,
-         Files.Model.Undo_Entry_Vectors.Empty_Vector,
+         Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
+         Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
          Mode => Files.History_Journal.Must_Commit);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.Model.Testing.Restore_Journal (History_Directory, Model), "the journal is saved over the leftover");

@@ -54,7 +54,7 @@ is
       begin
          if not Load.Success then
             if Depth = 0 then
-               Result.Error_Key := To_Unbounded_String ("error.directory.load");
+               Result.Error_Key := To_Unbounded_String (Files.Io_Errors.Directory_Load_Key);
                Stopped := True;
             else
                Result.Incomplete := True;
@@ -93,7 +93,7 @@ is
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
          if Depth = 0 then
-            Result.Error_Key := To_Unbounded_String ("error.directory.load");
+            Result.Error_Key := To_Unbounded_String (Files.Io_Errors.Directory_Load_Key);
             Stopped := True;
          else
             Result.Incomplete := True;
@@ -101,7 +101,7 @@ is
    end Visit;
 begin
    if not Files.Fs_Primitives.Directory_Exists (Root_Path) then
-      Result.Error_Key := To_Unbounded_String ("error.directory.load");
+      Result.Error_Key := To_Unbounded_String (Files.Io_Errors.Directory_Load_Key);
       return Result;
    end if;
    Visit (Root_Path, 0);

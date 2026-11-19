@@ -1,5 +1,6 @@
 with Files.File_System;
 with Files.Model.Support;
+with Files.Undo_History;
 
 package body Files.Model.Pasting is
 
@@ -190,12 +191,12 @@ package body Files.Model.Pasting is
    begin
       Touch (Model);
       Model.Paste_Exec.Replaced.Append
-        (Recorded_Original'
+        (Files.Undo_History.Recorded_Original'
            (Original   =>
               (Trash    => Trash_Path,
                Identity => To_Unbounded_String (Identity),
                Target   => To_Unbounded_String (Original_Path)),
-            Provenance => (if Verified then Files.Model.Verified else Files.Model.Published)));
+            Provenance => (if Verified then Files.Undo_History.Verified else Files.Undo_History.Published)));
    end Record_Replaced_Trash;
 
    procedure Skip_Action
@@ -222,14 +223,14 @@ package body Files.Model.Pasting is
          Model.Paste_Exec.First_Dest := Dest_Path;
       end if;
       Model.Paste_Exec.Written.Append
-        (Recorded_Item'
+        (Files.Undo_History.Recorded_Item'
            (Item       =>
               (From          => Dest_Path,
                To            => Source_Path,
                Identity      => To_Unbounded_String (Identity),
                Tree_Revision => To_Unbounded_String (Tree_Revision),
                others        => <>),
-            Provenance => (if Verified then Files.Model.Verified else Files.Model.Published)));
+            Provenance => (if Verified then Files.Undo_History.Verified else Files.Undo_History.Published)));
    end Record_Write;
 
    procedure Set_Cancelled
