@@ -252,7 +252,7 @@ package body Files.Fs_Primitives is
       end if;
    end Create_Path;
 
-   procedure Delete_File (Path : String) is
+   procedure Delete_File (Path : String; Record_Refusal : Boolean := False) is
    begin
       --  No reason left over from an earlier call: a host that refuses
       --  without one must not be traced, or reported, with another's.
@@ -260,14 +260,18 @@ package body Files.Fs_Primitives is
       if not Hostkit.Fs.Delete_File (Path) then
          declare
             --  The host's reason, before the lookup below can change it.
-            --  Not recorded with Capture: a clean-up's refusal must not
-            --  replace the reason the operation it cleans up after failed.
+            --  Recorded only when Record_Refusal asks: a clean-up's refusal
+            --  must not replace the reason the operation it cleans up after
+            --  failed.
             Code : constant Integer := GNAT.OS_Lib.Errno;
          begin
             --  Name_Error ("nothing there") only when that is sure: a caller
             --  may take it as already deleted.
             if not Entry_Is_Absent (Path) then
                Files.Diagnostics.Trace ("Files.Fs_Primitives", "delete_refused=" & Path & ",errno=" & Code'Image);
+               if Record_Refusal then
+                  Files.Io_Errors.Record_Code (Code);
+               end if;
                raise Ada.Directories.Use_Error;
             end if;
          end;

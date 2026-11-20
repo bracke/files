@@ -53,19 +53,13 @@ separate (Files.Controller)
       Files.Operations.Apply_Ui_State (Model, Final);
 
       Operation := Files.Operations.Refresh (Model, Settings);
-      --  The pane shows what was saved, but keeps its own rows: the entry
-      --  each mapping group is on, and a row just added and not yet filled
-      --  in (which the file does not hold). Rebuilding the draft from the
-      --  saved settings would send every group back to its first entry.
-      declare
-         Kept  : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
-         Fresh : constant Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Settings);
-      begin
-         Kept.Scalars := Fresh.Scalars;
-         Kept.Valid := Fresh.Valid;
-         Kept.Error_Key := Fresh.Error_Key;
-         Files.Settings_Form.Set_Draft (Model, Kept);
-      end;
+      --  The pane shows what was saved -- every mapping row as the file
+      --  holds it -- with each mapping editor still on the entry it was on,
+      --  and a row just added and not yet filled in kept. Rebuilding the
+      --  draft from the saved settings alone would send every group back to
+      --  its first entry.
+      Files.Settings_Form.Set_Draft
+        (Model, Files.Settings.Draft_After_Save (Files.Model.Settings_Pane.Draft_Of (Model), Settings));
       if Operation.Status = Files.Operation_Results.Operation_Failed then
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
       end if;

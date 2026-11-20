@@ -1,4 +1,3 @@
-with Files.Input_Actions;
 with Glfw.Windows.Drop.Paths;
 with Files.Model;
 with Files.Refresh_Jobs;
@@ -16,6 +15,7 @@ private with A11ykit.Provider;
 private with Files.Accessibility;
 private with Files.Commands;
 private with Files.Drop_Events;
+private with Files.Input_Actions;
 private with Files.Overlays;
 private with Files.Rendering;
 private with Files.Rendering.Text;

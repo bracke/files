@@ -93,8 +93,10 @@ package Files.Durable_Writes is
    --  (a record staged in a directory only it writes): an entry already
    --  there was left by a writer that died, or whose own clean-up the host
    --  refused, and is removed first so that it does not refuse this write
-   --  and every later one. Raises as Write_Private_File does, and when the
-   --  leftover cannot be removed.
+   --  and every later one; one that vanishes meanwhile is no obstacle.
+   --  Raises as Write_Private_File does, and Ada.Directories.Use_Error when
+   --  the host refuses to remove the leftover, its reason recorded with
+   --  Files.Io_Errors.
    --
    --  @param Temporary Path to create, the caller's own fixed name.
    --  @param Write Writes the record to the stream given.
@@ -130,8 +132,11 @@ package Files.Durable_Writes is
    --  crash or a stopped helper left there is passed over, never followed,
    --  truncated or removed, so it never stops a later save. A temporary
    --  that is not published is removed (Remove_Owned). Raises as
-   --  Write_Private_Temporary does, or with what Publish raised, having
-   --  removed the temporary.
+   --  Write_Private_Temporary does, having removed the temporary; Publish
+   --  itself never raises. When the publish fails, the code recorded with
+   --  Files.Io_Errors is the one the failing step gave (zero when it gave
+   --  none), never one recorded before; when it succeeds, the code recorded
+   --  before stands.
    --
    --  @param Target The file to replace or create.
    --  @param Write Writes the file to the stream given.
@@ -143,11 +148,13 @@ package Files.Durable_Writes is
 
    --  Remove the temporaries a crash or a killed process left beside Base:
    --  each entry named as Write_Private_Temporary names them (Base & ".tmp",
-   --  or ".tmp-" and a number) that is a regular file, not a link, owned by
-   --  this user, open to no one else (no group or other mode bits), and
-   --  last written more than a minute before this process started -- so a
-   --  temporary another running writer (a background job) is filling is
-   --  never taken from it. That start is reckoned by the folder's own
+   --  or ".tmp-" and a number) that is a regular file, not a link, private
+   --  to this user (see below), and last written more than a minute before
+   --  this process started -- so a temporary another running writer (a
+   --  background job) wrote to within that margin is never taken from it;
+   --  one written to earlier and still unpublished (a writer stalled that
+   --  long in its sync, say) is swept, its publish then fails and its
+   --  target is left as it was. That start is reckoned by the folder's own
    --  clock, not this machine's (a share's server may be far off from it):
    --  when there is anything to sweep, a fresh temporary is written there,
    --  its modification time read and the file removed again, and the time

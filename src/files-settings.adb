@@ -893,6 +893,14 @@ package body Files.Settings is
       return String
  is separate;
 
+   function Same_Persisted (Left, Right : Settings_Draft) return Boolean is
+     (Draft_Settings_Text (Left) = Draft_Settings_Text (Right));
+
+   function Draft_After_Save
+     (Draft : Settings_Draft;
+      Saved : Settings_Model)
+      return Settings_Draft is separate;
+
    function Validate_Draft
      (Draft : Settings_Draft)
       return Settings_Parse_Result is separate;

@@ -64,7 +64,7 @@ separate (Files_Suite.Settings)
       Files_Suite.Support.Assert_Equal (Ext, "md", "Prev wraps back to the last entry");
 
       Saved := Files.Settings_Form.Apply_Change (Model, Button ("add"));
-      Assert (Saved, "adding an entry saves");
+      Assert (not Saved, "adding a blank entry, which the file does not hold, does not save");
       Files_Suite.Support.Assert_Equal (Count, 3, "Add appends a mapping entry");
       Assert
         (Files.Settings.Apply_Draft
@@ -86,10 +86,12 @@ separate (Files_Suite.Settings)
       end;
 
       Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
-      Assert (Saved, "removing an entry saves");
-      Files_Suite.Support.Assert_Equal (Count, 2, "Remove drops the mapping entry");
+      Assert (not Saved, "removing the blank entry does not save");
+      Files_Suite.Support.Assert_Equal (Count, 2, "Remove drops the blank entry");
 
       Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
+      Assert (Saved, "removing an entry the file holds saves");
+      Files_Suite.Support.Assert_Equal (Count, 1, "Remove drops the mapping entry");
       Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
       Files_Suite.Support.Assert_Equal (Count, 0, "every entry removed");
       Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
@@ -104,4 +106,55 @@ separate (Files_Suite.Settings)
           Value => To_Unbounded_String ("log")));
       Files_Suite.Support.Assert_Equal (Count, 1, "typing into an empty group starts an entry");
       Files_Suite.Support.Assert_Equal (Ext, "log", "the typed key is the new entry's");
+
+      --  A save shows the rows as the file holds them: a second row typed
+      --  with the first one's key in another form is merged into it, and
+      --  the group stays on that entry.
+      Saved := Files.Settings_Form.Apply_Change
+        (Model,
+         (Kind  => SP.Value_Changed,
+          Key   => To_Unbounded_String ("settings.filetype_value"),
+          Value => To_Unbounded_String ("text/plain")));
+      Saved := Files.Settings_Form.Apply_Change (Model, Button ("add"));
+      Saved := Files.Settings_Form.Apply_Change
+        (Model,
+         (Kind  => SP.Value_Changed,
+          Key   => To_Unbounded_String ("settings.filetype_extension"),
+          Value => To_Unbounded_String (".LOG")));
+      Saved := Files.Settings_Form.Apply_Change
+        (Model,
+         (Kind  => SP.Value_Changed,
+          Key   => To_Unbounded_String ("settings.filetype_value"),
+          Value => To_Unbounded_String ("text/x-log")));
+      Files_Suite.Support.Assert_Equal (Count, 2, "the second row is in the pane before the save");
+      declare
+         Settings : Files.Settings.Settings_Model := Base;
+         Result   : constant Files.Controller.Controller_Result :=
+           Files.Controller.Testing.Save_Settings
+             (Model, Settings, Join (Join (Root, "mapping-navigation"), "settings.conf"));
+         pragma Unreferenced (Result);
+      begin
+         Files_Suite.Support.Assert_Equal (Count, 1, "after a save the pane holds the rows the file holds");
+         Files_Suite.Support.Assert_Equal (Ext, "log", "the saved key is shown in its normal form");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Files.Model.Settings_Pane.Draft_Of (Model).Filetype_Value), "text/x-log",
+            "the merged row holds the value saved");
+      end;
+
+      --  Reset with nothing to reset does not save, however the pane was left
+      --  (an entry paged to, an error shown); with shortcut overrides it does.
+      declare
+         Defaults : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Files.Settings.Default_Settings);
+         Had_Overrides : constant Boolean := Files.Commands.Has_Shortcut_Overrides;
+      begin
+         Defaults.Valid := False;
+         Defaults.Error_Key := To_Unbounded_String ("settings.invalid");
+         Files.Settings_Form.Begin_Edit (Model, Defaults);
+         Saved := Files.Settings_Form.Apply_Change
+           (Model,
+            (Kind  => SP.Button_Pressed,
+             Key   => To_Unbounded_String ("form.actions"),
+             Value => To_Unbounded_String ("reset")));
+         Assert (Saved = Had_Overrides, "a reset that changes nothing saves only to drop shortcut overrides");
+      end;
    end Test_Settings_Form_Mapping_Navigation;

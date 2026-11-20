@@ -6,8 +6,7 @@ with Files.UI_Types;
 --  The input actions Files.Events translates input into and Files.Controller
 --  and Files.Interaction apply: plain values, in a unit of their own so the
 --  controller need not depend on event translation, nor through it on the
---  rendering snapshot. Files.Events re-exports each one under its own name,
---  literals included.
+--  rendering snapshot.
 package Files.Input_Actions is
 
    --  What a right click landed on, from the top of what is drawn down:

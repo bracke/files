@@ -376,12 +376,8 @@ package body Files.Settings_Form is
       Index        : in out Natural;
       Key_Field    : in out UString;
       Value_Field  : in out UString;
-      Button       : String;
-      Changed      : out Boolean)
-   is
-      Count : constant Natural := Natural (Keys.Length);
+      Button       : String) is
    begin
-      Changed := Button = "add" or else (Button = "remove" and then Index in 1 .. Count);
       if Button = "add" then
          Add_Entry (Keys, Values, Index, Key_Field, Value_Field);
       elsif Button = "remove" then
@@ -559,35 +555,29 @@ package body Files.Settings_Form is
          when SP.Button_Pressed =>
             declare
                Button        : constant String := To_String (Val);
-               Changed       : Boolean := False;
+               Before        : constant Files.Settings.Settings_Draft := D;
                Had_Overrides : constant Boolean := Files.Commands.Has_Shortcut_Overrides;
+               Is_Reset      : constant Boolean := Key = "form.actions" and then Button = "reset";
             begin
-               if Key = "form.actions" then
-                  if Button = "reset" then
-                     declare
-                        use type Files.Settings.Settings_Draft;
-                        Before : constant Files.Settings.Settings_Draft := D;
-                     begin
-                        D := Reset_To_Defaults;
-                        --  Reset_To_Defaults also drops the shortcut
-                        --  overrides, which the draft does not hold: saved
-                        --  whenever there were any.
-                        Changed := D /= Before or else Had_Overrides;
-                     end;
-                  end if;
+               if Is_Reset then
+                  D := Reset_To_Defaults;
                elsif Key = "form.filetype.buttons" then
                   Group_Button (D.Filetype_Keys, D.Filetype_Values, D.Filetype_Index,
-                                D.Filetype_Extension, D.Filetype_Value, Button, Changed);
+                                D.Filetype_Extension, D.Filetype_Value, Button);
                elsif Key = "form.icon.buttons" then
                   Group_Button (D.Icon_Keys, D.Icon_Values, D.Icon_Index,
-                                D.Icon_Filetype, D.Icon_Value, Button, Changed);
+                                D.Icon_Filetype, D.Icon_Value, Button);
                elsif Key = "form.open_action.buttons" then
                   Group_Button (D.Open_Action_Keys, D.Open_Action_Commands, D.Open_Action_Index,
-                                D.Open_Action_Token, D.Open_Action_Command, Button, Changed);
+                                D.Open_Action_Token, D.Open_Action_Command, Button);
                end if;
-               --  Prev/Next only page the selection; they redraw but do not
-               --  save. Reset, add and remove save only what they changed.
-               Save := Changed and then (Button = "reset" or else Button = "add" or else Button = "remove");
+               --  Saved only when what the file holds changes: not for
+               --  Prev/Next, which page the selection, nor for a blank row
+               --  added or removed, nor for a reset of what already is the
+               --  default -- the entry a group is on is not saved. Reset also
+               --  drops the shortcut overrides, which the draft does not
+               --  hold: saved whenever there were any.
+               Save := not Files.Settings.Same_Persisted (Before, D) or else (Is_Reset and then Had_Overrides);
             end;
             D.Valid     := True;
             D.Error_Key := Null_Unbounded_String;

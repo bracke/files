@@ -205,10 +205,13 @@ package Files.Fs_Primitives is
    --  (Hostkit.Fs.Delete_File).
    --
    --  @param Path The file or link.
+   --  @param Record_Refusal Whether a refusal's errno is recorded with
+   --    Files.Io_Errors.Record_Code: for a delete the operation fails on, not
+   --    for a clean-up after another failure, whose reason must stand.
    --  @raise Ada.Directories.Name_Error when nothing is there.
    --  @raise Ada.Directories.Use_Error when it is a directory or the host
    --    refused.
-   procedure Delete_File (Path : String);
+   procedure Delete_File (Path : String; Record_Refusal : Boolean := False);
 
    --  Remove the empty directory at Path (Hostkit.Fs.Delete_Empty_Directory).
    --

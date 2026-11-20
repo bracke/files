@@ -170,7 +170,16 @@ package body Files.Durable_Writes is
    begin
       --  refusal-safe: a refused lookup leaves the name, and the write below fails
       if Files.Fs_Primitives.Entry_Exists (Temporary) then
-         Files.Fs_Primitives.Delete_File (Temporary);
+         begin
+            --  The write fails on this delete when it is refused: its reason
+            --  is the operation's.
+            Files.Fs_Primitives.Delete_File (Temporary, Record_Refusal => True);
+         exception
+            when Ada.Directories.Name_Error =>
+               --  Gone meanwhile (a scanner that held it let go): the name
+               --  is free, which is all the write needs.
+               null;
+         end;
       end if;
       Write_Private_File (Temporary, Write, Identity, Max_Bytes);
    end Write_Fixed_Private_File;
@@ -337,7 +346,7 @@ package body Files.Durable_Writes is
       Temporary, Identity : Files.Types.UString;
       Result : Publication_Result;
       Step   : Publication_Step;
-      --  The code the caller had recorded, kept when this publish adds none.
+      --  The code the caller had recorded, kept when the publish succeeds.
       Earlier : constant Integer := Files.Io_Errors.Last_Code;
    begin
       --  refusal-safe: a Target that cannot be looked at is neither absent
@@ -352,13 +361,15 @@ package body Files.Durable_Writes is
       --  Start from no code, so the one traced below is this publish's own.
       Files.Io_Errors.Adopt_Code (0);
       Result := Publish (To_String (Temporary), Target, Step);
-      if Files.Io_Errors.Last_Code = 0 then
+      if Published (Result) then
+         --  Nothing failed: the caller's code stands.
          Files.Io_Errors.Adopt_Code (Earlier);
-      end if;
-      if not Published (Result) then
+      else
          --  Why, for a host that refuses only now and then (a scanner holding
          --  the file just written shows as EBUSY, a refusal as EACCES): the
-         --  code Publish recorded at the step that failed.
+         --  code Publish recorded at the step that failed, or zero when that
+         --  step gave none. Kept as the recorded code, never the caller's
+         --  earlier one, which has nothing to do with this refusal.
          Files.Diagnostics.Trace
            ("Files.Durable_Writes",
             "publish_refused=" & Target & ",result=" & Result'Image & ",step=" & Step'Image

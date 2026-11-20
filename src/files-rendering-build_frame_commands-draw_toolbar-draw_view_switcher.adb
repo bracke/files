@@ -8,8 +8,6 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          --  here match the widths the click hit-test measures; the renderer only
          --  adds the per-cell tooltip and enabled state.
          View_Segments : Guikit.Segmented.Segment_Vectors.Vector := Files.Rendering.Layouts.View_Mode_Segments;
-         Seg_Rects     : Guikit.Draw.Rectangle_Command_Vectors.Vector;
-         Seg_Text      : Guikit.Draw.Text_Command_Vectors.Vector;
          Seg_Tips      : Guikit.Draw.Tooltip_Command_Vectors.Vector;
          Seg_Nodes     : Guikit.Draw.Accessibility_Node_Vectors.Vector;
          Active        : constant Natural :=
@@ -44,16 +42,12 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
             --  Cells fill the full bar, but sit the labels on the shared bottom-bar
             --  text baseline instead of centring them in the taller cell.
             Label_Inset   => Bottom_Content_Y - Bottom_Y,
-            Rectangles    => Seg_Rects,
-            Text          => Seg_Text,
+            --  Appended straight to the frame; the tooltips and nodes go
+            --  through this frame's own builders below.
+            Rectangles    => Result.Rectangles,
+            Text          => Result.Text,
             Tooltips      => Seg_Tips,
             Accessibility => Seg_Nodes);
-         for C of Seg_Rects loop
-            Result.Rectangles.Append (C);
-         end loop;
-         for C of Seg_Text loop
-            Result.Text.Append (C);
-         end loop;
          for C of Seg_Tips loop
             Add_Tooltip_Text (C.X, C.Y, C.Width, C.Height, C.Text);
          end loop;

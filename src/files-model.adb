@@ -349,7 +349,6 @@ package body Files.Model is
       Model.Refresh_Job := Released_Process;
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
       Model.Items := Items;
-      Support.Invalidate_Visible (Model);
       Model.Directory_Signature := Files.File_System_Types.Unknown_Signature (Directory_Path);
       Model.Filter.Text := Null_Unbounded_String;
       Model.Filter.Cursor := 0;
