@@ -459,9 +459,16 @@ package body Files.Settings_Form is
       return Files.Settings.Reset_Draft_To_Defaults;
    end Reset_To_Defaults;
 
+   function Needs_Save
+     (Saved, Draft      : Files.Settings.Settings_Draft;
+      Overrides_Dropped : Boolean)
+      return Boolean is
+     (not Files.Settings.Same_Persisted (Saved, Draft) or else Overrides_Dropped);
+
    function Apply
      (Draft  : in out Files.Settings.Settings_Draft;
-      Change : Guikit.Settings_Panel.Change)
+      Change : Guikit.Settings_Panel.Change;
+      Saved  : Files.Settings.Settings_Draft)
       return Boolean
    is
       D        : Files.Settings.Settings_Draft renames Draft;
@@ -555,7 +562,6 @@ package body Files.Settings_Form is
          when SP.Button_Pressed =>
             declare
                Button        : constant String := To_String (Val);
-               Before        : constant Files.Settings.Settings_Draft := D;
                Had_Overrides : constant Boolean := Files.Commands.Has_Shortcut_Overrides;
                Is_Reset      : constant Boolean := Key = "form.actions" and then Button = "reset";
             begin
@@ -571,16 +577,23 @@ package body Files.Settings_Form is
                   Group_Button (D.Open_Action_Keys, D.Open_Action_Commands, D.Open_Action_Index,
                                 D.Open_Action_Token, D.Open_Action_Command, Button);
                end if;
-               --  Saved only when what the file holds changes: not for
-               --  Prev/Next, which page the selection, nor for a blank row
-               --  added or removed, nor for a reset of what already is the
-               --  default -- the entry a group is on is not saved. Reset also
-               --  drops the shortcut overrides, which the draft does not
-               --  hold: saved whenever there were any.
-               Save := not Files.Settings.Same_Persisted (Before, D) or else (Is_Reset and then Had_Overrides);
+               --  Prev/Next only page the selection: no save, and an error
+               --  the draft shows still holds. Reset, add and remove change
+               --  rows, so the draft is checked again, and saved when valid
+               --  and the file would hold something else -- compared with
+               --  what it holds, not with the draft before the button, which
+               --  may carry text edits not yet saved. Reset also drops the
+               --  shortcut overrides, which the draft does not hold.
+               if Is_Reset or else Button = "add" or else Button = "remove" then
+                  declare
+                     Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Validate_Draft (D);
+                  begin
+                     D.Valid := Parsed.Success;
+                     D.Error_Key := (if Parsed.Success then Null_Unbounded_String else Parsed.Error_Key);
+                     Save := Parsed.Success and then Needs_Save (Saved, D, Is_Reset and then Had_Overrides);
+                  end;
+               end if;
             end;
-            D.Valid     := True;
-            D.Error_Key := Null_Unbounded_String;
       end case;
 
       return Save;
@@ -617,15 +630,27 @@ package body Files.Settings_Form is
       if Change.Kind = SP.No_Change then
          return False;
       end if;
-      Save := Apply (Draft, Change);
+      Save := Apply (Draft, Change, Files.Model.Settings_Pane.Saved_Of (Model));
       Set_Draft (Model, Draft);
       return Save;
    end Apply_Change;
 
-   procedure Reset_Draft
-     (Model : in out Files.Model.Window_Model) is
+   function Reset_Draft
+     (Model : in out Files.Model.Window_Model)
+      return Boolean
+   is
+      Had_Overrides : constant Boolean := Files.Commands.Has_Shortcut_Overrides;
+      Defaults      : constant Files.Settings.Settings_Draft := Reset_To_Defaults;
    begin
-      Set_Draft (Model, Reset_To_Defaults);
+      Set_Draft (Model, Defaults);
+      return Needs_Save (Files.Model.Settings_Pane.Saved_Of (Model), Defaults, Had_Overrides);
    end Reset_Draft;
+
+   procedure Mark_Saved
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model) is
+   begin
+      Files.Model.Settings_Pane.Set_Saved (Model, Files.Settings.Make_Draft (Settings));
+   end Mark_Saved;
 
 end Files.Settings_Form;

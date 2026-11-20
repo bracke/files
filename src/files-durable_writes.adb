@@ -32,7 +32,8 @@ package body Files.Durable_Writes is
       end if;
    end Outcome_Of;
 
-   function Publish
+   --  Publish, untraced.
+   function Attempt_Publish
      (Temporary, Target : String;
       Step              : out Publication_Step)
       return Publication_Result
@@ -66,6 +67,25 @@ package body Files.Durable_Writes is
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Durable_Writes");
          return (if Replaced then Published_Not_Durable else Not_Published);
+   end Attempt_Publish;
+
+   function Publish
+     (Temporary, Target : String;
+      Step              : out Publication_Step)
+      return Publication_Result
+   is
+      Result : constant Publication_Result := Attempt_Publish (Temporary, Target, Step);
+   begin
+      if Result = Not_Published then
+         --  Why, for a host that refuses only now and then (a scanner holding
+         --  the file just written shows as EBUSY, a refusal as EACCES): the
+         --  step that failed and the code it recorded, zero when it gave none
+         --  -- Attempt_Publish clears errno before each step.
+         Files.Diagnostics.Trace
+           ("Files.Durable_Writes",
+            "publish_refused=" & Target & ",step=" & Step'Image & ",errno=" & Files.Io_Errors.Last_Code'Image);
+      end if;
+      return Result;
    end Publish;
 
    function Publish (Temporary, Target : String) return Publication_Result is
@@ -108,19 +128,13 @@ package body Files.Durable_Writes is
       Identity := Files.Types.UString'(Ada.Strings.Unbounded.Null_Unbounded_String);
       Name_Taken := False;
       Files.Io_Errors.Clear_Os_Error;
-      begin
-         Files.Exclusive_Streams.Create (Output, Temporary);
-      exception
-         when Ada.IO_Exceptions.Use_Error =>
-            --  Asked after the failure, whose errno is already recorded.
-            --  refusal-safe: a refused lookup is not a taken name, and the
-            --  create's own failure is raised.
-            if Files.Fs_Primitives.Entry_Exists (Temporary) then
-               Name_Taken := True;
-               return;
-            end if;
-            raise;
-      end;
+      --  Only a create that found the name taken moves on to another name: a
+      --  file made but refused privacy raises, so no run of further names is
+      --  tried and left behind.
+      Files.Exclusive_Streams.Create (Output, Temporary, Name_Taken);
+      if Name_Taken then
+         return;
+      end if;
       Created := True;
       Identity := Ada.Strings.Unbounded.To_Unbounded_String (Files.File_Identities.Token (Temporary));
       if Ada.Strings.Unbounded.Length (Identity) = 0 then
@@ -345,7 +359,6 @@ package body Files.Durable_Writes is
       use Ada.Strings.Unbounded;
       Temporary, Identity : Files.Types.UString;
       Result : Publication_Result;
-      Step   : Publication_Step;
       --  The code the caller had recorded, kept when the publish succeeds.
       Earlier : constant Integer := Files.Io_Errors.Last_Code;
    begin
@@ -358,22 +371,17 @@ package body Files.Durable_Writes is
          raise Ada.Directories.Use_Error;
       end if;
       Write_Private_Temporary (Target, Write, Temporary, Identity);
-      --  Start from no code, so the one traced below is this publish's own.
+      --  Start from no code, so the one Publish traces is its own.
       Files.Io_Errors.Adopt_Code (0);
-      Result := Publish (To_String (Temporary), Target, Step);
+      Result := Publish (To_String (Temporary), Target);
       if Published (Result) then
          --  Nothing failed: the caller's code stands.
          Files.Io_Errors.Adopt_Code (Earlier);
       else
-         --  Why, for a host that refuses only now and then (a scanner holding
-         --  the file just written shows as EBUSY, a refusal as EACCES): the
-         --  code Publish recorded at the step that failed, or zero when that
-         --  step gave none. Kept as the recorded code, never the caller's
-         --  earlier one, which has nothing to do with this refusal.
-         Files.Diagnostics.Trace
-           ("Files.Durable_Writes",
-            "publish_refused=" & Target & ",result=" & Result'Image & ",step=" & Step'Image
-            & ",errno=" & Files.Io_Errors.Last_Code'Image);
+         --  The code Publish recorded at the step that failed (and traced),
+         --  or zero when that step gave none, stays the recorded code: never
+         --  the caller's earlier one, which has nothing to do with this
+         --  refusal.
          Remove_Owned (To_String (Temporary), To_String (Identity));
       end if;
       return Result;

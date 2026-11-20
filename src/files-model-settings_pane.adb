@@ -21,6 +21,7 @@ package body Files.Model.Settings_Pane is
    begin
       Touch (Model);
       Model.Settings_Draft_Value := Draft;
+      Model.Settings_Saved_Value := Draft;
       Model.Settings_Pane_Open := True;
       Claim_Overlay_Input (Model);
       Clear_Edit_State (Model);
@@ -45,6 +46,18 @@ package body Files.Model.Settings_Pane is
       Model.Settings_Draft_Value := Draft;
       Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Fields);
    end Set_Draft;
+
+   function Saved_Of
+     (Model : Window_Model)
+      return Files.Settings.Settings_Draft is
+     (Model.Settings_Saved_Value);
+
+   procedure Set_Saved
+     (Model : in out Window_Model;
+      Saved : Files.Settings.Settings_Draft) is
+   begin
+      Model.Settings_Saved_Value := Saved;
+   end Set_Saved;
 
    procedure Move_Focus (Model : in out Window_Model; Delta_Rows : Integer) is
    begin

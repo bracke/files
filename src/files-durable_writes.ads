@@ -14,6 +14,8 @@ package Files.Durable_Writes is
    --  entries themselves; an explicit failure is never accepted.
    --  @param Temporary Complete file to sync and publish.
    --  @param Target Destination atomically replaced by Temporary.
+   --  A publication that did not happen is traced (Files.Diagnostics) with
+   --  the step that failed and the code it recorded with Files.Io_Errors.
    --  @return Whether publication did not happen, happened without a confirmed
    --    directory sync, or completed durably. A caller must not retry a
    --    Published_Not_Durable write as though Target were unchanged.

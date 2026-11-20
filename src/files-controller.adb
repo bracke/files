@@ -329,7 +329,7 @@ package body Files.Controller is
                  Files.Settings_Form.Apply_Change (Model, Files.Model.Settings_Pane.Take_Change (Model));
                pragma Unreferenced (Saved);
             begin
-               null;  --  text edits update the draft but persist on commit
+               null;  --  a text edit updates the draft; Enter saves it (Commit_Focused_Text)
             end;
          when Files.UI_Types.Focus_Ownership_Input =>
             Files.Model.Set_Ownership_Input_Text (Model, Text);
@@ -946,10 +946,12 @@ package body Files.Controller is
       return Controller_Result
  is separate;
 
-   --  Drain the settings panel's emitted change into the draft. A value change to
-   --  a toggle/choice/number or an add/remove auto-saves (persist + refresh),
-   --  which needs the settings path (Complete_Settings_Command); text edits
-   --  are applied but saved on commit.
+   --  Drain the settings panel's emitted change into the draft. A toggle,
+   --  choice, number or captured shortcut auto-saves (persist + refresh), as
+   --  do reset, add and remove when the file would hold something new
+   --  (Settings_Form.Apply); that needs the settings path
+   --  (Complete_Settings_Command). Text edits are applied, and saved when
+   --  Enter commits them (Commit_Focused_Text).
    function Applied_Settings_Change
      (Model : in out Files.Model.Window_Model)
       return Controller_Result is

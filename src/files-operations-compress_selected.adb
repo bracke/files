@@ -50,7 +50,11 @@ is
       procedure Visit (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean) is
          use type Hostkit.Fs.Entry_Kind;
       begin
-         if Collection_Failed or else Files.Job_Context.Cancelled then
+         if Collection_Failed then
+            Stop := True;
+         elsif Files.Job_Context.Cancelled then
+            --  A cancel fails the collection: nothing collected is compressed.
+            Collection_Failed := True;
             Stop := True;
          elsif Kind in Hostkit.Fs.Ordinary_File_Entry | Hostkit.Fs.Directory_Entry then
             Collect (Hostkit.Fs.Join (Full, Name), Entry_Name & "/" & Name, Depth + 1);
@@ -58,6 +62,7 @@ is
       end Visit;
    begin
       if Files.Job_Context.Cancelled then
+         Collection_Failed := True;
          return;
       elsif Depth > Max_Archive_Depth
         or else Natural (Input_Paths.Length) >= Max_Archive_Entries

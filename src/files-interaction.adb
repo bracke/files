@@ -241,7 +241,8 @@ package body Files.Interaction is
 
    --  After a command (from a click, a shortcut or the palette) that changed
    --  a setting the open settings pane edits: the pane shows the new value,
-   --  and its next save cannot write the old one back.
+   --  its next save cannot write the old one back, and it takes the file to
+   --  hold Settings now.
    procedure Refresh_Open_Pane
      (Model    : in out Files.Model.Window_Model;
       Before   : Files.Settings.Settings_Model;
@@ -256,6 +257,12 @@ package body Files.Interaction is
          begin
             if Refreshed /= Shown then
                Files.Settings_Form.Set_Draft (Model, Refreshed);
+            end if;
+            --  A command that changed them saved Settings (another window's
+            --  save is adopted the same way): the pane's next change is
+            --  weighed against them.
+            if not Files.Settings.Same_Content (Before, Settings) then
+               Files.Settings_Form.Mark_Saved (Model, Settings);
             end if;
          end;
       end if;

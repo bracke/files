@@ -893,17 +893,26 @@ package body Files.Settings is
       return String
  is separate;
 
+   function Validate_Draft
+     (Draft : Settings_Draft)
+      return Settings_Parse_Result is separate;
+
    function Same_Persisted (Left, Right : Settings_Draft) return Boolean is
-     (Draft_Settings_Text (Left) = Draft_Settings_Text (Right));
+      Left_Parsed  : constant Settings_Parse_Result := Validate_Draft (Left);
+      Right_Parsed : constant Settings_Parse_Result := Validate_Draft (Right);
+   begin
+      --  As settings, so that the order the rows are listed in plays no
+      --  part; a draft that does not parse is compared as written.
+      if Left_Parsed.Success and then Right_Parsed.Success then
+         return Same_Content (Left_Parsed.Settings, Right_Parsed.Settings);
+      end if;
+      return Draft_Settings_Text (Left) = Draft_Settings_Text (Right);
+   end Same_Persisted;
 
    function Draft_After_Save
      (Draft : Settings_Draft;
       Saved : Settings_Model)
       return Settings_Draft is separate;
-
-   function Validate_Draft
-     (Draft : Settings_Draft)
-      return Settings_Parse_Result is separate;
 
    function Apply_Draft
      (Settings : Settings_Model;

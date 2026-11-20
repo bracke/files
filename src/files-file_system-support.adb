@@ -1112,12 +1112,16 @@ package body Files.File_System.Support is
       end loop;
       GNAT.OS_Lib.Close (Input_Descriptor);
       Input_Descriptor := GNAT.OS_Lib.Invalid_FD;
+      --  No reason left over from an earlier call: a flush or sync that
+      --  fails without setting errno records nothing stale.
+      Files.Io_Errors.Clear_Os_Error;
       if Sparse and then not Hostkit.Regular_Files.Finish_Sparse (Output) then
          Files.Io_Errors.Capture;
          raise Ada.Directories.Use_Error;
       end if;
       --  Through the descriptor that wrote it, before its metadata is set:
       --  no reopening, which a read-only copy would refuse on Windows.
+      Files.Io_Errors.Clear_Os_Error;
       if Walk.Durable
         and then Hostkit.Durability."=" (Files.Durability.Sync_Descriptor (Integer (Output), Destination_Path),
                                           Hostkit.Durability.Failed)

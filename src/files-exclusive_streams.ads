@@ -11,7 +11,23 @@ package Files.Exclusive_Streams is
    --  Create Path as a new owner-only binary file.
    --  @param Stream Closed stream that will own the new descriptor.
    --  @param Path Pathname that must not already exist.
+   --  @raise Ada.IO_Exceptions.Use_Error when something is there, the host
+   --    refused, or the new file could not be made owner-only (it is then
+   --    removed, or traced when the host refuses that too).
    procedure Create (Stream : in out Output_Stream; Path : String);
+
+   --  Create, telling a taken name apart from every other failure: Name_Taken
+   --  is set, and nothing raised, only when the create failed and an entry is
+   --  surely there. A file made but not made owner-only raises Use_Error, as
+   --  any other failure does, though the host may keep it.
+   --  @param Stream Closed stream that will own the new descriptor.
+   --  @param Path Pathname that must not already exist.
+   --  @param Name_Taken Set when an entry was already there; Stream is then
+   --    left closed.
+   procedure Create
+     (Stream     : in out Output_Stream;
+      Path       : String;
+      Name_Taken : out Boolean);
 
    --  Write out buffered bytes and close Stream, raising Use_Error when the
    --  host cannot complete either.

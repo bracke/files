@@ -14,14 +14,23 @@ begin
       when Files.Commands.Save_Settings_Command =>
          return Save_Settings (Model, Settings, Settings_Path);
       when Files.Commands.Reset_Settings_Command =>
-         --  The pane's Reset button: back to defaults, shortcuts included,
-         --  and saved. Status_Of disables it while the pane is closed.
-         Files.Settings_Form.Reset_Draft (Model);
+         --  The reset command (palette, shortcut): back to defaults,
+         --  shortcuts included, saved when that changes anything -- the rule
+         --  the pane's own Reset button follows (Settings_Form.Reset_Draft).
+         --  Status_Of disables it while the pane is closed.
+         if Files.Settings_Form.Reset_Draft (Model) then
+            declare
+               Saved : Controller_Result := Save_Settings (Model, Settings, Settings_Path);
+            begin
+               Saved.Command := Id;
+               return Saved;
+            end;
+         end if;
          declare
-            Saved : Controller_Result := Save_Settings (Model, Settings, Settings_Path);
+            Unchanged : Files.Operation_Results.Operation_Result := Empty_Operation;
          begin
-            Saved.Command := Id;
-            return Saved;
+            Unchanged.Status := Files.Operation_Results.Operation_Success;
+            return Make_Result (Controller_Command_Executed, Id, Unchanged);
          end;
       when Files.Commands.Toggle_Hidden_Files_Command =>
          return Toggle_Hidden_Files (Model, Settings, Settings_Path);

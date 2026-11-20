@@ -270,7 +270,9 @@ package body Files.Fs_Primitives is
             if not Entry_Is_Absent (Path) then
                Files.Diagnostics.Trace ("Files.Fs_Primitives", "delete_refused=" & Path & ",errno=" & Code'Image);
                if Record_Refusal then
-                  Files.Io_Errors.Record_Code (Code);
+                  --  This refusal's own code, zero included: never one an
+                  --  earlier call recorded.
+                  Files.Io_Errors.Adopt_Code (Code);
                end if;
                raise Ada.Directories.Use_Error;
             end if;

@@ -412,9 +412,11 @@ package Files.Settings is
       return Settings_Draft;
 
    --  Whether two drafts would save the same settings: the same pane
-   --  settings and the same mapping rows once each editor's selected key and
-   --  value are merged in, blank rows left out. Which row each mapping
-   --  editor is on, and a draft's validity, play no part.
+   --  settings and the same mappings once each editor's selected key and
+   --  value are merged in, blank rows left out. The order rows are listed
+   --  in, which row each mapping editor is on, and a draft's Valid and
+   --  Error_Key play no part; a draft that does not parse is compared by
+   --  what it would write.
    --
    --  @param Left One draft.
    --  @param Right The other.
@@ -423,10 +425,11 @@ package Files.Settings is
 
    --  The settings pane's draft after Saved was saved from Draft: the pane
    --  settings and every mapping row as Saved holds them (keys normalized,
-   --  a row whose key another row took merged into it), each mapping editor
-   --  still on the row it was on -- the row with the same key, or the same
-   --  position, clamped -- and a blank row the editor had just added at its
-   --  end kept, which the file does not hold.
+   --  a row whose key another row took merged into it), listed in the order
+   --  the pane showed them rather than Make_Draft's, a blank row the editor
+   --  had just added at the end kept (the file does not hold it; a blank
+   --  row elsewhere is dropped), and each mapping editor still on the row
+   --  it was on -- or, its row dropped, the nearest one before it.
    --
    --  @param Draft The pane's draft that was saved.
    --  @param Saved The settings it saved.

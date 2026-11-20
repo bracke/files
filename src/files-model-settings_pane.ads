@@ -31,7 +31,8 @@ package Files.Model.Settings_Pane is
 
    --  Begin editing settings values in the settings pane. The model never
    --  builds the panel's (localized) fields itself: the caller hands them in,
-   --  built from the normalized draft (Files.Settings.Normalize_Draft).
+   --  built from the normalized draft (Files.Settings.Normalize_Draft). Draft
+   --  is also what the pane takes the file to hold (Saved_Of).
    --
    --  @param Model Model to update.
    --  @param Draft Draft values to edit, normalized.
@@ -61,6 +62,25 @@ package Files.Model.Settings_Pane is
      (Model  : in out Window_Model;
       Draft  : Files.Settings.Settings_Draft;
       Fields : Guikit.Settings_Panel.Field_Vectors.Vector);
+
+   --  The draft of the settings as saved: what the pane opened on, or the
+   --  settings last saved (Set_Saved) -- applied, even when their write
+   --  failed and was reported. A change saves only when it would make the
+   --  settings hold something else.
+   --
+   --  @param Model Model to inspect.
+   --  @return The saved settings' draft.
+   function Saved_Of
+     (Model : Window_Model)
+      return Files.Settings.Settings_Draft;
+
+   --  Record what the file now holds, after a save.
+   --
+   --  @param Model Model to update.
+   --  @param Saved The draft of the saved settings.
+   procedure Set_Saved
+     (Model : in out Window_Model;
+      Saved : Files.Settings.Settings_Draft);
 
    --  Move keyboard focus over the panel's fields (sections are skipped).
    --

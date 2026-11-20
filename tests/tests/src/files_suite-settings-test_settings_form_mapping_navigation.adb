@@ -11,6 +11,23 @@ separate (Files_Suite.Settings)
       Draft : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Base);
       Model : Files.Model.Window_Model;
       Saved : Boolean;
+      --  What the test's saves have saved, as the app's settings would be.
+      Live  : Files.Settings.Settings_Model := Base;
+
+      --  Save the pane's draft, as the app does when a change asks for it.
+      procedure Save_Now is
+         Result : constant Files.Controller.Controller_Result :=
+           Files.Controller.Testing.Save_Settings
+             (Model, Live, Join (Join (Root, "mapping-navigation"), "settings.conf"));
+         pragma Unreferenced (Result);
+      begin
+         null;
+      end Save_Now;
+
+      function Changed_Value (Field, Value : String) return SP.Change is
+        ((Kind  => SP.Value_Changed,
+          Key   => To_Unbounded_String (Field),
+          Value => To_Unbounded_String (Value)));
 
       function Button (Value : String) return SP.Change is
         ((Kind  => SP.Button_Pressed,
@@ -71,19 +88,16 @@ separate (Files_Suite.Settings)
            (Files.Settings.Default_Settings, Files.Model.Settings_Pane.Draft_Of (Model)).Success,
          "a freshly added, still blank row does not block saving other settings");
 
-      --  The save that follows the add keeps the pane on the new, blank row
-      --  (the file does not hold it), rather than rebuilding every group.
-      declare
-         Settings : Files.Settings.Settings_Model := Base;
-         Result   : constant Files.Controller.Controller_Result :=
-           Files.Controller.Testing.Save_Settings
-             (Model, Settings, Join (Join (Root, "mapping-navigation"), "settings.conf"));
-         pragma Unreferenced (Result);
-      begin
-         Files_Suite.Support.Assert_Equal (Count, 3, "a save keeps the row just added");
-         Files_Suite.Support.Assert_Equal
-           (Files.Model.Settings_Pane.Draft_Of (Model).Filetype_Index, 3, "a save keeps the group on its entry");
-      end;
+      --  A save keeps the pane on the new, blank row (the file does not
+      --  hold it), rather than rebuilding every group, and keeps the rows
+      --  in the order the pane showed them.
+      Save_Now;
+      Files_Suite.Support.Assert_Equal (Count, 3, "a save keeps the row just added");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Settings_Pane.Draft_Of (Model).Filetype_Index, 3, "a save keeps the group on its entry");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Files.Model.Settings_Pane.Draft_Of (Model).Filetype_Keys.Element (1)), "txt",
+         "a save keeps the pane's order of rows");
 
       Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
       Assert (not Saved, "removing the blank entry does not save");
@@ -92,53 +106,51 @@ separate (Files_Suite.Settings)
       Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
       Assert (Saved, "removing an entry the file holds saves");
       Files_Suite.Support.Assert_Equal (Count, 1, "Remove drops the mapping entry");
+      Save_Now;
+
+      --  A saved row blanked by typing, then removed, is a change the file
+      --  must take: what counts is what it holds, not the draft before.
+      Saved := Files.Settings_Form.Apply_Change (Model, Changed_Value ("settings.filetype_extension", ""));
+      Saved := Files.Settings_Form.Apply_Change (Model, Changed_Value ("settings.filetype_value", ""));
       Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
+      Assert (Saved, "removing a saved row blanked by typing saves");
       Files_Suite.Support.Assert_Equal (Count, 0, "every entry removed");
+      Save_Now;
       Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
       Assert (not Saved, "removing from an empty group changes nothing and does not save");
 
       --  Typing into the empty group starts its first entry, instead of an
       --  edit that names no row and is dropped.
-      Saved := Files.Settings_Form.Apply_Change
-        (Model,
-         (Kind  => SP.Value_Changed,
-          Key   => To_Unbounded_String ("settings.filetype_extension"),
-          Value => To_Unbounded_String ("log")));
+      Saved := Files.Settings_Form.Apply_Change (Model, Changed_Value ("settings.filetype_extension", "log"));
       Files_Suite.Support.Assert_Equal (Count, 1, "typing into an empty group starts an entry");
       Files_Suite.Support.Assert_Equal (Ext, "log", "the typed key is the new entry's");
 
       --  A save shows the rows as the file holds them: a second row typed
       --  with the first one's key in another form is merged into it, and
       --  the group stays on that entry.
-      Saved := Files.Settings_Form.Apply_Change
-        (Model,
-         (Kind  => SP.Value_Changed,
-          Key   => To_Unbounded_String ("settings.filetype_value"),
-          Value => To_Unbounded_String ("text/plain")));
+      Saved := Files.Settings_Form.Apply_Change (Model, Changed_Value ("settings.filetype_value", "text/plain"));
       Saved := Files.Settings_Form.Apply_Change (Model, Button ("add"));
-      Saved := Files.Settings_Form.Apply_Change
-        (Model,
-         (Kind  => SP.Value_Changed,
-          Key   => To_Unbounded_String ("settings.filetype_extension"),
-          Value => To_Unbounded_String (".LOG")));
-      Saved := Files.Settings_Form.Apply_Change
-        (Model,
-         (Kind  => SP.Value_Changed,
-          Key   => To_Unbounded_String ("settings.filetype_value"),
-          Value => To_Unbounded_String ("text/x-log")));
+      Assert (Saved, "adding a row saves the row typed before it, which the file does not hold yet");
+      Saved := Files.Settings_Form.Apply_Change (Model, Changed_Value ("settings.filetype_extension", ".LOG"));
+      Saved := Files.Settings_Form.Apply_Change (Model, Changed_Value ("settings.filetype_value", "text/x-log"));
       Files_Suite.Support.Assert_Equal (Count, 2, "the second row is in the pane before the save");
+      Save_Now;
+      Files_Suite.Support.Assert_Equal (Count, 1, "after a save the pane holds the rows the file holds");
+      Files_Suite.Support.Assert_Equal (Ext, "log", "the saved key is shown in its normal form");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Files.Model.Settings_Pane.Draft_Of (Model).Filetype_Value), "text/x-log",
+         "the merged row holds the value saved");
+
+      --  Paging keeps an error the draft shows: the row it is about is
+      --  still there.
       declare
-         Settings : Files.Settings.Settings_Model := Base;
-         Result   : constant Files.Controller.Controller_Result :=
-           Files.Controller.Testing.Save_Settings
-             (Model, Settings, Join (Join (Root, "mapping-navigation"), "settings.conf"));
-         pragma Unreferenced (Result);
+         Shown : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       begin
-         Files_Suite.Support.Assert_Equal (Count, 1, "after a save the pane holds the rows the file holds");
-         Files_Suite.Support.Assert_Equal (Ext, "log", "the saved key is shown in its normal form");
-         Files_Suite.Support.Assert_Equal
-           (To_String (Files.Model.Settings_Pane.Draft_Of (Model).Filetype_Value), "text/x-log",
-            "the merged row holds the value saved");
+         Shown.Valid := False;
+         Shown.Error_Key := To_Unbounded_String ("settings.invalid");
+         Files.Settings_Form.Set_Draft (Model, Shown);
+         Saved := Files.Settings_Form.Apply_Change (Model, Button ("next"));
+         Assert (not Files.Model.Settings_Pane.Draft_Of (Model).Valid, "paging keeps the draft's error");
       end;
 
       --  Reset with nothing to reset does not save, however the pane was left

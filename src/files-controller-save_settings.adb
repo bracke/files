@@ -60,6 +60,9 @@ separate (Files.Controller)
       --  its first entry.
       Files.Settings_Form.Set_Draft
         (Model, Files.Settings.Draft_After_Save (Files.Model.Settings_Pane.Draft_Of (Model), Settings));
+      --  The settings now applied, for the pane's next change. A write that
+      --  failed was reported; Save (which always writes) tries it again.
+      Files.Settings_Form.Mark_Saved (Model, Settings);
       if Operation.Status = Files.Operation_Results.Operation_Failed then
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
       end if;

@@ -28,14 +28,34 @@ package Files.Settings_Form is
    --  @return The draft of the default settings.
    function Reset_To_Defaults return Files.Settings.Settings_Draft;
 
-   --  Apply a change emitted by the panel to a draft.
+   --  Whether saving Draft would change what the file holds (Saved, the
+   --  draft of the saved settings), or the shortcut overrides are dropped
+   --  (which the draft does not hold).
+   --
+   --  @param Saved The draft of the settings as saved.
+   --  @param Draft The draft the pane would save.
+   --  @param Overrides_Dropped Whether shortcut overrides were just dropped.
+   --  @return True when a save would write something new.
+   function Needs_Save
+     (Saved, Draft      : Files.Settings.Settings_Draft;
+      Overrides_Dropped : Boolean)
+      return Boolean;
+
+   --  Apply a change emitted by the panel to a draft. Reset, add and
+   --  remove re-check the draft (its Valid and Error_Key say what holds
+   --  now) and ask for a save when it is valid and saving it would change
+   --  the file (Needs_Save against Saved); Prev/Next only page and keep the
+   --  draft's error. A toggle, choice, number or captured shortcut asks for
+   --  a save; a text edit does not (the controller saves it on commit).
    --
    --  @param Draft The draft to update.
    --  @param Change The change the panel produced.
-   --  @return True when a persisted setting changed and the caller should save.
+   --  @param Saved The draft of the settings as saved.
+   --  @return True when the caller should save.
    function Apply
      (Draft  : in out Files.Settings.Settings_Draft;
-      Change : Guikit.Settings_Panel.Change)
+      Change : Guikit.Settings_Panel.Change;
+      Saved  : Files.Settings.Settings_Draft)
       return Boolean;
 
    --  Open the settings pane on Draft, handing the model the panel's fields
@@ -68,10 +88,23 @@ package Files.Settings_Form is
       return Boolean;
 
    --  Return the pane's draft to the defaults and drop every shortcut
-   --  override (Reset_To_Defaults).
+   --  override (Reset_To_Defaults): the pane's Reset button and the reset
+   --  command alike.
    --
    --  @param Model Model whose draft is reset.
-   procedure Reset_Draft
-     (Model : in out Files.Model.Window_Model);
+   --  @return Whether that needs a save (Needs_Save against the saved
+   --    settings): False when everything already was the default.
+   function Reset_Draft
+     (Model : in out Files.Model.Window_Model)
+      return Boolean;
+
+   --  Record Settings as what the file holds, after a save, for the pane's
+   --  next Needs_Save.
+   --
+   --  @param Model Model whose settings pane is updated.
+   --  @param Settings The settings now saved.
+   procedure Mark_Saved
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model);
 
 end Files.Settings_Form;

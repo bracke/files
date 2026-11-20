@@ -88,10 +88,14 @@ separate (Files_Suite.Commands)
          Files.Settings_Form.Set_Draft (Model, Good);
       end;
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      --  A valid edit that changes what is saved is saved on Return.
       Files_Suite.Support.Assert_Equal
-        (Result.Operation.Status,
-         Files.Operation_Results.Operation_Success,
-         "valid settings field Return reports validation success");
+        (Result.Status,
+         Files.Controller.Controller_Needs_Settings_Path,
+         "a valid, changed settings field asks for a save on Return");
+      Assert
+        (Files.Commands."=" (Result.Command, Files.Commands.Save_Settings_Command),
+         "the save Return asks for is Save_Settings");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
          "",

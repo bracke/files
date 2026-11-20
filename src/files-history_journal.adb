@@ -566,7 +566,7 @@ package body Files.History_Journal is
          Fit (Kept_Undo, Kept_Redo, Total, Left_Out);
          Left_Out := Pruned_Left_Out (Left_Out, Kept_Undo, Kept_Redo, Next, Dropped);
          Dropped := Pruned_Dropped (Dropped, Left_Out, Kept_Undo, Kept_Redo, Next);
-         Natural'Output (Output, State.Next_Sequence);
+         Natural'Output (Output, Next);
          Boolean'Output (Output, State.Redo_Retired);
          Natural'Output (Output, Natural (Left_Out.Length));
          for Sequence of Left_Out loop
