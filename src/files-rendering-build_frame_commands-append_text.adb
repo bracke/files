@@ -10,7 +10,8 @@ separate (Files.Rendering.Build_Frame_Commands)
       Fit    : Boolean;
       Scale_To_Box : Boolean;
       Italic : Boolean;
-      Mirror_Glyph : Boolean := False)
+      Mirror_Glyph : Boolean := False;
+      Cut_Columns  : Natural := Guikit.Draw.Auto_Cut)
    is
       Draw_W   : constant Natural := Clipped_Size (X, Text_W, Layout.Width);
       Draw_H   : constant Natural := Clipped_Size (Y, Text_H, Layout.Height);
@@ -32,6 +33,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                Scale_To_Box => Scale_To_Box,
                Align_End    => False,
                Italic       => Italic,
-               Mirror_Glyph => Mirror_Glyph));
+               Mirror_Glyph => Mirror_Glyph,
+               Cut_Columns  => Cut_Columns));
       end if;
    end Append_Text;

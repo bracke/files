@@ -23,5 +23,7 @@ package Files.Private_Directories is
    --  Restrict an open, newly-created regular file to its owner. This also
    --  removes any access ACL inherited at creation time.
    --  @param Descriptor Open descriptor for the new file.
+   --  @raise Ada.Directories.Use_Error when the host refuses, its reason
+   --    (zero when it gave none) the code recorded with Files.Io_Errors.
    procedure Make_File_Private (Descriptor : GNAT.OS_Lib.File_Descriptor);
 end Files.Private_Directories;

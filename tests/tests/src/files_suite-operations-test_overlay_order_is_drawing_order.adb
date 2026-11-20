@@ -34,7 +34,7 @@ separate (Files_Suite.Operations)
               "the window layer draws it");
       --  The pane under the palette is not drawn, and the frame leaves no
       --  hole for it.
-      Files.Settings_Form.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
+      Files.Settings_Form.Begin_Edit (Model, Settings);
       Files.Model.Command_Palette.Open (Model);
       Assert (Files.Model.Settings_Pane.Is_Open (Model) and then Files.Model.Command_Palette.Is_Open (Model),
               "the palette is opened over the settings pane");

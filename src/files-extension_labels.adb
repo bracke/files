@@ -115,7 +115,8 @@ package body Files.Extension_Labels is
             Scale_To_Box  => False,
             Align_End     => False,
             Italic        => False,
-            Mirror_Glyph  => False));
+            Mirror_Glyph  => False,
+            Cut_Columns   => Guikit.Draw.Auto_Cut));
       Result := Guikit.Text.Build_Glyphs (R, Cmd, Empty);
       if Result.Status /= Text_Render_Success
         or else Result.Glyphs.Is_Empty

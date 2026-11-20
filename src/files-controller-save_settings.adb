@@ -33,7 +33,7 @@ separate (Files.Controller)
       --  reported, not undone; a draft the file could not hold is refused and
       --  stays open for editing.
       Final := Applied.Settings;
-      Store_Shortcut_Overrides (Final);
+      Files.Settings_Form.Store_Shortcut_Overrides (Final);
       --  Save writes even an unchanged draft: it is how a save that failed
       --  earlier is tried again.
       Saved :=

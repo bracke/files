@@ -411,18 +411,6 @@ package Files.Settings is
       After  : Settings_Model)
       return Settings_Draft;
 
-   --  Whether two drafts would save the same settings: the same pane
-   --  settings and the same mappings once each editor's selected key and
-   --  value are merged in, blank rows left out. The order rows are listed
-   --  in, which row each mapping editor is on, and a draft's Valid and
-   --  Error_Key play no part; a draft that does not parse is compared by
-   --  what it would write.
-   --
-   --  @param Left One draft.
-   --  @param Right The other.
-   --  @return True when saving either would write the same.
-   function Same_Persisted (Left, Right : Settings_Draft) return Boolean;
-
    --  The settings pane's draft after Saved was saved from Draft: the pane
    --  settings and every mapping row as Saved holds them (keys normalized,
    --  a row whose key another row took merged into it), listed in the order

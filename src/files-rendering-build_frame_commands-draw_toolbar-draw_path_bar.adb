@@ -12,7 +12,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
       View        : constant Guikit.Text_Fields.View :=
         (if Focused
          then Field_View (Path_Raw, Snapshot.Text_Cursor_Position, Text_Region.Width, Line_Height)
-         else (Skip_Bytes => 0, Caret_X => 0));
+         else (others => <>));
 
       --  Favorite toggle: a filled star when the current directory is a
       --  favorite, an empty star when not, drawn at the left of the path bar
@@ -65,7 +65,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
             Text_Region.Width,
             Toolbar_Input_Text_H,
             To_Unbounded_String (Path_Raw (Path_Raw'First + View.Skip_Bytes .. Path_Raw'Last)),
-            Fit => True);
+            Fit         => True,
+            Cut_Columns => View.Cut_Columns);
       end Draw_Edit_Text;
 
       --  The breadcrumb segments, '>' between them, each clickable one a

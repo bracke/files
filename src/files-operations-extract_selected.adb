@@ -126,7 +126,10 @@ is
             end if;
          end;
          Files.Fs_Primitives.Create_Directory (Payload);
-         Zlib.Extract_Archive_File_To_Directory (Full_Path, Payload, "", Status);
+         --  The job's cancel is asked between members and while one streams,
+         --  so a cancel stops a long extraction rather than waiting it out.
+         Zlib.Extract_Archive_File_To_Directory
+           (Full_Path, Payload, "", Cancel => Files.Job_Context.Cancelled'Access, Status => Status);
 
          if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
            or else not Publish_Staged (Payload, Dest_Dir, Made_Identity, Made_Revision)

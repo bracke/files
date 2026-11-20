@@ -35,7 +35,12 @@ package body Files.Private_Directories is
 
    procedure Make_File_Private (Descriptor : GNAT.OS_Lib.File_Descriptor) is
    begin
+      Files.Io_Errors.Clear_Os_Error;
       if not Hostkit.Private_Paths.Restrict_Open_File (Integer (Descriptor)) then
+         --  This refusal's own reason, zero included (a host that gives
+         --  none), before the caller's clean-up can overwrite errno: never
+         --  one recorded earlier.
+         Files.Io_Errors.Adopt_Code (GNAT.OS_Lib.Errno);
          raise Ada.Directories.Use_Error;
       end if;
    end Make_File_Private;

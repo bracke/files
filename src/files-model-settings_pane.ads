@@ -31,8 +31,8 @@ package Files.Model.Settings_Pane is
 
    --  Begin editing settings values in the settings pane. The model never
    --  builds the panel's (localized) fields itself: the caller hands them in,
-   --  built from the normalized draft (Files.Settings.Normalize_Draft). Draft
-   --  is also what the pane takes the file to hold (Saved_Of).
+   --  built from the normalized draft (Files.Settings.Normalize_Draft). The
+   --  caller records what is saved (Set_Saved).
    --
    --  @param Model Model to update.
    --  @param Draft Draft values to edit, normalized.
@@ -63,24 +63,24 @@ package Files.Model.Settings_Pane is
       Draft  : Files.Settings.Settings_Draft;
       Fields : Guikit.Settings_Panel.Field_Vectors.Vector);
 
-   --  The draft of the settings as saved: what the pane opened on, or the
-   --  settings last saved (Set_Saved) -- applied, even when their write
-   --  failed and was reported. A change saves only when it would make the
-   --  settings hold something else.
+   --  The settings as saved: what the pane opened on, or what was saved or
+   --  changed since (Set_Saved). A change saves only when it would make the
+   --  settings say something else.
    --
    --  @param Model Model to inspect.
-   --  @return The saved settings' draft.
+   --  @return The saved settings.
    function Saved_Of
      (Model : Window_Model)
-      return Files.Settings.Settings_Draft;
+      return Files.Settings.Settings_Model;
 
-   --  Record what the file now holds, after a save.
+   --  Record the settings as saved: on opening the pane, after its save,
+   --  and after a command or another window changed them.
    --
    --  @param Model Model to update.
-   --  @param Saved The draft of the saved settings.
+   --  @param Saved The settings now saved.
    procedure Set_Saved
      (Model : in out Window_Model;
-      Saved : Files.Settings.Settings_Draft);
+      Saved : Files.Settings.Settings_Model);
 
    --  Move keyboard focus over the panel's fields (sections are skipped).
    --

@@ -74,13 +74,20 @@ package body Files.Durable_Writes is
       Step              : out Publication_Step)
       return Publication_Result
    is
-      Result : constant Publication_Result := Attempt_Publish (Temporary, Target, Step);
+      --  The code the caller had recorded, kept when the publish succeeds.
+      Earlier : constant Integer := Files.Io_Errors.Last_Code;
+      Result  : Publication_Result;
    begin
-      if Result = Not_Published then
+      --  Start from no code, so the one recorded (and traced) when the
+      --  publish fails is its own, never the caller's earlier one.
+      Files.Io_Errors.Adopt_Code (0);
+      Result := Attempt_Publish (Temporary, Target, Step);
+      if Result /= Not_Published then
+         Files.Io_Errors.Adopt_Code (Earlier);
+      else
          --  Why, for a host that refuses only now and then (a scanner holding
          --  the file just written shows as EBUSY, a refusal as EACCES): the
-         --  step that failed and the code it recorded, zero when it gave none
-         --  -- Attempt_Publish clears errno before each step.
+         --  step that failed and the code it recorded, zero when it gave none.
          Files.Diagnostics.Trace
            ("Files.Durable_Writes",
             "publish_refused=" & Target & ",step=" & Step'Image & ",errno=" & Files.Io_Errors.Last_Code'Image);
@@ -359,8 +366,6 @@ package body Files.Durable_Writes is
       use Ada.Strings.Unbounded;
       Temporary, Identity : Files.Types.UString;
       Result : Publication_Result;
-      --  The code the caller had recorded, kept when the publish succeeds.
-      Earlier : constant Integer := Files.Io_Errors.Last_Code;
    begin
       --  refusal-safe: a Target that cannot be looked at is neither absent
       --  nor a plain file, so it refuses the write.
@@ -371,17 +376,10 @@ package body Files.Durable_Writes is
          raise Ada.Directories.Use_Error;
       end if;
       Write_Private_Temporary (Target, Write, Temporary, Identity);
-      --  Start from no code, so the one Publish traces is its own.
-      Files.Io_Errors.Adopt_Code (0);
+      --  On failure the code recorded is Publish's own (zero when the step
+      --  gave none); on success the caller's stands.
       Result := Publish (To_String (Temporary), Target);
-      if Published (Result) then
-         --  Nothing failed: the caller's code stands.
-         Files.Io_Errors.Adopt_Code (Earlier);
-      else
-         --  The code Publish recorded at the step that failed (and traced),
-         --  or zero when that step gave none, stays the recorded code: never
-         --  the caller's earlier one, which has nothing to do with this
-         --  refusal.
+      if not Published (Result) then
          Remove_Owned (To_String (Temporary), To_String (Identity));
       end if;
       return Result;

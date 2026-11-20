@@ -48,7 +48,7 @@ separate (Files_Suite.Settings)
           (Files.Commands.Default_Shortcut_For (Files.Commands.Select_Small_Icons_Command));
    begin
       Files.Commands.Reset_Shortcut_Overrides;
-      Files.Settings_Form.Begin_Edit (Model, Draft);
+      Files.Settings_Form.Begin_Edit (Model, Draft, Base);
 
       --  The form emits a row per command, keyed by "shortcut.<identifier>",
       --  showing the command's current shortcut.
@@ -110,6 +110,13 @@ separate (Files_Suite.Settings)
       --  too, not just the draft values.
       Files.Commands.Set_Shortcut_Override
         (Files.Commands.Select_Small_Icons_Command, Files.Commands.Parse_Shortcut ("control+shift+5"));
+      --  ... saved, so that dropping it changes what is saved.
+      declare
+         With_Override : Files.Settings.Settings_Model := Base;
+      begin
+         Files.Settings_Form.Store_Shortcut_Overrides (With_Override);
+         Files.Settings_Form.Mark_Saved (Model, With_Override);
+      end;
       Saved := Files.Settings_Form.Apply_Change
         (Model,
          (Kind  => SP.Button_Pressed,

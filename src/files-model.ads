@@ -1487,9 +1487,9 @@ private
       Info_Pane_Open       : Boolean := False;
       Settings_Pane_Open   : Boolean := False;
       Settings_Draft_Value : Files.Settings.Settings_Draft;
-      --  The draft of the settings as saved: what the pane opened on, or
-      --  what was saved since (Settings_Pane.Saved_Of).
-      Settings_Saved_Value : Files.Settings.Settings_Draft;
+      --  The settings as saved: what the pane opened on, or what was saved
+      --  since (Settings_Pane.Saved_Of).
+      Settings_Saved_Value : Files.Settings.Settings_Model;
       Settings_Panel_View  : Guikit.Settings_Panel.Panel;
       Ownership_Input      : Ownership_Input_State;
       Info_Pane_Scroll     : Natural := 0;

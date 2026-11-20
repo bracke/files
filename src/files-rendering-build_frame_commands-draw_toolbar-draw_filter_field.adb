@@ -20,7 +20,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          View          : constant Guikit.Text_Fields.View :=
            (if Focused
             then Field_View (Filter_Raw, Snapshot.Text_Cursor_Position, Filter_Text_W, Line_Height)
-            else (Skip_Bytes => 0, Caret_X => 0));
+            else (others => <>));
          Filter_Shown  : constant UString :=
            To_Unbounded_String (Filter_Raw (Filter_Raw'First + View.Skip_Bytes .. Filter_Raw'Last));
          Scope_Key : constant String :=
@@ -45,7 +45,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
              then To_Unbounded_String (Files.Localization.Text ("filter.placeholder"))
              else Filter_Shown),
             (if Length (Snapshot.Filter_Text) = 0 then Muted_Text_Color else Text_Color),
-            Fit => True);
+            Fit         => True,
+            Cut_Columns => (if Length (Snapshot.Filter_Text) = 0 then Guikit.Draw.Auto_Cut else View.Cut_Columns));
          Draw_Field_State (Text_Region, Focused, Valid => True, Caret_X => View.Caret_X);
 
          if Scope_Chip.Visible then

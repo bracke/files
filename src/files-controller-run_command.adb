@@ -168,7 +168,7 @@ separate (Files.Controller)
             if Files.Model.Settings_Pane.Is_Open (Model) then
                Files.Model.Settings_Pane.Close (Model);
             else
-               Files.Settings_Form.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
+               Files.Settings_Form.Begin_Edit (Model, Settings);
             end if;
          when Files.Commands.Pure_Command_Id =>
             declare

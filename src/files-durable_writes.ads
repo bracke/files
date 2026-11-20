@@ -15,7 +15,10 @@ package Files.Durable_Writes is
    --  @param Temporary Complete file to sync and publish.
    --  @param Target Destination atomically replaced by Temporary.
    --  A publication that did not happen is traced (Files.Diagnostics) with
-   --  the step that failed and the code it recorded with Files.Io_Errors.
+   --  the step that failed and the code it recorded with Files.Io_Errors,
+   --  which is then the recorded code: zero when that step gave none, never
+   --  one recorded before. A publication that happened leaves the code
+   --  recorded before as it was.
    --  @return Whether publication did not happen, happened without a confirmed
    --    directory sync, or completed durably. A caller must not retry a
    --    Published_Not_Durable write as though Target were unchanged.
@@ -135,10 +138,7 @@ package Files.Durable_Writes is
    --  truncated or removed, so it never stops a later save. A temporary
    --  that is not published is removed (Remove_Owned). Raises as
    --  Write_Private_Temporary does, having removed the temporary; Publish
-   --  itself never raises. When the publish fails, the code recorded with
-   --  Files.Io_Errors is the one the failing step gave (zero when it gave
-   --  none), never one recorded before; when it succeeds, the code recorded
-   --  before stands.
+   --  itself never raises, and leaves the recorded code as Publish says.
    --
    --  @param Target The file to replace or create.
    --  @param Write Writes the file to the stream given.

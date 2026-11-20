@@ -394,28 +394,6 @@ package body Files.Controller is
       return Run_Command (Id, Model, Settings, Modifiers);
    end Execute_Non_Settings_Command;
 
-   --  Capture the live Files.Commands override table into the settings model so a
-   --  save persists the current keymap. The [shortcuts] section is thus always a
-   --  mirror of the effective overrides; an explicit unbind persists as an empty
-   --  combo (Shortcut_Text of an absent shortcut is "").
-   procedure Store_Shortcut_Overrides (Settings : in out Files.Settings.Settings_Model) is
-   begin
-      Settings.Shortcut_Overrides.Clear;
-      for Id in Files.Commands.Registered_Command_Id loop
-         declare
-            Is_Set : Boolean;
-            Value  : constant Files.Commands.Shortcut := Files.Commands.Shortcut_Override (Id, Is_Set);
-         begin
-            if Is_Set then
-               Settings.Shortcut_Overrides.Append
-                 (Files.Settings.Shortcut_Override'
-                    (Command => To_Unbounded_String (Files.Commands.Identifier (Id)),
-                     Combo   => To_Unbounded_String (Files.Commands.Shortcut_Text (Value))));
-            end if;
-         end;
-      end loop;
-   end Store_Shortcut_Overrides;
-
    function Save_Settings
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;

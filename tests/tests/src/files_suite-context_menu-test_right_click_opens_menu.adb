@@ -77,7 +77,7 @@ separate (Files_Suite.Context_Menu)
       --  With a modal overlay open the same right-click must be swallowed: the
       --  menu stays closed (the shell suppresses it behind modals).
       Files.Model.Context_Menu.Close (Model);
-      Files.Settings_Form.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
+      Files.Settings_Form.Begin_Edit (Model, Settings);
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings overlay is open for the suppression case");
       Assert_Right_Click_Suppressed ("Settings");
       Files.Model.Settings_Pane.Close (Model);

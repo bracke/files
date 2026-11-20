@@ -79,11 +79,11 @@ separate (Files.Application.Windows.Smoke)
 
          when Scenario_Settings =>
             Files.Settings_Form.Begin_Edit
-              (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
+              (Runtime.Model, Runtime.Settings);
 
          when Scenario_Settings_Tab_2 .. Scenario_Settings_Tab_7 =>
             Files.Settings_Form.Begin_Edit
-              (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
+              (Runtime.Model, Runtime.Settings);
             Files.Model.Settings_Pane.Set_Active_Section
               (Runtime.Model,
                2 + Live_Smoke_Scenario'Pos (Scenario) - Live_Smoke_Scenario'Pos (Scenario_Settings_Tab_2));
@@ -92,13 +92,13 @@ separate (Files.Application.Windows.Smoke)
             Runtime.Settings.Theme := Files.Settings.Theme_Light;
             Files.Model.Note_Settings_Changed (Runtime.Model);
             Files.Settings_Form.Begin_Edit
-              (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
+              (Runtime.Model, Runtime.Settings);
 
          when Scenario_Settings_Large_Font =>
             Runtime.Settings.Font_Pixel_Size := Large_Font;
             Files.Model.Note_Settings_Changed (Runtime.Model);
             Files.Settings_Form.Begin_Edit
-              (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
+              (Runtime.Model, Runtime.Settings);
 
          when Scenario_Settings_Keyboard =>
             --  The run drives the keys itself once the window is prepared.

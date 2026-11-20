@@ -21,7 +21,6 @@ package body Files.Model.Settings_Pane is
    begin
       Touch (Model);
       Model.Settings_Draft_Value := Draft;
-      Model.Settings_Saved_Value := Draft;
       Model.Settings_Pane_Open := True;
       Claim_Overlay_Input (Model);
       Clear_Edit_State (Model);
@@ -49,12 +48,12 @@ package body Files.Model.Settings_Pane is
 
    function Saved_Of
      (Model : Window_Model)
-      return Files.Settings.Settings_Draft is
+      return Files.Settings.Settings_Model is
      (Model.Settings_Saved_Value);
 
    procedure Set_Saved
      (Model : in out Window_Model;
-      Saved : Files.Settings.Settings_Draft) is
+      Saved : Files.Settings.Settings_Model) is
    begin
       Model.Settings_Saved_Value := Saved;
    end Set_Saved;

@@ -26,7 +26,7 @@ separate (Files_Suite.Settings)
    begin
       Files.Commands.Reset_Shortcut_Overrides;
       Files.Settings_Form.Begin_Edit
-        (Model, Files.Settings.Make_Draft (Files.Settings.Default_Settings));
+        (Model, Files.Settings.Default_Settings);
 
       --  By default Backspace deletes too.
       Assert (Files.Commands.Find_By_Shortcut (GI.Key_Backspace, GI.No_Modifiers)

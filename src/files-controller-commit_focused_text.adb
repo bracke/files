@@ -40,7 +40,7 @@ separate (Files.Controller)
                   --  change is, when the file would hold something new;
                   --  Save_Settings reports how that went.
                   if Files.Settings_Form.Needs_Save
-                    (Files.Model.Settings_Pane.Saved_Of (Model), Draft, Overrides_Dropped => False)
+                    (Files.Model.Settings_Pane.Saved_Of (Model), Draft)
                   then
                      Files.Settings_Form.Set_Draft (Model, Draft);
                      return Make_Result (Controller_Needs_Settings_Path, Files.Commands.Save_Settings_Command);

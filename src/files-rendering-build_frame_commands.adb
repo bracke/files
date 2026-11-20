@@ -227,7 +227,8 @@ separate (Files.Rendering)
          Fit    : Boolean;
          Scale_To_Box : Boolean;
          Italic : Boolean;
-         Mirror_Glyph : Boolean := False)
+         Mirror_Glyph : Boolean := False;
+         Cut_Columns  : Natural := Guikit.Draw.Auto_Cut)
  is separate;
 
       --  Main-layer text. Every overlay panel is drawn in the overlay layer,
@@ -243,9 +244,11 @@ separate (Files.Rendering)
          Fit    : Boolean := False;
          Scale_To_Box : Boolean := False;
          Italic : Boolean := False;
-         Mirror_Glyph : Boolean := False) is
+         Mirror_Glyph : Boolean := False;
+         Cut_Columns  : Natural := Guikit.Draw.Auto_Cut) is
       begin
-         Append_Text (Result.Text, X, Y, Text_W, Text_H, Text, Color, Fit, Scale_To_Box, Italic, Mirror_Glyph);
+         Append_Text
+           (Result.Text, X, Y, Text_W, Text_H, Text, Color, Fit, Scale_To_Box, Italic, Mirror_Glyph, Cut_Columns);
       end Add_Text;
 
       procedure Add_Overlay_Text

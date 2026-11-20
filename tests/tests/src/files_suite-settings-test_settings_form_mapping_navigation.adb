@@ -59,7 +59,12 @@ separate (Files_Suite.Settings)
       Draft.Filetype_Keys.Append (To_Unbounded_String ("md"));
       Draft.Filetype_Values.Append (To_Unbounded_String ("text/markdown"));
       Draft.Filetype_Index := 1;
-      Files.Settings_Form.Begin_Edit (Model, Draft);
+      --  The pane opens on these rows as saved, with the keymap they hold
+      --  (no overrides another test may have left).
+      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Settings.Normalize_Draft (Draft);
+      Live := Files.Settings.Apply_Draft (Base, Draft).Settings;
+      Files.Settings_Form.Begin_Edit (Model, Draft, Live);
 
       Files_Suite.Support.Assert_Equal
 
@@ -153,6 +158,25 @@ separate (Files_Suite.Settings)
          Assert (not Files.Model.Settings_Pane.Draft_Of (Model).Valid, "paging keeps the draft's error");
       end;
 
+      --  A re-check that finds the draft valid, with nothing to save, clears
+      --  the error line an earlier check left there.
+      Files.Model.Set_Error (Model, "error.settings.invalid_mapping");
+      Saved := Files.Settings_Form.Apply_Change (Model, Button ("add"));
+      Assert (not Saved, "adding a blank row to a valid draft saves nothing");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model), "", "a valid re-check clears the error line");
+
+      --  A shortcut rebound but not saved (its save refused, say) is part of
+      --  what a later change weighs: the next re-check saves it.
+      Files.Commands.Reset_Shortcut_Overrides;
+      Save_Now;
+      Saved := Files.Settings_Form.Apply_Change (Model, Changed_Value
+           ("shortcut.view.small",
+            Files.Commands.Shortcut_Text (Files.Commands.Parse_Shortcut ("control+shift+5"))));
+      Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
+      Assert (Saved, "a change after an unsaved rebind saves the rebind");
+      Files.Commands.Reset_Shortcut_Overrides;
+
       --  Reset with nothing to reset does not save, however the pane was left
       --  (an entry paged to, an error shown); with shortcut overrides it does.
       declare
@@ -161,7 +185,7 @@ separate (Files_Suite.Settings)
       begin
          Defaults.Valid := False;
          Defaults.Error_Key := To_Unbounded_String ("settings.invalid");
-         Files.Settings_Form.Begin_Edit (Model, Defaults);
+         Files.Settings_Form.Begin_Edit (Model, Defaults, Files.Settings.Default_Settings);
          Saved := Files.Settings_Form.Apply_Change
            (Model,
             (Kind  => SP.Button_Pressed,

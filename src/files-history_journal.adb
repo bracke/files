@@ -234,6 +234,19 @@ package body Files.History_Journal is
       Natural'Output (Stream, Value.Sequence);
    end Write_Entry;
 
+   --  A sequence number as the journal holds it, refused (Data_Error) at
+   --  the very top of its range: every reader counts one past the highest
+   --  sequence it holds, which there would overflow, so such a journal is
+   --  corrupt -- unreadable -- rather than a restore that raises.
+   function Read_Sequence (Stream : not null access Ada.Streams.Root_Stream_Type'Class) return Natural is
+      Value : constant Natural := Natural'Input (Stream);
+   begin
+      if Value = Natural'Last then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      return Value;
+   end Read_Sequence;
+
    function Read_Entry
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Fields : in out Natural;
@@ -255,7 +268,7 @@ package body Files.History_Journal is
          end if;
       end loop;
       if not Version_1 then
-         Result.Sequence := Natural'Input (Stream);
+         Result.Sequence := Read_Sequence (Stream);
       end if;
       Assemble (Result, Columns);
       return Result;
@@ -705,7 +718,14 @@ package body Files.History_Journal is
                raise Ada.IO_Exceptions.Data_Error;
             end if;
             for Index in 1 .. Count loop
-               Into.Append (Positive'Input (Input'Access));
+               declare
+                  Sequence : constant Natural := Read_Sequence (Input'Access);
+               begin
+                  if Sequence = 0 then
+                     raise Ada.IO_Exceptions.Data_Error;
+                  end if;
+                  Into.Append (Sequence);
+               end;
             end loop;
          end Read_Sequences;
       begin
@@ -713,7 +733,7 @@ package body Files.History_Journal is
             raise Ada.IO_Exceptions.Data_Error;
          end if;
          if not Version_1 then
-            State.Next_Sequence := Positive'Max (1, Natural'Input (Input'Access));
+            State.Next_Sequence := Positive'Max (1, Read_Sequence (Input'Access));
             State.Redo_Retired := Boolean'Input (Input'Access);
             Read_Sequences (State.Unjournaled);
             if not Version_2 then

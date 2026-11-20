@@ -42,11 +42,12 @@ separate (Files.Events)
          return Natural
       is
          Raw  : constant String := To_String (Text);
-         --  The bytes scrolled off the left edge, as the field is drawn.
-         Skip : constant Natural :=
+         --  How the field is scrolled as it is drawn: bytes off the left
+         --  edge, or for text laid out right to left, cells cut off it.
+         View : constant Guikit.Text_Fields.View :=
            (if Focused
-            then Files.Rendering.Layouts.Field_View (Raw, Caret, Text_Width, Line_Height).Skip_Bytes
-            else 0);
+            then Files.Rendering.Layouts.Field_View (Raw, Caret, Text_Width, Line_Height)
+            else (others => <>));
       begin
          --  Which half of a character the click lands on decides the side
          --  of it the caret goes; in right-to-left text, and in a mirrored
@@ -54,10 +55,11 @@ separate (Files.Events)
          return
            Guikit.Text_Fields.Cursor_At
              (Raw,
-              Skip_Bytes  => Skip,
+              Skip_Bytes  => View.Skip_Bytes,
               Click_X     => (if Click_X <= Text_X then 0 else Click_X - Text_X),
               Field_Width => (if Text_Width = 0 then Natural'Last else Text_Width),
-              Line_Height => Line_Height);
+              Line_Height => Line_Height,
+              Cut_Columns => View.Cut_Columns);
       end Cursor_At;
 
       function Text_Click

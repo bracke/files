@@ -459,16 +459,43 @@ package body Files.Settings_Form is
       return Files.Settings.Reset_Draft_To_Defaults;
    end Reset_To_Defaults;
 
+   procedure Store_Shortcut_Overrides (Settings : in out Files.Settings.Settings_Model) is
+   begin
+      Settings.Shortcut_Overrides.Clear;
+      for Id in Files.Commands.Registered_Command_Id loop
+         declare
+            Is_Set : Boolean;
+            Value  : constant Files.Commands.Shortcut := Files.Commands.Shortcut_Override (Id, Is_Set);
+         begin
+            if Is_Set then
+               Settings.Shortcut_Overrides.Append
+                 (Files.Settings.Shortcut_Override'
+                    (Command => To_Unbounded_String (Files.Commands.Identifier (Id)),
+                     Combo   => To_Unbounded_String (Files.Commands.Shortcut_Text (Value))));
+            end if;
+         end;
+      end loop;
+   end Store_Shortcut_Overrides;
+
    function Needs_Save
-     (Saved, Draft      : Files.Settings.Settings_Draft;
-      Overrides_Dropped : Boolean)
-      return Boolean is
-     (not Files.Settings.Same_Persisted (Saved, Draft) or else Overrides_Dropped);
+     (Saved : Files.Settings.Settings_Model;
+      Draft : Files.Settings.Settings_Draft)
+      return Boolean
+   is
+      Applied : Files.Settings.Settings_Parse_Result := Files.Settings.Apply_Draft (Saved, Draft);
+   begin
+      if not Applied.Success then
+         return False;
+      end if;
+      Store_Shortcut_Overrides (Applied.Settings);
+      return not Files.Settings.Same_Content (Saved, Applied.Settings);
+   end Needs_Save;
 
    function Apply
-     (Draft  : in out Files.Settings.Settings_Draft;
-      Change : Guikit.Settings_Panel.Change;
-      Saved  : Files.Settings.Settings_Draft)
+     (Draft     : in out Files.Settings.Settings_Draft;
+      Change    : Guikit.Settings_Panel.Change;
+      Saved     : Files.Settings.Settings_Model;
+      Rechecked : out Boolean)
       return Boolean
    is
       D        : Files.Settings.Settings_Draft renames Draft;
@@ -477,6 +504,7 @@ package body Files.Settings_Form is
       Save     : Boolean := False;
       Conflict : Boolean := False;
    begin
+      Rechecked := False;
       case Change.Kind is
          when SP.No_Change =>
             return False;
@@ -550,8 +578,13 @@ package body Files.Settings_Form is
             then
                Apply_Shortcut (Key, To_String (Val), Applied => Save, Conflict => Conflict);
             end if;
-            D.Valid     := True;
-            D.Error_Key := Null_Unbounded_String;
+            --  A change that is saved is checked by that save, which reports
+            --  what it finds; a text edit is checked when Enter commits it,
+            --  and until then the draft's error stands.
+            if Save then
+               D.Valid     := True;
+               D.Error_Key := Null_Unbounded_String;
+            end if;
             if Conflict then
                --  Report the clash in the footer; the row visually reverts on the
                --  next rebuild because the live binding was left unchanged.
@@ -562,7 +595,6 @@ package body Files.Settings_Form is
          when SP.Button_Pressed =>
             declare
                Button        : constant String := To_String (Val);
-               Had_Overrides : constant Boolean := Files.Commands.Has_Shortcut_Overrides;
                Is_Reset      : constant Boolean := Key = "form.actions" and then Button = "reset";
             begin
                if Is_Reset then
@@ -583,14 +615,15 @@ package body Files.Settings_Form is
                --  and the file would hold something else -- compared with
                --  what it holds, not with the draft before the button, which
                --  may carry text edits not yet saved. Reset also drops the
-               --  shortcut overrides, which the draft does not hold.
+               --  shortcut overrides, which Needs_Save weighs with the rest.
                if Is_Reset or else Button = "add" or else Button = "remove" then
                   declare
                      Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Validate_Draft (D);
                   begin
+                     Rechecked := True;
                      D.Valid := Parsed.Success;
                      D.Error_Key := (if Parsed.Success then Null_Unbounded_String else Parsed.Error_Key);
-                     Save := Parsed.Success and then Needs_Save (Saved, D, Is_Reset and then Had_Overrides);
+                     Save := Parsed.Success and then Needs_Save (Saved, D);
                   end;
                end if;
             end;
@@ -601,12 +634,21 @@ package body Files.Settings_Form is
 
    procedure Begin_Edit
      (Model : in out Files.Model.Window_Model;
-      Draft : Files.Settings.Settings_Draft)
+      Draft : Files.Settings.Settings_Draft;
+      Saved : Files.Settings.Settings_Model)
    is
       Normalized : Files.Settings.Settings_Draft := Draft;
    begin
       Files.Settings.Normalize_Draft (Normalized);
       Files.Model.Settings_Pane.Begin_Edit (Model, Normalized, Fields (Normalized));
+      Files.Model.Settings_Pane.Set_Saved (Model, Saved);
+   end Begin_Edit;
+
+   procedure Begin_Edit
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model) is
+   begin
+      Begin_Edit (Model, Files.Settings.Make_Draft (Settings), Settings);
    end Begin_Edit;
 
    procedure Set_Draft
@@ -624,33 +666,37 @@ package body Files.Settings_Form is
       Change : Guikit.Settings_Panel.Change)
       return Boolean
    is
-      Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
-      Save  : Boolean;
+      Draft     : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
+      Save      : Boolean;
+      Rechecked : Boolean;
    begin
       if Change.Kind = SP.No_Change then
          return False;
       end if;
-      Save := Apply (Draft, Change, Files.Model.Settings_Pane.Saved_Of (Model));
+      Save := Apply (Draft, Change, Files.Model.Settings_Pane.Saved_Of (Model), Rechecked);
       Set_Draft (Model, Draft);
+      --  The error line says what the re-check found, as Enter's check
+      --  does; a save that follows reports for itself.
+      if Rechecked and then not Save then
+         Files.Model.Set_Error (Model, (if Draft.Valid then "" else To_String (Draft.Error_Key)));
+      end if;
       return Save;
    end Apply_Change;
 
    function Reset_Draft
      (Model : in out Files.Model.Window_Model)
-      return Boolean
-   is
-      Had_Overrides : constant Boolean := Files.Commands.Has_Shortcut_Overrides;
-      Defaults      : constant Files.Settings.Settings_Draft := Reset_To_Defaults;
-   begin
-      Set_Draft (Model, Defaults);
-      return Needs_Save (Files.Model.Settings_Pane.Saved_Of (Model), Defaults, Had_Overrides);
-   end Reset_Draft;
+      return Boolean is
+     (Apply_Change
+        (Model,
+         (Kind  => SP.Button_Pressed,
+          Key   => To_Unbounded_String ("form.actions"),
+          Value => To_Unbounded_String ("reset"))));
 
    procedure Mark_Saved
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model) is
    begin
-      Files.Model.Settings_Pane.Set_Saved (Model, Files.Settings.Make_Draft (Settings));
+      Files.Model.Settings_Pane.Set_Saved (Model, Settings);
    end Mark_Saved;
 
 end Files.Settings_Form;
