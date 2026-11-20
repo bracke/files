@@ -1,3 +1,4 @@
+with GNAT.OS_Lib;
 with Files.Timing;
 with Ada.Real_Time;
 with Ada.Calendar;
@@ -341,6 +342,11 @@ package body Files.Durable_Writes is
       Write_Private_Temporary (Target, Write, Temporary, Identity);
       Result := Publish (To_String (Temporary), Target);
       if not Published (Result) then
+         --  Why, for a host that refuses only now and then (a scanner holding
+         --  the file just written shows as EBUSY, a refusal as EACCES).
+         Files.Diagnostics.Trace
+           ("Files.Durable_Writes",
+            "publish_refused=" & Target & ",result=" & Result'Image & ",errno=" & GNAT.OS_Lib.Errno'Image);
          Remove_Owned (To_String (Temporary), To_String (Identity));
       end if;
       return Result;

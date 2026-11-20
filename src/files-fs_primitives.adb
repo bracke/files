@@ -254,11 +254,17 @@ package body Files.Fs_Primitives is
    procedure Delete_File (Path : String) is
    begin
       if not Hostkit.Fs.Delete_File (Path) then
-         --  Name_Error ("nothing there") only when that is sure: a caller
-         --  may take it as already deleted.
-         if not Entry_Is_Absent (Path) then
-            raise Ada.Directories.Use_Error;
-         end if;
+         declare
+            --  The host's reason, before the lookup below can change it.
+            Code : constant Integer := GNAT.OS_Lib.Errno;
+         begin
+            --  Name_Error ("nothing there") only when that is sure: a caller
+            --  may take it as already deleted.
+            if not Entry_Is_Absent (Path) then
+               Files.Diagnostics.Trace ("Files.Fs_Primitives", "delete_refused=" & Path & ",errno=" & Code'Image);
+               raise Ada.Directories.Use_Error;
+            end if;
+         end;
          raise Ada.Directories.Name_Error;
       end if;
    end Delete_File;
