@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.Model.Label_Picker;
@@ -98,7 +99,7 @@ separate (Files_Suite.Interaction)
       Files.Model.Label_Picker.Open (Model);
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
-         (Kind => Files.Events.Label_Picker_Choice_Input_Action,
+         (Kind => Files.Input_Actions.Label_Picker_Choice_Input_Action,
           Label      => Files.Types.Purple),
          Guikit.Input.No_Modifiers, Result);
       Assert

@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 separate (Files_Suite.Rendering)
    --  A wheel notch asks for three lines, but the main view draws its offset
@@ -28,11 +29,11 @@ separate (Files_Suite.Rendering)
             --  One notch (Y_Offset -1 down, +1 up) applied to the snapshot;
             --  False when the wheel produced nothing.
             function Notch (Y_Offset : Integer) return Boolean is
-               Action : constant Files.Events.Input_Action :=
+               Action : constant Files.Input_Actions.Input_Action :=
                  Files.Events.Translate_Scroll_At
                    (Snapshot, X, Y, Width, Height, Y_Offset => Y_Offset, Line_Height => LH);
             begin
-               if Action.Kind /= Files.Events.Scroll_Input_Action then
+               if Action.Kind /= Files.Input_Actions.Scroll_Input_Action then
                   return False;
                end if;
                Snapshot.Main_View_Scroll_Lines :=

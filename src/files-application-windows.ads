@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Glfw.Windows.Drop.Paths;
 with Files.Model;
 with Files.Refresh_Jobs;
@@ -15,7 +16,6 @@ private with A11ykit.Provider;
 private with Files.Accessibility;
 private with Files.Commands;
 private with Files.Drop_Events;
-private with Files.Events;
 private with Files.Overlays;
 private with Files.Rendering;
 private with Files.Rendering.Text;
@@ -292,7 +292,7 @@ private
       --  Where the left button last went down, in framebuffer pixels: a
       --  control is drawn pressed only where the press began.
       Press_X, Press_Y : Natural := 0;
-      Scrollbar_Drag_Target : Files.Events.Scroll_Target := Files.Events.No_Scroll_Target;
+      Scrollbar_Drag_Target : Files.Input_Actions.Scroll_Target := Files.Input_Actions.No_Scroll_Target;
       Scrollbar_Drag_Anchor : Integer := 0;
       --  The three drags the shell owns besides the scrollbar's.
       Column_Resize   : Column_Resize_Drag;
@@ -309,7 +309,7 @@ private
       --  A press on part of a selection, held back until its release shows
       --  whether it began a drag of the whole selection.
       Deferred_Click_Pending : Boolean := False;
-      Deferred_Click         : Files.Events.Input_Action;
+      Deferred_Click         : Files.Input_Actions.Input_Action;
       --  The deferred click's item, found again by path at release: a
       --  refresh in between can move it to another row or remove it.
       Deferred_Click_Path    : Ada.Strings.Unbounded.Unbounded_String;
@@ -424,7 +424,7 @@ private
    --  Dispatch a click's input action to a window.
    procedure Dispatch_Click_Action
      (Runtime  : in out Runtime_Window;
-      Action   : Files.Events.Input_Action;
+      Action   : Files.Input_Actions.Input_Action;
       Modifiers : Guikit.Input.Modifier_Set);
 
    --  Where a pointer event lands in a window's frame, and what to hit-test
@@ -473,7 +473,7 @@ private
       Cursor_X  : Glfw.Input.Mouse.Coordinate;
       Cursor_Y  : Glfw.Input.Mouse.Coordinate;
       Modifiers : Guikit.Input.Modifier_Set)
-      return Files.Events.Input_Action;
+      return Files.Input_Actions.Input_Action;
 
    --  What the event loop carries from one pass to the next.
    type Event_Loop_State is record

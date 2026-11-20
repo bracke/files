@@ -1,3 +1,4 @@
+with Files.Settings_Form;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
@@ -46,7 +47,7 @@ separate (Files_Suite.Interaction)
       begin
          Edited.Scalars (Files.Settings.Default_View_Mode_Setting) :=
            Ada.Strings.Unbounded.To_Unbounded_String ("details");
-         Files.Model.Settings_Pane.Set_Draft (Second_Window, Edited);
+         Files.Settings_Form.Set_Draft (Second_Window, Edited);
       end;
 
       --  The first window turns hidden files on; the second adopts its settings.

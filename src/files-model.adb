@@ -352,7 +352,6 @@ package body Files.Model is
       Support.Invalidate_Visible (Model);
       Model.Directory_Signature := Files.File_System_Types.Unknown_Signature (Directory_Path);
       Model.Filter.Text := Null_Unbounded_String;
-      Support.Invalidate_Visible (Model);
       Model.Filter.Cursor := 0;
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;

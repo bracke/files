@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Guikit.Mirroring;
 separate (Files_Suite.Rendering)
    --  In a mirrored (right-to-left) window a field's text keeps its reading
@@ -38,7 +39,7 @@ separate (Files_Suite.Rendering)
                   "the caret after" & Natural'Image (Cursor) & " letters is left of the one before it");
                Previous_X := CX;
                declare
-                  Action : constant Files.Events.Input_Action :=
+                  Action : constant Files.Input_Actions.Input_Action :=
                     Files.Events.Translate_Click
                       (Snapshot, Frame, X => CX, Y => CY + CH / 2, Width => 1000, Height => 800, Line_Height => 20);
                begin

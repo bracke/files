@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  The selector floats over file content.  Its two offset strips are a
    --  drop shadow, not an opaque second pane: using Pane_Color here produces
@@ -19,7 +20,7 @@ separate (Files_Suite.Rendering)
          Layout : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 480, 360, 20);
          Root   : constant Root_Selector_Layout := Calculate_Root_Selector_Layout (Snap, Layout, 20);
          Frame  : constant Frame_Commands := Build_Frame_Commands (Snap, 480, 360, 20);
-         Dismiss : constant Files.Events.Input_Action :=
+         Dismiss : constant Files.Input_Actions.Input_Action :=
            Files.Events.Translate_Click
              (Snap, Frame, X => 479, Y => 359, Width => 480, Height => 360, Line_Height => 20);
          A11y_Count : Natural := 0;
@@ -30,7 +31,7 @@ separate (Files_Suite.Rendering)
             end if;
          end loop;
          Assert
-           (Dismiss.Kind = Files.Events.Command_Input_Action
+           (Dismiss.Kind = Files.Input_Actions.Command_Input_Action
             and then Dismiss.Command = Files.Commands.Close_Overlay_Command,
             "a click outside the root selector dismisses it without activating the background");
          for Node of Frame.Accessibility loop

@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Model.Context_Menu;
 with Files.Model.Tree_Panel;
 with Files.Rendering.Layouts;
@@ -30,7 +31,7 @@ separate (Files_Suite.Tree)
          Target   : constant String := Files.Model.Tree_Panel.Node_Path (Model, 1);
          Expected : constant Files.File_System.Path_Result :=
            Files.File_System.Normalize_Path (Target);
-         Action   : Files.Events.Input_Action;
+         Action   : Files.Input_Actions.Input_Action;
          X, Y     : Natural := 0;
       begin
          Assert (not Rows.Is_Empty, "the open tree lays out at least one row");
@@ -45,7 +46,7 @@ separate (Files_Suite.Tree)
              (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Tree_Click_Input_Action,
+            Files.Input_Actions.Tree_Click_Input_Action,
             "a tree label coordinate translates to a tree click");
          Assert (not Action.Expander, "clicking the label navigates rather than toggles");
 

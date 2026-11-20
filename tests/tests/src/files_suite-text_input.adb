@@ -1,3 +1,5 @@
+with Files.Events;
+with Files.Input_Actions;
 with Files.Controller.Testing;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
@@ -6,7 +8,6 @@ with AUnit.Assertions;
 with AUnit.Test_Cases;
 with Files.Commands;
 with Files.Controller;
-with Files.Events;
 with Files.File_System;
 with Files.Interaction;
 with Files.Localization;
@@ -30,7 +31,7 @@ package body Files_Suite.Text_Input is
    use AUnit.Assertions;
    use type Files.Commands.Command_Id;
    use type Files.Controller.Controller_Status;
-   use type Files.Events.Input_Action_Kind;
+   use type Files.Input_Actions.Input_Action_Kind;
    use type Files.UI_Types.Focus_Target;
    use type Files.Types.Search_Scope;
    use Files_Suite.Interaction_Support;

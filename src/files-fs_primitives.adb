@@ -1,5 +1,6 @@
 with Files.Types;
 with Files.Diagnostics;
+with Files.Io_Errors;
 with Ada.Strings.Unbounded;
 
 with Hostkit.Directory_Listing;
@@ -253,9 +254,14 @@ package body Files.Fs_Primitives is
 
    procedure Delete_File (Path : String) is
    begin
+      --  No reason left over from an earlier call: a host that refuses
+      --  without one must not be traced, or reported, with another's.
+      Files.Io_Errors.Clear_Os_Error;
       if not Hostkit.Fs.Delete_File (Path) then
          declare
             --  The host's reason, before the lookup below can change it.
+            --  Not recorded with Capture: a clean-up's refusal must not
+            --  replace the reason the operation it cleans up after failed.
             Code : constant Integer := GNAT.OS_Lib.Errno;
          begin
             --  Name_Error ("nothing there") only when that is sure: a caller
@@ -272,7 +278,9 @@ package body Files.Fs_Primitives is
    procedure Delete_Directory (Path : String) is
    begin
       if not Hostkit.Fs.Delete_Empty_Directory (Path) then
-         if Hostkit.Fs.Is_Link (Path) or else not Directory_Exists (Path) then
+         --  Name_Error ("nothing there") only when that is sure, as for
+         --  Delete_File: a refused lookup is not an absent directory.
+         if Entry_Is_Absent (Path) then
             raise Ada.Directories.Name_Error;
          end if;
          raise Ada.Directories.Use_Error;

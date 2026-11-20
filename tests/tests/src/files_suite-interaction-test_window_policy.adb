@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Ada.Real_Time;
 with Files.Window_Policy;
 with Guikit.Settings_Panel;
@@ -28,22 +29,22 @@ separate (Files_Suite.Interaction)
       Files_Suite.Support.Assert_Equal (P.Scaled_Font_Size (16, 1.25), 20, "a fractional scale too");
 
       declare
-         Item   : constant Files.Events.Input_Action :=
-           (Kind => Files.Events.Item_Click_Input_Action, Item_Index => 3, others => <>);
-         Header : constant Files.Events.Input_Action :=
-           (Kind => Files.Events.Column_Reorder_Begin_Input_Action, Sort_Command => Sort_By_Size, others => <>);
-         Fixed  : constant Files.Events.Input_Action :=
-           (Kind => Files.Events.Column_Reorder_Begin_Input_Action, others => <>);
-         Opened : constant Files.Events.Input_Action := P.Accessibility_Action (Item, Activate => True);
-         Picked : constant Files.Events.Input_Action := P.Accessibility_Action (Item, Activate => False);
-         Sorted : constant Files.Events.Input_Action := P.Accessibility_Action (Header, Activate => True);
+         Item   : constant Files.Input_Actions.Input_Action :=
+           (Kind => Files.Input_Actions.Item_Click_Input_Action, Item_Index => 3, others => <>);
+         Header : constant Files.Input_Actions.Input_Action :=
+           (Kind => Files.Input_Actions.Column_Reorder_Begin_Input_Action, Sort_Command => Sort_By_Size, others => <>);
+         Fixed  : constant Files.Input_Actions.Input_Action :=
+           (Kind => Files.Input_Actions.Column_Reorder_Begin_Input_Action, others => <>);
+         Opened : constant Files.Input_Actions.Input_Action := P.Accessibility_Action (Item, Activate => True);
+         Picked : constant Files.Input_Actions.Input_Action := P.Accessibility_Action (Item, Activate => False);
+         Sorted : constant Files.Input_Actions.Input_Action := P.Accessibility_Action (Header, Activate => True);
       begin
-         Assert (Opened.Kind = Files.Events.Item_Click_Input_Action and then Opened.Activate,
+         Assert (Opened.Kind = Files.Input_Actions.Item_Click_Input_Action and then Opened.Activate,
                  "Activate on an item opens it, as a double-click does");
          Assert (not Picked.Activate, "Select or Focus only selects it");
-         Assert (Sorted.Kind = Files.Events.Command_Input_Action and then Sorted.Command = Sort_By_Size,
+         Assert (Sorted.Kind = Files.Input_Actions.Command_Input_Action and then Sorted.Command = Sort_By_Size,
                  "a header cell sorts by its column instead of arming a drag");
-         Assert (P.Accessibility_Action (Fixed, Activate => True).Kind = Files.Events.No_Input_Action,
+         Assert (P.Accessibility_Action (Fixed, Activate => True).Kind = Files.Input_Actions.No_Input_Action,
                  "a header that does not sort does nothing");
       end;
 

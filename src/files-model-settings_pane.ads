@@ -34,7 +34,7 @@ package Files.Model.Settings_Pane is
    --  built from the normalized draft (Files.Settings.Normalize_Draft).
    --
    --  @param Model Model to update.
-   --  @param Draft Draft values to edit.
+   --  @param Draft Draft values to edit, normalized.
    --  @param Fields The panel's fields for Draft.
    procedure Begin_Edit
      (Model  : in out Window_Model;
@@ -49,13 +49,18 @@ package Files.Model.Settings_Pane is
      (Model : Window_Model)
       return Files.Settings.Settings_Draft;
 
-   --  Replace the active settings draft.
+   --  Replace the active settings draft and the panel's fields for it, so
+   --  the panel never holds another draft's values (a key typed straight
+   --  after a change lands on the entry the draft now shows). The caller
+   --  normalizes the draft and builds the fields (Files.Settings_Form).
    --
    --  @param Model Model to update.
-   --  @param Draft Draft values to store.
+   --  @param Draft Draft values to store, normalized.
+   --  @param Fields The panel's fields for Draft.
    procedure Set_Draft
-     (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft);
+     (Model  : in out Window_Model;
+      Draft  : Files.Settings.Settings_Draft;
+      Fields : Guikit.Settings_Panel.Field_Vectors.Vector);
 
    --  Move keyboard focus over the panel's fields (sections are skipped).
    --

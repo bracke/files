@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  Folder-tree sidebar.
    procedure Test_Folder_Tree_Close_Button_Layering (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -41,7 +42,7 @@ separate (Files_Suite.Rendering)
       Snap.Settings_Pane_Open := True;
       Frame := Build_Frame_Commands (Snap, Width, Height, LH);
       declare
-         Covered_Close : constant Files.Events.Input_Action :=
+         Covered_Close : constant Files.Input_Actions.Input_Action :=
            Files.Events.Translate_Click
              (Snap, Frame,
               Close.X + Close.Width / 2,
@@ -49,7 +50,7 @@ separate (Files_Suite.Rendering)
               Width, Height, Line_Height => LH);
       begin
          Assert
-           (Covered_Close.Kind /= Files.Events.Command_Input_Action
+           (Covered_Close.Kind /= Files.Input_Actions.Command_Input_Action
             or else Covered_Close.Command /= Files.Commands.Toggle_Folder_Tree_Command,
             "the modal settings pane owns clicks above the visible folder tree");
       end;

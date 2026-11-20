@@ -1,3 +1,4 @@
+with Files.Events;
 with Files.Operations;
 with Files.Foreground_Jobs;
 with Files.Window_Polls;
@@ -33,7 +34,7 @@ package body Files_Suite.Support.Models is
       Activate    : Boolean := False;
       Modifiers   : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Line_Height : Positive := 20)
-      return Files.Events.Input_Action
+      return Files.Input_Actions.Input_Action
    is (Files.Events.Translate_Click
          (Snapshot,
           Files.Rendering.Build_Frame_Commands (Snapshot, Width, Height, Line_Height),

@@ -12,19 +12,19 @@ package body Files.Application.Windows.Gestures is
 
    procedure Arm
      (Runtime : in out Runtime_Window;
-      Action  : Files.Events.Input_Action;
+      Action  : Files.Input_Actions.Input_Action;
       Armed   : out Boolean) is
    begin
       Armed := True;
       case Action.Kind is
          --  The scrollbar drag follows the pointer from the anchor where the
          --  thumb was grabbed (Update_Scrollbar_Drag).
-         when Files.Events.Scrollbar_Drag_Begin_Input_Action =>
+         when Files.Input_Actions.Scrollbar_Drag_Begin_Input_Action =>
             Runtime.Scrollbar_Drag_Target := Action.Scroll_Area;
             Runtime.Scrollbar_Drag_Anchor := Action.Scroll_Drag_Anchor;
 
          --  The resize is applied per frame (Update_Column_Resize_Drag).
-         when Files.Events.Column_Resize_Begin_Input_Action =>
+         when Files.Input_Actions.Column_Resize_Begin_Input_Action =>
             Runtime.Column_Resize.Active := True;
             Runtime.Column_Resize.Changed := False;
             Runtime.Column_Resize.Target := Action.Column;
@@ -33,7 +33,7 @@ package body Files.Application.Windows.Gestures is
 
          --  The drop, or the sort a press without a drag makes, is applied
          --  at release (Update_Column_Reorder_Drag).
-         when Files.Events.Column_Reorder_Begin_Input_Action =>
+         when Files.Input_Actions.Column_Reorder_Begin_Input_Action =>
             Runtime.Column_Reorder.Active := True;
             Runtime.Column_Reorder.Target := Action.Column;
             Runtime.Column_Reorder.Origin_X := Action.Origin_X;
@@ -44,7 +44,7 @@ package body Files.Application.Windows.Gestures is
          --  selection before the press is kept, so an additive drag unions
          --  with it however often the band is applied again; the origin is
          --  on the frame on screen, so it is anchored to that frame's scroll.
-         when Files.Events.Marquee_Begin_Input_Action =>
+         when Files.Input_Actions.Marquee_Begin_Input_Action =>
             declare
                Slot : constant Snapshot_Slot := Hit_Slot (Runtime);
             begin
@@ -156,7 +156,7 @@ package body Files.Application.Windows.Gestures is
    procedure Cancel_Background_Gestures_For_Overlay
      (Runtime : in out Runtime_Window)
    is
-      use type Files.Events.Scroll_Target;
+      use type Files.Input_Actions.Scroll_Target;
       --  The destination picker is modal, but its tree scrollbar belongs to the
       --  modal surface rather than the background. Preserve only that gesture;
       --  every file-grid drag and any scrollbar owned by covered content still
@@ -164,7 +164,7 @@ package body Files.Application.Windows.Gestures is
       Keep_Tree_Scrollbar : constant Boolean :=
         Files.Model.Tree_Panel.Pick_Is_Active (Runtime.Model)
         and then Files.Model.Tree_Panel.Is_Open (Runtime.Model)
-        and then Runtime.Scrollbar_Drag_Target = Files.Events.Scroll_Tree_Panel
+        and then Runtime.Scrollbar_Drag_Target = Files.Input_Actions.Scroll_Tree_Panel
         and then not Files.Model.Other_Input_Owning_Overlay_Is_Open (Runtime.Model, Files.UI_Types.Tree_Pick_Overlay);
    begin
       if not Files.Model.Input_Owning_Overlay_Is_Open (Runtime.Model) then
@@ -173,7 +173,7 @@ package body Files.Application.Windows.Gestures is
 
       Runtime.Drag_Source_Index := 0;
       if not Keep_Tree_Scrollbar then
-         Runtime.Scrollbar_Drag_Target := Files.Events.No_Scroll_Target;
+         Runtime.Scrollbar_Drag_Target := Files.Input_Actions.No_Scroll_Target;
          Runtime.Scrollbar_Drag_Anchor := 0;
       end if;
       End_Column_Resize_Drag (Runtime);

@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files.Application.Windows)
    procedure Handle_Mouse
      (Runtime : in out Runtime_Window)
@@ -20,7 +21,7 @@ separate (Files.Application.Windows)
             return;
          end if;
          declare
-            Action : Files.Events.Input_Action :=
+            Action : Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Right_Click
                 (Snapshot    => Runtime.View.Snapshots (At_Press.Slot),
                  X           => At_Press.X,
@@ -29,7 +30,7 @@ separate (Files.Application.Windows)
                  Height      => At_Press.Height,
                  Line_Height => At_Press.Line_Height);
          begin
-            if Action.Kind = Files.Events.Right_Click_Input_Action then
+            if Action.Kind = Files.Input_Actions.Right_Click_Input_Action then
                Action.Target_Item := Current_Item_Index (Runtime, At_Press.Slot, Action.Target_Item);
                Dispatch_Click_Action (Runtime, Action, Event.Modifiers);
             end if;
@@ -48,12 +49,12 @@ separate (Files.Application.Windows)
             Modifiers : constant Guikit.Input.Modifier_Set := Event.Modifiers;
             --  Hit-test where the button went down, not where the cursor is
             --  (or where a later press was) by the time a slow frame gets to it.
-            Action    : constant Files.Events.Input_Action :=
+            Action    : constant Files.Input_Actions.Input_Action :=
               Current_Click_Action
                 (Runtime, Window_W, Window_H, Frame_W, Frame_H,
                  Event.X, Event.Y, Modifiers);
             Is_Item   : constant Boolean :=
-              Action.Kind = Files.Events.Item_Click_Input_Action
+              Action.Kind = Files.Input_Actions.Item_Click_Input_Action
               and then Action.Item_Index in 1 .. Files.Model.Visible_Count (Runtime.Model);
             Path      : constant String :=
               (if Is_Item
@@ -85,7 +86,7 @@ separate (Files.Application.Windows)
 
             if Activate then
                declare
-                  Activated_Action : Files.Events.Input_Action := Action;
+                  Activated_Action : Files.Input_Actions.Input_Action := Action;
                begin
                   Activated_Action.Activate := True;
                   Dispatch_Click_Action (Runtime, Activated_Action, Modifiers);
@@ -115,15 +116,15 @@ separate (Files.Application.Windows)
          if Event.Dragged and then Runtime.Drag_Source_Index /= 0 then
             declare
                Modifiers : constant Guikit.Input.Modifier_Set := Event.Modifiers;
-               Action    : constant Files.Events.Input_Action :=
+               Action    : constant Files.Input_Actions.Input_Action :=
                  Current_Click_Action
                    (Runtime, Window_W, Window_H, Frame_W, Frame_H, Event.X, Event.Y, Modifiers);
             begin
-               if Action.Kind = Files.Events.Item_Click_Input_Action
+               if Action.Kind = Files.Input_Actions.Item_Click_Input_Action
                  and then Action.Item_Index /= Runtime.Drag_Source_Index
                then
                   Dispatch_Click_Action
-                    (Runtime, (Kind => Files.Events.Item_Drop_Input_Action, Drop_Target => Action.Item_Index),
+                    (Runtime, (Kind => Files.Input_Actions.Item_Drop_Input_Action, Drop_Target => Action.Item_Index),
                      Modifiers);
                end if;
             end;
@@ -133,7 +134,7 @@ separate (Files.Application.Windows)
             declare
                Index : constant Natural :=
                  Files.Model.Visible_Index_Of (Runtime.Model, To_String (Runtime.Deferred_Click_Path));
-               Click : Files.Events.Input_Action := Runtime.Deferred_Click;
+               Click : Files.Input_Actions.Input_Action := Runtime.Deferred_Click;
             begin
                --  Gone since the press: the click has nothing left to act on.
                if Index > 0 then

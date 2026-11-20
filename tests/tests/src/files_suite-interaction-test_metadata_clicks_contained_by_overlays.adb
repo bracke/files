@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Model.Command_Palette;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
@@ -16,7 +17,7 @@ separate (Files_Suite.Interaction)
 
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
-         (Kind       => Files.Events.Permission_Toggle_Input_Action,
+         (Kind       => Files.Input_Actions.Permission_Toggle_Input_Action,
           Bit        => 0),
          Guikit.Input.No_Modifiers, Result);
       Assert
@@ -26,7 +27,7 @@ separate (Files_Suite.Interaction)
 
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
-         (Kind       => Files.Events.Ownership_Edit_Input_Action,
+         (Kind       => Files.Input_Actions.Ownership_Edit_Input_Action,
           Edit_Group => False),
          Guikit.Input.No_Modifiers, Result);
       Assert
@@ -36,7 +37,7 @@ separate (Files_Suite.Interaction)
 
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
-         (Kind    => Files.Events.Command_Input_Action,
+         (Kind    => Files.Input_Actions.Command_Input_Action,
           Command => Files.Commands.Toggle_Info_Pane_Command),
          Guikit.Input.No_Modifiers, Result);
       Files_Suite.Support.Assert_Equal

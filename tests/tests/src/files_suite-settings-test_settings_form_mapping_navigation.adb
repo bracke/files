@@ -1,3 +1,5 @@
+with Files.Controller;
+with Files.Controller.Testing;
 with Files.Settings_Form;
 with Files.Model.Settings_Pane;
 separate (Files_Suite.Settings)
@@ -69,7 +71,37 @@ separate (Files_Suite.Settings)
            (Files.Settings.Default_Settings, Files.Model.Settings_Pane.Draft_Of (Model)).Success,
          "a freshly added, still blank row does not block saving other settings");
 
+      --  The save that follows the add keeps the pane on the new, blank row
+      --  (the file does not hold it), rather than rebuilding every group.
+      declare
+         Settings : Files.Settings.Settings_Model := Base;
+         Result   : constant Files.Controller.Controller_Result :=
+           Files.Controller.Testing.Save_Settings
+             (Model, Settings, Join (Join (Root, "mapping-navigation"), "settings.conf"));
+         pragma Unreferenced (Result);
+      begin
+         Files_Suite.Support.Assert_Equal (Count, 3, "a save keeps the row just added");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Settings_Pane.Draft_Of (Model).Filetype_Index, 3, "a save keeps the group on its entry");
+      end;
+
       Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
       Assert (Saved, "removing an entry saves");
       Files_Suite.Support.Assert_Equal (Count, 2, "Remove drops the mapping entry");
+
+      Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
+      Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
+      Files_Suite.Support.Assert_Equal (Count, 0, "every entry removed");
+      Saved := Files.Settings_Form.Apply_Change (Model, Button ("remove"));
+      Assert (not Saved, "removing from an empty group changes nothing and does not save");
+
+      --  Typing into the empty group starts its first entry, instead of an
+      --  edit that names no row and is dropped.
+      Saved := Files.Settings_Form.Apply_Change
+        (Model,
+         (Kind  => SP.Value_Changed,
+          Key   => To_Unbounded_String ("settings.filetype_extension"),
+          Value => To_Unbounded_String ("log")));
+      Files_Suite.Support.Assert_Equal (Count, 1, "typing into an empty group starts an entry");
+      Files_Suite.Support.Assert_Equal (Ext, "log", "the typed key is the new entry's");
    end Test_Settings_Form_Mapping_Navigation;

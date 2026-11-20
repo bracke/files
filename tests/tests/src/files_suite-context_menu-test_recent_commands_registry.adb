@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Operation_Results;
 with Files.Items;
 with Files.Commands.Status;
@@ -14,8 +15,8 @@ separate (Files_Suite.Context_Menu)
       Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Result   : Files.Interaction.Interaction_Result;
-      Action   : constant Files.Events.Input_Action :=
-        (Kind    => Files.Events.Command_Input_Action,
+      Action   : constant Files.Input_Actions.Input_Action :=
+        (Kind    => Files.Input_Actions.Command_Input_Action,
          Command => Files.Commands.Navigate_Recent_Command);
    begin
       Files_Suite.Support.Disk.Reset_Root;
@@ -74,8 +75,8 @@ separate (Files_Suite.Context_Menu)
       declare
          Rebuilt : constant Files.Operation_Results.Operation_Result :=
            Files.Operations.Navigate_Recent (Model, Settings);
-         Clear_Action : constant Files.Events.Input_Action :=
-           (Kind    => Files.Events.Command_Input_Action,
+         Clear_Action : constant Files.Input_Actions.Input_Action :=
+           (Kind    => Files.Input_Actions.Command_Input_Action,
             Command => Files.Commands.Clear_Recent_Command);
          pragma Unreferenced (Rebuilt);
       begin

@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Testing;
 with Files.Rendering.Layouts;
 with Files.Model.Command_Palette;
@@ -57,7 +58,7 @@ separate (Files_Suite.Model)
            (Files.Events.Translate_Scroll_At
               (Over, Layout.Main_X + Layout.Main_Width / 2, Layout.Main_Y + Layout.Main_Height / 2,
                1200, 800, Y_Offset => -1, Line_Height => 20).Kind,
-            Files.Events.No_Input_Action,
+            Files.Input_Actions.No_Input_Action,
             "root selector blocks background wheel scroll");
       end;
       Files_Suite.Support.Assert_Equal
@@ -67,7 +68,7 @@ separate (Files_Suite.Model)
       Result :=
         Files.Controller.Handle_Targeted_Scroll
           (Model,
-           Files.Events.Scroll_Main_View,
+           Files.Input_Actions.Scroll_Main_View,
            Lines => 3);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

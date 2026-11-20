@@ -21,7 +21,6 @@ with AUnit.Test_Cases;
 with Project_Tools.Files;
 with GNAT.OS_Lib;
 with Files.Commands;
-with Files.Events;
 with Files.File_System;
 with Files.Folder_Size;
 with Files.Interaction;

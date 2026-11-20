@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  Menus float over the file view.  Use the same opaque overlay surface and
    --  translucent banded shadow as the root selector instead of rendering a
@@ -61,7 +62,7 @@ separate (Files_Suite.Rendering)
             Frame : constant Frame_Commands := Build_Frame_Commands (Snap, Width, Height, LH);
             Shadow_Count : Natural := 0;
             A11y_Count : Natural := 0;
-            Dismiss : constant Files.Events.Input_Action :=
+            Dismiss : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Click
                 (Snap, Frame, X => Width / 2, Y => 10,
                  Width => Width, Height => Height, Line_Height => LH);
@@ -76,7 +77,7 @@ separate (Files_Suite.Rendering)
                Shadow_Rectangles,
                "the sort menu uses the shared banded shadow");
             Assert
-              (Dismiss.Kind = Files.Events.Command_Input_Action
+              (Dismiss.Kind = Files.Input_Actions.Command_Input_Action
                and then Dismiss.Command = Files.Commands.Close_Overlay_Command,
                "a click outside the sort menu dismisses it without activating the background");
             for Node of Frame.Accessibility loop

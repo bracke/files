@@ -28,7 +28,6 @@ with Hostkit.Process;
 with Files.Desktop_Applications;
 with Files.Commands;
 with Files.Controller;
-with Files.Events;
 with Files.File_System;
 with Files.Io_Errors;
 with Files.History_Journal;

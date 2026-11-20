@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
@@ -12,8 +13,8 @@ separate (Files_Suite.Interaction)
       Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Result   : Files.Interaction.Interaction_Result;
-      Action   : constant Files.Events.Input_Action :=
-        (Kind    => Files.Events.Command_Input_Action,
+      Action   : constant Files.Input_Actions.Input_Action :=
+        (Kind    => Files.Input_Actions.Command_Input_Action,
          Command => Files.Commands.Open_Selected_Items_Command);
    begin
       Files_Suite.Support.Disk.Reset_Root;

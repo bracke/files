@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 separate (Files.Application.Windows.Gestures)
    procedure Update_Scrollbar_Drag
@@ -9,15 +10,15 @@ separate (Files.Application.Windows.Gestures)
       Frame_H    : Glfw.Size;
       Mouse_Down : Boolean)
    is
-      use type Files.Events.Scroll_Target;
+      use type Files.Input_Actions.Scroll_Target;
 
       procedure Cancel_Drag is
       begin
-         Runtime.Scrollbar_Drag_Target := Files.Events.No_Scroll_Target;
+         Runtime.Scrollbar_Drag_Target := Files.Input_Actions.No_Scroll_Target;
          Runtime.Scrollbar_Drag_Anchor := 0;
       end Cancel_Drag;
    begin
-      if Runtime.Scrollbar_Drag_Target = Files.Events.No_Scroll_Target then
+      if Runtime.Scrollbar_Drag_Target = Files.Input_Actions.No_Scroll_Target then
          return;
       elsif not Mouse_Down
         or else Window_W = 0 or else Window_H = 0
@@ -88,7 +89,7 @@ separate (Files.Application.Windows.Gestures)
          end Set_Tree_Rows;
       begin
          case Runtime.Scrollbar_Drag_Target is
-            when Files.Events.Scroll_Main_View =>
+            when Files.Input_Actions.Scroll_Main_View =>
                declare
                   Main_View : constant Files.Rendering.Layouts.Main_View_Layout :=
                     Files.Rendering.Layouts.Calculate_Main_View_Layout
@@ -105,7 +106,7 @@ separate (Files.Application.Windows.Gestures)
                      Cancel_Drag;
                   end if;
                end;
-            when Files.Events.Scroll_Info_Pane =>
+            when Files.Input_Actions.Scroll_Info_Pane =>
                declare
                   Info_Pane : constant Files.Rendering.Layouts.Info_Pane_Layout :=
                     Files.Rendering.Layouts.Calculate_Info_Pane_Layout
@@ -122,7 +123,7 @@ separate (Files.Application.Windows.Gestures)
                      Cancel_Drag;
                   end if;
                end;
-            when Files.Events.Scroll_Tree_Panel =>
+            when Files.Input_Actions.Scroll_Tree_Panel =>
                declare
                   Tree_Panel : constant Files.Rendering.Layouts.Tree_Panel_Layout :=
                     Files.Rendering.Layouts.Calculate_Tree_Panel_Layout

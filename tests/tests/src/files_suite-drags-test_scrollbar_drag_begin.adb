@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Model.Context_Menu;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
@@ -31,7 +32,7 @@ separate (Files_Suite.Drags)
            Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
          Main     : constant Files.Rendering.Layouts.Main_View_Layout :=
            Files.Rendering.Layouts.Calculate_Main_View_Layout (Snapshot, Layout, Line);
-         Action   : Files.Events.Input_Action;
+         Action   : Files.Input_Actions.Input_Action;
          X, Y     : Natural;
       begin
          Assert (Main.Scrollbar_Visible, "the overflowing list lays out a scrollbar");
@@ -42,10 +43,10 @@ separate (Files_Suite.Drags)
              (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Scrollbar_Drag_Begin_Input_Action,
+            Files.Input_Actions.Scrollbar_Drag_Begin_Input_Action,
             "a click on the scrollbar thumb translates to a drag-begin action");
          Assert
-           (Action.Scroll_Area = Files.Events.Scroll_Main_View,
+           (Action.Scroll_Area = Files.Input_Actions.Scroll_Main_View,
             "the drag-begin action targets the main view");
 
          --  A track click pages by what the view shows, from the top a whole
@@ -53,14 +54,14 @@ separate (Files_Suite.Drags)
          declare
             Page : constant Natural := Natural'Max (1, Main.Viewport_Height / Line);
             Maximum : constant Natural := Files.Rendering.Layouts.Main_View_Max_Scroll (Main, Line);
-            Page_Action : constant Files.Events.Input_Action :=
+            Page_Action : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Click
                 (Snapshot, Frame,
                  Main.Scrollbar_X + Main.Scrollbar_Width / 2,
                  Main.Scrollbar_Y + Main.Scrollbar_Track_Height - 1,
                  Window_W, Window_H, Line_Height => Line);
          begin
-            Assert (Page_Action.Kind = Files.Events.Scroll_Input_Action,
+            Assert (Page_Action.Kind = Files.Input_Actions.Scroll_Input_Action,
                     "a click on the track below the thumb pages the main view");
             Files_Suite.Support.Assert_Equal
               (Page_Action.Scroll_Lines, Natural'Min (Page, Maximum),
@@ -89,7 +90,7 @@ separate (Files_Suite.Drags)
                Paged_Main : constant Files.Rendering.Layouts.Main_View_Layout :=
                  Files.Rendering.Layouts.Calculate_Main_View_Layout
                    (Paged_Snapshot, Paged_Layout, Line);
-               Page_Action : constant Files.Events.Input_Action :=
+               Page_Action : constant Files.Input_Actions.Input_Action :=
                  Files.Events.Translate_Click
                    (Paged_Snapshot,
                     Paged_Frame,
@@ -100,8 +101,8 @@ separate (Files_Suite.Drags)
                     Line_Height => Line);
             begin
                Assert
-                 (Page_Action.Kind = Files.Events.Scroll_Input_Action
-                  and then Page_Action.Scroll_Area = Files.Events.Scroll_Main_View,
+                 (Page_Action.Kind = Files.Input_Actions.Scroll_Input_Action
+                  and then Page_Action.Scroll_Area = Files.Input_Actions.Scroll_Main_View,
                   "a click below the thumb translates to main-view paging");
                Files_Suite.Support.Assert_Equal
                  (Page_Action.Scroll_Lines,

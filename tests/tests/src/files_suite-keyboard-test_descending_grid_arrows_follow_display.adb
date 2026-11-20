@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Operation_Results;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -26,8 +27,8 @@ separate (Files_Suite.Keyboard)
       Model := Loaded_Model (Dir);
       Files.Model.Set_View_Mode (Model, Files.Types.Small_Icons);
       declare
-         Action : constant Files.Events.Input_Action :=
-           (Kind    => Files.Events.Command_Input_Action,
+         Action : constant Files.Input_Actions.Input_Action :=
+           (Kind    => Files.Input_Actions.Command_Input_Action,
             Command => Files.Commands.Sort_By_Name_Command);
       begin
          Files.Interaction.Apply_Input_Action

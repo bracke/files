@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Model.Settings_Pane;
 separate (Files.Application.Windows)
    procedure Perform_Accessibility_Request
@@ -19,12 +20,12 @@ separate (Files.Application.Windows)
          --  A text field is focused, not clicked at its centre (which may
          --  lie on a breadcrumb or the search-scope chip). The node's box is
          --  where it is shown: reflected back in a mirrored layout.
-         Field : constant Files.Events.Input_Action :=
+         Field : constant Files.Input_Actions.Input_Action :=
            Files.Window_Policy.Field_Request
              (Item.Bounds.X, Item.Bounds.Y, Item.Bounds.Width, Item.Bounds.Height,
               Natural (Frame_W), Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
       begin
-         if Field.Kind /= Files.Events.No_Input_Action then
+         if Field.Kind /= Files.Input_Actions.No_Input_Action then
             Dispatch_Click_Action (Runtime, Field, Guikit.Input.No_Modifiers);
             return;
          end if;
@@ -34,7 +35,7 @@ separate (Files.Application.Windows)
          --  window coordinates.
          Centre_X : constant Float := Float (Item.Bounds.X) + Float (Item.Bounds.Width) / 2.0;
          Centre_Y : constant Float := Float (Item.Bounds.Y) + Float (Item.Bounds.Height) / 2.0;
-         Action   : Files.Events.Input_Action :=
+         Action   : Files.Input_Actions.Input_Action :=
            Current_Click_Action
              (Runtime, Window_W, Window_H, Frame_W, Frame_H,
               Glfw.Input.Mouse.Coordinate (Centre_X * Float (Window_W) / Float (Frame_W)),
@@ -49,9 +50,9 @@ separate (Files.Application.Windows)
            ("Files.Application.Windows",
             --  A developer trace: field=value pairs, no prose.
             "x=" & Natural'Image (Item.Bounds.X) & ',' & "y=" & Natural'Image (Item.Bounds.Y)
-            & ',' & "action=" & Files.Events.Input_Action_Kind'Image (Action.Kind)
+            & ',' & "action=" & Files.Input_Actions.Input_Action_Kind'Image (Action.Kind)
             & ',' & "item="
-            & (if Action.Kind = Files.Events.Item_Click_Input_Action then Action.Item_Index'Image else " 0"));
+            & (if Action.Kind = Files.Input_Actions.Item_Click_Input_Action then Action.Item_Index'Image else " 0"));
          Dispatch_Click_Action (Runtime, Action, Guikit.Input.No_Modifiers);
          Files.Diagnostics.Trace
            ("Files.Application.Windows",

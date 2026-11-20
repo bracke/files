@@ -1,3 +1,5 @@
+with Files.Events;
+with Files.Settings_Form;
 with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Window_Polls;
@@ -253,7 +255,7 @@ package body Files.Interaction is
               Files.Settings.Refresh_Draft (Shown, Before, Settings);
          begin
             if Refreshed /= Shown then
-               Files.Model.Settings_Pane.Set_Draft (Model, Refreshed);
+               Files.Settings_Form.Set_Draft (Model, Refreshed);
             end if;
          end;
       end if;
@@ -454,7 +456,7 @@ package body Files.Interaction is
      (Model             : in out Files.Model.Window_Model;
       Settings          : in out Files.Settings.Settings_Model;
       Settings_Path     : String;
-      Action            : Files.Events.Input_Action;
+      Action            : Files.Input_Actions.Input_Action;
       Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result) is separate;
 
@@ -516,13 +518,13 @@ package body Files.Interaction is
    procedure Apply_Right_Click
      (Model      : in out Files.Model.Window_Model;
       Settings   : Files.Settings.Settings_Model;
-      Target     : Files.Events.Right_Click_Target;
+      Target     : Files.Input_Actions.Right_Click_Target;
       Item_Index : Natural;
       X          : Natural;
       Y          : Natural;
       Result     : out Interaction_Result)
    is
-      use type Files.Events.Right_Click_Target;
+      use type Files.Input_Actions.Right_Click_Target;
       --  Any input-owning overlay must swallow the click exactly as left-clicks
       --  are suppressed behind these overlays. Otherwise a right-click in the
       --  grid region behind the modal would open a context menu on top and the
@@ -533,13 +535,13 @@ package body Files.Interaction is
         Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.UI_Types.Context_Menu_Overlay);
    begin
       Result := (others => <>);
-      if Target = Files.Events.On_Context_Menu and then Files.Model.Context_Menu.Is_Open (Model) then
+      if Target = Files.Input_Actions.On_Context_Menu and then Files.Model.Context_Menu.Is_Open (Model) then
          return;
-      elsif Target = Files.Events.On_Details_Header and then not Overlay_Open then
+      elsif Target = Files.Input_Actions.On_Details_Header and then not Overlay_Open then
          --  A right-click on the details-view column header opens the column
          --  configuration menu regardless of any item under the header band.
          Files.Model.Context_Menu.Open (Model, X, Y, Files.UI_Types.Context_Menu_Header);
-      elsif Target = Files.Events.On_Main_View and then not Overlay_Open then
+      elsif Target = Files.Input_Actions.On_Main_View and then not Overlay_Open then
          if Item_Index > Files.Model.Visible_Count (Model) then
             --  A queued pointer action can outlive the snapshot that produced
             --  its visible index. Do not turn that stale index into an item

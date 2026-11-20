@@ -17,13 +17,10 @@ package body Files.Model.Settings_Pane is
    procedure Begin_Edit
      (Model  : in out Window_Model;
       Draft  : Files.Settings.Settings_Draft;
-      Fields : Guikit.Settings_Panel.Field_Vectors.Vector)
-   is
-      Normalized_Draft : Files.Settings.Settings_Draft := Draft;
+      Fields : Guikit.Settings_Panel.Field_Vectors.Vector) is
    begin
       Touch (Model);
-      Files.Settings.Normalize_Draft (Normalized_Draft);
-      Model.Settings_Draft_Value := Normalized_Draft;
+      Model.Settings_Draft_Value := Draft;
       Model.Settings_Pane_Open := True;
       Claim_Overlay_Input (Model);
       Clear_Edit_State (Model);
@@ -40,14 +37,13 @@ package body Files.Model.Settings_Pane is
      (Model.Settings_Draft_Value);
 
    procedure Set_Draft
-     (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft)
-   is
-      Normalized_Draft : Files.Settings.Settings_Draft := Draft;
+     (Model  : in out Window_Model;
+      Draft  : Files.Settings.Settings_Draft;
+      Fields : Guikit.Settings_Panel.Field_Vectors.Vector) is
    begin
       Touch (Model);
-      Files.Settings.Normalize_Draft (Normalized_Draft);
-      Model.Settings_Draft_Value := Normalized_Draft;
+      Model.Settings_Draft_Value := Draft;
+      Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Fields);
    end Set_Draft;
 
    procedure Move_Focus (Model : in out Window_Model; Delta_Rows : Integer) is

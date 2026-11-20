@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files.Model.Sort_Menu;
 with Files_Suite.Support.Models;
@@ -28,7 +29,7 @@ separate (Files_Suite.Interaction)
               (Files.Events.Translate_Scroll_At
                  (Snapshot, Layout.Main_X + Layout.Main_Width / 2, Layout.Main_Y + Layout.Main_Height / 2,
                   Target_W, Target_H, Y_Offset => -1, Line_Height => Line).Kind,
-               Files.Events.No_Input_Action,
+               Files.Input_Actions.No_Input_Action,
                "the wheel over the main view is swallowed by the sort menu");
             Scroll_Down_At (Model, Settings, Info.X + Info.Width / 2, Info.Y + Info.Height / 2);
          end;
@@ -40,7 +41,7 @@ separate (Files_Suite.Interaction)
             "the wheel is contained while a non-scrolling overlay owns input (info pane scroll)");
          Outcome :=
            Files.Controller.Handle_Targeted_Scroll
-             (Model, Files.Events.Scroll_Main_View, 3);
+             (Model, Files.Input_Actions.Scroll_Main_View, 3);
          Assert
            (Outcome.Status = Files.Controller.Controller_Ignored
             and then Files.Model.Main_View_Scroll_Lines (Model) = Main_Before,

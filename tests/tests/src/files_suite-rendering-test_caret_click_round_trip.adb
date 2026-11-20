@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  The caret renderer and the click hit-test measure text with one shared
    --  advance width, so a click at the pixel a caret draws for cursor k must
@@ -27,7 +28,7 @@ separate (Files_Suite.Rendering)
          Find_Caret (Frame, CX, CY, CW, CH, Found);
          Assert (Found, "the focused rename row draws a caret");
          declare
-            Action : constant Files.Events.Input_Action :=
+            Action : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Click
                 (Snapshot, Frame,
                  X      => CX,
@@ -37,7 +38,7 @@ separate (Files_Suite.Rendering)
          begin
             Files_Suite.Support.Assert_Equal
               (Action.Kind,
-               Files.Events.Text_Click_Input_Action,
+               Files.Input_Actions.Text_Click_Input_Action,
                "clicking the rename field produces a text-click action");
             Files_Suite.Support.Assert_Equal
               (Action.Focus_Target,

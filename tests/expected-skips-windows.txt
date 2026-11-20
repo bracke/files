@@ -14,7 +14,6 @@ Test_Finder_Volume_Trash_Needs_The_Systems_Trashes: Windows has no Finder volume
 Test_Move_Ownership: no POSIX owning groups here
 Test_Recovery_Mode_Failure: recovery records a folder's mode only where mode bits are native
 Test_Recursive_Folder_Size: this host reads a folder whose permissions were removed
-Test_Stale_Temporaries_Swept: only where mode bits are native can a temporary be shown owner-only
 Test_Stray_Home_Trash_Stays_Freedesktop: only Linux and macOS read a ~/.Trash folder; Windows uses the Recycle Bin
 Test_Transport_Lease_Claims: a held lease file cannot be replaced here
 Test_Trash_Refuses_Volume_Trash: Windows has no freedesktop volume trash

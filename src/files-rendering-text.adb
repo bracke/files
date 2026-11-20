@@ -23,6 +23,10 @@ package body Files.Rendering.Text is
    end record;
    Pool       : array (1 .. Max_Pooled_Renderers) of Pooled_Renderer;
    Pool_Clock : Natural := 0;
+   --  The key of the pooled renderer whose fonts Guikit.Bidi's caret layout
+   --  answers for (Guikit.Text.Record_Drawable_Forms): coverage is process
+   --  wide, so switching to another pooled renderer records its fonts again.
+   Coverage_Key : UString;
 
    --  Mark Slot as used now: every use advances the clock, so of two windows
    --  drawing between loads the one that drew last is the more recent. On
@@ -63,6 +67,10 @@ package body Files.Rendering.Text is
       for Index in Pool'Range loop
          if Pool (Index).Key = Key then
             Touch (Index);
+            if Coverage_Key /= Key then
+               Guikit.Text.Record_Drawable_Forms (Pool (Index).R);
+               Coverage_Key := Key;
+            end if;
             Renderer.Slot := Index;
             Renderer.Loaded := True;
             Renderer.Font_Path    := To_Unbounded_String (Font_Path);
@@ -102,6 +110,8 @@ package body Files.Rendering.Text is
       --  in colour; without it those codepoints fall back as they always did.
       if Renderer.Loaded then
          Pool (Slot).Key := Key;
+         --  Initialize recorded these fonts' coverage.
+         Coverage_Key := Key;
          Guikit.Text.Set_Image_Decoder
            (Pool (Slot).R,
             Files.Fonts.Colour_Glyph_Image_Extent'Access,

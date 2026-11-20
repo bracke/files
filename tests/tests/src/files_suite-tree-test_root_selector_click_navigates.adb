@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Model.Command_Palette;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
@@ -31,7 +32,7 @@ separate (Files_Suite.Tree)
            Files.Rendering.Layouts.Calculate_Root_Selector_Layout (Snapshot, Layout, Line);
          Rows     : constant Files.Rendering.Layouts.Root_Path_Layout_Vectors.Vector :=
            Files.Rendering.Layouts.Calculate_Root_Path_Layout (Snapshot, Selector);
-         Action   : Files.Events.Input_Action;
+         Action   : Files.Input_Actions.Input_Action;
       begin
          for Row of Rows loop
             if Row.Root_Index = 2 then
@@ -48,7 +49,7 @@ separate (Files_Suite.Tree)
              (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Root_Click_Input_Action,
+            Files.Input_Actions.Root_Click_Input_Action,
             "a root-row coordinate translates to a root click");
          Files_Suite.Support.Assert_Equal (Action.Root_Index, 2, "the root click carries the second root index");
 

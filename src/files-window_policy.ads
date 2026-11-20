@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Ada.Real_Time;
 
 with Files.Events;
@@ -185,9 +186,9 @@ package Files.Window_Policy is
    --  @param Activate True for an Activate request.
    --  @return The action to dispatch.
    function Accessibility_Action
-     (Click    : Files.Events.Input_Action;
+     (Click    : Files.Input_Actions.Input_Action;
       Activate : Boolean)
-      return Files.Events.Input_Action;
+      return Files.Input_Actions.Input_Action;
 
    --  The X of a screen reader's node box in the frame as drawn before
    --  mirroring: the tree a screen reader is given is the shown one, which a
@@ -215,7 +216,7 @@ package Files.Window_Policy is
      (X, Y, Width, Height : Natural;
       Frame_Width         : Natural;
       Line_Height         : Positive)
-      return Files.Events.Input_Action is
+      return Files.Input_Actions.Input_Action is
      (Files.Events.Translate_Field_Request
         (Unmirrored_Node_X (X, Width, Frame_Width), Y, Width, Height, Frame_Width, Line_Height));
 

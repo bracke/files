@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Model.Settings_Pane;
 separate (Files_Suite.Model)
    procedure Test_Main_View_Scroll_And_Settings_Block (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -8,7 +9,7 @@ separate (Files_Suite.Model)
    begin
       Files.Model.Selection.Select_Visible (Model, 1);
 
-      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, Integer'Last);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Main_View, Integer'Last);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -18,7 +19,7 @@ separate (Files_Suite.Model)
          Natural'Last,
          "large main scroll saturates");
 
-      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, Integer'First);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Main_View, Integer'First);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -42,7 +43,7 @@ separate (Files_Suite.Model)
            Model,
            Settings);
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane opens over main view");
-      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Settings_Pane, 3);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Settings_Pane, 3);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -51,7 +52,7 @@ separate (Files_Suite.Model)
         (Files.Model.Main_View_Scroll_Lines (Model),
          0,
          "settings wheel scroll leaves main view still");
-      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.No_Scroll_Target, 10);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.No_Scroll_Target, 10);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -60,7 +61,7 @@ separate (Files_Suite.Model)
         (Files.Model.Main_View_Scroll_Lines (Model),
          0,
          "an untargeted wheel step leaves main view still");
-      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, 10);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Main_View, 10);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,

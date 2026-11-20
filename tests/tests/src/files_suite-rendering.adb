@@ -1,3 +1,5 @@
+with Files.Events;
+with Files.Input_Actions;
 with Files.Items;
 with Ada.Calendar;
 with Ada.Calendar.Time_Zones;
@@ -15,7 +17,6 @@ with System;
 
 with Files.Commands;
 with Files.Breadcrumbs;
-with Files.Events;
 with Files.Extension_Labels;
 with Files.File_System;
 with Files.Fonts;
@@ -64,7 +65,7 @@ package body Files_Suite.Rendering is
    use Guikit.Draw;
    use type Files.Commands.Command_Id;
    use type Guikit.Draw.Render_Color;
-   use type Files.Events.Input_Action_Kind;
+   use type Files.Input_Actions.Input_Action_Kind;
    use type Files.UI_Types.Focus_Target;
    use type A11y.Results.Status_Code;
    use type System.Address;

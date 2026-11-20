@@ -1,3 +1,5 @@
+with Files.Events;
+with Files.Input_Actions;
 with Files.Items;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
@@ -6,7 +8,6 @@ with AUnit.Assertions;
 with AUnit.Test_Cases;
 with Files.Commands;
 with Files.Controller;
-with Files.Events;
 with Files.File_System;
 with Files.Interaction;
 with Files.Model;
@@ -29,8 +30,8 @@ package body Files_Suite.Drags is
 
    use AUnit.Assertions;
    use type Files.Commands.Command_Id;
-   use type Files.Events.Input_Action_Kind;
-   use type Files.Events.Scroll_Target;
+   use type Files.Input_Actions.Input_Action_Kind;
+   use type Files.Input_Actions.Scroll_Target;
    use Files_Suite.Interaction_Support;
 
    type Drags_Test_Case is new AUnit.Test_Cases.Test_Case with null record;

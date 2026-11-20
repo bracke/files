@@ -1,7 +1,7 @@
+with Files.Input_Actions;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.Interaction;
-with Files.Events;
 with Guikit.Input;
 with Files.Commands.Status;
 with Files.Model.Tree_Panel;
@@ -54,7 +54,7 @@ separate (Files_Suite.Transfer)
          Confirmed : Files.Interaction.Interaction_Result;
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", (Kind => Files.Events.Tree_Pick_Confirm_Input_Action),
+           (Model, Settings, "", (Kind => Files.Input_Actions.Tree_Pick_Confirm_Input_Action),
             Guikit.Input.No_Modifiers, Confirmed);
          Files_Suite.Support.Assert_Equal
            (Confirmed.Status, Files.Controller.Controller_Command_Executed,

@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Model.Label_Picker;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Disk;
@@ -11,14 +12,14 @@ separate (Files_Suite.Interaction)
       Two      : constant String := Files_Suite.Support.Disk.Join (Dir, "two.txt");
       Three    : constant String := Files_Suite.Support.Disk.Join (Dir, "three.txt");
       Model    : Files.Model.Window_Model;
-      Open_Cmd : constant Files.Events.Input_Action :=
-        (Kind    => Files.Events.Command_Input_Action,
+      Open_Cmd : constant Files.Input_Actions.Input_Action :=
+        (Kind    => Files.Input_Actions.Command_Input_Action,
          Command => Files.Commands.Set_Color_Label_Command);
 
-      function Choose (Label : Files.Types.Color_Label) return Files.Events.Input_Action is
+      function Choose (Label : Files.Types.Color_Label) return Files.Input_Actions.Input_Action is
       begin
          return
-           (Kind       => Files.Events.Label_Picker_Choice_Input_Action,
+           (Kind       => Files.Input_Actions.Label_Picker_Choice_Input_Action,
             Label      => Label);
       end Choose;
    begin

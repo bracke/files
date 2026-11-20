@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Operation_Results;
 with Files.File_System.Permissions;
 with Files.Controller.Testing;
@@ -61,14 +62,14 @@ separate (Files_Suite.Operations)
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
-         Action : constant Files.Events.Input_Action :=
+         Action : constant Files.Input_Actions.Input_Action :=
            Files_Suite.Support.Models.Click_Action (Snapshot, Owner_X, Owner_Y, Width, Height);
          Reduce : Files.Interaction.Interaction_Result;
          Routed : Files.Controller.Controller_Result;
       begin
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Ownership_Edit_Input_Action,
+            Files.Input_Actions.Ownership_Edit_Input_Action,
             "clicking the owner value yields an ownership-edit action");
          Assert (not Action.Edit_Group, "the owner action targets the owner (not group)");
 

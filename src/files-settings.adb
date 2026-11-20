@@ -833,10 +833,14 @@ package body Files.Settings is
       end case;
    end Draft_Mapping_Key_Text;
 
-   --  Return Draft with each mapping editor's pending key/value edit merged
-   --  into its row vectors: replacing the row whose normalized key matches,
-   --  or appended as a new row. An edit with an empty key and value is not a
-   --  row. Draft_Settings_Text and Apply_Draft both read the merged rows.
+   --  Return Draft with each mapping editor's selected key/value merged into
+   --  its row vectors: replacing the row whose normalized key matches (which
+   --  also writes that key in its normal form), or appended as a new row. The
+   --  settings pane keeps its selected fields on a row of its own (typing into
+   --  an empty group starts one), so an appended row comes only from a draft
+   --  built elsewhere with fields that name no row. An edit with an empty key
+   --  and value is not a row. Draft_Settings_Text and Apply_Draft both read
+   --  the merged rows.
    function With_Pending_Rows
      (Draft : Settings_Draft)
       return Settings_Draft

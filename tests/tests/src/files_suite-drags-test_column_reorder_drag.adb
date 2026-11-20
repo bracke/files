@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Drags)
@@ -36,7 +37,7 @@ separate (Files_Suite.Drags)
          Header_Y : Natural;
          Cell_X   : Natural;
          Drop_X   : Natural;
-         Action   : Files.Events.Input_Action;
+         Action   : Files.Input_Actions.Input_Action;
          Drop     : Natural;
       begin
          for Cell of Rows loop
@@ -59,7 +60,7 @@ separate (Files_Suite.Drags)
              (Snapshot, Frame, Cell_X, Header_Y, Window_W, Window_H, Line_Height => Line);
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Column_Reorder_Begin_Input_Action,
+            Files.Input_Actions.Column_Reorder_Begin_Input_Action,
             "a press on a header cell body begins a column reorder");
          Files_Suite.Support.Assert_Equal
            (Action.Column,
@@ -93,8 +94,8 @@ separate (Files_Suite.Drags)
          Fresh    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Order_Before : constant Files.Types.Detail_Column_Order := Fresh.Column_Order;
          Sort_Before  : constant Files.Types.Sort_Field := Files.Model.Sort_Field_Of (Model);
-         Sort_Action  : constant Files.Events.Input_Action :=
-           (Kind    => Files.Events.Command_Input_Action,
+         Sort_Action  : constant Files.Input_Actions.Input_Action :=
+           (Kind    => Files.Input_Actions.Command_Input_Action,
             Command => Files.Commands.Sort_By_Size_Command);
       begin
          Files.Interaction.Apply_Input_Action
@@ -117,7 +118,7 @@ separate (Files_Suite.Drags)
            Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line);
          Row      : Files.Rendering.Layouts.Item_Layout;
          Found    : Boolean := False;
-         Action   : Files.Events.Input_Action;
+         Action   : Files.Input_Actions.Input_Action;
       begin
          for Cell of Rows loop
             if Cell.Visible_Index = 1 then
@@ -133,7 +134,7 @@ separate (Files_Suite.Drags)
               Window_W, Window_H, Line_Height => Line);
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Column_Resize_Begin_Input_Action,
+            Files.Input_Actions.Column_Resize_Begin_Input_Action,
             "a separator press still begins a resize, not a reorder");
       end;
    end Test_Column_Reorder_Drag;

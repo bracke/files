@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  Folder-tree destination picker: the Choose/Cancel button bar. Covers the
    --  Tree_Pick_Active render + hit-test path, which no other test exercises.
@@ -11,9 +12,9 @@ separate (Files_Suite.Rendering)
       Panel      : Tree_Panel_Layout;
       Buttons    : Tree_Pick_Button_Layout;
       Frame      : Frame_Commands;
-      Choose_Hit : Files.Events.Input_Action;
-      Cancel_Hit : Files.Events.Input_Action;
-      Outside_Hit : Files.Events.Input_Action;
+      Choose_Hit : Files.Input_Actions.Input_Action;
+      Cancel_Hit : Files.Input_Actions.Input_Action;
+      Outside_Hit : Files.Input_Actions.Input_Action;
       Backdrop_Seen : Boolean := False;
       A11y_Count : Natural := 0;
    begin
@@ -61,15 +62,15 @@ separate (Files_Suite.Rendering)
            Height => Height, Line_Height => 20);
       Files_Suite.Support.Assert_Equal
         (Choose_Hit.Kind,
-         Files.Events.Tree_Pick_Confirm_Input_Action,
+         Files.Input_Actions.Tree_Pick_Confirm_Input_Action,
          "clicking Choose confirms the destination pick");
       Assert
-        (Cancel_Hit.Kind = Files.Events.Command_Input_Action
+        (Cancel_Hit.Kind = Files.Input_Actions.Command_Input_Action
            and then Cancel_Hit.Command = Files.Commands.Toggle_Folder_Tree_Command,
          "clicking Cancel closes the picker");
       Files_Suite.Support.Assert_Equal
         (Outside_Hit.Kind,
-         Files.Events.No_Input_Action,
+         Files.Input_Actions.No_Input_Action,
          "a destination-picker click outside the tree cannot activate the background");
 
       for Rect of Frame.Overlay_Rectangles loop

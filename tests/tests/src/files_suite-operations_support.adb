@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Window_Polls;
 with Files.File_System.Permissions;
 with Files.Process_Jobs;
@@ -14,7 +15,6 @@ with GNAT.OS_Lib;
 with Hostkit.Host;
 with Hostkit.Process;
 with Files.Window_Policy;
-with Files.Events;
 with Files.File_System;
 with Files.Interaction;
 with Files.Localization;
@@ -188,7 +188,7 @@ package body Files_Suite.Operations_Support is
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
-         Action            => (Kind => Files.Events.Tree_Pick_Confirm_Input_Action),
+         Action            => (Kind => Files.Input_Actions.Tree_Pick_Confirm_Input_Action),
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => IR);
    end Confirm_Pick;

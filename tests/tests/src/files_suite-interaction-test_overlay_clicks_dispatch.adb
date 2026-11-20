@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Overlays;
 with Files.Model.Command_Palette;
 with Files.Model.Settings_Pane;
@@ -19,13 +20,13 @@ separate (Files_Suite.Interaction)
       Nodes    : Guikit.Draw.Accessibility_Node_Vectors.Vector;
       Found    : Boolean := False;
 
-      procedure Click (Kind : Files.Events.Input_Action_Kind; X, Y : Natural) is
-         Action : constant Files.Events.Input_Action :=
+      procedure Click (Kind : Files.Input_Actions.Input_Action_Kind; X, Y : Natural) is
+         Action : constant Files.Input_Actions.Input_Action :=
            (case Kind is
-               when Files.Events.Settings_Click_Input_Action =>
-                 (Kind => Files.Events.Settings_Click_Input_Action, Click_X => X, Click_Y => Y),
+               when Files.Input_Actions.Settings_Click_Input_Action =>
+                 (Kind => Files.Input_Actions.Settings_Click_Input_Action, Click_X => X, Click_Y => Y),
                when others =>
-                 (Kind => Files.Events.Command_Result_Click_Input_Action, Click_X => X, Click_Y => Y));
+                 (Kind => Files.Input_Actions.Command_Result_Click_Input_Action, Click_X => X, Click_Y => Y));
       begin
          Files.Interaction.Apply_Input_Action
            (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
@@ -45,7 +46,7 @@ separate (Files_Suite.Interaction)
          Rectangles => Rects, Text => Text, Accessibility => Nodes);
       for Node of Nodes loop
          if Node.Role = Guikit.Draw.Role_Button and then Node.Enabled and then Node.Width > 0 then
-            Click (Files.Events.Settings_Click_Input_Action, Node.X + Node.Width / 2, Node.Y + Node.Height / 2);
+            Click (Files.Input_Actions.Settings_Click_Input_Action, Node.X + Node.Width / 2, Node.Y + Node.Height / 2);
             if Result.Status /= Files.Controller.Controller_Ignored then
                Found := True;
                exit;
@@ -98,7 +99,7 @@ separate (Files_Suite.Interaction)
             end if;
          end loop;
          Assert (Found, "the palette lists the hidden-files toggle for ""hidden""");
-         Click (Files.Events.Command_Result_Click_Input_Action, Row_X, Row_Y);
+         Click (Files.Input_Actions.Command_Result_Click_Input_Action, Row_X, Row_Y);
          Assert (Settings.Show_Hidden_Files /= Hidden_Before, "the clicked row's setting is applied");
          Assert (not Files.Model.Command_Palette.Is_Open (Model), "and the palette closes");
          Assert (Ada.Directories.Exists (Path), "and the change is saved to the settings file");

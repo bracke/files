@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Drags)
@@ -62,22 +63,22 @@ separate (Files_Suite.Drags)
          --  Precedence: a press on empty grid space begins a marquee rather than
          --  clearing or ignoring, and it is not additive without a modifier.
          declare
-            Action : constant Files.Events.Input_Action :=
+            Action : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Click
                 (Snapshot, Frame, Empty_X, Bottom_Y, Window_W, Window_H,
                  Line_Height => Line);
-            Additive : constant Files.Events.Input_Action :=
+            Additive : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Click
                 (Snapshot, Frame, Empty_X, Bottom_Y, Window_W, Window_H,
                  Modifiers => Ctrl, Line_Height => Line);
          begin
             Files_Suite.Support.Assert_Equal
               (Action.Kind,
-               Files.Events.Marquee_Begin_Input_Action,
+               Files.Input_Actions.Marquee_Begin_Input_Action,
                "an empty-space press begins a marquee");
             Assert (not Action.Additive,
                     "a plain empty-space marquee is not additive");
-            Assert (Additive.Kind = Files.Events.Marquee_Begin_Input_Action
+            Assert (Additive.Kind = Files.Input_Actions.Marquee_Begin_Input_Action
                     and then Additive.Additive,
                     "a Ctrl empty-space press begins an additive marquee");
          end;
@@ -87,13 +88,13 @@ separate (Files_Suite.Drags)
          Item_Center (Model, 1, X, Y, Found);
          Assert (Found, "a layout cell exists for the target item");
          declare
-            Action : constant Files.Events.Input_Action :=
+            Action : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Click
                 (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
          begin
             Files_Suite.Support.Assert_Equal
               (Action.Kind,
-               Files.Events.Item_Click_Input_Action,
+               Files.Input_Actions.Item_Click_Input_Action,
                "a press on an item stays a normal item click, not a marquee");
          end;
          declare
@@ -102,12 +103,12 @@ separate (Files_Suite.Drags)
               (if Cell_1.Y > Line then Cell_1.Y - Line / 2 else Cell_1.Y);
             Header   : constant Files.Rendering.Layouts.Detail_Header_Cell :=
               Files.Rendering.Hit.Details_Header_Cell_At (Snapshot, Layout, Header_X, Header_Y, Line);
-            Action   : constant Files.Events.Input_Action :=
+            Action   : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Click
                 (Snapshot, Frame, Header_X, Header_Y, Window_W, Window_H, Line_Height => Line);
          begin
             Assert (Header.Present, "the details header spans the probed point");
-            Assert (Action.Kind /= Files.Events.Marquee_Begin_Input_Action,
+            Assert (Action.Kind /= Files.Input_Actions.Marquee_Begin_Input_Action,
                     "a press on the details header does not begin a marquee");
          end;
 
@@ -116,7 +117,7 @@ separate (Files_Suite.Drags)
          Files.Model.Selection.Select_Visible (Model, 5);
          Assert (Files.Model.Selection.Is_Selected (Model, 5), "item 5 is selected before the marquee begins");
          declare
-            Action : constant Files.Events.Input_Action :=
+            Action : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Click
                 (Snapshot, Frame, Empty_X, Bottom_Y, Window_W, Window_H,
                  Line_Height => Line);

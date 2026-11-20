@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Settings_Form;
 with Files.Rendering.Layouts;
 with Files.Model.Command_Palette;
@@ -19,7 +20,7 @@ separate (Files_Suite.Interaction)
          Layout  : Files.Rendering.Layout_Metrics;
          Palette : Files.Rendering.Layouts.Command_Palette_Layout;
 
-         function Wheel_At_Palette return Files.Events.Input_Action is
+         function Wheel_At_Palette return Files.Input_Actions.Input_Action is
            (Files.Events.Translate_Scroll_At
               (Overlay,
                Palette.Results_X + Palette.Results_Width / 2,
@@ -31,17 +32,20 @@ separate (Files_Suite.Interaction)
          Palette := Files.Rendering.Layouts.Calculate_Command_Palette_Layout (Layout, Line);
          Assert (Palette.Results_Width > 0 and then Palette.Results_Height > 0, "the palette lists results");
          Files_Suite.Support.Assert_Equal
-           (Wheel_At_Palette.Kind, Files.Events.Scroll_Input_Action, "the wheel over the palette's results scrolls");
+           (Wheel_At_Palette.Kind, Files.Input_Actions.Scroll_Input_Action,
+            "the wheel over the palette's results scrolls");
 
          --  The settings pane under the palette changes nothing: the palette is on top.
          Overlay.Settings_Pane_Open := True;
          Files_Suite.Support.Assert_Equal
-           (Wheel_At_Palette.Kind, Files.Events.Scroll_Input_Action, "the palette over the pane keeps the wheel");
+           (Wheel_At_Palette.Kind, Files.Input_Actions.Scroll_Input_Action,
+            "the palette over the pane keeps the wheel");
 
          --  A paste dialog stacks above the palette and takes the wheel from it.
          Overlay.Paste_Conflict_Open := True;
          Files_Suite.Support.Assert_Equal
-           (Wheel_At_Palette.Kind, Files.Events.No_Input_Action, "a paste dialog over the palette swallows the wheel");
+           (Wheel_At_Palette.Kind, Files.Input_Actions.No_Input_Action,
+            "a paste dialog over the palette swallows the wheel");
       end;
 
       --  The window layer draws only the top one of the palette and the pane.
@@ -57,7 +61,7 @@ separate (Files_Suite.Interaction)
       declare
          Main_Before : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
          Result      : constant Files.Controller.Controller_Result :=
-           Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Settings_Pane, 1);
+           Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Settings_Pane, 1);
       begin
          Files_Suite.Support.Assert_Equal
            (Result.Status, Files.Controller.Controller_Ignored, "the pane under the palette does not scroll");

@@ -1,8 +1,9 @@
+with Files.Input_Actions;
 separate (Files.Application.Windows)
    procedure Handle_Scroll_Input
      (Runtime : in out Runtime_Window)
    is
-      Action : Files.Events.Input_Action;
+      Action : Files.Input_Actions.Input_Action;
       Result : Files.Interaction.Interaction_Result;
       Offset : Integer;
       Window_W : Glfw.Size := 0;
@@ -59,9 +60,9 @@ separate (Files.Application.Windows)
          --  Without viewport geometry there is no meaningful scroll target or
          --  maximum offset. Discard the event instead of accumulating invisible
          --  main/info offsets while the window is minimized.
-         Action := (Kind => Files.Events.No_Input_Action);
+         Action := (Kind => Files.Input_Actions.No_Input_Action);
       elsif not Files.Window_Policy.Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H) then
-         Action := (Kind => Files.Events.No_Input_Action);
+         Action := (Kind => Files.Input_Actions.No_Input_Action);
       else
          declare
             X        : constant Natural := Files.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W);
@@ -85,7 +86,7 @@ separate (Files.Application.Windows)
 
       --  Dispatched like every other input, so the scroll gets the same
       --  follow-ups.
-      if Action.Kind = Files.Events.Scroll_Input_Action then
+      if Action.Kind = Files.Input_Actions.Scroll_Input_Action then
          Files.Interaction.Apply_Input_Action
            (Model             => Runtime.Model,
             Settings          => Runtime.Settings,

@@ -222,13 +222,8 @@ package body Files.Job_Transports is
          raise Ada.Directories.Use_Error;
       end if;
       --  The caller holds the transport alone (a fresh one, or its exclusive
-      --  lease), so a temporary already there was left by a writer that
-      --  died mid-mark, and stands in the way of this one.
-      --  refusal-safe: a refused lookup leaves the name, and the write below fails
-      if Files.Fs_Primitives.Entry_Exists (Temp) then
-         Files.Fs_Primitives.Delete_File (Temp);
-      end if;
-      Files.Durable_Writes.Write_Private_File (Temp, Write_Marker'Access, Temp_Identity);
+      --  lease), so the temporary's name is its own.
+      Files.Durable_Writes.Write_Fixed_Private_File (Temp, Write_Marker'Access, Temp_Identity);
       if not Files.Durable_Writes.Published
         (Files.Durable_Writes.Publish (Temp, Marker))
       then

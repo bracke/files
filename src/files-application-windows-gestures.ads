@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 --  The pointer gestures the window layer tracks across frames: a scrollbar
 --  drag, a details column resize or reorder, and a marquee (rubber-band)
 --  selection. Each is armed by its begin action and then updated once per
@@ -13,7 +14,7 @@ private package Files.Application.Windows.Gestures is
    --  further dispatch; False leaves Runtime unchanged.
    procedure Arm
      (Runtime : in out Runtime_Window;
-      Action  : Files.Events.Input_Action;
+      Action  : Files.Input_Actions.Input_Action;
       Armed   : out Boolean);
 
    --  Advance every armed gesture by one frame, after cancelling them all

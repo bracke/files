@@ -1,3 +1,4 @@
+with Files.Events;
 with Files.Controller.Testing;
 with Ada.Strings.Unbounded;
 
@@ -86,7 +87,7 @@ package body Files_Suite.Interaction_Support is
         Files.Rendering.Build_Snapshot (Model, Settings);
       Frame    : constant Files.Rendering.Frame_Commands :=
         Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-      Action   : constant Files.Events.Input_Action :=
+      Action   : constant Files.Input_Actions.Input_Action :=
         Files.Events.Translate_Click
           (Snapshot, Frame, X, Y, Window_W, Window_H,
            Activate => False, Modifiers => Modifiers, Line_Height => Line);
@@ -109,7 +110,7 @@ package body Files_Suite.Interaction_Support is
    is
       Snapshot : constant Files.Rendering.View_Snapshot :=
         Files.Rendering.Build_Snapshot (Model, Settings);
-      Action   : constant Files.Events.Input_Action :=
+      Action   : constant Files.Input_Actions.Input_Action :=
         Files.Events.Translate_Scroll_At
           (Snapshot, X, Y, Target_W, Target_H, Y_Offset => -1, Line_Height => Line);
       Result   : Files.Interaction.Interaction_Result;
@@ -254,7 +255,7 @@ package body Files_Suite.Interaction_Support is
    procedure Dispatch
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Action   : Files.Events.Input_Action;
+      Action   : Files.Input_Actions.Input_Action;
       Result   : out Files.Interaction.Interaction_Result)
    is
       Live : Files.Settings.Settings_Model := Settings;
@@ -285,7 +286,7 @@ package body Files_Suite.Interaction_Support is
    procedure Dispatch_Right_Click
      (Model      : in out Files.Model.Window_Model;
       Settings   : Files.Settings.Settings_Model;
-      Target     : Files.Events.Right_Click_Target;
+      Target     : Files.Input_Actions.Right_Click_Target;
       Item_Index : Natural;
       X          : Natural;
       Y          : Natural;
@@ -294,7 +295,7 @@ package body Files_Suite.Interaction_Support is
       Dispatch
         (Model,
          Settings,
-         (Kind        => Files.Events.Right_Click_Input_Action,
+         (Kind        => Files.Input_Actions.Right_Click_Input_Action,
           Menu_X      => X,
           Menu_Y      => Y,
           Clicked_On  => Target,
@@ -314,7 +315,7 @@ package body Files_Suite.Interaction_Support is
         (Model         => Model,
          Settings      => Settings,
          Settings_Path => Settings_Path,
-         Action        => (Kind => Files.Events.Context_Menu_Command_Input_Action, Menu_Command => Command),
+         Action        => (Kind => Files.Input_Actions.Context_Menu_Command_Input_Action, Menu_Command => Command),
          Modifiers     => Modifiers,
          Result        => Result);
    end Run_Menu_Command;
@@ -359,16 +360,16 @@ package body Files_Suite.Interaction_Support is
       --  Through the click path the shell and a screen reader take: Files.Events
       --  translates the press on the row, Interaction applies it.
       declare
-         use type Files.Events.Input_Action_Kind;
+         use type Files.Input_Actions.Input_Action_Kind;
          Frame  : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-         Action : constant Files.Events.Input_Action :=
+         Action : constant Files.Input_Actions.Input_Action :=
            Files.Events.Translate_Click
              (Snapshot => Snapshot, Frame => Frame, X => Row_X, Y => Row_Y,
               Width => Window_W, Height => Window_H, Line_Height => Line);
       begin
          Assert
-           (Action.Kind = Files.Events.Context_Menu_Command_Input_Action
+           (Action.Kind = Files.Input_Actions.Context_Menu_Command_Input_Action
             and then Action.Menu_Command = Menu.Rows (Target_Row).Command,
             "a press on the row translates to its command");
          Files.Interaction.Apply_Input_Action
@@ -421,8 +422,8 @@ package body Files_Suite.Interaction_Support is
       Command  : Files.Commands.Command_Id;
       Result   : out Files.Interaction.Interaction_Result)
    is
-      Action : constant Files.Events.Input_Action :=
-        (Kind    => Files.Events.Command_Input_Action,
+      Action : constant Files.Input_Actions.Input_Action :=
+        (Kind    => Files.Input_Actions.Command_Input_Action,
          Command => Command);
    begin
       Files.Interaction.Apply_Input_Action
@@ -437,8 +438,8 @@ package body Files_Suite.Interaction_Support is
      (Model    : in out Files.Model.Window_Model;
       Settings : in out Files.Settings.Settings_Model)
    is
-      Action : constant Files.Events.Input_Action :=
-        (Kind    => Files.Events.Command_Input_Action,
+      Action : constant Files.Input_Actions.Input_Action :=
+        (Kind    => Files.Input_Actions.Command_Input_Action,
          Command => Files.Commands.Select_Drive_Command);
       Result : Files.Interaction.Interaction_Result;
    begin
@@ -499,7 +500,7 @@ package body Files_Suite.Interaction_Support is
          end if;
 
          declare
-            Action : constant Files.Events.Input_Action :=
+            Action : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Click
                 (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
          begin

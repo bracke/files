@@ -15,9 +15,10 @@ package body Files.Events is
    --  @return Internal scroll input action or no action when the offset is zero.
    function Translate_Scroll
      (Y_Offset : Integer)
-      return Input_Action;
+      return Files.Input_Actions.Input_Action;
 
    use Ada.Strings.Unbounded;
+   use Files.Input_Actions;
    use type Files.Commands.Command_Id;
    use type Files.Input_Actions.Input_Action_Kind;
    use type Files.UI_Types.Focus_Target;

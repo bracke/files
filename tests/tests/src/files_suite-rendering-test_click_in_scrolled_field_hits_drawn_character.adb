@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  A focused filter field scrolled so that column 2 falls inside a wide
    --  character: the character scrolls off whole and the drawing starts after
@@ -40,12 +41,12 @@ separate (Files_Suite.Rendering)
             Frame  : constant Frame_Commands := Build_Frame_Commands (Snapshot, Width, Height, LH);
             --  Drawn from column 3: b, c, d, e, then f at four columns in. A
             --  click on that boundary puts the caret before f.
-            Action : constant Files.Events.Input_Action :=
+            Action : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Click
                 (Snapshot, Frame, Filter.X + 4 * Char_W, Guikit.Layout.Toolbar_Input_Y (LH) + 2,
                  Width, Height, Line_Height => LH);
          begin
-            Assert (Action.Kind = Files.Events.Text_Click_Input_Action, "the click focuses the filter text");
+            Assert (Action.Kind = Files.Input_Actions.Text_Click_Input_Action, "the click focuses the filter text");
             Files_Suite.Support.Assert_Equal
               (Action.Cursor_Position, 1 + Wide'Length + 4,
                "the caret lands before f, the character drawn under the click");

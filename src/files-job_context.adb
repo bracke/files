@@ -584,7 +584,7 @@ package body Files.Job_Context is
       if Size < 0 or else Size > Long_Long_Integer (Max_Journal_Bytes)
       then
          Files.Lease_Streams.Release (Input);
-         return; --  Older journals have no trustworthy identity snapshot.
+         return; --  A journal past the limit, or of no readable size, is not read.
       end if;
       if Files.Bounded_Streams.Input_String
         (Input'Access, Max_Record_Header_Length) /= Header

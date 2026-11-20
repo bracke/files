@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
@@ -11,14 +12,14 @@ separate (Files_Suite.Interaction)
         (Snapshot : Files.Rendering.View_Snapshot;
          Name     : String)
       is
-         Action : constant Files.Events.Input_Action :=
+         Action : constant Files.Input_Actions.Input_Action :=
            Files.Events.Translate_Scroll_At
              (Snapshot, Target_W - 1, Main_Y, Target_W, Target_H,
               Y_Offset => -1, Line_Height => Line);
       begin
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.No_Input_Action,
+            Files.Input_Actions.No_Input_Action,
             Name & " swallows wheel input instead of scrolling the view behind it");
       end Assert_Overlay_Swallows_Scroll;
    begin
@@ -73,13 +74,13 @@ separate (Files_Suite.Interaction)
               (if Natural (Overlay.Tree_Rows.Length) > Capacity
                then Natural (Overlay.Tree_Rows.Length) - Capacity
                else 0);
-            Action : constant Files.Events.Input_Action :=
+            Action : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Scroll_At
                 (Overlay,
                  Tree.X + Tree.Width / 2,
                  Tree.Y + Tree.Height / 2,
                  Target_W, Target_H, Y_Offset => -1, Line_Height => Line);
-            Drag_Action : constant Files.Events.Input_Action :=
+            Drag_Action : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Click
                 (Overlay, Tree_Frame,
                  Tree.Scrollbar_X + Tree.Scrollbar_Width / 2,
@@ -87,17 +88,17 @@ separate (Files_Suite.Interaction)
                  Target_W, Target_H, Line_Height => Line);
          begin
             Assert
-              (Action.Kind = Files.Events.Scroll_Input_Action
-               and then Action.Scroll_Area = Files.Events.Scroll_Tree_Panel,
+              (Action.Kind = Files.Input_Actions.Scroll_Input_Action
+               and then Action.Scroll_Area = Files.Input_Actions.Scroll_Tree_Panel,
                "wheel input over the folder tree targets the tree rather than the main view");
             Assert
               (Tree.Scrollbar_Visible,
                "the long folder tree exposes a draggable tree scrollbar thumb (scrollbar visible)");
             Files_Suite.Support.Assert_Equal
-              (Drag_Action.Kind, Files.Events.Scrollbar_Drag_Begin_Input_Action,
+              (Drag_Action.Kind, Files.Input_Actions.Scrollbar_Drag_Begin_Input_Action,
                "the long folder tree exposes a draggable tree scrollbar thumb (action kind)");
             Assert
-              (Drag_Action.Scroll_Area = Files.Events.Scroll_Tree_Panel,
+              (Drag_Action.Scroll_Area = Files.Input_Actions.Scroll_Tree_Panel,
                "the long folder tree exposes a draggable tree scrollbar thumb (scroll area)");
 
             if Maximum > 1 then
@@ -114,7 +115,7 @@ separate (Files_Suite.Interaction)
                      Paged_Frame : constant Files.Rendering.Frame_Commands :=
                        Files.Rendering.Build_Frame_Commands
                          (Overlay, Target_W, Target_H, Line);
-                     Page_Action : constant Files.Events.Input_Action :=
+                     Page_Action : constant Files.Input_Actions.Input_Action :=
                        Files.Events.Translate_Click
                          (Overlay, Paged_Frame,
                           Paged_Tree.Scrollbar_X + Paged_Tree.Scrollbar_Width / 2,
@@ -123,10 +124,10 @@ separate (Files_Suite.Interaction)
                           Target_W, Target_H, Line_Height => Line);
                   begin
                      Files_Suite.Support.Assert_Equal
-                       (Page_Action.Kind, Files.Events.Scroll_Input_Action,
+                       (Page_Action.Kind, Files.Input_Actions.Scroll_Input_Action,
                         "tree track paging clamps its delta at the final full page (action kind)");
                      Assert
-                       (Page_Action.Scroll_Area = Files.Events.Scroll_Tree_Panel,
+                       (Page_Action.Scroll_Area = Files.Input_Actions.Scroll_Tree_Panel,
                         "tree track paging clamps its delta at the final full page (scroll area)");
                      Files_Suite.Support.Assert_Equal
                        (Page_Action.Scroll_Lines, Integer (Expected),
@@ -137,7 +138,7 @@ separate (Files_Suite.Interaction)
 
             Overlay.Tree_Panel_Scroll_Rows := Maximum;
             declare
-               End_Action : constant Files.Events.Input_Action :=
+               End_Action : constant Files.Input_Actions.Input_Action :=
                  Files.Events.Translate_Scroll_At
                    (Overlay,
                     Tree.X + Tree.Width / 2,
@@ -146,7 +147,7 @@ separate (Files_Suite.Interaction)
             begin
                Files_Suite.Support.Assert_Equal
                  (End_Action.Kind,
-                  Files.Events.No_Input_Action,
+                  Files.Input_Actions.No_Input_Action,
                   "wheel input at the final full tree page does not accumulate an invisible offset");
             end;
             Overlay.Tree_Panel_Scroll_Rows := 0;
@@ -161,7 +162,7 @@ separate (Files_Suite.Interaction)
             Tree : constant Files.Rendering.Layouts.Tree_Panel_Layout :=
               Files.Rendering.Layouts.Calculate_Tree_Panel_Layout
                 (Overlay, Tree_Layout, Line);
-            Action : constant Files.Events.Input_Action :=
+            Action : constant Files.Input_Actions.Input_Action :=
               Files.Events.Translate_Scroll_At
                 (Overlay,
                  Tree.X + Tree.Width / 2,
@@ -169,8 +170,8 @@ separate (Files_Suite.Interaction)
                  Target_W, Target_H, Y_Offset => -1, Line_Height => Line);
          begin
             Assert
-              (Action.Kind = Files.Events.Scroll_Input_Action
-               and then Action.Scroll_Area = Files.Events.Scroll_Tree_Panel,
+              (Action.Kind = Files.Input_Actions.Scroll_Input_Action
+               and then Action.Scroll_Area = Files.Input_Actions.Scroll_Tree_Panel,
                "the modal destination picker still scrolls inside its tree");
          end;
 

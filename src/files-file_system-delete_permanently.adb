@@ -73,10 +73,10 @@ begin
    return (Success => True, Error_Key => Null_Unbounded_String);
 exception
    when Swallowed : others =>
-      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       --  The delete raises straight from the refused unlink or rmdir, so
-      --  errno still says why.
+      --  errno still says why, until the note below writes to stderr.
       Files.Io_Errors.Capture;
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return
         (Success   => False,
          Error_Key => Files.Io_Errors.Error_Key ("error.permanent_delete.failed"));

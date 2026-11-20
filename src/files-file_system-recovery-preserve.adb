@@ -1,4 +1,3 @@
-with GNAT.OS_Lib;
 separate (Files.File_System.Recovery)
    function Preserve (Path : String; Backup : out Files.Types.UString) return Mutation_Result is
       --  The entry itself, a link included, made absolute from its text.
@@ -96,7 +95,8 @@ separate (Files.File_System.Recovery)
       end if;
       if not Support.Move_No_Replace (Path, Hostkit.Fs.Join (To_String (Stage), "payload")) then
          Files.Diagnostics.Trace
-           ("Files.File_System.Recovery", "preserve_move_refused=" & Path & ",errno=" & GNAT.OS_Lib.Errno'Image);
+           ("Files.File_System.Recovery",
+            "preserve_move_refused=" & Path & ",errno=" & Files.Io_Errors.Last_Code'Image);
          --  The backup is beside the original, so a refused rename must leave
          --  the original in place rather than starting a destructive fallback.
          raise Ada.Directories.Use_Error;

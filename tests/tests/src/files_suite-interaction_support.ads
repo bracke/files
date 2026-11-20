@@ -1,4 +1,4 @@
-with Files.Events;
+with Files.Input_Actions;
 with Files.Commands;
 with Files.Interaction;
 with Files.Model;
@@ -207,7 +207,7 @@ package Files_Suite.Interaction_Support is
    procedure Dispatch_Right_Click
      (Model      : in out Files.Model.Window_Model;
       Settings   : Files.Settings.Settings_Model;
-      Target     : Files.Events.Right_Click_Target;
+      Target     : Files.Input_Actions.Right_Click_Target;
       Item_Index : Natural;
       X          : Natural;
       Y          : Natural;

@@ -1,3 +1,5 @@
+with Files.Events;
+with Files.Input_Actions;
 with Files.Controller.Testing;
 with Files.Operations;
 with Files.Items;
@@ -8,7 +10,6 @@ with AUnit.Assertions;
 with AUnit.Test_Cases;
 with Files.Commands;
 with Files.Controller;
-with Files.Events;
 with Files.File_System;
 with Files.Folder_Tree;
 with Files.Interaction;
@@ -37,8 +38,8 @@ package body Files_Suite.Interaction is
    use AUnit.Assertions;
    use type Files.Commands.Command_Id;
    use type Files.Controller.Controller_Status;
-   use type Files.Events.Input_Action_Kind;
-   use type Files.Events.Scroll_Target;
+   use type Files.Input_Actions.Input_Action_Kind;
+   use type Files.Input_Actions.Scroll_Target;
    use type Guikit.Draw.Accessibility_Role;
    use type Files.Types.Color_Label;
    use type Files.UI_Types.Focus_Target;

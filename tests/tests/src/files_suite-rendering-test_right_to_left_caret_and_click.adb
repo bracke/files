@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  Hebrew is drawn right to left, so the caret of a rename field standing
    --  before the first letter is on the right of the text and moves left as
@@ -40,12 +41,12 @@ separate (Files_Suite.Rendering)
                   "the caret after" & Natural'Image (Cursor) & " letters is left of the one before it");
                Previous_X := CX;
                declare
-                  Action : constant Files.Events.Input_Action :=
+                  Action : constant Files.Input_Actions.Input_Action :=
                     Files.Events.Translate_Click
                       (Snapshot, Frame, X => CX, Y => CY + CH / 2, Width => 1000, Height => 800, Line_Height => 20);
                begin
                   Files_Suite.Support.Assert_Equal
-                    (Action.Kind, Files.Events.Text_Click_Input_Action, "clicking the rename field edits it");
+                    (Action.Kind, Files.Input_Actions.Text_Click_Input_Action, "clicking the rename field edits it");
                   Files_Suite.Support.Assert_Equal
                     (Action.Cursor_Position,
                      2 * Cursor,

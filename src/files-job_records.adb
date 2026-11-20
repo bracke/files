@@ -96,10 +96,12 @@ package body Files.Job_Records is
       Result   : constant String := Hostkit.Fs.Join (Directory, Name);
       Identity : Files.Types.UString;
    begin
-      --  The staged name is fixed, so a staged file left behind would refuse
-      --  every later publish of this record: whatever fails below removes
-      --  the one this call wrote.
-      Files.Durable_Writes.Write_Private_File
+      --  The staged name is fixed and the job's directory is written by its
+      --  one owner, so a staged file left behind (its clean-up refused, say
+      --  while a scanner held it) is removed before this write rather than
+      --  refusing every later publish of the record. Whatever fails below
+      --  removes the one this call wrote.
+      Files.Durable_Writes.Write_Fixed_Private_File
         (Staged, Write, Identity, Max_Bytes => Long_Long_Integer (Max_Transport_Bytes));
       declare
          Step    : Files.Durable_Writes.Publication_Step;

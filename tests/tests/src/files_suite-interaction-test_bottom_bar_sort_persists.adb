@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
    procedure Test_Bottom_Bar_Sort_Persists (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -20,8 +21,8 @@ separate (Files_Suite.Interaction)
       Result   : Files.Interaction.Interaction_Result;
 
       procedure Dispatch (Command : Files.Commands.Command_Id) is
-         Action : constant Files.Events.Input_Action :=
-           (Kind => Files.Events.Command_Input_Action, Command => Command);
+         Action : constant Files.Input_Actions.Input_Action :=
+           (Kind => Files.Input_Actions.Command_Input_Action, Command => Command);
       begin
          Files.Interaction.Apply_Input_Action
            (Model             => Model,

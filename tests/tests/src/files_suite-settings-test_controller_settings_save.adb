@@ -64,7 +64,7 @@ separate (Files_Suite.Settings)
             Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Draft_Model);
          begin
             Bad.Scalars (Files.Settings.Default_View_Mode_Setting) := To_Unbounded_String ("bad-view");
-            Files.Model.Settings_Pane.Set_Draft (Draft_Model, Bad);
+            Files.Settings_Form.Set_Draft (Draft_Model, Bad);
          end;
          Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files_Suite.Support.Assert_Equal
@@ -100,7 +100,7 @@ separate (Files_Suite.Settings)
             Good.Open_Action_Commands.Clear;
             Good.Open_Action_Keys.Append (To_Unbounded_String ("text/markdown"));
             Good.Open_Action_Commands.Append (To_Unbounded_String ("reader {path}"));
-            Files.Model.Settings_Pane.Set_Draft (Draft_Model, Good);
+            Files.Settings_Form.Set_Draft (Draft_Model, Good);
          end;
          Controller_Result :=
            Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Join (Root, "settings-dir"));

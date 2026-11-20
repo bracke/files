@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files.Application.Windows)
    function Current_Click_Action
      (Runtime   : in out Runtime_Window;
@@ -8,17 +9,17 @@ separate (Files.Application.Windows)
       Cursor_X  : Glfw.Input.Mouse.Coordinate;
       Cursor_Y  : Glfw.Input.Mouse.Coordinate;
       Modifiers : Guikit.Input.Modifier_Set)
-      return Files.Events.Input_Action
+      return Files.Input_Actions.Input_Action
    is
       At_Cursor : constant Hit_Position :=
         Hit_Position_At (Runtime, Window_W, Window_H, Frame_W, Frame_H, Cursor_X, Cursor_Y);
    begin
       if not At_Cursor.Inside then
-         return (Kind => Files.Events.No_Input_Action);
+         return (Kind => Files.Input_Actions.No_Input_Action);
       end if;
 
       declare
-         Action : Files.Events.Input_Action :=
+         Action : Files.Input_Actions.Input_Action :=
            Files.Events.Translate_Click
              (Snapshot    => Runtime.View.Snapshots (At_Cursor.Slot),
               Frame       => Runtime.Cached_Frame,
@@ -29,10 +30,10 @@ separate (Files.Application.Windows)
               Modifiers   => Modifiers,
               Line_Height => At_Cursor.Line_Height);
       begin
-         if Action.Kind = Files.Events.Item_Click_Input_Action then
+         if Action.Kind = Files.Input_Actions.Item_Click_Input_Action then
             Action.Item_Index := Current_Item_Index (Runtime, At_Cursor.Slot, Action.Item_Index);
             if Action.Item_Index = 0 then
-               return (Kind => Files.Events.No_Input_Action);
+               return (Kind => Files.Input_Actions.No_Input_Action);
             end if;
          end if;
          return Action;

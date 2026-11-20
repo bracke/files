@@ -31,11 +31,6 @@ separate (Files_Suite.Recovery)
       end Make_Stale;
    begin
       Reset_Root;
-      if not Hostkit.Metadata.Mode_Bits_Are_Native then
-         Files_Suite.Support.Skip
-           ("Test_Stale_Temporaries_Swept", "only where mode bits are native can a temporary be shown owner-only");
-         return;
-      end if;
       Make_Stale (Base & ".tmp");
       Make_Stale (Base & ".tmp-17");
       --  Readable by others: not one of files' own temporaries.

@@ -6,7 +6,7 @@ with Guikit.Utf8;
 package body Files.Window_Policy is
 
    use type Files.Commands.Command_Id;
-   use type Files.Events.Input_Action_Kind;
+   use type Files.Input_Actions.Input_Action_Kind;
    use type Files.UI_Types.Focus_Target;
    use type Glfw.Input.Mouse.Coordinate;
    use type Glfw.Size;
@@ -169,19 +169,19 @@ package body Files.Window_Policy is
       else X);
 
    function Accessibility_Action
-     (Click    : Files.Events.Input_Action;
+     (Click    : Files.Input_Actions.Input_Action;
       Activate : Boolean)
-      return Files.Events.Input_Action
+      return Files.Input_Actions.Input_Action
    is
-      Action : Files.Events.Input_Action := Click;
+      Action : Files.Input_Actions.Input_Action := Click;
    begin
-      if Activate and then Action.Kind = Files.Events.Item_Click_Input_Action then
+      if Activate and then Action.Kind = Files.Input_Actions.Item_Click_Input_Action then
          Action.Activate := True;
-      elsif Action.Kind = Files.Events.Column_Reorder_Begin_Input_Action then
+      elsif Action.Kind = Files.Input_Actions.Column_Reorder_Begin_Input_Action then
          Action :=
            (if Action.Sort_Command /= Files.Commands.No_Command
-            then (Kind => Files.Events.Command_Input_Action, Command => Action.Sort_Command)
-            else (Kind => Files.Events.No_Input_Action));
+            then (Kind => Files.Input_Actions.Command_Input_Action, Command => Action.Sort_Command)
+            else (Kind => Files.Input_Actions.No_Input_Action));
       end if;
       return Action;
    end Accessibility_Action;

@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
@@ -19,12 +20,12 @@ separate (Files_Suite.Keyboard)
       --  Confirm Ctrl+Shift+Z translates to the redo command, distinct from the
       --  Ctrl+Z undo binding (so the two shortcuts do not collide).
       declare
-         Action : constant Files.Events.Input_Action :=
+         Action : constant Files.Input_Actions.Input_Action :=
            Files.Events.Translate_Key (Guikit.Input.Key_Z, Ctrl_Shift);
       begin
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Command_Input_Action,
+            Files.Input_Actions.Command_Input_Action,
             "Ctrl+Shift+Z translates to a command input action");
          Files_Suite.Support.Assert_Equal
            (Action.Command,

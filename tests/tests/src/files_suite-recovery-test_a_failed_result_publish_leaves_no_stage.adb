@@ -1,3 +1,4 @@
+with Ada.Text_IO;
 with Files.Durability.Testing;
 separate (Files_Suite.Recovery)
    --  A helper publishes its result through a staged file of a fixed name.
@@ -30,6 +31,20 @@ separate (Files_Suite.Recovery)
       Assert (not Ada.Directories.Exists (Staged), "the staged result this publish wrote is removed");
       Files.Job_Records.Publish_Result (Directory, Write_Record'Access);
       Assert (Ada.Directories.Exists (Published), "so the next publish of that result goes through");
+
+      --  A staged file whose clean-up the host refused (a scanner holding it,
+      --  on Windows) is still in the way of the next publish: that one
+      --  removes it first, the job's directory being written by its owner
+      --  alone.
+      declare
+         Leftover : Ada.Text_IO.File_Type;
+      begin
+         Ada.Text_IO.Create (Leftover, Ada.Text_IO.Out_File, Staged);
+         Ada.Text_IO.Put_Line (Leftover, "left behind");
+         Ada.Text_IO.Close (Leftover);
+      end;
+      Files.Job_Records.Publish_Result (Directory, Write_Record'Access);
+      Assert (not Ada.Directories.Exists (Staged), "a leftover staged result does not refuse the next publish");
    exception
       when others =>
          Files.Durability.Testing.Clear;

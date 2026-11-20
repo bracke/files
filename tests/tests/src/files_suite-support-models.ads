@@ -1,8 +1,8 @@
+with Files.Input_Actions;
 with Files.Operation_Results;
 with Files.Extra_Info;
 with Files.Items;
 with Files.Commands;
-with Files.Events;
 with Files.Model;
 with Files.Rendering;
 with Files.Settings;
@@ -63,7 +63,7 @@ package Files_Suite.Support.Models is
       Activate    : Boolean := False;
       Modifiers   : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Line_Height : Positive := 20)
-      return Files.Events.Input_Action;
+      return Files.Input_Actions.Input_Action;
 
    --  Build a sample set of directory items for tests.
    --

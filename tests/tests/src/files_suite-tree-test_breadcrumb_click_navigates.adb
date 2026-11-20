@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Tree)
@@ -31,7 +32,7 @@ separate (Files_Suite.Tree)
            Files.Rendering.Build_Frame_Commands (Snapshot, Breadcrumb_Width, Window_H, Line);
          Rows     : constant Files.Rendering.Layouts.Breadcrumb_Segment_Layout_Vectors.Vector :=
            Files.Rendering.Layouts.Calculate_Breadcrumb_Layout (Snapshot, Breadcrumb_Width, Line);
-         Action   : Files.Events.Input_Action;
+         Action   : Files.Input_Actions.Input_Action;
          X, Y     : Natural := 0;
          Found    : Boolean := False;
       begin
@@ -54,7 +55,7 @@ separate (Files_Suite.Tree)
              (Snapshot, Frame, X, Y, Breadcrumb_Width, Window_H, Line_Height => Line);
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Breadcrumb_Click_Input_Action,
+            Files.Input_Actions.Breadcrumb_Click_Input_Action,
             "a breadcrumb coordinate translates to a breadcrumb click");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);

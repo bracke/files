@@ -1,3 +1,5 @@
+with Files.Settings_Form;
+with Files.Input_Actions;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
@@ -64,7 +66,7 @@ separate (Files_Suite.Interaction)
                begin
                   Edited.Scalars (Files.Settings.Default_View_Mode_Setting) :=
                     Ada.Strings.Unbounded.To_Unbounded_String ("details");
-                  Files.Model.Settings_Pane.Set_Draft (Model, Edited);
+                  Files.Settings_Form.Set_Draft (Model, Edited);
                end;
             when Zoom_Reset =>
                Settings.Font_Pixel_Size := Files.Settings.Default_Font_Pixel_Size + 4;
@@ -98,7 +100,7 @@ separate (Files_Suite.Interaction)
                   Settings      => Settings,
                   Settings_Path => Path,
                   Action        =>
-                    (Kind => Files.Events.Command_Input_Action, Command => Files.Commands.Sort_By_Size_Command),
+                    (Kind => Files.Input_Actions.Command_Input_Action, Command => Files.Commands.Sort_By_Size_Command),
                   Modifiers     => Guikit.Input.No_Modifiers,
                   Result        => Result);
          end case;

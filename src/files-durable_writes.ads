@@ -89,6 +89,23 @@ package Files.Durable_Writes is
       Name_Taken : out Boolean;
       Max_Bytes  : Long_Long_Integer := Long_Long_Integer'Last);
 
+   --  Write_Private_File at a fixed temporary name the caller holds alone
+   --  (a record staged in a directory only it writes): an entry already
+   --  there was left by a writer that died, or whose own clean-up the host
+   --  refused, and is removed first so that it does not refuse this write
+   --  and every later one. Raises as Write_Private_File does, and when the
+   --  leftover cannot be removed.
+   --
+   --  @param Temporary Path to create, the caller's own fixed name.
+   --  @param Write Writes the record to the stream given.
+   --  @param Identity Set to the file's identity token, for Remove_Owned.
+   --  @param Max_Bytes The most the record may hold.
+   procedure Write_Fixed_Private_File
+     (Temporary : String;
+      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
+      Identity  : out Files.Types.UString;
+      Max_Bytes : Long_Long_Integer := Long_Long_Integer'Last);
+
    --  Write_Private_File at the first free temporary name beside Base:
    --  Base & ".tmp", then ".tmp-2" up to ".tmp-9999", so a temporary another
    --  writer still holds (or a stale one, or a hostile link) is passed over,
@@ -136,9 +153,10 @@ package Files.Durable_Writes is
    --  its modification time read and the file removed again, and the time
    --  this process has run taken from it. When that marker cannot be
    --  written or its time read, nothing is removed. Each is removed only
-   --  while its identity is still the one checked (Remove_Owned). Where
-   --  mode bits or the user's id are not the host's own (Windows), none can
-   --  be shown owner-only and nothing is removed. Never raises.
+   --  while its identity is still the one checked (Remove_Owned), and only
+   --  when the host shows it private to this user
+   --  (Hostkit.Metadata.Private_To_Current_User: mode bits and uid, or
+   --  owner and access list). Never raises.
    --
    --  @param Base The path the temporaries are named after (the target).
    procedure Sweep_Stale_Temporaries (Base : String);

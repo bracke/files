@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
    procedure Test_Keyboard_Shortcut_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -6,12 +7,12 @@ separate (Files_Suite.Keyboard)
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       --  Ctrl+3 is the Select_Details shortcut.
-      Action   : constant Files.Events.Input_Action :=
+      Action   : constant Files.Input_Actions.Input_Action :=
         Files.Events.Translate_Key (Guikit.Input.Key_3, Ctrl);
    begin
       Files_Suite.Support.Assert_Equal
         (Action.Kind,
-         Files.Events.Command_Input_Action,
+         Files.Input_Actions.Command_Input_Action,
          "a known shortcut translates to a command input action");
       Files_Suite.Support.Assert_Equal
         (Action.Command,

@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
@@ -44,13 +45,13 @@ separate (Files_Suite.Interaction)
               (Files.Events.Translate_Scroll_At
                  (At_End, Info_X, Info_Y, Target_W, Target_H,
                   Y_Offset => -1, Line_Height => Line).Kind
-                 = Files.Events.No_Input_Action,
+                 = Files.Input_Actions.No_Input_Action,
                "the info pane does not accumulate wheel input beyond its final page");
             Assert
               (Files.Events.Translate_Scroll_At
                  (At_End, Main_X, Main_Y, Target_W, Target_H,
                   Y_Offset => -1, Line_Height => Line).Kind
-                 = Files.Events.No_Input_Action,
+                 = Files.Input_Actions.No_Input_Action,
                "the main view does not accumulate wheel input beyond its final page");
          end;
       end;
@@ -83,7 +84,7 @@ separate (Files_Suite.Interaction)
            Files.Rendering.Build_Snapshot (Model, Settings);
          Wide   : constant Files.Rendering.Layout_Metrics :=
            Files.Rendering.Layouts.Calculate_Layout (Fits, Window_W, Window_H, Line);
-         Action : constant Files.Events.Input_Action :=
+         Action : constant Files.Input_Actions.Input_Action :=
            Files.Events.Translate_Scroll_At
              (Fits,
               Wide.Main_X + Wide.Main_Width / 2,
@@ -92,7 +93,7 @@ separate (Files_Suite.Interaction)
       begin
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.No_Input_Action,
+            Files.Input_Actions.No_Input_Action,
             "wheel input is inert when the entire main view already fits");
       end;
    end Test_Scroll_Targets_Pane_Under_Cursor;

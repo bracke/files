@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Operations)
    procedure Test_Permission_Grid_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -56,13 +57,13 @@ separate (Files_Suite.Operations)
          Before : constant Natural := Mode_Of (Sub);
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
-         Action : constant Files.Events.Input_Action :=
+         Action : constant Files.Input_Actions.Input_Action :=
            Files_Suite.Support.Models.Click_Action (Snapshot, Cell_X, Cell_Y, Width, Height);
          Result : Files.Interaction.Interaction_Result;
       begin
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Permission_Toggle_Input_Action,
+            Files.Input_Actions.Permission_Toggle_Input_Action,
             "clicking a permission cell yields a permission-toggle action");
          Files_Suite.Support.Assert_Equal
            (Action.Bit,

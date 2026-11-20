@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Drags)
@@ -35,7 +36,7 @@ separate (Files_Suite.Drags)
          Sep_X    : Natural;
          Base_W   : Natural;
          Header_Y : Natural;
-         Action   : Files.Events.Input_Action;
+         Action   : Files.Input_Actions.Input_Action;
          Sort_Before : Files.Types.Sort_Field;
       begin
          for Cell of Rows loop
@@ -59,7 +60,7 @@ separate (Files_Suite.Drags)
              (Snapshot, Frame, Sep_X, Header_Y, Window_W, Window_H, Line_Height => Line);
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Column_Resize_Begin_Input_Action,
+            Files.Input_Actions.Column_Resize_Begin_Input_Action,
             "a press on a header separator begins a column resize");
          Files_Suite.Support.Assert_Equal
            (Action.Column,

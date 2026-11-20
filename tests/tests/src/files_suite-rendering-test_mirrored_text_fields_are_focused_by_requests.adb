@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Window_Policy;
 with Guikit.Mirroring;
 separate (Files_Suite.Rendering)
@@ -18,10 +19,10 @@ separate (Files_Suite.Rendering)
       for Node of Shown loop
          if Node.Role = Guikit.Draw.Role_Text_Input then
             declare
-               Action : constant Files.Events.Input_Action :=
+               Action : constant Files.Input_Actions.Input_Action :=
                  Files.Window_Policy.Field_Request (Node.X, Node.Y, Node.Width, Node.Height, Width, 20);
             begin
-               Assert (Action.Kind = Files.Events.Command_Input_Action, To_String (Node.Name) & " is answered");
+               Assert (Action.Kind = Files.Input_Actions.Command_Input_Action, To_String (Node.Name) & " is answered");
                Path_Seen := Path_Seen or else Action.Command = Files.Commands.Focus_Path_Input_Command;
                Filter_Seen := Filter_Seen or else Action.Command = Files.Commands.Focus_Filter_Input_Command;
             end;

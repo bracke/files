@@ -15,7 +15,6 @@ with AUnit.Test_Cases;
 with Project_Tools.Files;
 with Files.Commands;
 with Files.Controller;
-with Files.Events;
 with Files.File_System;
 with Files.Interaction;
 with Files.Model;

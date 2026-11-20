@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Settings_Form;
 with Files.Model.Testing;
 with Files.Model.Command_Palette;
@@ -82,7 +83,7 @@ separate (Files_Suite.Text_Input)
 
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",
-            (Kind => Files.Events.Path_Favorite_Toggle_Input_Action),
+            (Kind => Files.Input_Actions.Path_Favorite_Toggle_Input_Action),
             Guikit.Input.No_Modifiers, Reduced);
          Assert
            (Files.Settings.Path_References.Is_Favorite (Settings, Path_Before) = Favorite_Before
@@ -91,7 +92,7 @@ separate (Files_Suite.Text_Input)
 
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",
-            (Kind => Files.Events.Search_Scope_Toggle_Input_Action),
+            (Kind => Files.Input_Actions.Search_Scope_Toggle_Input_Action),
             Guikit.Input.No_Modifiers, Reduced);
          Assert
            (Files.Model.Search_Scope_Of (Model) = Scope_Before,

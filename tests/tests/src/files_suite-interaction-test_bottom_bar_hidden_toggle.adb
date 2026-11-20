@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
    --  Item 8/9: the bottom-bar status area reports the hidden (dot-file) count
@@ -29,7 +30,7 @@ separate (Files_Suite.Interaction)
       Result   : Files.Interaction.Interaction_Result;
       Snapshot : Files.Rendering.View_Snapshot;
       Frame    : Files.Rendering.Frame_Commands;
-      Action   : Files.Events.Input_Action;
+      Action   : Files.Input_Actions.Input_Action;
       Toggle_Name : constant String :=
         Files.Localization.Text (Files.Commands.Name_Key (Files.Commands.Toggle_Hidden_Files_Command));
       X, Y     : Natural := 0;
@@ -75,7 +76,7 @@ separate (Files_Suite.Interaction)
         Files.Events.Translate_Click
           (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
       Assert
-        (Action.Kind = Files.Events.Command_Input_Action
+        (Action.Kind = Files.Input_Actions.Command_Input_Action
            and then Action.Command = Files.Commands.Toggle_Hidden_Files_Command,
          "the hidden-count region translates to the Toggle_Hidden_Files command");
 

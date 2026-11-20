@@ -1,7 +1,7 @@
+with Files.Input_Actions;
 with Files.Commands;
 with Files.Controller;
 with Files.Drop_Events;
-with Files.Events;
 with Files.Model;
 with Files.Model.Selection;
 with Files.Settings;
@@ -142,7 +142,7 @@ package Files.Interaction is
      (Model             : in out Files.Model.Window_Model;
       Settings          : in out Files.Settings.Settings_Model;
       Settings_Path     : String;
-      Action            : Files.Events.Input_Action;
+      Action            : Files.Input_Actions.Input_Action;
       Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result);
 
@@ -313,7 +313,7 @@ private
    procedure Apply_Right_Click
      (Model      : in out Files.Model.Window_Model;
       Settings   : Files.Settings.Settings_Model;
-      Target     : Files.Events.Right_Click_Target;
+      Target     : Files.Input_Actions.Right_Click_Target;
       Item_Index : Natural;
       X          : Natural;
       Y          : Natural;

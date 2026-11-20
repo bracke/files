@@ -274,16 +274,27 @@ package body Files.Settings_Form is
       return Result;
    end Fields;
 
+   procedure Add_Entry
+     (Keys, Values : in out Files.Types.String_Vectors.Vector;
+      Index        : in out Natural;
+      Key_Field    : out UString;
+      Value_Field  : out UString);
+
    --  Replace the selected entry's key or value (keeping the sync field and its
-   --  vector element consistent; Settings_Pane.Set_Draft normalizes the rest).
+   --  vector element consistent; Set_Draft normalizes the rest). Typing into a
+   --  group with no entries starts its first one, rather than an edit that
+   --  names no row and is dropped.
    procedure Set_Entry
      (Keys, Values     : in out Files.Types.String_Vectors.Vector;
-      Index            : Natural;
+      Index            : in out Natural;
       Key_Field        : in out UString;
       Value_Field      : in out UString;
       Editing_Key      : Boolean;
       New_Value        : UString) is
    begin
+      if Keys.Is_Empty and then Length (New_Value) > 0 then
+         Add_Entry (Keys, Values, Index, Key_Field, Value_Field);
+      end if;
       if Editing_Key then
          Key_Field := New_Value;
          if Index in 1 .. Natural (Keys.Length) then
@@ -365,8 +376,12 @@ package body Files.Settings_Form is
       Index        : in out Natural;
       Key_Field    : in out UString;
       Value_Field  : in out UString;
-      Button       : String) is
+      Button       : String;
+      Changed      : out Boolean)
+   is
+      Count : constant Natural := Natural (Keys.Length);
    begin
+      Changed := Button = "add" or else (Button = "remove" and then Index in 1 .. Count);
       if Button = "add" then
          Add_Entry (Keys, Values, Index, Key_Field, Value_Field);
       elsif Button = "remove" then
@@ -543,24 +558,36 @@ package body Files.Settings_Form is
 
          when SP.Button_Pressed =>
             declare
-               Button : constant String := To_String (Val);
+               Button        : constant String := To_String (Val);
+               Changed       : Boolean := False;
+               Had_Overrides : constant Boolean := Files.Commands.Has_Shortcut_Overrides;
             begin
                if Key = "form.actions" then
                   if Button = "reset" then
-                     D := Reset_To_Defaults;
+                     declare
+                        use type Files.Settings.Settings_Draft;
+                        Before : constant Files.Settings.Settings_Draft := D;
+                     begin
+                        D := Reset_To_Defaults;
+                        --  Reset_To_Defaults also drops the shortcut
+                        --  overrides, which the draft does not hold: saved
+                        --  whenever there were any.
+                        Changed := D /= Before or else Had_Overrides;
+                     end;
                   end if;
                elsif Key = "form.filetype.buttons" then
                   Group_Button (D.Filetype_Keys, D.Filetype_Values, D.Filetype_Index,
-                                D.Filetype_Extension, D.Filetype_Value, Button);
+                                D.Filetype_Extension, D.Filetype_Value, Button, Changed);
                elsif Key = "form.icon.buttons" then
                   Group_Button (D.Icon_Keys, D.Icon_Values, D.Icon_Index,
-                                D.Icon_Filetype, D.Icon_Value, Button);
+                                D.Icon_Filetype, D.Icon_Value, Button, Changed);
                elsif Key = "form.open_action.buttons" then
                   Group_Button (D.Open_Action_Keys, D.Open_Action_Commands, D.Open_Action_Index,
-                                D.Open_Action_Token, D.Open_Action_Command, Button);
+                                D.Open_Action_Token, D.Open_Action_Command, Button, Changed);
                end if;
-               --  Prev/Next only page the selection; they redraw but do not save.
-               Save := Button = "reset" or else Button = "add" or else Button = "remove";
+               --  Prev/Next only page the selection; they redraw but do not
+               --  save. Reset, add and remove save only what they changed.
+               Save := Changed and then (Button = "reset" or else Button = "add" or else Button = "remove");
             end;
             D.Valid     := True;
             D.Error_Key := Null_Unbounded_String;
@@ -579,6 +606,16 @@ package body Files.Settings_Form is
       Files.Model.Settings_Pane.Begin_Edit (Model, Normalized, Fields (Normalized));
    end Begin_Edit;
 
+   procedure Set_Draft
+     (Model : in out Files.Model.Window_Model;
+      Draft : Files.Settings.Settings_Draft)
+   is
+      Normalized : Files.Settings.Settings_Draft := Draft;
+   begin
+      Files.Settings.Normalize_Draft (Normalized);
+      Files.Model.Settings_Pane.Set_Draft (Model, Normalized, Fields (Normalized));
+   end Set_Draft;
+
    function Apply_Change
      (Model  : in out Files.Model.Window_Model;
       Change : Guikit.Settings_Panel.Change)
@@ -591,14 +628,14 @@ package body Files.Settings_Form is
          return False;
       end if;
       Save := Apply (Draft, Change);
-      Files.Model.Settings_Pane.Set_Draft (Model, Draft);
+      Set_Draft (Model, Draft);
       return Save;
    end Apply_Change;
 
    procedure Reset_Draft
      (Model : in out Files.Model.Window_Model) is
    begin
-      Files.Model.Settings_Pane.Set_Draft (Model, Reset_To_Defaults);
+      Set_Draft (Model, Reset_To_Defaults);
    end Reset_Draft;
 
 end Files.Settings_Form;

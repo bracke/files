@@ -1,3 +1,4 @@
+with Files.Events;
 with Files.UI_Types;
 with Files.Operation_Results;
 with Ada.Calendar;
@@ -36,7 +37,7 @@ package body Files.Application.Windows is
    use type Glfw.Input.Mouse.Button;
    use type Glfw.Input.Mouse.Coordinate;
    use type Glfw.Size;
-   use type Files.Events.Input_Action_Kind;
+   use type Files.Input_Actions.Input_Action_Kind;
    use type Files.UI_Types.Focus_Target;
    use type Guikit.Vulkan.Vulkan_Status;
    use type Files.Rendering.View_Snapshot;
@@ -478,7 +479,7 @@ package body Files.Application.Windows is
 
    procedure Dispatch_Click_Action
      (Runtime  : in out Runtime_Window;
-      Action   : Files.Events.Input_Action;
+      Action   : Files.Input_Actions.Input_Action;
       Modifiers : Guikit.Input.Modifier_Set)
    is
       Result : Files.Interaction.Interaction_Result;
@@ -551,7 +552,7 @@ package body Files.Application.Windows is
       Cursor_X  : Glfw.Input.Mouse.Coordinate;
       Cursor_Y  : Glfw.Input.Mouse.Coordinate;
       Modifiers : Guikit.Input.Modifier_Set)
-      return Files.Events.Input_Action
+      return Files.Input_Actions.Input_Action
  is separate;
 
    --  Carry out what the screen reader asked, as a click on the node's centre

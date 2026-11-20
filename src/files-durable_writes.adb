@@ -1,4 +1,3 @@
-with GNAT.OS_Lib;
 with Files.Timing;
 with Ada.Real_Time;
 with Ada.Calendar;
@@ -13,7 +12,6 @@ with Files.Fs_Primitives;
 with Files.Io_Errors;
 with Hostkit.Fs;
 with Hostkit.Metadata;
-with Hostkit.Process;
 
 package body Files.Durable_Writes is
    use type Hostkit.Durability.Outcome;
@@ -163,6 +161,20 @@ package body Files.Durable_Writes is
       end if;
    end Write_Private_File;
 
+   procedure Write_Fixed_Private_File
+     (Temporary : String;
+      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
+      Identity  : out Files.Types.UString;
+      Max_Bytes : Long_Long_Integer := Long_Long_Integer'Last)
+   is
+   begin
+      --  refusal-safe: a refused lookup leaves the name, and the write below fails
+      if Files.Fs_Primitives.Entry_Exists (Temporary) then
+         Files.Fs_Primitives.Delete_File (Temporary);
+      end if;
+      Write_Private_File (Temporary, Write, Identity, Max_Bytes);
+   end Write_Fixed_Private_File;
+
    --  When this process started, near enough: when this unit was elaborated.
    Process_Start : constant Ada.Calendar.Time := Ada.Calendar.Clock;
    --  The same moment on the monotonic clock. How long this process has run
@@ -221,10 +233,8 @@ package body Files.Durable_Writes is
 
    procedure Sweep_Stale_Temporaries (Base : String) is
       use type Ada.Calendar.Time;
-      use type Hostkit.Metadata.Account_Id;
       Directory : constant String := Files.Fs_Primitives.Parent_Directory (Base);
       Prefix    : constant String := Files.Types.Leaf_Of (Base) & ".tmp";
-      User      : Hostkit.Metadata.Account_Id;
       Names     : Files.Types.String_Vectors.Vector;
       --  Process_Start by the folder's own clock (Folder_Process_Start).
       Start     : Ada.Calendar.Time;
@@ -249,14 +259,13 @@ package body Files.Durable_Writes is
 
       procedure Remove_If_Stale (Path : String) is
          Identity : constant String := Files.File_Identities.Token (Path);
-         Status   : constant Hostkit.Metadata.Entry_Status := Hostkit.Metadata.Entry_Status_Of (Path);
       begin
+         --  Ours and private, by the host's own answer (mode bits and uid,
+         --  or owner and access list): what Write_Private_File makes.
          if Identity /= ""
            and then not Hostkit.Fs.Is_Link (Path)
            and then Files.Fs_Primitives.File_Exists (Path)
-           and then Status.Available
-           and then Status.User_Id = User
-           and then Status.Mode mod 8#100# = 0
+           and then Hostkit.Metadata.Private_To_Current_User (Path)
            and then Hostkit.Fs.Modification_Time_Of (Path, Follow_Links => False) < Start - Stale_Margin
          then
             Remove_Owned (Path, Identity);
@@ -266,10 +275,7 @@ package body Files.Durable_Writes is
             Files.Diagnostics.Note (Swallowed, "Files.Durable_Writes");
       end Remove_If_Stale;
    begin
-      if Directory = ""
-        or else not Hostkit.Metadata.Mode_Bits_Are_Native
-        or else not Hostkit.Process.Current_User_Account (User)
-      then
+      if Directory = "" then
          return;
       end if;
       Files.Fs_Primitives.For_Each_Name (Directory, Collect'Access);
@@ -330,6 +336,9 @@ package body Files.Durable_Writes is
       use Ada.Strings.Unbounded;
       Temporary, Identity : Files.Types.UString;
       Result : Publication_Result;
+      Step   : Publication_Step;
+      --  The code the caller had recorded, kept when this publish adds none.
+      Earlier : constant Integer := Files.Io_Errors.Last_Code;
    begin
       --  refusal-safe: a Target that cannot be looked at is neither absent
       --  nor a plain file, so it refuses the write.
@@ -340,13 +349,20 @@ package body Files.Durable_Writes is
          raise Ada.Directories.Use_Error;
       end if;
       Write_Private_Temporary (Target, Write, Temporary, Identity);
-      Result := Publish (To_String (Temporary), Target);
+      --  Start from no code, so the one traced below is this publish's own.
+      Files.Io_Errors.Adopt_Code (0);
+      Result := Publish (To_String (Temporary), Target, Step);
+      if Files.Io_Errors.Last_Code = 0 then
+         Files.Io_Errors.Adopt_Code (Earlier);
+      end if;
       if not Published (Result) then
          --  Why, for a host that refuses only now and then (a scanner holding
-         --  the file just written shows as EBUSY, a refusal as EACCES).
+         --  the file just written shows as EBUSY, a refusal as EACCES): the
+         --  code Publish recorded at the step that failed.
          Files.Diagnostics.Trace
            ("Files.Durable_Writes",
-            "publish_refused=" & Target & ",result=" & Result'Image & ",errno=" & GNAT.OS_Lib.Errno'Image);
+            "publish_refused=" & Target & ",result=" & Result'Image & ",step=" & Step'Image
+            & ",errno=" & Files.Io_Errors.Last_Code'Image);
          Remove_Owned (To_String (Temporary), To_String (Identity));
       end if;
       return Result;

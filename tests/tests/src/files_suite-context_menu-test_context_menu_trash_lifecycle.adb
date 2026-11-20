@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -42,8 +43,8 @@ separate (Files_Suite.Context_Menu)
       --  driven through the reducer's command branch, the same entry the shell
       --  uses for menu-bar commands.
       declare
-         Undo_Action : constant Files.Events.Input_Action :=
-           (Kind    => Files.Events.Command_Input_Action,
+         Undo_Action : constant Files.Input_Actions.Input_Action :=
+           (Kind    => Files.Input_Actions.Command_Input_Action,
             Command => Files.Commands.Undo_Command);
       begin
          Files.Interaction.Apply_Input_Action

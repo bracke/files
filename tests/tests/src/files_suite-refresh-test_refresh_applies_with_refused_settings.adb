@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files_Suite.Refresh)
    --  A session whose settings file failed to load marks its settings as not
    --  to be saved. That mark is session state, never in a job request, so it
@@ -20,7 +21,7 @@ separate (Files_Suite.Refresh)
       Write_Binary_File (Join (Root, "second.txt"), "second");
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
-         (Kind => Files.Events.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command),
+         (Kind => Files.Input_Actions.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command),
          Guikit.Input.No_Modifiers, Routed);
       Await_View (Model, Settings, Applied);
       Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),

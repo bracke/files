@@ -1,10 +1,11 @@
+with Files.Input_Actions;
 with Files.Settings.Path_References;
 separate (Files.Interaction)
    procedure Apply_Input_Action
      (Model             : in out Files.Model.Window_Model;
       Settings          : in out Files.Settings.Settings_Model;
       Settings_Path     : String;
-      Action            : Files.Events.Input_Action;
+      Action            : Files.Input_Actions.Input_Action;
       Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result)
    is
@@ -16,13 +17,13 @@ separate (Files.Interaction)
 
       --  The paste-conflict dialog's answer buttons, and the choice each one
       --  gives (Apply_All toggles instead of answering).
-      subtype Conflict_Answer_Button is Files.Events.Conflict_Button_Kind
-        range Files.Events.Conflict_Button_Replace .. Files.Events.Conflict_Button_Cancel;
+      subtype Conflict_Answer_Button is Files.Input_Actions.Conflict_Button_Kind
+        range Files.Input_Actions.Conflict_Button_Replace .. Files.Input_Actions.Conflict_Button_Cancel;
       Conflict_Choices : constant array (Conflict_Answer_Button) of Files.Operations.Conflict_Choice :=
-        [Files.Events.Conflict_Button_Replace => Files.Operations.Choice_Replace,
-         Files.Events.Conflict_Button_Skip    => Files.Operations.Choice_Skip,
-         Files.Events.Conflict_Button_Rename  => Files.Operations.Choice_Rename,
-         Files.Events.Conflict_Button_Cancel  => Files.Operations.Choice_Cancel];
+        [Files.Input_Actions.Conflict_Button_Replace => Files.Operations.Choice_Replace,
+         Files.Input_Actions.Conflict_Button_Skip    => Files.Operations.Choice_Skip,
+         Files.Input_Actions.Conflict_Button_Rename  => Files.Operations.Choice_Rename,
+         Files.Input_Actions.Conflict_Button_Cancel  => Files.Operations.Choice_Cancel];
 
       --  Toggle the current directory's favorite state directly by path,
       --  independent of the selection, under the policy every settings
@@ -47,7 +48,7 @@ separate (Files.Interaction)
       Result := (others => <>);
 
       case Action.Kind is
-         when Files.Events.Command_Input_Action =>
+         when Files.Input_Actions.Command_Input_Action =>
             --  Through Execute_Command, so a runtime view / sort / info change
             --  (e.g. from the bottom bar) is synced to the settings and, for
             --  sort, the listing is re-loaded to match the new order.
@@ -56,7 +57,7 @@ separate (Files.Interaction)
                  (Model, Settings, Settings_Path, Action.Command,
                   Modifiers, Result);
             end if;
-         when Files.Events.Item_Click_Input_Action =>
+         when Files.Input_Actions.Item_Click_Input_Action =>
             Asked := True;
             Outcome :=
               Files.Controller.Handle_Item_Click
@@ -65,20 +66,20 @@ separate (Files.Interaction)
                  Visible_Index => Action.Item_Index,
                  Activate      => Action.Activate,
                  Modifiers     => Modifiers);
-         when Files.Events.Item_Drop_Input_Action =>
+         when Files.Input_Actions.Item_Drop_Input_Action =>
             Asked := True;
             Outcome := Files.Controller.Handle_Item_Drop (Model, Settings, Action.Drop_Target, Modifiers);
-         when Files.Events.Root_Click_Input_Action =>
+         when Files.Input_Actions.Root_Click_Input_Action =>
             Asked := True;
             Outcome :=
               Files.Controller.Handle_Root_Click
                 (Model, Settings, Action.Root_Index);
-         when Files.Events.Breadcrumb_Click_Input_Action =>
+         when Files.Input_Actions.Breadcrumb_Click_Input_Action =>
             Asked := True;
             Outcome :=
               Files.Controller.Handle_Breadcrumb_Click
                 (Model, Settings, Action.Segment_Index);
-         when Files.Events.Right_Click_Input_Action =>
+         when Files.Input_Actions.Right_Click_Input_Action =>
             Apply_Right_Click
               (Model      => Model,
                Settings   => Settings,
@@ -87,31 +88,31 @@ separate (Files.Interaction)
                X          => Action.Menu_X,
                Y          => Action.Menu_Y,
                Result     => Result);
-         when Files.Events.Label_Picker_Choice_Input_Action =>
+         when Files.Input_Actions.Label_Picker_Choice_Input_Action =>
             --  Apply the chosen color label to every selected item and persist
             --  through the same settings-write seam the favorite toggle uses,
             --  then close the picker. No_Label clears the label.
             if Files.Model.Label_Picker.Is_Open (Model) then
                Apply_Label (Model, Settings, Settings_Path, Action.Label, Result);
             end if;
-         when Files.Events.Context_Menu_Command_Input_Action =>
+         when Files.Input_Actions.Context_Menu_Command_Input_Action =>
             --  A row of the context menu: its command runs, the menu closes.
             Apply_Context_Menu_Command
               (Model, Settings, Settings_Path, Action.Menu_Command, Modifiers, Result);
-         when Files.Events.Path_Favorite_Toggle_Input_Action =>
+         when Files.Input_Actions.Path_Favorite_Toggle_Input_Action =>
             Toggle_Current_Favorite;
-         when Files.Events.Tree_Click_Input_Action =>
+         when Files.Input_Actions.Tree_Click_Input_Action =>
             Asked := True;
             Outcome :=
               (if Action.Expander
                then Files.Controller.Toggle_Tree_Node (Model, Settings, Action.Tree_Node)
                else Files.Controller.Activate_Tree_Node (Model, Settings, Action.Tree_Node));
-         when Files.Events.Tree_Pick_Confirm_Input_Action =>
+         when Files.Input_Actions.Tree_Pick_Confirm_Input_Action =>
             --  As Enter in the picker does: a paste that does not start leaves
             --  its error on the error line and the picker open for correction.
             Asked := True;
             Outcome := Files.Controller.Confirm_Tree_Pick (Model, Settings);
-         when Files.Events.Command_Result_Click_Input_Action =>
+         when Files.Input_Actions.Command_Result_Click_Input_Action =>
             --  The palette hit-tests the click and selects the row, which is
             --  then activated as Enter activates it.
             if Files.Model.Command_Palette.Is_Open (Model)
@@ -120,7 +121,7 @@ separate (Files.Interaction)
                Asked := True;
                Outcome := Files.Controller.Activate_Palette_Command (Model, Settings, Modifiers);
             end if;
-         when Files.Events.Text_Click_Input_Action =>
+         when Files.Input_Actions.Text_Click_Input_Action =>
             Asked := True;
             Outcome :=
               Files.Controller.Handle_Text_Click
@@ -128,7 +129,7 @@ separate (Files.Interaction)
                  Target          => Action.Focus_Target,
                  Cursor_Position => Action.Cursor_Position,
                  Item_Index      => Action.Field_Item);
-         when Files.Events.Settings_Click_Input_Action =>
+         when Files.Input_Actions.Settings_Click_Input_Action =>
             --  A change that auto-saves comes back as a save to complete
             --  (Conclude, below).
             Asked := True;
@@ -137,49 +138,49 @@ separate (Files.Interaction)
                 (Model => Model,
                  X     => Action.Click_X,
                  Y     => Action.Click_Y);
-         when Files.Events.Permission_Toggle_Input_Action =>
+         when Files.Input_Actions.Permission_Toggle_Input_Action =>
             Asked := True;
             Outcome := Files.Controller.Handle_Permission_Toggle (Model, Settings, Action.Bit);
-         when Files.Events.Ownership_Edit_Input_Action =>
+         when Files.Input_Actions.Ownership_Edit_Input_Action =>
             --  Open the info-pane ownership editor prefilled with the current
             --  owner or group id; typing then Enter commits the change.
             Asked := True;
             Outcome := Files.Controller.Handle_Ownership_Edit (Model, Group => Action.Edit_Group);
-         when Files.Events.Conflict_Click_Input_Action =>
+         when Files.Input_Actions.Conflict_Click_Input_Action =>
             case Action.Conflict_Button is
                when Conflict_Answer_Button =>
                   Asked := True;
                   Outcome :=
                     Files.Controller.Handle_Conflict_Choice
                       (Model, Settings, Conflict_Choices (Action.Conflict_Button));
-               when Files.Events.Conflict_Button_Apply_All =>
+               when Files.Input_Actions.Conflict_Button_Apply_All =>
                   Asked := True;
                   Outcome := Files.Controller.Handle_Conflict_Apply_All_Toggle (Model);
-               when Files.Events.No_Conflict_Button =>
+               when Files.Input_Actions.No_Conflict_Button =>
                   Outcome := (others => <>);
             end case;
-         when Files.Events.Foreground_Job_Cancel_Input_Action =>
+         when Files.Input_Actions.Foreground_Job_Cancel_Input_Action =>
             --  Request cancellation of the foreground job (a paste or an
             --  operation), then finalize over what is done (copies are kept).
             Asked := True;
             Outcome := Files.Controller.Handle_Foreground_Job_Cancel (Model, Settings);
-         when Files.Events.Search_Scope_Toggle_Input_Action =>
+         when Files.Input_Actions.Search_Scope_Toggle_Input_Action =>
             --  Clicking the filter-bar scope chip cycles the search scope and
             --  re-runs the shared query in the new scope, replacing the view with
             --  (or restoring it from) recursive search results.
             Asked := True;
             Outcome := Files.Controller.Handle_Search_Scope_Toggle (Model, Settings);
-         when Files.Events.Scroll_Input_Action =>
+         when Files.Input_Actions.Scroll_Input_Action =>
             Asked := True;
             Outcome :=
               Files.Controller.Handle_Targeted_Scroll
                 (Model, Action.Scroll_Area, Action.Scroll_Lines);
-         when Files.Events.Scrollbar_Drag_Begin_Input_Action
-            | Files.Events.Column_Resize_Begin_Input_Action
-            | Files.Events.Column_Reorder_Begin_Input_Action
-            | Files.Events.Marquee_Begin_Input_Action
-            | Files.Events.No_Input_Action
-            | Files.Events.Selection_Input_Action =>
+         when Files.Input_Actions.Scrollbar_Drag_Begin_Input_Action
+            | Files.Input_Actions.Column_Resize_Begin_Input_Action
+            | Files.Input_Actions.Column_Reorder_Begin_Input_Action
+            | Files.Input_Actions.Marquee_Begin_Input_Action
+            | Files.Input_Actions.No_Input_Action
+            | Files.Input_Actions.Selection_Input_Action =>
             --  Scrollbar-drag, column-resize, column-reorder, and marquee begin
             --  all update runtime drag state owned by the shell (applied through
             --  Apply_Column_Resize / Apply_Column_Reorder on drop, or
@@ -191,14 +192,14 @@ separate (Files.Interaction)
       --  What a controller entry above answered, completed and observed.
       if Asked then
          declare
-            use type Files.Events.Input_Action_Kind;
+            use type Files.Input_Actions.Input_Action_Kind;
             Ran : Boolean;
          begin
             Conclude (Model, Settings, Settings_Path, Outcome, Before, Before_UI, Result, Ran);
             --  A settings-pane change saved by its click drops any parallel
             --  character event, as a key that saves does.
             Result.Clear_Pending_Text :=
-              Ran and then Action.Kind = Files.Events.Settings_Click_Input_Action;
+              Ran and then Action.Kind = Files.Input_Actions.Settings_Click_Input_Action;
          end;
       end if;
       Finish_Dispatch (Model, Settings, Settings_Path, Result);

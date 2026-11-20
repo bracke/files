@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Text_Input)
    procedure Test_Search_Scope_Chip_Cycles (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -14,7 +15,7 @@ separate (Files_Suite.Text_Input)
       Chip_Y   : constant Natural := Chip.Y + Chip.Height / 2;
       Full_Count : Natural;
 
-      function Chip_Action (Model : Files.Model.Window_Model) return Files.Events.Input_Action is
+      function Chip_Action (Model : Files.Model.Window_Model) return Files.Input_Actions.Input_Action is
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Frame    : constant Files.Rendering.Frame_Commands :=
@@ -63,11 +64,11 @@ separate (Files_Suite.Text_Input)
       --  First chip click: the click resolves to the scope-toggle action rather
       --  than a filter text click, and does not focus the filter input.
       declare
-         Action : constant Files.Events.Input_Action := Chip_Action (Model);
+         Action : constant Files.Input_Actions.Input_Action := Chip_Action (Model);
       begin
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Search_Scope_Toggle_Input_Action,
+            Files.Input_Actions.Search_Scope_Toggle_Input_Action,
             "clicking the chip yields the scope-toggle action, not a text click");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
@@ -85,7 +86,7 @@ separate (Files_Suite.Text_Input)
 
       --  Second chip click: cycle to Search_Contents and re-run as a grep.
       declare
-         Action : constant Files.Events.Input_Action := Chip_Action (Model);
+         Action : constant Files.Input_Actions.Input_Action := Chip_Action (Model);
       begin
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
@@ -101,7 +102,7 @@ separate (Files_Suite.Text_Input)
 
       --  Third chip click: cycle back to Filter_Here and restore the directory.
       declare
-         Action : constant Files.Events.Input_Action := Chip_Action (Model);
+         Action : constant Files.Input_Actions.Input_Action := Chip_Action (Model);
       begin
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);

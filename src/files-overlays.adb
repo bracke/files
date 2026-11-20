@@ -114,7 +114,7 @@ package body Files.Overlays is
          Config.Status_Is_Error := True;
       end if;
       Files.Model.Settings_Pane.With_Panel
-        (Model, Config, Files.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model)), Draw'Access);
+        (Model, Config, Files.Settings_Form.Fields (Draft), Draw'Access);
    end Build_Settings_Frame;
 
 end Files.Overlays;

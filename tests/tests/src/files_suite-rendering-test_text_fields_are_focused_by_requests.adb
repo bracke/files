@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Guikit.Layout;
 separate (Files_Suite.Rendering)
@@ -23,10 +24,10 @@ separate (Files_Suite.Rendering)
       for Node of Frame.Accessibility loop
          if Node.Role = Guikit.Draw.Role_Text_Input then
             declare
-               Action : constant Files.Events.Input_Action :=
+               Action : constant Files.Input_Actions.Input_Action :=
                  Files.Events.Translate_Field_Request (Node.X, Node.Y, Node.Width, Node.Height, Width, 20);
             begin
-               Assert (Action.Kind = Files.Events.Command_Input_Action, To_String (Node.Name) & " is answered");
+               Assert (Action.Kind = Files.Input_Actions.Command_Input_Action, To_String (Node.Name) & " is answered");
                if Action.Command = Files.Commands.Focus_Path_Input_Command then
                   Path_Seen := True;
                elsif Action.Command = Files.Commands.Focus_Filter_Input_Command then
@@ -40,6 +41,6 @@ separate (Files_Suite.Rendering)
       Assert
         (Files.Events.Translate_Field_Request
            (Toolbar.Right_X, Guikit.Layout.Toolbar_Input_Y (20), Toolbar.Right_Width,
-            Guikit.Layout.Toolbar_Input_Height (20), Width, 20).Kind = Files.Events.No_Input_Action,
+            Guikit.Layout.Toolbar_Input_Height (20), Width, 20).Kind = Files.Input_Actions.No_Input_Action,
          "a node over the whole section is no field");
    end Test_Text_Fields_Are_Focused_By_Requests;

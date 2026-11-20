@@ -47,6 +47,15 @@ package Files.Settings_Form is
      (Model : in out Files.Model.Window_Model;
       Draft : Files.Settings.Settings_Draft);
 
+   --  Replace the open pane's draft: normalized here, the one place a draft
+   --  is, and handed to the model with the panel's fields for it.
+   --
+   --  @param Model Model whose draft is replaced.
+   --  @param Draft The new draft.
+   procedure Set_Draft
+     (Model : in out Files.Model.Window_Model;
+      Draft : Files.Settings.Settings_Draft);
+
    --  Apply a change the panel emitted to the pane's draft (Apply). A
    --  No_Change leaves the model as it is.
    --

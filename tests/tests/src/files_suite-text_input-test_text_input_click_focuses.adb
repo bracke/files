@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Text_Input)
@@ -24,12 +25,12 @@ separate (Files_Suite.Text_Input)
            Files.Rendering.Build_Snapshot (Model, Settings);
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-         Margin   : constant Files.Events.Input_Action :=
+         Margin   : constant Files.Input_Actions.Input_Action :=
            Files.Events.Translate_Click
              (Snapshot, Frame, Region.Field_X + Region.Field_Width, Center_Y, Window_W, Window_H,
               Line_Height => Line);
       begin
-         Assert (Margin.Kind /= Files.Events.Text_Click_Input_Action
+         Assert (Margin.Kind /= Files.Input_Actions.Text_Click_Input_Action
                  or else Margin.Focus_Target /= Files.UI_Types.Focus_Path_Input,
                  "a click in the margin past the path field's box does not focus it");
       end;
@@ -41,13 +42,13 @@ separate (Files_Suite.Text_Input)
            Files.Rendering.Build_Snapshot (Model, Settings);
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-         Action   : constant Files.Events.Input_Action :=
+         Action   : constant Files.Input_Actions.Input_Action :=
            Files.Events.Translate_Click
              (Snapshot, Frame, Right_X, Center_Y, Window_W, Window_H, Line_Height => Line);
       begin
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Text_Click_Input_Action,
+            Files.Input_Actions.Text_Click_Input_Action,
             "a click past the breadcrumbs in the path field translates to a text click");
          Files_Suite.Support.Assert_Equal
            (Action.Focus_Target,
@@ -76,13 +77,13 @@ separate (Files_Suite.Text_Input)
            Files.Rendering.Build_Snapshot (Model, Settings);
          Frame    : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-         Action   : constant Files.Events.Input_Action :=
+         Action   : constant Files.Input_Actions.Input_Action :=
            Files.Events.Translate_Click
              (Snapshot, Frame, Left_X, Center_Y, Window_W, Window_H, Line_Height => Line);
       begin
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Text_Click_Input_Action,
+            Files.Input_Actions.Text_Click_Input_Action,
             "a click at the focused field's left edge translates to a text click");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);

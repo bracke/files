@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files_Suite.Model)
    procedure Test_Info_Pane_Toggle_And_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -56,7 +57,7 @@ separate (Files_Suite.Model)
             "ignored info-pane PageUp leaves the model revision unchanged");
       end;
 
-      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, -1);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Info_Pane, -1);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -72,7 +73,7 @@ separate (Files_Suite.Model)
          10,
          "PageDown scrolls info pane by page");
 
-      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, Integer'Last);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Info_Pane, Integer'Last);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -82,7 +83,7 @@ separate (Files_Suite.Model)
          Natural'Last,
          "large info scroll saturates");
 
-      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, Integer'First);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Info_Pane, Integer'First);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,

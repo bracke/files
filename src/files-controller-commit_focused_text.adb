@@ -43,7 +43,7 @@ separate (Files.Controller)
                   Operation.Status := Files.Operation_Results.Operation_Failed;
                   Operation.Error_Key := Parsed.Error_Key;
                end if;
-               Files.Model.Settings_Pane.Set_Draft (Model, Draft);
+               Files.Settings_Form.Set_Draft (Model, Draft);
             end;
             return
               Make_Result

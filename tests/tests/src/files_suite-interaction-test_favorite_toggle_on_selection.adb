@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Commands.Status;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -11,8 +12,8 @@ separate (Files_Suite.Interaction)
       Result   : Files.Interaction.Interaction_Result;
       Path     : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "favorites.conf");
       Item     : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "Alpha.txt");
-      Action   : constant Files.Events.Input_Action :=
-        (Kind    => Files.Events.Command_Input_Action,
+      Action   : constant Files.Input_Actions.Input_Action :=
+        (Kind    => Files.Input_Actions.Command_Input_Action,
          Command => Files.Commands.Toggle_Favorite_Command);
    begin
       Files_Suite.Support.Disk.Reset_Root;
@@ -32,7 +33,7 @@ separate (Files_Suite.Interaction)
         (Model,
          Settings,
          Path,
-         (Kind => Files.Events.No_Input_Action),
+         (Kind => Files.Input_Actions.No_Input_Action),
          Guikit.Input.No_Modifiers,
          Result);
       Files_Suite.Support.Assert_Equal

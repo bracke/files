@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Model.Tree_Panel;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -51,14 +52,14 @@ separate (Files_Suite.Tree)
 
       Ignored :=
         Files.Controller.Handle_Targeted_Scroll
-          (Model, Files.Events.Scroll_Tree_Panel, 1);
+          (Model, Files.Input_Actions.Scroll_Tree_Panel, 1);
       Assert
         (Ignored.Status = Files.Controller.Controller_Command_Executed
          and then Files.Model.Tree_Panel.Scroll_Rows (Model) = 1,
          "targeted folder-tree scrolling advances the first requested row");
       Ignored :=
         Files.Controller.Handle_Targeted_Scroll
-          (Model, Files.Events.Scroll_Tree_Panel, -1);
+          (Model, Files.Input_Actions.Scroll_Tree_Panel, -1);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Tree_Panel.Scroll_Rows (Model),
          0,
@@ -68,7 +69,7 @@ separate (Files_Suite.Tree)
       begin
          Ignored :=
            Files.Controller.Handle_Targeted_Scroll
-             (Model, Files.Events.Scroll_Tree_Panel, -1);
+             (Model, Files.Input_Actions.Scroll_Tree_Panel, -1);
          Assert
            (Ignored.Status = Files.Controller.Controller_Ignored
             and then Files.Model.Revision (Model) = Before,

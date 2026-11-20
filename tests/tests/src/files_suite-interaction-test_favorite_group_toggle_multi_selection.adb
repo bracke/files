@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Disk;
 use Files.Settings.Path_References;
@@ -11,8 +12,8 @@ separate (Files_Suite.Interaction)
       Two      : constant String := Files_Suite.Support.Disk.Join (Dir, "two.txt");
       Three    : constant String := Files_Suite.Support.Disk.Join (Dir, "three.txt");
       Model    : Files.Model.Window_Model;
-      Action   : constant Files.Events.Input_Action :=
-        (Kind    => Files.Events.Command_Input_Action,
+      Action   : constant Files.Input_Actions.Input_Action :=
+        (Kind    => Files.Input_Actions.Command_Input_Action,
          Command => Files.Commands.Toggle_Favorite_Command);
    begin
       Files_Suite.Support.Disk.Reset_Root;

@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Model.Pasting;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Context_Menu)
@@ -11,11 +12,11 @@ separate (Files_Suite.Context_Menu)
       Items    : Files.Paste.Work_Item_Vectors.Vector;
       Existing : Files.Types.String_Vectors.Vector;
 
-      function Click (Button : Files.Events.Conflict_Button_Kind) return Files.Events.Input_Action is
-        (Kind            => Files.Events.Conflict_Click_Input_Action,
+      function Click (Button : Files.Input_Actions.Conflict_Button_Kind) return Files.Input_Actions.Input_Action is
+        (Kind            => Files.Input_Actions.Conflict_Click_Input_Action,
          Conflict_Button => Button);
 
-      procedure Apply (Button : Files.Events.Conflict_Button_Kind) is
+      procedure Apply (Button : Files.Input_Actions.Conflict_Button_Kind) is
       begin
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Click (Button),
@@ -26,7 +27,7 @@ separate (Files_Suite.Context_Menu)
       declare
          Revision : constant Natural := Files.Model.Revision (Model);
       begin
-         Apply (Files.Events.Conflict_Button_Apply_All);
+         Apply (Files.Input_Actions.Conflict_Button_Apply_All);
          Assert
            (Files.Model.Revision (Model) = Revision
             and then not Files.Model.Pasting.Conflict_Apply_All (Model),
@@ -38,7 +39,7 @@ separate (Files_Suite.Context_Menu)
       begin
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",
-            (Kind => Files.Events.Foreground_Job_Cancel_Input_Action),
+            (Kind => Files.Input_Actions.Foreground_Job_Cancel_Input_Action),
             Guikit.Input.No_Modifiers, Result);
          Assert
            (Files.Model.Revision (Model) = Revision,
@@ -61,20 +62,20 @@ separate (Files_Suite.Context_Menu)
       declare
          Revision : constant Natural := Files.Model.Revision (Model);
       begin
-         Apply (Files.Events.No_Conflict_Button);
+         Apply (Files.Input_Actions.No_Conflict_Button);
          Assert
            (Files.Model.Pasting.Conflict_Is_Active (Model)
             and then Files.Model.Revision (Model) = Revision,
             "no conflict button leaves the active dialog untouched");
       end;
 
-      Apply (Files.Events.Conflict_Button_Apply_All);
+      Apply (Files.Input_Actions.Conflict_Button_Apply_All);
       Assert
         (Files.Model.Pasting.Conflict_Is_Active (Model)
          and then Files.Model.Pasting.Conflict_Apply_All (Model),
          "the valid apply-all control still toggles the active dialog");
 
-      Apply (Files.Events.Conflict_Button_Cancel);
+      Apply (Files.Input_Actions.Conflict_Button_Cancel);
       Assert
         (not Files.Model.Pasting.Conflict_Is_Active (Model),
          "the explicit cancel control still closes the conflict dialog");

@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files_Suite.Info)
    procedure Test_Info_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,7 +21,7 @@ separate (Files_Suite.Info)
          Write_Binary_File (Join (Root, "new.txt"), "new");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",
-            (Kind => Files.Events.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command),
+            (Kind => Files.Input_Actions.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command),
             Guikit.Input.No_Modifiers, Routed);
          Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)), "the refresh is scheduled");
          Await_View (Model, Settings, Applied);

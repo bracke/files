@@ -1,3 +1,4 @@
+with Files.Settings_Form;
 with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Model.Settings_Pane;
@@ -27,7 +28,7 @@ separate (Files_Suite.Commands)
          Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       begin
          Draft.Scalars (Files.Settings.Icon_Theme_Setting) := To_Unbounded_String ("files-basic");
-         Files.Model.Settings_Pane.Set_Draft (Model, Draft);
+         Files.Settings_Form.Set_Draft (Model, Draft);
       end;
       Files_Suite.Support.Assert_Equal
         (Files.Model.Settings_Pane.Focused_Value (Model),
@@ -69,7 +70,7 @@ separate (Files_Suite.Commands)
          Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       begin
          Bad.Scalars (Files.Settings.Show_Hidden_Files_Setting) := To_Unbounded_String ("maybe");
-         Files.Model.Settings_Pane.Set_Draft (Model, Bad);
+         Files.Settings_Form.Set_Draft (Model, Bad);
       end;
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
@@ -84,7 +85,7 @@ separate (Files_Suite.Commands)
          Good : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       begin
          Good.Scalars (Files.Settings.Show_Hidden_Files_Setting) := To_Unbounded_String ("true");
-         Files.Model.Settings_Pane.Set_Draft (Model, Good);
+         Files.Settings_Form.Set_Draft (Model, Good);
       end;
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal

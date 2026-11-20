@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Model.Tree_Panel;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Disk;
@@ -16,7 +17,7 @@ separate (Files_Suite.Tree)
       procedure Run (Command : Files.Commands.Command_Id) is
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, Path, (Kind => Files.Events.Command_Input_Action, Command => Command),
+           (Model, Settings, Path, (Kind => Files.Input_Actions.Command_Input_Action, Command => Command),
             Guikit.Input.No_Modifiers, Result);
       end Run;
 
@@ -48,11 +49,11 @@ separate (Files_Suite.Tree)
          Current : constant String := Files.Model.Current_Path (Model);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, Path, (Kind => Files.Events.Path_Favorite_Toggle_Input_Action),
+           (Model, Settings, Path, (Kind => Files.Input_Actions.Path_Favorite_Toggle_Input_Action),
             Guikit.Input.No_Modifiers, Result);
          Assert (Tree_Has_Root (Current), "the path bar's star adds the folder to the shown tree's roots");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, Path, (Kind => Files.Events.Path_Favorite_Toggle_Input_Action),
+           (Model, Settings, Path, (Kind => Files.Input_Actions.Path_Favorite_Toggle_Input_Action),
             Guikit.Input.No_Modifiers, Result);
          Assert (not Tree_Has_Root (Current), "the path bar's star takes it out again");
       end;

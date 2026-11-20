@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  With grouping on, the rows hold group headers between the items, so an
    --  item's visible index is not its row position: a click in the rename
@@ -57,7 +58,7 @@ separate (Files_Suite.Rendering)
                begin
                   Rename_Field_Extent (Cell, Snapshot.View_Mode, True, Field_X, Field_W, Line_H);
                   declare
-                     Action : constant Files.Events.Input_Action :=
+                     Action : constant Files.Input_Actions.Input_Action :=
                        Files.Events.Translate_Click
                          (Snapshot, Frame,
                           X           => Field_X + Field_W - 1,
@@ -67,7 +68,7 @@ separate (Files_Suite.Rendering)
                           Line_Height => Line_H);
                   begin
                      Files_Suite.Support.Assert_Equal
-                       (Action.Kind, Files.Events.Text_Click_Input_Action,
+                       (Action.Kind, Files.Input_Actions.Text_Click_Input_Action,
                         "a click in a grouped row's rename field is a text click");
                      Files_Suite.Support.Assert_Equal
                        (Action.Field_Item, Renamed, "the click carries the clicked item's visible index");

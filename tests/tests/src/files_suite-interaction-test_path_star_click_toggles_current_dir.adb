@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -16,7 +17,7 @@ separate (Files_Suite.Interaction)
 
       --  Rebuild the real snapshot/frame each time and translate a click at the
       --  star's center, so the assertion drives the same seam the shell drives.
-      function Star_Action return Files.Events.Input_Action is
+      function Star_Action return Files.Input_Actions.Input_Action is
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Frame    : constant Files.Rendering.Frame_Commands :=
@@ -37,11 +38,11 @@ separate (Files_Suite.Interaction)
       --  The star coordinate resolves to the favorite-toggle action, not to
       --  focusing the path field or navigating a breadcrumb.
       declare
-         Action : constant Files.Events.Input_Action := Star_Action;
+         Action : constant Files.Input_Actions.Input_Action := Star_Action;
       begin
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Path_Favorite_Toggle_Input_Action,
+            Files.Input_Actions.Path_Favorite_Toggle_Input_Action,
             "a click on the empty path star translates to the favorite-toggle action");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
@@ -60,11 +61,11 @@ separate (Files_Suite.Interaction)
       --  The snapshot now reports the favorited state (filled star); clicking
       --  the same zone again removes the favorite.
       declare
-         Action : constant Files.Events.Input_Action := Star_Action;
+         Action : constant Files.Input_Actions.Input_Action := Star_Action;
       begin
          Files_Suite.Support.Assert_Equal
            (Action.Kind,
-            Files.Events.Path_Favorite_Toggle_Input_Action,
+            Files.Input_Actions.Path_Favorite_Toggle_Input_Action,
             "a second click on the now-filled path star is still the favorite-toggle action");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);

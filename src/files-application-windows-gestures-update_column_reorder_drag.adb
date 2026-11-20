@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Rendering.Layouts;
 separate (Files.Application.Windows.Gestures)
 procedure Update_Column_Reorder_Drag
@@ -73,7 +74,7 @@ is
       then
          Dispatch_Click_Action
            (Runtime,
-            (Kind    => Files.Events.Command_Input_Action,
+            (Kind    => Files.Input_Actions.Command_Input_Action,
              Command => Runtime.Column_Reorder.Sort),
             Guikit.Input.No_Modifiers);
       end if;

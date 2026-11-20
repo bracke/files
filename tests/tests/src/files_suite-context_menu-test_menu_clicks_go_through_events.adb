@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Model.Clipboard;
 with Guikit.Draw;
 with Files.Model.Context_Menu;
@@ -11,7 +12,7 @@ separate (Files_Suite.Context_Menu)
    --  a click on its node's centre -- runs that row's command.
    procedure Test_Menu_Clicks_Go_Through_Events (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Events.Input_Action_Kind;
+      use type Files.Input_Actions.Input_Action_Kind;
       use type Guikit.Draw.Accessibility_Role;
       use type Files.Commands.Context_Menu_Row_Kind;
       Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
@@ -24,11 +25,11 @@ separate (Files_Suite.Context_Menu)
       begin
          Item_Center (Model, 2, X, Y, Found);
          Assert (Found, "a layout cell exists for the menu-anchor item");
-         Dispatch_Right_Click (Model, Settings, Files.Events.On_Main_View, 2, X, Y, Result);
+         Dispatch_Right_Click (Model, Settings, Files.Input_Actions.On_Main_View, 2, X, Y, Result);
          Assert (Files.Model.Context_Menu.Is_Open (Model), "the context menu opens");
       end Open_Menu;
 
-      function Click (X, Y : Natural) return Files.Events.Input_Action is
+      function Click (X, Y : Natural) return Files.Input_Actions.Input_Action is
          Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
       begin
          return
@@ -38,7 +39,7 @@ separate (Files_Suite.Context_Menu)
               X        => X, Y => Y, Width => Window_W, Height => Window_H, Line_Height => Line);
       end Click;
 
-      Copy_Action : Files.Events.Input_Action;
+      Copy_Action : Files.Input_Actions.Input_Action;
       Buttons     : Natural := 0;
    begin
       Open_Menu;
@@ -54,12 +55,12 @@ separate (Files_Suite.Context_Menu)
          for Node of Frame.Accessibility loop
             if Node.Role = Guikit.Draw.Role_Button and then Node.Enabled then
                declare
-                  Action : constant Files.Events.Input_Action :=
+                  Action : constant Files.Input_Actions.Input_Action :=
                     Files.Window_Policy.Accessibility_Action
                       (Click (Node.X + Node.Width / 2, Node.Y + Node.Height / 2), Activate => True);
                begin
                   Assert
-                    (Action.Kind = Files.Events.Context_Menu_Command_Input_Action,
+                    (Action.Kind = Files.Input_Actions.Context_Menu_Command_Input_Action,
                      Ada.Strings.Unbounded.To_String (Node.Name) & " is a menu row to a click on its centre");
                   Buttons := Buttons + 1;
                   if Action.Menu_Command = Files.Commands.Copy_Selected_Items_Command then
@@ -70,7 +71,7 @@ separate (Files_Suite.Context_Menu)
          end loop;
          Assert (Buttons >= 2, "the menu's rows are offered as buttons:" & Buttons'Image);
          Assert
-           (Copy_Action.Kind = Files.Events.Context_Menu_Command_Input_Action,
+           (Copy_Action.Kind = Files.Input_Actions.Context_Menu_Command_Input_Action,
             "the item menu offers Copy to a screen reader");
          --  A separator is part of the menu, not a choice: swallowed.
          for Row in 1 .. Menu.Row_Count loop
@@ -78,7 +79,7 @@ separate (Files_Suite.Context_Menu)
                Assert
                  (Click (Menu.X + Menu.Width / 2,
                          Files.Rendering.Layouts.Context_Menu_Row_Top (Menu, Row)).Kind
-                  = Files.Events.No_Input_Action,
+                  = Files.Input_Actions.No_Input_Action,
                   "a click on a separator is swallowed");
                exit;
             end if;
@@ -100,10 +101,10 @@ separate (Files_Suite.Context_Menu)
            Files.Rendering.Layouts.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
          Outside  : constant Natural :=
            (if Menu.X >= 10 then Menu.X - 5 else Menu.X + Menu.Width + 5);
-         Action   : constant Files.Events.Input_Action := Click (Outside, Menu.Y + Menu.Height / 2);
+         Action   : constant Files.Input_Actions.Input_Action := Click (Outside, Menu.Y + Menu.Height / 2);
       begin
          Assert
-           (Action.Kind = Files.Events.Command_Input_Action
+           (Action.Kind = Files.Input_Actions.Command_Input_Action
             and then Action.Command = Files.Commands.Close_Overlay_Command,
             "a click beside the open menu closes it");
          Files.Interaction.Apply_Input_Action (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);

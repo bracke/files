@@ -1,3 +1,4 @@
+with Files.Input_Actions;
 with Files.Model.Settings_Pane;
 separate (Files_Suite.Model)
    procedure Test_Info_Pane_Scroll_Resets_And_Settings_Block (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -46,7 +47,7 @@ separate (Files_Suite.Model)
            Model,
            Settings);
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane opens over info pane");
-      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Settings_Pane, 3);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Settings_Pane, 3);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
@@ -55,7 +56,7 @@ separate (Files_Suite.Model)
         (Files.Model.Info_Pane_Scroll_Lines (Model),
          0,
          "settings wheel scroll leaves info pane still");
-      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.No_Scroll_Target, 10);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.No_Scroll_Target, 10);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -64,7 +65,7 @@ separate (Files_Suite.Model)
         (Files.Model.Info_Pane_Scroll_Lines (Model),
          0,
          "an untargeted wheel step leaves info pane still");
-      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, 10);
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Info_Pane, 10);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
