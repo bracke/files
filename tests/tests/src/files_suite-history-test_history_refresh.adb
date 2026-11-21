@@ -76,7 +76,7 @@ separate (Files_Suite.History)
                   Sources.Append (To_Unbounded_String (Source_B));
                   Destinations.Append (To_Unbounded_String (Dest_A));
                   Destinations.Append (To_Unbounded_String (Dest_B));
-                  Files.Undo.Recording.Record_Undo
+                  Files.Operations.Undo_Recording.Record_Undo
                     (Model, Files.Undo.History.Undo_Move,
                      Files_Suite.Support.Models.Undo_Items (Destinations, To => Sources));
                   Files.Model.Set_Background_Transfers (Model, Background);

@@ -120,7 +120,7 @@ package body Files.Application.Windows.Gestures is
          Column       => Runtime.Column_Resize.Target,
          Origin_X     => Runtime.Column_Resize.Origin_X,
          Origin_Width => Runtime.Column_Resize.Origin_W,
-         Current_X    => Files.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W),
+         Current_X    => Files.Application.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W),
          Result       => Result,
          Line_Height  => Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
       if Result.Settings_Changed then

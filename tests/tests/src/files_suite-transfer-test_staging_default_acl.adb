@@ -1,6 +1,6 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
-with Files.Jobs.Foreground;
+with Files.Job_Drivers.Foreground;
 with Files.Fs_Primitives;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
@@ -218,7 +218,7 @@ separate (Files_Suite.Transfer)
                  (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, False));
                Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy, False);
                Step := Complete_Operation
-                 (Model, Settings, Files.Jobs.Foreground.Advance (Model, Settings, 1));
+                 (Model, Settings, Files.Job_Drivers.Foreground.Advance (Model, Settings, 1));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,

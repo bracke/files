@@ -2,7 +2,7 @@ with Files.Preference_Types;
 with Ada.Calendar;
 with Ada.Real_Time;
 with Files.Rendering.Testing;
-with Files.Snapshot_Slots;
+with Files.Application.Snapshot_Slots;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Rendering)
@@ -11,11 +11,11 @@ separate (Files_Suite.Rendering)
    --  screen is left as it was drawn until the next frame.
    procedure Test_Snapshot_Slots_Track_The_Model (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Snapshot_Slots.Snapshot_Slot;
+      use type Files.Application.Snapshot_Slots.Snapshot_Slot;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Items    : Files.Items.Item_Vectors.Vector;
-      View     : Files.Snapshot_Slots.View_Slots;
+      View     : Files.Application.Snapshot_Slots.View_Slots;
       --  One wall-clock time throughout, so a minute turning over mid-test
       --  cannot make a refresh and the rebuild it is compared with differ.
       Wall     : constant Ada.Calendar.Time := Ada.Calendar.Clock;
@@ -27,7 +27,7 @@ separate (Files_Suite.Rendering)
          Was_Valid    : constant Boolean := View.Snapshot_Valid;
       begin
          Change.all;
-         Files.Snapshot_Slots.Refresh (View, Model, Settings, Ada.Real_Time.Clock, Wall);
+         Files.Application.Snapshot_Slots.Refresh (View, Model, Settings, Ada.Real_Time.Clock, Wall);
          Assert (View.Snapshots (View.Current_Slot) = Files.Rendering.Testing.Build_Snapshot_At (Model, Settings, Wall),
                  Name & ": the current snapshot is the one a rebuild gives");
          if Was_Valid and then View.Current_Slot /= View.Drawn_Slot then

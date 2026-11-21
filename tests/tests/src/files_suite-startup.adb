@@ -24,7 +24,7 @@ with Files.Timing;
 with Ada.Calendar;
 with Ada.Real_Time;
 with Files.Application.Windows;
-with Files.Window_Policy;
+with Files.Application.Window_Policy;
 with Files.Application.Windows.Smoke;
 with Files.Commands;
 with Files.Drop_Events;

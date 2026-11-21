@@ -1,7 +1,7 @@
-with Files.Event_Wait;
+with Files.Application.Event_Wait;
 separate (Files.Application.Windows)
    function Event_Loop_Wait (Runtime_Windows : Runtime_Window_Vectors.Vector) return Duration is
-      Pending : Files.Event_Wait.Pending_List (1 .. Natural (Runtime_Windows.Length));
+      Pending : Files.Application.Event_Wait.Pending_List (1 .. Natural (Runtime_Windows.Length));
       Open    : Natural := 0;
    begin
       --  Gather what each open window has pending; the fold (tested in the
@@ -17,7 +17,7 @@ separate (Files.Application.Windows)
          end if;
       end loop;
       return
-        Files.Event_Wait.Fold
+        Files.Application.Event_Wait.Fold
           (Now     => Ada.Real_Time.Clock,
            Windows => Pending (1 .. Open),
            Limit   => Event_Wait_Timeout,

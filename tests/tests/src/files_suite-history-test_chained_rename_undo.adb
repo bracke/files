@@ -19,7 +19,7 @@ separate (Files_Suite.History)
               "rename b to c, then a to b");
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Undo.Recording.Record_Undo
+      Files.Operations.Undo_Recording.Record_Undo
         (Model, Files.Undo.History.Undo_Rename,
          Files_Suite.Support.Models.Undo_Items
            (From => [To_Unbounded_String (C), To_Unbounded_String (B)],

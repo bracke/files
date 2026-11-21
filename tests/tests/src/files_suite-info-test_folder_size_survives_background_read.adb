@@ -65,7 +65,7 @@ separate (Files_Suite.Info)
                  "the background read leaves the measurement running");
 
          for Attempt in Files_Suite.Support.Timing.Polling loop
-            exit when Files.Jobs.Refresh.Advance (Model, Settings)
+            exit when Files.Refresh.Advance (Model, Settings)
               or else not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model));
          end loop;
          Files.Window_Polls.Update_Folder_Size (Model);

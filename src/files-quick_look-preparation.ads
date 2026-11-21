@@ -2,7 +2,7 @@ with Files.Items;
 
 --  Quick Look content for a listed item: the bounded filesystem read the
 --  pure Files.Quick_Look.Prepare_Content needs, done here so callers that
---  open or refresh a preview (Files.Operations, Files.Jobs.Refresh) share
+--  open or refresh a preview (Files.Operations, Files.Refresh) share
 --  one preparation without depending on each other.
 package Files.Quick_Look.Preparation is
 

@@ -20,8 +20,8 @@ separate (Files.Application.Windows.Gestures)
          return;
       end if;
 
-      X_Frame := Files.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W);
-      Y_Frame := Files.Window_Policy.Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+      X_Frame := Files.Application.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W);
+      Y_Frame := Files.Application.Window_Policy.Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
 
       if not Mouse_Down then
          --  Released: end the gesture and stop drawing the rectangle, keeping
@@ -36,7 +36,7 @@ separate (Files.Application.Windows.Gestures)
 
       if not Runtime.Marquee.Moved then
          --  Frame pixels: the drag distance is scaled to them.
-         if Files.Window_Policy.Is_Drag
+         if Files.Application.Window_Policy.Is_Drag
            (Long_Float (X_Frame - Runtime.Marquee.Origin_X), Long_Float (Y_Frame - Runtime.Marquee.Origin_Y),
             Runtime.Pixel_Ratio)
          then

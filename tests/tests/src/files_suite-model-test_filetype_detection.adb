@@ -17,9 +17,9 @@ separate (Files_Suite.Model)
       Executable_Ada_Item : Files.Items.Directory_Item;
       Symlink_Ada_Item : Files.Items.Directory_Item;
       C1_Break : constant Character := Character'Val (133);
-      NBSP : constant String := Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#));
+      NBSP : constant String := Files.Application.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#));
       Line_Separator : constant String :=
-        Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#));
+        Files.Application.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#));
    begin
       Files.Settings.Testing.Add_Extension_Mapping (Settings, "adb", "text/x-ada");
       Files.Settings.Testing.Add_Extension_Mapping (Settings, "profile", "text/x-profile");

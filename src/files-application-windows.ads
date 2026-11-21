@@ -1,8 +1,8 @@
 with Files.Preference_Types;
 with Glfw.Windows.Drop.Paths;
 with Files.Model;
-with Files.Jobs.Refresh;
-with Files.Window_Policy;
+with Files.Refresh;
+with Files.Application.Window_Policy;
 with Guikit.Layout;
 with Guikit.Vulkan;
 with Glfw;
@@ -13,14 +13,14 @@ private with Ada.Exceptions;
 private with Ada.Real_Time;
 private with Ada.Strings.Unbounded;
 private with A11ykit.Provider;
-private with Files.Accessibility;
+private with Files.Application.Accessibility;
 private with Files.Commands;
 private with Files.Drop_Events;
 private with Files.Input_Actions;
 private with Files.Overlays;
 private with Files.Rendering;
 private with Files.Rendering.Text;
-private with Files.Snapshot_Slots;
+private with Files.Application.Snapshot_Slots;
 private with Files.Settings;
 private with Files.Types;
 private with Glfw.Input.Keys;
@@ -34,7 +34,7 @@ package Files.Application.Windows is
    Desktop_Error : exception;
 
    --  What this host offers a desktop run, found without opening a window.
-   subtype Desktop_Capabilities is Files.Window_Policy.Desktop_Capabilities;
+   subtype Desktop_Capabilities is Files.Application.Window_Policy.Desktop_Capabilities;
 
    --  Create one GLFW window for each startup window and run until all close.
    --
@@ -53,7 +53,7 @@ package Files.Application.Windows is
    --  @param Watch Closing window's native notification session to release.
    procedure Release_Window_Jobs
      (Model : in out Files.Model.Window_Model;
-      Watch : in out Files.Jobs.Refresh.Watch_Session);
+      Watch : in out Files.Refresh.Watch_Session);
 
    --  Return whether a live desktop display appears available.
    --
@@ -178,8 +178,8 @@ private
    --  always is (subtracting Never instead would overflow the Time_Span).
    Never : constant Ada.Real_Time.Time := Ada.Real_Time.Time_First;
 
-   --  A window keeps two view snapshots (see Files.Snapshot_Slots).
-   subtype Snapshot_Slot is Files.Snapshot_Slots.Snapshot_Slot;
+   --  A window keeps two view snapshots (see Files.Application.Snapshot_Slots).
+   subtype Snapshot_Slot is Files.Application.Snapshot_Slots.Snapshot_Slot;
    use type Snapshot_Slot;
 
    --  One window-layer overlay's draw commands (command palette or settings
@@ -280,7 +280,7 @@ private
 
    type Runtime_Window is record
       Handle          : Window_Access;
-      A11y_Key        : Files.Accessibility.Window_Key := 0;
+      A11y_Key        : Files.Application.Accessibility.Window_Key := 0;
       --  This window's part of the screen reader's tree.
       Model           : Files.Model.Window_Model;
       Settings        : Files.Settings.Settings_Model;
@@ -360,8 +360,8 @@ private
       --  the present gate may then skip.
       Present_Grace              : Natural := 0;
       --  The window's view snapshots, current and drawn, and what keeps them
-      --  current (Files.Snapshot_Slots; Refresh_Snapshot refreshes them).
-      View                 : Files.Snapshot_Slots.View_Slots;
+      --  current (Files.Application.Snapshot_Slots; Refresh_Snapshot refreshes them).
+      View                 : Files.Application.Snapshot_Slots.View_Slots;
       Cached_Frame         : Files.Rendering.Frame_Commands;
       --  The Details rows' texts Cached_Frame was drawn with, kept for the
       --  next frame drawn from the same snapshot build (a pointer move).
@@ -382,14 +382,14 @@ private
       Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
         Guikit.Vulkan.Vulkan_Not_Initialized;
       Last_Watch_Poll : Ada.Real_Time.Time := Never;
-      Watch : Files.Jobs.Refresh.Watch_Session;
+      Watch : Files.Refresh.Watch_Session;
       --  How often the watch and the timed re-read may reload the folder.
-      Watch_Pacing : Files.Jobs.Refresh.Watch_Pacer;
+      Watch_Pacing : Files.Refresh.Watch_Pacer;
    end record;
 
    --  The setting's text size in this window's framebuffer pixels.
    function Scaled_Font_Size (Runtime : Runtime_Window) return Positive is
-     (Files.Window_Policy.Scaled_Font_Size (Runtime.Settings.Font_Pixel_Size, Runtime.Pixel_Ratio));
+     (Files.Application.Window_Policy.Scaled_Font_Size (Runtime.Settings.Font_Pixel_Size, Runtime.Pixel_Ratio));
 
    package Runtime_Window_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,

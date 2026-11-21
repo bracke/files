@@ -7,7 +7,7 @@ separate (Files.Application.Windows.Render_Window)
       --  display, a scaled Wayland output), text is drawn that much larger.
       declare
          Ratio : constant Float :=
-           Files.Window_Policy.Pixel_Ratio (Natural (Width), Natural (Window_W), Runtime.Pixel_Ratio);
+           Files.Application.Window_Policy.Pixel_Ratio (Natural (Width), Natural (Window_W), Runtime.Pixel_Ratio);
       begin
          --  The one place the live size follows the settings: this window's
          --  scale changed, its own zoom or settings save changed the size, or

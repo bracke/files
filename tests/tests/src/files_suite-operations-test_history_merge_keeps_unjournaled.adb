@@ -155,7 +155,7 @@ separate (Files_Suite.Operations)
       end loop;
 
       --  The same through a real background job's finish
-      --  (Files.Jobs.Operation.Advance), not only the merge it calls: a
+      --  (Files.Job_Drivers.Operation.Advance), not only the merge it calls: a
       --  duplicate run by a helper records its entry on top, and the entry
       --  the journal left out stays under it.
       Reset_Root;

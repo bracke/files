@@ -30,5 +30,5 @@ separate (Files_Suite.Refresh)
       Assert (Applied, "its result applies");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the new file is listed");
    exception
-      when others => Files.Jobs.Refresh.Cancel (Model); raise;
+      when others => Files.Refresh.Cancel (Model); raise;
    end Test_Refresh_Applies_With_Refused_Settings;

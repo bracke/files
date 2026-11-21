@@ -1,7 +1,7 @@
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
    --  The cross-window settings sync as the window layer runs it: Share_From
-   --  with Files.Settings_Sharing.Adopt_Window as its Adopt, the very call
+   --  with Files.Application.Settings_Sharing.Adopt_Window as its Adopt, the very call
    --  Files.Application.Windows.Share_Settings_From makes over a window's
    --  own fields, here over three stand-in windows with real models. A
    --  change in one window reaches each of the others, and each of them
@@ -32,14 +32,14 @@ separate (Files_Suite.Interaction)
 
       procedure Adopt (Windows : in out Stand_Ins; Target : Positive; Source : Positive) is
       begin
-         Files.Settings_Sharing.Adopt_Window
+         Files.Application.Settings_Sharing.Adopt_Window
            (Model             => Windows (Target).Model,
             Settings          => Windows (Target).Settings,
             Shared            => Windows (Source).Settings,
             Frame_Cache_Valid => Windows (Target).Frame_Cache_Valid);
       end Adopt;
 
-      procedure Share is new Files.Settings_Sharing.Share_From
+      procedure Share is new Files.Application.Settings_Sharing.Share_From
         (Window_Set      => Stand_Ins,
          Revision        => Revision,
          Synced_Revision => Synced_Revision,

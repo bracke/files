@@ -12,7 +12,7 @@ separate (Files.Application.Windows)
       --  escape it into GLFW.
       --  Window coordinates: the drag distance counts window pixels as is.
       if Object.Left_Mouse_Down
-        and then Files.Window_Policy.Is_Drag
+        and then Files.Application.Window_Policy.Is_Drag
                    (Long_Float (X - Object.Drag_Start_X), Long_Float (Y - Object.Drag_Start_Y), Pixel_Ratio => 1.0)
       then
          Object.Drag_Moved := True;

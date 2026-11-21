@@ -1,6 +1,6 @@
 with Files.Preference_Types;
 with Files.Input_Actions;
-with Files.Window_Policy;
+with Files.Application.Window_Policy;
 with Guikit.Mirroring;
 separate (Files_Suite.Rendering)
    --  A right-to-left window shows its frame mirrored, and a screen reader
@@ -21,7 +21,7 @@ separate (Files_Suite.Rendering)
          if Node.Role = Guikit.Draw.Role_Text_Input then
             declare
                Action : constant Files.Input_Actions.Input_Action :=
-                 Files.Window_Policy.Field_Request (Node.X, Node.Y, Node.Width, Node.Height, Width, 20);
+                 Files.Application.Window_Policy.Field_Request (Node.X, Node.Y, Node.Width, Node.Height, Width, 20);
             begin
                Assert (Action.Kind = Files.Input_Actions.Command_Input_Action, To_String (Node.Name) & " is answered");
                Path_Seen := Path_Seen or else Action.Command = Files.Commands.Focus_Path_Input_Command;
@@ -32,7 +32,8 @@ separate (Files_Suite.Rendering)
       Guikit.Mirroring.Set_Mirrored_Layout (False);
       Assert (Path_Seen and then Filter_Seen, "both fields are focused by a request on their shown boxes");
       Files_Suite.Support.Assert_Equal
-        (Files.Window_Policy.Unmirrored_Node_X (10, 30, Width), 10, "unmirrored, a box stays where it is shown");
+        (Files.Application.Window_Policy.Unmirrored_Node_X (10, 30, Width), 10,
+                                                            "unmirrored, a box stays where it is shown");
    exception
       when others =>
          Guikit.Mirroring.Set_Mirrored_Layout (False);

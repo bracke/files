@@ -29,7 +29,7 @@ separate (Files_Suite.Transfer)
          "nothing is done before the first advance");
 
       --  Max_Items = 2 over 5 actions => completes after ceil(5 / 2) = 3 calls.
-      Step := Files.Jobs.Foreground.Advance (Model, Settings, 2);
+      Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,
@@ -40,7 +40,7 @@ separate (Files_Suite.Transfer)
          2,
          "the first batch completes two writes");
 
-      Step := Files.Jobs.Foreground.Advance (Model, Settings, 2);
+      Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,
@@ -51,7 +51,7 @@ separate (Files_Suite.Transfer)
          4,
          "progress advances to four writes");
 
-      Step := Files.Jobs.Foreground.Advance (Model, Settings, 2);
+      Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,

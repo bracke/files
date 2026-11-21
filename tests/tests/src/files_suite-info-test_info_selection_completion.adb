@@ -41,5 +41,5 @@ separate (Files_Suite.Info)
       Files.Window_Polls.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));
       Files_Suite.Support.Assert_Equal (Revision, Files.Model.Revision (Model), "completed details remain cached");
    exception
-      when others => Files.Jobs.Refresh.Cancel (Model); raise;
+      when others => Files.Refresh.Cancel (Model); raise;
    end Test_Info_Selection_Completion;

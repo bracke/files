@@ -30,7 +30,7 @@ separate (Files_Suite.History)
       Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
-      Step := Files.Jobs.Foreground.Advance (Model, Settings, 8);
+      Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                         "the move paste succeeds");
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the move paste finalizes");

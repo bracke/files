@@ -3,7 +3,7 @@ with Files.Model.Clipboard;
 with Guikit.Draw;
 with Files.Model.Context_Menu;
 with Files.Rendering.Layouts;
-with Files.Window_Policy;
+with Files.Application.Window_Policy;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Context_Menu)
    --  A press on the open context menu is translated by Files.Events like any
@@ -56,7 +56,7 @@ separate (Files_Suite.Context_Menu)
             if Node.Role = Guikit.Draw.Role_Button and then Node.Enabled then
                declare
                   Action : constant Files.Input_Actions.Input_Action :=
-                    Files.Window_Policy.Accessibility_Action
+                    Files.Application.Window_Policy.Accessibility_Action
                       (Click (Node.X + Node.Width / 2, Node.Y + Node.Height / 2), Activate => True);
                begin
                   Assert

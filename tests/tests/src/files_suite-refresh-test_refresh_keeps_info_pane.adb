@@ -38,7 +38,7 @@ separate (Files_Suite.Refresh)
       procedure Watch_Refresh (Name : String) is
       begin
          Write_Binary_File (Join (Root, Name), "new");
-         Step := Files.Jobs.Refresh.Start (Model, Settings);
+         Step := Files.Refresh.Start (Model, Settings);
          Await_View (Model, Settings);
          Assert (Listed (Name), "the refresh picks up " & Name);
       end Watch_Refresh;
@@ -69,7 +69,7 @@ separate (Files_Suite.Refresh)
 
       --  A forced reload reads them afresh too.
       Files.Model.Set_Info_Pane_Scroll_Lines (Model, 2);
-      Step := Files.Jobs.Refresh.Start (Model, Settings, Force => True);
+      Step := Files.Refresh.Start (Model, Settings, Force => True);
       Await_View (Model, Settings);
       Assert (not Marked, "a forced reload reads the details again");
       Files_Suite.Support.Assert_Equal

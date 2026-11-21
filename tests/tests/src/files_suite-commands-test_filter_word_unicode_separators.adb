@@ -11,7 +11,8 @@ separate (Files_Suite.Commands)
       Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Focus_Filter_Input (Model);
       declare
-         NBSP : constant String := Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#));
+         NBSP : constant String := Files.Application.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val
+           (16#00A0#));
       begin
          Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & NBSP & "beta");
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
@@ -40,7 +41,7 @@ separate (Files_Suite.Commands)
       --  Words of multibyte letters: offsets are bytes, a word is whole letters.
       declare
          function U (Code : Natural) return String is
-           (Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (Code)));
+           (Files.Application.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (Code)));
          Cafe : constant String := "caf" & U (16#E9#);                    --  5 bytes
          Uber : constant String := U (16#FC#) & "ber";                    --  5 bytes
          Nihongo : constant String := U (16#65E5#) & U (16#672C#) & U (16#8A9E#);  --  9 bytes
@@ -83,7 +84,7 @@ separate (Files_Suite.Commands)
       end;
       declare
          Line_Separator : constant String :=
-           Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#));
+           Files.Application.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#));
       begin
          Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & Line_Separator & "beta");
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);

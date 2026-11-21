@@ -4,7 +4,7 @@ with Files.Operation_Results;
 with Ada.Calendar;
 with Ada.Containers;
 with Files.Window_Polls;
-with Files.Jobs.Foreground;
+with Files.Job_Drivers.Foreground;
 with Files.Preview_Decoder;
 with Files.Extra_Info_Reader;
 with Files.Controller;
@@ -16,7 +16,7 @@ with Glfw.Input.Keys.Codes;
 with Glfw.Input.Keys.Layout;
 with Glfw.Windows.Modifiers;
 with Glfw.Windows.Clipboard;
-with Files.Window_Icon;
+with Files.Application.Window_Icon;
 with Glfw.Windows.Native;
 with Glfw.Windows.Vulkan;
 
@@ -43,7 +43,8 @@ package body Files.Application.Windows is
    use type Guikit.Vulkan.Vulkan_Status;
    use type Files.Rendering.View_Snapshot;
 
-   function Key_Repeats (Key : Guikit.Input.Key_Code) return Boolean renames Files.Window_Policy.Key_Repeats;
+   function Key_Repeats (Key : Guikit.Input.Key_Code) return Boolean
+     renames Files.Application.Window_Policy.Key_Repeats;
 
    Type_Ahead_Timeout : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
    --  The event loop always waits this long: input, window refresh, and posted
@@ -176,7 +177,7 @@ package body Files.Application.Windows is
    --  @param Runtime Window whose current snapshot is brought up to date.
    procedure Refresh_Snapshot (Runtime : in out Runtime_Window) is
    begin
-      Files.Snapshot_Slots.Refresh
+      Files.Application.Snapshot_Slots.Refresh
         (Runtime.View, Runtime.Model, Runtime.Settings, Ada.Real_Time.Clock, Ada.Calendar.Clock);
    end Refresh_Snapshot;
 
@@ -334,7 +335,7 @@ package body Files.Application.Windows is
    --  only one of them to win).
    --  Each other window adopts them (Interaction.Adopt_Shared_Settings): an
    --  open settings pane there is refreshed, a listing whose options or type
-   --  mappings changed is reloaded. Files.Settings_Sharing.Share_From makes
+   --  mappings changed is reloaded. Files.Application.Settings_Sharing.Share_From makes
    --  the decisions. Only windows from From on take them (a window being
    --  closed in turn hands them to those not closed yet).
    procedure Share_Settings_From
@@ -423,7 +424,7 @@ package body Files.Application.Windows is
 
    procedure Release_Window_Jobs
      (Model : in out Files.Model.Window_Model;
-      Watch : in out Files.Jobs.Refresh.Watch_Session) is separate;
+      Watch : in out Files.Refresh.Watch_Session) is separate;
 
    --  Poll every window's watched directory for changes.
    procedure Handle_All_File_Watch_Poll
@@ -435,7 +436,7 @@ package body Files.Application.Windows is
    --  How long the event loop may wait for input: Paste_Wait_Timeout while
    --  any window carries out a paste through a helper process, else
    --  Event_Wait_Timeout, cut short to when a held-back mouse release
-   --  (Guikit.Input.Mouse_Buttons.Ready_At) may be handled. Files.Event_Wait
+   --  (Guikit.Input.Mouse_Buttons.Ready_At) may be handled. Files.Application.Event_Wait
    --  decides each window's part.
    function Event_Loop_Wait (Runtime_Windows : Runtime_Window_Vectors.Vector) return Duration is separate;
 
@@ -662,14 +663,14 @@ package body Files.Application.Windows is
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Button);
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Position);
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Scroll);
-      Files.Window_Icon.Set (As_Window (Handle));
+      Files.Application.Window_Icon.Set (As_Window (Handle));
       --  One more than a drop may hold, so an oversized one can be refused.
       Glfw.Windows.Drop.Paths.Watch (As_Window (Handle), Handle, Limit => Files.Drop_Events.Max_Paths + 1);
       Glfw.Windows.Show (As_Window (Handle));
       Runtime_Windows.Append
         (Runtime_Window'
            (Handle          => Handle,
-            A11y_Key        => Files.Accessibility.New_Window_Key,
+            A11y_Key        => Files.Application.Accessibility.New_Window_Key,
             Model           => Startup_Window.Model,
             Settings        => Settings,
             Synced_Settings_Revision => Files.Model.Settings_Revision (Startup_Window.Model),
@@ -681,14 +682,14 @@ package body Files.Application.Windows is
       Files.Model.Set_Background_Transfers
         (Runtime_Windows.Reference (Runtime_Windows.Last_Index).Model, True);
       --  The screen reader looks at the window itself; answer it there.
-      Files.Accessibility.Attach_Window
+      Files.Application.Accessibility.Attach_Window
         (Runtime_Windows.Reference (Runtime_Windows.Last_Index).A11y_Key,
          Glfw.Windows.Native.Handle (As_Window (Handle)));
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.Application.Windows");
          if Appended then
-            Files.Accessibility.Forget (Runtime_Windows.Last_Element.A11y_Key);
+            Files.Application.Accessibility.Forget (Runtime_Windows.Last_Element.A11y_Key);
             Runtime_Windows.Delete_Last;
          end if;
          if Handle /= null then
@@ -841,19 +842,19 @@ package body Files.Application.Windows is
    end Vulkan_Runtime_Available;
 
    function Runtime_Capabilities return Desktop_Capabilities is
-     (Files.Window_Policy.Capabilities_Of (Live_Display_Available, Vulkan_Runtime_Available));
+     (Files.Application.Window_Policy.Capabilities_Of (Live_Display_Available, Vulkan_Runtime_Available));
 
    procedure Event_Loop_Pass
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
       State           : in out Event_Loop_State) is
    begin
-      Files.Accessibility.Service;
+      Files.Application.Accessibility.Service;
       declare
-         use type Files.Accessibility.Window_Key;
+         use type Files.Application.Accessibility.Window_Key;
          Request : A11ykit.Provider.Request;
-         Window  : Files.Accessibility.Window_Key;
+         Window  : Files.Application.Accessibility.Window_Key;
       begin
-         while Files.Accessibility.Next_Request (Window, Request) loop
+         while Files.Application.Accessibility.Next_Request (Window, Request) loop
             for Runtime of Runtime_Windows loop
                if Runtime.A11y_Key = Window then
                   Perform_Accessibility_Request (Runtime, Request);
@@ -862,14 +863,14 @@ package body Files.Application.Windows is
          end loop;
       end;
       declare
-         Focused : Files.Accessibility.Window_Key := 0;
+         Focused : Files.Application.Accessibility.Window_Key := 0;
       begin
          for Runtime of Runtime_Windows loop
             if Runtime.Handle /= null and then Glfw.Windows.Focused (As_Window (Runtime.Handle)) then
                Focused := Runtime.A11y_Key;
             end if;
          end loop;
-         Files.Accessibility.Set_Active (Focused);
+         Files.Application.Accessibility.Set_Active (Focused);
       end;
       Handle_All_Keyboard (Runtime_Windows);
       Handle_All_Type_Ahead_Timeout (Runtime_Windows);
@@ -924,7 +925,7 @@ package body Files.Application.Windows is
       --  Render_Window publishes a tree every time it rebuilds a frame; the
       --  first tree gives the native provider the root it needs to register.
       --  Unsupported hosts retain the semantic validation fallback.
-      Files.Accessibility.Start;
+      Files.Application.Accessibility.Start;
 
       for Startup_Window of Startup.Windows loop
          Append_Runtime_Window
@@ -965,19 +966,19 @@ package body Files.Application.Windows is
          Event_Loop_Pass (Runtime_Windows, State);
       end loop;
 
-      Files.Accessibility.Stop;
+      Files.Application.Accessibility.Stop;
       Release_All (Runtime_Windows);
       Glfw.Shutdown;
    exception
       when Desktop_Error =>
-         Files.Accessibility.Stop;
+         Files.Application.Accessibility.Stop;
          Release_All (Runtime_Windows);
          if Initialized then
             Glfw.Shutdown;
          end if;
          raise;
       when others =>
-         Files.Accessibility.Stop;
+         Files.Application.Accessibility.Stop;
          Release_All (Runtime_Windows);
          if Initialized then
             Glfw.Shutdown;

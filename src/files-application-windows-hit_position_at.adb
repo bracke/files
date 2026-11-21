@@ -9,7 +9,7 @@ separate (Files.Application.Windows)
       Cursor_Y : Glfw.Input.Mouse.Coordinate)
       return Hit_Position is
    begin
-      if not Files.Window_Policy.Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H)
+      if not Files.Application.Window_Policy.Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H)
         or else Frame_W <= 0 or else Frame_H <= 0
       then
          return (others => <>);
@@ -20,8 +20,8 @@ separate (Files.Application.Windows)
       begin
          return
            (Inside      => True,
-            X           => Files.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W),
-            Y           => Files.Window_Policy.Scale_Coordinate (Cursor_Y, Window_H, Frame_H),
+            X           => Files.Application.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W),
+            Y           => Files.Application.Window_Policy.Scale_Coordinate (Cursor_Y, Window_H, Frame_H),
             Width       => Natural (Frame_W),
             Height      => Natural (Frame_H),
             Line_Height => Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size),

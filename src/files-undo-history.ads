@@ -7,7 +7,7 @@ with Files.Types;
 --  keeps besides them. The window model holds a history
 --  (Files.Model.History works on it, and Files.Model names these types as
 --  its own); the journal (Files.Undo.Journal) and the recording of new
---  entries (Files.Undo.Recording) work on these values without a window.
+--  entries (Files.Operations.Undo_Recording) work on these values without a window.
 package Files.Undo.History is
 
    --  Which of the two history stacks, and so which way an entry is applied:
@@ -97,7 +97,7 @@ package Files.Undo.History is
      (Index_Type => Positive, Element_Type => Kept_Copy);
 
    --  How an action's record knows an item or a replaced original beyond
-   --  what it carries (Files.Undo.Recording.Try_Record_Undo). Captured: its
+   --  what it carries (Files.Operations.Undo_Recording.Try_Record_Undo). Captured: its
    --  identity -- and a creation's tree revision, an original's target -- is
    --  read when the record is made. Published: they are as the action
    --  published them, even when empty, and an empty one never verifies.

@@ -1,6 +1,6 @@
 with Files.Input_Actions;
 with Ada.Real_Time;
-with Files.Window_Policy;
+with Files.Application.Window_Policy;
 with Guikit.Settings_Panel;
 
 separate (Files_Suite.Interaction)
@@ -9,7 +9,7 @@ separate (Files_Suite.Interaction)
    --  assistive technology's request does, and when a wheel zoom is saved.
    procedure Test_Window_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      package P renames Files.Window_Policy;
+      package P renames Files.Application.Window_Policy;
       use type Ada.Real_Time.Time;
       Now : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
       Sort_By_Size : constant Files.Commands.Command_Id := Files.Commands.Sort_Command (Files.Types.Sort_Size);

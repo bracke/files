@@ -26,13 +26,13 @@ separate (Files_Suite.History)
            (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.Clear_Undo (Model);
          Older_Path.Append (To_Unbounded_String (Older));
-         Files.Undo.Recording.Record_Undo
+         Files.Operations.Undo_Recording.Record_Undo
            (Model, Files.Undo.History.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Older_Path),
             Redoable => False);
          Paths.Append (To_Unbounded_String (Unverifiable));
          Identities.Append (Null_Unbounded_String);
          Revisions.Append (Null_Unbounded_String);
-         Recorded := Files.Undo.Recording.Try_Record_Undo
+         Recorded := Files.Operations.Undo_Recording.Try_Record_Undo
            (Model, Files.Undo.History.Undo_Delete_Created,
             Files_Suite.Support.Models.Undo_Items
               (Paths, Identities => Identities, Tree_Revisions => Revisions,
@@ -58,7 +58,7 @@ separate (Files_Suite.History)
             Candidate.Append (To_Unbounded_String (Stale));
             Candidate_Identities.Append (Old_Identity);
             Candidate_Revisions.Append (Null_Unbounded_String);
-            Recorded := Files.Undo.Recording.Try_Record_Undo
+            Recorded := Files.Operations.Undo_Recording.Try_Record_Undo
               (Model, Files.Undo.History.Undo_Delete_Created,
                Files_Suite.Support.Models.Undo_Items
                  (Candidate, Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions,
@@ -83,7 +83,7 @@ separate (Files_Suite.History)
               (To_Unbounded_String (Files.File_Identities.Token (Prefix)));
             Candidate_Revisions.Append
               (To_Unbounded_String (Files.File_System.Tree_Revision (Prefix)));
-            Recorded := Files.Undo.Recording.Try_Record_Undo
+            Recorded := Files.Operations.Undo_Recording.Try_Record_Undo
               (Model, Files.Undo.History.Undo_Delete_Created,
                Files_Suite.Support.Models.Undo_Items
                  (Candidate, Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions,
@@ -103,7 +103,7 @@ separate (Files_Suite.History)
                     Provenance => Files.Undo.History.Published);
             begin
                Items (1).Provenance := Files.Undo.History.Verified;
-               Recorded := Files.Undo.Recording.Try_Record_Undo
+               Recorded := Files.Operations.Undo_Recording.Try_Record_Undo
                  (Model, Files.Undo.History.Undo_Delete_Created, Items, Redoable => False);
             end;
             Assert (Recorded, "a verified member does not admit a newly appended stale snapshot: recorded");
@@ -125,7 +125,7 @@ separate (Files_Suite.History)
             Candidate_Identities.Append
               (To_Unbounded_String (Files.File_Identities.Token (Directory_Path)));
             Candidate_Revisions.Append (Null_Unbounded_String);
-            Recorded := Files.Undo.Recording.Try_Record_Undo
+            Recorded := Files.Operations.Undo_Recording.Try_Record_Undo
               (Model, Files.Undo.History.Undo_Delete_Created,
                Files_Suite.Support.Models.Undo_Items
                  (Candidate, Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions,
@@ -137,7 +137,7 @@ separate (Files_Suite.History)
             Old_Revision := To_Unbounded_String (Files.File_System.Tree_Revision (Directory_Path));
             Write_Binary_File (Join (Directory_Path, "second"), "second");
             Candidate_Revisions.Replace_Element (Candidate_Revisions.First_Index, Old_Revision);
-            Recorded := Files.Undo.Recording.Try_Record_Undo
+            Recorded := Files.Operations.Undo_Recording.Try_Record_Undo
               (Model, Files.Undo.History.Undo_Delete_Created,
                Files_Suite.Support.Models.Undo_Items
                  (Candidate, Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions,
@@ -154,7 +154,7 @@ separate (Files_Suite.History)
             Candidate_Identities.Append
               (To_Unbounded_String (Files.File_Identities.Token (Incomplete)));
             Candidate_Revisions.Append (Null_Unbounded_String);
-            Recorded := Files.Undo.Recording.Try_Record_Undo
+            Recorded := Files.Operations.Undo_Recording.Try_Record_Undo
               (Model, Files.Undo.History.Undo_Delete_Created,
                Files_Suite.Support.Models.Undo_Items
                  (Candidate, Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions,
@@ -167,7 +167,7 @@ separate (Files_Suite.History)
          Identities.Append (To_Unbounded_String (Files.File_Identities.Token (Verifiable)));
          Revisions.Append
            (To_Unbounded_String (Files.File_System.Tree_Revision (Verifiable)));
-         Recorded := Files.Undo.Recording.Try_Record_Undo
+         Recorded := Files.Operations.Undo_Recording.Try_Record_Undo
            (Model, Files.Undo.History.Undo_Delete_Created,
             Files_Suite.Support.Models.Undo_Items
               (Paths, Identities => Identities, Tree_Revisions => Revisions,

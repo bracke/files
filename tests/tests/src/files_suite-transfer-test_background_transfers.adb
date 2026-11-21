@@ -59,8 +59,8 @@ separate (Files_Suite.Transfer)
       Assert (not Ada.Directories.Exists (Dest), "undo removes a background copy");
 
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-      Files.Jobs.Foreground.Cancel (Model);
-      Step := Files.Jobs.Foreground.Advance (Model, Settings, 1);
+      Files.Job_Drivers.Foreground.Cancel (Model);
+      Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "cancellation before launch finalizes immediately");
       Assert (not Ada.Directories.Exists (Dest), "a cancelled background action writes nothing");
 

@@ -1,6 +1,6 @@
 with Files.Jobs.Context;
 with Ada.Directories;
-with Files.Undo.Recording;
+with Files.Operations.Undo_Recording;
 with Files.Window_Polls;
 with Files.Diagnostics;
 with Hostkit.Process;
@@ -8,7 +8,7 @@ with Hostkit.Process;
 with Files.File_System;
 with Files.Undo.Journal;
 with Files.Timing;
-with Files.Jobs.Refresh;
+with Files.Refresh;
 with Files.Fs_Primitives;
 with Files.Leaf_Names;
 with Hostkit.Fs;
@@ -94,7 +94,7 @@ package body Files.Operations.Support is
    is
    begin
       if Files.Model.Background_Transfers (Model) then
-         return Files.Jobs.Refresh.Start (Model, Settings, Force => True, Select_Name => Select_Name);
+         return Files.Refresh.Start (Model, Settings, Force => True, Select_Name => Select_Name);
       end if;
       Reload_In_Place :
       declare
@@ -202,7 +202,7 @@ package body Files.Operations.Support is
    begin
       if Files.File_System.Thumbnails_Missing (Items) then
          declare
-            Started : constant Operation_Result := Files.Jobs.Refresh.Start (Model, Settings, Force => True);
+            Started : constant Operation_Result := Files.Refresh.Start (Model, Settings, Force => True);
             pragma Unreferenced (Started);
          begin
             null;
@@ -241,7 +241,7 @@ package body Files.Operations.Support is
       Progress.Attempted := True;
       Progress.Attempted_Count := Natural (Progress.Items.Length);
       Progress.Last_Checkpoint := Now;
-      Progress.Recorded := Files.Undo.Recording.Try_Record_Undo
+      Progress.Recorded := Files.Operations.Undo_Recording.Try_Record_Undo
         (Model, Progress.Kind, Progress.Items,
          Create_Kind => Progress.Create_Kind,
          Redoable    => Progress.Redoable);

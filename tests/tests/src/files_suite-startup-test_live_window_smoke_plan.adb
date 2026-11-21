@@ -33,8 +33,9 @@ separate (Files_Suite.Startup)
       --  The reason a plan gives, for every host it could meet.
       declare
          use Files.Application.Windows;
-         function Capabilities_Of (Display, Vulkan : Boolean) return Files.Window_Policy.Desktop_Capabilities
-           renames Files.Window_Policy.Capabilities_Of;
+         function Capabilities_Of
+           (Display, Vulkan : Boolean) return Files.Application.Window_Policy.Desktop_Capabilities
+           renames Files.Application.Window_Policy.Capabilities_Of;
          function Reason (Display, Vulkan : Boolean) return String is
            (To_String (Smoke.Live_Window_Smoke_Plan (Capabilities_Of (Display, Vulkan)).Reason_Key));
       begin

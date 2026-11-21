@@ -1,6 +1,6 @@
 with Guikit.Input.Mouse_Buttons;
 separate (Files_Suite.Interaction)
-   --  The event loop's wait (Files.Event_Wait.Window_Wait, which
+   --  The event loop's wait (Files.Application.Event_Wait.Window_Wait, which
    --  Files.Application.Windows.Event_Loop_Wait folds over every window): a
    --  left release held back for its debounce window cuts the wait to the
    --  time left in that window, one already due cuts it to the prompt wait,
@@ -27,7 +27,7 @@ separate (Files_Suite.Interaction)
          Paste  : Boolean := False;
          Short  : Duration := Prompt)
          return Duration
-      is (Files.Event_Wait.Window_Wait
+      is (Files.Application.Event_Wait.Window_Wait
             (Now     => Now,
              Pending => (Background_Paste => Paste, Mouse_Ready => Ready),
              Limit   => Within,

@@ -1,7 +1,7 @@
 with Files.Controller.Testing;
 with Files.Operations;
 with Files.Operation_Results;
-with Files.Undo.Recording;
+with Files.Operations.Undo_Recording;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
 with Files.Protocol_Names;

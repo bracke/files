@@ -1,7 +1,7 @@
 with Files.Preference_Types;
 with Files.Controller.Testing;
 with Files.Operations;
-with Files.Undo.Recording;
+with Files.Operations.Undo_Recording;
 with Files.Items;
 with Files.Model.Testing;
 with Ada.Calendar;
@@ -21,7 +21,7 @@ with GNAT.OS_Lib;
 with Hostkit.Host;
 
 with Files.Window_Polls;
-with Files.Window_Policy;
+with Files.Application.Window_Policy;
 with Files.Bounded_Text_IO;
 with Files.Commands;
 with Files.Controller;

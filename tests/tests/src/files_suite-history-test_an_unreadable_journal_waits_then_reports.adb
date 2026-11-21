@@ -41,7 +41,7 @@ separate (Files_Suite.History)
          Started := Files_Suite.Support.Timing.Now;
          for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when not Files.Model.Foreground_Job_Is_Active (Model);
-            Step := Files.Jobs.Foreground.Advance (Model, Settings, 1);
+            Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
             Polls := Polls + 1;
          end loop;
          Taken := Files_Suite.Support.Timing.Seconds (Files_Suite.Support.Timing.Elapsed (Started));

@@ -23,7 +23,7 @@ with Zlib;
 with Files.Operations.Support;
 with Files.Leaf_Names;
 with Ada.Containers;
-with Files.Jobs.Refresh;
+with Files.Refresh;
 with Files.Diagnostics;
 with Files.Jobs.Copy_Context;
 with Ada.Containers.Indefinite_Hashed_Sets;
@@ -31,7 +31,7 @@ with Ada.Strings.Hash;
 with Ada.Unchecked_Deallocation;
 with Files.File_Identities;
 with Files.Undo.Journal;
-with Files.Undo.Recording;
+with Files.Operations.Undo_Recording;
 with Files.Archive_Writing;
 with Files.Io_Errors;
 with Files.Model.Pasting;
@@ -53,7 +53,7 @@ package body Files.Operations is
 
    use Files.Operations.Support;
 
-   --  The undo history is recorded by Files.Undo.Recording; these name it
+   --  The undo history is recorded by Files.Operations.Undo_Recording; these name it
    --  here for the bodies that record.
    procedure Record_Undo
      (Model       : in out Files.Model.Window_Model;
@@ -64,14 +64,15 @@ package body Files.Operations is
       Replaced    : Files.Undo.History.Recorded_Original_Vectors.Vector :=
         Files.Undo.History.Recorded_Original_Vectors.Empty_Vector;
       Kept        : Files.Undo.History.Kept_Copy_Vectors.Vector := Files.Undo.History.Kept_Copy_Vectors.Empty_Vector)
-     renames Files.Undo.Recording.Record_Undo;
+     renames Files.Operations.Undo_Recording.Record_Undo;
 
-   --  Items an action published (Files.Undo.Recording.Published).
+   --  Items an action published (Files.Operations.Undo_Recording.Published).
    function Published
      (Items : Files.Undo.History.Undo_Item_Vectors.Vector) return Files.Undo.History.Recorded_Item_Vectors.Vector
-     renames Files.Undo.Recording.Published;
+     renames Files.Operations.Undo_Recording.Published;
 
-   procedure Settle_History (Model : in out Files.Model.Window_Model) renames Files.Undo.Recording.Settle_History;
+   procedure Settle_History (Model : in out Files.Model.Window_Model)
+     renames Files.Operations.Undo_Recording.Settle_History;
 
    function Unsafe_Open_Action
      (Model : in out Files.Model.Window_Model;

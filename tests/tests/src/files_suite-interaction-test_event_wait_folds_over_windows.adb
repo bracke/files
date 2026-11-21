@@ -1,5 +1,5 @@
 separate (Files_Suite.Interaction)
-   --  The event loop's wait over every open window (Files.Event_Wait.Fold,
+   --  The event loop's wait over every open window (Files.Application.Event_Wait.Fold,
    --  which Files.Application.Windows.Event_Loop_Wait asks with what each
    --  window has pending): with no window, or none with anything pending,
    --  the normal wait; otherwise the shortest wait any window allows --
@@ -9,8 +9,8 @@ separate (Files_Suite.Interaction)
    procedure Test_Event_Wait_Folds_Over_Windows (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Ada.Real_Time.Time;
-      subtype Pending is Files.Event_Wait.Window_Pending;
-      subtype List is Files.Event_Wait.Pending_List;
+      subtype Pending is Files.Application.Event_Wait.Window_Pending;
+      subtype List is Files.Application.Event_Wait.Pending_List;
 
       Limit  : constant Duration := 0.016;
       Prompt : constant Duration := 0.001;
@@ -23,7 +23,7 @@ separate (Files_Suite.Interaction)
       None   : constant List (1 .. 0) := [others => Idle];
 
       function Fold (Windows : List; Within : Duration := Limit) return Duration is
-        (Files.Event_Wait.Fold (Now => Now, Windows => Windows, Limit => Within, Prompt => Prompt));
+        (Files.Application.Event_Wait.Fold (Now => Now, Windows => Windows, Limit => Within, Prompt => Prompt));
 
       function Near (Left, Right : Duration) return Boolean is (abs (Left - Right) < 0.000_001);
    begin

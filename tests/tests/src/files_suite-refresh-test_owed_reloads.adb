@@ -49,12 +49,12 @@ separate (Files_Suite.Refresh)
       Step := Files.Operations.Refresh (Model, Settings);
       Await_Job (Files.Model.Jobs.Background_Refresh (Model), "the refresh helper finishes");
       Files.Model.Set_Error (Model, "error.trash.restore_exists");
-      Applied := Files.Jobs.Refresh.Advance (Model, Settings);
+      Applied := Files.Refresh.Advance (Model, Settings);
       Assert (not Applied and then Files.Model.Item_Count (Model) = 2,
               "a read outdated by an edit is not applied");
       Assert (Files.Model.Refresh_Is_Owed (Model) and then Files.Model.Owed_Refresh_Force (Model),
               "the discarded forced read leaves a forced reload owed");
-      Files.Jobs.Refresh.Resume_Owed (Model, Settings);
+      Files.Refresh.Resume_Owed (Model, Settings);
       Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model))
               and then not Files.Model.Refresh_Is_Owed (Model),
               "resuming relaunches the owed reload and settles the debt");
@@ -68,7 +68,7 @@ separate (Files_Suite.Refresh)
       Step := Files.Operations.Refresh (Model, Settings);
       Await_Job (Files.Model.Jobs.Background_Refresh (Model), "the second refresh helper finishes");
       Files.Model.Set_Error (Model, "");
-      Applied := Files.Jobs.Refresh.Advance (Model, Settings);
+      Applied := Files.Refresh.Advance (Model, Settings);
       Assert (Files.Model.Refresh_Is_Owed (Model), "the outdated read is owed again");
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Navigate_To (Model, Root, Load.Items);
@@ -76,6 +76,6 @@ separate (Files_Suite.Refresh)
               "navigating, even to the same path, makes an owed reload moot");
    exception
       when others =>
-         Files.Jobs.Refresh.Cancel (Model);
+         Files.Refresh.Cancel (Model);
          raise;
    end Test_Owed_Reloads;

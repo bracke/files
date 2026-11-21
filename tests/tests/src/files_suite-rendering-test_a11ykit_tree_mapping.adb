@@ -20,7 +20,7 @@ separate (Files_Suite.Rendering)
       Snapshot.Primary_Selected_Visible_Index := 2;
       Frame := Build_Frame_Commands
         (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
-      Tree := Files.Accessibility.To_A11ykit_Tree (Frame);
+      Tree := Files.Application.Accessibility.To_A11ykit_Tree (Frame);
 
       Assert
         (not Tree.Nodes.Is_Empty,
@@ -49,9 +49,9 @@ separate (Files_Suite.Rendering)
       --  application root. Publication must therefore run even while Available
       --  is initially False; hosts without a live service use the validating
       --  fallback and still report a successful semantic publication.
-      Files.Accessibility.Start;
-      Files.Accessibility.Start;
-      Files.Accessibility.Publish (Files.Accessibility.New_Window_Key, Frame);
+      Files.Application.Accessibility.Start;
+      Files.Application.Accessibility.Start;
+      Files.Application.Accessibility.Publish (Files.Application.Accessibility.New_Window_Key, Frame);
       Assert
         (A11ykit.Provider.Last_Publish_Status = A11y.Results.Success,
          "the frame reaches the native provider or its validating fallback: "
@@ -63,9 +63,9 @@ separate (Files_Suite.Rendering)
       Assert
         (A11ykit.Provider.Last_Publish_Backend_Name'Length > 0,
          "accessibility publication records the backend that consumed the frame");
-      Files.Accessibility.Stop;
-      Files.Accessibility.Stop;
+      Files.Application.Accessibility.Stop;
+      Files.Application.Accessibility.Stop;
       Assert
-        (not Files.Accessibility.To_A11ykit_Tree (Frame).Nodes.Is_Empty,
+        (not Files.Application.Accessibility.To_A11ykit_Tree (Frame).Nodes.Is_Empty,
          "the frame still maps after the provider lifetime has been started and stopped");
    end Test_A11ykit_Tree_Mapping;

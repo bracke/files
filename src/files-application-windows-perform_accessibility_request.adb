@@ -21,7 +21,7 @@ separate (Files.Application.Windows)
          --  lie on a breadcrumb or the search-scope chip). The node's box is
          --  where it is shown: reflected back in a mirrored layout.
          Field : constant Files.Input_Actions.Input_Action :=
-           Files.Window_Policy.Field_Request
+           Files.Application.Window_Policy.Field_Request
              (Item.Bounds.X, Item.Bounds.Y, Item.Bounds.Width, Item.Bounds.Height,
               Natural (Frame_W), Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size));
       begin
@@ -45,7 +45,7 @@ separate (Files.Application.Windows)
          --  Select and Focus are the single click.
          Activate : constant Boolean := Item.Kind = A11ykit.Provider.Activate_Request;
       begin
-         Action := Files.Window_Policy.Accessibility_Action (Action, Activate);
+         Action := Files.Application.Window_Policy.Accessibility_Action (Action, Activate);
          Files.Diagnostics.Trace
            ("Files.Application.Windows",
             --  A developer trace: field=value pairs, no prose.
@@ -59,7 +59,7 @@ separate (Files.Application.Windows)
             "selected=" & Natural'Image (Files.Model.Selection.Selected_Count (Runtime.Model)));
 
          --  Space on the focused field changes it, saving included.
-         if Files.Window_Policy.Activation_Presses_Space
+         if Files.Application.Window_Policy.Activation_Presses_Space
            (Activate, Files.Model.Focus (Runtime.Model), Files.Model.Settings_Pane.Focused_Kind (Runtime.Model))
          then
             declare

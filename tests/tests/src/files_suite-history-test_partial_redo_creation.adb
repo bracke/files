@@ -41,7 +41,7 @@ separate (Files_Suite.History)
                Sources.Append (To_Unbounded_String (Source_A));
                Sources.Append (To_Unbounded_String (Source_B));
                Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-               Files.Undo.Recording.Record_Undo
+               Files.Operations.Undo_Recording.Record_Undo
                  (Model, Files.Undo.History.Undo_Delete_Created,
                   Files_Suite.Support.Models.Undo_Items (Destinations, Forward => Sources),
                   Create_Kind => Kind);

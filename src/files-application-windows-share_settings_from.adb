@@ -1,4 +1,4 @@
-with Files.Settings_Sharing;
+with Files.Application.Settings_Sharing;
 separate (Files.Application.Windows)
    procedure Share_Settings_From
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
@@ -24,7 +24,7 @@ separate (Files.Application.Windows)
          Target   : Positive;
          Source   : Positive) is
       begin
-         Files.Settings_Sharing.Adopt_Window
+         Files.Application.Settings_Sharing.Adopt_Window
            (Model             => Runtimes (Target).Model,
             Settings          => Runtimes (Target).Settings,
             Shared            => Runtimes (Source).Settings,
@@ -35,7 +35,7 @@ separate (Files.Application.Windows)
          Runtimes (Target).Settings_Overlay_Built := False;
       end Adopt;
 
-      procedure Share is new Files.Settings_Sharing.Share_From
+      procedure Share is new Files.Application.Settings_Sharing.Share_From
         (Window_Set      => Runtime_Window_Vectors.Vector,
          Revision        => Revision,
          Synced_Revision => Synced_Revision,

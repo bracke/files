@@ -1,7 +1,7 @@
 with Files.Operations;
 with Files.Operation_Results;
-with Files.Undo.Recording;
-with Files.Jobs.Foreground;
+with Files.Operations.Undo_Recording;
+with Files.Job_Drivers.Foreground;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
 with Files.Protocol_Names;

@@ -11,7 +11,7 @@ with AUnit.Run;
 with Files_Suite.Support;
 with All_Suites;
 with Files.Diagnostics;
-with Files.Jobs.Helpers;
+with Files.Job_Drivers.Helpers;
 with Files.Jobs.Context;
 with Files.Localization;
 with Files.Jobs.Scavenger;
@@ -129,7 +129,7 @@ begin
       --  environment, on every host.
       Files.Durability.Testing.Install_From_Environment;
       Files.File_System.Testing.Install_From_Environment;
-      if Files.Jobs.Helpers.Run_If_Requested then
+      if Files.Job_Drivers.Helpers.Run_If_Requested then
          Test_Helpers.Damage_Result (Mode);
          Shutdown_Scavenger;
          Files.Jobs.Context.Shutdown;

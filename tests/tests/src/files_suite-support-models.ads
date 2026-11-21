@@ -105,7 +105,7 @@ package Files_Suite.Support.Models is
       Count    : Positive);
 
    --  An action's items from its path lists, for a fixture recorded through
-   --  Files.Undo.Recording: item Index has From (Index) and the Index-th of
+   --  Files.Operations.Undo_Recording: item Index has From (Index) and the Index-th of
    --  each other list, or "" past its end.
    --
    --  @param From Current locations.

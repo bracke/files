@@ -30,7 +30,7 @@ is
         (Snapshot    => Snapshot,
          Layout      =>
            Files.Rendering.Layouts.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height),
-         Y_Frame     => Files.Window_Policy.Scale_Coordinate (Cursor_Y, Window_H, Frame_H),
+         Y_Frame     => Files.Application.Window_Policy.Scale_Coordinate (Cursor_Y, Window_H, Frame_H),
          Line_Height => Line_Height);
    end With_Release_Layout;
 
@@ -90,11 +90,11 @@ begin
       return;
    end if;
 
-   X_Frame := Files.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W);
+   X_Frame := Files.Application.Window_Policy.Scale_X (Cursor_X, Window_W, Frame_W);
 
    if Mouse_Down then
       --  Frame pixels: the drag distance is scaled to them.
-      if Files.Window_Policy.Is_Drag
+      if Files.Application.Window_Policy.Is_Drag
         (Long_Float (X_Frame - Runtime.Column_Reorder.Origin_X), 0.0, Runtime.Pixel_Ratio)
       then
          Runtime.Column_Reorder.Started := True;
@@ -108,7 +108,7 @@ begin
    --  release still lands on the cell that was pressed.
    Runtime.Column_Reorder.Active := False;
 
-   if not Files.Window_Policy.Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H) then
+   if not Files.Application.Window_Policy.Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H) then
       Runtime.Column_Reorder.Started := False;
       Runtime.Column_Reorder.Sort := Files.Commands.No_Command;
       return;

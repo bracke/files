@@ -1,5 +1,5 @@
 separate (Files_Suite.Interaction)
-   --  The cross-window settings sync (Files.Settings_Sharing.Share_From, as
+   --  The cross-window settings sync (Files.Application.Settings_Sharing.Share_From, as
    --  Files.Application.Windows.Share_Settings_From runs it after every
    --  window's step) over three stand-in windows: a change in one reaches
    --  each other window exactly once and never its own, the next pass
@@ -42,7 +42,7 @@ separate (Files_Suite.Interaction)
          Windows (Target).Revision := Windows (Target).Revision + 1;
       end Adopt;
 
-      procedure Share is new Files.Settings_Sharing.Share_From
+      procedure Share is new Files.Application.Settings_Sharing.Share_From
         (Window_Set      => Fake_Windows,
          Revision        => Revision,
          Synced_Revision => Synced_Revision,

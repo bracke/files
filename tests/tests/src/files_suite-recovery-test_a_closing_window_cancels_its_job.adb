@@ -17,7 +17,7 @@ separate (Files_Suite.Recovery)
       Model       : aliased Files.Model.Window_Model;
       Paste       : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
-      Watch       : Files.Jobs.Refresh.Watch_Session;
+      Watch       : Files.Refresh.Watch_Session;
       Load        : Files.File_System.Directory_Load_Result;
       Step        : Files.Operation_Results.Operation_Result;
       Seen        : constant String := Join (Root, "cancel-seen");
@@ -74,7 +74,7 @@ separate (Files_Suite.Recovery)
                         (To_Unbounded_String (Join (Root, "new-two.txt")),
                          To_Unbounded_String (Join (Root, "two.txt")), False, False));
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-      Step := Files.Jobs.Foreground.Advance (Model, Settings, 1);
+      Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
       Assert (Step.Status = Files.Operation_Results.Operation_Success
               and then Files.Model.Foreground_Job_Is_Active (Model)
               and then File_Has_Bytes (Join (Root, "one.txt"), "new"),

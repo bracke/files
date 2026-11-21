@@ -25,7 +25,7 @@ separate (Files_Suite.History)
       Files.Operations.Clear_Undo (Model);
       Files.Model.Set_Background_Transfers (Model, False);
       Created.Append (To_Unbounded_String (Made));
-      Files.Undo.Recording.Record_Undo
+      Files.Operations.Undo_Recording.Record_Undo
         (Model, Files.Undo.History.Undo_Delete_Created,
          Files_Suite.Support.Models.Undo_Items (Created), Redoable => False);
 

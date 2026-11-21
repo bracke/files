@@ -51,7 +51,7 @@ separate (Files_Suite.History)
                     (To_Unbounded_String (Join (Root, "inbox/entry")), To_Unbounded_String (Source), False, True));
                   Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy, False);
                   Step := Complete_Operation
-                    (Model, Settings, Files.Jobs.Foreground.Advance (Model, Settings, 1));
+                    (Model, Settings, Files.Job_Drivers.Foreground.Advance (Model, Settings, 1));
                   Await_View (Model, Settings);
                   Paths := Files.Undo.History.Replaced_Trash (Files.Model.History.Undo_Entries (Model).Last_Element);
                   Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Replaced.First_Element.Target

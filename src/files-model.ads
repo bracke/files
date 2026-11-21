@@ -1035,7 +1035,7 @@ package Files.Model is
 
    --  The one modal job a window runs at a time: shown with its progress,
    --  owning the input, cancellable. A paste (Files.Model.Pasting's
-   --  execution) or an operation on a helper (Files.Jobs.Operation: trash,
+   --  execution) or an operation on a helper (Files.Job_Drivers.Operation: trash,
    --  search, undo and the rest).
    type Foreground_Job_Kind is (No_Foreground_Job, Paste_Job, Operation_Job);
 

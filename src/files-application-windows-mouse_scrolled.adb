@@ -6,9 +6,9 @@ separate (Files.Application.Windows)
       pragma Unreferenced (X);
    begin
       Object.Pending_Scroll :=
-        Files.Window_Policy.Add_Pending_Scroll
+        Files.Application.Window_Policy.Add_Pending_Scroll
           (Object.Pending_Scroll,
-           Files.Window_Policy.Accumulate_Scroll_Offset (Object.Pending_Scroll_Remainder, Long_Float (Y)));
+           Files.Application.Window_Policy.Accumulate_Scroll_Offset (Object.Pending_Scroll_Remainder, Long_Float (Y)));
    exception
       when Swallowed : others =>
          --  GLFW calls this from C: an exception must not unwind into it.

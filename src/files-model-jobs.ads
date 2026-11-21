@@ -1,9 +1,9 @@
 with Ada.Real_Time;
 with Files.Jobs.Process;
 
---  The window's helper jobs: the modal operation (Files.Jobs.Operation) with
+--  The window's helper jobs: the modal operation (Files.Job_Drivers.Operation) with
 --  its progress and deferred journal merge, and the nonmodal directory read
---  (Files.Jobs.Refresh). A child of its own so Files.Model's spec need not
+--  (Files.Refresh). A child of its own so Files.Model's spec need not
 --  name the helper sessions; Files.Model.End_Foreground_Job ends either
 --  modal job.
 package Files.Model.Jobs is
@@ -39,7 +39,7 @@ package Files.Model.Jobs is
    function Background_Operation (Model : Window_Model) return Files.Jobs.Process.Session;
 
    --  Wait for the modal operation's finished helper's history journal, not
-   --  readable yet, until Deadline (Files.Jobs.Operation). Forgotten with
+   --  readable yet, until Deadline (Files.Job_Drivers.Operation). Forgotten with
    --  the job: End_Foreground_Job, a new modal job, or the window going.
    --
    --  @param Model Window running a modal operation.

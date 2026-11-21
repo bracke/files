@@ -142,6 +142,6 @@ separate (Files_Suite.Refresh)
               "explicit Recent refresh also loads its items in a helper");
    exception
       when others =>
-         Files.Jobs.Refresh.Cancel (Model);
+         Files.Refresh.Cancel (Model);
          raise;
    end Test_Background_Refresh;

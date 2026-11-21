@@ -8,7 +8,7 @@ with Project_Tools.Files;
 
 with Files.Commands;
 with Files.Localization;
-with Files.Jobs.Refresh;
+with Files.Refresh;
 
 package body Files_Suite.Support.Guards is
    use Ada.Strings.Unbounded;
@@ -58,7 +58,7 @@ package body Files_Suite.Support.Guards is
    procedure Release (Guard : in out Paste_Guard) is
    begin
       Files.Model.End_Foreground_Job (Guard.Model.all);
-      Files.Jobs.Refresh.Cancel (Guard.Model.all);
+      Files.Refresh.Cancel (Guard.Model.all);
    end Release;
 
    overriding procedure Finalize (Guard : in out Paste_Guard) is

@@ -195,7 +195,7 @@ package Files.File_System is
 
    --  Load_Directory that also decodes each image lacking a cached thumbnail
    --  and writes its cache file. Slow on a folder of new photos, so it is for
-   --  the background listing (Files.Jobs.Refresh), not a read the UI waits on.
+   --  the background listing (Files.Refresh), not a read the UI waits on.
    --
    --  @param Path Directory path to load.
    --  @param Settings Settings used for filetype and icon classification.

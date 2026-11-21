@@ -37,7 +37,7 @@ with Files.Rendering;
 with Files.Rendering.Hit;
 with Files.Rendering.Layouts;
 with Files.Rendering.Text;
-with Files.Accessibility;
+with Files.Application.Accessibility;
 with Files.Icon_Themes;
 with Files.Settings;
 with Files_Suite.Support;
@@ -49,7 +49,7 @@ with Guikit.Vulkan;
 with Files.Types;
 with Files.UI_Types;
 with Guikit.Layout;
-with Files.Accessibility.Testing;
+with Files.Application.Accessibility.Testing;
 
 --  Rendering tests expressed as layout INVARIANTS and behaviours rather than
 --  exact pixel coordinates. Each routine constructs its own deterministic view

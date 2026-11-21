@@ -1,4 +1,4 @@
-with Files.Undo.Recording;
+with Files.Operations.Undo_Recording;
 with Files.File_System.Trash;
 with Project_Tools.Files;
 with Files_Suite.Support.Guards;
@@ -71,7 +71,7 @@ separate (Files_Suite.Model)
       --  The trimmed entry could still have been undone and the rejected one
       --  never could be: neither original is deleted, both go to the trash.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-      Files.Undo.Recording.Settle_History (Model);
+      Files.Operations.Undo_Recording.Settle_History (Model);
       Assert (not Ada.Directories.Exists (To_String (Backup)),
               "settling the history moves the payload its retired entry held");
       Assert (not Ada.Directories.Exists (To_String (Rejected)),

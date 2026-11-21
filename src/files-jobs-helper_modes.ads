@@ -3,7 +3,7 @@ with Hostkit.Spawn;
 
 --  The helper processes files starts from its own program, and the flag that
 --  says which one a process is. Launch sites and the dispatcher
---  (Files.Jobs.Helpers) both spell a mode through Flag, so the two cannot
+--  (Files.Job_Drivers.Helpers) both spell a mode through Flag, so the two cannot
 --  drift apart by a typo; every launch goes through Start_Helper.
 package Files.Jobs.Helper_Modes is
 

@@ -1,5 +1,5 @@
 with Files.File_System.Permissions;
-with Files.Jobs.Helpers.Testing;
+with Files.Job_Drivers.Helpers.Testing;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
@@ -148,7 +148,7 @@ separate (Files_Suite.Recovery)
       Assert (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-absent")),
               "a write-ahead reservation with no created pathname is discarded safely");
       Assert
-        (not Files.Jobs.Helpers.Testing.Run_Cleanup
+        (not Files.Job_Drivers.Helpers.Testing.Run_Cleanup
            (Transport, To_String (Transport_Identity), Attempt_Limit => 1,
             Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0)
          and then Ada.Directories.Exists (Join (Transport, "stages")),
@@ -182,7 +182,7 @@ separate (Files_Suite.Recovery)
       end if;
       Before := Now;
       declare
-         Cleaned : constant Boolean := Files.Jobs.Helpers.Testing.Run_Cleanup
+         Cleaned : constant Boolean := Files.Job_Drivers.Helpers.Testing.Run_Cleanup
            (Transport, To_String (Transport_Identity), Attempt_Limit => 2,
             Initial_Retry_Delay => 0.001, Maximum_Retry_Delay => 0.001);
       begin

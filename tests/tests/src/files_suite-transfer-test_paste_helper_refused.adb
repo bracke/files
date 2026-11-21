@@ -1,5 +1,5 @@
 with Files.Operation_Results;
-with Files.Jobs.Foreground;
+with Files.Job_Drivers.Foreground;
 with Files.Jobs.Process.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
@@ -29,7 +29,7 @@ separate (Files_Suite.Transfer)
       Files.Model.Set_Background_Transfers (Model, True);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Files.Jobs.Process.Testing.Refuse_Next_Launch;
-      Step := Files.Jobs.Foreground.Advance (Model, Settings, 1);
+      Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
       Files.Jobs.Process.Testing.Clear_Refusal;
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the paste ends instead of staying armed");
       Files_Suite.Support.Assert_Equal

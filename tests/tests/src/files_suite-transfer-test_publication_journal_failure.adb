@@ -59,7 +59,7 @@ separate (Files_Suite.Transfer)
                      Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
                      Actions.Append (Action);
                      Files.Operations.Begin_Paste_Execution (Model, Actions, Mode);
-                     Step := Files.Jobs.Foreground.Advance (Model, Settings, 1);
+                     Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
                      Files_Suite.Support.Assert_Equal
                        (Step.Status,
                         Files.Operation_Results.Operation_Success,

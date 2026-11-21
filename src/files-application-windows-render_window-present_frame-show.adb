@@ -8,7 +8,7 @@ separate (Files.Application.Windows.Render_Window.Present_Frame)
       --  into the cached frame -- when it or an overlay changed. The provider
       --  announces only what differs from its last tree.
       if Frame_Rebuilt or else Overlay_Changed then
-         Files.Accessibility.Publish (Runtime.A11y_Key, Frame);
+         Files.Application.Accessibility.Publish (Runtime.A11y_Key, Frame);
       end if;
       --  A title change is a round trip to the window system.
       if Snapshot.Current_Path /= Runtime.Shown_Title then

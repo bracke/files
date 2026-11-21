@@ -6,7 +6,7 @@ function Refresh_If_Changed
 is
 begin
    if Files.Model.Background_Transfers (Model) then
-      return Files.Jobs.Refresh.Start (Model, Settings);
+      return Files.Refresh.Start (Model, Settings);
    end if;
    declare
       Change : constant Files.File_System.Directory_Change_Result :=

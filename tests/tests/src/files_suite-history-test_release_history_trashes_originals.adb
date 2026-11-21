@@ -38,7 +38,7 @@ separate (Files_Suite.History)
       Files.Model.Initialize
         (Model, Dest_Dir, Files.File_System.Load_Directory (Dest_Dir, Settings).Items, Root);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-      Step := Files.Jobs.Foreground.Advance (Model, Settings, 8);
+      Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                         "the replacing paste runs");
       Assert (Files.Model.History.Undo_Available (Model), "and can be undone");

@@ -57,7 +57,7 @@ separate (Files.Application.Windows)
       if Files.Model.Foreground_Job_Is_Active (Runtime.Model) then
          declare
             Progress : constant Files.Operation_Results.Operation_Result :=
-              Files.Jobs.Foreground.Advance (Runtime.Model, Runtime.Settings, 8);
+              Files.Job_Drivers.Foreground.Advance (Runtime.Model, Runtime.Settings, 8);
             pragma Unreferenced (Progress);
             --  A finished background move carries its labels along.
             Followed : constant Boolean :=

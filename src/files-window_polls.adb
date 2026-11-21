@@ -5,7 +5,7 @@ with Ada.Real_Time;
 with Hostkit.Metadata;
 with Files.File_System.Permissions;
 with Files.Model.Status_Samples;
-with Files.Rendering;
+with Files.UI_Types;
 with Ada.Strings.Unbounded;
 with Guikit.Shared_Bytes;
 with Files.Extra_Info;
@@ -285,7 +285,7 @@ package body Files.Window_Polls is
       if Files.Model.Info_Pane_Is_Open (Model) and then Files.Model.Selection.Selected_Count (Model) > 0 then
          declare
             Items : constant Files.Items.Item_Vectors.Vector :=
-              Files.Model.Selection.Selected_Items (Model, Limit => Files.Rendering.Max_Info_Items);
+              Files.Model.Selection.Selected_Items (Model, Limit => Files.UI_Types.Max_Info_Items);
          begin
             if Items.Is_Empty then
                Sample (Files.Model.Selection.Selected_Item (Model));

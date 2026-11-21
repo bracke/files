@@ -27,7 +27,7 @@ separate (Files_Suite.History)
 
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Undo.Recording.Record_Undo
+      Files.Operations.Undo_Recording.Record_Undo
         (Model, Files.Undo.History.Undo_Move, Files_Suite.Support.Models.Undo_Items (From_V, To => To_V));
       Assert (Files.Model.History.Undo_Available (Model), "the multi-item move records an undo entry");
 

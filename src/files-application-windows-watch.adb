@@ -20,10 +20,10 @@ package body Files.Application.Windows.Watch is
       return Boolean is
    begin
       --  Native registration and storage reads happen in the helper process.
-      Files.Jobs.Refresh.Watch_Path
+      Files.Refresh.Watch_Path
         (Runtime.Watch, Files.Model.Current_Path (Runtime.Model));
 
-      return Files.Jobs.Refresh.Poll_Watch (Runtime.Watch);
+      return Files.Refresh.Poll_Watch (Runtime.Watch);
    end Drain_Native_Watch;
 
    procedure Poll
@@ -48,12 +48,12 @@ package body Files.Application.Windows.Watch is
       end if;
 
       if Files.Model.Foreground_Job_Is_Active (Runtime.Model) then
-         Files.Jobs.Refresh.Cancel (Runtime.Model);
+         Files.Refresh.Cancel (Runtime.Model);
          return;
       end if;
-      Refreshed := Files.Jobs.Refresh.Advance (Runtime.Model, Runtime.Settings);
+      Refreshed := Files.Refresh.Advance (Runtime.Model, Runtime.Settings);
       Reveal_Pending_Selection (Runtime);
-      Files.Jobs.Refresh.Resume_Owed (Runtime.Model, Runtime.Settings);
+      Files.Refresh.Resume_Owed (Runtime.Model, Runtime.Settings);
 
       declare
          Changed     : constant Boolean := Drain_Native_Watch (Runtime);
@@ -63,7 +63,7 @@ package body Files.Application.Windows.Watch is
       begin
          --  A burst of writes is paced to one reload per gap, the last one
          --  owed and paid; a listing that cannot be read is retried slowly.
-         case Files.Jobs.Refresh.Watch_Step
+         case Files.Refresh.Watch_Step
            (Pacer       => Runtime.Watch_Pacing,
             Now         => Now,
             Changed     => Changed,
@@ -71,13 +71,13 @@ package body Files.Application.Windows.Watch is
             Load_Failed => Load_Failed,
             Poll_Due    =>
               Now >= Runtime.Last_Watch_Poll + File_Watch_Poll_Interval
-              and then (not Files.Jobs.Refresh.Watch_Is_Native (Runtime.Watch)
+              and then (not Files.Refresh.Watch_Is_Native (Runtime.Watch)
                         or else Now >= Runtime.Last_Watch_Poll + Native_Watch_Poll_Interval),
             Polled      => Polled)
          is
-            when Files.Jobs.Refresh.Watch_Refresh =>
+            when Files.Refresh.Watch_Refresh =>
                Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
-            when Files.Jobs.Refresh.Watch_Wait =>
+            when Files.Refresh.Watch_Wait =>
                null;
          end case;
          if Polled then

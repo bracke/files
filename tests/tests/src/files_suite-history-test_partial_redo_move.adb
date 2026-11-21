@@ -26,7 +26,7 @@ separate (Files_Suite.History)
             Sources.Append (To_Unbounded_String (Source_A));
             Sources.Append (To_Unbounded_String (Source_B));
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-            Files.Undo.Recording.Record_Undo
+            Files.Operations.Undo_Recording.Record_Undo
               (Model,
                (case Scenario is
                    when Move_Action   => Files.Undo.History.Undo_Move,

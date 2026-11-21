@@ -126,7 +126,7 @@ separate (Files_Suite.Trash)
          end;
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Paths.Append (To_Unbounded_String (Link));
-         Files.Undo.Recording.Record_Undo
+         Files.Operations.Undo_Recording.Record_Undo
            (Model, Files.Undo.History.Undo_Delete_Created,
             Files_Suite.Support.Models.Undo_Items (Paths), Redoable => False);
          Step := Complete_Operation

@@ -4,9 +4,9 @@ with Files.Types;
 --  What an operation reports back: its status, a localized error key, the
 --  path it ended on, and for an open action what ran. Its own unit so the
 --  operations (Files.Operations) and the helper jobs that run them
---  (Files.Jobs.Operation) share it: the operations never start a job
+--  (Files.Job_Drivers.Operation) share it: the operations never start a job
 --  (Files.Operation_Commands does), and only the helper side
---  (Files.Jobs.Operation.Helper) runs an operation.
+--  (Files.Job_Drivers.Operation.Helper) runs an operation.
 package Files.Operation_Results is
 
    type Operation_Status is

@@ -34,7 +34,7 @@ separate (Files_Suite.Refresh)
         (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
 
       Write_Binary_File (Join (Root, "arrived"), "new");
-      Step := Files.Jobs.Refresh.Start (Model, Settings, Force => True);
+      Step := Files.Refresh.Start (Model, Settings, Force => True);
       Await_View (Model, Settings);
       Assert (Listed ("arrived"), "the refresh picks up the new file");
       Files_Suite.Support.Assert_Equal (Files.Model.Main_View_Scroll_Lines (Model), 15, "the refresh keeps the scroll");
@@ -46,7 +46,7 @@ separate (Files_Suite.Refresh)
       --  lands once it closes.
       Files.Model.Quick_Look.Close (Model);
       Write_Binary_File (Join (Root, "later"), "new");
-      Step := Files.Jobs.Refresh.Start (Model, Settings, Force => True);
+      Step := Files.Refresh.Start (Model, Settings, Force => True);
       Files.Model.Command_Palette.Open (Model);
       --  Wait until the read has actually finished -- its result is there to
       --  apply -- so the check below is of a result held back, not of one a
@@ -55,13 +55,13 @@ separate (Files_Suite.Refresh)
          Finished, Cancelled : Boolean := False;
       begin
          for Attempt in Polling loop
-            Applied := Files.Jobs.Refresh.Advance (Model, Settings);
+            Applied := Files.Refresh.Advance (Model, Settings);
             Files.Jobs.Process.Poll (Files.Model.Jobs.Background_Refresh (Model), Finished, Cancelled);
             exit when Finished or else not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model));
          end loop;
          Assert (Finished and then not Cancelled, "the refresh started under the palette finishes its read");
       end;
-      Applied := Files.Jobs.Refresh.Advance (Model, Settings);
+      Applied := Files.Refresh.Advance (Model, Settings);
       Assert (Files.Model.Command_Palette.Is_Open (Model) and then not Listed ("later"),
               "an in-flight refresh neither closes the palette nor replaces the items under it");
       Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),

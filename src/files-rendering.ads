@@ -185,7 +185,7 @@ package Files.Rendering is
       --  The start of the wall-clock minute the snapshot shows the folder
       --  at: the "now" every relative time in it is drawn against, so a
       --  frame is a function of its snapshot and two snapshots built within
-      --  a minute agree (Files.Snapshot_Slots rebuilds when it moves on).
+      --  a minute agree (Files.Application.Snapshot_Slots rebuilds when it moves on).
       Now                  : Ada.Calendar.Time := Files.Types.Unknown_Time;
       Current_Path         : UString;
       --  True when Current_Path is a stored favorite. Drives the filled versus
@@ -431,9 +431,9 @@ package Files.Rendering is
    --  @return Its index in Files.UI_Types.Overlay_Stack, or 0 when none is open.
    function Topmost_Overlay_Position (Snapshot : View_Snapshot) return Natural;
 
-   --  How many selected items the info pane lists in detail. Past a hundred
-   --  the list is unreadable anyway; the selection count shows the extent.
-   Max_Info_Items : constant := 100;
+   --  How many selected items the info pane lists in detail
+   --  (Files.UI_Types.Max_Info_Items).
+   Max_Info_Items : constant := Files.UI_Types.Max_Info_Items;
 
    --  Build an immutable view snapshot with loaded settings summary data, as
    --  of the clock now.
@@ -540,7 +540,7 @@ package Files.Rendering is
    --  the same build are read back, the rest formatted and kept.
    --
    --  @param Snapshot View snapshot to render.
-   --  @param Build Which build Snapshot is (Files.Snapshot_Slots.Slot_Contents):
+   --  @param Build Which build Snapshot is (Files.Application.Snapshot_Slots.Slot_Contents):
    --    equal numbers mean equal contents but for the scroll offsets, which
    --    the row texts do not depend on.
    --  @param Row_Texts The window's cache; cleared when Build moves.

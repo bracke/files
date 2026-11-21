@@ -9,7 +9,7 @@ separate (Files_Suite.Recovery)
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : Files.Model.Window_Model;
-      Watch : Files.Jobs.Refresh.Watch_Session;
+      Watch : Files.Refresh.Watch_Session;
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operation_Results.Operation_Result;
       Before : Instant;
@@ -41,7 +41,7 @@ separate (Files_Suite.Recovery)
          Sources.Clear;
          Paths.Append (To_Unbounded_String (Join (Root, "victim.txt")));
          if Job_Kind = Undo_Job then
-            Files.Undo.Recording.Record_Undo
+            Files.Operations.Undo_Recording.Record_Undo
               (Model, Files.Undo.History.Undo_Delete_Created,
                Files_Suite.Support.Models.Undo_Items (Paths, To => Sources), Redoable => False);
          elsif Job_Kind = Redo_Job then
@@ -56,7 +56,7 @@ separate (Files_Suite.Recovery)
                  (Files.Undo.History.Undo_Item'(From => Paths (Index), Forward => Sources (Index), others => <>));
             end loop;
             Files.Model.History.Push_Redo (Model, Action);
-            Files.Undo.Recording.Settle_History (Model);
+            Files.Operations.Undo_Recording.Settle_History (Model);
          end if;
          Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
          Before := Now;
@@ -93,7 +93,7 @@ separate (Files_Suite.Recovery)
          end loop;
          Assert (Ada.Directories.Exists (To_String (Started)), "the destructive helper reaches stalled work");
          if Job_Kind = Undo_Job then
-            Files.Jobs.Foreground.Cancel (Model);
+            Files.Job_Drivers.Foreground.Cancel (Model);
             Step := Complete_Operation (Model, Settings, Step);
             Await_View (Model, Settings);
          else
@@ -190,7 +190,7 @@ separate (Files_Suite.Recovery)
       Sources.Clear;
       Paths.Append (To_Unbounded_String (Join (Root, "checkpoint-target")));
 
-      Files.Undo.Recording.Record_Undo
+      Files.Operations.Undo_Recording.Record_Undo
         (Model, Files.Undo.History.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Paths, To => Sources),
          Redoable => False);
       Write_Binary_File (Join (Root, "blocked-transport"), "a file cannot hold a checkpoint");

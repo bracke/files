@@ -23,7 +23,7 @@ separate (Files_Suite.Startup)
       Write_File
         (Join
            (Dir,
-            Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#1F4C1#))
+            Files.Application.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#1F4C1#))
             & ".txt"));
       Write_File
         (Settings_Path,

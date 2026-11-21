@@ -3,7 +3,7 @@ with Files.Input_Actions;
 with Files.Window_Polls;
 with Files.File_System.Permissions;
 with Files.Jobs.Process;
-with Files.Jobs.Refresh;
+with Files.Refresh;
 with Files.Extra_Info_Reader;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -15,7 +15,7 @@ with Project_Tools.Files;
 with GNAT.OS_Lib;
 with Hostkit.Host;
 with Hostkit.Process;
-with Files.Window_Policy;
+with Files.Application.Window_Policy;
 with Files.File_System;
 with Files.Interaction;
 with Files.Localization;
@@ -110,9 +110,9 @@ package body Files_Suite.Operations_Support is
    function Truncated_UTF8_Name return String is ("bad" & Byte (16#E2#) & Byte (16#82#) & "name.txt");
    function Overlong_UTF8_Name return String is ("bad" & Byte (16#C0#) & Byte (16#AF#) & "name.txt");
    function NBSP_Name return String is
-     (Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#)));
+     (Files.Application.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#)));
    function Ideographic_Space_Name return String is
-     (Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#3000#)));
+     (Files.Application.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#3000#)));
    function Trailing_NBSP_Name return String is ("trailing-nbsp" & NBSP_Name);
    function Trailing_Ideographic_Name return String is ("trailing-wide" & Ideographic_Space_Name);
 
@@ -123,7 +123,7 @@ package body Files_Suite.Operations_Support is
    begin
       Applied := False;
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         Applied := Files.Jobs.Refresh.Advance (Model, Settings) or else Applied;
+         Applied := Files.Refresh.Advance (Model, Settings) or else Applied;
          exit when not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model));
       end loop;
       Assert (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),

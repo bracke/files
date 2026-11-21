@@ -1,6 +1,6 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
-with Files.Jobs.Foreground;
+with Files.Job_Drivers.Foreground;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
@@ -64,7 +64,7 @@ separate (Files_Suite.Transfer)
          Actions.Append (Files.Paste.Resolved_Action'
            (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "source")), False, False));
          Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
-         Step := Complete_Operation (Model, Settings, Files.Jobs.Foreground.Advance (Model, Settings, 1));
+         Step := Complete_Operation (Model, Settings, Files.Job_Drivers.Foreground.Advance (Model, Settings, 1));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Ada.Directories.Exists (Source),
                  "cross-device move publishes a complete destination and removes its source");

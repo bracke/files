@@ -17,7 +17,7 @@ with Hostkit.Host;
 with Hostkit.Fs;
 with Hostkit.Metadata;
 
-with Files.Window_Policy;
+with Files.Application.Window_Policy;
 with Files.Commands;
 with Files.Controller;
 with Files.File_System;
@@ -266,7 +266,7 @@ package body Files_Suite.Settings is
    C1_Break : constant Character := Character'Val (133);
 
    function Line_Separator return String is
-     (Files.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#)));
+     (Files.Application.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#)));
 
    --  The model the direct open-action insertion test starts from: the
    --  defaults with the host opener fallback disabled, plus the extension

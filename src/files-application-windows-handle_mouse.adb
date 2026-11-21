@@ -69,8 +69,8 @@ separate (Files.Application.Windows)
               and then Path = To_String (Runtime.Last_Click_Path)
               and then Now <= Runtime.Last_Click_Time + Double_Click_Interval;
          begin
-            Runtime.Press_X := Files.Window_Policy.Scale_X (Event.X, Window_W, Frame_W);
-            Runtime.Press_Y := Files.Window_Policy.Scale_Coordinate (Event.Y, Window_H, Frame_H);
+            Runtime.Press_X := Files.Application.Window_Policy.Scale_X (Event.X, Window_W, Frame_W);
+            Runtime.Press_Y := Files.Application.Window_Policy.Scale_Coordinate (Event.Y, Window_H, Frame_H);
             Runtime.Deferred_Click_Pending := False;
             if Is_Item and then not Activate then
                Runtime.Last_Click_Item := Action.Item_Index;

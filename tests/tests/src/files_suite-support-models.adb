@@ -1,7 +1,7 @@
 with Files.Preference_Types;
 with Files.Events;
 with Files.Operations;
-with Files.Jobs.Foreground;
+with Files.Job_Drivers.Foreground;
 with Files.Window_Polls;
 with Files.File_System;
 with Files.Model.Testing;
@@ -90,7 +90,7 @@ package body Files_Suite.Support.Models is
       Result : Files.Operation_Results.Operation_Result;
    begin
       for Attempt in Polling loop
-         Result := Files.Jobs.Foreground.Advance (Model, Settings, 1);
+         Result := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
          exit when not Files.Model.Foreground_Job_Is_Active (Model);
       end loop;
       AUnit.Assertions.Assert

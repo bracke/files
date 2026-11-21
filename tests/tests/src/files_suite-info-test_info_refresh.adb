@@ -42,5 +42,5 @@ separate (Files_Suite.Info)
             "cached metadata does not repeatedly change the revision");
       end loop;
    exception
-      when others => Files.Jobs.Refresh.Cancel (Model); raise;
+      when others => Files.Refresh.Cancel (Model); raise;
    end Test_Info_Refresh;

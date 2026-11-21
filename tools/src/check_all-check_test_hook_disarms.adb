@@ -42,7 +42,7 @@ separate (Check_All)
          Pair ("operations", "fake_checkpoint_clock", "fake_checkpoint_clock", Off => "false"),
          Pair ("path_references", "simulate_folding_host", "simulate_folding_host", Off => "false"),
          Pair ("process", "refuse_next_launch", "clear_refusal"),
-         Pair ("recording", "count_undo_records", "count_undo_records", Off => "false")];
+         Pair ("undo_recording", "count_undo_records", "count_undo_records", Off => "false")];
 
       --  How a Testing procedure that arms something is named: one of these
       --  starts its name.
@@ -604,9 +604,11 @@ separate (Check_All)
                Flagged => False),
          Make ("procedure Test is" & LF
                & "   procedure Cleanup is" & LF & "   begin" & LF
-               & "      Files.Undo.Recording.Testing.Count_Undo_Records (False);" & LF & "   end Cleanup;" & LF
+               & "      Files.Operations.Undo_Recording.Testing.Count_Undo_Records (False);" & LF & "   end Cleanup;"
+                 & LF
                & "   procedure Prepare is" & LF & "   begin" & LF
-               & "      Files.Undo.Recording.Testing.Count_Undo_Records (True);" & LF & "   end Prepare;" & LF
+               & "      Files.Operations.Undo_Recording.Testing.Count_Undo_Records (True);" & LF & "   end Prepare;"
+                 & LF
                & "begin" & LF & "   Prepare;" & LF & "   if Ready then" & LF & "      Check;" & LF & "   end if;" & LF
                & "   Cleanup;" & LF
                & "exception" & LF & "   when others =>" & LF & "      Cleanup;" & LF & "      raise;" & LF

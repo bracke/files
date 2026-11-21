@@ -118,7 +118,7 @@ separate (Files_Suite.Recovery)
                     "the duplicate helper reaches the pre-work cancellation point");
          end;
       end;
-      Files.Jobs.Foreground.Cancel (Model);
+      Files.Job_Drivers.Foreground.Cancel (Model);
       Finish;
       Assert (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
               "cancellation before work publishes no duplicate");

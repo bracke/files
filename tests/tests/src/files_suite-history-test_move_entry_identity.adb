@@ -58,7 +58,7 @@ separate (Files_Suite.History)
                   Actions.Append (Files.Paste.Resolved_Action'
                     (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, False));
                   Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
-                  Step := Files.Jobs.Foreground.Advance (Model, Settings, 1);
+                  Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
                else
                   Select_Name (Model, "original");
                   Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);

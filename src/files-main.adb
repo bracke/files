@@ -1,5 +1,5 @@
 with Files.Application;
-with Files.Jobs.Helpers;
+with Files.Job_Drivers.Helpers;
 with Files.Jobs.Context;
 with Files.Jobs.Scavenger;
 with Files.Jobs.Process;
@@ -30,7 +30,7 @@ begin
       if not Reaped or else not Stopped then
          Hostkit.Process.End_Now (1);
       end if;
-   elsif Files.Jobs.Helpers.Run_If_Requested then
+   elsif Files.Job_Drivers.Helpers.Run_If_Requested then
       Shut_Down_Workers;
       if not Reaped or else not Stopped then
          --  Ada task finalization could otherwise wait without a bound for

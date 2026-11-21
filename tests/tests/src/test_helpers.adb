@@ -11,13 +11,13 @@ with Files.File_System;
 with Files.Jobs.Helper_Modes;
 with Files.Jobs.Context;
 with Files.Jobs.Transports;
-with Files.Jobs.Operation;
-with Files.Jobs.Operation.Testing;
+with Files.Job_Drivers.Operation;
+with Files.Job_Drivers.Operation.Testing;
 with Files.Paste;
 with Files.Private_Directories;
 with Files.Jobs.Process;
 with Files.Jobs.Process.Testing;
-with Files.Jobs.Refresh.Testing;
+with Files.Refresh.Testing;
 with Files.Jobs.Transfer;
 with Files.Jobs.Transfer.Testing;
 with Files_Suite.Support;
@@ -788,7 +788,7 @@ package body Test_Helpers is
         and then Ada.Environment_Variables.Value
           ("FILES_TEST_REFRESH_RESULT_INCONSISTENT", "") = "1"
       then
-         Files.Jobs.Refresh.Testing.Replace_Result_Flags
+         Files.Refresh.Testing.Replace_Result_Flags
            (Ada.Command_Line.Argument (2) & "/result",
             Success => False,
             Reloaded => True);
@@ -797,15 +797,15 @@ package body Test_Helpers is
         and then Ada.Environment_Variables.Value
           ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "") = "1"
       then
-         Files.Jobs.Operation.Testing.Replace_Result_Kind
+         Files.Job_Drivers.Operation.Testing.Replace_Result_Kind
            (Ada.Command_Line.Argument (2) & "/result",
-            Files.Jobs.Operation.Search_Names);
+            Files.Job_Drivers.Operation.Search_Names);
       end if;
       if Mode = Operation_Helper
         and then Ada.Environment_Variables.Value
           ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "") = "1"
       then
-         Files.Jobs.Operation.Testing.Replace_Result_Recent
+         Files.Job_Drivers.Operation.Testing.Replace_Result_Recent
            (Ada.Command_Line.Argument (2) & "/result", True);
       end if;
       if Mode = Transfer_Helper

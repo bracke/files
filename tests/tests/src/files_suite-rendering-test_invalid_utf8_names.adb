@@ -65,7 +65,8 @@ separate (Files_Suite.Rendering)
             Snapshot : constant View_Snapshot := Build_Snapshot (Model, Settings);
             Frame    : constant Frame_Commands :=
               Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
-            Tree     : constant A11ykit.Tree.Accessibility_Tree := Files.Accessibility.To_A11ykit_Tree (Frame);
+            Tree     : constant A11ykit.Tree.Accessibility_Tree := Files.Application.Accessibility.To_A11ykit_Tree
+              (Frame);
          begin
             Files_Suite.Support.Assert_Equal (Natural (Snapshot.Items.Length), 2, "both items reach the snapshot");
             Assert (not Tree.Nodes.Is_Empty, "the accessibility tree builds over a non-UTF-8 name");

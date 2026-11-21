@@ -44,5 +44,5 @@ begin
       Glfw.Windows.Destroy (As_Window (Runtime.Handle));
    end if;
    Free_Window (Runtime.Handle);
-   Files.Accessibility.Forget (Runtime.A11y_Key);
+   Files.Application.Accessibility.Forget (Runtime.A11y_Key);
 end Release_Window;

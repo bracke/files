@@ -5,7 +5,7 @@ with Files.Items;
 with Files.Folder_Size.Testing;
 with Files.Model.Testing;
 with Files.Jobs.Process;
-with Files.Jobs.Refresh;
+with Files.Refresh;
 with Files.Extra_Info_Reader;
 with Ada.Calendar;
 with Ada.Calendar.Formatting;

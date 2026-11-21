@@ -10,7 +10,7 @@ separate (Files_Suite.Recovery)
       Closing_Paste : Files_Suite.Support.Guards.Paste_Guard (Closing'Access);
       Remaining_Paste : Files_Suite.Support.Guards.Paste_Guard (Remaining'Access);
       pragma Unreferenced (Closing_Paste, Remaining_Paste);
-      Closing_Watch, Remaining_Watch : Files.Jobs.Refresh.Watch_Session;
+      Closing_Watch, Remaining_Watch : Files.Refresh.Watch_Session;
       Empty : Files.Jobs.Process.Session;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Started, Other_Started : Unbounded_String;
@@ -66,7 +66,7 @@ separate (Files_Suite.Recovery)
             when Operation_Job => Attach_Operation (Closing, Started);
             when Transfer_Job =>
                Files.Operations.Begin_Paste_Execution (Closing, Actions, Files.File_System.Drop_Copy);
-               Step := Files.Jobs.Foreground.Advance (Closing, Settings, 1);
+               Step := Files.Job_Drivers.Foreground.Advance (Closing, Settings, 1);
                Assert (Step.Status = Files.Operation_Results.Operation_Success
                        and then Files.Model.Foreground_Job_Is_Active (Closing), "start the stalled transfer");
                Await_Started (Join (Root, "transfer-started"));
@@ -87,7 +87,7 @@ separate (Files_Suite.Recovery)
                   Await_Started (To_String (Started));
                end;
          end case;
-         Files.Jobs.Refresh.Watch_Path (Closing_Watch, Root);
+         Files.Refresh.Watch_Path (Closing_Watch, Root);
          Before := Now;
          Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);
          Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);

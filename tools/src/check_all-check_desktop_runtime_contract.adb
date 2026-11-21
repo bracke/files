@@ -5,7 +5,7 @@ separate (Check_All)
       Tests        : constant String := Combined_Suite;
       Wait_Body    : constant String := Root & "/src/files-application-windows-event_loop_wait.adb";
       Share_Body   : constant String := Root & "/src/files-application-windows-share_settings_from.adb";
-      Jobs_Body    : constant String := Root & "/src/files-jobs-operation.adb";
+      Jobs_Body    : constant String := Root & "/src/files-job_drivers-operation.adb";
 
       --  Report Message: check_all fails once every check has run.
       procedure Fail (Message : String) is
@@ -164,12 +164,12 @@ separate (Check_All)
          Fail (Jobs_Body & ": Merge_Journal must read through Files.Undo.Journal.Read and merge "
                & "through Files.Model.History.Merge");
       end if;
-      if Count_Names (Job_Finish, "Files.Undo.Recording.Settle_History") < 2 then
+      if Count_Names (Job_Finish, "Files.Operations.Undo_Recording.Settle_History") < 2 then
          Fail (Jobs_Body & ": a background job's finish must settle the merged history "
-               & "(Files.Undo.Recording.Settle_History) on its success and its failure path");
+               & "(Files.Operations.Undo_Recording.Settle_History) on its success and its failure path");
       end if;
       if Ada.Strings.Fixed.Index (Job_Finish, "Merge_Journal")
-        > Ada.Strings.Fixed.Index (Job_Finish, "Files.Undo.Recording.Settle_History")
+        > Ada.Strings.Fixed.Index (Job_Finish, "Files.Operations.Undo_Recording.Settle_History")
       then
          Fail (Jobs_Body & ": a background job's finish must settle the history after merging it, not before");
       end if;
@@ -216,19 +216,21 @@ separate (Check_All)
         (Windows_Body, "Glfw.Windows.Drop.Paths.Watch", "every window must hand its drops to the import queue");
       Require_Contains
         (Windows_Body, "Handle_Drop_Input", "the event loop must import queued drops");
-      Require_Contains (Windows_Body, "Files.Window_Icon.Set", "every window must show the application icon");
+      Require_Contains (Windows_Body, "Files.Application.Window_Icon.Set",
+                        "every window must show the application icon");
       Require_Contains
         (Windows_Body, "Guikit.Vulkan.Wait_For_Events", "the event loop must wait for events, not spin");
       Require_Contains (Windows_Body, "Watch.Poll", "the event loop must poll the folder watch");
-      Require_Contains (Watch_Body, "Files.Jobs.Refresh.Poll_Watch", "the watch poll must ask the folder watch");
+      Require_Contains (Watch_Body, "Files.Refresh.Poll_Watch", "the watch poll must ask the folder watch");
       --  The event loop's wait and the cross-window settings sync are decided
-      --  by the folds the suite tests (Files.Event_Wait.Fold, and
-      --  Files.Settings_Sharing.Share_From with Adopt_Window as its Adopt):
+      --  by the folds the suite tests (Files.Application.Event_Wait.Fold, and
+      --  Files.Application.Settings_Sharing.Share_From with Adopt_Window as its Adopt):
       --  the window subunits only hand them each window's state. A
       --  reimplementation in the subunit would leave the suite testing code
       --  the program no longer runs.
       Require_Contains
-        (Wait_Body, "Files.Event_Wait.Fold", "the event loop's wait must be Files.Event_Wait.Fold over the windows");
+        (Wait_Body, "Files.Application.Event_Wait.Fold",
+         "the event loop's wait must be Files.Application.Event_Wait.Fold over the windows");
       Require_Contains
         (Wait_Body, "Event_Wait_Timeout", "the event loop's wait must start the fold from the normal wait");
       Require_Contains
@@ -238,23 +240,23 @@ separate (Check_All)
       Require_Not_Contains
         (Wait_Body,
          "Window_Wait",
-         "the event loop's wait must not fold the windows itself; Files.Event_Wait.Fold does");
+         "the event loop's wait must not fold the windows itself; Files.Application.Event_Wait.Fold does");
       Require_Contains
         (Share_Body,
-         "Files.Settings_Sharing.Share_From",
-         "the settings sync must run Files.Settings_Sharing.Share_From");
+         "Files.Application.Settings_Sharing.Share_From",
+         "the settings sync must run Files.Application.Settings_Sharing.Share_From");
       Require_Contains
         (Share_Body,
-         "Files.Settings_Sharing.Adopt_Window",
-         "a window adopting shared settings must do so through Files.Settings_Sharing.Adopt_Window");
+         "Files.Application.Settings_Sharing.Adopt_Window",
+         "a window adopting shared settings must do so through Files.Application.Settings_Sharing.Adopt_Window");
       Require_Not_Contains
         (Share_Body,
          "Adopt_Shared_Settings",
-         "a window adopting shared settings must not bypass Files.Settings_Sharing.Adopt_Window");
+         "a window adopting shared settings must not bypass Files.Application.Settings_Sharing.Adopt_Window");
       Require_Not_Contains
         (Share_Body,
          "Frame_Cache_Valid :=",
-         "the frame cache is dropped by Files.Settings_Sharing.Adopt_Window, where the suite sees it");
+         "the frame cache is dropped by Files.Application.Settings_Sharing.Adopt_Window, where the suite sees it");
       Require_Not_Contains_In_Unit
         (Windows_Body,
          "inotify",

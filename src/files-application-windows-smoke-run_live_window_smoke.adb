@@ -204,7 +204,7 @@ separate (Files.Application.Windows.Smoke)
                   for Tick in 1 .. Hold * 10 loop
                      Guikit.Vulkan.Poll_Events;
                      --  Answer a screen reader looking at the held frame.
-                     Files.Accessibility.Service;
+                     Files.Application.Accessibility.Service;
                      delay 0.1;
                   end loop;
                end if;
