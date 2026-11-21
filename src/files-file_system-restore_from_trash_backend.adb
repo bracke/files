@@ -60,7 +60,7 @@ begin
    declare
       Simple    : constant String := Files.Name_Parts.Leaf_Of (Trashed_Path);
       Info_Path : constant String :=
-        Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Simple & ".trashinfo");
+        Trash_Info_Path (Base, Simple);
       Original  : Unbounded_String;
       Parent    : Unbounded_String;
       --  What the trash holds now, so what is removed once the item is back

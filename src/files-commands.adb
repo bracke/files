@@ -368,15 +368,7 @@ package body Files.Commands is
    function Contains
      (Identifier_Text : String)
       return Boolean is
-   begin
-      for Id in Registered_Command_Id loop
-         if Identifier (Id) = Identifier_Text then
-            return True;
-         end if;
-      end loop;
-
-      return False;
-   end Contains;
+     (Id_For_Identifier (Identifier_Text) /= No_Command);
 
    function Id_For_Identifier
      (Identifier_Text : String)

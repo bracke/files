@@ -1,6 +1,5 @@
-with Files.Preference_Types;
 separate (Files.Rendering.Build_Frame_Commands)
-   --  The window background and the toolbar: its buttons, then its fields.
+   --  The toolbar: its buttons, then its fields.
    procedure Draw_Toolbar is
       --  A toolbar field's state drawn over its box: the border while it is
       --  focused or its text is invalid (in the error colour then), else the
@@ -18,8 +17,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          if Focused or else not Valid then
             Add_Border
               (Box_X, Toolbar_Input_Y, Box_W, Toolbar_Input_H, (if Valid then Border_Color else Input_Error_Color));
-         elsif Has_Hover
-           and then Contains_Point (Box_X, Toolbar_Input_Y, Box_W, Toolbar_Input_H, Hover_X, Hover_Y)
+         elsif Is_Hovered (Box_X, Toolbar_Input_Y, Box_W, Toolbar_Input_H)
          then
             Add_Border (Box_X, Toolbar_Input_Y, Box_W, Toolbar_Input_H, Hover_Color);
          end if;
@@ -121,57 +119,7 @@ separate (Files.Rendering.Build_Frame_Commands)
 
       procedure Draw_Path_Bar is separate;
       procedure Draw_Filter_Field is separate;
-      procedure Draw_View_Switcher is separate;
    begin
-      Result.Layout := Layout;
-      Result.Theme_Palette := Snapshot.Theme_Palette;
-
-      Add_Rect (0, 0, Width, Height, Canvas_Color);
-      Add_Rect (0, 0, Width, Layout.Toolbar_Height, Toolbar_Color);
-      Add_Rect (Layout.Main_X, Layout.Main_Y, Layout.Main_Width, Layout.Main_Height, Main_Color);
-      Add_Rect (0, Bottom_Y, Width, Layout.Bottom_Bar_Height, Bottom_Bar_Color);
-      if Layout.Toolbar_Height > 0 then
-         Add_Rect (0, Layout.Toolbar_Height - 1, Width, 1, Border_Color);
-      end if;
-      Add_Rect (0, Bottom_Y, Width, 1, Border_Color);
-      Add_Accessibility_Node
-        (Role_Window,
-         0,
-         0,
-         Width,
-         Height,
-         Snapshot.Current_Path);
-      Add_Accessibility_Node
-        (Role_Toolbar,
-         0,
-         0,
-         Width,
-         Layout.Toolbar_Height,
-         Localized ("accessibility.toolbar"));
-      Add_Accessibility_Node
-        ((if Snapshot.View_Mode = Files.Preference_Types.Details then Role_Table else Role_List),
-         Layout.Main_X,
-         Layout.Main_Y,
-         Layout.Main_Width,
-         Layout.Main_Height,
-         Localized ("accessibility.main_view"),
-         Main_View_Accessible_Description (Snapshot));
-
-      if Layout.Info_Pane_Width > 0 then
-         Add_Rect
-           (Guikit.Layout.Saturating_Add (Layout.Main_X, Layout.Main_Width),
-            Layout.Main_Y,
-            Layout.Info_Pane_Width,
-            Layout.Main_Height,
-            Pane_Color);
-         Add_Rect
-           (Guikit.Layout.Saturating_Add (Layout.Main_X, Layout.Main_Width),
-            Layout.Main_Y,
-            1,
-            Layout.Main_Height,
-            Border_Color);
-      end if;
-
       for Button_Index in Toolbar_Button_Index loop
          Draw_Toolbar_Button (Button_Index);
       end loop;
@@ -199,5 +147,4 @@ separate (Files.Rendering.Build_Frame_Commands)
       end if;
       Draw_Path_Bar;
       Draw_Filter_Field;
-      Draw_View_Switcher;
    end Draw_Toolbar;

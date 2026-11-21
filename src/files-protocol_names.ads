@@ -42,6 +42,23 @@ package Files.Protocol_Names is
    --  the stage's release folder on the way to the trash.
    Recovery_Releasing : constant String := "releasing";
 
+   --  The entry a work or recovery stage holds: what a copy writes before it
+   --  is published, or what a recovery stage keeps.
+   Stage_Payload : constant String := "payload";
+
+   --  A recovery stage's record of the original path of its payload.
+   Recovery_Original : constant String := "original";
+
+   --  A recovery stage's record of its payload's permission bits.
+   Recovery_Mode : constant String := "mode";
+
+   --  A recovery registry slot's record of the stage it names.
+   Recovery_Record : constant String := "record";
+
+   --  A recovery stage's folder that a release moves the payload into on its
+   --  way to the trash.
+   Recovery_Release : constant String := "release";
+
    --  The files of a helper job's private directory, besides its request and
    --  result (Files.Jobs.Process.Request_File, Result_File). A ".tmp" name is
    --  the staged copy (Files.Jobs.Process.Staged_Name), published whole by

@@ -138,17 +138,12 @@ package body Files.Model is
       Model.Owed_Refresh := (others => <>);
    end Clear_Owed_Refresh;
 
+   --  Every overlay is either the first or another than the first.
    function Input_Owning_Overlay_Is_Open
      (Model : Window_Model)
       return Boolean is
-   begin
-      for Overlay in Input_Overlay loop
-         if Overlay_Is_Open (Model, Overlay) then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Input_Owning_Overlay_Is_Open;
+     (Overlay_Is_Open (Model, Input_Overlay'First)
+      or else Other_Input_Owning_Overlay_Is_Open (Model, Except => Input_Overlay'First));
 
    function Overlay_Is_Open
      (Model   : Window_Model;

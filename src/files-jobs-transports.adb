@@ -1,3 +1,4 @@
+with Files.Hex_Text;
 with Files.Protocol_Names;
 with Files.IO.Fs_Primitives;
 with Files.Timing;
@@ -37,7 +38,7 @@ package body Files.Jobs.Transports is
    Lease_Name    : constant String := Files.Protocol_Names.Transport_Lease;
    Transport_Prefix : constant String := Files.Protocol_Names.Transport_Prefix;
    Witness_Prefix : constant String := ".files-job-creation-";
-   Hex_Digits : constant String := "0123456789abcdef";
+   Hex_Digits : String renames Files.Hex_Text.Lower_Digits;
    Max_Marker_Header_Length : constant := Files.IO.Record_Fields.Max_Header_Length;
    Max_Marker_Path_Length : constant := Files.IO.Record_Fields.Max_Path_Length;
    Max_Marker_Token_Length : constant := Files.IO.Record_Fields.Max_Token_Length;

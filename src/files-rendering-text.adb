@@ -61,8 +61,15 @@ package body Files.Rendering.Text is
            & Positive'Image (Atlas_Width) & Positive'Image (Atlas_Height));
       Slot      : Positive := 1;
    begin
-      Renderer.Pixel_Size := Pixel_Size;
-      Renderer.Key := Key;
+      --  The configuration asked for, whether or not it loads; a failed load
+      --  clears Font_Path below.
+      Renderer.Pixel_Size   := Pixel_Size;
+      Renderer.Key          := Key;
+      Renderer.Font_Path    := To_Unbounded_String (Font_Path);
+      Renderer.Cell_Width   := Cell_Width;
+      Renderer.Cell_Height  := Cell_Height;
+      Renderer.Atlas_Width  := Atlas_Width;
+      Renderer.Atlas_Height := Atlas_Height;
       --  Already loaded for this configuration: nothing to load.
       for Index in Pool'Range loop
          if Pool (Index).Key = Key then
@@ -73,11 +80,6 @@ package body Files.Rendering.Text is
             end if;
             Renderer.Slot := Index;
             Renderer.Loaded := True;
-            Renderer.Font_Path    := To_Unbounded_String (Font_Path);
-            Renderer.Cell_Width   := Cell_Width;
-            Renderer.Cell_Height  := Cell_Height;
-            Renderer.Atlas_Width  := Atlas_Width;
-            Renderer.Atlas_Height := Atlas_Height;
             return Text_Render_Success;
          end if;
       end loop;
@@ -118,11 +120,9 @@ package body Files.Rendering.Text is
             Files.Fonts.Decode_Colour_Glyph_Image'Access);
       end if;
 
-      Renderer.Font_Path    := To_Unbounded_String ((if Renderer.Loaded then Font_Path else ""));
-      Renderer.Cell_Width   := Cell_Width;
-      Renderer.Cell_Height  := Cell_Height;
-      Renderer.Atlas_Width  := Atlas_Width;
-      Renderer.Atlas_Height := Atlas_Height;
+      if not Renderer.Loaded then
+         Renderer.Font_Path := Null_Unbounded_String;
+      end if;
       return Status;
    end Initialize_Text;
 

@@ -14,6 +14,7 @@ with Hostkit.Directory_Write_Access;
 with Files.File_Identities;
 with Files.IO.Errors;
 with CryptoLib.Hashes;
+with Files.Digests;
 
 with Files.IO.Durability;
 with Hostkit.Durability;
@@ -23,6 +24,9 @@ with Files.Text_Basics;
 with Files.Text_Case;
 
 package body Files.File_System.Support is
+
+   --  The entry a copy stage holds before it is published.
+   Payload_Name : String renames Files.Protocol_Names.Stage_Payload;
 
    --  @param Batch Batch journal to load.
    --  @return Verified source-to-destination records for this batch.
@@ -354,8 +358,6 @@ package body Files.File_System.Support is
       Bytes_Read : Integer;
       Context : CryptoLib.Hashes.SHA256_Context;
       Digest : CryptoLib.Hashes.SHA256_Digest;
-      Hex : constant String := "0123456789abcdef";
-      Result : String (1 .. 64);
    begin
       CryptoLib.Hashes.Initialize_SHA256 (Context);
       Descriptor := Hostkit.Regular_Files.Open_Read (Path, False, Supported);
@@ -383,11 +385,7 @@ package body Files.File_System.Support is
          Descriptor := GNAT.OS_Lib.Invalid_FD;
       end;
       Digest := CryptoLib.Hashes.Finalize (Context);
-      for Index in Digest'Range loop
-         Result ((Index - Digest'First) * 2 + 1) := Hex (Natural (Digest (Index)) / 16 + 1);
-         Result ((Index - Digest'First) * 2 + 2) := Hex (Natural (Digest (Index)) mod 16 + 1);
-      end loop;
-      return Result;
+      return Files.Digests.Hex (Digest);
    exception
       when others =>
          if Descriptor /= GNAT.OS_Lib.Invalid_FD then
@@ -399,22 +397,13 @@ package body Files.File_System.Support is
    function Tree_Revision (Path : String) return String is (Tree_Revision_Of (Path, Job_Cancelled));
 
    function Tree_Revision_Of (Path : String; Cancel : Cancellation_Check) return String is
-      use Ada.Streams;
       State : Source_Snapshot;
       Context : CryptoLib.Hashes.SHA256_Context;
       Digest : CryptoLib.Hashes.SHA256_Digest;
-      Hex : constant String := "0123456789abcdef";
-      Result : String (1 .. 64);
 
       procedure Add (Text : String) is
-         Data : Stream_Element_Array (1 .. Stream_Element_Offset (Text'Length));
       begin
-         for Index in Text'Range loop
-            Data (Stream_Element_Offset (Index - Text'First + 1)) := Character'Pos (Text (Index));
-         end loop;
-         if Data'Length > 0 then
-            CryptoLib.Hashes.Update (Context, Data);
-         end if;
+         Files.Digests.Update (Context, Text);
       end Add;
 
       --  Listing a directory may advance its access time, which would undo a
@@ -489,11 +478,7 @@ package body Files.File_System.Support is
       end loop;
       Restore_Directory_Times;
       Digest := CryptoLib.Hashes.Finalize (Context);
-      for Index in Digest'Range loop
-         Result ((Index - Digest'First) * 2 + 1) := Hex (Natural (Digest (Index)) / 16 + 1);
-         Result ((Index - Digest'First) * 2 + 2) := Hex (Natural (Digest (Index)) mod 16 + 1);
-      end loop;
-      return Result;
+      return Files.Digests.Hex (Digest);
    end Tree_Revision_Of;
 
    function Move_No_Replace (Source, Destination : String) return Boolean is
@@ -812,13 +797,13 @@ package body Files.File_System.Support is
       Tree_Revision_Value := Null_Unbounded_String;
       Check_Copy_Destination (Source_Path, Destination_Path);
       Stage := To_Unbounded_String (Create_Stage (Files.IO.Fs_Primitives.Parent_Directory (Destination_Path)));
-      Copy_Node_Deep (Source_Path, Hostkit.Fs.Join (To_String (Stage), "payload"), 0, Walk);
-      Identity := To_Unbounded_String (Files.File_Identities.Token (Hostkit.Fs.Join (To_String (Stage), "payload")));
+      Copy_Node_Deep (Source_Path, Hostkit.Fs.Join (To_String (Stage), Payload_Name), 0, Walk);
+      Identity := To_Unbounded_String (Files.File_Identities.Token (Hostkit.Fs.Join (To_String (Stage), Payload_Name)));
       if Root_Digest /= null then
          Root_Digest.all := Copied_Digest;
       end if;
       declare
-         Payload : constant String := Hostkit.Fs.Join (To_String (Stage), "payload");
+         Payload : constant String := Hostkit.Fs.Join (To_String (Stage), Payload_Name);
       begin
          if not Hostkit.Fs.Is_Link (Payload)
            and then Files.IO.Fs_Primitives.Kind (Payload) = Ada.Directories.Ordinary_File
@@ -838,16 +823,16 @@ package body Files.File_System.Support is
       --  Never publish an unidentifiable payload: Undo and crash recovery
       --  could not verify it afterward, even if staging succeeded.
       if Length (Identity) = 0
-        or else (not Hostkit.Fs.Is_Link (Hostkit.Fs.Join (To_String (Stage), "payload"))
+        or else (not Hostkit.Fs.Is_Link (Hostkit.Fs.Join (To_String (Stage), Payload_Name))
           and then Length (Tree_Revision_Value) = 0)
       then
          raise Ada.Directories.Use_Error;
       end if;
-      Save_Links (Batch, Walk.Copied_Files, Hostkit.Fs.Join (To_String (Stage), "payload"), Destination_Path);
+      Save_Links (Batch, Walk.Copied_Files, Hostkit.Fs.Join (To_String (Stage), Payload_Name), Destination_Path);
       --  The walk flushed what a move needs (Durable); a move's caller
       --  syncs the published copy (Sync_Copy) before it removes the source.
       if not Publish_From_Stage
-        (Hostkit.Fs.Join (To_String (Stage), "payload"), Destination_Path, Source_Path, To_String (Identity),
+        (Hostkit.Fs.Join (To_String (Stage), Payload_Name), Destination_Path, Source_Path, To_String (Identity),
          Tree_Revision_Value, No_Flush)
       then
          raise Ada.Directories.Use_Error;
@@ -906,8 +891,6 @@ package body Files.File_System.Support is
       use Ada.Streams;
       Context : CryptoLib.Hashes.SHA256_Context;
       Digest : CryptoLib.Hashes.SHA256_Digest;
-      Hex : constant String := "0123456789abcdef";
-      Result : String (1 .. 64);
 
       procedure Add (Data : Stream_Element_Array) is
       begin
@@ -924,15 +907,7 @@ package body Files.File_System.Support is
             if not Hostkit.Fs.Read_Link_Target (Path, Target) then
                raise Ada.Directories.Use_Error;
             end if;
-            declare
-               Text : constant String := To_String (Target);
-               Data : Stream_Element_Array (1 .. Stream_Element_Offset (Text'Length));
-            begin
-               for Index in Text'Range loop
-                  Data (Stream_Element_Offset (Index - Text'First + 1)) := Character'Pos (Text (Index));
-               end loop;
-               Add (Data);
-            end;
+            Add (Files.Digests.To_Bytes (To_String (Target)));
          end;
       else
          --  Use the descriptor-pinned, no-follow regular-file reader.  A
@@ -942,11 +917,7 @@ package body Files.File_System.Support is
            (Path, Walk.Cancel);
       end if;
       Digest := CryptoLib.Hashes.Finalize (Context);
-      for Index in Digest'Range loop
-         Result ((Index - Digest'First) * 2 + 1) := Hex (Natural (Digest (Index)) / 16 + 1);
-         Result ((Index - Digest'First) * 2 + 2) := Hex (Natural (Digest (Index)) mod 16 + 1);
-      end loop;
-      return Result;
+      return Files.Digests.Hex (Digest);
    end Content_Digest;
 
    --  Make Destination a hard link to the copy of Source's inode already made
@@ -1049,8 +1020,6 @@ package body Files.File_System.Support is
       Sparse : Boolean := False;
       Digest_Context : CryptoLib.Hashes.SHA256_Context;
       Digest : CryptoLib.Hashes.SHA256_Digest;
-      Hex : constant String := "0123456789abcdef";
-      Digest_Text : String (1 .. 64);
       procedure Copy_Buffer (Buffer_Last : Stream_Element_Offset) is
       begin
          if (Wants_Digest or else Track_Hard_Link)
@@ -1147,13 +1116,7 @@ package body Files.File_System.Support is
       end if;
       if Wants_Digest or else Track_Hard_Link then
          Digest := CryptoLib.Hashes.Finalize (Digest_Context);
-         for Index in Digest'Range loop
-            Digest_Text ((Index - Digest'First) * 2 + 1) :=
-              Hex (Natural (Digest (Index)) / 16 + 1);
-            Digest_Text ((Index - Digest'First) * 2 + 2) :=
-              Hex (Natural (Digest (Index)) mod 16 + 1);
-         end loop;
-         Copied_Bytes_Digest := To_Unbounded_String (Digest_Text);
+         Copied_Bytes_Digest := To_Unbounded_String (Files.Digests.Hex (Digest));
          if Wants_Digest then
             Walk.Root_Digest := Copied_Bytes_Digest;
          end if;

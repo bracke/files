@@ -7,7 +7,7 @@ separate (Files.File_System.Recovery)
       return Mutation_Result
    is
       Stage  : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
-      Holder : constant String := Hostkit.Fs.Join (Stage, "release");
+      Holder : constant String := Hostkit.Fs.Join (Stage, Release_Name);
       Failed : constant Mutation_Result :=
         (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
       --  Held from before the payload leaves until the release is over.

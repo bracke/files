@@ -8,10 +8,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
 
          procedure Draw_Button (Kind : Dialog_Hit_Kind; Button_X : Natural; Label_Key : String) is
             Hovered : constant Boolean :=
-              Has_Hover
-              and then Contains_Point
-                         (Button_X, Dialog.Button_Y, Dialog.Button_Width, Dialog.Button_Height,
-                          Hover_X, Hover_Y);
+              Is_Hovered (Button_X, Dialog.Button_Y, Dialog.Button_Width, Dialog.Button_Height);
             Pressed : constant Boolean :=
               Is_Pressed (Button_X, Dialog.Button_Y, Dialog.Button_Width, Dialog.Button_Height);
          begin
@@ -60,10 +57,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
             Text_Offset : constant Natural :=
               Guikit.Layout.Saturating_Add (Box_Size, Files.Rendering.Layouts.Field_Padding (Line_Height));
             Hovered  : constant Boolean :=
-              Has_Hover
-              and then Contains_Point
-                         (Dialog.Apply_X, Dialog.Apply_Y, Dialog.Apply_Width, Dialog.Apply_Height,
-                          Hover_X, Hover_Y);
+              Is_Hovered (Dialog.Apply_X, Dialog.Apply_Y, Dialog.Apply_Width, Dialog.Apply_Height);
          begin
             if Dialog.Apply_Width > 0 and then Dialog.Apply_Height > 0 then
                if Hovered then

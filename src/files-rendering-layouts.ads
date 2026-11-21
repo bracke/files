@@ -1072,6 +1072,19 @@ package Files.Rendering.Layouts is
    --  @return The three view-mode segments.
    function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector;
 
+   --  The command each view mode's switcher cell runs. The cells run left to
+   --  right in View_Mode order (View_Mode_Cell), so drawing and the click
+   --  hit-test read the same table.
+   View_Mode_Commands : constant array (Files.Preference_Types.View_Mode) of Files.Commands.Registered_Command_Id :=
+     [Files.Preference_Types.Small_Icons => Files.Commands.Select_Small_Icons_Command,
+      Files.Preference_Types.Large_Icons => Files.Commands.Select_Large_Icons_Command,
+      Files.Preference_Types.Details     => Files.Commands.Select_Details_Command];
+
+   --  @param Mode A view mode.
+   --  @return Its cell in View_Mode_Segments (1-based).
+   function View_Mode_Cell (Mode : Files.Preference_Types.View_Mode) return Positive is
+     (Files.Preference_Types.View_Mode'Pos (Mode) + 1);
+
    --  Width the filter scope chip needs so its label is never abbreviated:
    --  the widest of the localized scope words (here/names/contents) plus the
    --  input-field padding on both sides.

@@ -3,6 +3,7 @@ with Ada.Strings;
 with Ada.Strings.Unbounded;
 
 with Files.Commands;
+with Files.Diagnostics;
 with Files.Icon_Themes;
 with Files.Localization;
 with Files.Model.Settings_Pane;
@@ -20,6 +21,50 @@ package body Files.Settings_Form is
    use type Files.Commands.Shortcut;
 
    Shortcut_Key_Prefix : constant String := "shortcut.";
+
+   type Form_Key_Text is access constant String;
+   function "+" (Text : String) return Form_Key_Text is (new String'(Text));
+
+   --  The form field that edits each scalar setting; "" for the settings the
+   --  pane does not show. Fields builds its rows and Apply reads changes back
+   --  through this one table, so a row and its handling cannot drift apart.
+   Form_Keys : constant array (Files.Settings.Scalar_Setting) of Form_Key_Text :=
+     [Default_View_Mode_Setting         => +"settings.view",
+      Show_Hidden_Files_Setting         => +"settings.hidden_files",
+      Show_File_Extensions_Setting      => +"settings.show_extensions",
+      Sort_Field_Setting                => +"settings.sort",
+      Sort_Ascending_Setting            => +"settings.sort_ascending",
+      Theme_Setting                     => +"settings.theme",
+      Icon_Theme_Setting                => +"settings.icon_theme",
+      Font_Pixel_Size_Setting           => +"settings.font_pixel_size",
+      Use_System_Default_Opener_Setting => +"settings.system_opener",
+      Group_By_Setting                  => +"settings.grouping",
+      Detail_Column_Modified_Setting    => +"settings.column.modified",
+      Detail_Column_Size_Setting        => +"settings.column.size",
+      Detail_Column_Filetype_Setting    => +"settings.column.type",
+      Detail_Column_Created_Setting     => +"settings.column.created",
+      Detail_Column_Permissions_Setting => +"settings.column.permissions",
+      others                            => +""];
+
+   function Form_Key (Setting : Files.Settings.Scalar_Setting) return String is (Form_Keys (Setting).all);
+
+   --  Whether Key is the form field of a scalar setting.
+   function Is_Form_Scalar (Key : String) return Boolean is
+     (Key /= "" and then (for some Setting in Files.Settings.Scalar_Setting => Form_Key (Setting) = Key));
+
+   --  The scalar setting whose form field is Key.
+   function Form_Scalar (Key : String) return Files.Settings.Scalar_Setting
+     with Pre => Is_Form_Scalar (Key);
+
+   function Form_Scalar (Key : String) return Files.Settings.Scalar_Setting is
+   begin
+      for Setting in Files.Settings.Scalar_Setting loop
+         if Form_Key (Setting) = Key then
+            return Setting;
+         end if;
+      end loop;
+      raise Program_Error;
+   end Form_Scalar;
 
    function U (S : String) return Unbounded_String renames To_Unbounded_String;
    function L (Key : String) return Unbounded_String is (U (Files.Localization.Text (Key)));
@@ -39,10 +84,12 @@ package body Files.Settings_Form is
 
       --  Help_Key names a settings.help.* catalog entry shown in the pane footer
       --  while the field is focused; the empty default leaves the field help-less.
-      procedure Toggle (Key : String; Value : UString; Help_Key : String := "") is
+      --  Each scalar row's key is its Form_Key and its value the draft's text.
+      procedure Toggle (Setting : Files.Settings.Scalar_Setting; Help_Key : String := "") is
+         Key : constant String := Form_Key (Setting);
       begin
          Result.Append
-           (SP.Field'(Key => U (Key), Label => L (Key), Kind => SP.Toggle, Value => Value,
+           (SP.Field'(Key => U (Key), Label => L (Key), Kind => SP.Toggle, Value => D.Scalars (Setting),
                       Help => L (Help_Key), others => <>));
       end Toggle;
 
@@ -61,16 +108,16 @@ package body Files.Settings_Form is
          type Value_Type is (<>);
          with function Token (Value : Value_Type) return String;
          with function Label_Key (Value : Value_Type) return String;
-      procedure Enum_Choice (Key : String; Value : UString; Help_Key : String);
+      procedure Enum_Choice (Setting : Files.Settings.Scalar_Setting; Help_Key : String);
 
-      procedure Enum_Choice (Key : String; Value : UString; Help_Key : String) is
+      procedure Enum_Choice (Setting : Files.Settings.Scalar_Setting; Help_Key : String) is
          Toks, Labels : SP.UString_Vectors.Vector;
       begin
          for Each in Value_Type loop
             Toks.Append (U (Token (Each)));
             Labels.Append (L (Label_Key (Each)));
          end loop;
-         Choice (Key, Value, Toks, Labels, Help_Key);
+         Choice (Form_Key (Setting), D.Scalars (Setting), Toks, Labels, Help_Key);
       end Enum_Choice;
 
       --  The view choice uses the same short labels as the bottom bar's
@@ -102,10 +149,13 @@ package body Files.Settings_Form is
       procedure Group_Choice is new Enum_Choice
         (Files.Preference_Types.Group_Mode, Files.Settings.Group_Mode_Name, Group_Label_Key);
 
-      procedure Number_Field (Key : String; Value : UString; Min, Max : Integer; Help_Key : String := "") is
+      procedure Number_Field
+        (Setting : Files.Settings.Scalar_Setting; Min, Max : Integer; Help_Key : String := "")
+      is
+         Key : constant String := Form_Key (Setting);
       begin
          Result.Append
-           (SP.Field'(Key => U (Key), Label => L (Key), Kind => SP.Number, Value => Value,
+           (SP.Field'(Key => U (Key), Label => L (Key), Kind => SP.Number, Value => D.Scalars (Setting),
                       Min => Min, Max => Max, Help => L (Help_Key), others => <>));
       end Number_Field;
 
@@ -202,31 +252,31 @@ package body Files.Settings_Form is
    begin
       Action_Buttons;
       Section ("settings.section.view");
-      View_Choice ("settings.view", D.Scalars (Default_View_Mode_Setting), "settings.help.default_view");
-      Toggle ("settings.hidden_files", D.Scalars (Show_Hidden_Files_Setting), "settings.help.boolean");
-      Toggle ("settings.show_extensions", D.Scalars (Show_File_Extensions_Setting), "settings.help.boolean");
+      View_Choice (Default_View_Mode_Setting, "settings.help.default_view");
+      Toggle (Show_Hidden_Files_Setting, "settings.help.boolean");
+      Toggle (Show_File_Extensions_Setting, "settings.help.boolean");
 
       Section ("settings.section.sorting");
-      Sort_Choice ("settings.sort", D.Scalars (Sort_Field_Setting), "settings.help.sort");
-      Toggle ("settings.sort_ascending", D.Scalars (Sort_Ascending_Setting), "settings.help.boolean");
+      Sort_Choice (Sort_Field_Setting, "settings.help.sort");
+      Toggle (Sort_Ascending_Setting, "settings.help.boolean");
 
       Section ("settings.section.appearance");
-      Color_Theme_Choice ("settings.theme", D.Scalars (Theme_Setting), "settings.help.theme");
-      Icon_Theme_Choice ("settings.icon_theme", D.Scalars (Icon_Theme_Setting), "settings.help.icon_theme");
+      Color_Theme_Choice (Theme_Setting, "settings.help.theme");
+      Icon_Theme_Choice (Icon_Theme_Setting, "settings.help.icon_theme");
       Number_Field
-        ("settings.font_pixel_size", D.Scalars (Font_Pixel_Size_Setting),
-         Files.Settings.Min_Font_Pixel_Size, Files.Settings.Max_Font_Pixel_Size, "settings.help.font_pixel_size");
+        (Font_Pixel_Size_Setting, Files.Settings.Min_Font_Pixel_Size, Files.Settings.Max_Font_Pixel_Size,
+         "settings.help.font_pixel_size");
 
       Section ("settings.section.behavior");
-      Toggle ("settings.system_opener", D.Scalars (Use_System_Default_Opener_Setting), "settings.help.system_opener");
+      Toggle (Use_System_Default_Opener_Setting, "settings.help.system_opener");
 
       Section ("settings.section.details");
-      Group_Choice ("settings.grouping", D.Scalars (Group_By_Setting), "settings.help.grouping");
-      Toggle ("settings.column.modified", D.Scalars (Detail_Column_Modified_Setting), "settings.help.column");
-      Toggle ("settings.column.size", D.Scalars (Detail_Column_Size_Setting), "settings.help.column");
-      Toggle ("settings.column.type", D.Scalars (Detail_Column_Filetype_Setting), "settings.help.column");
-      Toggle ("settings.column.created", D.Scalars (Detail_Column_Created_Setting), "settings.help.column");
-      Toggle ("settings.column.permissions", D.Scalars (Detail_Column_Permissions_Setting), "settings.help.column");
+      Group_Choice (Group_By_Setting, "settings.help.grouping");
+      Toggle (Detail_Column_Modified_Setting, "settings.help.column");
+      Toggle (Detail_Column_Size_Setting, "settings.help.column");
+      Toggle (Detail_Column_Filetype_Setting, "settings.help.column");
+      Toggle (Detail_Column_Created_Setting, "settings.help.column");
+      Toggle (Detail_Column_Permissions_Setting, "settings.help.column");
 
       Section ("settings.section.file_types");
       Mapping_Group ("form.filetype.buttons",
@@ -513,50 +563,8 @@ package body Files.Settings_Form is
             return False;
 
          when SP.Value_Changed =>
-            if Key = "settings.view" then
-               D.Scalars (Default_View_Mode_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.hidden_files" then
-               D.Scalars (Show_Hidden_Files_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.show_extensions" then
-               D.Scalars (Show_File_Extensions_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.sort" then
-               D.Scalars (Sort_Field_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.sort_ascending" then
-               D.Scalars (Sort_Ascending_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.theme" then
-               D.Scalars (Theme_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.icon_theme" then
-               D.Scalars (Icon_Theme_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.font_pixel_size" then
-               D.Scalars (Font_Pixel_Size_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.system_opener" then
-               D.Scalars (Use_System_Default_Opener_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.grouping" then
-               D.Scalars (Group_By_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.column.modified" then
-               D.Scalars (Detail_Column_Modified_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.column.size" then
-               D.Scalars (Detail_Column_Size_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.column.type" then
-               D.Scalars (Detail_Column_Filetype_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.column.created" then
-               D.Scalars (Detail_Column_Created_Setting) := Val;
-               Save := True;
-            elsif Key = "settings.column.permissions" then
-               D.Scalars (Detail_Column_Permissions_Setting) := Val;
+            if Is_Form_Scalar (Key) then
+               D.Scalars (Form_Scalar (Key)) := Val;
                Save := True;
             elsif Key = "settings.filetype_extension" then
                Set_Entry (D.Filetype_Keys, D.Filetype_Values, D.Filetype_Index,
@@ -580,6 +588,10 @@ package body Files.Settings_Form is
               and then Key (Key'First .. Key'First + Shortcut_Key_Prefix'Length - 1) = Shortcut_Key_Prefix
             then
                Apply_Shortcut (Key, To_String (Val), Applied => Save, Conflict => Conflict);
+            else
+               --  Every value field Fields builds is handled above; one that
+               --  is not is a form out of step with this, so it is traced.
+               Files.Diagnostics.Trace ("Files.Settings_Form", "unhandled_field=" & Key);
             end if;
             --  A change that is saved is checked by that save, which reports
             --  what it finds; a text edit is checked when Enter commits it,

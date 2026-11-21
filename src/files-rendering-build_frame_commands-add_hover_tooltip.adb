@@ -82,47 +82,28 @@ separate (Files.Rendering.Build_Frame_Commands)
                Tip_X   : constant Natural := Place.X;
                Tip_Y   : constant Natural := Place.Y;
                Label_X : constant Natural := Guikit.Layout.Saturating_Add (Tip_X, Padding);
-               Draw_W  : constant Natural := Clipped_Size (Label_X, Draw_Text_W, Layout.Width);
                Line    : Natural := 0;
             begin
                --  The box and border once, then the rows on top, one line
                --  height apart.
-               Guikit.Widgets.Draw_Tooltip
-                 (Rectangles      => Result.Overlay_Rectangles,
-                  Text            => Result.Overlay_Text,
-                  Clip_Width      => Layout.Width,
-                  Clip_Height     => Layout.Height,
-                  Box_X           => Tip_X,
-                  Box_Y           => Tip_Y,
-                  Box_Width       => Tip_W,
-                  Box_Height      => Tip_H,
-                  Fill_Color      => Overlay_Color,
-                  Border_Color    => Border_Color,
-                  Label_X         => Label_X,
-                  Label_Y         => Guikit.Layout.Saturating_Add (Tip_Y, Padding_V),
-                  Label_Width     => 0,
-                  Label_Height    => 0,
-                  Label_Text      => Null_Unbounded_String,
-                  Label_Truncated => False,
-                  Label_Color     => Text_Color);
+               Guikit.Widgets.Draw_Tooltip_Box
+                 (Rectangles   => Result.Overlay_Rectangles,
+                  Text         => Result.Overlay_Text,
+                  Clip_Width   => Layout.Width,
+                  Clip_Height  => Layout.Height,
+                  Box_X        => Tip_X,
+                  Box_Y        => Tip_Y,
+                  Box_Width    => Tip_W,
+                  Box_Height   => Tip_H,
+                  Fill_Color   => Overlay_Color,
+                  Border_Color => Border_Color);
 
                for Row of Rows loop
-                  declare
-                     Label_Y : constant Natural :=
-                       Guikit.Layout.Saturating_Add
-                         (Guikit.Layout.Saturating_Add (Tip_Y, Padding_V), Saturating_Multiply (Line, Line_Height));
-                     Draw_H  : constant Natural := Clipped_Size (Label_Y, Line_Height, Layout.Height);
-                  begin
-                     if Row.Last >= Row.First and then Draw_W > 0 and then Draw_H > 0 then
-                        Result.Overlay_Text.Append
-                          (Guikit.Draw.Text_Command'
-                             (X => Label_X, Y => Label_Y, Width => Draw_W, Height => Draw_H,
-                              Text => To_Unbounded_String (Raw (Row.First .. Row.Last)),
-                              Color => Text_Color, Truncated => False,
-                              Scale_To_Box => False, Align_End => False, Italic => False, Mirror_Glyph => False,
-                              Cut_Columns => Guikit.Draw.Auto_Cut));
-                     end if;
-                  end;
+                  Add_Overlay_Text
+                    (Label_X,
+                     Guikit.Layout.Saturating_Add
+                       (Guikit.Layout.Saturating_Add (Tip_Y, Padding_V), Saturating_Multiply (Line, Line_Height)),
+                     Draw_Text_W, Line_Height, To_Unbounded_String (Raw (Row.First .. Row.Last)));
                   Line := Guikit.Layout.Saturating_Add (Line, 1);
                end loop;
             end;

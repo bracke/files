@@ -146,4 +146,47 @@ package body Files.IO.Lease_Streams is
          raise;
    end Read_Record;
 
+   function Holds_Exactly (Path : String; Bytes : Ada.Streams.Stream_Element_Array) return Boolean is
+      use type Ada.Streams.Stream_Element_Array;
+      Handle    : Hostkit.Lease_Files.Lease;
+      Read_Back : Ada.Streams.Stream_Element_Array (Bytes'Range);
+      Valid     : Boolean;
+   begin
+      if Hostkit.Lease_Files.Open (Path, Hostkit.Lease_Files.Shared, Writable => False, Item => Handle) /=
+        Hostkit.Lease_Files.Opened
+      then
+         return False;
+      end if;
+      Valid := Hostkit.Lease_Files.Size (Handle) = Bytes'Length
+        and then Hostkit.Lease_Files.Read_At (Handle, Read_Back)
+        and then Read_Back = Bytes;
+      Hostkit.Lease_Files.Release (Handle);
+      return Valid;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.IO.Lease_Streams");
+         Hostkit.Lease_Files.Release (Handle);
+         return False;
+   end Holds_Exactly;
+
+   function Write_Marker (Path : String; Bytes : Ada.Streams.Stream_Element_Array) return Marker_Write is
+      Handle  : Hostkit.Lease_Files.Lease;
+      Written : Boolean;
+   begin
+      case Hostkit.Lease_Files.Create (Path, Handle) is
+         when Hostkit.Lease_Files.Opened =>
+            Written := Hostkit.Lease_Files.Write_At (Handle, Bytes);
+            Hostkit.Lease_Files.Release (Handle);
+            return (if Written then Marker_Written else Marker_Torn);
+         when Hostkit.Lease_Files.Refused =>
+            return Marker_Exists;
+         when others =>
+            return Marker_Not_Created;
+      end case;
+   exception
+      when others =>
+         Hostkit.Lease_Files.Release (Handle);
+         raise;
+   end Write_Marker;
+
 end Files.IO.Lease_Streams;

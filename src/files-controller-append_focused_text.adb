@@ -6,7 +6,6 @@ separate (Files.Controller)
    is
       Old_Text : constant String := Files.Model.Focused_Text (Model);
       Cursor   : constant Natural := Files.Model.Text_Cursor_Position (Model);
-      New_Text : Unbounded_String;
    begin
       --  Printable characters arrive through GLFW's character callback rather
       --  than the normal key translator. The overlay on top contains them
@@ -42,19 +41,7 @@ separate (Files.Controller)
               else Controller_Ignored);
       end if;
 
-      if Cursor = 0 then
-         New_Text := To_Unbounded_String (Text & Old_Text);
-      elsif Cursor >= Old_Text'Length then
-         New_Text := To_Unbounded_String (Old_Text & Text);
-      else
-         New_Text :=
-           To_Unbounded_String
-             (Old_Text (Old_Text'First .. Old_Text'First + Cursor - 1)
-              & Text
-              & Old_Text (Old_Text'First + Cursor .. Old_Text'Last));
-      end if;
-
-      Replace_Focused_Text (Model, To_String (New_Text));
+      Replace_Focused_Text (Model, Guikit.Utf8.Editing.Insert_At (Old_Text, Cursor, Text));
       Files.Model.Set_Text_Cursor_Position (Model, Cursor + Text'Length);
       return Make_Result (Controller_Text_Updated);
    end Append_Focused_Text;

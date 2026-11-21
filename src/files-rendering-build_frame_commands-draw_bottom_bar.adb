@@ -1,5 +1,6 @@
 separate (Files.Rendering.Build_Frame_Commands)
-   --  The bottom bar: sort button, counts and hidden toggle, free space, info-pane toggle.
+   --  The bottom bar: view-mode switcher, sort button, counts and hidden
+   --  toggle, free space, info-pane toggle.
    procedure Draw_Bottom_Bar is
       --  Fill the whole button height (matching the neighbouring bottom-bar
       --  controls and this control's own full-height hit region), not just
@@ -11,11 +12,13 @@ separate (Files.Rendering.Build_Frame_Commands)
         (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
          else Layout.Bottom_Bar_Height);
 
+      procedure Draw_View_Switcher is separate;
       procedure Draw_Sort_Button is separate;
       procedure Draw_Free_Space (Divider_X, Free_X, Free_Field_W, Free_Region_W : Natural) is separate;
       procedure Draw_Status_Counts is separate;
       procedure Draw_Info_Toggle is separate;
    begin
+      Draw_View_Switcher;
       Draw_Sort_Button;
       Draw_Status_Counts;
       Draw_Info_Toggle;

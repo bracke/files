@@ -10,7 +10,7 @@ separate (Files.File_System.Recovery)
 
       procedure Check (Name : String; Stop : in out Boolean) is
       begin
-         if Name = "record" then
+         if Name = Record_Name then
             Count := Count + 1;
          else
             Other := True;

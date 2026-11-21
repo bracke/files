@@ -3,7 +3,7 @@ with Files.Name_Parts;
 separate (Files.File_System.Recovery)
    function Resume_Held_Release (Path : String) return Boolean is
       Stage  : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
-      Holder : constant String := Hostkit.Fs.Join (Stage, "release");
+      Holder : constant String := Hostkit.Fs.Join (Stage, Release_Name);
       Held   : UString;
       Count  : Natural := 0;
 

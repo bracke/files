@@ -18,9 +18,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
         (Free_Region_X, Free_Region_W,
          Selected => False,
          Hovered  =>
-           Has_Hover
-           and then Contains_Point
-             (Free_Region_X, Bottom_Y, Free_Region_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y),
+           Is_Hovered (Free_Region_X, Bottom_Y, Free_Region_W, Layout.Bottom_Bar_Height),
          Pressed  => Is_Pressed (Free_Region_X, Bottom_Y, Free_Region_W, Layout.Bottom_Bar_Height),
          Enabled  =>
            Snapshot.Command_Enabled (Files.Commands.Toggle_Free_Space_Display_Command));

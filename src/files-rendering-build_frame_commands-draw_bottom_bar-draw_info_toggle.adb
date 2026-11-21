@@ -16,14 +16,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
              Bottom.Info_Pane_Width,
              Layout.Bottom_Bar_Height)
           then Pressed_Color
-          elsif Has_Hover
-            and then Contains_Point
-              (Bottom.Info_Pane_X,
-               Bottom_Y,
-               Bottom.Info_Pane_Width,
-               Layout.Bottom_Bar_Height,
-               Hover_X,
-               Hover_Y)
+          elsif Is_Hovered (Bottom.Info_Pane_X, Bottom_Y, Bottom.Info_Pane_Width, Layout.Bottom_Bar_Height)
           then Hover_Color
           else Bottom_Bar_Color));
       declare

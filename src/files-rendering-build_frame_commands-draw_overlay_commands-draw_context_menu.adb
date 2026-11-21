@@ -31,10 +31,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
            Command /= Files.Commands.No_Command
            and then Snapshot.Command_Enabled (Command);
          Hovered : constant Boolean :=
-           Has_Hover
-           and then Contains_Point
-             (Row_X, Row_Y, Row_W, Menu.Row_Height,
-              Hover_X, Hover_Y);
+           Is_Hovered (Row_X, Row_Y, Row_W, Menu.Row_Height);
          Pressed : constant Boolean :=
            Is_Pressed
              (Row_X, Row_Y, Row_W, Menu.Row_Height);

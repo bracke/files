@@ -40,7 +40,7 @@ begin
       declare
          Simple    : constant String := Files.Name_Parts.Leaf_Of (Trashed_Path);
          Info_Path : constant String :=
-           Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Simple & ".trashinfo");
+           Trash_Info_Path (Base, Simple);
       begin
          --  One that could not be looked at is deleted all the same, or it
          --  stays behind describing an item that is gone.

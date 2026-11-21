@@ -1,6 +1,7 @@
 with Files.File_System.Trash;
 with Files.Protocol_Names;
 with Files.Diagnostics;
+with Files.Hex_Text;
 with Ada.Command_Line;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
@@ -20,8 +21,6 @@ package body Files.Recovery_CLI is
    --  Whether '\' is a character of a name here (it separates on Windows).
    function Backslash_Is_Text return Boolean is (Hostkit.Fs.Separator /= '\');
 
-   Hex : constant String := "0123456789abcdef";
-
    function Escaped (Text : String) return String is
       Result : Unbounded_String;
    begin
@@ -33,8 +32,7 @@ package body Files.Recovery_CLI is
             when Character'Val (0) .. Character'Val (8) | Character'Val (11) | Character'Val (12)
                | Character'Val (14) .. Character'Val (31) | Character'Val (127) =>
                Append (Result, "\x");
-               Append (Result, Hex (Character'Pos (C) / 16 + 1));
-               Append (Result, Hex (Character'Pos (C) mod 16 + 1));
+               Append (Result, Files.Hex_Text.Byte_Lower (Character'Pos (C)));
             when '\' =>
                Append (Result, (if Backslash_Is_Text then "\\" else "\"));
             when others => Append (Result, C);
@@ -47,12 +45,7 @@ package body Files.Recovery_CLI is
       Result : Unbounded_String;
       Index  : Integer := Text'First;
 
-      function Digit (C : Character) return Natural is
-        (case C is
-            when '0' .. '9' => Character'Pos (C) - Character'Pos ('0'),
-            when 'a' .. 'f' => Character'Pos (C) - Character'Pos ('a') + 10,
-            when 'A' .. 'F' => Character'Pos (C) - Character'Pos ('A') + 10,
-            when others => 16);
+      function Digit (C : Character) return Integer renames Files.Hex_Text.Digit_Value;
 
       --  The byte an escape at Index stands for, and how long it is; Width
       --  0 when none starts there.
@@ -71,7 +64,7 @@ package body Files.Recovery_CLI is
                Value := '\';
             when 'x' =>
                if Index + 3 <= Text'Last
-                 and then Digit (Text (Index + 2)) < 16 and then Digit (Text (Index + 3)) < 16
+                 and then Digit (Text (Index + 2)) >= 0 and then Digit (Text (Index + 3)) >= 0
                then
                   Value := Character'Val (Digit (Text (Index + 2)) * 16 + Digit (Text (Index + 3)));
                   Width := 4;
@@ -128,7 +121,7 @@ package body Files.Recovery_CLI is
            and then Files.IO.Fs_Primitives.Directory_Exists (Stage)
          then
             declare
-               Payload  : constant String := Hostkit.Fs.Join (Stage, "payload");
+               Payload  : constant String := Hostkit.Fs.Join (Stage, Files.Protocol_Names.Stage_Payload);
                Original : constant String := Files.File_System.Trash.Trash_Original_Path (Payload);
             begin
                if Files.File_System.Is_Recovery_Payload (Payload) and then Original /= "" then

@@ -62,6 +62,12 @@ package body Files.File_System.Recovery is
       Equivalent_Elements => "=");
 
    Owner_Name : constant String := Files.Protocol_Names.Recovery_Owner;
+   --  The members of a stage, and of a registry slot.
+   Payload_Name  : String renames Files.Protocol_Names.Stage_Payload;
+   Original_Name : String renames Files.Protocol_Names.Recovery_Original;
+   Mode_Name     : String renames Files.Protocol_Names.Recovery_Mode;
+   Record_Name   : String renames Files.Protocol_Names.Recovery_Record;
+   Release_Name  : String renames Files.Protocol_Names.Recovery_Release;
    --  Written, synced, in the stage before Restore moves the payload out:
    --  only a stage carrying it and no payload is a restore that stopped.
    Vacated_Marker : constant String := Files.Protocol_Names.Recovery_Vacated;
@@ -354,7 +360,7 @@ package body Files.File_System.Recovery is
 
       procedure Check (Name : String; Stop : in out Boolean) is
       begin
-         if Name not in "payload" | "original" | "mode" | Vacated_Marker | Releasing_Marker | Owner_Name then
+         if Name not in Payload_Name | Original_Name | Mode_Name | Vacated_Marker | Releasing_Marker | Owner_Name then
             Only_Owned := False;
             Stop := True;
          end if;
@@ -377,7 +383,7 @@ package body Files.File_System.Recovery is
          Identity := Null_Unbounded_String;
          return False;
       end if;
-      return Read_Path_Record (Hostkit.Fs.Join (Directory, "record"), Registry_Magic, Payload, Identity);
+      return Read_Path_Record (Hostkit.Fs.Join (Directory, Record_Name), Registry_Magic, Payload, Identity);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
@@ -533,7 +539,7 @@ package body Files.File_System.Recovery is
    --  marker (see Hold_Marker, Claim_Marker), so the operation is not live.
    function Only_Stage_Left (Path : String) return Boolean is
       Stage    : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
-      Holder   : constant String := Hostkit.Fs.Join (Stage, "release");
+      Holder   : constant String := Hostkit.Fs.Join (Stage, Release_Name);
       Original : UString;
       Identity : UString;
    begin
@@ -541,7 +547,7 @@ package body Files.File_System.Recovery is
       --  payload must never let the stage, original inside, be removed.
       return Files.IO.Fs_Primitives.Entry_Is_Absent (Path)
         and then Files.IO.Fs_Primitives.Entry_Is_Absent (Holder)
-        and then Files.Name_Parts.Leaf_Of (Path) = "payload"
+        and then Files.Name_Parts.Leaf_Of (Path) = Payload_Name
         and then (Has_Marker (Stage, Vacated_Marker) or else Has_Marker (Stage, Releasing_Marker))
         and then Read_Owner (Stage, Original, Identity)
         and then Contains_Only_Owned_Entries (Stage);
@@ -590,9 +596,9 @@ package body Files.File_System.Recovery is
       Original : UString;
       Identity : UString;
    begin
-      return Files.Name_Parts.Leaf_Of (Payload) = "payload"
+      return Files.Name_Parts.Leaf_Of (Payload) = Payload_Name
         and then Files.IO.Fs_Primitives.Entry_Is_Absent (Payload)
-        and then Files.IO.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (Stage, "release"))
+        and then Files.IO.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (Stage, Release_Name))
         and then not Has_Marker (Stage, Vacated_Marker)
         and then not Has_Marker (Stage, Releasing_Marker)
         and then Read_Owner (Stage, Original, Identity)
@@ -678,7 +684,7 @@ package body Files.File_System.Recovery is
       Parent : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
       Original, Identity : UString;
    begin
-      return Files.Name_Parts.Leaf_Of (Path) = "payload"
+      return Files.Name_Parts.Leaf_Of (Path) = Payload_Name
         and then Files.Text_Basics.Starts_With (Files.Name_Parts.Leaf_Of (Parent),
                                                 Files.Protocol_Names.Recovery_Stage_Prefix)
         and then not Hostkit.Fs.Is_Link (Parent)

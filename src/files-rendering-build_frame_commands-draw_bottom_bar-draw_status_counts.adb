@@ -49,9 +49,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
            (Bottom.Info_X, Toggle_W,
             Selected => False,
             Hovered  =>
-              Has_Hover
-              and then Contains_Point
-                (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y),
+              Is_Hovered (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height),
             Pressed  => Is_Pressed (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height),
             Enabled  => Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command));
          Add_Text

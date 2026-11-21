@@ -44,7 +44,7 @@ separate (Files.File_System.Recovery)
          raise Ada.Directories.Use_Error;
       end if;
       Files.IO.Exclusive_Streams.Create
-        (File, Hostkit.Fs.Join (To_String (Directory), "record"));
+        (File, Hostkit.Fs.Join (To_String (Directory), Record_Name));
       Write_Bounded
         (File'Access, Registry_Magic, Max_Header_Length);
       Write_Bounded
@@ -54,7 +54,7 @@ separate (Files.File_System.Recovery)
          Files.File_Identities.Token (Files.IO.Fs_Primitives.Parent_Directory (Payload)),
          Max_Identity_Length);
       Files.IO.Exclusive_Streams.Close (File);
-      if Files.IO.Durability.Sync_File (Hostkit.Fs.Join (To_String (Directory), "record")) /=
+      if Files.IO.Durability.Sync_File (Hostkit.Fs.Join (To_String (Directory), Record_Name)) /=
           Hostkit.Durability.Synced
         or else Files.IO.Durability.Sync_Directory (To_String (Directory)) =
           Hostkit.Durability.Failed

@@ -145,6 +145,24 @@ package body Files.Controller is
       end if;
    end Take_In_Settings;
 
+   --  The result of a settings write refused because the settings would be
+   --  too big to load again.
+   function Settings_Full_Result (Settings_Path : String) return Files.Settings.Settings_Write_Result is
+     (Success   => False,
+      Durable   => False,
+      Path      => To_Unbounded_String (Settings_Path),
+      Error_Key => To_Unbounded_String ("error.settings.full"));
+
+   --  Settings_Full_Result, also said in the window's error line.
+   function Settings_Full
+     (Model         : in out Files.Model.Window_Model;
+      Settings_Path : String)
+      return Files.Settings.Settings_Write_Result is
+   begin
+      Files.Model.Set_Error (Model, "error.settings.full");
+      return Settings_Full_Result (Settings_Path);
+   end Settings_Full;
+
    --  The one place settings are written. An empty path turns persistence
    --  off (smoke runs, tests): the settings apply in memory and count as saved.
    --  A session whose settings file could not be loaded refuses to write it:
@@ -187,11 +205,7 @@ package body Files.Controller is
          elsif Merged then
             if not Files.Settings.Loadable (Settings) then
                Settings := Own;
-               return
-                 (Success   => False,
-                  Durable   => False,
-                  Path      => To_Unbounded_String (Settings_Path),
-                  Error_Key => To_Unbounded_String ("error.settings.full"));
+               return Settings_Full_Result (Settings_Path);
             elsif Settings.Shortcut_Overrides /= Own.Shortcut_Overrides then
                Files.Settings_Form.Apply_Shortcut_Overrides (Settings);
             end if;
@@ -215,12 +229,7 @@ package body Files.Controller is
       Before : constant Files.Settings.Settings_Model := Settings;
    begin
       if not Files.Settings.Loadable (Settings) then
-         Files.Model.Set_Error (Model, "error.settings.full");
-         return
-           (Success   => False,
-            Durable   => False,
-            Path      => To_Unbounded_String (Settings_Path),
-            Error_Key => To_Unbounded_String ("error.settings.full"));
+         return Settings_Full (Model, Settings_Path);
       end if;
       declare
          Saved : constant Files.Settings.Settings_Write_Result := Write_Settings (Settings_Path, Settings);
@@ -268,14 +277,7 @@ package body Files.Controller is
       --  already were, refusing every later change (a zoom, a toggle) would
       --  only lock the user out; Persisted then still writes nothing.
       elsif not Files.Settings.Loadable (Updated) and then Files.Settings.Loadable (Settings) then
-         Files.Model.Set_Error (Model, "error.settings.full");
-         return
-           (Saved    =>
-              (Success   => False,
-               Durable   => False,
-               Path      => To_Unbounded_String (Settings_Path),
-               Error_Key => To_Unbounded_String ("error.settings.full")),
-            Accepted => False);
+         return (Saved => Settings_Full (Model, Settings_Path), Accepted => False);
       end if;
       declare
          Before : constant Files.Settings.Settings_Model := Settings;

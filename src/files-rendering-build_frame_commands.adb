@@ -383,6 +383,9 @@ separate (Files.Rendering)
       --  so it is drawn with the pointer's hover and press (Live).
       function Toggles_Topmost_Overlay (Command : Files.Commands.Command_Id) return Boolean is separate;
 
+      --  Whether the pointer hovers over the box at X, Y.
+      function Is_Hovered (X, Y, Box_W, Box_H : Natural) return Boolean is
+        (Has_Hover and then Contains_Point (X, Y, Box_W, Box_H, Hover_X, Hover_Y));
       function Is_Pressed
         (X     : Natural;
          Y     : Natural;
@@ -598,7 +601,9 @@ separate (Files.Rendering)
 
       --  The details column names a row's accessibility description repeats.
       Detail_Column_Labels : constant Detail_Column_Texts := Detail_Names;
-      --  The window background and the toolbar.
+      --  The window background, its panes' fills and window-level accessibility nodes.
+      procedure Draw_Window_Chrome is separate;
+      --  The toolbar.
       procedure Draw_Toolbar is separate;
 
       --  The bottom bar.
@@ -627,6 +632,7 @@ separate (Files.Rendering)
          Row_Texts.Rows.Clear;
          Row_Texts.Build := Build;
       end if;
+      Draw_Window_Chrome;
       Draw_Toolbar;
       Draw_Bottom_Bar;
 

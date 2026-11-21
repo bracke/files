@@ -64,6 +64,30 @@ package Files.IO.Lease_Streams is
       Max_Bytes : Long_Long_Integer := Long_Long_Integer'Last)
       return Item;
 
+   --  Whether Path holds exactly Bytes: read under a shared lease, released
+   --  on every path. A file that cannot be opened, or any failure while it is
+   --  read, answers False (a failure is traced).
+   --
+   --  @param Path The marker file.
+   --  @param Bytes Its whole expected content.
+   --  @return True when the file's size and content are Bytes.
+   function Holds_Exactly (Path : String; Bytes : Ada.Streams.Stream_Element_Array) return Boolean;
+
+   --  How Write_Marker left a marker file: Marker_Written, created by this
+   --  call holding Bytes; Marker_Exists, something already had the name and
+   --  nothing was written; Marker_Torn, created by this call but the write
+   --  failed, so it is the caller's to remove; Marker_Not_Created, locking
+   --  unavailable or an error.
+   type Marker_Write is (Marker_Written, Marker_Exists, Marker_Torn, Marker_Not_Created);
+
+   --  Create Path exclusively and write Bytes into it, releasing the lease
+   --  before it returns (or raises).
+   --
+   --  @param Path The marker file to create.
+   --  @param Bytes Its whole content.
+   --  @return How the file was left.
+   function Write_Marker (Path : String; Bytes : Ada.Streams.Stream_Element_Array) return Marker_Write;
+
 private
    --  Read ahead in blocks: a record is decoded a field (often a byte) at a
    --  time, and a read per field was a syscall per field.

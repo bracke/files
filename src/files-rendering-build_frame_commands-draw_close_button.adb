@@ -10,7 +10,7 @@ separate (Files.Rendering.Build_Frame_Commands)
 
       declare
          Hovered    : constant Boolean :=
-           Has_Hover and then Contains_Point (Btn.X, Btn.Y, Btn.Width, Btn.Height, Hover_X, Hover_Y);
+           Is_Hovered (Btn.X, Btn.Y, Btn.Width, Btn.Height);
          Pressed    : constant Boolean := Is_Pressed (Btn.X, Btn.Y, Btn.Width, Btn.Height);
          Fill_Color : constant Render_Color :=
            (if Pressed then Pressed_Color

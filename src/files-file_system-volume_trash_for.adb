@@ -47,7 +47,7 @@ function Volume_Trash_For (Path : String) return String is
       Files.IO.Private_Directories.Ensure (Base);
       if not Is_Finder_Volume_Trash (Base) then
          Files.IO.Private_Directories.Ensure (Hostkit.Fs.Join (Base, "files"));
-         Files.IO.Private_Directories.Ensure (Hostkit.Fs.Join (Base, "info"));
+         Files.IO.Private_Directories.Ensure (Trash_Info_Directory (Base));
       end if;
       return (if Valid_Volume_Trash_Base (Base) then Base else "");
    exception

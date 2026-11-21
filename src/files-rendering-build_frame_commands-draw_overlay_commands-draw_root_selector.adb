@@ -40,7 +40,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                declare
                   Row     : constant Root_Path_Layout := Root_Rows.Element (Positive (Index));
                   Hovered : constant Boolean :=
-                    Has_Hover and then Contains_Point (Row.X, Row.Y, Row.Width, Row.Height, Hover_X, Hover_Y);
+                    Is_Hovered (Row.X, Row.Y, Row.Width, Row.Height);
                   Pressed : constant Boolean := Is_Pressed (Row.X, Row.Y, Row.Width, Row.Height);
                begin
                   List_Rows.Append

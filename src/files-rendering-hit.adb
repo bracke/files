@@ -395,14 +395,17 @@ package body Files.Rendering.Hit is
       then
          return Files.Commands.No_Command;
       elsif Within (X, Bottom.View_Mode_X, Bottom.View_Mode_Width) then
-         case Guikit.Segmented.Cell_At
-                (Layouts.View_Mode_Segments, Bottom.View_Mode_X, Bottom.View_Mode_Width, Line_Height, X)
-         is
-            when 1      => return Files.Commands.Select_Small_Icons_Command;
-            when 2      => return Files.Commands.Select_Large_Icons_Command;
-            when 3      => return Files.Commands.Select_Details_Command;
-            when others => return Files.Commands.No_Command;
-         end case;
+         declare
+            Cell : constant Natural := Guikit.Segmented.Cell_At
+              (Layouts.View_Mode_Segments, Bottom.View_Mode_X, Bottom.View_Mode_Width, Line_Height, X);
+         begin
+            for Mode in Files.Preference_Types.View_Mode loop
+               if Cell = Layouts.View_Mode_Cell (Mode) then
+                  return Layouts.View_Mode_Commands (Mode);
+               end if;
+            end loop;
+            return Files.Commands.No_Command;
+         end;
       elsif Within (X, Bottom.Sort_Button_X, Bottom.Sort_Button_Width) then
          return Files.Commands.Toggle_Sort_Menu_Command;
       elsif Within (X, Bottom.Info_X, Toggle_Width) then

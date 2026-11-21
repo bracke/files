@@ -28,8 +28,7 @@ is
       --  info file's Path= keeps the original, which restore uses. The macOS
       --  home trash has no info file, so there a name is cut only when a
       --  counter must be added.
-      Info_Suffix : constant String := ".trashinfo";
-      Info_Room   : constant Natural := (if Info_Directory = "" then 0 else Info_Suffix'Length);
+      Info_Room   : constant Natural := (if Info_Directory = "" then 0 else Trash_Info_Suffix'Length);
       Volume      : constant Hostkit.Fs.Leaf_Name_Limit := Hostkit.Fs.Leaf_Name_Limit_At (Files_Directory);
       Limit       : constant Hostkit.Fs.Leaf_Name_Limit :=
         (Unit => Volume.Unit, Most => Volume.Most - Natural'Min (Volume.Most, Info_Room));
@@ -39,7 +38,8 @@ is
       function Taken (Leaf : String) return Boolean is
         (Files.IO.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Files_Directory, Leaf))
          or else (Info_Directory /= ""
-                  and then Files.IO.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Info_Directory, Leaf & Info_Suffix))));
+                  and then Files.IO.Fs_Primitives.Is_Taken
+                             (Hostkit.Fs.Join (Info_Directory, Leaf & Trash_Info_Suffix))));
 
       Free : constant String :=
         Files.Leaf_Names.First_Free
@@ -90,7 +90,7 @@ is
       elsif Macos_Home then Base
       else Hostkit.Fs.Join (Base, "files"));
    Info_Dir   : constant String :=
-     (if Base = "" or else Macos_Home then "" else Hostkit.Fs.Join (Base, "info"));
+     (if Base = "" or else Macos_Home then "" else Trash_Info_Directory (Base));
    Name      : Unbounded_String;
    Target    : Unbounded_String;
    Info_Path : Unbounded_String;
@@ -153,7 +153,7 @@ begin
         (Unique_Trash_Name (Files_Dir, Info_Dir, Files.Name_Parts.Leaf_Of (Path)));
       Target := To_Unbounded_String (Hostkit.Fs.Join (Files_Dir, To_String (Name)));
       exit when Macos_Home;
-      Info_Path := To_Unbounded_String (Hostkit.Fs.Join (Info_Dir, To_String (Name) & ".trashinfo"));
+      Info_Path := To_Unbounded_String (Trash_Info_Path (Base, To_String (Name)));
       declare
          Taken : Boolean;
       begin

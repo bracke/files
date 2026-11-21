@@ -3,7 +3,7 @@ separate (Files.File_System.Recovery)
       Target : UString;
       Identity : UString;
       Record_Path : constant String :=
-        Hostkit.Fs.Join (Files.IO.Fs_Primitives.Parent_Directory (Path), "original");
+        Hostkit.Fs.Join (Files.IO.Fs_Primitives.Parent_Directory (Path), Original_Name);
    begin
       if Read_Owner (Files.IO.Fs_Primitives.Parent_Directory (Path), Target, Identity) then
          return To_String (Target);

@@ -14,13 +14,11 @@ with Files.Path_Checks;
 with Files.Jobs.Process;
 with Ada.Unchecked_Deallocation;
 with Hostkit.Fs;
-with Hostkit.Lease_Files;
 
 package body Files.Jobs.Copy_Context is
    use Ada.Strings.Unbounded;
    use type Ada.Containers.Count_Type;
    use type Ada.Directories.File_Kind;
-   use type Hostkit.Lease_Files.Open_Outcome;
 
    Links_Header : constant String := "files-copy-links-1";
    Max_Links_File_Bytes : constant := 64 * 1024 * 1024;
@@ -150,9 +148,30 @@ package body Files.Jobs.Copy_Context is
       return (Ada.Finalization.Controlled with Shared => null, Borrowed => To_Unbounded_String (Path));
    end Borrow;
 
+   --  The links file's body: a count, then that many fields.
+   procedure Read_Links_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Value  : out Files.Types.String_Vectors.Vector)
+   is
+      Count : constant Natural := Natural'Input (Stream);
+   begin
+      Value.Clear;
+      if Count > Max_Link_Fields then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      for Index in 1 .. Count loop
+         Value.Append (To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Link_Field_Length)));
+      end loop;
+   end Read_Links_Body;
+
+   --  The body's own bounds are checked as it is read.
+   function Any_Links (Value : Files.Types.String_Vectors.Vector) return Boolean is
+     (Natural (Value.Length) <= Max_Link_Fields);
+
+   function Read_Links_Record is new Files.IO.Lease_Streams.Read_Record
+     (Files.Types.String_Vectors.Vector, Read_Links_Body, Any_Links);
+
    function Records (Batch : Session) return Files.Types.String_Vectors.Vector is
-      Result : Files.Types.String_Vectors.Vector;
-      Input : aliased Files.IO.Lease_Streams.Input_Stream;
       Batch_Directory : constant String := Directory (Batch);
       Path : constant String :=
         (if Batch_Directory = "" then ""
@@ -161,7 +180,7 @@ package body Files.Jobs.Copy_Context is
       --  No links file is no hard links recorded; one that cannot be
       --  looked at is read below, and refused there as unreadable.
       if Path = "" or else Files.IO.Fs_Primitives.Entry_Is_Absent (Path) then
-         return Result;
+         return Files.Types.String_Vectors.Empty_Vector;
       end if;
       --  refusal-safe: a batch folder not seen raises Data_Error.
       if Hostkit.Fs.Is_Link (Batch_Directory)
@@ -171,38 +190,7 @@ package body Files.Jobs.Copy_Context is
       then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
-      if Files.IO.Lease_Streams.Open (Path, Input) /=
-        Hostkit.Lease_Files.Opened
-        or else Files.IO.Lease_Streams.Size (Input) >
-          Long_Long_Integer (Max_Links_File_Bytes)
-        or else Files.IO.Record_Fields.Input_String
-          (Input'Access, Links_Header'Length) /= Links_Header
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      declare
-         Count : constant Natural :=
-           Natural'Input (Input'Access);
-      begin
-         if Count > Max_Link_Fields then
-            raise Ada.IO_Exceptions.Data_Error;
-         end if;
-         for Index in 1 .. Count loop
-            Result.Append
-              (To_Unbounded_String
-                 (Files.IO.Record_Fields.Input_String
-                    (Input'Access, Max_Link_Field_Length)));
-         end loop;
-      end;
-      if not Files.IO.Lease_Streams.End_Of_Stream (Input) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Files.IO.Lease_Streams.Release (Input);
-      return Result;
-   exception
-      when others =>
-         Files.IO.Lease_Streams.Release (Input);
-         raise;
+      return Read_Links_Record (Path, Links_Header, Long_Long_Integer (Max_Links_File_Bytes));
    end Records;
 
    procedure Save (Batch : Session; Items : Files.Types.String_Vectors.Vector) is

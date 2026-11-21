@@ -233,6 +233,15 @@ package body Files.File_System is
    --  base itself in the Finder's layout.
    function Trash_Items_Directory (Base : String) return String;
 
+   --  What a freedesktop trash info file's name adds to its item's name.
+   Trash_Info_Suffix : constant String := ".trashinfo";
+
+   --  The folder of a freedesktop trash base that holds its info files.
+   function Trash_Info_Directory (Base : String) return String;
+
+   --  The info file of the item named Leaf in a freedesktop trash base.
+   function Trash_Info_Path (Base, Leaf : String) return String;
+
    --  The volume trash to move Path into, created if need be and remembered
    --  for the trash view; "" when Path is on the home trash's device or its
    --  volume has no usable trash (read-only, no permission), and the home
@@ -538,6 +547,11 @@ package body Files.File_System is
 
    function Trash_Items_Directory (Base : String) return String is
      (if Is_Finder_Volume_Trash (Base) then Base else Hostkit.Fs.Join (Base, "files"));
+
+   function Trash_Info_Directory (Base : String) return String is (Hostkit.Fs.Join (Base, "info"));
+
+   function Trash_Info_Path (Base, Leaf : String) return String is
+     (Hostkit.Fs.Join (Trash_Info_Directory (Base), Leaf & Trash_Info_Suffix));
 
    function Volume_Trash_For (Path : String) return String is separate;
 

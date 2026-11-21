@@ -1,5 +1,6 @@
 with Files.File_Types;
 with Files.Name_Parts;
+with Files.Protocol_Names;
 
 separate (Files.Operations)
 function Extract_Selected
@@ -86,7 +87,7 @@ is
          Dest_Dir  : constant String := Hostkit.Fs.Join (Destination, Dest_Name);
          Status    : Zlib.Status_Code;
          Stage     : constant String := Files.Jobs.Context.Create_Stage (Destination);
-         Payload   : constant String := Hostkit.Fs.Join (Stage, "payload");
+         Payload   : constant String := Hostkit.Fs.Join (Stage, Files.Protocol_Names.Stage_Payload);
          --  What identifies the published folder, for its Undo.
          Made_Identity, Made_Revision : Unbounded_String;
       begin

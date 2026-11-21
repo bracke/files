@@ -69,7 +69,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
                   declare
                      This        : Sort_Row renames Rows (Row);
                      Hovered     : constant Boolean :=
-                       Has_Hover and then Contains_Point (Menu_X, This.Y, Menu_W, Row_H, Hover_X, Hover_Y);
+                       Is_Hovered (Menu_X, This.Y, Menu_W, Row_H);
                      Highlighted : constant Boolean := Row = Snapshot.Sort_Menu_Highlight;
                      Pressed     : constant Boolean := Is_Pressed (Menu_X, This.Y, Menu_W, Row_H);
                   begin

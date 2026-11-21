@@ -219,9 +219,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
          --  dialog, ...) is open: Has_Hover is then off for the main view,
          --  so the cell under the cursor does not light up under it.
          Hovered   : constant Boolean :=
-           Has_Hover
-           and then Contains_Point
-             (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Hover_X, Hover_Y);
+           Is_Hovered (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height);
          Drop_Target : constant Boolean :=
            Has_Drag
            and then Drag_Item_Index /= 0

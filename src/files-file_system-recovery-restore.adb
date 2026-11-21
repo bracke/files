@@ -24,11 +24,12 @@ separate (Files.File_System.Recovery)
       --  A failed post-rename permission restoration can leave the private
       --  payload writable. Restore its recorded mode before retrying the move
       --  -- where the bits are the host's own, as Preserve records them.
-      --  refusal-safe: a refused mode record is skipped; the move does not depend on it
-      if Hostkit.Metadata.Mode_Bits_Are_Native and then Files.IO.Fs_Primitives.Exists (Hostkit.Fs.Join (Parent, "mode"))
+      if Hostkit.Metadata.Mode_Bits_Are_Native
+        --  refusal-safe: a refused mode record is skipped; the move does not depend on it
+        and then Files.IO.Fs_Primitives.Exists (Hostkit.Fs.Join (Parent, Mode_Name))
       then
          declare
-            Record_Path : constant String := Hostkit.Fs.Join (Parent, "mode");
+            Record_Path : constant String := Hostkit.Fs.Join (Parent, Mode_Name);
             Recorded : Mode_Record;
             Previous : Natural;
             Identity : UString;

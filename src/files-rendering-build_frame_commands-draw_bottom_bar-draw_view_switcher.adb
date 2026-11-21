@@ -1,5 +1,5 @@
 with Files.Preference_Types;
-separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
+separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
    --  The view-mode switcher, a segmented control.
    procedure Draw_View_Switcher is
    begin
@@ -11,23 +11,20 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          View_Segments : Guikit.Segmented.Segment_Vectors.Vector := Files.Rendering.Layouts.View_Mode_Segments;
          Seg_Tips      : Guikit.Draw.Tooltip_Command_Vectors.Vector;
          Seg_Nodes     : Guikit.Draw.Accessibility_Node_Vectors.Vector;
-         Active        : constant Natural :=
-           (case Snapshot.View_Mode is
-               when Files.Preference_Types.Small_Icons => 1,
-               when Files.Preference_Types.Large_Icons => 2,
-               when Files.Preference_Types.Details     => 3);
-
-         procedure Enrich (Cell : Positive; Command : Files.Commands.Registered_Command_Id) is
-            S : Guikit.Segmented.Segment := View_Segments.Element (Cell);
-         begin
-            S.Tooltip := Command_Label (Command);
-            S.Enabled := Snapshot.Command_Enabled (Command);
-            View_Segments.Replace_Element (Cell, S);
-         end Enrich;
+         Active        : constant Natural := Files.Rendering.Layouts.View_Mode_Cell (Snapshot.View_Mode);
       begin
-         Enrich (1, Files.Commands.Select_Small_Icons_Command);
-         Enrich (2, Files.Commands.Select_Large_Icons_Command);
-         Enrich (3, Files.Commands.Select_Details_Command);
+         for Mode in Files.Preference_Types.View_Mode loop
+            declare
+               Cell    : constant Positive := Files.Rendering.Layouts.View_Mode_Cell (Mode);
+               Command : constant Files.Commands.Registered_Command_Id :=
+                 Files.Rendering.Layouts.View_Mode_Commands (Mode);
+               S       : Guikit.Segmented.Segment := View_Segments.Element (Cell);
+            begin
+               S.Tooltip := Command_Label (Command);
+               S.Enabled := Snapshot.Command_Enabled (Command);
+               View_Segments.Replace_Element (Cell, S);
+            end;
+         end loop;
          Guikit.Segmented.Build_Frame
            (Segments      => View_Segments,
             Active        => Active,

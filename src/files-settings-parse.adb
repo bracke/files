@@ -113,6 +113,18 @@ separate (Files.Settings)
          end if;
       end Parse_Bookmarks_Line;
 
+      --  Find the first '|' of a "<head>|<tail>" entry. The head must not be
+      --  empty; the tail may be.
+      --
+      --  @param Value The entry.
+      --  @param Bar Where the '|' is, when it splits Value.
+      --  @return Whether Value has a '|' after a non-empty head.
+      function Split_At_Bar (Value : String; Bar : out Natural) return Boolean is
+      begin
+         Bar := Ada.Strings.Fixed.Index (Value, "|");
+         return Bar > Value'First;
+      end Split_At_Bar;
+
       procedure Parse_Labels_Line
         (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
       is
@@ -125,12 +137,12 @@ separate (Files.Settings)
          --  hand-edited file never fails to load over one bad tag.
          if Setting_Key = "label" and then Value /= "" then
             declare
-               Bar   : constant Natural :=
-                 Ada.Strings.Fixed.Index (Value, "|");
+               Bar   : Natural;
                --  Left at No_Label by an unknown color, which is skipped.
                Label : Files.Preference_Types.Color_Label := Files.Preference_Types.No_Label;
             begin
-               if Bar > Value'First and then Bar < Value'Last then
+               --  A label needs a path after the bar.
+               if Split_At_Bar (Value, Bar) and then Bar < Value'Last then
                   declare
                      Color_Text : constant String :=
                        Value (Value'First .. Bar - 1);
@@ -180,10 +192,9 @@ separate (Files.Settings)
          --  never fails to load over one malformed line.
          if Setting_Key = "shortcut" and then Value /= "" then
             declare
-               Bar : constant Natural :=
-                 Ada.Strings.Fixed.Index (Value, "|");
+               Bar : Natural;
             begin
-               if Bar > Value'First and then Bar <= Value'Last then
+               if Split_At_Bar (Value, Bar) then
                   Settings.Shortcut_Overrides.Append
                     (Shortcut_Override'
                        (Command => To_Unbounded_String (Value (Value'First .. Bar - 1)),

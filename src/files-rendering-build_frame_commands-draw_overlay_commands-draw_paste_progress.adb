@@ -19,10 +19,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
            & To_Unbounded_String (" ")
            & To_Unbounded_String (Grouped_Integer_Text (Long_Long_Integer (Progress.Total))));
          Cancel_Hovered : constant Boolean :=
-           Has_Hover
-           and then Contains_Point
-                      (Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height,
-                       Hover_X, Hover_Y);
+           Is_Hovered (Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height);
          Cancel_Pressed : constant Boolean :=
            Is_Pressed (Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height);
       begin

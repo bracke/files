@@ -59,9 +59,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       Filesystem_Type : String)
       return Root_Kind is
    begin
-      if Is_Network_Filesystem_Type (Filesystem_Type)
-        or else Starts_With (Mount_Point, "//")
-        or else Starts_With (Mount_Point, "\\")
+      if Hostkit.Mounts.Is_Network (Filesystem_Type, Mount_Point)
         or else (Desktop_Mounts /= "" and then Starts_With (Mount_Point, Mounts_Prefix))
       then
          return Root_Network_Mount;
@@ -215,13 +213,10 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       end loop;
    end Append_Mounts;
 begin
-   --  "/" is the filesystem root only where it names one. On Windows it is
-   --  drive-relative -- it resolves to the root of whatever drive the process
-   --  happens to sit on -- so offering it here put a phantom "Filesystem" root
-   --  at the top of the tree, ahead of, and duplicating, a real drive letter.
-   --  The drive loop below is what enumerates roots there.
-   if Hostkit.Host.Current /= Hostkit.Host.Windows then
-      Append_If_Directory ("/", Root_Filesystem);
+   --  The filesystem root where the host has one (Hostkit.Mounts says why
+   --  Windows has none); there the drive loop below enumerates the roots.
+   if Hostkit.Mounts.Filesystem_Root /= "" then
+      Append_If_Directory (Hostkit.Mounts.Filesystem_Root, Root_Filesystem);
    end if;
    Append_Mounts;
    --  The home first, so it keeps its own kind should another place name it.

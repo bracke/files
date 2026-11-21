@@ -50,18 +50,18 @@ separate (Files.File_System.Recovery)
          raise Ada.Directories.Use_Error;
       end if;
       Files.IO.Exclusive_Streams.Create
-        (File, Hostkit.Fs.Join (To_String (Stage), "original"));
+        (File, Hostkit.Fs.Join (To_String (Stage), Original_Name));
       Write_Bounded
         (File'Access, Original, Max_Path_Length);
       Files.IO.Exclusive_Streams.Close (File);
-      if Files.IO.Durability.Sync_File (Hostkit.Fs.Join (To_String (Stage), "original")) /=
+      if Files.IO.Durability.Sync_File (Hostkit.Fs.Join (To_String (Stage), Original_Name)) /=
         Hostkit.Durability.Synced
       then
          raise Ada.Directories.Use_Error;
       end if;
       Write_Owner (To_String (Stage), Original);
       Registry_Entry := To_Unbounded_String
-        (Register (Hostkit.Fs.Join (To_String (Stage), "payload")));
+        (Register (Hostkit.Fs.Join (To_String (Stage), Payload_Name)));
       --  A read-only folder's mode, to give it back after the rename that
       --  lent it write access. Only where the bits are the host's own: on
       --  Windows they are read out of the folder's ACL, and setting them
@@ -76,13 +76,13 @@ separate (Files.File_System.Recovery)
          begin
             if Available and then (Mode / 8#200#) mod 2 = 0 then
                Files.IO.Exclusive_Streams.Create
-                 (File, Hostkit.Fs.Join (To_String (Stage), "mode"));
+                 (File, Hostkit.Fs.Join (To_String (Stage), Mode_Name));
                Natural'Output (File'Access, Mode);
                Write_Bounded
                  (File'Access,
                   Files.File_Identities.Token (Path), Max_Identity_Length);
                Files.IO.Exclusive_Streams.Close (File);
-               if Files.IO.Durability.Sync_File (Hostkit.Fs.Join (To_String (Stage), "mode")) /=
+               if Files.IO.Durability.Sync_File (Hostkit.Fs.Join (To_String (Stage), Mode_Name)) /=
                  Hostkit.Durability.Synced
                then
                   raise Ada.Directories.Use_Error;
@@ -95,7 +95,7 @@ separate (Files.File_System.Recovery)
       then
          raise Ada.Directories.Use_Error;
       end if;
-      if not Support.Move_No_Replace (Path, Hostkit.Fs.Join (To_String (Stage), "payload")) then
+      if not Support.Move_No_Replace (Path, Hostkit.Fs.Join (To_String (Stage), Payload_Name)) then
          Files.Diagnostics.Trace
            ("Files.File_System.Recovery",
             "preserve_move_refused=" & Path & ",errno=" & Files.IO.Errors.Last_Code'Image);
@@ -103,7 +103,7 @@ separate (Files.File_System.Recovery)
          --  the original in place rather than starting a destructive fallback.
          raise Ada.Directories.Use_Error;
       end if;
-      Backup := To_Unbounded_String (Hostkit.Fs.Join (To_String (Stage), "payload"));
+      Backup := To_Unbounded_String (Hostkit.Fs.Join (To_String (Stage), Payload_Name));
       if Files.IO.Durability.Sync_Directory (To_String (Stage)) = Hostkit.Durability.Failed
         or else Files.IO.Durability.Sync_Directory (Parent) = Hostkit.Durability.Failed
       then
@@ -122,9 +122,9 @@ separate (Files.File_System.Recovery)
             if Length (Stage) > 0 and then Length (Backup) = 0 then
                --  Unless the payload is surely not there, put it back: the
                --  tree removal below would take the original with it.
-               if not Files.IO.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (To_String (Stage), "payload"))
+               if not Files.IO.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (To_String (Stage), Payload_Name))
                then
-                  Backup := To_Unbounded_String (Hostkit.Fs.Join (To_String (Stage), "payload"));
+                  Backup := To_Unbounded_String (Hostkit.Fs.Join (To_String (Stage), Payload_Name));
                   return Put_Back;
                end if;
                begin

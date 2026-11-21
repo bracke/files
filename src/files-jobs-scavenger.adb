@@ -17,7 +17,7 @@ with Files.Jobs.Transports;
 with Files.Localization;
 with Files.Types;
 with Hostkit.Fs;
-with Hostkit.Lease_Files;
+with Files.IO.Lease_Streams;
 with Hostkit.Process;
 with Hostkit.Spawn;
 with Hostkit.Spawn.Supervision;
@@ -29,10 +29,8 @@ package body Files.Jobs.Scavenger is
    use Ada.Strings.Unbounded;
    use type Files.Jobs.Cleanup.Cleanup_Outcome;
    use type Files.Jobs.Transports.Claim_Outcome;
-   use type Hostkit.Lease_Files.Open_Outcome;
    use type Hostkit.Spawn.Wait_State;
    use type Ada.Real_Time.Time;
-   use type Ada.Streams.Stream_Element_Array;
 
    package Reported_Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
      (Element_Type        => String,
@@ -78,29 +76,9 @@ package body Files.Jobs.Scavenger is
    end Take_Report_Target;
 
    function Has_Unrecoverable return Boolean is
-      Report : Hostkit.Lease_Files.Lease;
-      Read_Back : Ada.Streams.Stream_Element_Array (Report_Marker'Range);
-      Valid : Boolean := False;
-   begin
-      if Length (Report_Directory) = 0
-        or else Hostkit.Lease_Files.Open
-          (Hostkit.Fs.Join (To_String (Report_Directory), Report_Name),
-           Hostkit.Lease_Files.Shared, Writable => False, Item => Report) /=
-             Hostkit.Lease_Files.Opened
-      then
-         return False;
-      end if;
-      Valid := Hostkit.Lease_Files.Size (Report) = Report_Marker'Length
-        and then Hostkit.Lease_Files.Read_At (Report, Read_Back)
-        and then Read_Back = Report_Marker;
-      Hostkit.Lease_Files.Release (Report);
-      return Valid;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Jobs.Scavenger");
-         Hostkit.Lease_Files.Release (Report);
-         return False;
-   end Has_Unrecoverable;
+     (Length (Report_Directory) /= 0
+      and then Files.IO.Lease_Streams.Holds_Exactly
+        (Hostkit.Fs.Join (To_String (Report_Directory), Report_Name), Report_Marker));
 
    procedure Clean_Report is
    begin
@@ -223,8 +201,11 @@ package body Files.Jobs.Scavenger is
 
    procedure Report_Unrecoverable (Directory : String) is
       New_Report : Boolean;
-      Report : Hostkit.Lease_Files.Lease;
-      Label  : constant String := Report_Label.Get;
+      Label      : constant String := Report_Label.Get;
+      --  Best effort: a report already there, or one that cannot be written,
+      --  leaves the standard error line alone to say it.
+      Written    : Files.IO.Lease_Streams.Marker_Write;
+      pragma Unreferenced (Written);
    begin
       Terminal_Reports.Mark_If_New (Directory, New_Report);
       if New_Report then
@@ -239,27 +220,14 @@ package body Files.Jobs.Scavenger is
               and then Files.IO.Fs_Primitives.Exists (Target_Directory)
               and then not Hostkit.Fs.Is_Link (Target_Directory)
             then
-               declare
-                  Target : constant String :=
-                    Hostkit.Fs.Join (Target_Directory, Report_Name);
-                  Written : Boolean;
-               begin
-                  if Hostkit.Lease_Files.Create (Target, Report) =
-                    Hostkit.Lease_Files.Opened
-                  then
-                     Written := Hostkit.Lease_Files.Write_At
-                       (Report, Report_Marker);
-                     pragma Unreferenced (Written);
-                     Hostkit.Lease_Files.Release (Report);
-                  end if;
-               end;
+               Written := Files.IO.Lease_Streams.Write_Marker
+                 (Hostkit.Fs.Join (Target_Directory, Report_Name), Report_Marker);
             end if;
          end;
       end if;
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Jobs.Scavenger");
-         Hostkit.Lease_Files.Release (Report);
    end Report_Unrecoverable;
 
    protected body Scan_Requests is

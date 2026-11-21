@@ -49,27 +49,11 @@ package body Files.Model.Rename is
    end First_Rename_Value;
 
    --  Insert Text into Old at the byte offset Cursor (clamped into range).
-   --
-   --  @param Old Existing text.
-   --  @param Cursor Byte offset to insert at.
-   --  @param Text Text to insert.
-   --  @return Old with Text spliced in at Cursor.
    function Insert_Text_At
      (Old    : String;
       Cursor : Natural;
       Text   : String)
-      return String is
-   begin
-      if Cursor = 0 then
-         return Text & Old;
-      elsif Cursor >= Old'Length then
-         return Old & Text;
-      else
-         return Old (Old'First .. Old'First + Cursor - 1)
-           & Text
-           & Old (Old'First + Cursor .. Old'Last);
-      end if;
-   end Insert_Text_At;
+      return String renames Guikit.Utf8.Editing.Insert_At;
 
    --  Return the byte offset before a name's extension: the position of the
    --  last non-leading dot, or the name length when there is no extension.

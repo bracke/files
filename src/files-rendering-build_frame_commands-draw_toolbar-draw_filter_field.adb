@@ -62,9 +62,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
                --  Selection_Color while recursive search results are on screen --
                --  rather than the recessed Input_Color look of a text field.
                Chip_Hovered : constant Boolean :=
-                 Has_Hover
-                 and then Contains_Point
-                   (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height, Hover_X, Hover_Y);
+                 Is_Hovered (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height);
                Chip_Pressed : constant Boolean :=
                  Is_Pressed (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height);
                Chip_Active  : constant Boolean := Snapshot.Search_Results_Active;

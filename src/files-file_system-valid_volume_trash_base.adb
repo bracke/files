@@ -37,7 +37,7 @@ begin
       function Owned_Tree return Boolean is
         (Own_Directory (Base)
          and then Absent_Or_Own (Hostkit.Fs.Join (Base, "files"))
-         and then Absent_Or_Own (Hostkit.Fs.Join (Base, "info")));
+         and then Absent_Or_Own (Trash_Info_Directory (Base)));
    begin
       if Name = ".Trash-" & Id then
          return Safe_Trash_Parent (Parent, Shared => False, Existing => True) and then Owned_Tree;

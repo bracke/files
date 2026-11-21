@@ -19,8 +19,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
       --  ahead of the breadcrumbs/edit field in both modes.
       procedure Draw_Favorite_Star (Star : Path_Favorite_Star_Bounds) is
          Star_Hovered : constant Boolean :=
-           Has_Hover
-           and then Contains_Point (Star.X, Star.Y, Star.Width, Star.Height, Hover_X, Hover_Y);
+           Is_Hovered (Star.X, Star.Y, Star.Width, Star.Height);
          Center_X : constant Float := Float (Star.X) + Float (Star.Width) / 2.0;
          Center_Y : constant Float := Float (Star.Y) + Float (Star.Height) / 2.0;
          --  A five-pointed star spans ~1.9 * Radius across and ~1.81 *
@@ -88,8 +87,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
                   else To_Unbounded_String (Files.Breadcrumbs.Ellipsis_Label));
                Hovered : constant Boolean :=
                  Seg.Clickable
-                 and then Has_Hover
-                 and then Contains_Point (Seg.X, Seg.Y, Seg.Width, Seg.Height, Hover_X, Hover_Y);
+                 and then Is_Hovered (Seg.X, Seg.Y, Seg.Width, Seg.Height);
             begin
                Add_Text
                  (Seg.X,

@@ -12,13 +12,13 @@ with Files.Jobs.Context;
 with Files.Jobs.Records;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
+with Files.IO.Lease_Streams;
 with Hostkit.Spawn.Supervision;
 
 package body Files.Jobs.Process is
    use Ada.Strings.Unbounded;
    use type Ada.Real_Time.Time;
    use type Ada.Real_Time.Time_Span;
-   use type Ada.Streams.Stream_Element_Array;
    use type Hostkit.Lease_Files.Open_Outcome;
    use type Hostkit.Spawn.Wait_State;
 
@@ -55,27 +55,7 @@ package body Files.Jobs.Process is
       Character'Pos (ASCII.LF)];
 
    function Valid_Cancellation_Marker (Path : String) return Boolean is
-      Handle : Hostkit.Lease_Files.Lease;
-      Read_Back : Ada.Streams.Stream_Element_Array (Cancellation_Marker'Range);
-      Valid : Boolean := False;
-   begin
-      if Hostkit.Lease_Files.Open
-        (Path, Hostkit.Lease_Files.Shared, Writable => False, Item => Handle) /=
-          Hostkit.Lease_Files.Opened
-      then
-         return False;
-      end if;
-      Valid := Hostkit.Lease_Files.Size (Handle) = Cancellation_Marker'Length
-        and then Hostkit.Lease_Files.Read_At (Handle, Read_Back)
-        and then Read_Back = Cancellation_Marker;
-      Hostkit.Lease_Files.Release (Handle);
-      return Valid;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Jobs.Process");
-         Hostkit.Lease_Files.Release (Handle);
-         return False;
-   end Valid_Cancellation_Marker;
+     (Files.IO.Lease_Streams.Holds_Exactly (Path, Cancellation_Marker));
 
    procedure Free is new Ada.Unchecked_Deallocation (State, State_Access);
 
@@ -752,15 +732,14 @@ package body Files.Jobs.Process is
    end Rewrite_Cancellation_Marker;
 
    procedure Cancel (Job : Session) is
-      Marker : Hostkit.Lease_Files.Lease;
+      use all type Files.IO.Lease_Streams.Marker_Write;
       Marker_Path : constant String := Path (Job, Files.Protocol_Names.Cancel_File);
-      Outcome : Hostkit.Lease_Files.Open_Outcome;
    begin
       if Job.Shared /= null and then not Job.Shared.Cancelled then
-         Outcome := Hostkit.Lease_Files.Create (Marker_Path, Marker);
-         if Outcome = Hostkit.Lease_Files.Opened then
-            if not Hostkit.Lease_Files.Write_At (Marker, Cancellation_Marker) then
-               Hostkit.Lease_Files.Release (Marker);
+         case Files.IO.Lease_Streams.Write_Marker (Marker_Path, Cancellation_Marker) is
+            when Marker_Written =>
+               null;
+            when Marker_Torn =>
                --  Made exclusively by this call, so it is this call's to
                --  take back: a marker cut short (a full disk) would refuse
                --  every later cancel's create and read as no cancel to the
@@ -771,26 +750,20 @@ package body Files.Jobs.Process is
                begin
                   raise Ada.Directories.Use_Error;
                end;
-            end if;
-            Hostkit.Lease_Files.Release (Marker);
-         elsif Outcome = Hostkit.Lease_Files.Refused
-           and then not Valid_Cancellation_Marker (Marker_Path)
-         then
-            --  A marker left torn -- the write above failed and so did the
-            --  removal, or the window died mid-write -- is written again
-            --  whole: only the window writes it, and the helper reads it
-            --  under the same lock.
-            Rewrite_Cancellation_Marker (Marker_Path);
-         elsif Outcome /= Hostkit.Lease_Files.Refused then
-            raise Ada.Directories.Use_Error;
-         end if;
+            when Marker_Exists =>
+               if not Valid_Cancellation_Marker (Marker_Path) then
+                  --  A marker left torn -- the write above failed and so did
+                  --  the removal, or the window died mid-write -- is written
+                  --  again whole: only the window writes it, and the helper
+                  --  reads it under the same lock.
+                  Rewrite_Cancellation_Marker (Marker_Path);
+               end if;
+            when Marker_Not_Created =>
+               raise Ada.Directories.Use_Error;
+         end case;
          Job.Shared.Cancel_At := Ada.Real_Time.Clock;
          Job.Shared.Cancelled := True;
       end if;
-   exception
-      when others =>
-         Hostkit.Lease_Files.Release (Marker);
-         raise;
    end Cancel;
 
    function Active (Job : Session) return Boolean is (Job.Shared /= null);

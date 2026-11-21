@@ -48,8 +48,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                      Expanded       => Row.Expanded,
                      Selected       => Row.Selected,
                      Hovered        =>
-                       Has_Hover
-                       and then Contains_Point (Row.X, Row.Y, Row.Width, Row.Height, Hover_X, Hover_Y),
+                       Is_Hovered (Row.X, Row.Y, Row.Width, Row.Height),
                      Pressed        => Is_Pressed (Row.X, Row.Y, Row.Width, Row.Height)));
             end;
          end loop;
@@ -63,9 +62,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Width   => Pick.Button_Width,
                   Height  => Pick.Height,
                   Hovered =>
-                    Has_Hover
-                    and then Contains_Point
-                               (Pick.Choose_X, Pick.Y, Pick.Button_Width, Pick.Height, Hover_X, Hover_Y),
+                    Is_Hovered (Pick.Choose_X, Pick.Y, Pick.Button_Width, Pick.Height),
                   Pressed => Is_Pressed (Pick.Choose_X, Pick.Y, Pick.Button_Width, Pick.Height)));
             Buttons.Append
               (Guikit.Menu_Tree.Menu_Tree_Button'
@@ -75,9 +72,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Width   => Pick.Button_Width,
                   Height  => Pick.Height,
                   Hovered =>
-                    Has_Hover
-                    and then Contains_Point
-                               (Pick.Cancel_X, Pick.Y, Pick.Button_Width, Pick.Height, Hover_X, Hover_Y),
+                    Is_Hovered (Pick.Cancel_X, Pick.Y, Pick.Button_Width, Pick.Height),
                   Pressed => Is_Pressed (Pick.Cancel_X, Pick.Y, Pick.Button_Width, Pick.Height)));
          end if;
 
