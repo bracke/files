@@ -64,12 +64,16 @@ separate (Files_Suite.Settings)
 
       --  A file the other changed into something that does not load stays.
       Write_File (Path, "[settings]" & ASCII.LF & "show_hidden_files = maybe");
-      Mine.Show_Hidden_Files := False;
-      Files.Controller.Persist_Settings (Model, Mine, Path);
-      Files_Suite.Support.Assert_Equal
-        (Files.Model.Last_Error_Key (Model), "error.settings.changed_elsewhere", "a save over it is refused and said");
-      Files_Suite.Support.Assert_Equal
-        (Project_Tools.Files.Read_Raw_File (Path),
-         "[settings]" & ASCII.LF & "show_hidden_files = maybe" & ASCII.LF,
-         "and the file is left as the other wrote it");
+      declare
+         --  As the other wrote it (Write_File's line ends are the host's).
+         Unloadable : constant String := Project_Tools.Files.Read_Raw_File (Path);
+      begin
+         Mine.Show_Hidden_Files := False;
+         Files.Controller.Persist_Settings (Model, Mine, Path);
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Model), "error.settings.changed_elsewhere",
+            "a save over it is refused and said");
+         Files_Suite.Support.Assert_Equal
+           (Project_Tools.Files.Read_Raw_File (Path), Unloadable, "and the file is left as the other wrote it");
+      end;
    end Test_Save_Keeps_Another_Process_Change;
