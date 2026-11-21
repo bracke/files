@@ -2,6 +2,7 @@ with Ada.Strings;
 with Ada.Strings.Unbounded;
 
 with Files.Commands;
+with Files.Icon_Themes;
 with Files.Localization;
 with Files.Model.Settings_Pane;
 with Files.Types;
@@ -21,63 +22,6 @@ package body Files.Settings_Form is
    function U (S : String) return Unbounded_String renames To_Unbounded_String;
    function L (Key : String) return Unbounded_String is (U (Files.Localization.Text (Key)));
    function Img (N : Natural) return String renames Files.Types.Natural_Text;
-
-   --  Small option-vector builders (tokens and localized labels).
-   function V2 (A, B : String) return SP.UString_Vectors.Vector is
-      R : SP.UString_Vectors.Vector;
-   begin
-      R.Append (U (A));
-      R.Append (U (B));
-      return R;
-   end V2;
-
-   function LV2 (A, B : String) return SP.UString_Vectors.Vector is
-      R : SP.UString_Vectors.Vector;
-   begin
-      R.Append (L (A));
-      R.Append (L (B));
-      return R;
-   end LV2;
-
-   function V3 (A, B, C : String) return SP.UString_Vectors.Vector is
-      R : SP.UString_Vectors.Vector;
-   begin
-      R.Append (U (A));
-      R.Append (U (B));
-      R.Append (U (C));
-      return R;
-   end V3;
-
-   function LV3 (A, B, C : String) return SP.UString_Vectors.Vector is
-      R : SP.UString_Vectors.Vector;
-   begin
-      R.Append (L (A));
-      R.Append (L (B));
-      R.Append (L (C));
-      return R;
-   end LV3;
-
-   function V5 (A, B, C, D, E : String) return SP.UString_Vectors.Vector is
-      R : SP.UString_Vectors.Vector;
-   begin
-      R.Append (U (A));
-      R.Append (U (B));
-      R.Append (U (C));
-      R.Append (U (D));
-      R.Append (U (E));
-      return R;
-   end V5;
-
-   function LV5 (A, B, C, D, E : String) return SP.UString_Vectors.Vector is
-      R : SP.UString_Vectors.Vector;
-   begin
-      R.Append (L (A));
-      R.Append (L (B));
-      R.Append (L (C));
-      R.Append (L (D));
-      R.Append (L (E));
-      return R;
-   end LV5;
 
    function Fields
      (Draft : Files.Settings.Settings_Draft)
@@ -107,6 +51,54 @@ package body Files.Settings_Form is
            (SP.Field'(Key => U (Key), Label => L (Key), Kind => SP.Choice, Value => Value,
                       Option_Values => Toks, Option_Labels => Labels, Help => L (Help_Key), others => <>));
       end Choice;
+
+      --  A choice over every value of an enumeration, in declaration order:
+      --  Token is the stored form (the settings file's spelling), Label_Key the
+      --  catalog key shown for it.
+      generic
+         type Value_Type is (<>);
+         with function Token (Value : Value_Type) return String;
+         with function Label_Key (Value : Value_Type) return String;
+      procedure Enum_Choice (Key : String; Value : UString; Help_Key : String);
+
+      procedure Enum_Choice (Key : String; Value : UString; Help_Key : String) is
+         Toks, Labels : SP.UString_Vectors.Vector;
+      begin
+         for Each in Value_Type loop
+            Toks.Append (U (Token (Each)));
+            Labels.Append (L (Label_Key (Each)));
+         end loop;
+         Choice (Key, Value, Toks, Labels, Help_Key);
+      end Enum_Choice;
+
+      --  The view choice uses the same short labels as the bottom bar's
+      --  view-mode selector.
+      function View_Label_Key (Mode : Files.Types.View_Mode) return String is
+        (case Mode is
+            when Files.Types.Small_Icons => "command.view.small.short",
+            when Files.Types.Large_Icons => "command.view.large.short",
+            when Files.Types.Details     => "command.view.details.short");
+      function Sort_Label_Key (Field : Files.Types.Sort_Field) return String is
+        ("settings.sort." & Files.Settings.Sort_Field_Name (Field));
+      function Theme_Label_Key (Theme : Files.Settings.Theme_Choice) return String is
+        ("settings.theme." & Files.Settings.Theme_Name (Theme));
+      function Icon_Theme_Label_Key (Theme : Files.Icon_Themes.Icon_Theme) return String is
+        (case Theme is
+            when Files.Icon_Themes.Basic         => "settings.icon_theme.basic",
+            when Files.Icon_Themes.High_Contrast => "settings.icon_theme.high_contrast");
+      function Group_Label_Key (Mode : Files.Types.Group_Mode) return String is
+        ("settings.group." & Files.Settings.Group_Mode_Name (Mode));
+
+      procedure View_Choice is new Enum_Choice
+        (Files.Types.View_Mode, Files.Settings.View_Mode_Name, View_Label_Key);
+      procedure Sort_Choice is new Enum_Choice
+        (Files.Types.Sort_Field, Files.Settings.Sort_Field_Name, Sort_Label_Key);
+      procedure Color_Theme_Choice is new Enum_Choice
+        (Files.Settings.Theme_Choice, Files.Settings.Theme_Name, Theme_Label_Key);
+      procedure Icon_Theme_Choice is new Enum_Choice
+        (Files.Icon_Themes.Icon_Theme, Files.Icon_Themes.Image, Icon_Theme_Label_Key);
+      procedure Group_Choice is new Enum_Choice
+        (Files.Types.Group_Mode, Files.Settings.Group_Mode_Name, Group_Label_Key);
 
       procedure Number_Field (Key : String; Value : UString; Min, Max : Integer; Help_Key : String := "") is
       begin
@@ -208,43 +200,26 @@ package body Files.Settings_Form is
    begin
       Action_Buttons;
       Section ("settings.section.view");
-      --  Use the same short labels as the bottom bar's view-mode selector.
-      Choice ("settings.view", D.Scalars (Default_View_Mode_Setting),
-              V3 ("small_icons", "large_icons", "details"),
-              LV3 ("command.view.small.short", "command.view.large.short", "command.view.details.short"),
-              "settings.help.default_view");
+      View_Choice ("settings.view", D.Scalars (Default_View_Mode_Setting), "settings.help.default_view");
       Toggle ("settings.hidden_files", D.Scalars (Show_Hidden_Files_Setting), "settings.help.boolean");
       Toggle ("settings.show_extensions", D.Scalars (Show_File_Extensions_Setting), "settings.help.boolean");
 
       Section ("settings.section.sorting");
-      Choice ("settings.sort", D.Scalars (Sort_Field_Setting),
-              V5 ("name", "filetype", "size", "created", "modified"),
-              LV5 ("settings.sort.name", "settings.sort.filetype", "settings.sort.size",
-                   "settings.sort.created", "settings.sort.modified"),
-              "settings.help.sort");
+      Sort_Choice ("settings.sort", D.Scalars (Sort_Field_Setting), "settings.help.sort");
       Toggle ("settings.sort_ascending", D.Scalars (Sort_Ascending_Setting), "settings.help.boolean");
 
       Section ("settings.section.appearance");
-      Choice ("settings.theme", D.Scalars (Theme_Setting),
-              V3 ("dark", "light", "high_contrast"),
-              LV3 ("settings.theme.dark", "settings.theme.light", "settings.theme.high_contrast"),
-              "settings.help.theme");
-      Choice ("settings.icon_theme", D.Scalars (Icon_Theme_Setting),
-              V2 ("files-basic", "files-high-contrast"),
-              LV2 ("settings.icon_theme.basic", "settings.icon_theme.high_contrast"),
-              "settings.help.icon_theme");
+      Color_Theme_Choice ("settings.theme", D.Scalars (Theme_Setting), "settings.help.theme");
+      Icon_Theme_Choice ("settings.icon_theme", D.Scalars (Icon_Theme_Setting), "settings.help.icon_theme");
       Number_Field
-        ("settings.font_pixel_size", D.Scalars (Font_Pixel_Size_Setting), 10, 32, "settings.help.font_pixel_size");
+        ("settings.font_pixel_size", D.Scalars (Font_Pixel_Size_Setting),
+         Files.Settings.Min_Font_Pixel_Size, Files.Settings.Max_Font_Pixel_Size, "settings.help.font_pixel_size");
 
       Section ("settings.section.behavior");
       Toggle ("settings.system_opener", D.Scalars (Use_System_Default_Opener_Setting), "settings.help.system_opener");
 
       Section ("settings.section.details");
-      Choice ("settings.grouping", D.Scalars (Group_By_Setting),
-              V5 ("none", "type", "modified", "size", "label"),
-              LV5 ("settings.group.none", "settings.group.type", "settings.group.modified",
-                   "settings.group.size", "settings.group.label"),
-              "settings.help.grouping");
+      Group_Choice ("settings.grouping", D.Scalars (Group_By_Setting), "settings.help.grouping");
       Toggle ("settings.column.modified", D.Scalars (Detail_Column_Modified_Setting), "settings.help.column");
       Toggle ("settings.column.size", D.Scalars (Detail_Column_Size_Setting), "settings.help.column");
       Toggle ("settings.column.type", D.Scalars (Detail_Column_Filetype_Setting), "settings.help.column");

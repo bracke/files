@@ -1,3 +1,6 @@
+with Ada.Containers.Hashed_Sets;
+with Ada.Containers.Indefinite_Hashed_Sets;
+with Ada.Strings.Unbounded.Hash;
 with Files.Capped_Files;
 with Files.Diagnostics;
 separate (Files.Settings)
@@ -9,20 +12,58 @@ separate (Files.Settings)
    is
       use type Files.Capped_Files.Read_Status;
 
+      package Item_Sets is new Ada.Containers.Hashed_Sets
+        (Element_Type        => Unbounded_String,
+         Hash                => Ada.Strings.Unbounded.Hash,
+         Equivalent_Elements => Ada.Strings.Unbounded."=");
+      package Key_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+        (Element_Type => String, Hash => Ada.Strings.Hash, Equivalent_Elements => "=");
+      package Key_Indexes is new Ada.Containers.Indefinite_Hashed_Maps
+        (Key_Type => String, Element_Type => Positive, Hash => Ada.Strings.Hash, Equivalent_Keys => "=");
+
+      --  The members of List, for constant-time membership tests.
+      function Members (List : String_Vectors.Vector) return Item_Sets.Set is
+         Result : Item_Sets.Set;
+      begin
+         for Item of List loop
+            Result.Include (Item);
+         end loop;
+         return Result;
+      end Members;
+
       --  The file's list with this process's changes since Base applied:
       --  what it removed (in Base, not in Mine) dropped, what it added (in
-      --  Mine, not in Base) appended in its order.
-      function Merged_List (Base, Mine, Theirs : String_Vectors.Vector) return String_Vectors.Vector is
-         Result : String_Vectors.Vector;
+      --  Mine, not in Base) appended in its order. The result starts from
+      --  Seed (which holds no repeats) and stops growing at Cap entries.
+      function Merged_List
+        (Base, Mine, Theirs : String_Vectors.Vector;
+         Seed               : String_Vectors.Vector := String_Vectors.Empty_Vector;
+         Cap                : Natural := Natural'Last)
+         return String_Vectors.Vector
+      is
+         In_Base : constant Item_Sets.Set := Members (Base);
+         In_Mine : constant Item_Sets.Set := Members (Mine);
+         Placed  : Item_Sets.Set := Members (Seed);
+         Result  : String_Vectors.Vector := Seed;
+
+         procedure Place (Item : Unbounded_String) is
+         begin
+            if not Placed.Contains (Item) then
+               Result.Append (Item);
+               Placed.Insert (Item);
+            end if;
+         end Place;
       begin
          for Item of Theirs loop
-            if not (Base.Contains (Item) and then not Mine.Contains (Item)) and then not Result.Contains (Item) then
-               Result.Append (Item);
+            exit when Natural (Result.Length) >= Cap;
+            if not (In_Base.Contains (Item) and then not In_Mine.Contains (Item)) then
+               Place (Item);
             end if;
          end loop;
          for Item of Mine loop
-            if not Base.Contains (Item) and then not Result.Contains (Item) then
-               Result.Append (Item);
+            exit when Natural (Result.Length) >= Cap;
+            if not In_Base.Contains (Item) then
+               Place (Item);
             end if;
          end loop;
          return Result;
@@ -33,7 +74,8 @@ separate (Files.Settings)
       --  first, then the file's without them and without what this process
       --  removed, capped.
       function Merged_Recent (Base, Mine, Theirs : String_Vectors.Vector) return String_Vectors.Vector is
-         Result : String_Vectors.Vector;
+         Opened      : String_Vectors.Vector;
+         Opened_Set  : Item_Sets.Set;
          Opened_Last : Natural := Natural (Mine.Length);
       begin
          if not Base.Is_Empty then
@@ -46,23 +88,12 @@ separate (Files.Settings)
             end;
          end if;
          for Index in 1 .. Opened_Last loop
-            if not Result.Contains (Mine (Index)) then
-               Result.Append (Mine (Index));
+            if not Opened_Set.Contains (Mine (Index)) then
+               Opened.Append (Mine (Index));
+               Opened_Set.Insert (Mine (Index));
             end if;
          end loop;
-         for Item of Theirs loop
-            exit when Natural (Result.Length) >= Max_Recent_Items;
-            if not (Base.Contains (Item) and then not Mine.Contains (Item)) and then not Result.Contains (Item) then
-               Result.Append (Item);
-            end if;
-         end loop;
-         for Item of Mine loop
-            exit when Natural (Result.Length) >= Max_Recent_Items;
-            if not Base.Contains (Item) and then not Result.Contains (Item) then
-               Result.Append (Item);
-            end if;
-         end loop;
-         return Result;
+         return Merged_List (Base, Mine, Theirs, Seed => Opened, Cap => Max_Recent_Items);
       end Merged_Recent;
 
       --  A list of entries keyed by Key_Of (labels by path, shortcut
@@ -77,48 +108,64 @@ separate (Files.Settings)
 
       function Merged_Keyed (Base, Mine, Theirs : Vectors.Vector) return Vectors.Vector is
          Result : Vectors.Vector;
+         Placed : Key_Sets.Set;
 
-         --  The index of List's first entry under Key; 0 when none is.
-         function Index_Of (List : Vectors.Vector; Key : String) return Natural is
+         --  Each key's first entry in List, read once.
+         function Index (List : Vectors.Vector) return Key_Indexes.Map is
+            Map : Key_Indexes.Map;
          begin
-            for Index in List.First_Index .. List.Last_Index loop
-               if Key_Of (List (Index)) = Key then
-                  return Index;
-               end if;
+            for Position in List.First_Index .. List.Last_Index loop
+               declare
+                  Key : constant String := Key_Of (List (Position));
+               begin
+                  if not Map.Contains (Key) then
+                     Map.Insert (Key, Position);
+                  end if;
+               end;
             end loop;
-            return 0;
-         end Index_Of;
+            return Map;
+         end Index;
+
+         In_Base : constant Key_Indexes.Map := Index (Base);
+         In_Mine : constant Key_Indexes.Map := Index (Mine);
 
          --  Whether this process changed what Key says since Base.
          function Changed (Key : String) return Boolean is
-            In_Base : constant Natural := Index_Of (Base, Key);
-            In_Mine : constant Natural := Index_Of (Mine, Key);
+            Was_There : constant Boolean := In_Base.Contains (Key);
+            Is_There  : constant Boolean := In_Mine.Contains (Key);
          begin
-            return (In_Base = 0) /= (In_Mine = 0)
-              or else (In_Base /= 0 and then Base (In_Base) /= Mine (In_Mine));
+            return Was_There /= Is_There
+              or else (Was_There
+                       and then Base (In_Base.Element (Key)) /= Mine (In_Mine.Element (Key)));
          end Changed;
 
-         --  Whether Result already holds an entry under Key.
-         function Placed (Key : String) return Boolean is
-           (for some Item of Result => Key_Of (Item) = Key);
+         procedure Place (Key : String; Item : Element) is
+         begin
+            Result.Append (Item);
+            Placed.Include (Key);
+         end Place;
       begin
          for Item of Theirs loop
             declare
                Key : constant String := Key_Of (Item);
             begin
                if not Changed (Key) then
-                  Result.Append (Item);
-               elsif not Placed (Key) and then Index_Of (Mine, Key) /= 0 then
+                  Place (Key, Item);
+               elsif not Placed.Contains (Key) and then In_Mine.Contains (Key) then
                   --  This process's entry in the file's place; none if it
                   --  removed it.
-                  Result.Append (Mine (Index_Of (Mine, Key)));
+                  Place (Key, Mine (In_Mine.Element (Key)));
                end if;
             end;
          end loop;
          for Own of Mine loop
-            if Changed (Key_Of (Own)) and then not Placed (Key_Of (Own)) then
-               Result.Append (Own);
-            end if;
+            declare
+               Key : constant String := Key_Of (Own);
+            begin
+               if Changed (Key) and then not Placed.Contains (Key) then
+                  Place (Key, Own);
+               end if;
+            end;
          end loop;
          return Result;
       end Merged_Keyed;

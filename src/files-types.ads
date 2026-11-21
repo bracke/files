@@ -351,18 +351,6 @@ package Files.Types is
      (Text'Length >= Prefix'Length
       and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix);
 
-   --  Return whether Raw_Bytes looks like binary (non-text) data: it contains a
-   --  NUL byte, or too large a share of non-printable control bytes to render as
-   --  monospace text. An empty input is not considered binary. Applied to
-   --  Searchable_Text's decoding, it is what Quick Look will not show as text
-   --  and content search will not search.
-   --
-   --  @param Raw_Bytes Leading bytes of a file.
-   --  @return True when the bytes should not be read as text.
-   function Looks_Binary
-     (Raw_Bytes : String)
-      return Boolean;
-
    --  Text folded for a case-insensitive match: every script's letters, not
    --  only Latin-1 (Привет, Łódź, Ελλάδα), and one Unicode form, so a name
    --  stored decomposed (é as e and a combining accent, as older Macs write
@@ -376,30 +364,14 @@ package Files.Types is
    --  @return Folded text.
    function Fold_Case (Text : String) return String;
 
-   --  Raw cut back to its last whole UTF-8 character: a multibyte sequence a
-   --  bounded read cut short is dropped. Anything else is left as it is.
-   --
-   --  @param Raw Bytes read from the start of a file, possibly cut short.
-   --  @return Raw without a trailing incomplete character.
-   function Trim_To_Character (Raw : String) return String;
-
-   --  A file's first bytes as UTF-8 text to search: UTF-16 (with a byte
-   --  order mark, or without one when every other byte is NUL, as ASCII
-   --  text in UTF-16 is) transcoded; UTF-8 cut back to its last whole
-   --  character; text that is not UTF-8 read as Windows-1252 (Latin-1 with
-   --  the printable 0x80 .. 0x9F). Bytes that look binary are returned as
-   --  they are. A unit or character a bounded read cut short is dropped.
-   --
-   --  @param Raw Bytes read from the start of a file, possibly cut short.
-   --  @return The text, UTF-8 encoded.
-   function Searchable_Text (Raw : String) return String;
-
-   --  Whether Text (Searchable_Text) is text, not binary (Looks_Binary), and
+   --  Whether Text (Files.Text_Encoding.Searchable_Text) is text, not binary
+   --  (Files.Text_Encoding.Looks_Binary), and
    --  contains Folded_Query (a query already folded with Fold_Case),
    --  ignoring case: content search's match, with the query folded once
    --  per search rather than once per file.
    --
-   --  @param Text A file's first bytes as Searchable_Text gives them.
+   --  @param Text A file's first bytes as Files.Text_Encoding.Searchable_Text
+   --    gives them.
    --  @param Folded_Query Fold_Case of the text looked for; "" matches nothing.
    --  @return True for a text match.
    function Text_Contains (Text : String; Folded_Query : String) return Boolean;

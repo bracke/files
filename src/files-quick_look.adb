@@ -52,7 +52,7 @@ package body Files.Quick_Look is
          elsif Complete then
             Flush;
          elsif Lines.Is_Empty then
-            Current := To_Unbounded_String (Files.Types.Trim_To_Character (To_String (Current)));
+            Current := To_Unbounded_String (Files.Text_Encoding.Trim_To_Character (To_String (Current)));
             Flush;
          end if;
       end if;
@@ -95,7 +95,7 @@ package body Files.Quick_Look is
       declare
          --  Shown as content search reads it: UTF-16 and Windows-1252 text
          --  decoded.
-         Text : constant String := Files.Types.Searchable_Text (Raw_Bytes);
+         Text : constant String := Files.Text_Encoding.Searchable_Text (Raw_Bytes);
       begin
          if Looks_Binary (Text) then
             Content.Kind := Info_Content;

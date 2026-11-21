@@ -1,3 +1,4 @@
+with Files.Text_Encoding;
 with Guikit.Shared_Bytes;
 with Files.Items;
 with Files.Types;
@@ -60,7 +61,7 @@ package Files.Quick_Look is
    --  @return True when the bytes should not be shown as text.
    function Looks_Binary
      (Raw_Bytes : String)
-      return Boolean renames Files.Types.Looks_Binary;
+      return Boolean renames Files.Text_Encoding.Looks_Binary;
 
    --  Classify a Quick Look preview from item metadata and a bounded read.
    --

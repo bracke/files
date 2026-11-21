@@ -262,6 +262,26 @@ package Files.Settings is
    Min_Window_Dimension : constant Positive := 200;
    Max_Window_Dimension : constant Positive := 16_384;
 
+   --  The settings file's token for each choice: the persisted format, and the
+   --  one place it is spelled. Set_Scalar reads a value back through these and
+   --  the settings pane offers them as its choices.
+   --
+   --  @param Mode View mode to name.
+   --  @return Its settings-file token.
+   function View_Mode_Name (Mode : Files.Types.View_Mode) return String;
+
+   --  @param Field Sort field to name.
+   --  @return Its settings-file token.
+   function Sort_Field_Name (Field : Files.Types.Sort_Field) return String;
+
+   --  @param Value Theme to name.
+   --  @return Its settings-file token.
+   function Theme_Name (Value : Theme_Choice) return String;
+
+   --  @param Value Grouping mode to name.
+   --  @return Its settings-file token.
+   function Group_Mode_Name (Value : Files.Types.Group_Mode) return String;
+
    --  Clamp a requested font pixel size into the supported range.
    --
    --  @param Size Requested pixel size (may be out of range or non-positive).

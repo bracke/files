@@ -841,7 +841,7 @@ private
    --
    --  This is the pure, filesystem-free match seam the content search uses on
    --  each file's bounded leading bytes, decoded from UTF-16 or Windows-1252
-   --  when they are not UTF-8 (Files.Types.Searchable_Text). An empty Query
+   --  when they are not UTF-8 (Files.Text_Encoding.Searchable_Text). An empty Query
    --  never matches, and bytes classified as binary (via the Quick Look
    --  NUL/control heuristic) never match, so binary files are skipped
    --  without further inspection.

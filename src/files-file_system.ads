@@ -360,7 +360,7 @@ package Files.File_System is
 
    --  Whether Bytes, text and not binary, contain Query, ignoring case.
    --  UTF-16 and Windows-1252 text is searched as what it says
-   --  (Files.Types.Searchable_Text).
+   --  (Files.Text_Encoding.Searchable_Text).
    --
    --  @param Bytes A file's first bytes.
    --  @param Query Text to look for; "" matches nothing.

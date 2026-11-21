@@ -704,8 +704,6 @@ package body Files.Settings is
       end case;
    end View_Mode_Name;
 
-   --  The settings file's token for each sort field: the persisted format, and
-   --  the one place it is spelled. Set_Scalar reads a value back through it.
    function Sort_Field_Name (Field : Files.Types.Sort_Field) return String is
    begin
       case Field is

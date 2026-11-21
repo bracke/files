@@ -48,14 +48,21 @@ separate (Files.Settings)
    begin
       case Setting is
          when Default_View_Mode_Setting =>
-            if Lower = "small" or else Lower = "small_icons" then
+            --  Read back exactly the tokens View_Mode_Name writes, plus the
+            --  older short spellings "small" and "large".
+            Valid := False;
+            for Mode in Files.Types.View_Mode loop
+               if Lower = View_Mode_Name (Mode) then
+                  Settings.Default_View := Mode;
+                  Valid := True;
+               end if;
+            end loop;
+            if Lower = "small" then
                Settings.Default_View := Files.Types.Small_Icons;
-            elsif Lower = "large" or else Lower = "large_icons" then
+               Valid := True;
+            elsif Lower = "large" then
                Settings.Default_View := Files.Types.Large_Icons;
-            elsif Lower = "details" then
-               Settings.Default_View := Files.Types.Details;
-            else
-               Valid := False;
+               Valid := True;
             end if;
          when Show_Hidden_Files_Setting =>
             Parse_Boolean (Lower, Settings.Show_Hidden_Files, Valid);
@@ -77,15 +84,13 @@ separate (Files.Settings)
          when Sort_Ascending_Setting =>
             Parse_Boolean (Lower, Settings.Sort_Ascending, Valid);
          when Theme_Setting =>
-            if Lower = "dark" then
-               Settings.Theme := Theme_Dark;
-            elsif Lower = "light" then
-               Settings.Theme := Theme_Light;
-            elsif Lower = "high_contrast" then
-               Settings.Theme := Theme_High_Contrast;
-            else
-               Valid := False;
-            end if;
+            Valid := False;
+            for Theme in Theme_Choice loop
+               if Lower = Theme_Name (Theme) then
+                  Settings.Theme := Theme;
+                  Valid := True;
+               end if;
+            end loop;
          when Icon_Theme_Setting =>
             Valid := Files.Icon_Themes.Is_Name (Text);
             if Valid then
@@ -107,19 +112,13 @@ separate (Files.Settings)
          when Use_System_Default_Opener_Setting =>
             Parse_Boolean (Lower, Settings.Use_System_Default_Opener, Valid);
          when Group_By_Setting =>
-            if Lower = "none" then
-               Settings.Group_By := Files.Types.No_Grouping;
-            elsif Lower = "type" then
-               Settings.Group_By := Files.Types.Group_By_Type;
-            elsif Lower = "modified" then
-               Settings.Group_By := Files.Types.Group_By_Modified;
-            elsif Lower = "size" then
-               Settings.Group_By := Files.Types.Group_By_Size;
-            elsif Lower = "label" then
-               Settings.Group_By := Files.Types.Group_By_Label;
-            else
-               Valid := False;
-            end if;
+            Valid := False;
+            for Mode in Files.Types.Group_Mode loop
+               if Lower = Group_Mode_Name (Mode) then
+                  Settings.Group_By := Mode;
+                  Valid := True;
+               end if;
+            end loop;
          when Detail_Column_Order_Setting =>
             declare
                Order : Files.Types.Detail_Column_Order;

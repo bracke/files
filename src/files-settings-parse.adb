@@ -29,41 +29,37 @@ separate (Files.Settings)
       --  error key; the main loop then returns it. A null Err means the line was
       --  accepted (or ignored, for the append-only sections).
 
-      procedure Parse_Filetypes_Line
-        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
-      is
-         pragma Unreferenced (Setting_Key);
-      begin
-         Err := Null_Unbounded_String;
-         if Normalize_Extension (Key) = ""
-           or else Value = ""
-           or else not Mapping_Key_Is_Valid (Normalize_Extension (Key))
-           or else not Mapping_Value_Is_Valid (Value)
-           or else not Quoted_Value_Is_Valid (Raw_Value)
-         then
-            Err := To_Unbounded_String ("error.settings.invalid_mapping");
-            return;
-         end if;
-         Add_Extension_Mapping (Settings, Key, Value);
-      end Parse_Filetypes_Line;
+      --  A [filetypes] or [icons] line: a non-empty valid key (as Mapping_Key
+      --  reads it) mapped to a non-empty valid, correctly quoted value.
+      generic
+         with function Mapping_Key (Key : String) return String;
+         with procedure Add (Settings : in out Settings_Model; Key, Value : String);
+      procedure Parse_Mapping_Line
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String);
 
-      procedure Parse_Icons_Line
+      procedure Parse_Mapping_Line
         (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
       is
          pragma Unreferenced (Setting_Key);
+         Read_Key : constant String := Mapping_Key (Key);
       begin
          Err := Null_Unbounded_String;
-         if Key = ""
+         if Read_Key = ""
            or else Value = ""
-           or else not Mapping_Key_Is_Valid (Key)
+           or else not Mapping_Key_Is_Valid (Read_Key)
            or else not Mapping_Value_Is_Valid (Value)
            or else not Quoted_Value_Is_Valid (Raw_Value)
          then
             Err := To_Unbounded_String ("error.settings.invalid_mapping");
             return;
          end if;
-         Add_Icon_Mapping (Settings, Key, Value);
-      end Parse_Icons_Line;
+         Add (Settings, Key, Value);
+      end Parse_Mapping_Line;
+
+      function Icon_Key (Key : String) return String is (Key);
+
+      procedure Parse_Filetypes_Line is new Parse_Mapping_Line (Normalize_Extension, Add_Extension_Mapping);
+      procedure Parse_Icons_Line is new Parse_Mapping_Line (Icon_Key, Add_Icon_Mapping);
 
       procedure Parse_Open_Actions_Line
         (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
@@ -163,9 +159,7 @@ separate (Files.Settings)
          --  item twice; the quoted value survives paths with '=' or '#'.
          if Setting_Key = "recent" and then Persistent_Path_Is_Valid (Value) then
             Path_References.Add_Recent (Settings, Value);
-         elsif Setting_Key = "recent" and then Value /= ""
-           and then not Persistent_Path_Is_Valid (Value)
-         then
+         elsif Setting_Key = "recent" and then Value /= "" then
             Err := To_Unbounded_String ("error.settings.invalid");
          end if;
       end Parse_Recent_Line;

@@ -11,6 +11,10 @@ separate (Files_Suite.Model)
       Overlong_Text_Path : constant String := Join (Root, "overlong.txt");
       Surrogate_Text_Path : constant String := Join (Root, "surrogate.txt");
       Markdown_Path : constant String := Join (Root, "notes.md");
+      Utf16_Le_Path : constant String := Join (Root, "utf16le.txt");
+      Utf16_Be_Path : constant String := Join (Root, "utf16be.txt");
+      Unmarked_Utf16_Path : constant String := Join (Root, "unmarked-utf16.txt");
+      NUL : constant Character := Character'Val (0);
       Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Load      : Files.File_System.Directory_Load_Result;
       Found_Long_Text : Boolean := False;
@@ -23,6 +27,9 @@ separate (Files_Suite.Model)
       Found_Overlong_Text : Boolean := False;
       Found_Surrogate_Text : Boolean := False;
       Found_Markdown : Boolean := False;
+      Found_Utf16_Le : Boolean := False;
+      Found_Utf16_Be : Boolean := False;
+      Found_Unmarked_Utf16 : Boolean := False;
    begin
       Reset_Root;
       Write_File (Long_Text_Path, String'(1 .. 2048 => 'x'));
@@ -48,6 +55,15 @@ separate (Files_Suite.Model)
         (Surrogate_Text_Path,
          "bad" & Character'Val (16#ED#) & Character'Val (16#A0#) & Character'Val (16#80#));
       Write_File (Markdown_Path, "# Title" & ASCII.LF & "body");
+      --  UTF-16 text, which content search and Quick Look read as text: named
+      --  as UTF-16, not as binary for its NUL bytes.
+      Write_Binary_File
+        (Utf16_Le_Path,
+         Character'Val (16#FF#) & Character'Val (16#FE#) & "a" & NUL & ASCII.LF & NUL & "b" & NUL);
+      Write_Binary_File
+        (Utf16_Be_Path,
+         Character'Val (16#FE#) & Character'Val (16#FF#) & NUL & "a" & NUL & ASCII.LF & NUL & "b");
+      Write_Binary_File (Unmarked_Utf16_Path, "h" & NUL & "i" & NUL & "!" & NUL);
 
       Load := Files.File_System.Load_Directory (Root, Settings);
 
@@ -106,6 +122,24 @@ separate (Files_Suite.Model)
               (Item_Extra (Item),
                "text.lines_encoding|1|binary",
                "surrogate UTF-8 text files expose binary encoding metadata");
+         elsif To_String (Item.Name) = "utf16le.txt" then
+            Found_Utf16_Le := True;
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|2|utf16le",
+               "UTF-16 text with a little-endian byte order mark is named UTF-16 LE");
+         elsif To_String (Item.Name) = "utf16be.txt" then
+            Found_Utf16_Be := True;
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|2|utf16be",
+               "UTF-16 text with a big-endian byte order mark is named UTF-16 BE");
+         elsif To_String (Item.Name) = "unmarked-utf16.txt" then
+            Found_Unmarked_Utf16 := True;
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|1|utf16le",
+               "UTF-16 text without a byte order mark is named as the search reads it");
          elsif To_String (Item.Name) = "notes.md" then
             Found_Markdown := True;
             Files_Suite.Support.Assert_Equal
@@ -125,4 +159,7 @@ separate (Files_Suite.Model)
       Assert (Found_Overlong_Text, "overlong UTF-8 text item was loaded");
       Assert (Found_Surrogate_Text, "surrogate UTF-8 text item was loaded");
       Assert (Found_Markdown, "Markdown item was loaded");
+      Assert (Found_Utf16_Le, "UTF-16 LE item was loaded");
+      Assert (Found_Utf16_Be, "UTF-16 BE item was loaded");
+      Assert (Found_Unmarked_Utf16, "unmarked UTF-16 item was loaded");
    end Test_Text_Encoding_Metadata;

@@ -1,3 +1,4 @@
+with Files.Text_Encoding;
 separate (Files_Suite.Search)
    --  The 64 KiB a content search reads can end inside a character: what is
    --  searched is cut back to a whole one, and folding a text with a stray
@@ -21,9 +22,9 @@ separate (Files_Suite.Search)
       Files_Suite.Support.Assert_Equal
         (Files.Types.Fold_Case (Lead & Upper), Lead & Lower, "a stray leading byte does not stop the folding");
       Files_Suite.Support.Assert_Equal
-        (Files.Types.Trim_To_Character ("ab" & Lead), "ab", "a cut character is trimmed");
+        (Files.Text_Encoding.Trim_To_Character ("ab" & Lead), "ab", "a cut character is trimmed");
       Files_Suite.Support.Assert_Equal
-        (Files.Types.Trim_To_Character ("ab" & Zhe), "ab" & Zhe, "a whole character is kept");
+        (Files.Text_Encoding.Trim_To_Character ("ab" & Zhe), "ab" & Zhe, "a whole character is kept");
 
       --  The greeting early on; from byte Read_Cap two-byte characters, so
       --  the read's last byte is the first half of one.

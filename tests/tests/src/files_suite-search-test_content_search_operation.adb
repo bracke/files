@@ -1,3 +1,4 @@
+with Files.Text_Encoding;
 with Files.Operation_Results;
 with Files.Commands.Status;
 with Files_Suite.Support.Models;
@@ -55,11 +56,11 @@ separate (Files_Suite.Search)
          Assert (not Files.Operations.Testing.Content_Matches (Le_Bom & Utf16 ("nothing", True), "needle"),
                  "UTF-16 text without the query does not match");
          Files_Suite.Support.Assert_Equal
-           (Files.Types.Searchable_Text (Le_Bom & Utf16 ("x", True) & Pair),
+           (Files.Text_Encoding.Searchable_Text (Le_Bom & Utf16 ("x", True) & Pair),
             "x" & Character'Val (16#F0#) & Character'Val (16#9F#) & Character'Val (16#98#) & Character'Val (16#80#),
             "a UTF-16 surrogate pair decodes to its character");
          Files_Suite.Support.Assert_Equal
-           (Files.Types.Searchable_Text (Le_Bom & Utf16 ("x", True) & Pair (1 .. 3)), "x",
+           (Files.Text_Encoding.Searchable_Text (Le_Bom & Utf16 ("x", True) & Pair (1 .. 3)), "x",
             "a surrogate pair a read cut short is dropped");
          Assert (Files.Operations.Testing.Content_Matches ("caf" & Character'Val (16#E9#) & " au lait", U8 ("CAFÉ")),
                  "Latin-1 text is searched as the characters it says");
@@ -68,14 +69,14 @@ separate (Files_Suite.Search)
               ("say " & Character'Val (16#93#) & "hi" & Character'Val (16#94#), U8 ("“hi”")),
             "Windows-1252 quotation marks are read as such");
          Files_Suite.Support.Assert_Equal
-           (Files.Types.Searchable_Text ("caf" & Character'Val (16#C3#) & Character'Val (16#A9#)), U8 ("café"),
+           (Files.Text_Encoding.Searchable_Text ("caf" & Character'Val (16#C3#) & Character'Val (16#A9#)), U8 ("café"),
             "UTF-8 text is searched as it is");
          Assert
            (Files.Operations.Testing.Content_Matches
               (U8 ("Привет, мир") & Character'Val (16#E9#) & " fin", U8 ("ПРИВЕТ")),
             "UTF-8 text with a stray byte keeps its characters");
          Files_Suite.Support.Assert_Equal
-           (Files.Types.Searchable_Text ("ok " & Character'Val (16#E9#) & U8 ("é и")),
+           (Files.Text_Encoding.Searchable_Text ("ok " & Character'Val (16#E9#) & U8 ("é и")),
             U8 ("ok éé и"), "only the stray byte is read as Windows-1252");
       end;
 

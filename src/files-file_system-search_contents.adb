@@ -1,3 +1,4 @@
+with Files.Text_Encoding;
 separate (Files.File_System)
 function Search_Contents
   (Root_Path : String;
@@ -34,13 +35,13 @@ is
          Searched : constant String :=
            (if Bytes'Length > Max_Bytes then Bytes (Bytes'First .. Bytes'First - 1 + Max_Bytes) else Bytes);
          --  Decoded once, for the match and for whether it is text.
-         Text     : constant String := (if Read_Ok then Files.Types.Searchable_Text (Searched) else "");
+         Text     : constant String := (if Read_Ok then Files.Text_Encoding.Searchable_Text (Searched) else "");
       begin
          if not Read_Ok then
             return Undecided;
          elsif Files.Types.Text_Contains (Text, Folded_Query) then
             return Found;
-         elsif Bytes'Length > Max_Bytes and then not Files.Types.Looks_Binary (Text) then
+         elsif Bytes'Length > Max_Bytes and then not Files.Text_Encoding.Looks_Binary (Text) then
             --  A text file longer than is read and no match in what was:
             --  its match could lie past it.
             return Undecided;
