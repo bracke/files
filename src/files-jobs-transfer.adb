@@ -5,19 +5,19 @@ with Files.Diagnostics;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
 
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Hostkit.Fs;
-with Files.Bounded_Streams;
+with Files.IO.Record_Fields;
 with Files.Jobs.Context;
 with Files.File_Identities;
-with Files.Lease_Streams;
+with Files.IO.Lease_Streams;
 with Files.Path_Checks;
 
 package body Files.Jobs.Transfer is
    use Ada.Strings.Unbounded;
 
-   Max_Transport_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
-   Max_Transport_Token_Length : constant := Files.Bounded_Streams.Max_Token_Length;
+   Max_Transport_Path_Length : constant := Files.IO.Record_Fields.Max_Path_Length;
+   Max_Transport_Token_Length : constant := Files.IO.Record_Fields.Max_Token_Length;
    Max_Transport_Error_Length : constant := 256;
    Request_Header : constant String := "files-transfer-request-1";
    Result_Header : constant String := "files-transfer-result-1";
@@ -63,7 +63,7 @@ package body Files.Jobs.Transfer is
    procedure Write_String
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value : String;
-      Max_Length : Natural) renames Files.Bounded_Streams.Output_String;
+      Max_Length : Natural) renames Files.IO.Record_Fields.Output_String;
 
    procedure Write_Action
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
@@ -85,10 +85,10 @@ package body Files.Jobs.Transfer is
       Result : Files.Paste.Resolved_Action;
    begin
       Result.Source_Path := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
+        (Files.IO.Record_Fields.Input_String
            (Stream, Max_Transport_Path_Length));
       Result.Dest_Path := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
+        (Files.IO.Record_Fields.Input_String
            (Stream, Max_Transport_Path_Length));
       Result.Skip := Boolean'Input (Stream);
       Result.Replaced := Boolean'Input (Stream);
@@ -125,13 +125,13 @@ package body Files.Jobs.Transfer is
       Work.Action := Read_Action (Stream);
       Work.Mode := Files.File_System.Drop_Import_Mode'Input (Stream);
       Work.Batch_Directory :=
-        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Transport_Path_Length));
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Transport_Path_Length));
    end Read_Request_Body;
 
    function Transfer_Request_Is_Consistent (Work : Transfer_Request) return Boolean is
      (Request_Is_Consistent (Work.Action, To_String (Work.Batch_Directory)));
 
-   function Read_Request_Record is new Files.Lease_Streams.Read_Record
+   function Read_Request_Record is new Files.IO.Lease_Streams.Read_Record
      (Transfer_Request, Read_Request_Body, Transfer_Request_Is_Consistent);
 
    procedure Read_Transport_Request
@@ -180,7 +180,7 @@ package body Files.Jobs.Transfer is
       Result : out Job_Result)
    is
       function Text (Maximum : Natural) return Files.Types.UString is
-        (To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Maximum)));
+        (To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Maximum)));
    begin
       Result.Mutation.Success := Boolean'Input (Stream);
       Result.Mutation.Error_Key := Text (Max_Transport_Error_Length);
@@ -192,7 +192,7 @@ package body Files.Jobs.Transfer is
       Result.Recovered := Boolean'Input (Stream);
    end Read_Result_Body;
 
-   function Read_Result_Record is new Files.Lease_Streams.Read_Record
+   function Read_Result_Record is new Files.IO.Lease_Streams.Read_Record
      (Job_Result, Read_Result_Body, Result_Is_Consistent);
 
    function Read_Transport_Result (Path : String) return Job_Result is
@@ -217,9 +217,9 @@ package body Files.Jobs.Transfer is
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Saved  : out Replacement_Checkpoint) is
    begin
-      Saved.Backup := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Transport_Path_Length));
+      Saved.Backup := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Transport_Path_Length));
       Saved.Backup_Identity :=
-        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Transport_Token_Length));
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Transport_Token_Length));
    end Read_Checkpoint_Body;
 
    function Checkpoint_Is_Consistent (Saved : Replacement_Checkpoint) return Boolean is
@@ -228,7 +228,7 @@ package body Files.Jobs.Transfer is
       and then Files.File_Identities.Token (To_String (Saved.Backup)) = To_String (Saved.Backup_Identity));
 
    --  A checkpoint has no header: it is two strings.
-   function Read_Checkpoint_Record is new Files.Lease_Streams.Read_Record
+   function Read_Checkpoint_Record is new Files.IO.Lease_Streams.Read_Record
      (Replacement_Checkpoint, Read_Checkpoint_Body, Checkpoint_Is_Consistent);
 
    procedure Read_Replacement_Checkpoint
@@ -422,7 +422,7 @@ package body Files.Jobs.Transfer is
 
          --  Whether anything, even a dangling link, holds Name in Directory.
          function Taken (Name : String) return Boolean is
-           (not Files.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (Directory, Name)));
+           (not Files.IO.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (Directory, Name)));
       begin
          Result.Trashed := To_Unbounded_String (Backup);
          Result.Trashed_Identity := To_Unbounded_String (Backup_Identity);

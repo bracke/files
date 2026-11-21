@@ -6,7 +6,7 @@ is
    --  A name that cannot be looked at raises, and the handler's plain
    --  name is created exclusively: never one in use.
    function Taken (Leaf : String) return Boolean is
-     (Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Directory_Path, Leaf)));
+     (Files.IO.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Directory_Path, Leaf)));
 
 begin
    declare

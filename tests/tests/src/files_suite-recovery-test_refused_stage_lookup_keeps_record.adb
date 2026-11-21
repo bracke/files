@@ -1,4 +1,4 @@
-with Files.Fs_Primitives.Testing;
+with Files.IO.Fs_Primitives.Testing;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    --  A stage record is the only pointer to a partial staged copy in the
@@ -43,9 +43,9 @@ separate (Files_Suite.Recovery)
       --  The host will not say whether the staged copy is there. Cleanup may
       --  still remove it (the refusal may have passed by then), but the
       --  record goes only with it: never a record forgotten, copy left.
-      Files.Fs_Primitives.Testing.Refuse_Lookups (To_String (Stage));
+      Files.IO.Fs_Primitives.Testing.Refuse_Lookups (To_String (Stage));
       Files.Jobs.Process.Clean_Stages (Job);
-      Files.Fs_Primitives.Testing.Stop_Refusing_Lookups;
+      Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
       Assert
         (Records = 1 or else not Ada.Directories.Exists (To_String (Stage)),
          "a refused lookup never forgets the record of a staged copy still there");
@@ -61,7 +61,7 @@ separate (Files_Suite.Recovery)
       end loop;
    exception
       when others =>
-         Files.Fs_Primitives.Testing.Stop_Refusing_Lookups;
+         Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
          Files.Jobs.Context.Initialize ("");
          raise;
    end Test_Refused_Stage_Lookup_Keeps_Record;

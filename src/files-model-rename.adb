@@ -2,6 +2,7 @@ with Files.UI_Types;
 with Guikit.Bidi;
 with Guikit.Utf8.Editing;
 with Files.Model.Support;
+with Files.Name_Parts;
 
 package body Files.Model.Rename is
 
@@ -17,16 +18,14 @@ package body Files.Model.Rename is
       Visible_Index : Positive)
       return Natural
    is
-      Row    : constant Natural := Selection_Index_Of_Visible (Model, Visible_Index);
-      --  A rename field names the temporary row's item as 0.
-      Target : constant Natural := (if Row = Temporary_Item_Index then 0 else Row);
+      Row : constant Natural := Selection_Index_Of_Visible (Model, Visible_Index);
    begin
       if Row = 0 then
          return 0;
       end if;
 
       for Index in Model.Rename.Fields.First_Index .. Model.Rename.Fields.Last_Index loop
-         if Model.Rename.Fields.Element (Index).Item_Index = Target then
+         if Model.Rename.Fields.Element (Index).Item_Index = Row then
             return Index;
          end if;
       end loop;
@@ -81,7 +80,7 @@ package body Files.Model.Rename is
      (Name : String)
       return Natural
    is
-      Start : constant Natural := Files.Types.Extension_Start (Name);
+      Start : constant Natural := Files.Name_Parts.Extension_Start (Name);
       Dot   : constant Natural := (if Start = 0 then 0 else Start - Name'First);
    begin
       if Dot = 0 then
@@ -130,7 +129,7 @@ package body Files.Model.Rename is
       Field : Rename_Field) is
    begin
       Touch (Model);
-      if Field.Item_Index = 0 and then Model.Temporary.Active then
+      if Field.Item_Index = Temporary_Item_Index and then Model.Temporary.Active then
          Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
          Model.Temporary.Name := Field.Edit.Text;
       end if;

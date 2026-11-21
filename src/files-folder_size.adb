@@ -5,18 +5,19 @@ with Ada.Containers.Hashed_Maps;
 with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded.Hash;
-with Files.Bounded_Streams;
+with Files.IO.Record_Fields;
 with Files.Jobs.Context;
 with Files.Jobs.Records;
-with Files.Lease_Streams;
-with Files.Fs_Primitives;
+with Files.IO.Lease_Streams;
+with Files.IO.Fs_Primitives;
 with Hostkit.Fs;
 with Files.Path_Checks;
+with Files.Text_Basics;
 
 package body Files.Folder_Size is
    use Ada.Strings.Unbounded;
 
-   Max_Request_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
+   Max_Request_Path_Length : constant := Files.IO.Record_Fields.Max_Path_Length;
    Max_Record_Bytes : constant := 64 * 1024;
    --  A batch request: up to Max_Batch paths, within this many bytes.
    Max_Request_Bytes : constant := 1024 * 1024;
@@ -54,14 +55,14 @@ package body Files.Folder_Size is
          raise Ada.IO_Exceptions.Data_Error;
       end if;
       for Index in 1 .. Count loop
-         Paths.Append (To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Request_Path_Length)));
+         Paths.Append (To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Request_Path_Length)));
       end loop;
    end Read_Request_Body;
 
    function Request_Is_Consistent (Paths : Path_Vectors.Vector) return Boolean is
      (for all Path of Paths => Request_Path_Is_Valid (To_String (Path)));
 
-   function Read_Request_Record is new Files.Lease_Streams.Read_Record
+   function Read_Request_Record is new Files.IO.Lease_Streams.Read_Record
      (Path_Vectors.Vector, Read_Request_Body, Request_Is_Consistent);
 
    function Read_Request (Path : String) return Path_Vectors.Vector is
@@ -69,7 +70,7 @@ package body Files.Folder_Size is
 
    --  The helper publishes the Index-th result under this name once written.
    function Result_Name (Index : Positive) return String is
-     ("result-" & Files.Types.Natural_Text (Index));
+     ("result-" & Files.Text_Basics.Natural_Text (Index));
 
    --  What Write_Result refuses to write.
    function Result_Is_Consistent (Result : Files.File_System.Directory_Size_Result) return Boolean is
@@ -110,7 +111,7 @@ package body Files.Folder_Size is
       Result.Capped := Boolean'Input (Stream);
    end Read_Result_Body;
 
-   function Read_Result_Record is new Files.Lease_Streams.Read_Record
+   function Read_Result_Record is new Files.IO.Lease_Streams.Read_Record
      (Files.File_System.Directory_Size_Result, Read_Result_Body, Result_Is_Consistent);
 
    function Read_Result
@@ -271,7 +272,7 @@ package body Files.Folder_Size is
          begin
             --  refusal-safe: a result not seen is waited for; once the helper
             --  ends, the directories it never answered are unmeasured.
-            exit when not Files.Fs_Primitives.Exists (Name);
+            exit when not Files.IO.Fs_Primitives.Exists (Name);
             begin
                if Test_Unreadable_Results > 0 then
                   Test_Unreadable_Results := Test_Unreadable_Results - 1;

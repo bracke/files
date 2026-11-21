@@ -1,6 +1,7 @@
 with Files.Type_Ahead;
 with Guikit.Utf8.Editing;
 with Files.Model.Support;
+with Files.Text_Case;
 
 package body Files.Model.Selection is
 
@@ -36,7 +37,7 @@ package body Files.Model.Selection is
    --  @param Text Candidate input run.
    --  @return True when Text is one repeated codepoint.
    function Is_Repeated_Single_Codepoint (Text : String) return Boolean is
-      Lower : constant String := Files.Types.Fold_Case (Text);
+      Lower : constant String := Files.Text_Case.Fold_Case (Text);
       First : Natural;
       Cursor : Natural := 0;
       Unit   : Natural;
@@ -136,7 +137,7 @@ package body Files.Model.Selection is
          procedure Add (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean) is
             pragma Unreferenced (Selected);
          begin
-            Visible.Append (if Item_Index /= 0 then Item.Name else Null_Unbounded_String);
+            Visible.Append (if Item_Index /= Temporary_Item_Index then Item.Name else Null_Unbounded_String);
          end Add;
       begin
          Visible.Reserve_Capacity (Ada.Containers."+" (Model.Items.Length, 1));
@@ -255,7 +256,7 @@ package body Files.Model.Selection is
             if Position in First .. Last then
                --  Rows are distinct and the list was cleared, so append directly
                --  rather than pay Add_Selected_Index's duplicate scan.
-               Rows.Append (if Item_Index /= 0 then Item_Index else Temporary_Item_Index);
+               Rows.Append (Item_Index);
             end if;
          end Note;
       begin

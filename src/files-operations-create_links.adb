@@ -1,3 +1,5 @@
+with Files.Name_Parts;
+
 separate (Files.Operations)
 --  Shared implementation for the create-symlink and create-hard-link
 --  commands. Each selected item gets a uniquely named link in the current
@@ -50,7 +52,7 @@ begin
          --  A plain folder's dots are part of its name: "v1.2 (link)".
          Is_Folder : constant Boolean := Item.Kind = Files.Types.Directory_Item;
          --  A link belongs beside its source, wherever the listing came from.
-         Link_Directory : constant String := Files.Fs_Primitives.Parent_Directory (Source);
+         Link_Directory : constant String := Files.IO.Fs_Primitives.Parent_Directory (Source);
 
          --  A directory-unique link name, e.g. "report (link).txt" or
          --  "report (link 2).txt" when earlier choices already exist.
@@ -58,9 +60,9 @@ begin
            Hostkit.Fs.Join
              (Link_Directory,
               First_Free_Leaf
-                (Link_Directory, Files.Types.Name_Stem (Name, Is_Folder),
-                 Files.Types.Name_Extension (Name, Is_Folder), Link_Marker'Access));
-         Dest_Name : constant String := Files.Types.Leaf_Of (Dest_Path);
+                (Link_Directory, Files.Name_Parts.Name_Stem (Name, Is_Folder),
+                 Files.Name_Parts.Name_Extension (Name, Is_Folder), Link_Marker'Access));
+         Dest_Name : constant String := Files.Name_Parts.Leaf_Of (Dest_Path);
          Mutation  : constant Files.File_System.Mutation_Result :=
            (if Hard
             then Files.File_System.Create_Hard_Link (Source, Dest_Path)

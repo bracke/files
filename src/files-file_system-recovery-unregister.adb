@@ -1,3 +1,5 @@
+with Files.Text_Basics;
+
 separate (Files.File_System.Recovery)
    procedure Unregister (Payload : String) is
       Root : constant String := Registry_Root (Create => False);
@@ -8,8 +10,8 @@ separate (Files.File_System.Recovery)
          Recorded, Identity : UString;
          Directory : constant String := Hostkit.Fs.Join (Root, Name);
       begin
-         if Files.Types.Starts_With (Name, Files.Protocol_Names.Recovery_Stage_Prefix)
-           and then Files.Fs_Primitives.Directory_Exists (Directory)
+         if Files.Text_Basics.Starts_With (Name, Files.Protocol_Names.Recovery_Stage_Prefix)
+           and then Files.IO.Fs_Primitives.Directory_Exists (Directory)
            and then Read_Registry_Record (Directory, Recorded, Identity)
            and then To_String (Recorded) = Payload
          then
@@ -21,7 +23,7 @@ separate (Files.File_System.Recovery)
          return;
       end if;
       Hold_Registry (Root, Hold);
-      Files.Fs_Primitives.For_Each_Name (Root, Check'Access);
+      Files.IO.Fs_Primitives.For_Each_Name (Root, Check'Access);
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.File_System.Recovery");

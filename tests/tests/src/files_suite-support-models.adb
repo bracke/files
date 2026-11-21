@@ -18,6 +18,7 @@ with Files.Model.Selection;
 with Files_Suite.Support.Timing;
 
 with Files_Suite.Support.Disk;
+with Files.Text_Basics;
 
 package body Files_Suite.Support.Models is
    use Files_Suite.Support.Timing;
@@ -110,7 +111,7 @@ package body Files_Suite.Support.Models is
       use Files.Extra_Info;
       V : constant String := Ada.Strings.Unbounded.To_String (Extra.Value);
       S : constant String := Ada.Strings.Unbounded.To_String (Extra.Subject);
-      N : constant String := Files.Types.Natural_Text (Extra.Count) & (if Extra.Capped then "+" else "");
+      N : constant String := Files.Text_Basics.Natural_Text (Extra.Count) & (if Extra.Capped then "+" else "");
    begin
       case Extra.Of_Kind is
          when None              => return "";
@@ -120,7 +121,7 @@ package body Files_Suite.Support.Models is
          when Text_Lines        => return S & ".lines_encoding|" & N & "|" & V;
          when Image_Dimensions  =>
             return "image.dimensions|"
-              & Files.Types.Natural_Text (Extra.Width) & "x" & Files.Types.Natural_Text (Extra.Height);
+              & Files.Text_Basics.Natural_Text (Extra.Width) & "x" & Files.Text_Basics.Natural_Text (Extra.Height);
          when Document_Kind     => return "document.kind|" & V;
          when Pdf_Pages         => return "document.pdf.pages|" & N;
          when Archive_Format    => return "archive.format|" & V;
@@ -144,7 +145,7 @@ package body Files_Suite.Support.Models is
       Ada.Directories.Create_Path (Src_Dir);
       Ada.Directories.Create_Path (Dest_Dir);
       for N in 1 .. Count loop
-         Write_File (Numbered_File (Src_Dir, N), "S" & Files.Types.Natural_Text (N));
+         Write_File (Numbered_File (Src_Dir, N), "S" & Files.Text_Basics.Natural_Text (N));
          Actions.Append
            (Files.Paste.Resolved_Action'
               (Source_Path => Ada.Strings.Unbounded.To_Unbounded_String (Numbered_File (Src_Dir, N)),

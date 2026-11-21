@@ -26,11 +26,11 @@ is
 begin
    Result.Listed := True;
 
-   if Cache_Directory = "" or else not Files.Fs_Primitives.Directory_Exists (Cache_Directory) then
+   if Cache_Directory = "" or else not Files.IO.Fs_Primitives.Directory_Exists (Cache_Directory) then
       return Result;
    end if;
 
-   Files.Fs_Primitives.For_Each_Listed (Cache_Directory, Collect'Access);
+   Files.IO.Fs_Primitives.For_Each_Listed (Cache_Directory, Collect'Access);
    if Capped then
       Result.Listed := False;
       Result.Names.Clear;

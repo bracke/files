@@ -1,4 +1,4 @@
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 separate (Files.Operations)
 --  Full paths of every entry directly inside Directory (hidden entries
 --  included). Used as the "already exists" set for conflict detection and for
@@ -29,7 +29,7 @@ is
       end if;
    end Add;
 begin
-   Files.Fs_Primitives.For_Each_Name (Directory, Add'Access);
+   Files.IO.Fs_Primitives.For_Each_Name (Directory, Add'Access);
    Listed := not Too_Many;
    return (if Too_Many then Files.Types.String_Vectors.Empty_Vector else Result);
 exception

@@ -1,4 +1,6 @@
 with Files.Trash_Info_Codec;
+with Files.Name_Parts;
+
 separate (Files.File_System)
 function Original_Path (Trashed_Path : String) return String is
    --  Read and URL-decode the Path= value from a trashinfo sidecar.
@@ -12,8 +14,8 @@ function Original_Path (Trashed_Path : String) return String is
       --  a restore without one is refused.
       if Hostkit.Fs.Is_Link (Info_File_Path)
         --  refusal-safe: as above.
-        or else not Files.Fs_Primitives.Exists (Info_File_Path)
-        or else Files.Fs_Primitives.Kind (Info_File_Path) /= Ada.Directories.Ordinary_File
+        or else not Files.IO.Fs_Primitives.Exists (Info_File_Path)
+        or else Files.IO.Fs_Primitives.Kind (Info_File_Path) /= Ada.Directories.Ordinary_File
       then
          return "";
       end if;
@@ -94,26 +96,26 @@ function Original_Path (Trashed_Path : String) return String is
    --  must be Top itself or below it.
    function Stays_On_Volume (Candidate, Top : String) return Boolean is
       Real_Top : constant String := Hostkit.Fs.Canonical_Path (Top);
-      Current  : Unbounded_String := To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Candidate));
+      Current  : Unbounded_String := To_Unbounded_String (Files.IO.Fs_Primitives.Parent_Directory (Candidate));
    begin
       if Real_Top = "" then
          return False;
       end if;
       loop
          --  refusal-safe: a refusal is told apart just below.
-         if Files.Fs_Primitives.Entry_Exists (To_String (Current)) then
+         if Files.IO.Fs_Primitives.Entry_Exists (To_String (Current)) then
             declare
                Real : constant String := Hostkit.Fs.Canonical_Path (To_String (Current));
             begin
                return Real /= "" and then Path_Is_Within (Real, Real_Top);
             end;
-         elsif not Files.Fs_Primitives.Entry_Is_Absent (To_String (Current)) then
+         elsif not Files.IO.Fs_Primitives.Entry_Is_Absent (To_String (Current)) then
             --  One that cannot be looked at may be the link off the volume:
             --  not passed over to an ancestor that would vouch for it.
             return False;
          end if;
          declare
-            Up : constant String := Files.Fs_Primitives.Parent_Directory (To_String (Current));
+            Up : constant String := Files.IO.Fs_Primitives.Parent_Directory (To_String (Current));
          begin
             exit when Up = To_String (Current);
             Current := To_Unbounded_String (Up);
@@ -145,7 +147,7 @@ begin
    end if;
    declare
       Recorded : constant String := Read_Original_Path
-        (Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Files.Types.Leaf_Of (Trashed_Path) & ".trashinfo"));
+        (Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Files.Name_Parts.Leaf_Of (Trashed_Path) & ".trashinfo"));
    begin
       if Recorded = "" then
          return "";

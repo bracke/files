@@ -4,6 +4,7 @@ with Ada.Strings.Unbounded;
 with Files.Timing;
 
 with Hostkit.Fs;
+with Files.Text_Case;
 
 package body Files.Settings.Path_References is
    use Ada.Strings.Unbounded;
@@ -75,7 +76,7 @@ package body Files.Settings.Path_References is
    --  The form a path is matched in: folded where it folds (Folds), so two
    --  spellings of one path are one entry.
    function Key (Path : String) return String is
-     (if Folds (Path) then Files.Types.Fold_Case (Path) else Path);
+     (if Folds (Path) then Files.Text_Case.Fold_Case (Path) else Path);
 
    function Same (Left : String; Right : String) return Boolean is
      (Left = Right or else Key (Left) = Key (Right));

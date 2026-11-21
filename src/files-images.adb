@@ -1,7 +1,7 @@
 with Ada.Containers;
 with GNAT.OS_Lib;
 with Files.Diagnostics;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Interfaces.C;
 with Interfaces.C.Strings;
 with System;

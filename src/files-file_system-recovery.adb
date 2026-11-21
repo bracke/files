@@ -1,11 +1,11 @@
 with Files.Types;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Timing;
 with Files.Protocol_Names;
 with Files.File_System.Support;
 with Files.Diagnostics;
 with Files.File_Identities;
-with Files.Io_Errors;
+with Files.IO.Errors;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Finalization;
 with Ada.Task_Identification;
@@ -14,17 +14,19 @@ with Ada.Streams;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 
-with Files.Durability;
+with Files.IO.Durability;
 with Hostkit.Durability;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 with Hostkit.Locks;
 with Hostkit.Metadata;
-with Files.Bounded_Streams;
-with Files.Exclusive_Streams;
-with Files.Lease_Streams;
-with Files.Private_Directories;
+with Files.IO.Record_Fields;
+with Files.IO.Exclusive_Streams;
+with Files.IO.Lease_Streams;
+with Files.IO.Private_Directories;
 with Files.Path_Checks;
+with Files.Name_Parts;
+with Files.Text_Basics;
 
 package body Files.File_System.Recovery is
 
@@ -50,7 +52,7 @@ package body Files.File_System.Recovery is
    use Files.File_System.Support;
    use type Ada.Directories.File_Size;
    use type Ada.Directories.File_Kind;
-   use type Files.Private_Directories.Create_Result;
+   use type Files.IO.Private_Directories.Create_Result;
    use type Hostkit.Durability.Outcome;
    use type Hostkit.Lease_Files.Open_Outcome;
 
@@ -71,9 +73,9 @@ package body Files.File_System.Recovery is
    Marker_Content : constant Ada.Streams.Stream_Element_Array (1 .. 8) := [others => 16#4D#];
    Owner_Magic : constant String := "files-recovery-v1";
    Registry_Magic : constant String := "files-recovery-registry-v1";
-   Max_Header_Length : constant := Files.Bounded_Streams.Max_Header_Length;
-   Max_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
-   Max_Identity_Length : constant := Files.Bounded_Streams.Max_Token_Length;
+   Max_Header_Length : constant := Files.IO.Record_Fields.Max_Header_Length;
+   Max_Path_Length : constant := Files.IO.Record_Fields.Max_Path_Length;
+   Max_Identity_Length : constant := Files.IO.Record_Fields.Max_Token_Length;
    Max_Record_Bytes : constant :=
      Max_Header_Length + Max_Path_Length + Max_Identity_Length + 3 * 16;
 
@@ -82,8 +84,8 @@ package body Files.File_System.Recovery is
    is
    begin
       return not Hostkit.Fs.Is_Link (Path)
-        and then Files.Fs_Primitives.File_Exists (Path)
-        and then Files.Fs_Primitives.Size (Path) <= Ada.Directories.File_Size (Maximum);
+        and then Files.IO.Fs_Primitives.File_Exists (Path)
+        and then Files.IO.Fs_Primitives.Size (Path) <= Ada.Directories.File_Size (Maximum);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
@@ -96,7 +98,7 @@ package body Files.File_System.Recovery is
    procedure Write_Bounded
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value : String;
-      Maximum : Natural) renames Files.Bounded_Streams.Output_String;
+      Maximum : Natural) renames Files.IO.Record_Fields.Output_String;
 
    function Registry_Root (Create : Boolean) return String is
       Data : constant String := Support.Application_Data_Directory;
@@ -108,14 +110,14 @@ package body Files.File_System.Recovery is
       begin
          if Hostkit.Fs.Is_Link (Path) then
             raise Ada.Directories.Use_Error;
-         elsif not Files.Fs_Primitives.Entry_Is_Absent (Path) then
-            if not Files.Fs_Primitives.Directory_Exists (Path) then
+         elsif not Files.IO.Fs_Primitives.Entry_Is_Absent (Path) then
+            if not Files.IO.Fs_Primitives.Directory_Exists (Path) then
                raise Ada.Directories.Use_Error;
             end if;
          elsif Parents then
-            Files.Fs_Primitives.Create_Path (Path);
+            Files.IO.Fs_Primitives.Create_Path (Path);
          else
-            Files.Private_Directories.Create (Path);
+            Files.IO.Private_Directories.Create (Path);
          end if;
       end Ensure_Directory;
    begin
@@ -126,7 +128,7 @@ package body Files.File_System.Recovery is
          Ensure_Directory (Data, Parents => True);
          Ensure_Directory (App);
          Ensure_Directory (Root);
-      elsif Hostkit.Fs.Is_Link (Root) or else not Files.Fs_Primitives.Directory_Exists (Root) then
+      elsif Hostkit.Fs.Is_Link (Root) or else not Files.IO.Fs_Primitives.Directory_Exists (Root) then
          return "";
       end if;
       return Root;
@@ -145,14 +147,14 @@ package body Files.File_System.Recovery is
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value  : out Path_Record) is
    begin
-      Value.Path := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
-      Value.Identity := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Identity_Length));
+      Value.Path := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Path_Length));
+      Value.Identity := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Identity_Length));
    end Read_Path_Record_Body;
 
    function Records_Absolute_Path (Value : Path_Record) return Boolean is
      (Valid_Absolute_Path (To_String (Value.Path)));
 
-   function Read_Path_Record_File is new Files.Lease_Streams.Read_Record
+   function Read_Path_Record_File is new Files.IO.Lease_Streams.Read_Record
      (Item => Path_Record, Read_Body => Read_Path_Record_Body, Is_Consistent => Records_Absolute_Path);
 
    --  A stage's legacy "original" record: one path, no header. Its size
@@ -163,7 +165,7 @@ package body Files.File_System.Recovery is
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value  : out UString) is
    begin
-      Value := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
+      Value := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Path_Length));
    end Read_Original_Body;
 
    --  Any path read whole is consistent; whether it is absolute is the
@@ -174,7 +176,7 @@ package body Files.File_System.Recovery is
       return True;
    end Any_Original;
 
-   function Read_Original_File is new Files.Lease_Streams.Read_Record
+   function Read_Original_File is new Files.IO.Lease_Streams.Read_Record
      (Item => UString, Read_Body => Read_Original_Body, Is_Consistent => Any_Original);
 
    --  A payload's "mode" record: the mode bits Preserve recorded, and the
@@ -192,13 +194,13 @@ package body Files.File_System.Recovery is
       Value  : out Mode_Record) is
    begin
       Value.Mode := Natural'Input (Stream);
-      Value.Identity := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Identity_Length));
+      Value.Identity := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Identity_Length));
    end Read_Mode_Body;
 
    function Mode_Is_Recorded (Value : Mode_Record) return Boolean is
      (Value.Mode <= 8#7777# and then Length (Value.Identity) > 0);
 
-   function Read_Mode_File is new Files.Lease_Streams.Read_Record
+   function Read_Mode_File is new Files.IO.Lease_Streams.Read_Record
      (Item => Mode_Record, Read_Body => Read_Mode_Body, Is_Consistent => Mode_Is_Recorded);
 
    --  Read a record file -- its magic, a path and an identity token -- held
@@ -245,26 +247,26 @@ package body Files.File_System.Recovery is
    end Read_Owner;
 
    procedure Write_Owner (Stage, Original : String) is
-      File : aliased Files.Exclusive_Streams.Output_Stream;
+      File : aliased Files.IO.Exclusive_Streams.Output_Stream;
    begin
       if not Valid_Absolute_Path (Original) then
          raise Ada.Directories.Use_Error;
       end if;
-      Files.Exclusive_Streams.Create (File, Hostkit.Fs.Join (Stage, Owner_Name));
+      Files.IO.Exclusive_Streams.Create (File, Hostkit.Fs.Join (Stage, Owner_Name));
       Write_Bounded
         (File'Access, Owner_Magic, Max_Header_Length);
       Write_Bounded
         (File'Access, Original, Max_Path_Length);
       Write_Bounded
         (File'Access, Files.File_Identities.Token (Stage), Max_Identity_Length);
-      Files.Exclusive_Streams.Close (File);
-      if Files.Durability.Sync_File (Hostkit.Fs.Join (Stage, Owner_Name)) /=
+      Files.IO.Exclusive_Streams.Close (File);
+      if Files.IO.Durability.Sync_File (Hostkit.Fs.Join (Stage, Owner_Name)) /=
         Hostkit.Durability.Synced
       then
          raise Ada.Directories.Use_Error;
       end if;
    exception
-      when others => Files.Exclusive_Streams.Close_Safely (File); raise;
+      when others => Files.IO.Exclusive_Streams.Close_Safely (File); raise;
    end Write_Owner;
 
    --  Whether Stage carries the marker Name (Vacated_Marker or
@@ -321,7 +323,7 @@ package body Files.File_System.Recovery is
    begin
       Hostkit.Lease_Files.Release (Item);
       if Remove and then Has_Marker (Stage, Name) then
-         Files.Fs_Primitives.Delete_File (Hostkit.Fs.Join (Stage, Name));
+         Files.IO.Fs_Primitives.Delete_File (Hostkit.Fs.Join (Stage, Name));
       end if;
    exception
       when Swallowed : others =>
@@ -358,7 +360,7 @@ package body Files.File_System.Recovery is
          end if;
       end Check;
    begin
-      Files.Fs_Primitives.For_Each_Name (Stage, Check'Access);
+      Files.IO.Fs_Primitives.For_Each_Name (Stage, Check'Access);
       return Only_Owned;
    exception
       when Failure : others =>
@@ -370,7 +372,7 @@ package body Files.File_System.Recovery is
      (Directory : String; Payload, Identity : out UString) return Boolean
    is
    begin
-      if Hostkit.Fs.Is_Link (Directory) or else not Files.Fs_Primitives.Directory_Exists (Directory) then
+      if Hostkit.Fs.Is_Link (Directory) or else not Files.IO.Fs_Primitives.Directory_Exists (Directory) then
          Payload := Null_Unbounded_String;
          Identity := Null_Unbounded_String;
          return False;
@@ -478,9 +480,9 @@ package body Files.File_System.Recovery is
       end if;
       declare
          Stage : constant String :=
-           Files.Fs_Primitives.Parent_Directory (To_String (Payload));
+           Files.IO.Fs_Primitives.Parent_Directory (To_String (Payload));
       begin
-         return Files.Fs_Primitives.Entry_Is_Absent (Stage);
+         return Files.IO.Fs_Primitives.Entry_Is_Absent (Stage);
       end;
    exception
       when Swallowed : others =>
@@ -505,11 +507,11 @@ package body Files.File_System.Recovery is
    --  claim is touched: without the marker the holder is nothing Release
    --  made, and a marker another holder has is a release still running.
    procedure Resume_Interrupted_Release (Path : String) is
-      Stage  : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Stage  : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
       Marker : Hostkit.Lease_Files.Lease;
    begin
       --  refusal-safe: a refused payload goes on to the claimed resume, which only moves no-replace
-      if Files.Fs_Primitives.Entry_Exists (Path)
+      if Files.IO.Fs_Primitives.Entry_Exists (Path)
         or else not Claim_Marker (Stage, Releasing_Marker, Marker)
       then
          return;
@@ -530,16 +532,16 @@ package body Files.File_System.Recovery is
    --  filled, which must be left alone. A caller acting on this holds the
    --  marker (see Hold_Marker, Claim_Marker), so the operation is not live.
    function Only_Stage_Left (Path : String) return Boolean is
-      Stage    : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Stage    : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
       Holder   : constant String := Hostkit.Fs.Join (Stage, "release");
       Original : UString;
       Identity : UString;
    begin
       --  Absent for sure, not merely unanswered: a refused lookup of the
       --  payload must never let the stage, original inside, be removed.
-      return Files.Fs_Primitives.Entry_Is_Absent (Path)
-        and then Files.Fs_Primitives.Entry_Is_Absent (Holder)
-        and then Files.Types.Leaf_Of (Path) = "payload"
+      return Files.IO.Fs_Primitives.Entry_Is_Absent (Path)
+        and then Files.IO.Fs_Primitives.Entry_Is_Absent (Holder)
+        and then Files.Name_Parts.Leaf_Of (Path) = "payload"
         and then (Has_Marker (Stage, Vacated_Marker) or else Has_Marker (Stage, Releasing_Marker))
         and then Read_Owner (Stage, Original, Identity)
         and then Contains_Only_Owned_Entries (Stage);
@@ -551,7 +553,7 @@ package body Files.File_System.Recovery is
    --  @return True when the markers were claimed (the stage may still have
    --    refused to go).
    function Finish_Stopped_Stage (Payload : String) return Boolean is
-      Stage     : constant String := Files.Fs_Primitives.Parent_Directory (Payload);
+      Stage     : constant String := Files.IO.Fs_Primitives.Parent_Directory (Payload);
       Vacated   : Hostkit.Lease_Files.Lease;
       Releasing : Hostkit.Lease_Files.Lease;
       Claimed   : Boolean;
@@ -583,14 +585,14 @@ package body Files.File_System.Recovery is
    --  no restore or release marker, nothing but what Preserve writes, and an
    --  owner record older than the grace -- so no Preserve is filling it now.
    function Abandoned_Unfilled (Payload : String) return Boolean is
-      Stage    : constant String := Files.Fs_Primitives.Parent_Directory (Payload);
+      Stage    : constant String := Files.IO.Fs_Primitives.Parent_Directory (Payload);
       Owner    : constant String := Hostkit.Fs.Join (Stage, Owner_Name);
       Original : UString;
       Identity : UString;
    begin
-      return Files.Types.Leaf_Of (Payload) = "payload"
-        and then Files.Fs_Primitives.Entry_Is_Absent (Payload)
-        and then Files.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (Stage, "release"))
+      return Files.Name_Parts.Leaf_Of (Payload) = "payload"
+        and then Files.IO.Fs_Primitives.Entry_Is_Absent (Payload)
+        and then Files.IO.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (Stage, "release"))
         and then not Has_Marker (Stage, Vacated_Marker)
         and then not Has_Marker (Stage, Releasing_Marker)
         and then Read_Owner (Stage, Original, Identity)
@@ -609,7 +611,7 @@ package body Files.File_System.Recovery is
    --  restore marker meanwhile so nothing else starts on it.
    --  @return True when the stage was claimed (it may still have refused to go).
    function Remove_Abandoned_Stage (Payload : String) return Boolean is
-      Stage  : constant String := Files.Fs_Primitives.Parent_Directory (Payload);
+      Stage  : constant String := Files.IO.Fs_Primitives.Parent_Directory (Payload);
       Marker : Hostkit.Lease_Files.Lease;
    begin
       if not Hold_Marker (Stage, Vacated_Marker, Marker) then
@@ -673,15 +675,16 @@ package body Files.File_System.Recovery is
    is separate;
 
    function Recognizes (Path : String) return Boolean is
-      Parent : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Parent : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
       Original, Identity : UString;
    begin
-      return Files.Types.Leaf_Of (Path) = "payload"
-        and then Files.Types.Starts_With (Files.Types.Leaf_Of (Parent), Files.Protocol_Names.Recovery_Stage_Prefix)
+      return Files.Name_Parts.Leaf_Of (Path) = "payload"
+        and then Files.Text_Basics.Starts_With (Files.Name_Parts.Leaf_Of (Parent),
+                                                Files.Protocol_Names.Recovery_Stage_Prefix)
         and then not Hostkit.Fs.Is_Link (Parent)
-        and then Files.Fs_Primitives.Directory_Exists (Parent)
+        and then Files.IO.Fs_Primitives.Directory_Exists (Parent)
         --  refusal-safe: a refused payload is not recognized, so nothing acts on it
-        and then Files.Fs_Primitives.Entry_Exists (Path)
+        and then Files.IO.Fs_Primitives.Entry_Exists (Path)
         and then Read_Owner (Parent, Original, Identity);
    exception
       when Swallowed : others =>
@@ -690,7 +693,7 @@ package body Files.File_System.Recovery is
    end Recognizes;
 
    function Discard (Path : String) return Mutation_Result is
-      Parent : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Parent : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
    begin
       Resume_Interrupted_Release (Path);
       if not Recognizes (Path) then
@@ -700,7 +703,7 @@ package body Files.File_System.Recovery is
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
       end if;
       Delete_Owned_Tree (Parent);
-      if not Files.Fs_Primitives.Entry_Is_Absent (Parent) then
+      if not Files.IO.Fs_Primitives.Entry_Is_Absent (Parent) then
          raise Ada.Directories.Use_Error;
       end if;
       Unregister (Path);
@@ -718,7 +721,7 @@ package body Files.File_System.Recovery is
    --  Whether the stage holding Payload is still the one its record named.
    function Stage_Matches (Payload, Expected : String) return Boolean is
      (Expected = ""
-      or else Files.File_Identities.Token (Files.Fs_Primitives.Parent_Directory (Payload)) = Expected);
+      or else Files.File_Identities.Token (Files.IO.Fs_Primitives.Parent_Directory (Payload)) = Expected);
 
    procedure Sweep_Registry is separate;
 

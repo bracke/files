@@ -1,5 +1,6 @@
 with Files.Model.Support;
 with Files.Undo.History;
+with Files.Name_Parts;
 
 package body Files.Model.Pasting is
 
@@ -142,7 +143,7 @@ package body Files.Model.Pasting is
    begin
       Model.Paste_Exec.Current :=
         To_Unbounded_String
-          (Files.Types.Leaf_Of
+          (Files.Name_Parts.Leaf_Of
              (To_String (Model.Paste_Exec.Actions.Element (Model.Paste_Exec.Cursor + 1).Source_Path)));
       Support.Touch_Header (Model);
    end Note_Action_Started;

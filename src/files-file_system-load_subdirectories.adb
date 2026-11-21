@@ -26,7 +26,7 @@ is
             return Revision.Available and then (Revision.Mode and Type_Mask) = Directory;
          end;
       end if;
-      return not Hostkit.Fs.Is_Link (Full) and then Files.Fs_Primitives.Directory_Exists (Full);
+      return not Hostkit.Fs.Is_Link (Full) and then Files.IO.Fs_Primitives.Directory_Exists (Full);
    end Is_Subdirectory;
 
    procedure Add_Entry (Name : String) is
@@ -52,7 +52,7 @@ is
          begin
             if Options.Show_Hidden or else not Hidden then
                begin
-                  Item.Modified_Time := Files.Fs_Primitives.Modification_Time (Full);
+                  Item.Modified_Time := Files.IO.Fs_Primitives.Modification_Time (Full);
                   Item.Modified_Available := True;
                exception
                   when Swallowed : others =>
@@ -70,11 +70,11 @@ is
          Files.Diagnostics.Note (Failure, "Files.File_System");
    end Add_Entry;
 begin
-   if not Files.Fs_Primitives.Directory_Exists (Path) then
+   if not Files.IO.Fs_Primitives.Directory_Exists (Path) then
       return (Success => False, Path => To_Unbounded_String (Path), Items => Items,
-              Error_Key => To_Unbounded_String (Files.Io_Errors.Directory_Load_Key), Signature => <>);
+              Error_Key => To_Unbounded_String (Files.IO.Errors.Directory_Load_Key), Signature => <>);
    end if;
-   Normalized := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
+   Normalized := To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Path));
    Support.For_Each_Entry (Path, Add_Entry'Access);
    Sort_Items (Items, Options.Sort_Field, Options.Sort_Ascending);
    return (Success => True, Path => Normalized, Items => Items, Error_Key => Null_Unbounded_String,
@@ -83,5 +83,5 @@ exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return (Success => False, Path => To_Unbounded_String (Path), Items => Items,
-              Error_Key => To_Unbounded_String (Files.Io_Errors.Directory_Load_Key), Signature => <>);
+              Error_Key => To_Unbounded_String (Files.IO.Errors.Directory_Load_Key), Signature => <>);
 end Load_Subdirectories;

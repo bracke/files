@@ -1,4 +1,4 @@
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Characters.Handling;
@@ -16,7 +16,7 @@ with Hostkit.Fs;
 with Files.Images;
 with Interfaces;
 with Files.File_Identities;
-with Files.Private_Directories;
+with Files.IO.Private_Directories;
 with Ada.Characters;
 with Ada.Containers.Ordered_Sets;
 with CryptoLib.Hashes;

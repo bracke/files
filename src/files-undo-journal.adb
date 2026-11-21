@@ -6,12 +6,12 @@ with Ada.Streams;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
-with Files.Bounded_Streams;
-with Files.Durable_Writes;
+with Files.IO.Record_Fields;
+with Files.IO.Durable_Writes;
 with Files.Jobs.Context;
-with Files.Lease_Streams;
+with Files.IO.Lease_Streams;
 with Files.Types;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 with Files.Path_Checks;
@@ -87,7 +87,7 @@ package body Files.Undo.Journal is
       for Index in 1 .. Count loop
          Result.Append
            (To_Unbounded_String
-              (Files.Bounded_Streams.Input_String
+              (Files.IO.Record_Fields.Input_String
                  (Stream, Max_Field_Length)));
       end loop;
       return Result;
@@ -600,15 +600,16 @@ package body Files.Undo.Journal is
       if not Valid_Directory (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
         --  refusal-safe: a refused folder refuses the save
-        or else not Files.Fs_Primitives.Exists (Directory)
-        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
+        or else not Files.IO.Fs_Primitives.Exists (Directory)
+        or else Files.IO.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
       then
          raise Ada.Directories.Use_Error;
       end if;
       --  A temporary a crash left behind is passed over (Write_And_Publish),
       --  so it never refuses a later save; a Target that is a link or not a
       --  file refuses it there.
-      if not Files.Durable_Writes.Published (Files.Durable_Writes.Write_And_Publish (Target, Write_Journal'Access))
+      if not Files.IO.Durable_Writes.Published
+          (Files.IO.Durable_Writes.Write_And_Publish (Target, Write_Journal'Access))
       then
          if Mode = Must_Commit then
             raise Ada.Directories.Use_Error;
@@ -675,7 +676,7 @@ package body Files.Undo.Journal is
       Undo, Redo : out Files.Undo.History.Undo_Entry_Vectors.Vector;
       State : out Files.Undo.History.History_Journal_State) return Boolean
    is
-      Input : aliased Files.Lease_Streams.Input_Stream;
+      Input : aliased Files.IO.Lease_Streams.Input_Stream;
       Fields : Natural := 0;
       Path : constant String := Hostkit.Fs.Join (Directory, "history");
    begin
@@ -694,19 +695,19 @@ package body Files.Undo.Journal is
       if not Valid_Directory (Directory) or else Hostkit.Fs.Is_Link (Directory) then
          raise Ada.Directories.Use_Error;
       end if;
-      if Files.Fs_Primitives.Entry_Is_Absent (Path) then
+      if Files.IO.Fs_Primitives.Entry_Is_Absent (Path) then
          return False;
       end if;
-      if Files.Lease_Streams.Open (Path, Input) /= Hostkit.Lease_Files.Opened then
+      if Files.IO.Lease_Streams.Open (Path, Input) /= Hostkit.Lease_Files.Opened then
          raise Ada.Directories.Use_Error;
       end if;
-      if Files.Lease_Streams.Size (Input) >
+      if Files.IO.Lease_Streams.Size (Input) >
         Long_Long_Integer (Max_Journal_Bytes)
       then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
       declare
-         Header : constant String := Files.Bounded_Streams.Input_String (Input'Access, Journal_Header'Length);
+         Header : constant String := Files.IO.Record_Fields.Input_String (Input'Access, Journal_Header'Length);
          Version_1 : constant Boolean := Header = Version_1_Header;
          Version_2 : constant Boolean := Header = Version_2_Header;
 
@@ -743,14 +744,14 @@ package body Files.Undo.Journal is
          Undo := Read_Stack (Input'Access, Fields, Version_1);
          Redo := Read_Stack (Input'Access, Fields, Version_1);
       end;
-      if not Files.Lease_Streams.End_Of_Stream (Input) then
+      if not Files.IO.Lease_Streams.End_Of_Stream (Input) then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
-      Files.Lease_Streams.Release (Input);
+      Files.IO.Lease_Streams.Release (Input);
       return True;
    exception
       when others =>
-         Files.Lease_Streams.Release (Input);
+         Files.IO.Lease_Streams.Release (Input);
          raise;
    end Read_Journal;
 

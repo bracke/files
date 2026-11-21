@@ -1,3 +1,5 @@
+with Files.Text_Case;
+
 separate (Files_Suite.Startup)
    procedure Test_Locale_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -29,7 +31,7 @@ separate (Files_Suite.Startup)
       --  Lower-casing is ASCII only: a UTF-8 byte (here the lead byte C3 of
       --  "Ä") passes as it is, where Latin-1 lower-casing would make it E3.
       Files_Suite.Support.Assert_Equal
-        (Files.Types.To_Lower_Ascii ("Ä-DE"),
+        (Files.Text_Case.To_Lower_Ascii ("Ä-DE"),
          "Ä-de",
          "only ASCII letters are lower-cased; a UTF-8 byte stays");
       Files_Suite.Support.Assert_Equal

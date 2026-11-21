@@ -1,10 +1,12 @@
+with Files.Name_Parts;
+
 separate (Files.File_System.Recovery)
    function Release
      (Path     : String;
       To_Trash : not null access function (Path, Original : String) return Mutation_Result)
       return Mutation_Result
    is
-      Stage  : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Stage  : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
       Holder : constant String := Hostkit.Fs.Join (Stage, "release");
       Failed : constant Mutation_Result :=
         (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
@@ -15,7 +17,7 @@ separate (Files.File_System.Recovery)
       function Give_Up return Mutation_Result is
       begin
          --  refusal-safe: a refused payload keeps the marker
-         Let_Go_Marker (Stage, Releasing_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
+         Let_Go_Marker (Stage, Releasing_Marker, Marker, Remove => Files.IO.Fs_Primitives.Entry_Exists (Path));
          return Failed;
       end Give_Up;
    begin
@@ -23,10 +25,10 @@ separate (Files.File_System.Recovery)
       --  finish it -- only through the markers it left, which also tells it
       --  from a stage Preserve is still filling (no payload, no marker).
       Resume_Interrupted_Release (Path);
-      if Files.Fs_Primitives.Entry_Is_Absent (Path) then
+      if Files.IO.Fs_Primitives.Entry_Is_Absent (Path) then
          if Only_Stage_Left (Path)
            and then Finish_Stopped_Stage (Path)
-           and then Files.Fs_Primitives.Entry_Is_Absent (Stage)
+           and then Files.IO.Fs_Primitives.Entry_Is_Absent (Stage)
          then
             Unregister (Path);
             return (Success => True, Error_Key => Null_Unbounded_String);
@@ -47,19 +49,19 @@ separate (Files.File_System.Recovery)
       declare
          Original : constant String := Original_Path (Path);
          Leaf     : constant String :=
-           (if Valid_Absolute_Path (Original) then Files.Types.Leaf_Of (Original) else "recovered");
+           (if Valid_Absolute_Path (Original) then Files.Name_Parts.Leaf_Of (Original) else "recovered");
          --  A folder of its own, so the original's name cannot meet the
          --  stage's own files.
          Named    : constant String := Hostkit.Fs.Join (Holder, Leaf);
       begin
-         Files.Fs_Primitives.Create_Directory (Holder);
+         Files.IO.Fs_Primitives.Create_Directory (Holder);
          if not Support.Move_No_Replace (Path, Named) then
-            Files.Fs_Primitives.Delete_Directory (Holder);
+            Files.IO.Fs_Primitives.Delete_Directory (Holder);
             return Give_Up;
          end if;
          if not To_Trash (Named, (if Valid_Absolute_Path (Original) then Original else "")).Success then
             if Support.Move_No_Replace (Named, Path) then
-               Files.Fs_Primitives.Delete_Directory (Holder);
+               Files.IO.Fs_Primitives.Delete_Directory (Holder);
             end if;
             return Give_Up;
          end if;
@@ -72,7 +74,7 @@ separate (Files.File_System.Recovery)
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          if Hostkit.Lease_Files.Is_Held (Marker) then
             --  refusal-safe: a refused payload keeps the marker
-            Let_Go_Marker (Stage, Releasing_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
+            Let_Go_Marker (Stage, Releasing_Marker, Marker, Remove => Files.IO.Fs_Primitives.Entry_Exists (Path));
          end if;
          return Failed;
    end Release;

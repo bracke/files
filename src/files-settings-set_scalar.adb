@@ -1,4 +1,6 @@
 with Files.Preference_Types;
+with Files.Text_Case;
+
 separate (Files.Settings)
    procedure Set_Scalar
      (Settings  : in out Settings_Model;
@@ -7,7 +9,7 @@ separate (Files.Settings)
       Error_Key : out UString)
    is
       Column : constant Files.Preference_Types.Optional_Detail_Column := Scalar_Table (Setting).Column;
-      Lower  : constant String := Files.Types.To_Lower_Ascii (Text);
+      Lower  : constant String := Files.Text_Case.To_Lower_Ascii (Text);
       Valid  : Boolean := True;
 
       --  Parse Text as a plain decimal number: one or more ASCII digits and

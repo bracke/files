@@ -1,7 +1,7 @@
 with Files.Operation_Results;
 with Files.File_System.Testing;
 with Files.File_System.Trash;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 separate (Files_Suite.Operations)
    --  Every operation reaches a folder deeper than Windows' 260-character
    --  path limit, which GNAT's own file calls refuse there before Windows is
@@ -148,10 +148,10 @@ separate (Files_Suite.Operations)
          Import (Tree, Dest, Files.File_System.Drop_Copy);
          Assert_Equal (Got (Join (Join (Join (Dest, "tree"), "sub"), "leaf.txt")), "leaf bytes",
                        "the copied tree holds its deepest file");
-         Assert (Files.Fs_Primitives.File_Exists (Join (Join (Tree, "sub"), "leaf.txt")),
+         Assert (Files.IO.Fs_Primitives.File_Exists (Join (Join (Tree, "sub"), "leaf.txt")),
                  "the copy leaves its source");
          Import (Join (Dest, "tree"), Moved, Files.File_System.Drop_Move);
-         Assert (not Files.Fs_Primitives.Entry_Exists (Join (Dest, "tree")), "the move leaves no source");
+         Assert (not Files.IO.Fs_Primitives.Entry_Exists (Join (Dest, "tree")), "the move leaves no source");
          Assert_Equal (Got (Join (Join (Moved, "tree"), "inner.txt")), "inner bytes", "the moved tree holds its files");
 
          --  Duplicated through the window's command.
@@ -215,7 +215,7 @@ separate (Files_Suite.Operations)
                     "the archive is a zip");
          end;
          Mutation := Files.File_System.Delete_Permanently (Moved);
-         Assert (Mutation.Success and then not Files.Fs_Primitives.Entry_Exists (Moved),
+         Assert (Mutation.Success and then not Files.IO.Fs_Primitives.Entry_Exists (Moved),
                  "the deep folder is deleted permanently");
          Show (Model, "moved.zip");
          Routed := Files.Controller.Execute_Non_Settings_Command
@@ -228,7 +228,7 @@ separate (Files_Suite.Operations)
 
          --  To the trash and back.
          Mutation := Files.File_System.Trash.Move_To_Trash (Note, Trashed);
-         Assert (Mutation.Success and then not Files.Fs_Primitives.Entry_Exists (Note),
+         Assert (Mutation.Success and then not Files.IO.Fs_Primitives.Entry_Exists (Note),
                  "the deep file goes to the trash");
          Mutation := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
          Assert (Mutation.Success, "the deep file is restored");
@@ -236,11 +236,11 @@ separate (Files_Suite.Operations)
 
          --  Gone for good, the whole tree.
          Mutation := Files.File_System.Delete_Permanently (Top);
-         Assert (Mutation.Success and then not Files.Fs_Primitives.Entry_Exists (Top),
+         Assert (Mutation.Success and then not Files.IO.Fs_Primitives.Entry_Exists (Top),
                  "the deep tree is deleted permanently");
       exception
          when others =>
-            Files.Fs_Primitives.Delete_Tree_If_Present (Top);
+            Files.IO.Fs_Primitives.Delete_Tree_If_Present (Top);
             raise;
       end Check;
    begin

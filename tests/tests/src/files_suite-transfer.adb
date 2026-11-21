@@ -430,7 +430,7 @@ package body Files_Suite.Transfer is
 
    procedure Test_Publication_Journal_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   --  The stage sync after the move fails (Files.Durability.Testing): the
+   --  The stage sync after the move fails (Files.IO.Durability.Testing): the
    --  original must be at its own path again, not left hidden in the stage.
    procedure Test_Preserve_Puts_Original_Back (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

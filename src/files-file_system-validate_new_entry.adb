@@ -11,18 +11,18 @@ begin
    if Path = "" then
       return (Success => False, Error_Key => To_Unbounded_String (Empty_Key));
    elsif Leaf_Too_Long (Name, Parent) then
-      return (Success => False, Error_Key => To_Unbounded_String (Files.Io_Errors.Name_Too_Long_Key));
+      return (Success => False, Error_Key => To_Unbounded_String (Files.IO.Errors.Name_Too_Long_Key));
    elsif not (if Storable then Storable_Leaf_Name_At (Name, Parent) else Valid_Leaf_Name_At (Name, Parent)) then
       return (Success => False, Error_Key => To_Unbounded_String ("error.name.invalid"));
    --  refusal-safe: what is validated here is then created exclusively (a
    --  file, folder or link never replaces), so a name not seen is not
    --  written over; a parent not seen refuses the create.
-   elsif Files.Fs_Primitives.Entry_Exists (Path) then
+   elsif Files.IO.Fs_Primitives.Entry_Exists (Path) then
       return (Success => False, Error_Key => To_Unbounded_String ("error.file.exists"));
    elsif Parent = ""
      --  refusal-safe: as above.
-     or else not Files.Fs_Primitives.Exists (Parent)
-     or else Files.Fs_Primitives.Kind (Parent) /= Ada.Directories.Directory
+     or else not Files.IO.Fs_Primitives.Exists (Parent)
+     or else Files.IO.Fs_Primitives.Kind (Parent) /= Ada.Directories.Directory
    then
       return (Success => False, Error_Key => To_Unbounded_String ("error.file.parent_missing"));
    end if;

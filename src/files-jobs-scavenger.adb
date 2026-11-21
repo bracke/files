@@ -1,6 +1,6 @@
 with Files.Protocol_Names;
 with Files.Timing;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Jobs.Helper_Modes;
 with Files.Diagnostics;
 with Files.Environment;
@@ -21,6 +21,8 @@ with Hostkit.Lease_Files;
 with Hostkit.Process;
 with Hostkit.Spawn;
 with Hostkit.Spawn.Supervision;
+with Files.Name_Parts;
+with Files.Text_Basics;
 
 package body Files.Jobs.Scavenger is
    use Files.Jobs.Helper_Modes;
@@ -119,14 +121,14 @@ package body Files.Jobs.Scavenger is
          end if;
          Take_Report_Target;
          --  refusal-safe: a refused report folder is left, not removed
-         if Files.Fs_Primitives.Exists (Directory)
+         if Files.IO.Fs_Primitives.Exists (Directory)
            and then not Hostkit.Fs.Is_Link (Directory)
          then
             --  refusal-safe: a refused report is left, not removed
-            if Files.Fs_Primitives.Exists (Target) then
-               Files.Fs_Primitives.Delete_File (Target);
+            if Files.IO.Fs_Primitives.Exists (Target) then
+               Files.IO.Fs_Primitives.Delete_File (Target);
             end if;
-            Files.Fs_Primitives.Delete_Directory (Directory);
+            Files.IO.Fs_Primitives.Delete_Directory (Directory);
          end if;
       end;
       Report_Directory := Null_Unbounded_String;
@@ -234,7 +236,7 @@ package body Files.Jobs.Scavenger is
          begin
             if Target_Directory /= ""
               --  refusal-safe: a refused report folder gets no report
-              and then Files.Fs_Primitives.Exists (Target_Directory)
+              and then Files.IO.Fs_Primitives.Exists (Target_Directory)
               and then not Hostkit.Fs.Is_Link (Target_Directory)
             then
                declare
@@ -317,9 +319,9 @@ package body Files.Jobs.Scavenger is
            (if Retry_Pending then Ada.Real_Time.To_Duration (Retry_At - Ada.Real_Time.Clock) else 0.0);
       begin
          return
-           (if Active then "coordinator-running,attempt=" & Files.Types.Natural_Text (Attempts)
+           (if Active then "coordinator-running,attempt=" & Files.Text_Basics.Natural_Text (Attempts)
             elsif Retry_Pending
-            then "retry-due,seconds=" & Files.Types.Natural_Text (Natural (Duration'Max (Waiting, 0.0)))
+            then "retry-due,seconds=" & Files.Text_Basics.Natural_Text (Natural (Duration'Max (Waiting, 0.0)))
             else "")
            & (if Length (Last_End) > 0 then ";" & To_String (Last_End) else "");
       end Why;
@@ -560,7 +562,7 @@ package body Files.Jobs.Scavenger is
       --  Whether Directory's own name is a current transport's.
       function Is_Current_Name (Directory : String) return Boolean is
       begin
-         return Files.Jobs.Transports.Is_Transport_Name (Files.Types.Leaf_Of (Directory));
+         return Files.Jobs.Transports.Is_Transport_Name (Files.Name_Parts.Leaf_Of (Directory));
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Jobs.Scavenger");
@@ -578,14 +580,14 @@ package body Files.Jobs.Scavenger is
          begin
             if Name'Length >= Prefix'Length
               and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
-              and then Files.Fs_Primitives.Directory_Exists (Hostkit.Fs.Join (Temp, Name))
+              and then Files.IO.Fs_Primitives.Directory_Exists (Hostkit.Fs.Join (Temp, Name))
             then
                Directories.Append (To_Unbounded_String (Hostkit.Fs.Join (Temp, Name)));
             end if;
          end Collect;
       begin
          Retry_Needed := False;
-         Files.Fs_Primitives.For_Each_Name (Temp, Collect'Access);
+         Files.IO.Fs_Primitives.For_Each_Name (Temp, Collect'Access);
          for Listed of Directories loop
             if Interruptible and then Monitor_Control.Stop_Requested then
                Retry_Needed := True;
@@ -622,7 +624,7 @@ package body Files.Jobs.Scavenger is
                   --  A marker the host will not answer for may be there: it is
                   --  re-read like a present one, never taken for an
                   --  unmarked (incomplete, removable) transport.
-                  if not Files.Fs_Primitives.Entry_Is_Absent
+                  if not Files.IO.Fs_Primitives.Entry_Is_Absent
                     (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Transport_Marker))
                   then
                      --  The marker may have been published after the first
@@ -647,7 +649,7 @@ package body Files.Jobs.Scavenger is
                                   (Directory, To_String (Incomplete_Identity)).Success;
                            begin
                               if not Removed
-                                or else not Files.Fs_Primitives.Entry_Is_Absent (Directory)
+                                or else not Files.IO.Fs_Primitives.Entry_Is_Absent (Directory)
                               then
                                  Retry_Needed := True;
                               else

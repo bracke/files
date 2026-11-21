@@ -1,4 +1,4 @@
-with Files.Bounded_Streams;
+with Files.IO.Record_Fields;
 with Files.Extra_Info;
 separate (Files_Suite.Recovery)
    procedure Test_Job_Item_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -20,16 +20,16 @@ separate (Files_Suite.Recovery)
            (File, Ada.Streams.Stream_IO.Out_File, Record_Path);
          Stream := Ada.Streams.Stream_IO.Stream (File);
          Natural'Output (Stream, 1);
-         Files.Bounded_Streams.Output_String
+         Files.IO.Record_Fields.Output_String
            (Stream, To_String (Value.Name), Files.Jobs.Records.Max_Path_Length);
-         Files.Bounded_Streams.Output_String
+         Files.IO.Record_Fields.Output_String
            (Stream, To_String (Value.Full_Path), Files.Jobs.Records.Max_Path_Length);
-         Files.Bounded_Streams.Output_String
+         Files.IO.Record_Fields.Output_String
            (Stream, To_String (Value.Parent_Path), Files.Jobs.Records.Max_Path_Length);
          Files.Types.Item_Kind'Output (Stream, Value.Kind);
-         Files.Bounded_Streams.Output_String
+         Files.IO.Record_Fields.Output_String
            (Stream, To_String (Value.Filetype), Files.Jobs.Records.Max_Text_Length);
-         Files.Bounded_Streams.Output_String
+         Files.IO.Record_Fields.Output_String
            (Stream, To_String (Value.Icon_Id), Files.Jobs.Records.Max_Text_Length);
          Boolean'Output (Stream, Value.Size_Available);
          Long_Long_Integer'Output (Stream, Value.Size);
@@ -37,7 +37,7 @@ separate (Files_Suite.Recovery)
          Ada.Calendar.Time'Output (Stream, Value.Creation_Time);
          Boolean'Output (Stream, Value.Modified_Available);
          Ada.Calendar.Time'Output (Stream, Value.Modified_Time);
-         Files.Bounded_Streams.Output_String
+         Files.IO.Record_Fields.Output_String
            (Stream, To_String (Value.Permissions), Files.Jobs.Records.Max_Text_Length);
          Boolean'Output (Stream, Value.Mode_Available);
          Natural'Output (Stream, Value.Mode_Bits);
@@ -49,13 +49,13 @@ separate (Files_Suite.Recovery)
          Natural'Output (Stream, Files.Extra_Info.Kind'Pos (Value.Filetype_Extra.Of_Kind));
          Natural'Output (Stream, Value.Filetype_Extra.Count);
          Boolean'Output (Stream, Value.Filetype_Extra.Capped);
-         Files.Bounded_Streams.Output_String
+         Files.IO.Record_Fields.Output_String
            (Stream, To_String (Value.Filetype_Extra.Subject), Files.Jobs.Records.Max_Text_Length);
-         Files.Bounded_Streams.Output_String
+         Files.IO.Record_Fields.Output_String
            (Stream, To_String (Value.Filetype_Extra.Value), Files.Jobs.Records.Max_Text_Length);
          Boolean'Output (Stream, Value.Filetype_Extra_Loaded);
          Boolean'Output (Stream, Value.Thumbnail_Available);
-         Files.Bounded_Streams.Output_String
+         Files.IO.Record_Fields.Output_String
            (Stream, To_String (Value.Thumbnail_Path), Files.Jobs.Records.Max_Path_Length);
          Natural'Output (Stream, Value.Thumbnail_Width);
          Natural'Output (Stream, Value.Thumbnail_Height);
@@ -64,7 +64,7 @@ separate (Files_Suite.Recovery)
             Interfaces.Unsigned_8'Output (Stream, Byte);
          end loop;
          Boolean'Output (Stream, Value.Metadata_Error);
-         Files.Bounded_Streams.Output_String
+         Files.IO.Record_Fields.Output_String
            (Stream, To_String (Value.Error_Key), Files.Jobs.Records.Max_Error_Length);
          Ada.Streams.Stream_IO.Close (File);
       end Write_Raw_Items;
@@ -78,7 +78,7 @@ separate (Files_Suite.Recovery)
          Ada.Streams.Stream_IO.Create
            (File, Ada.Streams.Stream_IO.Out_File, Record_Path);
          Stream := Ada.Streams.Stream_IO.Stream (File);
-         Files.Bounded_Streams.Output_String
+         Files.IO.Record_Fields.Output_String
            (Stream, To_String (Value.Path), Files.Jobs.Records.Max_Path_Length);
          Boolean'Output (Stream, Value.Exists);
          Natural'Output (Stream, Value.Entry_Count);

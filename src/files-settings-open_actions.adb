@@ -1,10 +1,11 @@
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
+with Files.Text_Basics;
 
 package body Files.Settings.Open_Actions is
    use Ada.Strings.Unbounded;
 
-   function Trim (Text : String) return String renames Files.Types.Trim_Blanks;
+   function Trim (Text : String) return String renames Files.Text_Basics.Trim_Blanks;
 
    function Contains (Text : String; Pattern : String) return Boolean is
      (Ada.Strings.Fixed.Index (Text, Pattern) > 0);

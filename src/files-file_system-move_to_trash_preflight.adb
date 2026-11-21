@@ -1,4 +1,6 @@
 with Hostkit.Trash.Recycle_Bin_Format;
+with Files.Name_Parts;
+
 separate (Files.File_System)
 function Move_To_Trash_Preflight
   (Path : String)
@@ -16,9 +18,9 @@ is
          return False;
       end if;
       declare
-         Full : constant String := Files.Fs_Primitives.Full_Name (Path);
+         Full : constant String := Files.IO.Fs_Primitives.Full_Name (Path);
       begin
-         return Files.Fs_Primitives.Parent_Text (Full) = "";
+         return Files.IO.Fs_Primitives.Parent_Text (Full) = "";
       end;
    exception
       when Ada.Directories.Use_Error => return True;
@@ -30,7 +32,7 @@ is
    function Source_Exists return Boolean is
    begin
       --  refusal-safe: a source not seen is refused; nothing is moved.
-      return Path /= "" and then Files.Fs_Primitives.Entry_Exists (Path);
+      return Path /= "" and then Files.IO.Fs_Primitives.Entry_Exists (Path);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
@@ -44,12 +46,12 @@ is
       elsif Hostkit.Fs.Is_Link (Value) then
          --  Resolve the parent to find the link's location, never its target.
          return Hostkit.Fs.Join
-           (Files.Fs_Primitives.Full_Name (Files.Fs_Primitives.Parent_Directory (Value)),
-            Files.Types.Leaf_Of (Value));
+           (Files.IO.Fs_Primitives.Full_Name (Files.IO.Fs_Primitives.Parent_Directory (Value)),
+            Files.Name_Parts.Leaf_Of (Value));
       --  refusal-safe: a path not seen is compared as written; the move
       --  into or out of it is then refused on that same path.
-      elsif Files.Fs_Primitives.Exists (Value) then
-         return Files.Fs_Primitives.Full_Name (Value);
+      elsif Files.IO.Fs_Primitives.Exists (Value) then
+         return Files.IO.Fs_Primitives.Full_Name (Value);
       else
          return Value;
       end if;
@@ -74,10 +76,10 @@ is
          declare
             Text   : constant String := To_String (Current);
             Parent : constant String :=
-              (if Text = "" then "" else Files.Fs_Primitives.Parent_Directory (Text));
-            Name   : constant String := (if Text = "" then "" else Files.Types.Leaf_Of (Text));
+              (if Text = "" then "" else Files.IO.Fs_Primitives.Parent_Directory (Text));
+            Name   : constant String := (if Text = "" then "" else Files.Name_Parts.Leaf_Of (Text));
             Upper  : constant String :=
-              (if Parent = "" then "" else Files.Types.Leaf_Of (Parent));
+              (if Parent = "" then "" else Files.Name_Parts.Leaf_Of (Parent));
          begin
             exit when Text = "" or else Parent = Text;
             if ((Name'Length >= 6 and then Name (Name'First .. Name'First + 5) = ".Trash")

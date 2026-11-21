@@ -5,7 +5,7 @@ function Navigate_Parent
    return Operation_Result
 is
    Parent : constant String :=
-     Files.Fs_Primitives.Parent_Directory (Files.Model.Current_Path (Model));
+     Files.IO.Fs_Primitives.Parent_Directory (Files.Model.Current_Path (Model));
 begin
    --  A filesystem root has no parent, so navigating up is a safe no-op.
    if Parent = ""

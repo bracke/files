@@ -9,7 +9,7 @@ begin
    Complete := False;
    if List = "" then
       return Result;
-   elsif Hostkit.Fs.Is_Link (List) or else Files.Fs_Primitives.Entry_Is_Absent (List) then
+   elsif Hostkit.Fs.Is_Link (List) or else Files.IO.Fs_Primitives.Entry_Is_Absent (List) then
       --  No list yet, or a link where ours belongs, which a written list
       --  replaces without following: nothing of ours to lose.
       Complete := True;
@@ -19,7 +19,7 @@ begin
    while not Ada.Text_IO.End_Of_File (File)
      and then Natural (Result.Length) < Max_Remembered_Volume_Trashes
    loop
-      Files.Bounded_Text_IO.Read_Line (File, 4_096, Line, Whole_Line);
+      Files.IO.Bounded_Text.Read_Line (File, 4_096, Line, Whole_Line);
       if Whole_Line and then Length (Line) > 0 and then GNAT.OS_Lib.Is_Absolute_Path (To_String (Line)) then
          Result.Append (Line);
       end if;

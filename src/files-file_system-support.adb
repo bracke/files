@@ -1,4 +1,4 @@
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Protocol_Names;
 with Interfaces;
 with Ada.Streams;
@@ -12,13 +12,15 @@ with GNAT.OS_Lib;
 with Files.Jobs.Context;
 with Hostkit.Directory_Write_Access;
 with Files.File_Identities;
-with Files.Io_Errors;
+with Files.IO.Errors;
 with CryptoLib.Hashes;
 
-with Files.Durability;
+with Files.IO.Durability;
 with Hostkit.Durability;
 with Hostkit.Metadata;
 with Hostkit.Regular_Files;
+with Files.Text_Basics;
+with Files.Text_Case;
 
 package body Files.File_System.Support is
 
@@ -67,21 +69,21 @@ package body Files.File_System.Support is
       begin
          --  Something the source gained after it was copied is not in the
          --  copy: the move's own check of the source refuses it next.
-         if Hostkit.Fs.Is_Link (To) or else Files.Fs_Primitives.Entry_Is_Absent (To) then
+         if Hostkit.Fs.Is_Link (To) or else Files.IO.Fs_Primitives.Entry_Is_Absent (To) then
             return;
          --  refusal-safe: a part of the copy that cannot be looked at
          --  cannot be synced either, and the copy is not durable.
-         elsif not Files.Fs_Primitives.Entry_Exists (To) then
+         elsif not Files.IO.Fs_Primitives.Entry_Exists (To) then
             Synced := False;
             return;
-         elsif Files.Fs_Primitives.Kind (To) = Ada.Directories.Directory then
+         elsif Files.IO.Fs_Primitives.Kind (To) = Ada.Directories.Directory then
             if not Hostkit.Fs.Is_Link (From) then
                For_Each_Entry (From, Visit'Access);
             end if;
             Synced := Synced
-              and then Files.Durability.Sync_Directory (To) /= Hostkit.Durability.Failed;
-         elsif Scope = Files_And_Folders and then Files.Fs_Primitives.Kind (To) = Ada.Directories.Ordinary_File then
-            Synced := Files.Durability.Sync_File (To) /= Hostkit.Durability.Failed;
+              and then Files.IO.Durability.Sync_Directory (To) /= Hostkit.Durability.Failed;
+         elsif Scope = Files_And_Folders and then Files.IO.Fs_Primitives.Kind (To) = Ada.Directories.Ordinary_File then
+            Synced := Files.IO.Durability.Sync_File (To) /= Hostkit.Durability.Failed;
          end if;
       end Sync;
       procedure Sync_Root is
@@ -92,7 +94,7 @@ package body Files.File_System.Support is
       --  As deep as the copy went (1024 levels): on a stack that holds it.
       On_Large_Stack (Sync_Root'Access);
       return Synced
-        and then Files.Durability.Sync_Directory (Files.Fs_Primitives.Parent_Directory (Destination)) /=
+        and then Files.IO.Durability.Sync_Directory (Files.IO.Fs_Primitives.Parent_Directory (Destination)) /=
           Hostkit.Durability.Failed;
    exception
       when Swallowed : others =>
@@ -121,7 +123,7 @@ package body Files.File_System.Support is
          Name_Bytes := Name_Bytes + Name'Length;
       end Collect;
    begin
-      Files.Fs_Primitives.For_Each_Name (Path, Collect'Access);
+      Files.IO.Fs_Primitives.For_Each_Name (Path, Collect'Access);
       --  Recursion retains neither a large buffer nor an open directory.
       for Name of Names loop
          Visit (To_String (Name));
@@ -133,7 +135,7 @@ package body Files.File_System.Support is
       Expected : String)
       return Boolean is
    begin
-      return Files.Types.To_Lower_Ascii (Files.Environment.Value (Name)) = Expected;
+      return Files.Text_Case.To_Lower_Ascii (Files.Environment.Value (Name)) = Expected;
    end Environment_Equals;
 
    function Create_Stage (Parent : String) return String renames Files.Jobs.Context.Create_Stage;
@@ -163,7 +165,7 @@ package body Files.File_System.Support is
    procedure On_Large_Stack (Work : not null access procedure) is
       Failure     : Ada.Exceptions.Exception_Occurrence;
       Failed      : Boolean := False;
-      Caller_Code : constant Integer := Files.Io_Errors.Last_Code;
+      Caller_Code : constant Integer := Files.IO.Errors.Last_Code;
       Worker_Code : Integer := Caller_Code;
    begin
       declare
@@ -171,12 +173,12 @@ package body Files.File_System.Support is
 
          task body Worker is
          begin
-            Files.Io_Errors.Adopt_Code (Caller_Code);
+            Files.IO.Errors.Adopt_Code (Caller_Code);
             Work.all;
-            Worker_Code := Files.Io_Errors.Last_Code;
+            Worker_Code := Files.IO.Errors.Last_Code;
          exception
             when Error : others =>
-               Worker_Code := Files.Io_Errors.Last_Code;
+               Worker_Code := Files.IO.Errors.Last_Code;
                Ada.Exceptions.Save_Occurrence (Failure, Error);
                Failed := True;
          end Worker;
@@ -184,7 +186,7 @@ package body Files.File_System.Support is
          null;
       end;
       --  The worker has terminated: what it left is the caller's to read.
-      Files.Io_Errors.Adopt_Code (Worker_Code);
+      Files.IO.Errors.Adopt_Code (Worker_Code);
       if Failed then
          Ada.Exceptions.Reraise_Occurrence (Failure);
       end if;
@@ -218,13 +220,13 @@ package body Files.File_System.Support is
          Identity : constant String := Files.File_Identities.Token (Full_Path);
          Is_Directory : constant Boolean :=
            not Hostkit.Fs.Is_Link (Full_Path)
-           and then Files.Fs_Primitives.Kind (Full_Path) = Ada.Directories.Directory;
+           and then Files.IO.Fs_Primitives.Kind (Full_Path) = Ada.Directories.Directory;
          Revision : constant String := Files.File_Identities.Revision
            (Full_Path, Depth /= 0 and then not Is_Directory);
          Is_Regular_File : constant Boolean :=
            Content and then (Depth = 0 or else Weak_Change_Time)
            and then not Is_Directory and then not Hostkit.Fs.Is_Link (Full_Path)
-           and then Files.Fs_Primitives.Kind (Full_Path) = Ada.Directories.Ordinary_File;
+           and then Files.IO.Fs_Primitives.Kind (Full_Path) = Ada.Directories.Ordinary_File;
          procedure Child (Name : String) is
          begin
             Visit (Hostkit.Fs.Join (Full_Path, Name), Relative & "/" & Name, Depth + 1);
@@ -429,7 +431,7 @@ package body Files.File_System.Support is
                Current   : Copy_Times;
             begin
                if not Hostkit.Fs.Is_Link (Item_Path)
-                 and then Files.Fs_Primitives.Kind (Item_Path) = Ada.Directories.Directory
+                 and then Files.IO.Fs_Primitives.Kind (Item_Path) = Ada.Directories.Directory
                  and then Hostkit.Metadata_Copy.Capture_Times (Item_Path, Current)
                  and then Current (3 .. 4) = Saved (3 .. 4)
                  and then Current (1 .. 2) /= Saved (1 .. 2)
@@ -452,7 +454,7 @@ package body Files.File_System.Support is
       if Hostkit.Fs.Is_Link (Path) then
          return "";
       end if;
-      if Files.Fs_Primitives.Kind (Path) = Ada.Directories.Ordinary_File then
+      if Files.IO.Fs_Primitives.Kind (Path) = Ada.Directories.Ordinary_File then
          declare
             Identity : constant String := Files.File_Identities.Token (Path);
             Full_Revision : constant String := Files.File_Identities.Revision (Path);
@@ -473,7 +475,7 @@ package body Files.File_System.Support is
                return "file:" & Stable_Revision & ":" & Digest;
             end;
          end;
-      elsif Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Directory then
+      elsif Files.IO.Fs_Primitives.Kind (Path) /= Ada.Directories.Directory then
          return "";
       end if;
       State := Snapshot (Path, Cancel => Cancel);
@@ -482,7 +484,7 @@ package body Files.File_System.Support is
          declare
             Text : constant String := To_String (Item);
          begin
-            Add (Files.Types.Natural_Text (Text'Length) & ":" & Text);
+            Add (Files.Text_Basics.Natural_Text (Text'Length) & ":" & Text);
          end;
       end loop;
       Restore_Directory_Times;
@@ -520,12 +522,12 @@ package body Files.File_System.Support is
       if not Hostkit.Directory_Write_Access.Prepare (Source, Context) then
          return Hostkit.Fs.Move_Refused;
       end if;
-      Files.Io_Errors.Clear_Os_Error;
+      Files.IO.Errors.Clear_Os_Error;
       Outcome := Hostkit.Fs.Move_No_Replace_Outcome (Source, Destination);
       Moved := Outcome = Hostkit.Fs.Moved;
       if not Moved then
          --  Before restoring access below, which makes calls of its own.
-         Files.Io_Errors.Capture;
+         Files.IO.Errors.Capture;
       end if;
       Restored := Finish;
       if not Restored then
@@ -552,16 +554,16 @@ package body Files.File_System.Support is
 
    procedure Check_Copy_Destination (Source, Destination : String) is
    begin
-      if Hostkit.Fs.Is_Link (Source) or else Files.Fs_Primitives.Kind (Source) /= Ada.Directories.Directory then
+      if Hostkit.Fs.Is_Link (Source) or else Files.IO.Fs_Primitives.Kind (Source) /= Ada.Directories.Directory then
          return;
       end if;
       declare
          --  Links resolved, on Windows too: a copy into its own tree reached
          --  through a link or junction is still a copy into its own tree.
-         Original : constant String := Files.Fs_Primitives.Real_Name (Source);
+         Original : constant String := Files.IO.Fs_Primitives.Real_Name (Source);
          Identity : constant String := Files.File_Identities.Token (Source);
          Parent : UString := To_Unbounded_String
-           (Files.Fs_Primitives.Real_Name (Files.Fs_Primitives.Parent_Directory (Destination)));
+           (Files.IO.Fs_Primitives.Real_Name (Files.IO.Fs_Primitives.Parent_Directory (Destination)));
       begin
          if Original = "" or else Length (Parent) = 0 then
             raise Ada.Directories.Use_Error;
@@ -574,7 +576,7 @@ package body Files.File_System.Support is
             end if;
             declare
                Next : constant String :=
-                 Files.Fs_Primitives.Real_Name (Hostkit.Fs.Join (To_String (Parent), ".."));
+                 Files.IO.Fs_Primitives.Real_Name (Hostkit.Fs.Join (To_String (Parent), ".."));
             begin
                if Next = "" then
                   raise Ada.Directories.Use_Error;
@@ -729,7 +731,7 @@ package body Files.File_System.Support is
       --  leaves the change time out.
       if Hostkit.Metadata.Inherit_Rewrites_Change_Times
         and then not Hostkit.Fs.Is_Link (Path)
-        and then Files.Fs_Primitives.Kind (Path) = Ada.Directories.Directory
+        and then Files.IO.Fs_Primitives.Kind (Path) = Ada.Directories.Directory
       then
          declare
             Fresh : constant String := Tree_Revision_Of (Path, Cancel => null);
@@ -755,7 +757,7 @@ package body Files.File_System.Support is
       use type Hostkit.Durability.Outcome;
       Staged_Revision : constant String := To_String (Revision);
    begin
-      if Flush = Flush_Tree_And_Folder and then Files.Durability.Sync_Tree (Staged) = Hostkit.Durability.Failed then
+      if Flush = Flush_Tree_And_Folder and then Files.IO.Durability.Sync_Tree (Staged) = Hostkit.Durability.Failed then
          return False;
       end if;
       Files.Jobs.Context.Intend_Created (Target, Source, Identity, Staged_Revision);
@@ -774,7 +776,7 @@ package body Files.File_System.Support is
       --  Published_Not_Durable write: its contents are on the device, only
       --  the name may be lost to a crash. The failure is traced.
       if Flush = Flush_Tree_And_Folder
-        and then Files.Durability.Sync_Directory (Files.Fs_Primitives.Parent_Directory (Target))
+        and then Files.IO.Durability.Sync_Directory (Files.IO.Fs_Primitives.Parent_Directory (Target))
           = Hostkit.Durability.Failed
       then
          Files.Diagnostics.Trace ("Files.File_System", "published_not_durable=" & Target);
@@ -809,7 +811,7 @@ package body Files.File_System.Support is
       Identity := Null_Unbounded_String;
       Tree_Revision_Value := Null_Unbounded_String;
       Check_Copy_Destination (Source_Path, Destination_Path);
-      Stage := To_Unbounded_String (Create_Stage (Files.Fs_Primitives.Parent_Directory (Destination_Path)));
+      Stage := To_Unbounded_String (Create_Stage (Files.IO.Fs_Primitives.Parent_Directory (Destination_Path)));
       Copy_Node_Deep (Source_Path, Hostkit.Fs.Join (To_String (Stage), "payload"), 0, Walk);
       Identity := To_Unbounded_String (Files.File_Identities.Token (Hostkit.Fs.Join (To_String (Stage), "payload")));
       if Root_Digest /= null then
@@ -819,7 +821,7 @@ package body Files.File_System.Support is
          Payload : constant String := Hostkit.Fs.Join (To_String (Stage), "payload");
       begin
          if not Hostkit.Fs.Is_Link (Payload)
-           and then Files.Fs_Primitives.Kind (Payload) = Ada.Directories.Ordinary_File
+           and then Files.IO.Fs_Primitives.Kind (Payload) = Ada.Directories.Ordinary_File
          then
             declare
                Revision : constant String := Files.File_Identities.Revision (Payload, False);
@@ -1073,7 +1075,7 @@ package body Files.File_System.Support is
               (Output, Buffer (Next)'Address,
                Integer (Buffer_Last - Next + 1));
             if Wrote <= 0 then
-               Files.Io_Errors.Capture;
+               Files.IO.Errors.Capture;
                raise Ada.Directories.Use_Error;
             end if;
             Next := Next + Stream_Element_Offset (Wrote);
@@ -1093,14 +1095,14 @@ package body Files.File_System.Support is
          --  Refused a link or a non-regular entry, or failed to open: no
          --  pathname open instead, which would reopen the race it guards.
          if Input_Descriptor = GNAT.OS_Lib.Invalid_FD then
-            Files.Io_Errors.Capture;
+            Files.IO.Errors.Capture;
             raise Ada.Directories.Use_Error;
          end if;
       end;
       --  0666 less the creation mask, as GNAT's Create_New_File makes it.
       Output := Hostkit.Regular_Files.Create_New (Destination_Path, 8#666#, Encrypted);
       if Output = GNAT.OS_Lib.Invalid_FD then
-         Files.Io_Errors.Capture;
+         Files.IO.Errors.Capture;
          raise Ada.Directories.Use_Error;
       end if;
       State.Owned := True;
@@ -1109,7 +1111,7 @@ package body Files.File_System.Support is
          Bytes_Read := GNAT.OS_Lib.Read
            (Input_Descriptor, Buffer'Address, Integer (Buffer'Length));
          if Bytes_Read < 0 then
-            Files.Io_Errors.Capture;
+            Files.IO.Errors.Capture;
             raise Ada.Directories.Use_Error;
          end if;
          exit when Bytes_Read = 0;
@@ -1120,19 +1122,19 @@ package body Files.File_System.Support is
       Input_Descriptor := GNAT.OS_Lib.Invalid_FD;
       --  No reason left over from an earlier call: a flush or sync that
       --  fails without setting errno records nothing stale.
-      Files.Io_Errors.Clear_Os_Error;
+      Files.IO.Errors.Clear_Os_Error;
       if Sparse and then not Hostkit.Regular_Files.Finish_Sparse (Output) then
-         Files.Io_Errors.Capture;
+         Files.IO.Errors.Capture;
          raise Ada.Directories.Use_Error;
       end if;
       --  Through the descriptor that wrote it, before its metadata is set:
       --  no reopening, which a read-only copy would refuse on Windows.
-      Files.Io_Errors.Clear_Os_Error;
+      Files.IO.Errors.Clear_Os_Error;
       if Walk.Durable
-        and then Hostkit.Durability."=" (Files.Durability.Sync_Descriptor (Integer (Output), Destination_Path),
+        and then Hostkit.Durability."=" (Files.IO.Durability.Sync_Descriptor (Integer (Output), Destination_Path),
                                           Hostkit.Durability.Failed)
       then
-         Files.Io_Errors.Capture;
+         Files.IO.Errors.Capture;
          raise Ada.Directories.Use_Error;
       end if;
       GNAT.OS_Lib.Close (Output, Closed);
@@ -1140,7 +1142,7 @@ package body Files.File_System.Support is
       if not Closed then
          --  A network or quota-limited filesystem may report a full disk
          --  only here.
-         Files.Io_Errors.Capture;
+         Files.IO.Errors.Capture;
          raise Ada.Directories.Use_Error;
       end if;
       if Wants_Digest or else Track_Hard_Link then
@@ -1284,7 +1286,7 @@ package body Files.File_System.Support is
       --  unbounded recursive copy). Recreate the link verbatim and stop. This
       --  mirrors the search/size walkers, which also skip links via Hostkit.Fs.
       if Hostkit.Fs.Is_Link (Source_Path)
-        or else Files.Fs_Primitives.Kind (Source_Path) = Ada.Directories.Ordinary_File
+        or else Files.IO.Fs_Primitives.Kind (Source_Path) = Ada.Directories.Ordinary_File
       then
          if Copy_Hard_Link (Source_Path, Destination_Path, Walk, Metadata, Wants_Digest, State) then
             return;
@@ -1296,10 +1298,10 @@ package body Files.File_System.Support is
             Created : Boolean := False;
          begin
             if Hostkit.Fs.Read_Link_Target (Source_Path, Target) then
-               Files.Io_Errors.Clear_Os_Error;
+               Files.IO.Errors.Clear_Os_Error;
                Created := Hostkit.Fs.Create_Link (To_String (Target), Destination_Path);
                if not Created then
-                  Files.Io_Errors.Capture;
+                  Files.IO.Errors.Capture;
                end if;
             end if;
 
@@ -1327,14 +1329,14 @@ package body Files.File_System.Support is
          raise Program_Error;
       end if;
 
-      case Files.Fs_Primitives.Kind (Source_Path) is
+      case Files.IO.Fs_Primitives.Kind (Source_Path) is
          when Ada.Directories.Directory =>
             begin
-               Files.Io_Errors.Clear_Os_Error;
-               Files.Fs_Primitives.Create_Directory (Destination_Path);
+               Files.IO.Errors.Clear_Os_Error;
+               Files.IO.Fs_Primitives.Create_Directory (Destination_Path);
             exception
                when others =>
-                  Files.Io_Errors.Capture;
+                  Files.IO.Errors.Capture;
                   raise;
             end;
             Owned := True;
@@ -1403,8 +1405,8 @@ package body Files.File_System.Support is
             Delete_Owned_Level (Hostkit.Fs.Join (Path, Name));
          end Delete_Entry;
       begin
-         if Hostkit.Fs.Is_Link (Path) or else Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Directory then
-            Files.Fs_Primitives.Delete_Tree (Path);
+         if Hostkit.Fs.Is_Link (Path) or else Files.IO.Fs_Primitives.Kind (Path) /= Ada.Directories.Directory then
+            Files.IO.Fs_Primitives.Delete_Tree (Path);
             return;
          end if;
          if Hostkit.Metadata.Mode_Bits_Are_Native then

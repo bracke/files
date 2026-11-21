@@ -8,6 +8,8 @@ with Hostkit.Desktop_Entries;
 with Hostkit.Fs;
 with Hostkit.Process;
 with Files.Settings.Open_Actions;
+with Files.Text_Basics;
+with Files.Text_Case;
 
 --  The reading of the entries is Hostkit.Desktop_Entries'; what is here is
 --  files' side of it: where to look, in which locale, which entries the
@@ -50,7 +52,7 @@ package body Files.Desktop_Applications is
                elsif Subtag'Length in 2 | 3 and then Country = "" then
                   --  A region: a country code, or an area number.
                   Country := To_Unbounded_String (Subtag);
-               elsif Files.Types.To_Lower_Ascii (Subtag) = "valencia" then
+               elsif Files.Text_Case.To_Lower_Ascii (Subtag) = "valencia" then
                   --  The one variant Normalize_Locale keeps (ca_ES@valencia
                   --  becomes ca-ES-valencia): back to its POSIX modifier.
                   Modifier := To_Unbounded_String ("valencia");
@@ -207,7 +209,7 @@ package body Files.Desktop_Applications is
       --  ':' belongs to a drive letter ("D:\apps\share").
       procedure Append_List (List : String) is
       begin
-         for Entry_Text of Files.Types.Split_Path_List (List, GNAT.OS_Lib.Path_Separator) loop
+         for Entry_Text of Files.Text_Basics.Split_Path_List (List, GNAT.OS_Lib.Path_Separator) loop
             Append_Base (To_String (Entry_Text));
          end loop;
       end Append_List;
@@ -228,9 +230,9 @@ package body Files.Desktop_Applications is
 
    function Comes_Before (Left, Right : Application) return Boolean is
       Left_Name  : constant String :=
-        Files.Types.Fold_For_Sort (To_String (Left.Name));
+        Files.Text_Case.Fold_For_Sort (To_String (Left.Name));
       Right_Name : constant String :=
-        Files.Types.Fold_For_Sort (To_String (Right.Name));
+        Files.Text_Case.Fold_For_Sort (To_String (Right.Name));
    begin
       if Left_Name /= Right_Name then
          return Left_Name < Right_Name;

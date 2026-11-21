@@ -2,6 +2,8 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
+with Files.Name_Parts;
+with Files.Text_Case;
 
 package body Files.Paste is
 
@@ -73,7 +75,7 @@ package body Files.Paste is
    --  The name a set holds a path under: folded where the destination folds
    --  case, so Readme.md and README.md are one destination there.
    function Name_Key (Path : String; Fold_Names : Boolean) return String is
-     (if Fold_Names then Files.Types.Fold_Case (Path) else Path);
+     (if Fold_Names then Files.Text_Case.Fold_Case (Path) else Path);
 
    --  Existing, each path under its Name_Key.
    function Key_Set (Existing : Files.Types.String_Vectors.Vector; Fold_Names : Boolean) return Path_Sets.Set is
@@ -120,7 +122,7 @@ package body Files.Paste is
    is
       Free : constant String :=
         Files.Leaf_Names.First_Free
-          (Files.Types.Name_Stem (Name, Is_Directory), Files.Types.Name_Extension (Name, Is_Directory),
+          (Files.Name_Parts.Name_Stem (Name, Is_Directory), Files.Name_Parts.Name_Extension (Name, Is_Directory),
            Files.Leaf_Names.Spaced_Number'Access, Taken, Limit);
    begin
       return (if Free = "" then Name else Free);
@@ -140,7 +142,7 @@ package body Files.Paste is
       return String
    is
       function Key (Path : String) return String is
-        (if Fold then Files.Types.Fold_Case (Path) else Path);
+        (if Fold then Files.Text_Case.Fold_Case (Path) else Path);
 
       function Taken (Leaf : String) return Boolean is
         (Existing.Contains (Key (Desired_Path (Dir, Leaf)))

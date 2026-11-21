@@ -9,13 +9,13 @@ with Messages.Arguments;
 with Messages.Result;
 
 with Files.Environment;
-with Files.Types;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Resources;
 
 with Hostkit.Host;
 with Humanize.Catalogs;
 with I18N.Locales;
+with Files.Text_Case;
 
 package body Files.Localization is
    use Ada.Strings.Unbounded;
@@ -87,10 +87,10 @@ package body Files.Localization is
             if Raw (At_Sign) = '@' then
                for Index in At_Sign + 1 .. Raw'Last loop
                   if Raw (Index) = '.' then
-                     return Files.Types.To_Lower_Ascii (Raw (At_Sign + 1 .. Index - 1));
+                     return Files.Text_Case.To_Lower_Ascii (Raw (At_Sign + 1 .. Index - 1));
                   end if;
                end loop;
-               return Files.Types.To_Lower_Ascii (Raw (At_Sign + 1 .. Raw'Last));
+               return Files.Text_Case.To_Lower_Ascii (Raw (At_Sign + 1 .. Raw'Last));
             end if;
          end loop;
          return "";
@@ -389,7 +389,7 @@ package body Files.Localization is
 
       --  refusal-safe: a catalog not seen is not loaded, and its texts fall
       --  back to the default locale's, as an unreadable one's do.
-      if Files.Fs_Primitives.Exists (Path) then
+      if Files.IO.Fs_Primitives.Exists (Path) then
          declare
             Loaded : constant Boolean := Load_Locale_Shard (Runtime, Path);
             pragma Unreferenced (Loaded);
@@ -507,14 +507,14 @@ package body Files.Localization is
                  (if Available then Messages.Runtime.Resolve (Runtime, Effective_Locale, Key)
                   else (others => <>));
                Resolver : constant String :=
-                 Files.Types.To_Lower_Ascii (Messages.Runtime.Resolved_Locale (Found));
+                 Files.Text_Case.To_Lower_Ascii (Messages.Runtime.Resolved_Locale (Found));
                --  A catalog more specific than the language's (the region's,
                --  or a script's in between) holds the key.
                Regional : constant Boolean :=
                  Messages.Runtime."=" (Found.Status, Messages.Runtime.Found)
                  and then Resolver'Length > Language'Length
                  and then Resolver (Resolver'First .. Resolver'First + Language'Length)
-                            = Files.Types.To_Lower_Ascii (Language) & '-';
+                            = Files.Text_Case.To_Lower_Ascii (Language) & '-';
             begin
                if Regional then
                   return Rendered;
@@ -589,10 +589,10 @@ package body Files.Localization is
       begin
          for Index in Tag'Range loop
             if Tag (Index) = '-' or else Tag (Index) = '_' then
-               return Files.Types.To_Lower_Ascii (Tag (Tag'First .. Index - 1));
+               return Files.Text_Case.To_Lower_Ascii (Tag (Tag'First .. Index - 1));
             end if;
          end loop;
-         return Files.Types.To_Lower_Ascii (Tag);
+         return Files.Text_Case.To_Lower_Ascii (Tag);
       end Language;
    begin
       Ensure_Initialized;

@@ -8,7 +8,7 @@ is
    Closed : Boolean;
 
 begin
-   Files.Io_Errors.Reset;
+   Files.IO.Errors.Reset;
    declare
       Checked : constant Mutation_Result := Validate_New_Entry (Path, "error.file.parent_missing");
    begin
@@ -21,10 +21,10 @@ begin
    Descriptor := Hostkit.Regular_Files.Create_New (Path, 8#666#);
    if Descriptor = GNAT.OS_Lib.Invalid_FD then
       --  Before the existence check, whose own calls overwrite errno.
-      Files.Io_Errors.Capture;
+      Files.IO.Errors.Capture;
       --  refusal-safe: the create failed either way; this only picks the
       --  words for it.
-      if Files.Fs_Primitives.Entry_Exists (Path) then
+      if Files.IO.Fs_Primitives.Entry_Exists (Path) then
          return (Success => False, Error_Key => To_Unbounded_String ("error.file.exists"));
       end if;
       raise Ada.Directories.Use_Error;
@@ -33,7 +33,7 @@ begin
    GNAT.OS_Lib.Close (Descriptor, Closed);
    Descriptor := GNAT.OS_Lib.Invalid_FD;
    if not Closed then
-      Files.Io_Errors.Capture;
+      Files.IO.Errors.Capture;
       raise Ada.Directories.Use_Error;
    end if;
    return (Success => True, Error_Key => Null_Unbounded_String);
@@ -43,7 +43,7 @@ exception
       declare
          --  Chosen before the cleanup below can record a cause of its own.
          Failed : constant Mutation_Result :=
-           (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.file.create"));
+           (Success => False, Error_Key => Files.IO.Errors.Error_Key ("error.file.create"));
       begin
          if Descriptor /= GNAT.OS_Lib.Invalid_FD then
             GNAT.OS_Lib.Close (Descriptor);

@@ -1,5 +1,7 @@
 with Hostkit.Process;
 with Interfaces;
+with Files.Name_Parts;
+with Files.Text_Basics;
 
 separate (Files.File_System)
 function Valid_Volume_Trash_Base (Base : String) return Boolean is
@@ -11,7 +13,7 @@ function Valid_Volume_Trash_Base (Base : String) return Boolean is
       Revision : constant Hostkit.Metadata.Entry_Revision := Hostkit.Metadata.Entry_Revision_Of (Path);
    begin
       return not Hostkit.Fs.Is_Link (Path)
-        and then Files.Fs_Primitives.Directory_Exists (Path)
+        and then Files.IO.Fs_Primitives.Directory_Exists (Path)
         and then Revision.Available
         and then Revision.User_Id = Interfaces.Unsigned_64 (Uid);
    end Own_Directory;
@@ -21,13 +23,13 @@ begin
       return False;
    end if;
    declare
-      Id     : constant String := Files.Types.Natural_Text (Uid);
-      Name   : constant String := Files.Types.Leaf_Of (Base);
-      Parent : constant String := Files.Fs_Primitives.Parent_Directory (Base);
+      Id     : constant String := Files.Text_Basics.Natural_Text (Uid);
+      Name   : constant String := Files.Name_Parts.Leaf_Of (Base);
+      Parent : constant String := Files.IO.Fs_Primitives.Parent_Directory (Base);
       --  A part surely not made yet, or our own real directory: one that
       --  cannot be looked at could be the link this guards against.
       function Absent_Or_Own (Part : String) return Boolean is
-        ((not Hostkit.Fs.Is_Link (Part) and then Files.Fs_Primitives.Entry_Is_Absent (Part))
+        ((not Hostkit.Fs.Is_Link (Part) and then Files.IO.Fs_Primitives.Entry_Is_Absent (Part))
          or else Own_Directory (Part));
 
       --  The base, and its files/ and info/: a files/ that is a link would
@@ -39,16 +41,18 @@ begin
    begin
       if Name = ".Trash-" & Id then
          return Safe_Trash_Parent (Parent, Shared => False, Existing => True) and then Owned_Tree;
-      elsif Name = Id and then Files.Types.Leaf_Of (Parent) = ".Trashes" then
+      elsif Name = Id and then Files.Name_Parts.Leaf_Of (Parent) = ".Trashes" then
          --  The Finder's per-user folder, for the trash that keeps its
          --  layout: no files/ or info/ of ours in it, its items directly.
          return Trash_Backend_Of_Current_Environment in Trash_Macos_Home | Trash_Macos_Native
            and then Safe_Trash_Parent (Parent, Shared => True)
-           and then Safe_Trash_Parent (Files.Fs_Primitives.Parent_Directory (Parent), Shared => False, Existing => True)
+           and then Safe_Trash_Parent (Files.IO.Fs_Primitives.Parent_Directory (Parent), Shared => False,
+                                       Existing => True)
            and then Own_Directory (Base);
-      elsif Name = Id and then Files.Types.Leaf_Of (Parent) = ".Trash" then
+      elsif Name = Id and then Files.Name_Parts.Leaf_Of (Parent) = ".Trash" then
          return Safe_Trash_Parent (Parent, Shared => True)
-           and then Safe_Trash_Parent (Files.Fs_Primitives.Parent_Directory (Parent), Shared => False, Existing => True)
+           and then Safe_Trash_Parent (Files.IO.Fs_Primitives.Parent_Directory (Parent), Shared => False,
+                                       Existing => True)
            and then Owned_Tree;
       end if;
       return False;

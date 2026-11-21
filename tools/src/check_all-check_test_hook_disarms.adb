@@ -585,14 +585,14 @@ separate (Check_All)
 
       Samples : constant Sample_List :=
         [Make ("procedure Test is" & LF & "begin" & LF
-               & "   Files.Durability.Testing.Fail_Stage_Sync;" & LF & "   Check;" & LF
-               & "   Files.Durability.Testing.Clear;" & LF & "end Test;",
+               & "   Files.IO.Durability.Testing.Fail_Stage_Sync;" & LF & "   Check;" & LF
+               & "   Files.IO.Durability.Testing.Clear;" & LF & "end Test;",
                Flagged => True),
          Make ("procedure Test is" & LF & "begin" & LF
-               & "   Files.Durability.Testing.Fail_Stage_Sync;" & LF & "   Check;" & LF
-               & "   Files.Durability.Testing.Clear;" & LF
+               & "   Files.IO.Durability.Testing.Fail_Stage_Sync;" & LF & "   Check;" & LF
+               & "   Files.IO.Durability.Testing.Clear;" & LF
                & "exception" & LF & "   when others =>" & LF
-               & "      Files.Durability.Testing.Clear;" & LF & "      raise;" & LF & "end Test;",
+               & "      Files.IO.Durability.Testing.Clear;" & LF & "      raise;" & LF & "end Test;",
                Flagged => False),
          Make ("procedure Test is" & LF & "begin" & LF
                & "   Files.File_Identities.Testing.Set_Unavailable (True);" & LF
@@ -635,7 +635,7 @@ separate (Check_All)
                & "      Files.File_System.Testing.Refuse_Native_Trash (True);" & LF & "      raise;" & LF
                & "end Test;",
                Flagged => True),
-         Make ("procedure Test is" & LF & "   use Files.Durability.Testing;" & LF & "begin" & LF
+         Make ("procedure Test is" & LF & "   use Files.IO.Durability.Testing;" & LF & "begin" & LF
                & "   null;" & LF & "end Test;",
                Flagged => True)];
 

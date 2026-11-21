@@ -2,6 +2,8 @@ with Files.Preference_Types;
 with Files.Diagnostics;
 with Files.Settings.Path_References;
 with Files.Settings.Open_Actions;
+with Files.Text_Case;
+
 separate (Files.Settings)
    function Parse
      (Text : String)
@@ -202,7 +204,7 @@ separate (Files.Settings)
          for Flag in Legacy_Theme_Flag loop
             if Setting_Key = Legacy_Theme_Keys (Flag).all then
                --  Legacy key: resolved into Settings.Theme after the loop.
-               Parse_Boolean (Files.Types.To_Lower_Ascii (Value), Legacy_Theme (Flag), OK);
+               Parse_Boolean (Files.Text_Case.To_Lower_Ascii (Value), Legacy_Theme (Flag), OK);
                if not OK then
                   Err := To_Unbounded_String ("error.settings.invalid_boolean");
                end if;
@@ -315,7 +317,7 @@ separate (Files.Settings)
             elsif Line (Line'First) = '[' and then Line (Line'Last) = ']' then
                declare
                   Name : constant String :=
-                    Files.Types.To_Lower_Ascii (Trim (Line (Line'First + 1 .. Line'Last - 1)));
+                    Files.Text_Case.To_Lower_Ascii (Trim (Line (Line'First + 1 .. Line'Last - 1)));
                   Named : Settings_Section;
                begin
                   if Section_Named (Name, Named) then
@@ -346,7 +348,7 @@ separate (Files.Settings)
 
                declare
                   Key       : constant String := Trim (Line (Line'First .. Equals - 1));
-                  Setting_Key : constant String := Files.Types.To_Lower_Ascii (Key);
+                  Setting_Key : constant String := Files.Text_Case.To_Lower_Ascii (Key);
                   Raw_Value : constant String := Trim (Line (Equals + 1 .. Line'Last));
                   Value     : constant String := Strip_Quotes (Raw_Value);
                   Err       : Unbounded_String := Null_Unbounded_String;

@@ -1,4 +1,4 @@
-with Files.Bounded_Streams;
+with Files.IO.Record_Fields;
 with Files.Operation_Results;
 separate (Files_Suite.Recovery)
    procedure Test_Operation_Result_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -60,11 +60,11 @@ separate (Files_Suite.Recovery)
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
       Files.Operation_Results.Operation_Status'Output
         (Ada.Streams.Stream_IO.Stream (File), Files.Operation_Results.Operation_Success);
-      Files.Bounded_Streams.Output_String
+      Files.IO.Record_Fields.Output_String
         (Ada.Streams.Stream_IO.Stream (File), "", Files.Jobs.Records.Max_Error_Length);
-      Files.Bounded_Streams.Output_String
+      Files.IO.Record_Fields.Output_String
         (Ada.Streams.Stream_IO.Stream (File), "", Files.Jobs.Records.Max_Path_Length);
-      Files.Bounded_Streams.Output_String
+      Files.IO.Record_Fields.Output_String
         (Ada.Streams.Stream_IO.Stream (File), "viewer", Files.Jobs.Records.Max_Path_Length);
       Natural'Output (Ada.Streams.Stream_IO.Stream (File), 257);
       Ada.Streams.Stream_IO.Close (File);

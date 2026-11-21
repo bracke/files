@@ -27,10 +27,10 @@ is
       end if;
    end Count_One;
 begin
-   if not Files.Fs_Primitives.Directory_Exists (Path) then
+   if not Files.IO.Fs_Primitives.Directory_Exists (Path) then
       return Files.Extra_Info.No_Info;
    end if;
-   Files.Fs_Primitives.For_Each_Name (Path, Count_One'Access);
+   Files.IO.Fs_Primitives.For_Each_Name (Path, Count_One'Access);
    return Files.Extra_Info.Make (Files.Extra_Info.Directory_Count, Count => Count, Capped => Capped);
 exception
    when Swallowed : others =>

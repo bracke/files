@@ -4,7 +4,7 @@ function Executable_Format_Info (Path : String) return Files.Extra_Info.Info is
    Buffer : Ada.Streams.Stream_Element_Array (1 .. 4);
    Last   : Ada.Streams.Stream_Element_Offset;
 begin
-   File := Files.Fs_Primitives.Open_Regular_Read (Path);
+   File := Files.IO.Fs_Primitives.Open_Regular_Read (Path);
    if File = GNAT.OS_Lib.Invalid_FD then
       return Files.Extra_Info.No_Info;
    end if;

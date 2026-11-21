@@ -4,7 +4,6 @@ with Ada.Calendar.Arithmetic;
 with Ada.Calendar.Formatting;
 with Ada.Calendar.Time_Zones;
 with Ada.Strings;
-with Files.Types;
 with Ada.Strings.Unbounded;
 
 with Util.Dates;
@@ -15,6 +14,7 @@ with Files.Localization;
 with Humanize.Bytes;
 with Humanize.Datetimes;
 with Humanize.Status;
+with Files.Text_Basics;
 
 package body Files.Display_Text is
 
@@ -68,7 +68,7 @@ package body Files.Display_Text is
 
          for Index in 1 .. 12 loop
             declare
-               Image : constant String := Files.Types.Natural_Text (Index);
+               Image : constant String := Files.Text_Basics.Natural_Text (Index);
             begin
                Set_Text ("util.month" & Image & ".short", "time.month" & Image & ".short");
                Set_Text ("util.month" & Image & ".long", "time.month" & Image & ".long");
@@ -77,7 +77,7 @@ package body Files.Display_Text is
 
          for Index in 0 .. 6 loop
             declare
-               Image : constant String := Files.Types.Natural_Text (Index);
+               Image : constant String := Files.Text_Basics.Natural_Text (Index);
             begin
                Set_Text ("util.day" & Image & ".short", "time.day" & Image & ".short");
                Set_Text ("util.day" & Image & ".long", "time.day" & Image & ".long");

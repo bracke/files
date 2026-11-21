@@ -17,15 +17,15 @@ procedure Write_Info_File (Name_Taken : out Boolean) is
 begin
    --  Made anew at its final name, never over one already there; what fails
    --  below removes only this file, by its identity.
-   Files.Durable_Writes.Write_Private_File (To_String (Info_Path), Write_Metadata'Access, Info_Identity, Name_Taken);
+   Files.IO.Durable_Writes.Write_Private_File (To_String (Info_Path), Write_Metadata'Access, Info_Identity, Name_Taken);
    if Name_Taken then
       return;
    end if;
    --  On the device before the item moves in: a crash must not leave
    --  an item in the trash with an empty info file, which the trash
    --  view could neither list nor restore.
-   if Hostkit.Durability."=" (Files.Durability.Sync_File (To_String (Info_Path)), Hostkit.Durability.Failed)
-     or else Hostkit.Durability."=" (Files.Durability.Sync_Directory (Info_Dir), Hostkit.Durability.Failed)
+   if Hostkit.Durability."=" (Files.IO.Durability.Sync_File (To_String (Info_Path)), Hostkit.Durability.Failed)
+     or else Hostkit.Durability."=" (Files.IO.Durability.Sync_Directory (Info_Dir), Hostkit.Durability.Failed)
    then
       raise Ada.Directories.Use_Error;
    end if;

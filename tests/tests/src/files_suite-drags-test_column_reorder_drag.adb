@@ -2,6 +2,8 @@ with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
+with Files.Text_Basics;
+
 separate (Files_Suite.Drags)
    procedure Test_Column_Reorder_Drag (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,7 +19,7 @@ separate (Files_Suite.Drags)
       for Index in 1 .. 8 loop
          Items.Append
            (Files.File_System.Make_Item
-              (Files_Suite.Support.Disk.Root, "item-" & Files.Types.Natural_Text (Index),
+              (Files_Suite.Support.Disk.Root, "item-" & Files.Text_Basics.Natural_Text (Index),
                Files.Types.Regular_File_Item, "text/plain"));
       end loop;
       Files.Model.Initialize

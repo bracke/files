@@ -204,8 +204,8 @@ separate (Check_All.Check_Rendering_Architecture)
         [To_Unbounded_String ("Hostkit."),
          To_Unbounded_String ("Ada.Text_IO"),
          To_Unbounded_String ("Ada.Streams.Stream_IO"),
-         To_Unbounded_String ("Files.Capped_Files"),
-         To_Unbounded_String ("Files.Fs_Primitives")]
+         To_Unbounded_String ("Files.IO.Capped_Files"),
+         To_Unbounded_String ("Files.IO.Fs_Primitives")]
       loop
          Require_Not_Contains_In_Unit
            (Path,

@@ -1,4 +1,4 @@
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 separate (Files.Operations)
 function Begin_Paste_To
   (Model          : in out Files.Model.Window_Model;
@@ -27,7 +27,7 @@ is
               Files.Paste.Desired_Path (To_String (Item.Dest_Dir), To_String (Item.Dest_Name));
          begin
             --  A name the host will not answer for may be taken: ask.
-            if not Files.Fs_Primitives.Entry_Is_Absent (Desired) then
+            if not Files.IO.Fs_Primitives.Entry_Is_Absent (Desired) then
                Result.Append (To_Unbounded_String (Desired));
             end if;
          exception

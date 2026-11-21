@@ -30,7 +30,7 @@ separate (Files_Suite.Recovery)
       Remove_Transport_Fixture (Young_Path);
       Remove_Transport_Fixture (Payload_Path);
       Remove_Transport_Fixture (Similar_Path);
-      Files.Private_Directories.Create (To_String (Before_Lease_Path));
+      Files.IO.Private_Directories.Create (To_String (Before_Lease_Path));
       Write_Binary_File
         (Join (To_String (Before_Lease_Path), ".files-job-transport.tmp"), "partial marker");
       GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
@@ -46,12 +46,12 @@ separate (Files_Suite.Recovery)
            (Join (To_String (After_Lease_Path), ".files-job-transport"));
          Files.Jobs.Transports.Release (Incomplete_Owner);
       end;
-      Files.Private_Directories.Create (To_String (Young_Path));
-      Files.Private_Directories.Create (To_String (Payload_Path));
+      Files.IO.Private_Directories.Create (To_String (Young_Path));
+      Files.IO.Private_Directories.Create (To_String (Payload_Path));
       Write_Binary_File (Join (To_String (Payload_Path), "keep"), "unrelated");
       GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
         (To_String (Payload_Path), GNAT.OS_Lib.GM_Time_Of (2020, 1, 2, 3, 4, 5));
-      Files.Private_Directories.Create (To_String (Similar_Path));
+      Files.IO.Private_Directories.Create (To_String (Similar_Path));
       GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
         (To_String (Similar_Path), GNAT.OS_Lib.GM_Time_Of (2020, 1, 2, 3, 4, 5));
 

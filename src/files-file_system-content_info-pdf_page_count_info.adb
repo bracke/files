@@ -91,7 +91,7 @@ function Pdf_Page_Count_Info (Path : String) return Files.Extra_Info.Info is
       end case;
    end Feed;
 begin
-   File := Files.Fs_Primitives.Open_Regular_Read (Path);
+   File := Files.IO.Fs_Primitives.Open_Regular_Read (Path);
    if File = GNAT.OS_Lib.Invalid_FD then
       return Files.Extra_Info.Make (Files.Extra_Info.Document_Kind, Value => "pdf");
    end if;

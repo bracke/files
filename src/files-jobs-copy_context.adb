@@ -6,10 +6,10 @@ with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
 with Ada.Streams;
 with GNAT.OS_Lib;
-with Files.Bounded_Streams;
-with Files.Durable_Writes;
-with Files.Lease_Streams;
-with Files.Fs_Primitives;
+with Files.IO.Record_Fields;
+with Files.IO.Durable_Writes;
+with Files.IO.Lease_Streams;
+with Files.IO.Fs_Primitives;
 with Files.Path_Checks;
 with Files.Jobs.Process;
 with Ada.Unchecked_Deallocation;
@@ -152,7 +152,7 @@ package body Files.Jobs.Copy_Context is
 
    function Records (Batch : Session) return Files.Types.String_Vectors.Vector is
       Result : Files.Types.String_Vectors.Vector;
-      Input : aliased Files.Lease_Streams.Input_Stream;
+      Input : aliased Files.IO.Lease_Streams.Input_Stream;
       Batch_Directory : constant String := Directory (Batch);
       Path : constant String :=
         (if Batch_Directory = "" then ""
@@ -160,22 +160,22 @@ package body Files.Jobs.Copy_Context is
    begin
       --  No links file is no hard links recorded; one that cannot be
       --  looked at is read below, and refused there as unreadable.
-      if Path = "" or else Files.Fs_Primitives.Entry_Is_Absent (Path) then
+      if Path = "" or else Files.IO.Fs_Primitives.Entry_Is_Absent (Path) then
          return Result;
       end if;
       --  refusal-safe: a batch folder not seen raises Data_Error.
       if Hostkit.Fs.Is_Link (Batch_Directory)
         --  refusal-safe: as above.
-        or else not Files.Fs_Primitives.Exists (Batch_Directory)
-        or else Files.Fs_Primitives.Kind (Batch_Directory) /= Ada.Directories.Directory
+        or else not Files.IO.Fs_Primitives.Exists (Batch_Directory)
+        or else Files.IO.Fs_Primitives.Kind (Batch_Directory) /= Ada.Directories.Directory
       then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
-      if Files.Lease_Streams.Open (Path, Input) /=
+      if Files.IO.Lease_Streams.Open (Path, Input) /=
         Hostkit.Lease_Files.Opened
-        or else Files.Lease_Streams.Size (Input) >
+        or else Files.IO.Lease_Streams.Size (Input) >
           Long_Long_Integer (Max_Links_File_Bytes)
-        or else Files.Bounded_Streams.Input_String
+        or else Files.IO.Record_Fields.Input_String
           (Input'Access, Links_Header'Length) /= Links_Header
       then
          raise Ada.IO_Exceptions.Data_Error;
@@ -190,18 +190,18 @@ package body Files.Jobs.Copy_Context is
          for Index in 1 .. Count loop
             Result.Append
               (To_Unbounded_String
-                 (Files.Bounded_Streams.Input_String
+                 (Files.IO.Record_Fields.Input_String
                     (Input'Access, Max_Link_Field_Length)));
          end loop;
       end;
-      if not Files.Lease_Streams.End_Of_Stream (Input) then
+      if not Files.IO.Lease_Streams.End_Of_Stream (Input) then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
-      Files.Lease_Streams.Release (Input);
+      Files.IO.Lease_Streams.Release (Input);
       return Result;
    exception
       when others =>
-         Files.Lease_Streams.Release (Input);
+         Files.IO.Lease_Streams.Release (Input);
          raise;
    end Records;
 
@@ -234,8 +234,8 @@ package body Files.Jobs.Copy_Context is
       --  replaces the file.
       if Hostkit.Fs.Is_Link (Batch_Directory)
         --  refusal-safe: as above.
-        or else not Files.Fs_Primitives.Exists (Batch_Directory)
-        or else Files.Fs_Primitives.Kind (Batch_Directory) /= Ada.Directories.Directory
+        or else not Files.IO.Fs_Primitives.Exists (Batch_Directory)
+        or else Files.IO.Fs_Primitives.Kind (Batch_Directory) /= Ada.Directories.Directory
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -250,7 +250,9 @@ package body Files.Jobs.Copy_Context is
          end if;
          Total := Total + Length (Item) + 16;
       end loop;
-      if not Files.Durable_Writes.Published (Files.Durable_Writes.Write_And_Publish (Path, Write_Links'Access)) then
+      if not Files.IO.Durable_Writes.Published
+          (Files.IO.Durable_Writes.Write_And_Publish (Path, Write_Links'Access))
+      then
          raise Ada.Directories.Use_Error;
       end if;
    end Save;

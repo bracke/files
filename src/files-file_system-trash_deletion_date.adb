@@ -1,3 +1,5 @@
+with Files.Text_Basics;
+
 separate (Files.File_System)
 function Trash_Deletion_Date
   (Value : Ada.Calendar.Time)
@@ -31,7 +33,7 @@ begin
    end loop;
 
    return
-     Files.Types.Natural_Text (Natural (Year)) & "-"
+     Files.Text_Basics.Natural_Text (Natural (Year)) & "-"
      & Two_Digit_Text (Natural (Month)) & "-"
      & Two_Digit_Text (Natural (Day)) & "T"
      & Two_Digit_Text (Hour) & ":"

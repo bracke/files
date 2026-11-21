@@ -1,3 +1,5 @@
+with Files.Text_Basics;
+
 separate (Files.File_System.Recovery)
    function Registered_Payloads return Files.Types.String_Vectors.Vector is
       Root : constant String := Registry_Root (Create => False);
@@ -9,8 +11,8 @@ separate (Files.File_System.Recovery)
          Payload, Expected : UString;
          Directory : constant String := Hostkit.Fs.Join (Root, Name);
       begin
-         if Files.Types.Starts_With (Name, Files.Protocol_Names.Recovery_Stage_Prefix)
-           and then Files.Fs_Primitives.Directory_Exists (Directory)
+         if Files.Text_Basics.Starts_With (Name, Files.Protocol_Names.Recovery_Stage_Prefix)
+           and then Files.IO.Fs_Primitives.Directory_Exists (Directory)
            and then Read_Registry_Record (Directory, Payload, Expected)
            and then not Seen.Contains (To_String (Payload))
            and then Recognizes (To_String (Payload))
@@ -24,7 +26,7 @@ separate (Files.File_System.Recovery)
       if Root = "" then
          return Result;
       end if;
-      Files.Fs_Primitives.For_Each_Name (Root, Check'Access);
+      Files.IO.Fs_Primitives.For_Each_Name (Root, Check'Access);
       return Result;
    exception
       when Failure : others =>

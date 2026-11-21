@@ -32,7 +32,7 @@ begin
    --  a destination that is the source is the entry being pasted.
    --  A destination that cannot be looked at is preserved like one that is
    --  there: preserving it fails, and nothing is imported over it.
-   if Replace and then Source /= Destination and then not Files.Fs_Primitives.Entry_Is_Absent (Destination) then
+   if Replace and then Source /= Destination and then not Files.IO.Fs_Primitives.Entry_Is_Absent (Destination) then
       Result := Preserve_For_Replace (Destination, Replaced);
       if Length (Replaced) > 0 then
          Replaced_Identity := To_Unbounded_String (Files.File_Identities.Token (To_String (Replaced)));

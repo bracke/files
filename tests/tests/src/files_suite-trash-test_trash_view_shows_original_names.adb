@@ -1,6 +1,8 @@
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.File_System.Trash;
 with Files_Suite.Support.Guards;
+with Files.Name_Parts;
+
 separate (Files_Suite.Trash)
    --  A freedesktop trash names its payloads for itself ("notes.txt.2" for a
    --  second "notes.txt"); the trash view lists each under the name it had,
@@ -28,7 +30,7 @@ separate (Files_Suite.Trash)
       Assert (Mutation.Success, "the first notes.txt is trashed");
       Mutation := Files.File_System.Trash.Move_To_Trash (Join (Join (Root, "b"), "notes.txt"), Second);
       Assert (Mutation.Success, "the second notes.txt is trashed");
-      Assert (Files.Types.Leaf_Of (To_String (Second)) /= "notes.txt",
+      Assert (Files.Name_Parts.Leaf_Of (To_String (Second)) /= "notes.txt",
               "the trash names the second payload for itself");
 
       Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);

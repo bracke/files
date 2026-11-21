@@ -1,6 +1,6 @@
 separate (Check_All)
    procedure Check_Raw_File_System_Calls is
-      --  No file is exempt: Files.Fs_Primitives' wrappers call Hostkit too.
+      --  No file is exempt: Files.IO.Fs_Primitives' wrappers call Hostkit too.
       LF : constant Character := ASCII.LF;
 
       Units : constant String :=
@@ -117,7 +117,7 @@ separate (Check_All)
          procedure Refuse (Name : String; Why : String) is
          begin
             Report (Path & ": " & Why & " " & Name & ", which GNAT refuses past 260 characters on Windows;"
-               & " use Files.Fs_Primitives or Hostkit");
+               & " use Files.IO.Fs_Primitives or Hostkit");
          end Refuse;
 
          --  Name, and Name with its unit spelled as each of the unit's aliases.

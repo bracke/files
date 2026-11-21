@@ -37,7 +37,7 @@ is
       Published_Identity := Null_Unbounded_String;
       Published_Tree_Revision := Null_Unbounded_String;
       if Identity = "" then
-         return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.drop.failed"));
+         return (Success => False, Error_Key => Files.IO.Errors.Error_Key ("error.drop.failed"));
       end if;
       Files.Jobs.Context.Intend_Moved (Destination_Path, Source_Path, Identity);
       declare
@@ -76,7 +76,7 @@ is
          --  the plan's result either way; return it so undo covers it.
          --  Copy_To_New_Path recorded it as created; a vacated source makes
          --  it a move. A kept copy is reported with its own cause.
-         if Files.Fs_Primitives.Entry_Is_Absent (Source_Path) then
+         if Files.IO.Fs_Primitives.Entry_Is_Absent (Source_Path) then
             Files.Jobs.Context.Record_Moved (Destination_Path, Source_Path, To_String (Copied_Identity));
          end if;
          Created.Append (Created_Entry'(Identity => Copied_Identity, Tree_Revision => Copied_Tree_Revision));
@@ -106,7 +106,7 @@ begin
          Published_Identity, Published_Tree_Revision : UString;
 
       begin
-         Files.Io_Errors.Reset;
+         Files.IO.Errors.Reset;
          if Source_Path = Destination_Path and then Plan.Mode = Drop_Copy then
             return (Success => False, Error_Key => To_Unbounded_String ("error.drop.into_self"));
          end if;
@@ -114,7 +114,7 @@ begin
          --  someone else and must never be removed by failure cleanup; one
          --  the host will not answer for may be such an entry too.
          if Source_Path /= Destination_Path
-           and then not Files.Fs_Primitives.Entry_Is_Absent (Destination_Path)
+           and then not Files.IO.Fs_Primitives.Entry_Is_Absent (Destination_Path)
          then
             return (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
          end if;
@@ -150,7 +150,7 @@ begin
             --  left and nothing is cleaned up here; the source is untouched.
             --  A cancelled copy says so (the helper reads it as cancelled),
             --  unless the failure has a cause of its own, a full disk say.
-            return Cancelled_Or ((Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.drop.failed")));
+            return Cancelled_Or ((Success => False, Error_Key => Files.IO.Errors.Error_Key ("error.drop.failed")));
       end;
    end loop;
 

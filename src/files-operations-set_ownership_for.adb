@@ -15,7 +15,7 @@ begin
       use type Files.Types.Account_Id;
       Item      : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
       Path      : constant String :=
-        Files.Fs_Primitives.Full_Name (To_String (Item.Full_Path));
+        Files.IO.Fs_Primitives.Full_Name (To_String (Item.Full_Path));
       Keep_User : constant Boolean := User_Id = Hostkit.Metadata.Keep_Id;
       Keep_Group : constant Boolean := Group_Id = Hostkit.Metadata.Keep_Id;
       New_User_Name : constant String :=

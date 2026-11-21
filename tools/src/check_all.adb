@@ -672,12 +672,12 @@ procedure Check_All is
 
    --  GNAT's Ada.Directories reads a path's text with a 256-character
    --  component limit on Windows (Name_Error past it): leaves, parents and
-   --  joins go through Files.Fs_Primitives (Hostkit.Path_Text) or
+   --  joins go through Files.IO.Fs_Primitives (Hostkit.Path_Text) or
    --  Hostkit.Fs.Join. Simple_Name of a search entry is fine, written with
    --  its Directory_Entry name.
    procedure Check_Path_Text_Calls is separate;
 
-   --  Every flush goes through Files.Durability, where the suite can make
+   --  Every flush goes through Files.IO.Durability, where the suite can make
    --  one fail on every host: a Hostkit.Durability.Sync_* call elsewhere in
    --  src/ is a flush no test can fail.
    procedure Check_Durability_Calls is separate;
@@ -687,7 +687,7 @@ procedure Check_All is
    --  GNAT.Directory_Operations and System.File_IO (Stream_IO and Text_IO
    --  Open and Create) alike -- so a folder deep enough could be listed but
    --  not opened, copied or deleted. By-path file-system calls in src/ go
-   --  through Files.Fs_Primitives or Hostkit (Fs, Regular_Files,
+   --  through Files.IO.Fs_Primitives or Hostkit (Fs, Regular_Files,
    --  Directory_Listing, Path_Text), which reach any depth. A package
    --  renaming one of these units is read as the unit, and a use clause for
    --  one is refused: it would hide the calls.
@@ -873,8 +873,8 @@ procedure Check_All is
 
    --  Ada.Characters.Handling.To_Lower maps Latin-1, so on UTF-8 text it
    --  rewrites lead bytes (0xC0 .. 0xDE): "Ä" (C3 84) becomes E3 84. src/
-   --  lower-cases with Files.Types.To_Lower_Ascii (tokens, keys, MIME types,
-   --  extensions) or Files.Types.Fold_Case (what a person reads), never that.
+   --  lower-cases with Files.Text_Case.To_Lower_Ascii (tokens, keys, MIME types,
+   --  extensions) or Files.Text_Case.Fold_Case (what a person reads), never that.
    procedure Check_Ascii_Lowercasing is separate;
 
    --  Recovery and job units decide what to remove or forget by whether an

@@ -112,7 +112,8 @@ package Files.Model.Rename is
    --
    --  @param Model Model to inspect.
    --  @param Visit Called once per field with the three below.
-   --  @param Item_Index The field's item index; zero for the pending create row.
+   --  @param Item_Index The field's item index; Files.Model.Temporary_Item_Index
+   --    for the pending create row.
    --  @param Value Its text.
    --  @param Cursor Its caret byte offset.
    procedure For_Each_Field

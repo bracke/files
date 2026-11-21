@@ -1,3 +1,5 @@
+with Files.Text_Case;
+
 separate (Files_Suite.Transfer)
    procedure Test_Paste_Conflict_Resolution_Core (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -100,12 +102,12 @@ separate (Files_Suite.Transfer)
                "Readme.md replacing readme.md writes over readme.md under its own name");
          end;
          Assert (not Actions.Element (2).Replaced and then not Actions.Element (2).Skip
-                 and then Files.Types.Fold_Case (To_String (Actions.Element (2).Dest_Path))
-                          /= Files.Types.Fold_Case (Dest ("readme.md")),
+                 and then Files.Text_Case.Fold_Case (To_String (Actions.Element (2).Dest_Path))
+                          /= Files.Text_Case.Fold_Case (Dest ("readme.md")),
                  "the second case-twin is kept under another name, not replacing the first's copy");
          Actions := Files.Paste.Resolve (Cased, Files.Paste.Policy_Ask, None, No_Existing, Fold_Names => True);
-         Assert (Files.Types.Fold_Case (To_String (Actions.Element (2).Dest_Path))
-                 /= Files.Types.Fold_Case (To_String (Actions.Element (1).Dest_Path)),
+         Assert (Files.Text_Case.Fold_Case (To_String (Actions.Element (2).Dest_Path))
+                 /= Files.Text_Case.Fold_Case (To_String (Actions.Element (1).Dest_Path)),
                  "without an existing entry the case-twins still get two names");
          Actions := Files.Paste.Resolve (Cased, Files.Paste.Policy_Ask, None, No_Existing);
          Assert (To_String (Actions.Element (2).Dest_Path) = Dest ("README.md"),

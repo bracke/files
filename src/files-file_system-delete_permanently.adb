@@ -40,9 +40,9 @@ is
       end if;
 
       declare
-         Full : constant String := Files.Fs_Primitives.Full_Name (Path);
+         Full : constant String := Files.IO.Fs_Primitives.Full_Name (Path);
       begin
-         return Full = "" or else Files.Fs_Primitives.Parent_Text (Full) = "";
+         return Full = "" or else Files.IO.Fs_Primitives.Parent_Text (Full) = "";
       end;
    exception
       when Swallowed : others =>
@@ -50,12 +50,12 @@ is
          return True;
    end Unsafe_Target;
 begin
-   Files.Io_Errors.Reset;
+   Files.IO.Errors.Reset;
    if Unsafe_Target then
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.permanent_delete.refused"));
-   elsif Files.Fs_Primitives.Entry_Is_Absent (Path) then
+   elsif Files.IO.Fs_Primitives.Entry_Is_Absent (Path) then
       --  Missing only when that is sure: one that cannot be looked at is
       --  deleted below, and a delete that fails says why.
       return
@@ -68,16 +68,16 @@ begin
    --  link (or a folder that merely contains one) can never reach through
    --  into the link target's real contents, as Ada.Directories.Delete_Tree,
    --  which follows links, would.
-   Files.Io_Errors.Clear_Os_Error;
-   Files.Fs_Primitives.Delete_Tree (Path);
+   Files.IO.Errors.Clear_Os_Error;
+   Files.IO.Fs_Primitives.Delete_Tree (Path);
    return (Success => True, Error_Key => Null_Unbounded_String);
 exception
    when Swallowed : others =>
       --  The delete raises straight from the refused unlink or rmdir, so
       --  errno still says why, until the note below writes to stderr.
-      Files.Io_Errors.Capture;
+      Files.IO.Errors.Capture;
       Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return
         (Success   => False,
-         Error_Key => Files.Io_Errors.Error_Key ("error.permanent_delete.failed"));
+         Error_Key => Files.IO.Errors.Error_Key ("error.permanent_delete.failed"));
 end Delete_Permanently;

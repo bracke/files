@@ -1,4 +1,4 @@
-with Files.Durability.Testing;
+with Files.IO.Durability.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Preserve_Puts_Original_Back (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -30,9 +30,9 @@ separate (Files_Suite.Transfer)
       Write_Binary_File (Dest, "the original");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       --  Syncing the stage once the original has moved into it fails.
-      Files.Durability.Testing.Fail_Stage_Sync;
+      Files.IO.Durability.Testing.Fail_Stage_Sync;
       Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
-      Files.Durability.Testing.Clear;
+      Files.IO.Durability.Testing.Clear;
       Assert (not Result.Success, "the preserve reports the failed sync");
       Files_Suite.Support.Assert_Equal (Length (Backup), 0, "no backup is left to recover from");
       Files_Suite.Support.Assert_Equal
@@ -42,6 +42,6 @@ separate (Files_Suite.Transfer)
       Files_Suite.Support.Assert_Equal (Stages_Left, 0, "no hidden recovery folder is left behind");
    exception
       when others =>
-         Files.Durability.Testing.Clear;
+         Files.IO.Durability.Testing.Clear;
          raise;
    end Test_Preserve_Puts_Original_Back;

@@ -2,7 +2,7 @@ separate (Check_All)
    procedure Check_Ascii_Lowercasing is
       --  Ada.Characters.Handling's To_Lower and To_Upper map Latin-1 bytes,
       --  so on UTF-8 they corrupt a lead byte (0xC3 "Ä" becomes 0xE3). src
-      --  case-maps with Files.Types.To_Lower_Ascii / To_Upper_Ascii or folds
+      --  case-maps with Files.Text_Case.To_Lower_Ascii / To_Upper_Ascii or folds
       --  with Fold_Case. Read as tokens, so a call split over lines, a use
       --  clause with a bare name, or a renaming of the package are all seen;
       --  Ada.Wide_Wide_Characters.Handling (full Unicode) stays allowed.
@@ -34,7 +34,7 @@ separate (Check_All)
             Report
               (Path & ":" & Ada.Strings.Fixed.Trim (Positive'Image (Toks (Index).Line), Ada.Strings.Left)
                & ": " & What & " -- Ada.Characters.Handling case-maps Latin-1 bytes and corrupts UTF-8; use "
-               & "Files.Types.To_Lower_Ascii / To_Upper_Ascii, or Fold_Case for text a person reads");
+               & "Files.Text_Case.To_Lower_Ascii / To_Upper_Ascii, or Fold_Case for text a person reads");
          end Flag;
 
          Uses_Handling : Boolean := False;

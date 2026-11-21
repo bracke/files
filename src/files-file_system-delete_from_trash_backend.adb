@@ -1,3 +1,5 @@
+with Files.Name_Parts;
+
 separate (Files.File_System)
 function Delete_From_Trash_Backend
   (Trashed_Path : String)
@@ -36,14 +38,14 @@ begin
    --  metadata. Sidecar removal is best-effort and never fails the purge.
    if Base /= "" and then Backend not in Trash_Macos_Home | Trash_Macos_Native then
       declare
-         Simple    : constant String := Files.Types.Leaf_Of (Trashed_Path);
+         Simple    : constant String := Files.Name_Parts.Leaf_Of (Trashed_Path);
          Info_Path : constant String :=
            Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Simple & ".trashinfo");
       begin
          --  One that could not be looked at is deleted all the same, or it
          --  stays behind describing an item that is gone.
-         if not Files.Fs_Primitives.Entry_Is_Absent (Info_Path) then
-            Files.Fs_Primitives.Delete_File (Info_Path);
+         if not Files.IO.Fs_Primitives.Entry_Is_Absent (Info_Path) then
+            Files.IO.Fs_Primitives.Delete_File (Info_Path);
          end if;
       exception
          when Swallowed : others =>

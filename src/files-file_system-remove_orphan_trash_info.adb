@@ -19,12 +19,12 @@ procedure Remove_Orphan_Trash_Info is
       begin
          if Leaf'Length > Info_Suffix'Length
            and then Leaf (Leaf'Last - Info_Suffix'Length + 1 .. Leaf'Last) = Info_Suffix
-           and then Files.Fs_Primitives.Entry_Is_Absent
+           and then Files.IO.Fs_Primitives.Entry_Is_Absent
              (Hostkit.Fs.Join (Items_Dir, Leaf (Leaf'First .. Leaf'Last - Info_Suffix'Length)))
-           and then Files.Fs_Primitives.Kind (Info) = Ada.Directories.Ordinary_File
-           and then Files.Timing.Elapsed (Now, Files.Fs_Primitives.Modification_Time (Info), Settled_Age)
+           and then Files.IO.Fs_Primitives.Kind (Info) = Ada.Directories.Ordinary_File
+           and then Files.Timing.Elapsed (Now, Files.IO.Fs_Primitives.Modification_Time (Info), Settled_Age)
          then
-            Files.Fs_Primitives.Delete_File (Info);
+            Files.IO.Fs_Primitives.Delete_File (Info);
             Files.Diagnostics.Trace ("Files.File_System", "orphan_trash_info_removed=" & Info);
          end if;
       exception
@@ -33,8 +33,8 @@ procedure Remove_Orphan_Trash_Info is
             Files.Diagnostics.Note (Swallowed, "Files.File_System");
       end Check;
    begin
-      if Files.Fs_Primitives.Directory_Exists (Info_Dir) then
-         Files.Fs_Primitives.For_Each_Name (Info_Dir, Check'Access);
+      if Files.IO.Fs_Primitives.Directory_Exists (Info_Dir) then
+         Files.IO.Fs_Primitives.For_Each_Name (Info_Dir, Check'Access);
       end if;
    exception
       when Swallowed : others =>

@@ -1,3 +1,5 @@
+with Files.Name_Parts;
+
 separate (Files.File_System)
 function Load_Directory_Filtered
   (Path     : String;
@@ -38,7 +40,7 @@ is
    --  not say (the macOS home trash keeps none).
    function Shown_Name (Name : String; Full : String) return String is
       Original : constant String := Trash_Original_Path (Full);
-      Leaf     : constant String := (if Original = "" then "" else Files.Types.Leaf_Of (Original));
+      Leaf     : constant String := (if Original = "" then "" else Files.Name_Parts.Leaf_Of (Original));
    begin
       return (if Leaf = "" then Name else Leaf);
    exception
@@ -124,12 +126,12 @@ is
          end;
    end Add_Named;
 begin
-   if not Files.Fs_Primitives.Directory_Exists (Path) then
+   if not Files.IO.Fs_Primitives.Directory_Exists (Path) then
       return (Success => False, Path => To_Unbounded_String (Path),
-              Items => Items, Error_Key => To_Unbounded_String (Files.Io_Errors.Directory_Load_Key), Signature => <>);
+              Items => Items, Error_Key => To_Unbounded_String (Files.IO.Errors.Directory_Load_Key), Signature => <>);
    end if;
    Cached.Generate := Generate_Thumbnails;
-   Normalized_Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
+   Normalized_Path := To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Path));
    Signature := (Path => Normalized_Path, Taken => True, Exists => True, others => <>);
    Signing := With_Signature;
    Support.For_Each_Entry (Path, Add_Entry'Access);
@@ -141,15 +143,15 @@ begin
          declare
             Item_Path : constant String := To_String (Recycled.Recycled_Path);
          begin
-            Normalized_Path := To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Item_Path));
-            Add_Named (Files.Types.Leaf_Of (To_String (Recycled.Original_Path)), Item_Path);
+            Normalized_Path := To_Unbounded_String (Files.IO.Fs_Primitives.Parent_Directory (Item_Path));
+            Add_Named (Files.Name_Parts.Leaf_Of (To_String (Recycled.Original_Path)), Item_Path);
          exception
             when Swallowed : others =>
                --  One unreadable record hides its item, not the bin.
                Files.Diagnostics.Note (Swallowed, "Files.File_System");
          end;
       end loop;
-      Normalized_Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
+      Normalized_Path := To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Path));
    --  The trash view is the home trash and every volume's trash together:
    --  an item trashed on a USB stick stays there, and is listed here.
    elsif Is_Trash_Files_Directory (Path) then
@@ -157,7 +159,7 @@ begin
          declare
             Volume_Files : constant String := Trash_Items_Directory (To_String (Base));
          begin
-            Normalized_Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Volume_Files));
+            Normalized_Path := To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Volume_Files));
             Support.For_Each_Entry (Volume_Files, Add_Entry'Access);
          exception
             when Swallowed : others =>
@@ -165,7 +167,7 @@ begin
                Files.Diagnostics.Note (Swallowed, "Files.File_System");
          end;
       end loop;
-      Normalized_Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
+      Normalized_Path := To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Path));
    end if;
    Sort_Items (Items, Options.Sort_Field, Options.Sort_Ascending);
    return (Success => True, Path => Normalized_Path,
@@ -177,5 +179,5 @@ exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return (Success => False, Path => To_Unbounded_String (Path),
-              Items => Items, Error_Key => To_Unbounded_String (Files.Io_Errors.Directory_Load_Key), Signature => <>);
+              Items => Items, Error_Key => To_Unbounded_String (Files.IO.Errors.Directory_Load_Key), Signature => <>);
 end Load_Directory_Filtered;

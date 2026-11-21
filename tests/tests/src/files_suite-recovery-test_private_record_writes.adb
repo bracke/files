@@ -1,5 +1,5 @@
 with Ada.Streams;
-with Files.Durable_Writes;
+with Files.IO.Durable_Writes;
 with Files.Undo.Journal;
 separate (Files_Suite.Recovery)
    --  Durable_Writes.Write_Private_File, under the history journal, the job
@@ -32,7 +32,7 @@ separate (Files_Suite.Recovery)
       end Owner_Only;
    begin
       Reset_Root;
-      Files.Durable_Writes.Write_Private_File (Temporary, Write_Text'Access, Identity);
+      Files.IO.Durable_Writes.Write_Private_File (Temporary, Write_Text'Access, Identity);
       Assert (File_Is (Temporary, "record"), "the record is written");
       Assert (Length (Identity) > 0, "and its identity returned");
       Assert (Owner_Only (Temporary), "and nobody but its owner can read it");
@@ -41,21 +41,21 @@ separate (Files_Suite.Recovery)
       declare
          Again : Unbounded_String;
       begin
-         Files.Durable_Writes.Write_Private_File (Temporary, Write_Text'Access, Again);
+         Files.IO.Durable_Writes.Write_Private_File (Temporary, Write_Text'Access, Again);
       exception
          when others =>
             Raised := True;
       end;
       Assert (Raised and then File_Is (Temporary, "record"), "an entry already there is refused, and kept");
 
-      Files.Durable_Writes.Remove_Owned (Temporary, "not-its-identity");
+      Files.IO.Durable_Writes.Remove_Owned (Temporary, "not-its-identity");
       Assert (Ada.Directories.Exists (Temporary), "Remove_Owned keeps a file it did not make");
-      Files.Durable_Writes.Remove_Owned (Temporary, To_String (Identity));
+      Files.IO.Durable_Writes.Remove_Owned (Temporary, To_String (Identity));
       Assert (not Ada.Directories.Exists (Temporary), "and removes the one it did");
 
       Raised := False;
       begin
-         Files.Durable_Writes.Write_Private_File (Temporary, Write_Fails'Access, Identity);
+         Files.IO.Durable_Writes.Write_Private_File (Temporary, Write_Fails'Access, Identity);
       exception
          when others =>
             Raised := True;

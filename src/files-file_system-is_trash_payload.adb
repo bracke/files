@@ -10,7 +10,7 @@ begin
       return False;
    end if;
    Actual_Parent := To_Unbounded_String
-     (Hostkit.Fs.Canonical_Path (Files.Fs_Primitives.Parent_Directory (Path)));
+     (Hostkit.Fs.Canonical_Path (Files.IO.Fs_Primitives.Parent_Directory (Path)));
    Expected_Parent := To_Unbounded_String
      (Hostkit.Fs.Canonical_Path (Payload_Directory));
    return Length (Actual_Parent) > 0

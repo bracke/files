@@ -83,7 +83,7 @@ separate (Files.File_System.Recovery)
          declare
             --  Why it failed, before discarding the copy can say otherwise.
             Failed : constant Mutation_Result :=
-              (Success => False, Error_Key => Files.Io_Errors.Error_Key (Fallback_Key));
+              (Success => False, Error_Key => Files.IO.Errors.Error_Key (Fallback_Key));
          begin
             --  A failed copy cleans up after itself; one that completed is ours.
             if Copied then

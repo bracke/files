@@ -1,6 +1,6 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
-with Files.Durability.Testing;
+with Files.IO.Durability.Testing;
 with Files.Items;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
@@ -30,7 +30,7 @@ separate (Files_Suite.History)
 
       procedure Cleanup is
       begin
-         Files.Durability.Testing.Clear;
+         Files.IO.Durability.Testing.Clear;
          Ada.Environment_Variables.Set ("FILES_TEST_STAGE_SYNC_FAULT", "");
          Files_Suite.Support.Guards.Release (Paste);
       end Cleanup;
@@ -62,7 +62,7 @@ separate (Files_Suite.History)
             --  Every recovery stage holding its payload fails its flush: the
             --  source cannot be set aside for removal and is put back, and the
             --  copy cannot be set aside for deletion either, so it stays.
-            Files.Durability.Testing.Fail_Stage_Sync;
+            Files.IO.Durability.Testing.Fail_Stage_Sync;
             Ada.Environment_Variables.Set ("FILES_TEST_STAGE_SYNC_FAULT", "1");
             Files.Operations.Begin_Paste_Execution
               (Model, (if Mixed then Mixed_Actions else Actions), Files.File_System.Drop_Move);

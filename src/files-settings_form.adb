@@ -7,6 +7,7 @@ with Files.Icon_Themes;
 with Files.Localization;
 with Files.Model.Settings_Pane;
 with Files.Types;
+with Files.Text_Basics;
 
 package body Files.Settings_Form is
 
@@ -22,7 +23,7 @@ package body Files.Settings_Form is
 
    function U (S : String) return Unbounded_String renames To_Unbounded_String;
    function L (Key : String) return Unbounded_String is (U (Files.Localization.Text (Key)));
-   function Img (N : Natural) return String renames Files.Types.Natural_Text;
+   function Img (N : Natural) return String renames Files.Text_Basics.Natural_Text;
 
    function Fields
      (Draft : Files.Settings.Settings_Draft)

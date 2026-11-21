@@ -1,4 +1,4 @@
-with Files.Fs_Primitives.Testing;
+with Files.IO.Fs_Primitives.Testing;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -29,9 +29,9 @@ separate (Files_Suite.History)
         (Model, Files.Undo.History.Undo_Delete_Created,
          Files_Suite.Support.Models.Undo_Items (Created), Redoable => False);
 
-      Files.Fs_Primitives.Testing.Refuse_Lookups (Made);
+      Files.IO.Fs_Primitives.Testing.Refuse_Lookups (Made);
       Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
-      Files.Fs_Primitives.Testing.Stop_Refusing_Lookups;
+      Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
       Assert (not Ada.Directories.Exists (Made)
               or else Natural (Files.Model.History.Undo_Entries (Model).Length) = 1,
               "a copy the host would not answer for is removed, or its Undo stays owed -- never forgotten");
@@ -42,6 +42,6 @@ separate (Files_Suite.History)
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 0, "and the Undo is done");
    exception
       when others =>
-         Files.Fs_Primitives.Testing.Stop_Refusing_Lookups;
+         Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
          raise;
    end Test_Refused_Lookup_Keeps_Undo_Owed;

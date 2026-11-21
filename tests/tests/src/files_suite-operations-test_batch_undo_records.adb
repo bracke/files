@@ -5,6 +5,8 @@ with Files.Operations.Undo_Recording.Testing;
 with Ada.Exceptions;
 with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
+with Files.Text_Basics;
+
 separate (Files_Suite.Operations)
    --  A batch records its Undo entry at once and then at most once a second,
    --  not once per item; a trash and a link batch too, and it undoes completely. A batch
@@ -23,7 +25,7 @@ separate (Files_Suite.Operations)
       Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       function Name (Index : Positive) return String is
-        ("item-" & Files.Types.Natural_Text (Index) & ".txt");
+        ("item-" & Files.Text_Basics.Natural_Text (Index) & ".txt");
 
       --  Restores the real clock and the counters, and removes the trash
       --  the test made; never raises, so it can run on the failure path.
@@ -71,7 +73,9 @@ separate (Files_Suite.Operations)
          Present : Natural := 0;
       begin
          for Index in 1 .. Count loop
-            if Ada.Directories.Exists (Join (Root, "item-" & Files.Types.Natural_Text (Index) & " (copy).txt")) then
+            if Ada.Directories.Exists
+                (Join (Root, "item-" & Files.Text_Basics.Natural_Text (Index) & " (copy).txt"))
+            then
                Present := Present + 1;
             end if;
          end loop;

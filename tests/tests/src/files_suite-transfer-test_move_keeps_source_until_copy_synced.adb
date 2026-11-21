@@ -1,5 +1,5 @@
 with Files.File_System.Testing;
-with Files.Durability.Testing;
+with Files.IO.Durability.Testing;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
    --  A move across devices removes its source only once the copy is on the
@@ -31,9 +31,9 @@ separate (Files_Suite.Transfer)
             Files.File_System.Drop_Move, True, Null_Unbounded_String));
          --  A file is flushed as it is written, while still staged under the
          --  name "payload"; a folder's file keeps its own name there.
-         Files.Durability.Testing.Fail_Syncs_Ending_With (if Folder then "/durable-child" else "/payload");
+         Files.IO.Durability.Testing.Fail_Syncs_Ending_With (if Folder then "/durable-child" else "/payload");
          Mutation := Files.File_System.Testing.Execute_Drop_Import (Paths);
-         Files.Durability.Testing.Clear;
+         Files.IO.Durability.Testing.Clear;
          Assert (not Mutation.Success, "a copy that cannot be synced fails the move, folder " & Folder'Image);
          Assert (File_Has_Bytes ((if Folder then Join (Source, "durable-child") else Source), "the bytes"),
                  "the source stays, folder " & Folder'Image);
@@ -50,6 +50,6 @@ separate (Files_Suite.Transfer)
       Assert (File_Has_Bytes (Join (Remote.Path, "durable-destination"), "the bytes"), "the copy holds the bytes");
    exception
       when others =>
-         Files.Durability.Testing.Clear;
+         Files.IO.Durability.Testing.Clear;
          raise;
    end Test_Move_Keeps_Source_Until_Copy_Synced;

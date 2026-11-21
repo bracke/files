@@ -70,7 +70,7 @@ is
       --  A rename keeps each item in its own folder: a search or Recent
       --  lists items from other folders, and the listing a search left
       --  behind can outlive its flag until the reload lands.
-      Parent   : constant String := Files.Fs_Primitives.Parent_Directory (Old_Full);
+      Parent   : constant String := Files.IO.Fs_Primitives.Parent_Directory (Old_Full);
       Outcome  : Target_Outcome;
 
       procedure Fail (Key : String; Path : String; Reason : Error_Reason := Other_Error) is
@@ -84,7 +84,7 @@ is
          Fail ("error.name.invalid", Old_Full, Invalid_Name);
       elsif New_Name = Old_Name then
          --  refusal-safe: a refused lookup counts the unchanged name as a failure
-         if Files.Fs_Primitives.Entry_Exists (Old_Full) then
+         if Files.IO.Fs_Primitives.Entry_Exists (Old_Full) then
             Outcome.Succeeded := True;
             Outcome.Focus_Path := To_Unbounded_String (Hostkit.Fs.Join (Parent, New_Name));
          else

@@ -437,12 +437,19 @@ package Files.Model is
       Full_Path : String)
       return Natural;
 
+   --  The item index that stands for the pending create row wherever a row
+   --  or a field names its item: the selection, a rename field, a visible
+   --  row. No loaded item has it, and it is not zero, so a field or row that
+   --  names no item (0) never matches the create row.
+   Temporary_Item_Index : constant Natural := Natural'Last;
+
    --  One visible row: the directory item plus whether it is selected.
    type Visible_Row is record
       Item       : Files.Items.Directory_Item;
       Selected   : Boolean := False;
-      --  Index into the loaded items, or zero for the pending create row.
-      --  Lets a caller walking the rows skip a per-row visible-to-item scan.
+      --  Index into the loaded items, or Temporary_Item_Index for the pending
+      --  create row. Lets a caller walking the rows skip a per-row
+      --  visible-to-item scan.
       Item_Index : Natural := 0;
    end record;
 
@@ -472,8 +479,8 @@ package Files.Model is
    --  @param Model Model to inspect.
    --  @param Visit Called once per row with the three below.
    --  @param Item The row's item, the model's own.
-   --  @param Item_Index Its index into the loaded items; zero for the
-   --    pending create row.
+   --  @param Item_Index Its index into the loaded items; Temporary_Item_Index
+   --    for the pending create row.
    --  @param Selected Whether it is selected.
    procedure For_Each_Visible_Row
      (Model : Window_Model;
@@ -1131,8 +1138,8 @@ private
    end record;
 
    --  One inline rename editor. Item_Index is a loaded-item index (1 .. last)
-   --  for a real item, or 0 for the temporary create item; Edit holds the
-   --  edited name and that field's caret.
+   --  for a real item, or Temporary_Item_Index for the temporary create item;
+   --  0 names no item. Edit holds the edited name and that field's caret.
    type Rename_Field is record
       Item_Index : Natural := 0;
       Edit       : Text_Field_State;

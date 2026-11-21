@@ -1,3 +1,6 @@
+with Files.Name_Parts;
+with Files.Text_Case;
+
 separate (Files.Operations)
 function Compress_Selected
   (Model    : in out Files.Model.Window_Model;
@@ -9,7 +12,7 @@ is
      Files.Model.Selection.Selected_Items (Model);
    Directory : constant String :=
      (if Files.Model.In_Recent_View (Model) and then not Items.Is_Empty
-      then Files.Fs_Primitives.Parent_Directory (To_String (Items.First_Element.Full_Path))
+      then Files.IO.Fs_Primitives.Parent_Directory (To_String (Items.First_Element.Full_Path))
       else Files.Model.Current_Path (Model));
 
    Input_Paths : Files.Types.String_Vectors.Vector;
@@ -70,7 +73,7 @@ is
          Collection_Failed := True;
          return;
       --  refusal-safe: a refused lookup fails the collection
-      elsif not Files.Fs_Primitives.Entry_Exists (Full) then
+      elsif not Files.IO.Fs_Primitives.Entry_Exists (Full) then
          Collection_Failed := True;
          return;
       elsif Hostkit.Fs.Is_Link (Full) then
@@ -81,13 +84,13 @@ is
          --  writers cannot store a link, so say it was left out.
          Links_Skipped := Links_Skipped + 1;
          return;
-      elsif Files.Fs_Primitives.Kind (Full) = Ada.Directories.Directory then
+      elsif Files.IO.Fs_Primitives.Kind (Full) = Ada.Directories.Directory then
          if not Record_Entry (Full, Entry_Name) then
             Collection_Failed := True;
             return;
          end if;
-         Files.Fs_Primitives.For_Each_Listed (Full, Visit'Access);
-      elsif Files.Fs_Primitives.Kind (Full) = Ada.Directories.Ordinary_File then
+         Files.IO.Fs_Primitives.For_Each_Listed (Full, Visit'Access);
+      elsif Files.IO.Fs_Primitives.Kind (Full) = Ada.Directories.Ordinary_File then
          if not Record_Entry (Full, Entry_Name) then
             Collection_Failed := True;
          end if;
@@ -124,14 +127,14 @@ is
       --  name field, not by a volume.
       Entry_Limit : constant Hostkit.Fs.Leaf_Name_Limit := (Unit => Hostkit.Fs.Bytes, Most => 65_535);
 
-      function Taken (Name : String) return Boolean is (Top_Names.Contains (Files.Types.Fold_Case (Name)));
+      function Taken (Name : String) return Boolean is (Top_Names.Contains (Files.Text_Case.Fold_Case (Name)));
 
       --  The numbering a paste gives a name in use: "readme 2.txt", a plain
       --  folder's dots kept in its name.
       function Entry_For (Name : String; Is_Folder : Boolean) return String is
          Free : constant String :=
            Files.Leaf_Names.First_Free
-             (Files.Types.Name_Stem (Name, Is_Folder), Files.Types.Name_Extension (Name, Is_Folder),
+             (Files.Name_Parts.Name_Stem (Name, Is_Folder), Files.Name_Parts.Name_Extension (Name, Is_Folder),
               Files.Leaf_Names.Spaced_Number'Access, Taken'Access, Entry_Limit);
       begin
          return (if Free = "" then Name else Free);
@@ -142,7 +145,7 @@ is
             Name : constant String :=
               Entry_For (To_String (Item.Name), Item.Kind = Files.Types.Directory_Item);
          begin
-            Top_Names.Include (Files.Types.Fold_Case (Name));
+            Top_Names.Include (Files.Text_Case.Fold_Case (Name));
             Collect (To_String (Item.Full_Path), Name);
          end;
       end loop;
@@ -265,7 +268,7 @@ begin
       --  ".bashrc" is all name: ".bashrc.zip", not ".zip"; so is a plain
       --  folder's: "photos.2024.zip", not "photos.zip".
       Raw_Base : constant String :=
-        Files.Types.Name_Stem
+        Files.Name_Parts.Name_Stem
           (To_String (Items.First_Element.Name), Items.First_Element.Kind = Files.Types.Directory_Item);
       Base     : constant String := (if Raw_Base = "" then "archive" else Raw_Base);
 

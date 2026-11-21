@@ -1,6 +1,6 @@
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Images.Netpbm;
-with Files.Durable_Writes;
+with Files.IO.Durable_Writes;
 
 separate (Files.File_System.Thumbnails)
 function Generate_Thumbnail
@@ -27,7 +27,7 @@ is
 
    function Generated return Thumbnail_Result is
      (Status         => Thumbnail_Generated,
-      Source_Path    => To_Unbounded_String (Files.Fs_Primitives.Full_Name (Source_Path)),
+      Source_Path    => To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Source_Path)),
       Thumbnail_Path => Target,
       Width          => Size,
       Height         => Size,
@@ -87,19 +87,19 @@ begin
       return Failed (Thumbnail_Failed, "error.thumbnail.failed");
    --  refusal-safe: a source not seen gets no thumbnail; only the words
    --  of the failure depend on why.
-   elsif not Files.Fs_Primitives.Exists (Source_Path) then
+   elsif not Files.IO.Fs_Primitives.Exists (Source_Path) then
       return Failed (Thumbnail_Source_Missing, "error.thumbnail.source_missing");
-   elsif Files.Fs_Primitives.Kind (Source_Path) /= Ada.Directories.Ordinary_File then
+   elsif Files.IO.Fs_Primitives.Kind (Source_Path) /= Ada.Directories.Ordinary_File then
       return Failed (Thumbnail_Unsupported, "error.thumbnail.unsupported");
    end if;
 
-   Files.Fs_Primitives.Create_Path (Files.Fs_Primitives.Parent_Directory (Cache_Directory));
-   Files.Private_Directories.Ensure (Cache_Directory);
+   Files.IO.Fs_Primitives.Create_Path (Files.IO.Fs_Primitives.Parent_Directory (Cache_Directory));
+   Files.IO.Private_Directories.Ensure (Cache_Directory);
    Prune_Cache_Once (Cache_Directory);
    Target := To_Unbounded_String (Thumbnail_Path_For (Source_Path, Cache_Directory, Size));
    --  A private temporary reserved beside the target, written below by
    --  name by a decoder.
-   Files.Durable_Writes.Write_Private_Temporary (To_String (Target), Write_Nothing'Access, Temp, Temp_Identity);
+   Files.IO.Durable_Writes.Write_Private_Temporary (To_String (Target), Write_Nothing'Access, Temp, Temp_Identity);
    if (Source_Fits_Fast_Decode (Source_Path)
        and then (Try_Write_Decoded_Png_Thumbnail (Source_Path, Size, To_String (Temp))
                  or else Try_Write_Decoded_P3_Thumbnail (Source_Path, Size, To_String (Temp))))
@@ -117,10 +117,10 @@ begin
    --  No decoder took it: the deterministic stand-in replaces whatever a
    --  decoder left in the temporary, written through the same helper so a
    --  disk that will not take it is cleaned up there.
-   Files.Durable_Writes.Remove_Owned (To_String (Temp), To_String (Temp_Identity));
+   Files.IO.Durable_Writes.Remove_Owned (To_String (Temp), To_String (Temp_Identity));
    Temp := Null_Unbounded_String;
    Temp_Identity := Null_Unbounded_String;
-   Files.Durable_Writes.Write_Private_Temporary (To_String (Target), Write_Stand_In'Access, Temp, Temp_Identity);
+   Files.IO.Durable_Writes.Write_Private_Temporary (To_String (Target), Write_Stand_In'Access, Temp, Temp_Identity);
 
    if not Publish_Temp (To_String (Target)) then
       raise Ada.Directories.Use_Error;
@@ -130,6 +130,6 @@ begin
 exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
-      Files.Durable_Writes.Remove_Owned (To_String (Temp), To_String (Temp_Identity));
+      Files.IO.Durable_Writes.Remove_Owned (To_String (Temp), To_String (Temp_Identity));
       return Failed (Thumbnail_Failed, "error.thumbnail.failed");
 end Generate_Thumbnail;

@@ -1,8 +1,10 @@
 with Guikit.Utf8;
+with Files.Text_Case;
+
 separate (Files_Suite.Model)
    procedure Test_Accent_Folding_Sort (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      function F (S : String) return String renames Files.Types.Fold_For_Sort;
+      function F (S : String) return String renames Files.Text_Case.Fold_For_Sort;
       function U (Codepoint : Natural) return String renames Guikit.Utf8.Encode;
 
       --  UTF-8 bytes, spelt out so the test does not depend on how the source

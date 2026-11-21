@@ -6,7 +6,7 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 with Files.File_System;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Localization;
 with Hostkit.Fs;
 
@@ -121,11 +121,11 @@ package body Files.Recovery_CLI is
       procedure Show (Name : String; Stop : in out Boolean) is
          pragma Unreferenced (Stop);
          --  Absolute, however the folder was named on the command line.
-         Stage : constant String := Hostkit.Fs.Join (Files.Fs_Primitives.Full_Name (Directory), Name);
+         Stage : constant String := Hostkit.Fs.Join (Files.IO.Fs_Primitives.Full_Name (Directory), Name);
       begin
          if Name'Length >= Prefix'Length
            and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
-           and then Files.Fs_Primitives.Directory_Exists (Stage)
+           and then Files.IO.Fs_Primitives.Directory_Exists (Stage)
          then
             declare
                Payload  : constant String := Hostkit.Fs.Join (Stage, "payload");
@@ -139,12 +139,12 @@ package body Files.Recovery_CLI is
       end Show;
    begin
       if Hostkit.Fs.Is_Link (Directory)
-        or else not Files.Fs_Primitives.Directory_Exists (Directory)
+        or else not Files.IO.Fs_Primitives.Directory_Exists (Directory)
       then
          Fail (Files.Localization.Text ("cli.recovery.error.not_directory") & ':' & ' ' & Directory);
          return;
       end if;
-      Files.Fs_Primitives.For_Each_Name (Directory, Show'Access);
+      Files.IO.Fs_Primitives.For_Each_Name (Directory, Show'Access);
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.Recovery_CLI");

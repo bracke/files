@@ -1,3 +1,6 @@
+with Files.Name_Parts;
+with Files.Text_Basics;
+
 separate (Files.File_System.Recovery)
    procedure Delete_Registry_Record (Directory : String) is
       Root : constant String := Registry_Root (Create => False);
@@ -16,15 +19,15 @@ separate (Files.File_System.Recovery)
       end Check;
    begin
       if Root = ""
-        or else Files.Fs_Primitives.Parent_Directory (Directory) /= Root
-        or else not Files.Types.Starts_With
-                      (Files.Types.Leaf_Of (Directory), Files.Protocol_Names.Recovery_Stage_Prefix)
+        or else Files.IO.Fs_Primitives.Parent_Directory (Directory) /= Root
+        or else not Files.Text_Basics.Starts_With
+                      (Files.Name_Parts.Leaf_Of (Directory), Files.Protocol_Names.Recovery_Stage_Prefix)
         or else Hostkit.Fs.Is_Link (Directory)
       then
          return;
       end if;
       Hold_Registry (Root, Hold);
-      Files.Fs_Primitives.For_Each_Name (Directory, Check'Access);
+      Files.IO.Fs_Primitives.For_Each_Name (Directory, Check'Access);
       if Count = 1 and then not Other then
          Delete_Owned_Tree (Directory);
       end if;

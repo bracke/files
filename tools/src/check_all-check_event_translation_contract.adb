@@ -178,8 +178,8 @@ separate (Check_All)
         [To_Unbounded_String ("Hostkit."),
          To_Unbounded_String ("Ada.Text_IO"),
          To_Unbounded_String ("Ada.Streams.Stream_IO"),
-         To_Unbounded_String ("Files.Capped_Files"),
-         To_Unbounded_String ("Files.Fs_Primitives")]
+         To_Unbounded_String ("Files.IO.Capped_Files"),
+         To_Unbounded_String ("Files.IO.Fs_Primitives")]
       loop
          Require_Not_Contains_In_Unit
            (Root & "/src/files-model.adb",
@@ -221,6 +221,8 @@ separate (Check_All)
             To_Unbounded_String ("Files.Jobs.Process"),
             To_Unbounded_String ("Files.Jobs.Transfer"),
             To_Unbounded_String ("Files.Model.Support"),
+            --  A leaf name's stem and extension, from its text alone.
+            To_Unbounded_String ("Files.Name_Parts"),
             To_Unbounded_String ("Files.Paste"),
             --  The paste prompt's and run's state as values (no I/O).
             To_Unbounded_String ("Files.Paste_States"),
@@ -230,6 +232,9 @@ separate (Check_All)
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Settings"),
             To_Unbounded_String ("Files.Settings.Path_References"),
+            --  Text helpers (counts, prefixes, case folding), no I/O.
+            To_Unbounded_String ("Files.Text_Basics"),
+            To_Unbounded_String ("Files.Text_Case"),
             To_Unbounded_String ("Files.Type_Ahead"),
             To_Unbounded_String ("Files.Types"),
             To_Unbounded_String ("Files.UI_Types"),

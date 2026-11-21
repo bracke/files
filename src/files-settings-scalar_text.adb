@@ -1,4 +1,6 @@
 with Files.Preference_Types;
+with Files.Text_Basics;
+
 separate (Files.Settings)
    function Scalar_Text
      (Settings : Settings_Model;
@@ -39,7 +41,7 @@ separate (Files.Settings)
          when Icon_Theme_Setting =>
             return Files.Icon_Themes.Image (Settings.Icon_Theme);
          when Font_Pixel_Size_Setting =>
-            return Files.Types.Natural_Text (Settings.Font_Pixel_Size);
+            return Files.Text_Basics.Natural_Text (Settings.Font_Pixel_Size);
          when Info_Pane_Open_Setting =>
             return Boolean_Name (Settings.Info_Pane_Open);
          when Use_System_Default_Opener_Setting =>
@@ -59,10 +61,10 @@ separate (Files.Settings)
             | Detail_Column_Width_Filetype_Setting
             | Detail_Column_Width_Created_Setting
             | Detail_Column_Width_Permissions_Setting =>
-            return Files.Types.Natural_Text (Settings.Column_Widths (Column));
+            return Files.Text_Basics.Natural_Text (Settings.Column_Widths (Column));
          when Window_Width_Setting =>
-            return Files.Types.Natural_Text (Settings.Window_Width);
+            return Files.Text_Basics.Natural_Text (Settings.Window_Width);
          when Window_Height_Setting =>
-            return Files.Types.Natural_Text (Settings.Window_Height);
+            return Files.Text_Basics.Natural_Text (Settings.Window_Height);
       end case;
    end Scalar_Text;

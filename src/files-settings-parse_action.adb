@@ -1,4 +1,7 @@
 with Files.Settings.Open_Actions;
+with Files.Text_Basics;
+with Files.Text_Case;
+
 separate (Files.Settings)
    function Parse_Action (Text : String) return Open_Action is
       Clean     : Unbounded_String;
@@ -15,7 +18,7 @@ separate (Files.Settings)
       end if;
       Clean := To_Unbounded_String (Trim (Text));
 
-      if Starts_With (Files.Types.To_Lower_Ascii (To_String (Clean)), "shell:") then
+      if Starts_With (Files.Text_Case.To_Lower_Ascii (To_String (Clean)), "shell:") then
          Use_Shell := True;
          if Length (Clean) > 6 then
             Clean := To_Unbounded_String (Trim (To_String (Clean) (7 .. Length (Clean))));

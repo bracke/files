@@ -1,5 +1,7 @@
 with Files.File_System.Testing;
 with Files.Protocol_Names;
+with Files.Text_Basics;
+
 separate (Files_Suite.Recovery)
    --  A stage whose delete fails partway keeps what marks it as ours -- its
    --  owner file and vacated marker -- so the recovery sweep can finish it
@@ -11,7 +13,7 @@ separate (Files_Suite.Recovery)
       Children : constant := 8;
 
       function Child (Index : Positive) return String is
-        (Join (Stage, "child-" & Files.Types.Natural_Text (Index)));
+        (Join (Stage, "child-" & Files.Text_Basics.Natural_Text (Index)));
    begin
       for Refused in 1 .. Children loop
          Reset_Root;
@@ -33,10 +35,11 @@ separate (Files_Suite.Recovery)
          Assert (Ada.Directories.Exists (Child (Refused)), "the refused child is still there");
          Assert
            (Ada.Directories.Exists (Join (Stage, Files.Protocol_Names.Recovery_Owner)),
-            "the owner file outlasts a failed delete (child " & Files.Types.Natural_Text (Refused) & " refused)");
+            "the owner file outlasts a failed delete (child " & Files.Text_Basics.Natural_Text (Refused) & " refused)");
          Assert
            (Ada.Directories.Exists (Join (Stage, Files.Protocol_Names.Recovery_Vacated)),
-            "the vacated marker outlasts a failed delete (child " & Files.Types.Natural_Text (Refused) & " refused)");
+            "the vacated marker outlasts a failed delete (child " & Files.Text_Basics.Natural_Text
+              (Refused) & " refused)");
       end loop;
       Files.File_System.Testing.Delete_Owned_Tree (Stage);
       Assert (not Ada.Directories.Exists (Stage), "once nothing refuses, the stage goes entirely");

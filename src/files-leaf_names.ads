@@ -133,7 +133,7 @@ package Files.Leaf_Names is
    --  The first of the Candidate names for attempts First .. Max_Attempts
    --  that Taken says is free: the one search for a free name every
    --  operation makes. Taken decides how "in use" is told -- on a disk it
-   --  is Files.Fs_Primitives.Is_Taken, which raises on a lookup the host
+   --  is Files.IO.Fs_Primitives.Is_Taken, which raises on a lookup the host
    --  refuses, so a name that may be in use is never handed out.
    --
    --  @param Stem The name before its extension (all of a folder's name).

@@ -1,7 +1,7 @@
 separate (Files.File_System.Recovery)
    function Restore
      (Path : String; Expected_Identity : String := ""; Expected_Original : String := "") return Mutation_Result is
-      Parent : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Parent : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
       Target : UString;
       --  The stage's restore marker, held while the payload leaves.
       Marker : Hostkit.Lease_Files.Lease;
@@ -18,14 +18,14 @@ separate (Files.File_System.Recovery)
          raise Ada.Directories.Use_Error;
       end if;
       --  refusal-safe: a refused target goes on to the no-replace move, which refuses an occupied one
-      if Files.Fs_Primitives.Entry_Exists (To_String (Target)) then
+      if Files.IO.Fs_Primitives.Entry_Exists (To_String (Target)) then
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_exists"));
       end if;
       --  A failed post-rename permission restoration can leave the private
       --  payload writable. Restore its recorded mode before retrying the move
       --  -- where the bits are the host's own, as Preserve records them.
       --  refusal-safe: a refused mode record is skipped; the move does not depend on it
-      if Hostkit.Metadata.Mode_Bits_Are_Native and then Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Parent, "mode"))
+      if Hostkit.Metadata.Mode_Bits_Are_Native and then Files.IO.Fs_Primitives.Exists (Hostkit.Fs.Join (Parent, "mode"))
       then
          declare
             Record_Path : constant String := Hostkit.Fs.Join (Parent, "mode");
@@ -56,7 +56,7 @@ separate (Files.File_System.Recovery)
         or else (Expected_Identity = "" and then not Support.Move_No_Replace (Path, To_String (Target)))
       then
          --  refusal-safe: a refused payload keeps the marker
-         Let_Go_Marker (Parent, Vacated_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
+         Let_Go_Marker (Parent, Vacated_Marker, Marker, Remove => Files.IO.Fs_Primitives.Entry_Exists (Path));
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
       end if;
       --  The original is back: the restore has succeeded. Its record goes
@@ -69,7 +69,7 @@ separate (Files.File_System.Recovery)
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
       end;
-      if Files.Fs_Primitives.Entry_Is_Absent (Parent) then
+      if Files.IO.Fs_Primitives.Entry_Is_Absent (Parent) then
          Unregister (Path);
       end if;
       return (Success => True, Error_Key => Null_Unbounded_String);
@@ -78,7 +78,7 @@ separate (Files.File_System.Recovery)
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          if Hostkit.Lease_Files.Is_Held (Marker) then
             --  refusal-safe: a refused payload keeps the marker
-            Let_Go_Marker (Parent, Vacated_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
+            Let_Go_Marker (Parent, Vacated_Marker, Marker, Remove => Files.IO.Fs_Primitives.Entry_Exists (Path));
          end if;
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
    end Restore;

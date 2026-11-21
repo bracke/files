@@ -1,3 +1,5 @@
+with Files.Text_Case;
+
 separate (Files.Rendering.Build_Snapshot_Into)
    function Filetype_Detail
      (Item : Files.Items.Directory_Item)
@@ -11,7 +13,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
          end if;
 
          return
-           To_Unbounded_String (Files.Types.To_Upper_Ascii (Extension));
+           To_Unbounded_String (Files.Text_Case.To_Upper_Ascii (Extension));
       end Extension_File_Label;
    begin
       case Item.Kind is

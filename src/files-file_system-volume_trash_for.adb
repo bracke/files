@@ -1,6 +1,6 @@
 with Ada.Streams;
-with Files.Durable_Writes;
-with Files.Durability;
+with Files.IO.Durable_Writes;
+with Files.IO.Durability;
 with Hostkit.Durability;
 with Hostkit.Host;
 with Hostkit.Process;
@@ -11,7 +11,7 @@ function Volume_Trash_For (Path : String) return String is
 
    --  Path's parent; "/" (or a drive root) is its own.
    function Parent_Of (Path : String) return String is
-      Parent : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Parent : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
    begin
       return (if Parent = "" then Path else Parent);
    end Parent_Of;
@@ -22,7 +22,7 @@ function Volume_Trash_For (Path : String) return String is
       Known   : Boolean;
    begin
       loop
-         if Files.Fs_Primitives.Directory_Exists (To_String (Current)) then
+         if Files.IO.Fs_Primitives.Directory_Exists (To_String (Current)) then
             Device := Hostkit.Metadata.Device_Id (To_String (Current), Known);
             return Known;
          end if;
@@ -44,10 +44,10 @@ function Volume_Trash_For (Path : String) return String is
    --  freedesktop trash (the Finder's keeps its items in Base itself).
    function Prepared (Base : String) return String is
    begin
-      Files.Private_Directories.Ensure (Base);
+      Files.IO.Private_Directories.Ensure (Base);
       if not Is_Finder_Volume_Trash (Base) then
-         Files.Private_Directories.Ensure (Hostkit.Fs.Join (Base, "files"));
-         Files.Private_Directories.Ensure (Hostkit.Fs.Join (Base, "info"));
+         Files.IO.Private_Directories.Ensure (Hostkit.Fs.Join (Base, "files"));
+         Files.IO.Private_Directories.Ensure (Hostkit.Fs.Join (Base, "info"));
       end if;
       return (if Valid_Volume_Trash_Base (Base) then Base else "");
    exception
@@ -85,15 +85,15 @@ function Volume_Trash_For (Path : String) return String is
          Temporary : Files.Types.UString;
          Identity  : Files.Types.UString;
       begin
-         Files.Fs_Primitives.Create_Path (Support.Files_Data_Directory);
+         Files.IO.Fs_Primitives.Create_Path (Support.Files_Data_Directory);
          --  A temporary a crash left before this process started goes first.
-         Files.Durable_Writes.Sweep_Stale_Temporaries (List);
-         Files.Durable_Writes.Write_Private_Temporary (List, Lines'Access, Temporary, Identity);
-         case Files.Durable_Writes.Publish (To_String (Temporary), List) is
-            when Files.Durable_Writes.Published_Durable | Files.Durable_Writes.Published_Not_Durable =>
+         Files.IO.Durable_Writes.Sweep_Stale_Temporaries (List);
+         Files.IO.Durable_Writes.Write_Private_Temporary (List, Lines'Access, Temporary, Identity);
+         case Files.IO.Durable_Writes.Publish (To_String (Temporary), List) is
+            when Files.IO.Durable_Writes.Published_Durable | Files.IO.Durable_Writes.Published_Not_Durable =>
                null;
-            when Files.Durable_Writes.Not_Published =>
-               Files.Durable_Writes.Remove_Owned (To_String (Temporary), To_String (Identity));
+            when Files.IO.Durable_Writes.Not_Published =>
+               Files.IO.Durable_Writes.Remove_Owned (To_String (Temporary), To_String (Identity));
          end case;
       end Write;
    begin
@@ -123,7 +123,7 @@ function Volume_Trash_For (Path : String) return String is
 begin
    if not Volume_Trash_Supported
      or else not Hostkit.Process.Current_User_Account (Uid)
-     or else not Device_Of (Files.Fs_Primitives.Parent_Directory (Path), Item_Device)
+     or else not Device_Of (Files.IO.Fs_Primitives.Parent_Directory (Path), Item_Device)
      or else not Device_Of (Trash_Base_Path, Home_Device)
      or else Item_Device = Home_Device
    then
@@ -132,7 +132,7 @@ begin
 
    declare
       --  The top of the item's filesystem: the highest ancestor on its device.
-      Top : Unbounded_String := To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Path));
+      Top : Unbounded_String := To_Unbounded_String (Files.IO.Fs_Primitives.Parent_Directory (Path));
       Id  : constant String := Files.Types.Account_Image (Uid);
    begin
       loop

@@ -1,3 +1,7 @@
+with Files.Text_Basics;
+with Files.Text_Case;
+use Files.Text_Basics;
+
 package body Files.Grouping is
 
    use type Ada.Calendar.Time;
@@ -76,10 +80,9 @@ package body Files.Grouping is
       Today              : Ada.Calendar.Time)
       return Positive
    is
-      function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
 
       function Type_Of return Type_Band is
-         Mime : constant String := Files.Types.To_Lower_Ascii (Filetype);
+         Mime : constant String := Files.Text_Case.To_Lower_Ascii (Filetype);
       begin
          if Kind = Files.Types.Directory_Item then
             return Folders;
@@ -171,7 +174,8 @@ package body Files.Grouping is
          when Files.Preference_Types.Group_By_Label =>
             return
               (if Band >= Label_Band_Count then "details.group.unlabeled"
-               else "label.color." & Files.Types.To_Lower_Ascii (Files.Preference_Types.Color_Label'Val (Band)'Image));
+               else "label.color."
+                 & Files.Text_Case.To_Lower_Ascii (Files.Preference_Types.Color_Label'Val (Band)'Image));
          when Files.Preference_Types.No_Grouping =>
             return "";
       end case;

@@ -1,4 +1,6 @@
 with Files.File_System.Thumbnails.Testing;
+with Files.Text_Basics;
+
 separate (Files_Suite.Thumbnails)
    --  A cache listing counts only thumbnails against its cap, as a prune
    --  does: foreign files in the cache directory never make it look
@@ -24,7 +26,7 @@ separate (Files_Suite.Thumbnails)
       end loop;
       --  Many more foreign files than the cap.
       for Index in 1 .. 4 * Cap loop
-         Write_Binary_File (Join (Cache, "foreign-" & Files.Types.Natural_Text (Index) & ".txt"), "x");
+         Write_Binary_File (Join (Cache, "foreign-" & Files.Text_Basics.Natural_Text (Index) & ".txt"), "x");
       end loop;
       Files.File_System.Thumbnails.Testing.List_Cache (Cache, Cap, Listed, Count);
       Assert (Listed, "foreign files do not cap the listing");

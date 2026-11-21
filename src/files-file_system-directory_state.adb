@@ -17,12 +17,12 @@ is
       Add_To_Signature (Result, Name);
    end Add_Entry;
 begin
-   if not Files.Fs_Primitives.Directory_Exists (Path)
+   if not Files.IO.Fs_Primitives.Directory_Exists (Path)
    then
       return Result;
    end if;
 
-   Result.Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
+   Result.Path := To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Path));
    Result.Exists := True;
    Support.For_Each_Entry (Path, Add_Entry'Access);
    return Result;

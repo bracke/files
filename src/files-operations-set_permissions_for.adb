@@ -13,7 +13,7 @@ begin
    declare
       Item      : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
       Path      : constant String :=
-        Files.Fs_Primitives.Full_Name (To_String (Item.Full_Path));
+        Files.IO.Fs_Primitives.Full_Name (To_String (Item.Full_Path));
       Old_Mode : Natural;
       Identity : Files.Types.UString;
       --  Where the mode is not the whole of an entry's access (a Windows

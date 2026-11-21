@@ -18,7 +18,6 @@ with Files.Operations;
 with Files.Operations.Testing;
 with Hostkit.Fs;
 with Files.Settings;
-with Files.Types;
 with Files_Suite.Support;
 with Files_Suite.Operations_Support;
 with Files_Suite.Support.Disk;

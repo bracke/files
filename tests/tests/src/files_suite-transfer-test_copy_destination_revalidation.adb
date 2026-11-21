@@ -27,7 +27,7 @@ separate (Files_Suite.Transfer)
       end Check_Source;
    begin
       --  On Windows too: the destination's links and junctions are resolved
-      --  (Files.Fs_Primitives.Real_Name) though its Full_Name reads text.
+      --  (Files.IO.Fs_Primitives.Real_Name) though its Full_Name reads text.
       Settings.Show_Hidden_Files := True;
       for Background in Boolean loop
          Reset_Root;

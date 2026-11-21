@@ -7,6 +7,7 @@ with Hostkit.Fs;
 
 with Files.File_Types;
 with Files.Settings;
+with Files.Text_Case;
 
 package body Files.Item_Lists is
 
@@ -159,11 +160,11 @@ package body Files.Item_Lists is
                Key : Sort_Key;
             begin
                Key.Name_Lower :=
-                 To_Unbounded_String (Files.Types.Fold_For_Sort (To_String (Items (Index).Name)));
+                 To_Unbounded_String (Files.Text_Case.Fold_For_Sort (To_String (Items (Index).Name)));
                if Field = Files.Types.Sort_Type then
                   Key.Filetype_Lower :=
                     To_Unbounded_String
-                      (Files.Types.Fold_For_Sort (To_String (Items (Index).Filetype)));
+                      (Files.Text_Case.Fold_For_Sort (To_String (Items (Index).Filetype)));
                end if;
                Keys.Append (Key);
             end;

@@ -3,9 +3,9 @@ separate (Files.File_System.Recovery)
       Target : UString;
       Identity : UString;
       Record_Path : constant String :=
-        Hostkit.Fs.Join (Files.Fs_Primitives.Parent_Directory (Path), "original");
+        Hostkit.Fs.Join (Files.IO.Fs_Primitives.Parent_Directory (Path), "original");
    begin
-      if Read_Owner (Files.Fs_Primitives.Parent_Directory (Path), Target, Identity) then
+      if Read_Owner (Files.IO.Fs_Primitives.Parent_Directory (Path), Target, Identity) then
          return To_String (Target);
       end if;
       if not Record_Is_Regular (Record_Path, Original_Record_Bytes) then

@@ -1,4 +1,6 @@
 with Files.File_Types;
+with Files.Name_Parts;
+
 separate (Files.Operations)
 function Extract_Selected
   (Model    : in out Files.Model.Window_Model;
@@ -59,7 +61,7 @@ is
       Full_Path : constant String := To_String (Item.Full_Path);
       --  Beside the archive, wherever the listing came from (a search
       --  or Recent lists items from other folders).
-      Destination : constant String := Files.Fs_Primitives.Parent_Directory (Full_Path);
+      Destination : constant String := Files.IO.Fs_Primitives.Parent_Directory (Full_Path);
    begin
       Stop := False;
       if Destination = "" then
@@ -71,7 +73,7 @@ is
          return;
       end if;
       declare
-         Raw_Base : constant String := Files.Types.Stem_Of (Item_Name);
+         Raw_Base : constant String := Files.Name_Parts.Stem_Of (Item_Name);
          Base     : constant String := (if Raw_Base = "" then "archive" else Raw_Base);
 
          --  A directory-unique destination folder name, e.g. "report"
@@ -138,7 +140,7 @@ is
                return;
             end if;
          end;
-         Files.Fs_Primitives.Create_Directory (Payload);
+         Files.IO.Fs_Primitives.Create_Directory (Payload);
          --  The job's cancel is asked between members and while one streams,
          --  so a cancel stops a long extraction rather than waiting it out.
          Zlib.Extract_Archive_File_To_Directory

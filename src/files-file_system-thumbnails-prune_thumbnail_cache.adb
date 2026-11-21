@@ -85,8 +85,8 @@ is
 
       declare
          Full     : constant String := Hostkit.Fs.Join (Cache_Directory, Name);
-         Size     : constant Long_Long_Integer := Long_Long_Integer (Files.Fs_Primitives.Size (Full));
-         Modified : constant Ada.Calendar.Time := Files.Fs_Primitives.Modification_Time (Full);
+         Size     : constant Long_Long_Integer := Long_Long_Integer (Files.IO.Fs_Primitives.Size (Full));
+         Modified : constant Ada.Calendar.Time := Files.IO.Fs_Primitives.Modification_Time (Full);
       begin
          if Size < 0 or else Total > Long_Long_Integer'Last - Size then
             Overflowed := True;
@@ -129,12 +129,12 @@ begin
    --  was configured.  Pruning is destructive, so never follow that link
    --  and evict ordinary files from an unrelated target directory.
    if Hostkit.Fs.Is_Link (Cache_Directory)
-     or else not Files.Fs_Primitives.Directory_Exists (Cache_Directory)
+     or else not Files.IO.Fs_Primitives.Directory_Exists (Cache_Directory)
    then
       return;
    end if;
 
-   Files.Fs_Primitives.For_Each_Listed (Cache_Directory, Collect'Access);
+   Files.IO.Fs_Primitives.For_Each_Listed (Cache_Directory, Collect'Access);
    if Overflowed or else (Uncollected = 0 and then Total <= Budget_Bytes) then
       return;
    end if;
@@ -168,7 +168,7 @@ begin
               and then Files.File_Identities.Token (To_String (Candidate.Path)) =
                 To_String (Candidate.Identity)
             then
-               Files.Fs_Primitives.Delete_File (To_String (Candidate.Path));
+               Files.IO.Fs_Primitives.Delete_File (To_String (Candidate.Path));
                Total := Total - Candidate.Size;
                Removed := Removed + 1;
             end if;

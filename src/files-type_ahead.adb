@@ -1,4 +1,6 @@
 with Ada.Strings.Unbounded;
+with Files.Text_Basics;
+with Files.Text_Case;
 
 package body Files.Type_Ahead is
 
@@ -12,7 +14,7 @@ package body Files.Type_Ahead is
    is
       Count : constant Natural := Natural (Names.Length);
       --  Folded once, not once per candidate.
-      Folded_Prefix : constant String := Files.Types.Fold_Case (Prefix);
+      Folded_Prefix : constant String := Files.Text_Case.Fold_Case (Prefix);
       Start : Natural;
    begin
       if Prefix = "" or else Folded_Prefix = "" or else Count = 0 then
@@ -27,9 +29,9 @@ package body Files.Type_Ahead is
       for Offset in 0 .. Count - 1 loop
          declare
             Index : constant Positive := ((Start - 1 + Offset) mod Count) + 1;
-            Name  : constant String := Files.Types.Fold_Case (To_String (Names (Index)));
+            Name  : constant String := Files.Text_Case.Fold_Case (To_String (Names (Index)));
          begin
-            if Files.Types.Starts_With (Name, Folded_Prefix) then
+            if Files.Text_Basics.Starts_With (Name, Folded_Prefix) then
                return Index;
             end if;
          end;

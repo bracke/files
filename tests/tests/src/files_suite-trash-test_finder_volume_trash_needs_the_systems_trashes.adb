@@ -1,4 +1,4 @@
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.File_System.Trash;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
@@ -56,7 +56,7 @@ separate (Files_Suite.Trash)
          --  then the item goes into it, else to the home trash.
          Systems : Boolean := False;
       begin
-         if Files.Fs_Primitives.Entry_Is_Absent (Trashes) then
+         if Files.IO.Fs_Primitives.Entry_Is_Absent (Trashes) then
             Ada.Directories.Create_Path (Own);
             Made := To_Unbounded_String (Trashes);
             --  Sticky and open to everyone, as the system makes it: only who

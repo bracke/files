@@ -1,3 +1,5 @@
+with Files.Name_Parts;
+
 separate (Files.File_System.Thumbnails)
 function Thumbnail_For_Item
   (Full_Path       : String;
@@ -19,7 +21,7 @@ is
    Present : constant Boolean :=
      (if Cached.Listed
       then Thumbnail_Path /= ""
-           and then Cache_Holds (Cached, Files.Types.Leaf_Of (Thumbnail_Path))
+           and then Cache_Holds (Cached, Files.Name_Parts.Leaf_Of (Thumbnail_Path))
       else True);
 
    Loaded : Cached_Thumbnail :=

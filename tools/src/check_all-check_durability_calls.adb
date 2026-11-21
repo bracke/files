@@ -8,10 +8,11 @@ separate (Check_All)
               Ada.Characters.Handling.To_Lower
                 (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => True));
          begin
-            if Ada.Directories.Simple_Name (Path) /= "files-durability.adb"
+            if Ada.Directories.Simple_Name (Path) /= "files-io-durability.adb"
               and then Ada.Strings.Fixed.Index (Lower, "hostkit.durability.sync_") > 0
             then
-               Report (Path & ": flushes with Hostkit.Durability.Sync_*; use Files.Durability, which tests can fail");
+               Report
+                 (Path & ": flushes with Hostkit.Durability.Sync_*; use Files.IO.Durability, which tests can fail");
             end if;
          end;
       end loop;

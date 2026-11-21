@@ -1,8 +1,11 @@
 with Files.File_System.Trash;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Ada.Strings.Fixed;
 with Ada.Strings.Wide_Wide_Fixed;
 with Guikit.Utf8;
+with Files.Name_Parts;
+with Files.Text_Basics;
+
 separate (Files_Suite.Trash)
    --  A name too long for the trash to add ".trashinfo" or a counter to is
    --  still trashed, under a shortened name, and restored under its own.
@@ -22,7 +25,7 @@ separate (Files_Suite.Trash)
       --  The fixture is reached through Hostkit: with the folder in front of
       --  it the name passes Windows' 260-character limit, where GNAT's own
       --  calls stop. The name itself fits there: 190 UTF-16 units of 255.
-      function Present (Path : String) return Boolean is (Files.Fs_Primitives.Entry_Exists (Path));
+      function Present (Path : String) return Boolean is (Files.IO.Fs_Primitives.Entry_Exists (Path));
 
       --  Remove the macOS home, long names and all, past that limit too:
       --  With_Trash_Environment's own cleanup reads through GNAT.
@@ -47,7 +50,7 @@ separate (Files_Suite.Trash)
          Assert (Files.File_System.Trash.Move_To_Trash (Original, Trashed).Success,
                  "a file with a 250-byte name goes to the trash");
          Assert (not Present (Original), "it left its folder");
-         Leaf := To_Unbounded_String (Files.Types.Leaf_Of (To_String (Trashed)));
+         Leaf := To_Unbounded_String (Files.Name_Parts.Leaf_Of (To_String (Trashed)));
          --  Cut only as far as ".trashinfo" needs, where names count bytes;
          --  a volume counting UTF-16 units holds all 190 with it.
          Files_Suite.Support.Assert_Equal
@@ -55,7 +58,7 @@ separate (Files_Suite.Trash)
             (if Hostkit.Fs."=" (Hostkit.Fs.Leaf_Name_Limit_At (Root & "_xdg_data").Unit, Hostkit.Fs.Bytes) then 244
              else Long_Name'Length),
             "it is kept under a name cut to fit, one byte backed off a split letter");
-         Assert (Files.Types.Starts_With (To_String (Leaf), Ada.Strings.Fixed."*" (126, 'x'))
+         Assert (Files.Text_Basics.Starts_With (To_String (Leaf), Ada.Strings.Fixed."*" (126, 'x'))
                  and then Ada.Directories.Extension (To_String (Leaf)) = "txt",
                  "the shortened name keeps its start and extension");
          Assert (Guikit.Utf8.Is_Valid (To_String (Leaf)), "the cut ends a whole character");

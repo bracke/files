@@ -59,8 +59,8 @@ begin
                   end if;
                   --  A source gone for sure, or a destination that may be
                   --  taken (a refused lookup is not a free one), fails it.
-                  if Source = "" or else Files.Fs_Primitives.Entry_Is_Absent (Source)
-                    or else not Files.Fs_Primitives.Entry_Is_Absent (Dest)
+                  if Source = "" or else Files.IO.Fs_Primitives.Entry_Is_Absent (Source)
+                    or else not Files.IO.Fs_Primitives.Entry_Is_Absent (Dest)
                   then
                      Succeeded := False;
                   else

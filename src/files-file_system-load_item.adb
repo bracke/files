@@ -1,3 +1,5 @@
+with Files.Name_Parts;
+
 separate (Files.File_System)
 function Load_Item
   (Full_Path : String;
@@ -8,7 +10,7 @@ is
 begin
    --  Missing only when that is sure: a path that cannot be looked at is
    --  still listed (the Recent view keeps it), its details unavailable.
-   if Full_Path = "" or else Files.Fs_Primitives.Entry_Is_Absent (Full_Path) then
+   if Full_Path = "" or else Files.IO.Fs_Primitives.Entry_Is_Absent (Full_Path) then
       return
         (Success   => False,
          Item      => Empty,
@@ -19,10 +21,10 @@ begin
       --  A link is the item, not what it points at: only its text is made
       --  absolute.
       Full   : constant String :=
-        (if Hostkit.Fs.Is_Link (Full_Path) then Files.Fs_Primitives.Absolute_Name (Full_Path)
-         else Files.Fs_Primitives.Full_Name (Full_Path));
-      Name   : constant String := Files.Types.Leaf_Of (Full);
-      Parent : constant String := Files.Fs_Primitives.Parent_Directory (Full);
+        (if Hostkit.Fs.Is_Link (Full_Path) then Files.IO.Fs_Primitives.Absolute_Name (Full_Path)
+         else Files.IO.Fs_Primitives.Full_Name (Full_Path));
+      Name   : constant String := Files.Name_Parts.Leaf_Of (Full);
+      Parent : constant String := Files.IO.Fs_Primitives.Parent_Directory (Full);
       Kind   : constant Files.Types.Item_Kind := Kind_From_Path (Full);
    begin
       --  A root is no folder's item: it has neither a name nor a parent.

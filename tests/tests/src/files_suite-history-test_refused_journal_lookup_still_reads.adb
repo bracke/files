@@ -1,4 +1,4 @@
-with Files.Fs_Primitives.Testing;
+with Files.IO.Fs_Primitives.Testing;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.History)
    --  A history journal the host will not say exists -- a refused lookup,
@@ -29,10 +29,10 @@ separate (Files_Suite.History)
          Mode => Files.Undo.Journal.Must_Commit);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
 
-      Files.Fs_Primitives.Testing.Refuse_Lookups (Join (Directory, "history"));
+      Files.IO.Fs_Primitives.Testing.Refuse_Lookups (Join (Directory, "history"));
       Assert (Files.Model.Testing.Restore_Journal (Directory, Model),
               "a journal whose lookup is refused is still read");
-      Files.Fs_Primitives.Testing.Stop_Refusing_Lookups;
+      Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "with its Undo entry");
 
@@ -59,6 +59,6 @@ separate (Files_Suite.History)
       Reset_Root;
    exception
       when others =>
-         Files.Fs_Primitives.Testing.Stop_Refusing_Lookups;
+         Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
          raise;
    end Test_Refused_Journal_Lookup_Still_Reads;

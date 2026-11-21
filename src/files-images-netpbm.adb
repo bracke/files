@@ -1,4 +1,5 @@
 with Ada.Containers;
+with Files.Text_Basics;
 
 package body Files.Images.Netpbm is
 
@@ -51,7 +52,7 @@ package body Files.Images.Netpbm is
    function P6_Header (Width : Positive; Height : Positive) return Ada.Streams.Stream_Element_Array is
       Text : constant String :=
         "P6" & ASCII.LF
-        & Files.Types.Natural_Text (Width) & " " & Files.Types.Natural_Text (Height) & ASCII.LF
+        & Files.Text_Basics.Natural_Text (Width) & " " & Files.Text_Basics.Natural_Text (Height) & ASCII.LF
         & "255" & ASCII.LF;
       Bytes : Ada.Streams.Stream_Element_Array (1 .. Text'Length);
    begin

@@ -7,8 +7,8 @@ with Ada.Strings.Unbounded;
 
 with Interfaces;
 
-with Files.Durable_Writes;
-with Files.Fs_Primitives;
+with Files.IO.Durable_Writes;
+with Files.IO.Fs_Primitives;
 with Hostkit.Fs;
 with Guikit.Shared_Bytes;
 with Files.Path_Checks;
@@ -101,30 +101,30 @@ package body Files.Jobs.Records is
       --  while a scanner held it) is removed before this write rather than
       --  refusing every later publish of the record. Whatever fails below
       --  removes the one this call wrote.
-      Files.Durable_Writes.Write_Fixed_Private_File
+      Files.IO.Durable_Writes.Write_Fixed_Private_File
         (Staged, Write, Identity, Max_Bytes => Long_Long_Integer (Max_Transport_Bytes));
       declare
-         Step    : Files.Durable_Writes.Publication_Step;
-         Outcome : constant Files.Durable_Writes.Publication_Result :=
-           Files.Durable_Writes.Publish (Staged, Result, Step);
+         Step    : Files.IO.Durable_Writes.Publication_Step;
+         Outcome : constant Files.IO.Durable_Writes.Publication_Result :=
+           Files.IO.Durable_Writes.Publish (Staged, Result, Step);
 
          --  refusal-safe: words for a diagnostic, deciding nothing.
          function State (Path : String) return String is
            --  refusal-safe: as above.
-           (if Files.Fs_Primitives.Exists (Path) then "present" else "gone");
+           (if Files.IO.Fs_Primitives.Exists (Path) then "present" else "gone");
       begin
-         if not Files.Durable_Writes.Published (Outcome) then
+         if not Files.IO.Durable_Writes.Published (Outcome) then
             --  Say which part failed, as a machine-readable diagnostic: an
             --  intermittent CI failure here could not be reproduced locally.
             declare
                Message : constant String :=
-                 "publish=" & Files.Durable_Writes.Publication_Result'Image (Outcome)
-                 & ";step=" & Files.Durable_Writes.Publication_Step'Image (Step)
+                 "publish=" & Files.IO.Durable_Writes.Publication_Result'Image (Outcome)
+                 & ";step=" & Files.IO.Durable_Writes.Publication_Step'Image (Step)
                  & ";dir=" & State (Directory)
                  & ";tmp=" & State (Staged)
                  & ";result=" & State (Result);
             begin
-               Files.Durable_Writes.Remove_Owned (Staged, To_String (Identity));
+               Files.IO.Durable_Writes.Remove_Owned (Staged, To_String (Identity));
                raise Ada.Directories.Use_Error with Message;
             end;
          end if;
@@ -136,7 +136,7 @@ package body Files.Jobs.Records is
       Value : Files.Settings.Settings_Model)
    is
    begin
-      Files.Bounded_Streams.Output_String (Stream, Files.Settings.To_Text (Value), Max_Settings_Length);
+      Files.IO.Record_Fields.Output_String (Stream, Files.Settings.To_Text (Value), Max_Settings_Length);
    end Write_Settings;
 
    function Read_Settings
@@ -144,7 +144,7 @@ package body Files.Jobs.Records is
       return Files.Settings.Settings_Model
    is
       Parsed : constant Files.Settings.Settings_Parse_Result :=
-        Files.Settings.Parse (Files.Bounded_Streams.Input_String (Stream, Max_Settings_Length));
+        Files.Settings.Parse (Files.IO.Record_Fields.Input_String (Stream, Max_Settings_Length));
    begin
       if not Parsed.Success then
          raise Ada.IO_Exceptions.Data_Error;
@@ -160,7 +160,7 @@ package body Files.Jobs.Records is
       if not Signature_Is_Consistent (Value) then
          raise Ada.Directories.Use_Error;
       end if;
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Path), Max_Path_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Path), Max_Path_Length);
       Boolean'Output (Stream, Value.Exists);
       Natural'Output (Stream, Value.Entry_Count);
       Natural'Output (Stream, Value.Entry_State_Checksum);
@@ -175,7 +175,7 @@ package body Files.Jobs.Records is
    is
       Result : Files.File_System_Types.Directory_Signature;
    begin
-      Result.Path := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
+      Result.Path := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Path_Length));
       Result.Exists := Boolean'Input (Stream);
       Result.Entry_Count := Natural'Input (Stream);
       Result.Entry_State_Checksum := Natural'Input (Stream);
@@ -212,8 +212,8 @@ package body Files.Jobs.Records is
             end if;
             --  The kind goes as its position, which the reader range-checks.
             Natural'Output (Stream, Files.Types.Path_Move_Kind'Pos (Move.Kind));
-            Files.Bounded_Streams.Output_String (Stream, To_String (Move.From), Max_Path_Length);
-            Files.Bounded_Streams.Output_String (Stream, To_String (Move.To), Max_Path_Length);
+            Files.IO.Record_Fields.Output_String (Stream, To_String (Move.From), Max_Path_Length);
+            Files.IO.Record_Fields.Output_String (Stream, To_String (Move.To), Max_Path_Length);
          end;
       end loop;
    end Write_Path_Moves;
@@ -237,8 +237,8 @@ package body Files.Jobs.Records is
                raise Ada.IO_Exceptions.Data_Error;
             end if;
             Move.Kind := Files.Types.Path_Move_Kind'Val (Kind_Position);
-            Move.From := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
-            Move.To := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
+            Move.From := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Path_Length));
+            Move.To := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Path_Length));
             if not Path_Move_Is_Consistent (Move) then
                raise Ada.IO_Exceptions.Data_Error;
             end if;
@@ -327,20 +327,20 @@ package body Files.Jobs.Records is
       if not Item_Is_Consistent (Value) then
          raise Ada.Directories.Use_Error;
       end if;
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Name), Max_Path_Length);
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Full_Path), Max_Path_Length);
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Parent_Path), Max_Path_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Name), Max_Path_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Full_Path), Max_Path_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Parent_Path), Max_Path_Length);
       Boolean'Output (Stream, Value.Hidden);
       Files.Types.Item_Kind'Output (Stream, Value.Kind);
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Filetype), Max_Text_Length);
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Icon_Id), Max_Text_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Filetype), Max_Text_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Icon_Id), Max_Text_Length);
       Boolean'Output (Stream, Value.Size_Available);
       Long_Long_Integer'Output (Stream, Value.Size);
       Boolean'Output (Stream, Value.Creation_Available);
       Ada.Calendar.Time'Output (Stream, Value.Creation_Time);
       Boolean'Output (Stream, Value.Modified_Available);
       Ada.Calendar.Time'Output (Stream, Value.Modified_Time);
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Permissions), Max_Text_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Permissions), Max_Text_Length);
       Boolean'Output (Stream, Value.Mode_Available);
       Natural'Output (Stream, Value.Mode_Bits);
       Boolean'Output (Stream, Value.Ownership_Available);
@@ -350,18 +350,18 @@ package body Files.Jobs.Records is
       Natural'Output (Stream, Files.Extra_Info.Kind'Pos (Value.Filetype_Extra.Of_Kind));
       Natural'Output (Stream, Value.Filetype_Extra.Count);
       Boolean'Output (Stream, Value.Filetype_Extra.Capped);
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Filetype_Extra.Subject), Max_Text_Length);
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Filetype_Extra.Value), Max_Text_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Filetype_Extra.Subject), Max_Text_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Filetype_Extra.Value), Max_Text_Length);
       Natural'Output (Stream, Value.Filetype_Extra.Width);
       Natural'Output (Stream, Value.Filetype_Extra.Height);
       Boolean'Output (Stream, Value.Filetype_Extra_Loaded);
       Boolean'Output (Stream, Value.Thumbnail_Available);
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Thumbnail_Path), Max_Path_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Thumbnail_Path), Max_Path_Length);
       Natural'Output (Stream, Value.Thumbnail_Width);
       Natural'Output (Stream, Value.Thumbnail_Height);
       Write_Bytes (Stream, Guikit.Shared_Bytes.To_Vector (Value.Thumbnail_Pixels));
       Boolean'Output (Stream, Value.Metadata_Error);
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Error_Key), Max_Error_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Error_Key), Max_Error_Length);
    end Write_Item;
 
    function Read_Item
@@ -370,20 +370,20 @@ package body Files.Jobs.Records is
    is
       Result : Files.Items.Directory_Item;
    begin
-      Result.Name := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
-      Result.Full_Path := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
-      Result.Parent_Path := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
+      Result.Name := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Path_Length));
+      Result.Full_Path := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Path_Length));
+      Result.Parent_Path := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Path_Length));
       Result.Hidden := Boolean'Input (Stream);
       Result.Kind := Files.Types.Item_Kind'Input (Stream);
-      Result.Filetype := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Text_Length));
-      Result.Icon_Id := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Text_Length));
+      Result.Filetype := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Text_Length));
+      Result.Icon_Id := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Text_Length));
       Result.Size_Available := Boolean'Input (Stream);
       Result.Size := Long_Long_Integer'Input (Stream);
       Result.Creation_Available := Boolean'Input (Stream);
       Result.Creation_Time := Ada.Calendar.Time'Input (Stream);
       Result.Modified_Available := Boolean'Input (Stream);
       Result.Modified_Time := Ada.Calendar.Time'Input (Stream);
-      Result.Permissions := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Text_Length));
+      Result.Permissions := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Text_Length));
       Result.Mode_Available := Boolean'Input (Stream);
       Result.Mode_Bits := Natural'Input (Stream);
       Result.Ownership_Available := Boolean'Input (Stream);
@@ -399,20 +399,20 @@ package body Files.Jobs.Records is
          Result.Filetype_Extra.Count := Natural'Input (Stream);
          Result.Filetype_Extra.Capped := Boolean'Input (Stream);
          Result.Filetype_Extra.Subject :=
-           To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Text_Length));
+           To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Text_Length));
          Result.Filetype_Extra.Value :=
-           To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Text_Length));
+           To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Text_Length));
          Result.Filetype_Extra.Width := Natural'Input (Stream);
          Result.Filetype_Extra.Height := Natural'Input (Stream);
       end;
       Result.Filetype_Extra_Loaded := Boolean'Input (Stream);
       Result.Thumbnail_Available := Boolean'Input (Stream);
-      Result.Thumbnail_Path := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
+      Result.Thumbnail_Path := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Path_Length));
       Result.Thumbnail_Width := Natural'Input (Stream);
       Result.Thumbnail_Height := Natural'Input (Stream);
       Result.Thumbnail_Pixels := Guikit.Shared_Bytes.To_Shared (Read_Bytes (Stream));
       Result.Metadata_Error := Boolean'Input (Stream);
-      Result.Error_Key := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Error_Length));
+      Result.Error_Key := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Error_Length));
       if not Item_Is_Consistent (Result) then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
@@ -460,7 +460,7 @@ package body Files.Jobs.Records is
       end if;
       Natural'Output (Stream, Natural (Value.Length));
       for Item of Value loop
-         Files.Bounded_Streams.Output_String (Stream, To_String (Item), Max_Text_Length);
+         Files.IO.Record_Fields.Output_String (Stream, To_String (Item), Max_Text_Length);
       end loop;
    end Write_Strings;
 
@@ -475,7 +475,7 @@ package body Files.Jobs.Records is
          raise Ada.IO_Exceptions.Data_Error;
       end if;
       for Index in 1 .. Count loop
-         Result.Append (To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Text_Length)));
+         Result.Append (To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Text_Length)));
       end loop;
       return Result;
    end Read_Strings;
@@ -486,9 +486,9 @@ package body Files.Jobs.Records is
    is
    begin
       Files.Operation_Results.Operation_Status'Output (Stream, Value.Status);
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Error_Key), Max_Error_Length);
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Path), Max_Path_Length);
-      Files.Bounded_Streams.Output_String (Stream, To_String (Value.Action.Executable), Max_Path_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Error_Key), Max_Error_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Path), Max_Path_Length);
+      Files.IO.Record_Fields.Output_String (Stream, To_String (Value.Action.Executable), Max_Path_Length);
       Write_Strings (Stream, Value.Action.Arguments);
       Boolean'Output (Stream, Value.Action.Use_Shell);
       Boolean'Output (Stream, Value.Execution.Attempted);
@@ -504,9 +504,9 @@ package body Files.Jobs.Records is
       Result : Files.Operation_Results.Operation_Result;
    begin
       Result.Status := Files.Operation_Results.Operation_Status'Input (Stream);
-      Result.Error_Key := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Error_Length));
-      Result.Path := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
-      Result.Action.Executable := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
+      Result.Error_Key := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Error_Length));
+      Result.Path := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Path_Length));
+      Result.Action.Executable := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Path_Length));
       Result.Action.Arguments := Read_Strings (Stream);
       Result.Action.Use_Shell := Boolean'Input (Stream);
       Result.Execution.Attempted := Boolean'Input (Stream);

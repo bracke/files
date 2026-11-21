@@ -29,7 +29,7 @@ begin
                  and then not Environment_Equals ("FILES_TRASH_BACKEND", "xdg")
                  --  One that cannot be looked at (privacy controls guard
                  --  it) is still the system's: the Finder's layout is kept.
-                 and then not Files.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (Home, ".Trash")))
+                 and then not Files.IO.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (Home, ".Trash")))
       then
          Result :=
            (Backend => Trash_Macos_Home,

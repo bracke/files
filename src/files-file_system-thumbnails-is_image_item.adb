@@ -1,3 +1,6 @@
+with Files.Text_Basics;
+with Files.Text_Case;
+
 separate (Files.File_System.Thumbnails)
 function Is_Image_Item
   (Kind     : Files.Types.Item_Kind;
@@ -14,8 +17,8 @@ begin
       return False;
    end if;
 
-   return Files.Types.Starts_With (Files.Types.To_Lower_Ascii (Filetype), "image/")
-     or else Files.Types.To_Lower_Ascii (Icon_Id) = "image"
+   return Files.Text_Basics.Starts_With (Files.Text_Case.To_Lower_Ascii (Filetype), "image/")
+     or else Files.Text_Case.To_Lower_Ascii (Icon_Id) = "image"
      or else Extension = "png"
      or else Extension = "jpg"
      or else Extension = "jpeg"

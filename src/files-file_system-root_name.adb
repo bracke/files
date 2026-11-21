@@ -1,3 +1,5 @@
+with Files.Name_Parts;
+
 separate (Files.File_System)
 function Root_Name (Path : String; Kind : Root_Kind) return String is
 begin
@@ -5,7 +7,7 @@ begin
       when Root_Filesystem | Root_Home | Root_Current =>
          return "";
       when Root_Mount | Root_User_Mount | Root_Network_Mount | Root_Favorite =>
-         return Files.Types.Leaf_Of (Path);
+         return Files.Name_Parts.Leaf_Of (Path);
       when Root_Windows_Drive =>
          return Path;
    end case;

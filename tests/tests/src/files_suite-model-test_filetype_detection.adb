@@ -1,6 +1,9 @@
 with Ada.Strings.Fixed;
 with Files.File_System.Thumbnails;
 with Files.Settings.Testing;
+with Files.Name_Parts;
+with Files.Text_Case;
+
 separate (Files_Suite.Model)
    procedure Test_Filetype_Detection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -127,7 +130,7 @@ separate (Files_Suite.Model)
         (Files.File_Types.Normalized_Extension_Of ("name."),
          "",
          "trailing-dot file has no extension");
-      --  One rule (Files.Types.Extension_Start) for every reader of an
+      --  One rule (Files.Name_Parts.Extension_Start) for every reader of an
       --  extension: a leading dot is name, unless the badge asks for it.
       Files_Suite.Support.Assert_Equal
         (Files.File_Types.Normalized_Extension_Of (".profile", Dotfiles => True),
@@ -139,7 +142,7 @@ separate (Files_Suite.Model)
          "a dotfile with a further dot has that extension, as without Dotfiles");
       Files_Suite.Support.Assert_Equal
         (Files.File_Types.Normalized_Extension_Of ("Photo.JPG"),
-         Files.Types.To_Lower_Ascii (Files.Types.Extension_Of ("Photo.JPG")),
+         Files.Text_Case.To_Lower_Ascii (Files.Name_Parts.Extension_Of ("Photo.JPG")),
          "File_Types reads the extension Files.Types finds, lower-cased");
       Assert
         (Ada.Strings.Fixed.Index

@@ -30,10 +30,13 @@ package body Files.Model.Testing is
       Value         : out UString;
       Cursor        : out Natural)
    is
-      --  The item the row shows; zero for the pending create row.
-      Loaded      : constant Natural := Visible_To_Item_Index (Model, Visible_Index);
-      Shown       : constant Boolean :=
-        Loaded /= 0 or else (Temporary_Is_Visible (Model) and then Visible_Index = Visible_Count (Model));
+      --  The item the row shows: Temporary_Item_Index for the pending
+      --  create row, zero for no row.
+      Is_Temporary : constant Boolean :=
+        Temporary_Is_Visible (Model) and then Visible_Index = Visible_Count (Model);
+      Loaded       : constant Natural :=
+        (if Is_Temporary then Temporary_Item_Index else Visible_To_Item_Index (Model, Visible_Index));
+      Shown        : constant Boolean := Loaded /= 0;
       Field_Index : Natural := 0;
    begin
       if Model.Rename.Active and then Shown then

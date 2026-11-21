@@ -1,5 +1,5 @@
 with Files.Model.Jobs;
-with Files.Io_Errors;
+with Files.IO.Errors;
 with Files.Operation_Results;
 with Files.Operations;
 with Files.Jobs.Process;
@@ -58,7 +58,7 @@ package body Files.Application.Windows.Watch is
       declare
          Changed     : constant Boolean := Drain_Native_Watch (Runtime);
          Load_Failed : constant Boolean :=
-           Files.Model.Last_Error_Key (Runtime.Model) = Files.Io_Errors.Directory_Load_Key;
+           Files.Model.Last_Error_Key (Runtime.Model) = Files.IO.Errors.Directory_Load_Key;
          Polled      : Boolean;
       begin
          --  A burst of writes is paced to one reload per gap, the last one

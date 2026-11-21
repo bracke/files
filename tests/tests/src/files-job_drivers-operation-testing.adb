@@ -1,4 +1,4 @@
-with Files.Bounded_Streams;
+with Files.IO.Record_Fields;
 with Ada.Directories;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
@@ -38,7 +38,7 @@ package body Files.Job_Drivers.Operation.Testing is
    begin
       Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
       declare
-         Header : constant String := Files.Bounded_Streams.Input_String (Ada.Streams.Stream_IO.Stream (File), 128);
+         Header : constant String := Files.IO.Record_Fields.Input_String (Ada.Streams.Stream_IO.Stream (File), 128);
          pragma Unreferenced (Header);
       begin
          Kind_First := Ada.Streams.Stream_IO.Index (File);
@@ -122,7 +122,7 @@ package body Files.Job_Drivers.Operation.Testing is
       Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
       declare
          Header : constant String :=
-           Files.Bounded_Streams.Input_String
+           Files.IO.Record_Fields.Input_String
              (Ada.Streams.Stream_IO.Stream (File), 128);
          Kind : constant Operation_Kind :=
            Operation_Kind'Input (Ada.Streams.Stream_IO.Stream (File));

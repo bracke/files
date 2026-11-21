@@ -18,7 +18,7 @@ separate (Files.File_System.Recovery)
             --  only leaves an emptied stage the sweep will not touch -- a
             --  leftover folder, never a lost payload.
             declare
-               Synced : constant Hostkit.Durability.Outcome := Files.Durability.Sync_Directory (Stage);
+               Synced : constant Hostkit.Durability.Outcome := Files.IO.Durability.Sync_Directory (Stage);
                pragma Unreferenced (Synced);
             begin
                null;

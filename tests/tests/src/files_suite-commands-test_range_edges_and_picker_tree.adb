@@ -1,6 +1,8 @@
 with Files.Preference_Types;
 with Files.Model.Tree_Panel;
 with Files_Suite.Support.Models;
+with Files.Text_Case;
+
 separate (Files_Suite.Commands)
    procedure Test_Range_Edges_And_Picker_Tree (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,18 +19,18 @@ separate (Files_Suite.Commands)
       --  Matching folds every script's case, not just Latin-1, and a name
       --  that is not UTF-8 still matches by its bytes.
       Assert
-        (Files.Types.Contains_Case_Insensitive (U8 ("ПРИВЕТ мир"), U8 ("привет")),
+        (Files.Text_Case.Contains_Case_Insensitive (U8 ("ПРИВЕТ мир"), U8 ("привет")),
          "Cyrillic, Polish and Greek names match case-insensitively (Cyrillic)");
       Assert
-        (Files.Types.Contains_Case_Insensitive (U8 ("ŁÓDŹ.txt"), U8 ("łódź")),
+        (Files.Text_Case.Contains_Case_Insensitive (U8 ("ŁÓDŹ.txt"), U8 ("łódź")),
          "Cyrillic, Polish and Greek names match case-insensitively (Polish)");
       Assert
-        (Files.Types.Contains_Case_Insensitive (U8 ("ΕΛΛΆΔΑ"), U8 ("ελλάδα")),
+        (Files.Text_Case.Contains_Case_Insensitive (U8 ("ΕΛΛΆΔΑ"), U8 ("ελλάδα")),
          "Cyrillic, Polish and Greek names match case-insensitively (Greek)");
-      Assert (Files.Types.Contains_Case_Insensitive ("BAD" & Character'Val (16#FF#) & ".txt", "bad"),
+      Assert (Files.Text_Case.Contains_Case_Insensitive ("BAD" & Character'Val (16#FF#) & ".txt", "bad"),
               "a name that is not UTF-8 still matches");
       if I18N.Normalization.Available then
-         Assert (Files.Types.Contains_Case_Insensitive
+         Assert (Files.Text_Case.Contains_Case_Insensitive
                    ("cafe" & Character'Val (16#CC#) & Character'Val (16#81#) & ".txt", U8 ("café")),
                  "a decomposed name matches the composed letters typed");
       end if;

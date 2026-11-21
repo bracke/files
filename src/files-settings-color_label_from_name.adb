@@ -1,11 +1,13 @@
 with Files.Preference_Types;
+with Files.Text_Case;
+
 separate (Files.Settings)
    function Color_Label_From_Name
      (Text  : String;
       Label : out Files.Preference_Types.Color_Label)
       return Boolean
    is
-      Lower : constant String := Files.Types.To_Lower_Ascii (Text);
+      Lower : constant String := Files.Text_Case.To_Lower_Ascii (Text);
    begin
       if Lower = "red" then
          Label := Files.Preference_Types.Red;

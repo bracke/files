@@ -1,6 +1,6 @@
 with Files.Protocol_Names;
 with Files.Diagnostics;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 
 with Files.File_System;
 with Files.Jobs.Context;
@@ -27,7 +27,7 @@ package body Files.Jobs.Cleanup is
 
       function Directory_Gone return Boolean is
       begin
-         return Files.Fs_Primitives.Entry_Is_Absent (Directory);
+         return Files.IO.Fs_Primitives.Entry_Is_Absent (Directory);
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Jobs.Cleanup");
@@ -68,7 +68,7 @@ package body Files.Jobs.Cleanup is
               (Directory, Claim,
                Discard_Unreadable =>
                  Unreadable = Discard_On_Last_Attempt and then Attempt = Attempt_Limit);
-            if Files.Fs_Primitives.Entry_Is_Absent (Stages) then
+            if Files.IO.Fs_Primitives.Entry_Is_Absent (Stages) then
                begin
                   if not Files.Jobs.Transports.Retire (Claim, Directory) then
                      return Cleanup_Failed;

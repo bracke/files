@@ -1,6 +1,6 @@
 with Files.Items;
 with Ada.Streams;
-with Files.Bounded_Streams;
+with Files.IO.Record_Fields;
 
 with Files.File_System_Types;
 with Files.Operation_Results;
@@ -15,7 +15,7 @@ package Files.Jobs.Records is
    --  The thumbnail pixels one refresh may carry: half the transport, about
    --  16,000 thumbnails, so a folder of more images still fits the rest.
    Max_Thumbnail_Transport_Bytes : constant := Max_Transport_Bytes / 2;
-   Max_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
+   Max_Path_Length : constant := Files.IO.Record_Fields.Max_Path_Length;
    Max_Text_Length : constant := 64 * 1024;
    Max_Error_Length : constant := 256;
 

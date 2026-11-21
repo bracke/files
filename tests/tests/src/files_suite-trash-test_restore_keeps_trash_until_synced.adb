@@ -1,5 +1,5 @@
 with Files.File_System.Trash;
-with Files.Durability.Testing;
+with Files.IO.Durability.Testing;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
@@ -34,9 +34,9 @@ separate (Files_Suite.Trash)
                  Ada.Directories.Simple_Name (To_String (Trashed)) & ".trashinfo");
       begin
          --  The restored file is flushed as it is written, staged as "payload".
-         Files.Durability.Testing.Fail_Syncs_Ending_With ("/payload");
+         Files.IO.Durability.Testing.Fail_Syncs_Ending_With ("/payload");
          Result := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
-         Files.Durability.Testing.Clear;
+         Files.IO.Durability.Testing.Clear;
          --  The copy is flushed as it is written, so a flush that fails
          --  fails the restore before anything is published.
          Assert (not Result.Success and then not Ada.Directories.Exists (Original),
@@ -46,6 +46,6 @@ separate (Files_Suite.Trash)
       end;
    exception
       when others =>
-         Files.Durability.Testing.Clear;
+         Files.IO.Durability.Testing.Clear;
          raise;
    end Test_Restore_Keeps_Trash_Until_Synced;

@@ -1,0 +1,257 @@
+with Ada.Calendar;
+with Ada.Directories;
+with GNAT.OS_Lib;
+
+with Hostkit.Fs;
+
+--  Low-level filesystem primitives shared across the application: existence
+--  and kind probes, no-follow regular-file opens, and a no-follow tree delete,
+--  implemented on Ada.Directories and Hostkit. Files.File_System builds the
+--  listing and metadata layer on these, but startup, fonts, operations, jobs,
+--  and capped reads use them directly too, so they are a public unit rather
+--  than a private child of Files.File_System.
+--
+--  Every by-path call here works at any depth: GNAT's Windows runtime
+--  refuses a path past 260 characters in Ada.Directories, GNAT.OS_Lib and
+--  System.File_IO before Windows is asked, so the rest of src/ asks here or
+--  Hostkit (check_all bans the raw calls outside an allow-list).
+package Files.IO.Fs_Primitives is
+
+   --  @param Path Filesystem path to test.
+   --  @return True when Path exists (file or directory).
+   function Exists (Path : String) return Boolean;
+
+   --  Whether there is an entry at Path at all: Exists follows a link, so a
+   --  dangling one looks absent to it, though the name is taken.
+   --
+   --  @param Path Filesystem path to test.
+   --  @return True when Path exists or is a link (dangling or not); False
+   --    for an empty or unreadable path.
+   function Entry_Exists (Path : String) return Boolean;
+
+   --  Whether nothing at all is at Path: no entry, and no link (dangling or
+   --  not) in its place. Unlike not Entry_Exists, a failure to look (a
+   --  folder on the way that may not be searched, an I/O error) is never
+   --  taken for absence: it is noted and answers False, so a caller that
+   --  takes "gone" as done retries instead.
+   --
+   --  @param Path Filesystem path to test.
+   --  @return True only when the host says Path names nothing.
+   function Entry_Is_Absent (Path : String) return Boolean;
+
+   --  Whether a new entry may not take the name Path: what a search for a
+   --  free name asks of each candidate. A refused lookup is neither taken
+   --  nor free, and a search that went on past it could hand out a name
+   --  that is in use, or never end: it raises instead.
+   --
+   --  @param Path Candidate path.
+   --  @return True when an entry (or a link) is at Path, False when the host
+   --    says Path names nothing.
+   --  @raises Ada.Directories.Use_Error when the lookup is refused.
+   function Is_Taken (Path : String) return Boolean;
+
+   --  Return the parent directory of Path, read from its text (Parent_Text)
+   --  as Ada.Directories.Containing_Directory would give it, without its
+   --  limits: a name alone lies in ".".
+   --
+   --  @param Path Path whose parent is requested.
+   --  @return Parent directory path, or an empty string when Path is a
+   --    filesystem root (or otherwise has no parent).
+   function Parent_Directory (Path : String) return String;
+
+   --  The names in a directory, read straight from it
+   --  (Hostkit.Directory_Listing, at any depth): no stat per entry
+   --  (Ada.Directories' search makes one), links not followed, a dangling
+   --  link included, "." and ".." left out. The whole listing is read before
+   --  the first Visit, so Visit may change the directory.
+   --
+   --  @param Path Directory to read.
+   --  @param Visit Called per name; setting Stop ends the read there.
+   --  @param Name (of Visit) One entry's name.
+   --  @param Stop (of Visit) Set to end the read after this name.
+   --  @raise Ada.Directories.Use_Error when Path cannot be read.
+   procedure For_Each_Name
+     (Path  : String;
+      Visit : not null access procedure (Name : String; Stop : in out Boolean));
+
+   --  As For_Each_Name, with each entry's kind as Ada.Directories' search
+   --  reads it, a link followed: from the listing where the directory
+   --  records it, else asked of the entry (Hostkit.Fs.Kind_Of).
+   --
+   --  @param Path Directory to read.
+   --  @param Visit Called per entry; setting Stop ends the read there.
+   --  @param Name (of Visit) One entry's name.
+   --  @param Kind (of Visit) What it is; Missing_Entry for a dangling link.
+   --  @param Stop (of Visit) Set to end the read after this entry.
+   --  @raise Ada.Directories.Use_Error when Path cannot be read.
+   procedure For_Each_Listed
+     (Path  : String;
+      Visit : not null access procedure (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean));
+
+   --  Path less its last component, read from its text alone
+   --  (Hostkit.Path_Text.Parent): a root keeps its separator ("/", "C:\"), a
+   --  share is "\\server\share", and a root has no parent.
+   --
+   --  @param Path A path.
+   --  @return The parent, indexed from 1, or "" when there is none.
+   function Parent_Text (Path : String) return String;
+
+   --  What Path names, as Ada.Directories.Kind says, asked through
+   --  Hostkit.Fs.Kind_Of: on Windows a path past 260 characters still answers.
+   --
+   --  @param Path Filesystem path to look at.
+   --  @return Its kind.
+   --  @raise Ada.Directories.Name_Error when Path names nothing.
+   function Kind (Path : String) return Ada.Directories.File_Kind;
+
+   --  @param Path Filesystem path to test.
+   --  @return True when Path names an ordinary file.
+   function File_Exists (Path : String) return Boolean;
+
+   --  @param Path Filesystem path to test.
+   --  @return True when Path names a directory.
+   function Directory_Exists (Path : String) return Boolean;
+
+   --  Whether Path names a folder itself, not a link to one: what a new
+   --  name for it is built by (Files.Name_Parts.Name_Stem).
+   --
+   --  @param Path Filesystem path to test.
+   --  @return True for a folder that is no link; False for anything else or
+   --    a lookup the host refuses.
+   function Is_Plain_Directory (Path : String) return Boolean is
+     (not Hostkit.Fs.Is_Link (Path) and then Directory_Exists (Path));
+
+   --  Open the entry currently named by Path only when that entry itself is a
+   --  regular file. Symbolic links, reparse points, FIFOs, devices, and
+   --  directories are refused without blocking.
+   --  @param Path Filesystem path to open without following links.
+   --  @return Read-only descriptor, or Invalid_FD when the entry is unsafe or
+   --    cannot be opened.
+   function Open_Regular_Read
+     (Path : String) return GNAT.OS_Lib.File_Descriptor;
+
+   --  As Open_Regular_Read, but permit the final path to be a symbolic link
+   --  when its resolved target is a regular file. The target is still opened
+   --  nonblocking and verified through the returned handle.
+   --  @param Path Filesystem path to resolve and open.
+   --  @return Read-only descriptor, or Invalid_FD on refusal or failure.
+   function Open_Regular_Read_Following_Links
+     (Path : String) return GNAT.OS_Lib.File_Descriptor;
+
+   --  Recursively delete a file, directory, or symlink. A symlink -- even one
+   --  whose target is a directory -- or a directory reparse point is unlinked
+   --  as itself and never followed, anywhere in the tree, so deleting a link
+   --  (or a folder that merely contains one) can never reach through into the
+   --  link target's real contents: the safe replacement for
+   --  Ada.Directories.Delete_Tree, which follows links. Descriptor-relative on
+   --  every host built for; a host without that refuses rather than fall back
+   --  to a pathname walk that a swapped-in link could redirect.
+   --  @param Path File, directory, or symlink to remove; it must exist.
+   --  @raise Ada.Directories.Use_Error when Path is not wholly deleted (a
+   --    missing Path included).
+   procedure Delete_Tree (Path : String);
+
+   --  Delete_Tree, when Path names anything (a dangling link included);
+   --  nothing when it does not.
+   --  @param Path File, directory, or symlink to remove when present.
+   --  @raise Ada.Directories.Use_Error when a present Path is not wholly deleted.
+   procedure Delete_Tree_If_Present (Path : String);
+
+   --  Path made absolute from its text alone, against the process's current
+   --  directory (Hostkit.Path_Text.Absolute with Hostkit.Fs.Current_Directory):
+   --  "." and ".." are folded, no link is followed, nothing is asked of a disk.
+   --
+   --  @param Path A path, absolute or relative.
+   --  @return The absolute path, indexed from 1.
+   function Absolute_Name (Path : String) return String;
+
+   --  Path made absolute as Ada.Directories.Full_Name makes it, past GNAT's
+   --  Windows limit. On POSIX GNAT resolves links (Normalize_Pathname's
+   --  default), and so does this: Hostkit.Fs.Canonical_Path of the deepest part
+   --  that is there, the rest of the text after it. On Windows GNAT reads the
+   --  text alone (GetFullPathName), and so does this (Absolute_Name).
+   --
+   --  @param Path A path, absolute or relative.
+   --  @return The absolute path, indexed from 1.
+   function Full_Name (Path : String) return String;
+
+   --  Path made absolute with its links resolved on every host, for asking
+   --  whether one path lies inside another -- never for showing: Full_Name
+   --  on POSIX, and on Windows, where Full_Name follows no link, the same
+   --  resolution of Hostkit.Fs.Canonical_Path (symbolic links and junctions, in
+   --  the names' stored case). A copy into its own tree through a link to
+   --  it is then still seen as one.
+   --
+   --  @param Path A path, absolute or relative.
+   --  @return The resolved absolute path, indexed from 1, or "".
+   function Real_Name (Path : String) return String;
+
+   --  Make one directory, as Ada.Directories.Create_Directory makes it, with
+   --  the host's default permissions (Hostkit.Fs.Create_Directory).
+   --
+   --  @param Path The directory to make.
+   --  @raise Ada.Directories.Use_Error when something is there already, the
+   --    parent is missing, or the host refused.
+   procedure Create_Directory (Path : String);
+
+   --  Make Path and its missing ancestors, as Ada.Directories.Create_Path
+   --  does (Hostkit.Fs.Create_Path); a directory already there is no error.
+   --
+   --  @param Path The directory wanted.
+   --  @raise Ada.Directories.Use_Error when Path is no directory afterwards.
+   procedure Create_Path (Path : String);
+
+   --  Remove the file at Path, or the link there and never its target
+   --  (Hostkit.Fs.Delete_File).
+   --
+   --  @param Path The file or link.
+   --  @param Record_Refusal Whether a refusal's errno becomes the code
+   --    recorded with Files.IO.Errors (Adopt_Code: zero when the host gave
+   --    none, never an earlier call's): for a delete the operation fails on, not
+   --    for a clean-up after another failure, whose reason must stand.
+   --  @raise Ada.Directories.Name_Error when nothing is there.
+   --  @raise Ada.Directories.Use_Error when it is a directory or the host
+   --    refused.
+   procedure Delete_File (Path : String; Record_Refusal : Boolean := False);
+
+   --  Remove the empty directory at Path (Hostkit.Fs.Delete_Empty_Directory).
+   --
+   --  @param Path The directory.
+   --  @raise Ada.Directories.Name_Error when no directory is there.
+   --  @raise Ada.Directories.Use_Error when it is not empty or the host
+   --    refused.
+   procedure Delete_Directory (Path : String);
+
+   --  The size of the ordinary file at Path, a link followed, as
+   --  Ada.Directories.Size says, asked through Hostkit.Fs.Size_Of: on
+   --  Windows a path past 260 characters still answers.
+   --
+   --  @param Path The file.
+   --  @return Its size in bytes.
+   --  @raise Ada.Directories.Name_Error when no ordinary file is there.
+   --  @raise Ada.Directories.Use_Error when the host will not say (a folder
+   --    on the way may not be searched).
+   function Size (Path : String) return Ada.Directories.File_Size;
+
+   --  When the file or directory at Path was last written, a link followed,
+   --  as Ada.Directories.Modification_Time says, asked through
+   --  Hostkit.Fs.Modification_Time_Of: the host's own UTC instant, at any
+   --  depth.
+   --
+   --  @param Path The file or directory.
+   --  @return Its modification time.
+   --  @raise Ada.Directories.Name_Error when no file or directory is there.
+   --  @raise Ada.Directories.Use_Error when the host will not say.
+   function Modification_Time (Path : String) return Ada.Calendar.Time;
+
+private
+
+   --  Test seam (Files.IO.Fs_Primitives.Testing): a path whose existence the
+   --  host is to refuse to say, as a transient EACCES or EIO would -- one
+   --  that has passed by the time the entry is removed. Exists, Entry_Exists,
+   --  File_Exists and Directory_Exists answer as such a refusal does;
+   --  Entry_Is_Absent cannot tell. Null outside the test suite.
+   type Lookup_Refusal is access function (Path : String) return Boolean;
+   Refuse_Lookup : Lookup_Refusal := null;
+
+end Files.IO.Fs_Primitives;

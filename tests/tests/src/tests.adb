@@ -15,7 +15,7 @@ with Files.Job_Drivers.Helpers;
 with Files.Jobs.Context;
 with Files.Localization;
 with Files.Jobs.Scavenger;
-with Files.Durability.Testing;
+with Files.IO.Durability.Testing;
 with Files.File_System;
 with Files.File_System.Testing;
 with Files.Jobs.Process;
@@ -127,7 +127,7 @@ begin
       --  A helper runs a transfer in this executable: the flush, copy and
       --  restore faults the test that started it armed reach it through the
       --  environment, on every host.
-      Files.Durability.Testing.Install_From_Environment;
+      Files.IO.Durability.Testing.Install_From_Environment;
       Files.File_System.Testing.Install_From_Environment;
       if Files.Job_Drivers.Helpers.Run_If_Requested then
          Test_Helpers.Damage_Result (Mode);

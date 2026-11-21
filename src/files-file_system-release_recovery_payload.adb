@@ -1,3 +1,5 @@
+with Files.Name_Parts;
+
 separate (Files.File_System)
 function Release_Recovery_Payload (Path : String) return Mutation_Result is
    --  The Recycle Bin and the macOS Trash record where an item was when
@@ -8,9 +10,9 @@ function Release_Recovery_Payload (Path : String) return Mutation_Result is
    --  stage, it stays there -- in its own folder, not lost.
    function Natively (Entry_Path, Original : String) return Mutation_Result is
       Ignored   : Files.Types.UString;
-      Directory : constant String := Files.Fs_Primitives.Parent_Directory (Original);
-      Leaf      : constant String := Files.Types.Leaf_Of (Original);
-      Is_Folder : constant Boolean := Files.Fs_Primitives.Is_Plain_Directory (Entry_Path);
+      Directory : constant String := Files.IO.Fs_Primitives.Parent_Directory (Original);
+      Leaf      : constant String := Files.Name_Parts.Leaf_Of (Original);
+      Is_Folder : constant Boolean := Files.IO.Fs_Primitives.Is_Plain_Directory (Entry_Path);
       Limit     : constant Hostkit.Fs.Leaf_Name_Limit := Hostkit.Fs.Leaf_Name_Limit_At (Directory);
    begin
       --  The name a paste would give it there: "name", "name 2", ... Each
@@ -23,7 +25,7 @@ function Release_Recovery_Payload (Path : String) return Mutation_Result is
               Hostkit.Fs.Join
                 (Directory,
                  Files.Leaf_Names.Candidate
-                   (Files.Types.Name_Stem (Leaf, Is_Folder), Files.Types.Name_Extension (Leaf, Is_Folder),
+                   (Files.Name_Parts.Name_Stem (Leaf, Is_Folder), Files.Name_Parts.Name_Extension (Leaf, Is_Folder),
                     Files.Leaf_Names.Spaced_Number (Attempt), Limit));
          begin
             if Support.Move_No_Replace (Entry_Path, Beside) then
@@ -39,7 +41,7 @@ function Release_Recovery_Payload (Path : String) return Mutation_Result is
             --  refusal-safe: only a name surely in use is passed over; one
             --  that cannot be looked at ends the search, and the payload is
             --  trashed from its stage below.
-            exit when not Files.Fs_Primitives.Entry_Exists (Beside);
+            exit when not Files.IO.Fs_Primitives.Entry_Exists (Beside);
          end;
       end loop;
       return Move_To_Trash (Entry_Path, Ignored);

@@ -1,4 +1,4 @@
-with Files.Fs_Primitives.Testing;
+with Files.IO.Fs_Primitives.Testing;
 with Files.Protocol_Names;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
@@ -34,10 +34,10 @@ separate (Files_Suite.Recovery)
             "a release marker is left");
          Hostkit.Lease_Files.Release (Marker);
 
-         Files.Fs_Primitives.Testing.Refuse_Lookups (Payload);
+         Files.IO.Fs_Primitives.Testing.Refuse_Lookups (Payload);
          Result := Files.File_System.Release_Recovery_Payload (Payload);
          Files.File_System.Sweep_Recovery_Registry;
-         Files.Fs_Primitives.Testing.Stop_Refusing_Lookups;
+         Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
 
          Assert (not Result.Success, "a release that cannot see its payload does not finish");
          Assert (Ada.Directories.Exists (Payload), "the payload is still in its stage");
@@ -55,6 +55,6 @@ separate (Files_Suite.Recovery)
       end;
    exception
       when others =>
-         Files.Fs_Primitives.Testing.Stop_Refusing_Lookups;
+         Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
          raise;
    end Test_Refused_Payload_Lookup_Keeps_Stage;

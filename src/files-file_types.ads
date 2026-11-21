@@ -6,7 +6,7 @@ package Files.File_Types is
 
    --  Return the extension of Name normalized for lookup: trimmed and
    --  lower-cased, after its last dot, none for no dot or a trailing one.
-   --  Files.Types.Extension_Of is the same split with the case kept, for
+   --  Files.Name_Parts.Extension_Of is the same split with the case kept, for
    --  text shown to a person ({extension}, a rename's stem).
    --
    --  @param Name File name to inspect.

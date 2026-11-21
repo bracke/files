@@ -1,7 +1,9 @@
 with Files.Trash_Info_Codec;
-with Files.Durable_Writes;
-with Files.Durability;
+with Files.IO.Durable_Writes;
+with Files.IO.Durability;
 with Hostkit.Durability;
+with Files.Name_Parts;
+
 separate (Files.File_System)
 function Move_To_Trash
   (Path          : String;
@@ -35,9 +37,9 @@ is
       --  A name that cannot be looked at raises: the trash is refused,
       --  not handed a name that may be in use.
       function Taken (Leaf : String) return Boolean is
-        (Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Files_Directory, Leaf))
+        (Files.IO.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Files_Directory, Leaf))
          or else (Info_Directory /= ""
-                  and then Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Info_Directory, Leaf & Info_Suffix))));
+                  and then Files.IO.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Info_Directory, Leaf & Info_Suffix))));
 
       Free : constant String :=
         Files.Leaf_Names.First_Free
@@ -61,12 +63,12 @@ is
    --  reads is then this preflight's, not an earlier operation's.
    function Checked_Preflight return Mutation_Result is
    begin
-      Files.Io_Errors.Reset;
+      Files.IO.Errors.Reset;
       return Move_To_Trash_Preflight (Path);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
-         return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.failed"));
+         return (Success => False, Error_Key => Files.IO.Errors.Error_Key ("error.trash.failed"));
    end Checked_Preflight;
 
    --  Whether the request may go ahead at all, checked once: the body
@@ -101,7 +103,7 @@ is
       --  The path as given, made absolute: the item moved is the link, not
       --  what it points at.
       Original : constant String :=
-        Files.Fs_Primitives.Absolute_Name (if Recorded_Path = "" then Path else Recorded_Path);
+        Files.IO.Fs_Primitives.Absolute_Name (if Recorded_Path = "" then Path else Recorded_Path);
    begin
       if Volume /= "" then
          declare
@@ -117,7 +119,7 @@ is
 
    procedure Delete_Info_File_If_Present is
    begin
-      Files.Durable_Writes.Remove_Owned (To_String (Info_Path), To_String (Info_Identity));
+      Files.IO.Durable_Writes.Remove_Owned (To_String (Info_Path), To_String (Info_Identity));
    end Delete_Info_File_If_Present;
 
    function Send_To_Recycle_Bin return Mutation_Result is separate;
@@ -126,7 +128,7 @@ is
    procedure Write_Info_File (Name_Taken : out Boolean) is separate;
    function Move_Item return Mutation_Result is separate;
 begin
-   Files.Io_Errors.Reset;
+   Files.IO.Errors.Reset;
    Trashed_Path := Null_Unbounded_String;
    if not Preflight.Success then
       return Preflight;
@@ -148,7 +150,7 @@ begin
    --  never replaces, so a name taken in between fails that trash only.)
    for Attempt in 1 .. Max_Name_Claims loop
       Name := To_Unbounded_String
-        (Unique_Trash_Name (Files_Dir, Info_Dir, Files.Types.Leaf_Of (Path)));
+        (Unique_Trash_Name (Files_Dir, Info_Dir, Files.Name_Parts.Leaf_Of (Path)));
       Target := To_Unbounded_String (Hostkit.Fs.Join (Files_Dir, To_String (Name)));
       exit when Macos_Home;
       Info_Path := To_Unbounded_String (Hostkit.Fs.Join (Info_Dir, To_String (Name) & ".trashinfo"));
@@ -178,7 +180,7 @@ exception
       Files.Diagnostics.Note (Swallowed, "Files.File_System");
       declare
          Failed : constant Mutation_Result :=
-           (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.failed"));
+           (Success => False, Error_Key => Files.IO.Errors.Error_Key ("error.trash.failed"));
       begin
          Delete_Info_File_If_Present;
          return Failed;

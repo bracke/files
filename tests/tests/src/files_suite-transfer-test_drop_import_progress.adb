@@ -1,5 +1,7 @@
 with Files.Model.Testing;
 with Files.Operation_Results;
+with Files.Text_Basics;
+
 separate (Files_Suite.Transfer)
    procedure Test_Drop_Import_Progress (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,7 +22,7 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Create_Path (Src_Dir);
       Ada.Directories.Create_Path (Dest_Dir);
       for N in 1 .. Count loop
-         Write_File (Src (N), "S" & Files.Types.Natural_Text (N));
+         Write_File (Src (N), "S" & Files.Text_Basics.Natural_Text (N));
          Sources.Append (To_Unbounded_String (Src (N)));
       end loop;
 

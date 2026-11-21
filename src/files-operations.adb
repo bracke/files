@@ -7,7 +7,7 @@ with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
 
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Undo.Payloads;
 with Files.Jobs.Transfer;
 with Files.Jobs.Context;
@@ -33,7 +33,7 @@ with Files.File_Identities;
 with Files.Undo.Journal;
 with Files.Operations.Undo_Recording;
 with Files.Archive_Writing;
-with Files.Io_Errors;
+with Files.IO.Errors;
 with Files.Model.Pasting;
 with Files.Model.Folder_Sizes;
 with Files.Model.History;
@@ -235,7 +235,7 @@ package body Files.Operations is
       if Files.Model.Filter_Text (Model) = "" then
          return Disabled (Model, "error.filter.empty");
       elsif Files.Model.Current_Path (Model) = "" or else Files.Model.In_Recent_View (Model) then
-         return Disabled (Model, Files.Io_Errors.Directory_Load_Key);
+         return Disabled (Model, Files.IO.Errors.Directory_Load_Key);
       end if;
       return (Status => Operation_Success, others => <>);
    end Search_Refusal;

@@ -2,6 +2,8 @@ with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
+with Files.Text_Basics;
+
 separate (Files_Suite.Search)
    --  Reaching the match cap shows the first matches with the truncated
    --  notice instead of failing the search, in a helper too. Exactly as many
@@ -19,7 +21,7 @@ separate (Files_Suite.Search)
    begin
       Reset_Root;
       for Index in 1 .. Files.File_System.Max_Search_Results loop
-         Write_Binary_File (Join (Root, "needle-" & Files.Types.Natural_Text (Index) & ".txt"), "needle");
+         Write_Binary_File (Join (Root, "needle-" & Files.Text_Basics.Natural_Text (Index) & ".txt"), "needle");
       end loop;
       Ada.Directories.Create_Directory (Join (Root, "empty-folder"));
       Search := Files.File_System.Search_Names (Root, "needle", Settings);
@@ -28,7 +30,7 @@ separate (Files_Suite.Search)
       Files_Suite.Support.Assert_Equal
         (Natural (Search.Items.Length), Files.File_System.Max_Search_Results, "every match is kept");
       Write_Binary_File
-        (Join (Root, "needle-" & Files.Types.Natural_Text (Files.File_System.Max_Search_Results + 1) & ".txt"),
+        (Join (Root, "needle-" & Files.Text_Basics.Natural_Text (Files.File_System.Max_Search_Results + 1) & ".txt"),
          "needle");
       Search := Files.File_System.Search_Names (Root, "needle", Settings);
       Assert (Search.Success and then Search.Truncated and then not Search.Incomplete,

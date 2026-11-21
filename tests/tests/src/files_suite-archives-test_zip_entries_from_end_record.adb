@@ -1,4 +1,6 @@
 with Files_Suite.Support.Models;
+with Files.Text_Basics;
+
 separate (Files_Suite.Archives)
    procedure Test_Zip_Entries_From_End_Record (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -125,7 +127,7 @@ separate (Files_Suite.Archives)
          "a ZIP64 record right before its locator is found behind a stub");
       Files_Suite.Support.Assert_Equal
         (Entries_Of ("huge.zip", Zip64_Of (Three, 2 ** 40)),
-         "archive.zip.entries|" & Files.Types.Natural_Text (Natural'Last) & "+",
+         "archive.zip.entries|" & Files.Text_Basics.Natural_Text (Natural'Last) & "+",
          "a ZIP64 count beyond Natural saturates and is marked capped");
       Files_Suite.Support.Assert_Equal
         (Entries_Of ("broken.zip", "PK" & Byte (3) & Byte (4) & "PK" & Byte (1) & Byte (2) & "no end record"),

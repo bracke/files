@@ -1,3 +1,5 @@
+with Files.Text_Basics;
+
 separate (Files.File_System.Recovery)
    procedure Sweep_Registry is
       Root : constant String := Registry_Root (Create => False);
@@ -10,8 +12,8 @@ separate (Files.File_System.Recovery)
          Payload, Expected : UString;
          Directory : constant String := Hostkit.Fs.Join (Root, Name);
       begin
-         if not Files.Types.Starts_With (Name, Files.Protocol_Names.Recovery_Stage_Prefix)
-           or else not Files.Fs_Primitives.Directory_Exists (Directory)
+         if not Files.Text_Basics.Starts_With (Name, Files.Protocol_Names.Recovery_Stage_Prefix)
+           or else not Files.IO.Fs_Primitives.Directory_Exists (Directory)
          then
             return;
          elsif Is_Stale_Record (Directory) then
@@ -29,7 +31,7 @@ separate (Files.File_System.Recovery)
       function Still_Names (Directory, Payload, Expected : String) return Boolean is
          Recorded, Identity : UString;
       begin
-         return Files.Fs_Primitives.Directory_Exists (Directory)
+         return Files.IO.Fs_Primitives.Directory_Exists (Directory)
            and then Read_Registry_Record (Directory, Recorded, Identity)
            and then To_String (Recorded) = Payload
            and then To_String (Identity) = Expected;
@@ -42,7 +44,7 @@ separate (Files.File_System.Recovery)
          Hold : Registry_Hold;
       begin
          Hold_Registry (Root, Hold);
-         Files.Fs_Primitives.For_Each_Name (Root, Collect'Access);
+         Files.IO.Fs_Primitives.For_Each_Name (Root, Collect'Access);
       end;
       declare
          Count : constant Natural := Natural (Payloads.Length);
@@ -66,13 +68,13 @@ separate (Files.File_System.Recovery)
                then
                   Stopped (Index) := True;
                   Finished (Index) := Finish_Stopped_Stage (Payload)
-                    and then Files.Fs_Primitives.Entry_Is_Absent (Files.Fs_Primitives.Parent_Directory (Payload));
+                    and then Files.IO.Fs_Primitives.Entry_Is_Absent (Files.IO.Fs_Primitives.Parent_Directory (Payload));
                elsif Abandoned_Unfilled (Payload)
                  and then Stage_Matches (Payload, To_String (Identities.Element (Index)))
                then
                   Stopped (Index) := True;
                   Finished (Index) := Remove_Abandoned_Stage (Payload)
-                    and then Files.Fs_Primitives.Entry_Is_Absent (Files.Fs_Primitives.Parent_Directory (Payload));
+                    and then Files.IO.Fs_Primitives.Entry_Is_Absent (Files.IO.Fs_Primitives.Parent_Directory (Payload));
                end if;
             end;
          end loop;

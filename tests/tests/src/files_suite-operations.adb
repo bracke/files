@@ -30,7 +30,7 @@ with Files.Desktop_Applications;
 with Files.Commands;
 with Files.Controller;
 with Files.File_System;
-with Files.Io_Errors;
+with Files.IO.Errors;
 with Files.Undo.Journal;
 with Files.Interaction;
 with Files.Localization;

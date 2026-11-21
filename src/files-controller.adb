@@ -1,5 +1,5 @@
 with Files.Settings_Form;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Job_Drivers.Foreground;
 with Files.Items;
 with Files.Commands.Status;
@@ -726,7 +726,7 @@ package body Files.Controller is
 
       declare
          Path   : constant String := To_String (Items.First_Element.Full_Path);
-         Parent : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+         Parent : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
       begin
          if Parent = "" or else Parent = Files.Model.Current_Path (Model) then
             --  Already in the containing folder (or no parent): nothing to do.

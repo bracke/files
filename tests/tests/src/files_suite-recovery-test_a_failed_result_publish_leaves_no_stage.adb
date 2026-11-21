@@ -1,5 +1,5 @@
 with Ada.Text_IO;
-with Files.Durability.Testing;
+with Files.IO.Durability.Testing;
 separate (Files_Suite.Recovery)
    --  A helper publishes its result through a staged file of a fixed name.
    --  One that could not be put on the device must not stay behind: it
@@ -19,14 +19,15 @@ separate (Files_Suite.Recovery)
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Directory);
-      Files.Durability.Testing.Fail_Syncs_Ending_With (Files.Jobs.Process.Staged_Name (Files.Jobs.Process.Result_File));
+      Files.IO.Durability.Testing.Fail_Syncs_Ending_With (Files.Jobs.Process.Staged_Name
+        (Files.Jobs.Process.Result_File));
       begin
          Files.Jobs.Records.Publish_Result (Directory, Write_Record'Access);
       exception
          when Ada.IO_Exceptions.Use_Error =>
             Refused := True;
       end;
-      Files.Durability.Testing.Clear;
+      Files.IO.Durability.Testing.Clear;
       Assert (Refused, "a result that cannot be put on the device is not published");
       Assert (not Ada.Directories.Exists (Staged), "the staged result this publish wrote is removed");
       Files.Jobs.Records.Publish_Result (Directory, Write_Record'Access);
@@ -47,6 +48,6 @@ separate (Files_Suite.Recovery)
       Assert (not Ada.Directories.Exists (Staged), "a leftover staged result does not refuse the next publish");
    exception
       when others =>
-         Files.Durability.Testing.Clear;
+         Files.IO.Durability.Testing.Clear;
          raise;
    end Test_A_Failed_Result_Publish_Leaves_No_Stage;

@@ -2,6 +2,8 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Guikit.Utf8.Editing;
+with Files.Name_Parts;
+with Files.Text_Basics;
 
 package body Files.File_Types is
 
@@ -57,9 +59,9 @@ package body Files.File_Types is
    end Trim_Name;
 
    --  The last component of Name, blanks around it trimmed: a path's
-   --  trailing separators are dropped (Files.Types.Leaf_Of), as everywhere
+   --  trailing separators are dropped (Files.Name_Parts.Leaf_Of), as everywhere
    --  else a leaf is taken.
-   function Leaf_Name (Name : String) return String is (Files.Types.Leaf_Of (Trim_Name (Name)));
+   function Leaf_Name (Name : String) return String is (Files.Name_Parts.Leaf_Of (Trim_Name (Name)));
 
    function Normalized_Extension_Of
      (Name     : String;
@@ -68,7 +70,7 @@ package body Files.File_Types is
    is
       Clean : constant String := Leaf_Name (Name);
       --  Files.Types' one rule for where an extension starts.
-      Dot   : constant Natural := Files.Types.Extension_Start (Clean);
+      Dot   : constant Natural := Files.Name_Parts.Extension_Start (Clean);
    begin
       if Dot /= 0 then
          return Files.Settings.Normalize_Extension (Clean (Dot + 1 .. Clean'Last));
@@ -261,7 +263,7 @@ package body Files.File_Types is
       end loop;
 
       for Rule of Family_Rules loop
-         if Files.Types.Starts_With (Filetype, Ada.Strings.Unbounded.To_String (Rule.Mime)) then
+         if Files.Text_Basics.Starts_With (Filetype, Ada.Strings.Unbounded.To_String (Rule.Mime)) then
             return Rule.Facts;
          end if;
       end loop;

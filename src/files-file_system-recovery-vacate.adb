@@ -5,7 +5,7 @@ separate (Files.File_System.Recovery)
       Ran   : out Boolean)
       return Boolean
    is
-      Stage  : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Stage  : constant String := Files.IO.Fs_Primitives.Parent_Directory (Path);
       Marker : Hostkit.Lease_Files.Lease;
    begin
       Ran := False;
@@ -17,7 +17,7 @@ separate (Files.File_System.Recovery)
       Ran := True;
       if not Leave.all then
          --  refusal-safe: a refused payload keeps the marker
-         Let_Go_Marker (Stage, Vacated_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
+         Let_Go_Marker (Stage, Vacated_Marker, Marker, Remove => Files.IO.Fs_Primitives.Entry_Exists (Path));
          return False;
       end if;
       --  Its record goes only with its stage; a stage that will not go yet
@@ -29,7 +29,7 @@ separate (Files.File_System.Recovery)
             Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
       end;
       Hostkit.Lease_Files.Release (Marker);
-      if Files.Fs_Primitives.Entry_Is_Absent (Stage) then
+      if Files.IO.Fs_Primitives.Entry_Is_Absent (Stage) then
          Unregister (Path);
       end if;
       return True;
@@ -38,7 +38,7 @@ separate (Files.File_System.Recovery)
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          if Hostkit.Lease_Files.Is_Held (Marker) then
             --  refusal-safe: a refused payload keeps the marker
-            Let_Go_Marker (Stage, Vacated_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
+            Let_Go_Marker (Stage, Vacated_Marker, Marker, Remove => Files.IO.Fs_Primitives.Entry_Exists (Path));
          end if;
          return False;
    end Vacate;

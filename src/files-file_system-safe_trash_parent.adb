@@ -34,7 +34,7 @@ begin
    --  folder can be vouched for as a shared trash's parent.
    if not Hostkit.Metadata.Mode_Bits_Are_Native
      or else Hostkit.Fs.Is_Link (Parent)
-     or else not Files.Fs_Primitives.Directory_Exists (Parent)
+     or else not Files.IO.Fs_Primitives.Directory_Exists (Parent)
      or else not Revision.Available
    then
       return False;

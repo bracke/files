@@ -36,7 +36,7 @@ is
    begin
       if Reversed.Contains (Target) then
          return True;
-      elsif not Files.Fs_Primitives.Entry_Is_Absent (Target)
+      elsif not Files.IO.Fs_Primitives.Entry_Is_Absent (Target)
         and then (Identity = ""
           or else Files.File_Identities.Token (Target) /= Identity
           or else not Files.File_System.Delete_Created_Entry (Target, Identity, Tree_Revision).Success)

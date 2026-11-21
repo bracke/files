@@ -9,7 +9,7 @@ with Files.File_System;
 with Files.Undo.Journal;
 with Files.Timing;
 with Files.Refresh;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Leaf_Names;
 with Hostkit.Fs;
 with Files.Model.History;
@@ -33,7 +33,7 @@ package body Files.Operations.Support is
       --  A name the host will not answer for raises (Is_Taken): never
       --  handed out as free.
       function Taken (Leaf : String) return Boolean is
-        (Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Directory, Leaf)));
+        (Files.IO.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Directory, Leaf)));
 
       Free : constant String :=
         Files.Leaf_Names.First_Free (Base, Extension, Marker, Taken'Access, Limit, First);

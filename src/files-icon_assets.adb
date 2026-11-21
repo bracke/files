@@ -1,7 +1,7 @@
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
 
-with Files.Capped_Files;
+with Files.IO.Capped_Files;
 with Files.Icon_Themes;
 with Files.Resources;
 with Guikit.Draw;
@@ -40,14 +40,14 @@ package body Files.Icon_Assets is
    --  Read one small icon definition byte-for-byte. Returns "" on any error
    --  and for a definition larger than Max_Icon_Asset_Bytes.
    function Read_File (Path : String) return String is
-      use type Files.Capped_Files.Read_Status;
+      use type Files.IO.Capped_Files.Read_Status;
 
-      Status : Files.Capped_Files.Read_Status;
+      Status : Files.IO.Capped_Files.Read_Status;
       Text   : constant String :=
-        Files.Capped_Files.Read_Capped
-          (Path, Max_Icon_Asset_Bytes, Files.Capped_Files.Follow_Links, Status);
+        Files.IO.Capped_Files.Read_Capped
+          (Path, Max_Icon_Asset_Bytes, Files.IO.Capped_Files.Follow_Links, Status);
    begin
-      return (if Status = Files.Capped_Files.Read_Complete then Text else "");
+      return (if Status = Files.IO.Capped_Files.Read_Complete then Text else "");
    end Read_File;
 
    function Disk_Icon_Asset

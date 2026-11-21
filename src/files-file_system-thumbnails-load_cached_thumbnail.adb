@@ -1,4 +1,4 @@
-with Files.Capped_Files;
+with Files.IO.Capped_Files;
 with Files.Images.Netpbm;
 separate (Files.File_System.Thumbnails)
 function Load_Cached_Thumbnail
@@ -20,14 +20,14 @@ is
       Max_Bytes : Natural)
       return Unbounded_String
    is
-      use type Files.Capped_Files.Read_Status;
+      use type Files.IO.Capped_Files.Read_Status;
 
-      Status : Files.Capped_Files.Read_Status;
+      Status : Files.IO.Capped_Files.Read_Status;
       Bytes  : constant String :=
-        Files.Capped_Files.Read_Capped
-          (From, Max_Bytes, Files.Capped_Files.Refuse_Links, Status);
+        Files.IO.Capped_Files.Read_Capped
+          (From, Max_Bytes, Files.IO.Capped_Files.Refuse_Links, Status);
    begin
-      if Status /= Files.Capped_Files.Read_Complete then
+      if Status /= Files.IO.Capped_Files.Read_Complete then
          return Null_Unbounded_String;
       end if;
       return To_Unbounded_String (Bytes);
@@ -35,7 +35,7 @@ is
 
 begin
    if Path = ""
-     or else not Files.Fs_Primitives.File_Exists (Path)
+     or else not Files.IO.Fs_Primitives.File_Exists (Path)
    then
       return Result;
    end if;

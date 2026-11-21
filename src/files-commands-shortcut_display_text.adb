@@ -1,4 +1,5 @@
 with Files.Localization;
+with Files.Text_Case;
 
 separate (Files.Commands)
    function Shortcut_Display_Text
@@ -13,7 +14,7 @@ separate (Files.Commands)
       function Key_Name return String is
       begin
          if Key'Length = 1 then
-            return Files.Types.To_Upper_Ascii (Key);
+            return Files.Text_Case.To_Upper_Ascii (Key);
          elsif Key (Key'First) = 'f' and then Key'Length in 2 .. 3 then
             return "F" & Key (Key'First + 1 .. Key'Last);
          elsif Key = "equal" then

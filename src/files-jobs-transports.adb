@@ -1,5 +1,5 @@
 with Files.Protocol_Names;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Timing;
 with Files.Diagnostics;
 with Ada.Calendar;
@@ -10,12 +10,13 @@ with Ada.Strings.Unbounded;
 with Interfaces;
 
 with CryptoLib.OS_Random;
-with Files.Bounded_Streams;
-with Files.Durable_Writes;
+with Files.IO.Record_Fields;
+with Files.IO.Durable_Writes;
 with Files.File_Identities;
-with Files.Lease_Streams;
-with Files.Private_Directories;
+with Files.IO.Lease_Streams;
+with Files.IO.Private_Directories;
 with Hostkit.Fs;
+with Files.Name_Parts;
 
 package body Files.Jobs.Transports is
    use Ada.Strings.Unbounded;
@@ -24,7 +25,7 @@ package body Files.Jobs.Transports is
    use type Ada.Streams.Stream_Element_Offset;
    use type Hostkit.Lease_Files.Open_Outcome;
    use type Interfaces.Unsigned_64;
-   use type Files.Private_Directories.Create_Result;
+   use type Files.IO.Private_Directories.Create_Result;
 
    Marker_Header : constant String := "files-job-transport-4";
    Retiring_Header : constant String := "files-job-transport-retiring-4";
@@ -37,9 +38,9 @@ package body Files.Jobs.Transports is
    Transport_Prefix : constant String := Files.Protocol_Names.Transport_Prefix;
    Witness_Prefix : constant String := ".files-job-creation-";
    Hex_Digits : constant String := "0123456789abcdef";
-   Max_Marker_Header_Length : constant := Files.Bounded_Streams.Max_Header_Length;
-   Max_Marker_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
-   Max_Marker_Token_Length : constant := Files.Bounded_Streams.Max_Token_Length;
+   Max_Marker_Header_Length : constant := Files.IO.Record_Fields.Max_Header_Length;
+   Max_Marker_Path_Length : constant := Files.IO.Record_Fields.Max_Path_Length;
+   Max_Marker_Token_Length : constant := Files.IO.Record_Fields.Max_Token_Length;
    Max_Marker_Bytes : constant := 64 * 1024;
 
    Preparing_Witness : constant Ada.Streams.Stream_Element_Array :=
@@ -157,9 +158,9 @@ package body Files.Jobs.Transports is
 
    function Is_Transport_Path (Directory : String) return Boolean is
    begin
-      return Is_Transport_Name (Files.Types.Leaf_Of (Directory))
-        and then Files.Fs_Primitives.Full_Name (Files.Fs_Primitives.Parent_Directory (Directory)) =
-          Files.Fs_Primitives.Full_Name (Hostkit.Fs.Temp_Directory);
+      return Is_Transport_Name (Files.Name_Parts.Leaf_Of (Directory))
+        and then Files.IO.Fs_Primitives.Full_Name (Files.IO.Fs_Primitives.Parent_Directory (Directory)) =
+          Files.IO.Fs_Primitives.Full_Name (Hostkit.Fs.Temp_Directory);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Jobs.Transports");
@@ -167,7 +168,7 @@ package body Files.Jobs.Transports is
    end Is_Transport_Path;
 
    function Witness_Path (Directory : String) return String is
-      Name : constant String := Files.Types.Leaf_Of (Directory);
+      Name : constant String := Files.Name_Parts.Leaf_Of (Directory);
    begin
       return Hostkit.Fs.Join
         (Hostkit.Fs.Temp_Directory,
@@ -183,7 +184,7 @@ package body Files.Jobs.Transports is
       Release (Owner);
       if Same then
          begin
-            Files.Fs_Primitives.Delete_File (Path);
+            Files.IO.Fs_Primitives.Delete_File (Path);
          exception
             when Swallowed : others =>
                Files.Diagnostics.Note (Swallowed, "Files.Jobs.Transports");
@@ -217,19 +218,19 @@ package body Files.Jobs.Transports is
         or else Length (Identity) = 0
         or else Owner_Token = ""
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Files.Fs_Primitives.Directory_Exists (Directory)
+        or else not Files.IO.Fs_Primitives.Directory_Exists (Directory)
       then
          raise Ada.Directories.Use_Error;
       end if;
       --  The caller holds the transport alone (a fresh one, or its exclusive
       --  lease), so the temporary's name is its own.
-      Files.Durable_Writes.Write_Fixed_Private_File (Temp, Write_Marker'Access, Temp_Identity);
-      if not Files.Durable_Writes.Published
-        (Files.Durable_Writes.Publish (Temp, Marker))
+      Files.IO.Durable_Writes.Write_Fixed_Private_File (Temp, Write_Marker'Access, Temp_Identity);
+      if not Files.IO.Durable_Writes.Published
+        (Files.IO.Durable_Writes.Publish (Temp, Marker))
       then
          --  Only the temporary this call wrote: whatever else sits at that
          --  name is not removed on the strength of its name.
-         Files.Durable_Writes.Remove_Owned (Temp, To_String (Temp_Identity));
+         Files.IO.Durable_Writes.Remove_Owned (Temp, To_String (Temp_Identity));
          raise Ada.Directories.Use_Error;
       end if;
    exception
@@ -247,8 +248,8 @@ package body Files.Jobs.Transports is
          procedure Remove_File (Name : String) is
          begin
             --  refusal-safe: a refused file is left, not removed
-            if Files.Fs_Primitives.Entry_Exists (Name) then
-               Files.Fs_Primitives.Delete_File (Name);
+            if Files.IO.Fs_Primitives.Entry_Exists (Name) then
+               Files.IO.Fs_Primitives.Delete_File (Name);
             end if;
          exception
             when Swallowed : others =>
@@ -262,7 +263,7 @@ package body Files.Jobs.Transports is
          Remove_File (Hostkit.Fs.Join (Candidate, Marker_Name));
          Remove_File (Hostkit.Fs.Join (Candidate, Lease_Name));
          begin
-            Files.Fs_Primitives.Delete_Directory (Candidate);
+            Files.IO.Fs_Primitives.Delete_Directory (Candidate);
          exception
             when Swallowed : others =>
                Files.Diagnostics.Note (Swallowed, "Files.Jobs.Transports");
@@ -298,8 +299,8 @@ package body Files.Jobs.Transports is
                Forget_Witness (Candidate, Witness);
                raise Ada.Directories.Use_Error;
             end if;
-            if Files.Private_Directories.Try_Create (Candidate) =
-              Files.Private_Directories.Collision
+            if Files.IO.Private_Directories.Try_Create (Candidate) =
+              Files.IO.Private_Directories.Collision
             then
                Forget_Witness (Candidate, Witness);
                goto Continue;
@@ -339,7 +340,7 @@ package body Files.Jobs.Transports is
                when others =>
                   Release (Owner);
                   Remove_Failed_Candidate (Candidate);
-                  if Files.Fs_Primitives.Entry_Is_Absent (Candidate) then
+                  if Files.IO.Fs_Primitives.Entry_Is_Absent (Candidate) then
                      Forget_Witness (Candidate, Witness);
                   end if;
                   Directory := Null_Unbounded_String;
@@ -361,7 +362,7 @@ package body Files.Jobs.Transports is
       Valid     : out Boolean;
       Read_Error : out Boolean)
    is
-      Input    : aliased Files.Lease_Streams.Input_Stream;
+      Input    : aliased Files.IO.Lease_Streams.Input_Stream;
       Marker   : constant String := Hostkit.Fs.Join (Directory, Marker_Name);
       Outcome  : Hostkit.Lease_Files.Open_Outcome;
       Header   : Files.Types.UString;
@@ -376,48 +377,48 @@ package body Files.Jobs.Transports is
       if Directory = ""
         or else not Is_Transport_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Files.Fs_Primitives.Directory_Exists (Directory)
+        or else not Files.IO.Fs_Primitives.Directory_Exists (Directory)
         or else Hostkit.Fs.Is_Link (Marker)
-        or else not Files.Fs_Primitives.File_Exists (Marker)
+        or else not Files.IO.Fs_Primitives.File_Exists (Marker)
       then
          return;
       end if;
-      Outcome := Files.Lease_Streams.Open (Marker, Input);
+      Outcome := Files.IO.Lease_Streams.Open (Marker, Input);
       if Outcome /= Hostkit.Lease_Files.Opened then
-         Files.Lease_Streams.Release (Input);
+         Files.IO.Lease_Streams.Release (Input);
          Read_Error := Outcome /= Hostkit.Lease_Files.Refused;
          return;
-      elsif Files.Lease_Streams.Size (Input) > Max_Marker_Bytes then
-         Files.Lease_Streams.Release (Input);
+      elsif Files.IO.Lease_Streams.Size (Input) > Max_Marker_Bytes then
+         Files.IO.Lease_Streams.Release (Input);
          return;
       end if;
       Header := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
+        (Files.IO.Record_Fields.Input_String
            (Input'Access, Max_Marker_Header_Length));
       if To_String (Header) not in Marker_Header | Retiring_Header
         | Truncated_Lease_Header | Truncated_Retiring_Header
         | Unbound_Marker_Header | Pre_Lease_Marker_Header
       then
-         Files.Lease_Streams.Release (Input);
+         Files.IO.Lease_Streams.Release (Input);
          return;
       end if;
       Recorded_Directory := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
+        (Files.IO.Record_Fields.Input_String
            (Input'Access, Max_Marker_Path_Length));
       Identity := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
+        (Files.IO.Record_Fields.Input_String
            (Input'Access, Max_Marker_Token_Length));
       if To_String (Header) in Marker_Header | Retiring_Header
         | Truncated_Lease_Header | Truncated_Retiring_Header
       then
          Owner_Token := To_Unbounded_String
-           (Files.Bounded_Streams.Input_String
+           (Files.IO.Record_Fields.Input_String
               (Input'Access, Max_Marker_Token_Length));
       end if;
-      if not Files.Lease_Streams.End_Of_Stream (Input) then
+      if not Files.IO.Lease_Streams.End_Of_Stream (Input) then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
-      Files.Lease_Streams.Release (Input);
+      Files.IO.Lease_Streams.Release (Input);
       if To_String (Recorded_Directory) /= Directory
         or else Length (Identity) = 0
         or else (To_String (Header) in Marker_Header | Retiring_Header
@@ -434,7 +435,7 @@ package body Files.Jobs.Transports is
       Valid := True;
    exception
       when Ada.IO_Exceptions.End_Error | Ada.IO_Exceptions.Data_Error | Constraint_Error =>
-         Files.Lease_Streams.Release (Input);
+         Files.IO.Lease_Streams.Release (Input);
          Identity := Null_Unbounded_String;
          Owner_Token := Null_Unbounded_String;
          Current := False;
@@ -442,7 +443,7 @@ package body Files.Jobs.Transports is
          Valid := False;
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Jobs.Transports");
-         Files.Lease_Streams.Release (Input);
+         Files.IO.Lease_Streams.Release (Input);
          Identity := Null_Unbounded_String;
          Owner_Token := Null_Unbounded_String;
          Current := False;
@@ -596,7 +597,7 @@ package body Files.Jobs.Transports is
          --  Not surely there (gone, or the host will not say) is as unsafe
          --  as gone: either way no second lease is made.
          if Current
-           and then not Files.Fs_Primitives.File_Exists (Lease_Path)
+           and then not Files.IO.Fs_Primitives.File_Exists (Lease_Path)
            and then not Hostkit.Fs.Is_Link (Lease_Path)
          then
             --  The owner might still hold a lock on an unlinked lease inode.
@@ -652,7 +653,7 @@ package body Files.Jobs.Transports is
             end if;
          end Check;
       begin
-         Files.Fs_Primitives.For_Each_Name (Directory, Check'Access);
+         Files.IO.Fs_Primitives.For_Each_Name (Directory, Check'Access);
          return Only_Protocol;
       exception
          when Failure : others =>
@@ -665,22 +666,22 @@ package body Files.Jobs.Transports is
       if Held (Owner)
         or else not Is_Transport_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Files.Fs_Primitives.Directory_Exists (Directory)
-        or else (not Files.Fs_Primitives.Entry_Is_Absent (Marker_Temp)
+        or else not Files.IO.Fs_Primitives.Directory_Exists (Directory)
+        or else (not Files.IO.Fs_Primitives.Entry_Is_Absent (Marker_Temp)
           and then (Hostkit.Fs.Is_Link (Marker_Temp)
-            or else not Files.Fs_Primitives.File_Exists (Marker_Temp)))
+            or else not Files.IO.Fs_Primitives.File_Exists (Marker_Temp)))
       then
          return Claim_Refused;
       end if;
       --  A marker that may be there (the host will not say) defers too.
-      if not Files.Fs_Primitives.Entry_Is_Absent (Marker_Path) then
+      if not Files.IO.Fs_Primitives.Entry_Is_Absent (Marker_Path) then
          return Claim_Deferred;
       end if;
 
       if not Protocol_Only then
          return (if Protocol_Error then Claim_Error else Claim_Refused);
       end if;
-      if not Files.Fs_Primitives.File_Exists (Witness_Name) then
+      if not Files.IO.Fs_Primitives.File_Exists (Witness_Name) then
          return Claim_Unrecoverable;
       end if;
       declare
@@ -692,7 +693,7 @@ package body Files.Jobs.Transports is
             return Outcome;
          end if;
       end;
-      if not Files.Fs_Primitives.Entry_Is_Absent (Marker_Path) then
+      if not Files.IO.Fs_Primitives.Entry_Is_Absent (Marker_Path) then
          Release (Owner);
          return Claim_Deferred;
       end if;
@@ -718,7 +719,7 @@ package body Files.Jobs.Transports is
       declare
          Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
          Modified : constant Ada.Calendar.Time :=
-           Files.Fs_Primitives.Modification_Time (Directory);
+           Files.IO.Fs_Primitives.Modification_Time (Directory);
       begin
          if Modified <= Now
            and then not Files.Timing.Elapsed (Now, Modified, Minimum_Age)
@@ -757,7 +758,7 @@ package body Files.Jobs.Transports is
                Owner : Lease;
             begin
                if Claim_Lease (Witness_Name, Owner) = Claim_Acquired then
-                  if Files.Fs_Primitives.Entry_Is_Absent (Directory)
+                  if Files.IO.Fs_Primitives.Entry_Is_Absent (Directory)
                     or else Recorded_Identity (Directory) /= ""
                   then
                      Forget_Witness (Directory, Owner);
@@ -767,7 +768,7 @@ package body Files.Jobs.Transports is
          end if;
       end Check;
    begin
-      Files.Fs_Primitives.For_Each_Name (Temp, Check'Access);
+      Files.IO.Fs_Primitives.For_Each_Name (Temp, Check'Access);
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.Jobs.Transports");

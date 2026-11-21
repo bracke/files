@@ -1,6 +1,8 @@
 with Files.Leaf_Names;
 with Files.Operation_Results;
 with Files.Operation_Commands;
+with Files.Name_Parts;
+
 separate (Files_Suite.Names)
    --  Every new name -- a copy, a link, an archive, a paste, an untitled
    --  file, a trash payload -- is found by one search (Leaf_Names.First_Free)
@@ -54,10 +56,11 @@ separate (Files_Suite.Names)
       end;
 
       --  A plain folder's dots are its name's; a package's extension names it.
-      Files_Suite.Support.Assert_Equal (Files.Types.Name_Stem ("v1.2", True), "v1.2", "a folder is all stem");
-      Files_Suite.Support.Assert_Equal (Files.Types.Name_Extension ("v1.2", True), "", "with no extension");
-      Files_Suite.Support.Assert_Equal (Files.Types.Name_Stem ("Mail.app", True), "Mail", "a package keeps its split");
-      Files_Suite.Support.Assert_Equal (Files.Types.Name_Stem ("v1.2", False), "v1", "a file splits");
+      Files_Suite.Support.Assert_Equal (Files.Name_Parts.Name_Stem ("v1.2", True), "v1.2", "a folder is all stem");
+      Files_Suite.Support.Assert_Equal (Files.Name_Parts.Name_Extension ("v1.2", True), "", "with no extension");
+      Files_Suite.Support.Assert_Equal (Files.Name_Parts.Name_Stem ("Mail.app", True), "Mail",
+                                        "a package keeps its split");
+      Files_Suite.Support.Assert_Equal (Files.Name_Parts.Name_Stem ("v1.2", False), "v1", "a file splits");
       Files_Suite.Support.Assert_Equal
         (Files.Paste.First_Free_Name ("v1.2", Only_Bare'Access, Is_Directory => True), "v1.2 2",
          "a numbered folder keeps its dots");

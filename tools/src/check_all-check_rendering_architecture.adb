@@ -169,6 +169,10 @@ separate (Check_All)
             To_Unbounded_String ("Files.Root_Labels"),
             To_Unbounded_String ("Files.Settings"),
             To_Unbounded_String ("Files.Settings.Path_References"),
+            --  Text helpers (a leaf name's parts, case folding), no I/O.
+            To_Unbounded_String ("Files.Name_Parts"),
+            To_Unbounded_String ("Files.Text_Basics"),
+            To_Unbounded_String ("Files.Text_Case"),
             To_Unbounded_String ("Files.Timing"),
             To_Unbounded_String ("Files.Types"),
             To_Unbounded_String ("Files.UI_Types")];

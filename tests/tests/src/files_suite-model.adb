@@ -22,7 +22,7 @@ with Hostkit.Host;
 
 with Files.Window_Polls;
 with Files.Application.Window_Policy;
-with Files.Bounded_Text_IO;
+with Files.IO.Bounded_Text;
 with Files.Commands;
 with Files.Controller;
 with Files.Events;
@@ -114,6 +114,7 @@ package body Files_Suite.Model is
    procedure Test_Create_File_Temporary_Item_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_File_Mixed_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_File_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Temporary_Row_Encoding (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Untitled_Name_Generation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Error_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Content_Prep (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -238,6 +239,9 @@ package body Files_Suite.Model is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Create_File_Cancellation'Access,
          "F2, Escape and item click cancel a pending create without writing a file");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Temporary_Row_Encoding'Access,
+         "the pending create row is Temporary_Item_Index in rows, rename fields and the selection");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Untitled_Name_Generation'Access, "untitled name generation skips existing entries and gaps");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -367,6 +371,7 @@ package body Files_Suite.Model is
    procedure Test_Create_File_Mixed_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Create_File_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Temporary_Row_Encoding (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Untitled_Name_Generation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

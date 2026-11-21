@@ -1,3 +1,6 @@
+with Files.Text_Basics;
+with Files.Text_Case;
+
 separate (Files.Commands)
    procedure Read_Shortcut
      (Text   : String;
@@ -10,7 +13,7 @@ separate (Files.Commands)
       Start : Integer := Text'First;
 
       procedure Token (S : String) is
-         L : constant String := Files.Types.To_Lower_Ascii (Files.Types.Trim_Blanks (S));
+         L : constant String := Files.Text_Case.To_Lower_Ascii (Files.Text_Basics.Trim_Blanks (S));
       begin
          if L = "shift" then
             Mods (Guikit.Input.Shift_Key) := True;
@@ -33,7 +36,7 @@ separate (Files.Commands)
       end Token;
    begin
       Valid := True;
-      if Files.Types.Trim_Blanks (Text) = "" then
+      if Files.Text_Basics.Trim_Blanks (Text) = "" then
          --  No combo at all: an explicit unbind, which is well-formed.
          Result := (Present => False, Key => Guikit.Input.Key_Unknown, Modifiers => Mods);
          return;

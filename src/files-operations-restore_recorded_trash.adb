@@ -10,7 +10,7 @@ begin
    --  Already restored (a retry after a crash before its marker was
    --  written): the item is at its original path, by its identity, and no
    --  longer in the trash.
-   if Files.Fs_Primitives.Entry_Is_Absent (Path) and then Files.File_Identities.Token (Target) = Identity then
+   if Files.IO.Fs_Primitives.Entry_Is_Absent (Path) and then Files.File_Identities.Token (Target) = Identity then
       return True;
    end if;
    return Files.File_System.Trash.Restore_From_Trash (Path, Identity, Target).Success;

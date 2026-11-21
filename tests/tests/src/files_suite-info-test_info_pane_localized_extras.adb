@@ -1,5 +1,7 @@
 with Files.Rendering.Testing;
 with Files.Extra_Info;
+with Files.Text_Basics;
+
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Localized_Extras (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -85,7 +87,7 @@ separate (Files_Suite.Info)
         (Name     => "huge.pdf",
          Filetype => "application/pdf",
          Extra    => Files.Extra_Info.Make (Files.Extra_Info.Pdf_Pages, Count => 3, Capped => True),
-         Expected => Detail_Value ("info.extra.document.pdf.pages", "pages", Files.Types.Natural_Text (3) & "+"),
+         Expected => Detail_Value ("info.extra.document.pdf.pages", "pages", Files.Text_Basics.Natural_Text (3) & "+"),
          Message  => "a capped count is shown as a lower bound");
       --  A PDF that could not be read names its kind only.
       Assert_Localized_Extra

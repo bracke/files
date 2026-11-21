@@ -1,3 +1,6 @@
+with Files.Name_Parts;
+with Files.Text_Case;
+
 separate (Files.File_System)
 function Rename_Item
   (From_Path : String;
@@ -14,21 +17,21 @@ is
       end if;
       if From_Path = To_Path then
          --  refusal-safe: a refused source is no no-op; the rename then decides
-         return Files.Fs_Primitives.Entry_Exists (From_Path);
+         return Files.IO.Fs_Primitives.Entry_Exists (From_Path);
       end if;
 
       --  A no-op needs the same pathname, not merely the same inode: two
       --  hard links or two links to one target are separate directory entries.
       --  Keep the leaf comparison so a case-only rename reaches its own path.
       --  refusal-safe: a refused source is no no-op; the rename then decides
-      return Files.Fs_Primitives.Entry_Exists (From_Path)
-        and then Files.Fs_Primitives.Absolute_Name (From_Path) = Files.Fs_Primitives.Absolute_Name (To_Path)
+      return Files.IO.Fs_Primitives.Entry_Exists (From_Path)
+        and then Files.IO.Fs_Primitives.Absolute_Name (From_Path) = Files.IO.Fs_Primitives.Absolute_Name (To_Path)
         and then Mutation_Leaf_Name (From_Path) = Mutation_Leaf_Name (To_Path);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
          --  refusal-safe: a refused source is no no-op; the rename then decides
-         return From_Path = To_Path and then Files.Fs_Primitives.Entry_Exists (From_Path);
+         return From_Path = To_Path and then Files.IO.Fs_Primitives.Entry_Exists (From_Path);
    end Same_Existing_Path;
 
    --  A case-only rename of a single file: the destination exists but is the
@@ -40,17 +43,17 @@ is
       From_Identity : constant String := Files.File_Identities.Token (From_Path);
    begin
       --  refusal-safe: a refused target is no case-only rename; the no-replace move refuses it
-      return Files.Fs_Primitives.Entry_Exists (To_Path)
-        and then Files.Fs_Primitives.Parent_Directory (From_Path)
-                 = Files.Fs_Primitives.Parent_Directory (To_Path)
+      return Files.IO.Fs_Primitives.Entry_Exists (To_Path)
+        and then Files.IO.Fs_Primitives.Parent_Directory (From_Path)
+                 = Files.IO.Fs_Primitives.Parent_Directory (To_Path)
         and then
           (if From_Identity /= "" then
              Files.File_Identities.Token (To_Path) = From_Identity
            else not Hostkit.Fs.Is_Link (From_Path)
              and then not Hostkit.Fs.Is_Link (To_Path)
              and then Hostkit.Metadata.Same_File (From_Path, To_Path))
-        and then Files.Types.Fold_Case (Mutation_Leaf_Name (From_Path))
-                 = Files.Types.Fold_Case (Mutation_Leaf_Name (To_Path))
+        and then Files.Text_Case.Fold_Case (Mutation_Leaf_Name (From_Path))
+                 = Files.Text_Case.Fold_Case (Mutation_Leaf_Name (To_Path))
         and then Mutation_Leaf_Name (From_Path) /= Mutation_Leaf_Name (To_Path);
    exception
       when Swallowed : others =>
@@ -65,7 +68,7 @@ is
    --  it remains free, otherwise it retains the owned entry at the scratch name
    --  and says where (Rename_Stranded_Key, Left_At).
    function Rename_Case_Only return Mutation_Result is
-      Directory : constant String := Files.Fs_Primitives.Parent_Directory (From_Path);
+      Directory : constant String := Files.IO.Fs_Primitives.Parent_Directory (From_Path);
 
       --  Beside the original and visible, named after it ("notes
       --  (renaming).txt"), so an entry left there is found by the name the
@@ -78,7 +81,7 @@ is
       --  A name the host will not answer for raises (Is_Taken): the
       --  rename fails rather than move onto a name that may be in use.
       function Taken (Leaf : String) return Boolean is
-        (Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Directory, Leaf)));
+        (Files.IO.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Directory, Leaf)));
 
       Temp : Unbounded_String := Null_Unbounded_String;
 
@@ -86,7 +89,7 @@ is
       --  The scratch name was free when chosen, so an entry there is ours,
       --  whether or not something took the original name meanwhile.
       function Stranded return Boolean is
-        (Temp /= Null_Unbounded_String and then not Files.Fs_Primitives.Entry_Is_Absent (To_String (Temp)));
+        (Temp /= Null_Unbounded_String and then not Files.IO.Fs_Primitives.Entry_Is_Absent (To_String (Temp)));
 
       function Stranded_Result return Mutation_Result is
       begin
@@ -98,10 +101,10 @@ is
       begin
          declare
             Leaf      : constant String := Mutation_Leaf_Name (From_Path);
-            Is_Folder : constant Boolean := Files.Fs_Primitives.Is_Plain_Directory (From_Path);
+            Is_Folder : constant Boolean := Files.IO.Fs_Primitives.Is_Plain_Directory (From_Path);
             Free      : constant String :=
               Files.Leaf_Names.First_Free
-                (Files.Types.Name_Stem (Leaf, Is_Folder), Files.Types.Name_Extension (Leaf, Is_Folder),
+                (Files.Name_Parts.Name_Stem (Leaf, Is_Folder), Files.Name_Parts.Name_Extension (Leaf, Is_Folder),
                  Marker'Access, Taken'Access,
                  --  Asked once: the search may try thousands of names.
                  Hostkit.Fs.Leaf_Name_Limit_At (Directory));
@@ -126,7 +129,7 @@ is
       if not Support.Move_No_Replace (From_Path, To_String (Temp)) then
          return
            (Success   => False,
-            Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
+            Error_Key => Files.IO.Errors.Error_Key ("error.rename.failed"));
       end if;
 
       begin
@@ -141,7 +144,7 @@ is
                --  Why the second hop failed, before the restore can say
                --  something else.
                Failed : constant Mutation_Result :=
-                 (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
+                 (Success => False, Error_Key => Files.IO.Errors.Error_Key ("error.rename.failed"));
             begin
                --  Second hop failed: restore the original name if it is
                --  still free. A competing entry must never be overwritten.
@@ -189,7 +192,7 @@ is
 
       --  Failed, or the cause Step was refused for when one is known.
       function Failed_By (Step : Mutation_Result) return Mutation_Result is
-        (if Files.Io_Errors.Is_Cause_Key (Step.Error_Key) then Step else Failed);
+        (if Files.IO.Errors.Is_Cause_Key (Step.Error_Key) then Step else Failed);
 
       procedure Restore_Source is
          Restored : constant Mutation_Result := Recovery.Restore (To_String (Backup));
@@ -251,17 +254,17 @@ is
 begin
    Left_At := Null_Unbounded_String;
    Failure := Rename_Refused;
-   Files.Io_Errors.Reset;
+   Files.IO.Errors.Reset;
    if To_Path /= "" and then Leaf_Too_Long (Name, Parent) then
       --  Longer than the destination stores: refused before the disk is
       --  touched, as a new entry is, so every host reports it alike.
       return
         (Success   => False,
-         Error_Key => To_Unbounded_String (Files.Io_Errors.Name_Too_Long_Key));
+         Error_Key => To_Unbounded_String (Files.IO.Errors.Name_Too_Long_Key));
    elsif Expected_Identity /= "" then
       return Rename_Recorded;
    --  refusal-safe: a refused source fails the rename
-   elsif not Files.Fs_Primitives.Entry_Exists (From_Path) then
+   elsif not Files.IO.Fs_Primitives.Entry_Exists (From_Path) then
       Failure := Rename_Source_Missing;
       return
         (Success   => False,
@@ -280,9 +283,9 @@ begin
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.name.invalid"));
    --  refusal-safe: a refused target passes on to the no-replace move, which refuses an occupied one
-   elsif (Files.Fs_Primitives.Entry_Exists (To_Path) and then not Is_Case_Only_Rename)
+   elsif (Files.IO.Fs_Primitives.Entry_Exists (To_Path) and then not Is_Case_Only_Rename)
      or else Parent = ""
-     or else not Files.Fs_Primitives.Directory_Exists (Parent)
+     or else not Files.IO.Fs_Primitives.Directory_Exists (Parent)
    then
       --  The destination exists as a genuinely distinct file (a case-only
       --  rename of the source onto itself is excluded), or its parent is
@@ -320,5 +323,5 @@ exception
       Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return
         (Success   => False,
-         Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
+         Error_Key => Files.IO.Errors.Error_Key ("error.rename.failed"));
 end Rename_Item;

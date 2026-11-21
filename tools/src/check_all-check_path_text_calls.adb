@@ -28,7 +28,7 @@ separate (Check_All)
             end loop;
             if Bad then
                Report (Path & ": reads a path with Ada.Directories (Simple_Name, Containing_Directory, Compose);"
-                  & " use Files.Fs_Primitives or Hostkit.Fs.Join");
+                  & " use Files.IO.Fs_Primitives or Hostkit.Fs.Join");
             end if;
          end;
       end loop;

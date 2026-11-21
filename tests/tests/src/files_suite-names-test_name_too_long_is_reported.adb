@@ -1,5 +1,5 @@
 with Files.Operation_Results;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 separate (Files_Suite.Names)
    --  A name longer than the destination filesystem stores (255 bytes, or
    --  255 UTF-16 units under DOS rules) is refused as too long before the
@@ -19,7 +19,7 @@ separate (Files_Suite.Names)
       procedure Expect_Refused (What : String) is
       begin
          Assert (not Result.Success, What & ": a 300-byte name is refused");
-         Assert (not Files.Fs_Primitives.Entry_Exists (Long_Path), What & ": and nothing was made");
+         Assert (not Files.IO.Fs_Primitives.Entry_Exists (Long_Path), What & ": and nothing was made");
          Files_Suite.Support.Assert_Equal
            (To_String (Result.Error_Key), "error.io.name_too_long", What & ": the refusal says the name is too long");
       end Expect_Refused;

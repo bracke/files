@@ -14,7 +14,7 @@ begin
       return Failed;
    end if;
    Support.Delete_Owned_Tree (Path);
-   if not Files.Fs_Primitives.Entry_Is_Absent (Path) then
+   if not Files.IO.Fs_Primitives.Entry_Is_Absent (Path) then
       return Failed;
    end if;
    return (Success => True, Error_Key => Null_Unbounded_String);

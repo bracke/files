@@ -11,7 +11,7 @@ with Hostkit.Fs;
 
 with Files.Diagnostics;
 with Files.File_System;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Application.Windows;
 with Files.Application.Windows.Smoke;
 with Files_Config;
@@ -23,6 +23,8 @@ with Files.Settings_Form;
 with Guikit.Frame_Analysis;
 with Guikit.Mirroring;
 with Guikit.Vulkan;
+with Files.Text_Basics;
+use Files.Text_Basics;
 
 package body Files.Application is
 
@@ -140,7 +142,7 @@ package body Files.Application is
 
       function Existing_Directory (Path : String) return Boolean is
       begin
-         return Path /= "" and then Files.Fs_Primitives.Directory_Exists (Path);
+         return Path /= "" and then Files.IO.Fs_Primitives.Directory_Exists (Path);
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Application");
@@ -219,7 +221,7 @@ package body Files.Application is
       --  the path for an existing one would orphan the file -- Ensure_Default_File
       --  would find nothing at the new location and write a fresh default,
       --  silently, over choices that cannot be regenerated from anything.
-      if Files.Fs_Primitives.File_Exists (Legacy) or else Host_Config = "" then
+      if Files.IO.Fs_Primitives.File_Exists (Legacy) or else Host_Config = "" then
          return Legacy;
       end if;
 
@@ -291,7 +293,7 @@ package body Files.Application is
             --  defaults may be written later; where one may be (it could not
             --  be looked at, or is not a plain file), saving the defaults
             --  would replace what it holds, so run read-only as above.
-            Load_Failed := not Files.Fs_Primitives.Entry_Is_Absent (Effective_Path);
+            Load_Failed := not Files.IO.Fs_Primitives.Entry_Is_Absent (Effective_Path);
          end if;
       end;
 
@@ -488,8 +490,6 @@ package body Files.Application is
    is
       Report     : Unbounded_String := Null_Unbounded_String;
       First_Line : Boolean := True;
-
-      function Natural_Text (Value : Natural) return String renames Files.Types.Natural_Text;
 
       procedure Append_Line (Line : String) is
       begin

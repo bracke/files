@@ -30,7 +30,7 @@ begin
       return (Success => True, Error_Key => Null_Unbounded_String);
    elsif not Support.Copy_May_Replace_Move (Outcome) then
       Route := Refused;
-      return (Success => False, Error_Key => Files.Io_Errors.Error_Key (Fallback_Key));
+      return (Success => False, Error_Key => Files.IO.Errors.Error_Key (Fallback_Key));
    end if;
    Route := Copied;
    return Move_By_Copy

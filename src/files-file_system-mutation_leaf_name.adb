@@ -1,4 +1,5 @@
 with Hostkit.Path_Text;
+with Files.Name_Parts;
 
 separate (Files.File_System)
 function Mutation_Leaf_Name (Path : String) return String is
@@ -8,5 +9,5 @@ begin
       return "";
    end if;
 
-   return Files.Types.Leaf_Of (Path);
+   return Files.Name_Parts.Leaf_Of (Path);
 end Mutation_Leaf_Name;

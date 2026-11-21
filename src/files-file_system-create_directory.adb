@@ -4,7 +4,7 @@ function Create_Directory
    return Mutation_Result
 is
 begin
-   Files.Io_Errors.Reset;
+   Files.IO.Errors.Reset;
    declare
       Checked : constant Mutation_Result := Validate_New_Entry (Path, "error.file.parent_missing");
    begin
@@ -14,11 +14,11 @@ begin
    end;
 
    begin
-      Files.Io_Errors.Clear_Os_Error;
-      Files.Fs_Primitives.Create_Directory (Path);
+      Files.IO.Errors.Clear_Os_Error;
+      Files.IO.Fs_Primitives.Create_Directory (Path);
    exception
       when others =>
-         Files.Io_Errors.Capture;
+         Files.IO.Errors.Capture;
          raise;
    end;
    return (Success => True, Error_Key => Null_Unbounded_String);
@@ -27,5 +27,5 @@ exception
       Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return
         (Success   => False,
-         Error_Key => Files.Io_Errors.Error_Key ("error.file.create"));
+         Error_Key => Files.IO.Errors.Error_Key ("error.file.create"));
 end Create_Directory;

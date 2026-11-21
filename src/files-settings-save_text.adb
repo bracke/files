@@ -1,5 +1,5 @@
 with Files.Diagnostics;
-with Files.Io_Errors;
+with Files.IO.Errors;
 separate (Files.Settings)
    function Save_Text
      (Path : String;
@@ -16,15 +16,15 @@ separate (Files.Settings)
       function Link_Target return String is
          Resolved : constant String := Hostkit.Fs.Canonical_Path (Path);
       begin
-         return (if Resolved /= "" then Resolved else Files.Fs_Primitives.Full_Name (Path));
+         return (if Resolved /= "" then Resolved else Files.IO.Fs_Primitives.Full_Name (Path));
       end Link_Target;
 
       Target : constant String := (if Hostkit.Fs.Is_Link (Path) then Link_Target else Path);
       Parent : constant String := Parent_Directory (Target);
       Temp   : Unbounded_String;
       Temp_Identity : Unbounded_String;
-      Publication : Files.Durable_Writes.Publication_Result :=
-        Files.Durable_Writes.Not_Published;
+      Publication : Files.IO.Durable_Writes.Publication_Result :=
+        Files.IO.Durable_Writes.Not_Published;
 
       --  The settings text, as the bytes it is.
       procedure Write_Text (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
@@ -32,7 +32,7 @@ separate (Files.Settings)
          String'Write (Stream, Text);
       end Write_Text;
    begin
-      Files.Io_Errors.Reset;
+      Files.IO.Errors.Reset;
       if Path = ""
         or else Contains_Nul (Path)
         or else Contains_Nul (Text)
@@ -46,8 +46,8 @@ separate (Files.Settings)
       --  refusal-safe: a save replaces the file whatever is there; a target
       --  not seen only skips this guard, and the publish beside it is then
       --  refused in the same folder.
-      elsif Files.Fs_Primitives.Exists (Target)
-        and then Files.Fs_Primitives.Kind (Target) /= Ada.Directories.Ordinary_File
+      elsif Files.IO.Fs_Primitives.Exists (Target)
+        and then Files.IO.Fs_Primitives.Kind (Target) /= Ada.Directories.Ordinary_File
       then
             return
               (Success   => False,
@@ -58,8 +58,8 @@ separate (Files.Settings)
 
       if Parent /= "" then
          --  refusal-safe: a folder not seen is made, which fails or finds it.
-         if Files.Fs_Primitives.Exists (Parent) then
-            if Files.Fs_Primitives.Kind (Parent) /= Ada.Directories.Directory then
+         if Files.IO.Fs_Primitives.Exists (Parent) then
+            if Files.IO.Fs_Primitives.Kind (Parent) /= Ada.Directories.Directory then
                return
                  (Success   => False,
                   Durable   => False,
@@ -68,11 +68,11 @@ separate (Files.Settings)
             end if;
          else
             begin
-               Files.Io_Errors.Clear_Os_Error;
-               Files.Fs_Primitives.Create_Path (Parent);
+               Files.IO.Errors.Clear_Os_Error;
+               Files.IO.Fs_Primitives.Create_Path (Parent);
             exception
                when others =>
-                  Files.Io_Errors.Capture;
+                  Files.IO.Errors.Capture;
                   raise;
             end;
          end if;
@@ -87,10 +87,10 @@ separate (Files.Settings)
       --  following it and truncating its target. What a crash left there
       --  before this process started goes first, so temporaries do not pile
       --  up beside the settings.
-      Files.Durable_Writes.Sweep_Stale_Temporaries (Target);
-      Files.Durable_Writes.Write_Private_Temporary (Target, Write_Text'Access, Temp, Temp_Identity);
-      Publication := Files.Durable_Writes.Publish (To_String (Temp), Target);
-      if not Files.Durable_Writes.Published (Publication) then
+      Files.IO.Durable_Writes.Sweep_Stale_Temporaries (Target);
+      Files.IO.Durable_Writes.Write_Private_Temporary (Target, Write_Text'Access, Temp, Temp_Identity);
+      Publication := Files.IO.Durable_Writes.Publish (To_String (Temp), Target);
+      if not Files.IO.Durable_Writes.Published (Publication) then
          raise Ada.Directories.Use_Error;
       end if;
       Temp := Null_Unbounded_String;
@@ -105,10 +105,10 @@ separate (Files.Settings)
 
       return
         (Success   => True,
-         Durable   => Files.Durable_Writes.Durable (Publication),
+         Durable   => Files.IO.Durable_Writes.Durable (Publication),
          Path      => To_Unbounded_String (Path),
          Error_Key =>
-           (if Files.Durable_Writes.Durable (Publication)
+           (if Files.IO.Durable_Writes.Durable (Publication)
             then Null_Unbounded_String
             else To_Unbounded_String ("warning.settings.not_durable")));
    exception
@@ -116,9 +116,9 @@ separate (Files.Settings)
          Files.Diagnostics.Note (Swallowed, "Files.Settings");
          declare
             --  Why, before the cleanup below can record a cause of its own.
-            Key : constant Unbounded_String := Files.Io_Errors.Error_Key ("error.settings.save");
+            Key : constant Unbounded_String := Files.IO.Errors.Error_Key ("error.settings.save");
          begin
-            Files.Durable_Writes.Remove_Owned (To_String (Temp), To_String (Temp_Identity));
+            Files.IO.Durable_Writes.Remove_Owned (To_String (Temp), To_String (Temp_Identity));
 
             return
               (Success   => False,

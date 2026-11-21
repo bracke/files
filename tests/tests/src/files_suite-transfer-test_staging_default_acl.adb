@@ -1,7 +1,7 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.Job_Drivers.Foreground;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Disk;
@@ -52,7 +52,7 @@ separate (Files_Suite.Transfer)
          Files.Jobs.Process.Reserve (Job);
          Transport := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
          Assert
-           (Hostkit.Metadata.Same_File (Files.Fs_Primitives.Parent_Directory (To_String (Transport)), Parent),
+           (Hostkit.Metadata.Same_File (Files.IO.Fs_Primitives.Parent_Directory (To_String (Transport)), Parent),
             "the job transport is made in the temporary directory the environment names");
          Assert (Is_Owner_Only (To_String (Transport)), "the job transport is owner-only from creation");
          Write_Binary_File (Files.Jobs.Process.Path (Job, "request"), "private request");

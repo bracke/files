@@ -11,11 +11,11 @@ separate (Files.Settings)
             Durable   => False,
             Path      => To_Unbounded_String (Path),
             Error_Key => To_Unbounded_String ("error.settings.save"));
-      elsif not Files.Fs_Primitives.Entry_Is_Absent (Path) then
+      elsif not Files.IO.Fs_Primitives.Entry_Is_Absent (Path) then
          --  Seeded only where surely nothing is: a settings file that cannot
          --  be looked at raises here (Kind) and is never replaced by the
          --  defaults.
-         if Files.Fs_Primitives.Kind (Path) = Ada.Directories.Ordinary_File then
+         if Files.IO.Fs_Primitives.Kind (Path) = Ada.Directories.Ordinary_File then
             return
               (Success   => True,
                Durable   => True,

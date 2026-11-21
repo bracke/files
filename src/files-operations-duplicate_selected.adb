@@ -1,3 +1,5 @@
+with Files.Name_Parts;
+
 separate (Files.Operations)
 function Duplicate_Selected
   (Model    : in out Files.Model.Window_Model;
@@ -51,7 +53,7 @@ begin
             Source : constant String := To_String (Item.Full_Path);
             --  Recent and search results can select paths from several
             --  folders; each duplicate belongs beside its source.
-            Destination_Directory : constant String := Files.Fs_Primitives.Parent_Directory (Source);
+            Destination_Directory : constant String := Files.IO.Fs_Primitives.Parent_Directory (Source);
             Name   : constant String := To_String (Item.Name);
             --  A plain folder's dots are part of its name: "v1.2 (copy)".
             Is_Folder : constant Boolean := Item.Kind = Files.Types.Directory_Item;
@@ -62,9 +64,9 @@ begin
               Hostkit.Fs.Join
                 (Destination_Directory,
                  First_Free_Leaf
-                   (Destination_Directory, Files.Types.Name_Stem (Name, Is_Folder),
-                    Files.Types.Name_Extension (Name, Is_Folder), Copy_Marker'Access));
-            Dest_Name : constant String := Files.Types.Leaf_Of (Dest_Path);
+                   (Destination_Directory, Files.Name_Parts.Name_Stem (Name, Is_Folder),
+                    Files.Name_Parts.Name_Extension (Name, Is_Folder), Copy_Marker'Access));
+            Dest_Name : constant String := Files.Name_Parts.Leaf_Of (Dest_Path);
             Identity, Revision : Files.Types.UString;
             Mutation  : constant Files.File_System.Mutation_Result :=
               Files.File_System.Copy_Tree (Source, Dest_Path, Identity, Revision, Copy_Batch);

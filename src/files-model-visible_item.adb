@@ -6,7 +6,7 @@ function Visible_Item
 is
    Item_Index : constant Natural := Support.Selection_Index_Of_Visible (Model, Visible_Index);
 begin
-   if Item_Index = Support.Temporary_Item_Index then
+   if Item_Index = Temporary_Item_Index then
       return Support.Temporary_Item (Model);
    elsif Item_Index /= 0 then
       return Model.Items.Element (Positive (Item_Index));

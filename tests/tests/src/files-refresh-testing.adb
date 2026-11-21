@@ -1,4 +1,4 @@
-with Files.Bounded_Streams;
+with Files.IO.Record_Fields;
 with Ada.Directories;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
@@ -39,7 +39,7 @@ package body Files.Refresh.Testing is
       Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
       declare
          Header : constant String :=
-           Files.Bounded_Streams.Input_String
+           Files.IO.Record_Fields.Input_String
              (Ada.Streams.Stream_IO.Stream (File), 128);
          Original_Success : Boolean;
          Original_Reloaded : Boolean;

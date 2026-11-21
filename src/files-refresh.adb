@@ -9,14 +9,14 @@ with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
-with Files.Bounded_Streams;
+with Files.IO.Record_Fields;
 with Files.File_System;
-with Files.Exclusive_Streams;
+with Files.IO.Exclusive_Streams;
 with Files.Jobs.Context;
 with Files.Jobs.Records;
-with Files.Lease_Streams;
-with Files.Fs_Primitives;
-with Files.Io_Errors;
+with Files.IO.Lease_Streams;
+with Files.IO.Fs_Primitives;
+with Files.IO.Errors;
 with Hostkit.Fs;
 with Hostkit.Watch;
 with Files.Path_Checks;
@@ -30,7 +30,7 @@ package body Files.Refresh is
    use type Ada.Directories.File_Kind;
    use type Files.Operation_Results.Operation_Status;
 
-   Max_Watch_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
+   Max_Watch_Path_Length : constant := Files.IO.Record_Fields.Max_Path_Length;
    Request_Header : constant String := "files-refresh-request-1";
    Watch_Request_Header : constant String := "files-watch-request-1";
    Result_Header : constant String := "files-refresh-result-1";
@@ -87,16 +87,16 @@ package body Files.Refresh is
          raise Ada.Directories.Use_Error;
       end if;
       String'Output (Stream, Request_Header);
-      Files.Bounded_Streams.Output_String
+      Files.IO.Record_Fields.Output_String
         (Stream, To_String (Work.Root), Files.Jobs.Records.Max_Path_Length);
       Natural'Output (Stream, Work.Context_Revision);
       Files.Jobs.Records.Write_Settings (Stream, Work.Settings);
       Files.Jobs.Records.Write_Signature (Stream, Work.Previous);
       Boolean'Output (Stream, Work.Recent);
       Boolean'Output (Stream, Work.Force);
-      Files.Bounded_Streams.Output_String
+      Files.IO.Record_Fields.Output_String
         (Stream, To_String (Work.Selection), Files.Jobs.Records.Max_Path_Length);
-      Files.Bounded_Streams.Output_String
+      Files.IO.Record_Fields.Output_String
         (Stream, To_String (Work.Error_Key), Files.Jobs.Records.Max_Error_Length);
    end Write_Request;
 
@@ -105,22 +105,22 @@ package body Files.Refresh is
       Work   : out Request) is
    begin
       Work.Root :=
-        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
       Work.Context_Revision := Natural'Input (Stream);
       Work.Settings := Files.Jobs.Records.Read_Settings (Stream);
       Work.Previous := Files.Jobs.Records.Read_Signature (Stream);
       Work.Recent := Boolean'Input (Stream);
       Work.Force := Boolean'Input (Stream);
       Work.Selection :=
-        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
       Work.Error_Key :=
-        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Jobs.Records.Max_Error_Length));
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Error_Length));
    end Read_Request_Body;
 
    function Request_Is_Consistent (Work : Request) return Boolean is
      (Request_Paths_Are_Consistent (To_String (Work.Root), To_String (Work.Previous.Path), Work.Recent));
 
-   function Read_Request_Record is new Files.Lease_Streams.Read_Record
+   function Read_Request_Record is new Files.IO.Lease_Streams.Read_Record
      (Request, Read_Request_Body, Request_Is_Consistent);
 
    function Read_Request (Path : String) return Request is
@@ -137,14 +137,14 @@ package body Files.Refresh is
       Ident  : out Request_Identity) is
    begin
       Ident.Root :=
-        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
       Ident.Context_Revision := Natural'Input (Stream);
    end Read_Identity_Body;
 
    function Identity_Is_Consistent (Ident : Request_Identity) return Boolean is
      (Length (Ident.Root) = 0 or else Valid_Absolute_Path (To_String (Ident.Root)));
 
-   function Read_Identity_Record is new Files.Lease_Streams.Read_Record
+   function Read_Identity_Record is new Files.IO.Lease_Streams.Read_Record
      (Request_Identity, Read_Identity_Body, Identity_Is_Consistent, Whole => False);
 
    function Read_Request_Identity (Path : String) return Request_Identity is
@@ -163,7 +163,7 @@ package body Files.Refresh is
       Boolean'Output (Stream, Done.Reloaded);
       Files.Jobs.Records.Write_Items (Stream, Done.Items);
       Files.Jobs.Records.Write_Signature (Stream, Done.Signature);
-      Files.Bounded_Streams.Output_String
+      Files.IO.Record_Fields.Output_String
         (Stream, To_String (Done.Error_Key), Files.Jobs.Records.Max_Error_Length);
    end Write_Outcome;
 
@@ -176,10 +176,10 @@ package body Files.Refresh is
       Done.Items := Files.Jobs.Records.Read_Items (Stream);
       Done.Signature := Files.Jobs.Records.Read_Signature (Stream);
       Done.Error_Key :=
-        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Jobs.Records.Max_Error_Length));
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Error_Length));
    end Read_Outcome_Body;
 
-   function Read_Outcome_Record is new Files.Lease_Streams.Read_Record
+   function Read_Outcome_Record is new Files.IO.Lease_Streams.Read_Record
      (Outcome, Read_Outcome_Body, Is_Consistent);
 
    function Read_Outcome (Path : String) return Outcome is
@@ -206,11 +206,11 @@ package body Files.Refresh is
          --  A failed listing must be retried even when the directory signature
          --  is unchanged. Preserve operation errors, which a reload cannot fix.
          Recent => Files.Model.In_Recent_View (Model),
-         Force => Force or else Previous_Error = Files.Io_Errors.Directory_Load_Key,
+         Force => Force or else Previous_Error = Files.IO.Errors.Directory_Load_Key,
          --  An empty value means preserve the selection that is current when
          --  the read completes. A nonempty operation-requested name wins.
          Selection => To_Unbounded_String (Select_Name),
-         Error_Key => (if Previous_Error = Files.Io_Errors.Directory_Load_Key then Null_Unbounded_String
+         Error_Key => (if Previous_Error = Files.IO.Errors.Directory_Load_Key then Null_Unbounded_String
                        else To_Unbounded_String (Previous_Error)));
    begin
       if not Force and then (Work.Recent or else Files.Model.Search_Results_Are_Active (Model)) then
@@ -251,7 +251,7 @@ package body Files.Refresh is
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Refresh");
          if Length (Work.Error_Key) = 0 then
-            Files.Model.Set_Error (Model, Files.Io_Errors.Directory_Load_Key);
+            Files.Model.Set_Error (Model, Files.IO.Errors.Directory_Load_Key);
          end if;
          return (Status => Files.Operation_Results.Operation_Failed,
                  Error_Key => To_Unbounded_String (Files.Model.Last_Error_Key (Model)), others => <>);
@@ -437,7 +437,7 @@ package body Files.Refresh is
          Files.Diagnostics.Note (Swallowed, "Files.Refresh");
          Cancel (Model);
          if Matching and then Length (Work.Error_Key) = 0 then
-            Files.Model.Set_Error (Model, Files.Io_Errors.Directory_Load_Key);
+            Files.Model.Set_Error (Model, Files.IO.Errors.Directory_Load_Key);
          end if;
          return False;
    end Advance;
@@ -565,7 +565,7 @@ package body Files.Refresh is
          Job.Native :=
            --  refusal-safe: a marker not seen keeps the polling fallback on,
            --  which only costs polls; it is asked again next pass.
-           Files.Fs_Primitives.Exists
+           Files.IO.Fs_Primitives.Exists
              (Files.Jobs.Process.Path (Job.Process, Files.Protocol_Names.Native_Watch_File));
       end if;
       return Job.Native and then Files.Jobs.Process.Active (Job.Process);
@@ -583,7 +583,7 @@ package body Files.Refresh is
       procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
       begin
          String'Output (Stream, Watch_Request_Header);
-         Files.Bounded_Streams.Output_String (Stream, Path, Max_Watch_Path_Length);
+         Files.IO.Record_Fields.Output_String (Stream, Path, Max_Watch_Path_Length);
       end Write;
 
       procedure Note_Failure is
@@ -627,7 +627,7 @@ package body Files.Refresh is
          Hostkit.Fs.Join (Directory, Files.Protocol_Names.Claimed_Changed_File)));
 
    function Post_Watch_Notification (Directory : String) return Boolean is
-      File   : Files.Exclusive_Streams.Output_Stream;
+      File   : Files.IO.Exclusive_Streams.Output_Stream;
       Target : constant String := Hostkit.Fs.Join (Directory, Files.Protocol_Names.Changed_File);
 
       --  refusal-safe: a marker not seen is made exclusively, which cannot
@@ -635,8 +635,8 @@ package body Files.Refresh is
       function Posted return Boolean is
         (not Hostkit.Fs.Is_Link (Target)
          --  refusal-safe: as above.
-         and then Files.Fs_Primitives.Exists (Target)
-         and then Files.Fs_Primitives.Kind (Target) = Ada.Directories.Ordinary_File);
+         and then Files.IO.Fs_Primitives.Exists (Target)
+         and then Files.IO.Fs_Primitives.Kind (Target) = Ada.Directories.Ordinary_File);
    begin
       --  One unread marker says it all: the window re-reads the folder, not
       --  the events. And it is made in place, with no sync: it carries no
@@ -645,13 +645,13 @@ package body Files.Refresh is
       if Posted then
          return True;
       end if;
-      Files.Exclusive_Streams.Create (File, Target);
-      Files.Exclusive_Streams.Close (File);
+      Files.IO.Exclusive_Streams.Create (File, Target);
+      Files.IO.Exclusive_Streams.Close (File);
       return True;
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Refresh");
-         Files.Exclusive_Streams.Close_Safely (File);
+         Files.IO.Exclusive_Streams.Close_Safely (File);
          --  Made meanwhile by nobody else, but answer by what is there.
          return Posted;
    end Post_Watch_Notification;
@@ -670,13 +670,13 @@ package body Files.Refresh is
             begin
                null;
             end;
-         elsif Files.Fs_Primitives.Entry_Is_Absent (Claimed) then
+         elsif Files.IO.Fs_Primitives.Entry_Is_Absent (Claimed) then
             null;
-         elsif Files.Fs_Primitives.Kind (Claimed) = Ada.Directories.Ordinary_File then
+         elsif Files.IO.Fs_Primitives.Kind (Claimed) = Ada.Directories.Ordinary_File then
             --  A claim that cannot be looked at raises above (Kind) and
             --  stays to be removed, not taken for gone: left, it would
             --  refuse every later claim of a change.
-            Files.Fs_Primitives.Delete_File (Claimed);
+            Files.IO.Fs_Primitives.Delete_File (Claimed);
          end if;
          Job.Claim_Left := False;
       exception
@@ -718,13 +718,13 @@ package body Files.Refresh is
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Path   : out Unbounded_String) is
    begin
-      Path := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Watch_Path_Length));
+      Path := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Watch_Path_Length));
    end Read_Watch_Body;
 
    function Watch_Request_Is_Consistent (Path : Unbounded_String) return Boolean is
      (Watch_Path_Is_Consistent (To_String (Path)));
 
-   function Read_Watch_Record is new Files.Lease_Streams.Read_Record
+   function Read_Watch_Record is new Files.IO.Lease_Streams.Read_Record
      (Unbounded_String, Read_Watch_Body, Watch_Request_Is_Consistent);
 
    function Read_Watch_Request (Path : String) return Unbounded_String is
@@ -760,13 +760,14 @@ package body Files.Refresh is
       --  helper reports what the listing shows, file growth included, either
       --  from the watch or from its own re-reads.
       declare
-         Marker : Files.Exclusive_Streams.Output_Stream;
+         Marker : Files.IO.Exclusive_Streams.Output_Stream;
       begin
-         Files.Exclusive_Streams.Create (Marker, Hostkit.Fs.Join (Directory, Files.Protocol_Names.Native_Watch_File));
-         Files.Exclusive_Streams.Close (Marker);
+         Files.IO.Exclusive_Streams.Create
+           (Marker, Hostkit.Fs.Join (Directory, Files.Protocol_Names.Native_Watch_File));
+         Files.IO.Exclusive_Streams.Close (Marker);
       exception
          when Swallowed : others =>
-            Files.Exclusive_Streams.Close_Safely (Marker);
+            Files.IO.Exclusive_Streams.Close_Safely (Marker);
             Files.Diagnostics.Note (Swallowed, "Files.Refresh");
       end;
       loop

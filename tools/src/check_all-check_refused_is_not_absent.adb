@@ -2,7 +2,7 @@ separate (Check_All)
    procedure Check_Refused_Is_Not_Absent is
       --  Exists and Entry_Exists answer "not there" when the host refuses
       --  the lookup, so a decision built on either can take a refusal for
-      --  absence. Files.Fs_Primitives.Entry_Is_Absent tells the two apart.
+      --  absence. Files.IO.Fs_Primitives.Entry_Is_Absent tells the two apart.
       --  Read as tokens, so a call split over lines or written positively
       --  ("if Exists then keep else forget") is seen as well as a negated one.
 
@@ -37,7 +37,7 @@ separate (Check_All)
                        (Path & ":" & Line_Image (Toks (Index).Line)
                         & ": a renaming of " & To_String (Toks (Name_Last).Text)
                         & " hides its calls from the refused-is-not-absent check; call "
-                        & "Files.Fs_Primitives.Entry_Is_Absent or Entry_Exists by name");
+                        & "Files.IO.Fs_Primitives.Entry_Is_Absent or Entry_Exists by name");
                   end if;
                end;
             end if;
@@ -93,7 +93,7 @@ separate (Check_All)
                Report
                  (Path & ":" & Line_Image (Toks (Index).Line) & ": " & To_String (Toks (Index).Text)
                   & " decides here without saying why a refused lookup cannot lose anything; ask "
-                  & "Files.Fs_Primitives.Entry_Is_Absent (gone for sure), a kind (Directory_Exists, "
+                  & "Files.IO.Fs_Primitives.Entry_Is_Absent (gone for sure), a kind (Directory_Exists, "
                   & "File_Exists), or say why with '" & Annotation & " <why>'");
             end if;
          end loop;

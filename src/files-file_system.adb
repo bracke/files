@@ -1,4 +1,4 @@
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Jobs.Context;
 with Files.Jobs.Storage;
 with Ada.Streams;
@@ -31,15 +31,17 @@ with Files.File_System.Thumbnails;
 with Files.File_System.Recovery;
 with Files.File_Identities;
 with Files.File_System.Account_Names;
-with Files.Private_Directories;
-with Files.Io_Errors;
+with Files.IO.Private_Directories;
+with Files.IO.Errors;
 with Hostkit.Trash;
-with Files.Bounded_Text_IO;
+with Files.IO.Bounded_Text;
+with Files.Name_Parts;
+with Files.Text_Case;
 
 package body Files.File_System is
 
    --  Short for the subunits: the one public name is Fs_Primitives'.
-   function Parent_Directory (Path : String) return String renames Files.Fs_Primitives.Parent_Directory;
+   function Parent_Directory (Path : String) return String renames Files.IO.Fs_Primitives.Parent_Directory;
    use type Hostkit.Host.Kind;
 
    use Files.File_System.Support;
@@ -453,11 +455,11 @@ package body Files.File_System is
       begin
          if Left = Right then
             return True;
-         elsif Files.Types.Fold_Case (Left) /= Files.Types.Fold_Case (Right) then
+         elsif Files.Text_Case.Fold_Case (Left) /= Files.Text_Case.Fold_Case (Right) then
             return False;
          elsif Holder in "" | "." then
             return Folds (Right);
-         elsif Files.Types.Leaf_Of (Left) /= Files.Types.Leaf_Of (Right)
+         elsif Files.Name_Parts.Leaf_Of (Left) /= Files.Name_Parts.Leaf_Of (Right)
            and then not Folds (Holder)
          then
             return False;
@@ -479,7 +481,9 @@ package body Files.File_System is
    begin
       if Hostkit.Fs.Is_Same_Or_Inside (Child, Parent) then
          return True;
-      elsif not Hostkit.Fs.Is_Same_Or_Inside (Files.Types.Fold_Case (Child), Files.Types.Fold_Case (Parent)) then
+      elsif not Hostkit.Fs.Is_Same_Or_Inside
+          (Files.Text_Case.Fold_Case (Child), Files.Text_Case.Fold_Case (Parent))
+      then
          return False;
       end if;
       --  Within by folding alone: Child's folder as deep as Parent must be
@@ -513,7 +517,7 @@ package body Files.File_System is
                Head : constant String :=
                  (if Top_Ends_In_Separator then Path (Path'First .. Last) else Path (Path'First .. Last - 1));
             begin
-               if Head = Top or else Files.Types.Fold_Case (Head) = Files.Types.Fold_Case (Top) then
+               if Head = Top or else Files.Text_Case.Fold_Case (Head) = Files.Text_Case.Fold_Case (Top) then
                   return Path (Last + 1 .. Path'Last);
                end if;
             end;
@@ -523,14 +527,14 @@ package body Files.File_System is
    end Relative_To_Top;
 
    function Volume_Trash_Top (Base : String) return String is
-     (if Files.Types.Leaf_Of (Base) (1 .. Natural'Min (7, Files.Types.Leaf_Of (Base)'Length))
+     (if Files.Name_Parts.Leaf_Of (Base) (1 .. Natural'Min (7, Files.Name_Parts.Leaf_Of (Base)'Length))
            = ".Trash-"
-      then Files.Fs_Primitives.Parent_Directory (Base)
-      else Files.Fs_Primitives.Parent_Directory (Files.Fs_Primitives.Parent_Directory (Base)));
+      then Files.IO.Fs_Primitives.Parent_Directory (Base)
+      else Files.IO.Fs_Primitives.Parent_Directory (Files.IO.Fs_Primitives.Parent_Directory (Base)));
 
    function Is_Finder_Volume_Trash (Base : String) return Boolean is
      (Base /= ""
-      and then Files.Types.Leaf_Of (Files.Fs_Primitives.Parent_Directory (Base)) = ".Trashes");
+      and then Files.Name_Parts.Leaf_Of (Files.IO.Fs_Primitives.Parent_Directory (Base)) = ".Trashes");
 
    function Trash_Items_Directory (Base : String) return String is
      (if Is_Finder_Volume_Trash (Base) then Base else Hostkit.Fs.Join (Base, "files"));
@@ -912,7 +916,7 @@ package body Files.File_System is
       Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result is
    begin
-      Files.Io_Errors.Reset;
+      Files.IO.Errors.Reset;
       Support.Copy_To_New_Path (Source_Path, Destination_Path, Batch => Batch);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
@@ -920,7 +924,7 @@ package body Files.File_System is
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return
            (Success   => False,
-            Error_Key => Files.Io_Errors.Error_Key ("error.copy.failed"));
+            Error_Key => Files.IO.Errors.Error_Key ("error.copy.failed"));
    end Copy_Tree;
 
    function Copy_Tree
@@ -1016,7 +1020,7 @@ package body Files.File_System is
       --  unverified entry is never acted on (not undone, not removed).
       return Expected /= ""
         --  refusal-safe: as above.
-        and then Files.Fs_Primitives.Entry_Exists (Path)
+        and then Files.IO.Fs_Primitives.Entry_Exists (Path)
         and then Files.File_Identities.Token (Path) = Expected;
    exception
       when Swallowed : others =>

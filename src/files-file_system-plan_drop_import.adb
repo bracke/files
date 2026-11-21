@@ -1,6 +1,9 @@
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 with Files.Paste;
+with Files.Name_Parts;
+with Files.Text_Case;
+
 separate (Files.File_System)
 function Plan_Drop_Import
   (Source_Paths          : Files.Types.String_Vectors.Vector;
@@ -27,14 +30,14 @@ is
    Rules   : Files.Paste.Name_Rules;
 
    function Key (Path : String) return String is
-     (if Rules.Fold_Names then Files.Types.Fold_Case (Path) else Path);
+     (if Rules.Fold_Names then Files.Text_Case.Fold_Case (Path) else Path);
 
    function Available_Destination (Leaf : String; Is_Directory : Boolean) return String is
       --  A name that cannot be looked at raises (Is_Taken): that source's
       --  plan fails rather than take a name that may be in use.
       function Taken (Name : String) return Boolean is
         (Claimed.Contains (Key (Hostkit.Fs.Join (Destination_Directory, Name)))
-         or else Files.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Destination_Directory, Name)));
+         or else Files.IO.Fs_Primitives.Is_Taken (Hostkit.Fs.Join (Destination_Directory, Name)));
    begin
       return Hostkit.Fs.Join
         (Destination_Directory,
@@ -53,7 +56,7 @@ is
       if Real /= "" then
          return Real;
       end if;
-      return Files.Fs_Primitives.Real_Name (Path);
+      return Files.IO.Fs_Primitives.Real_Name (Path);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
@@ -98,7 +101,7 @@ is
                return True;
             end if;
             declare
-               Parent : constant String := Files.Fs_Primitives.Parent_Directory (To_String (Ancestor));
+               Parent : constant String := Files.IO.Fs_Primitives.Parent_Directory (To_String (Ancestor));
             begin
                exit when Parent = To_String (Ancestor);
                Ancestor := To_Unbounded_String (Parent);
@@ -111,7 +114,7 @@ is
       return False;
    end Is_Within_Tree;
 begin
-   if not Files.Fs_Primitives.Directory_Exists (Destination_Directory)
+   if not Files.IO.Fs_Primitives.Directory_Exists (Destination_Directory)
    then
       Result.Error_Key := To_Unbounded_String ("error.drop.invalid_destination");
       return Result;
@@ -128,13 +131,13 @@ begin
          Plan.Mode := Mode;
          --  refusal-safe: a source not seen is refused as invalid; nothing is
          --  planned for it.
-         if not Files.Fs_Primitives.Entry_Exists (Source_Text) then
+         if not Files.IO.Fs_Primitives.Entry_Exists (Source_Text) then
             Plan.Valid := False;
             Plan.Error_Key := To_Unbounded_String ("error.drop.invalid_source");
             Result.Plans.Append (Plan);
             Result.Error_Key := Plan.Error_Key;
          else
-            Leaf := To_Unbounded_String (Files.Types.Leaf_Of (Source_Text));
+            Leaf := To_Unbounded_String (Files.Name_Parts.Leaf_Of (Source_Text));
             if not Storable_Leaf_Name_At (To_String (Leaf), Destination_Directory) then
                Plan.Valid := False;
                Plan.Error_Key := To_Unbounded_String ("error.name.invalid");
@@ -150,7 +153,7 @@ begin
                Plan.Valid := True;
                if Mode = Drop_Move
                  and then Same_Directory
-                   (Files.Fs_Primitives.Parent_Directory (Source_Text),
+                   (Files.IO.Fs_Primitives.Parent_Directory (Source_Text),
                     Destination_Directory)
                then
                   --  Moving an item into the directory it already lives in is
@@ -162,7 +165,7 @@ begin
                   Plan.Destination_Path :=
                     To_Unbounded_String
                       (Available_Destination
-                         (To_String (Leaf), Files.Fs_Primitives.Is_Plain_Directory (Source_Text)));
+                         (To_String (Leaf), Files.IO.Fs_Primitives.Is_Plain_Directory (Source_Text)));
                end if;
                Claimed.Include (Key (To_String (Plan.Destination_Path)));
                Plan.Error_Key := Null_Unbounded_String;

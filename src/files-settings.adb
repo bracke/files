@@ -4,9 +4,12 @@ with Ada.Strings.Unbounded;
 
 with Hostkit.Fs;
 
-with Files.Fs_Primitives;
-with Files.Durable_Writes;
+with Files.IO.Fs_Primitives;
+with Files.IO.Durable_Writes;
 with Guikit.Utf8;
+with Files.Text_Basics;
+with Files.Text_Case;
+use Files.Text_Basics;
 
 package body Files.Settings is
    use Ada.Strings.Unbounded;
@@ -291,9 +294,9 @@ package body Files.Settings is
       return Boolean
  is separate;
 
-   function Trim (Text : String) return String renames Files.Types.Trim_Blanks;
+   function Trim (Text : String) return String renames Files.Text_Basics.Trim_Blanks;
 
-   function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
+   function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Text_Basics.Starts_With;
 
    function Contains_Line_Break (Text : String) return Boolean is separate;
 
@@ -319,7 +322,7 @@ package body Files.Settings is
 
    function Quoted_Value_Is_Valid (Text : String) return Boolean is separate;
 
-   function Parent_Directory (Path : String) return String renames Files.Fs_Primitives.Parent_Directory;
+   function Parent_Directory (Path : String) return String renames Files.IO.Fs_Primitives.Parent_Directory;
 
    function Next_Action_Token
      (Text  : String;
@@ -561,7 +564,7 @@ package body Files.Settings is
    end Add_Icon_Mapping;
 
    function Modifier_Name_Is_Known (Name : String) return Boolean is
-      Clean : constant String := Files.Types.To_Lower_Ascii (Trim (Name));
+      Clean : constant String := Files.Text_Case.To_Lower_Ascii (Trim (Name));
    begin
       return Clean = "shift"
         or else Clean = "control"
@@ -570,7 +573,7 @@ package body Files.Settings is
    end Modifier_Name_Is_Known;
 
    function Structured_Filetype_Suffix_Is_Known (Name : String) return Boolean is
-      Clean : constant String := Files.Types.To_Lower_Ascii (Trim (Name));
+      Clean : constant String := Files.Text_Case.To_Lower_Ascii (Trim (Name));
    begin
       return Clean = "json"
         or else Clean = "xml"
@@ -965,9 +968,9 @@ package body Files.Settings is
          if Clean'Length = 1 then
             return "";
          end if;
-         return Files.Types.To_Lower_Unicode (Trim (Clean (Clean'First + 1 .. Clean'Last)));
+         return Files.Text_Case.To_Lower_Unicode (Trim (Clean (Clean'First + 1 .. Clean'Last)));
       else
-         return Files.Types.To_Lower_Unicode (Clean);
+         return Files.Text_Case.To_Lower_Unicode (Clean);
       end if;
    end Normalize_Extension;
 

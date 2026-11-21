@@ -17,7 +17,7 @@ begin
    if Temporary_Is_Visible (Model) then
       Visit
         (Support.Temporary_Item (Model),
-         0,
+         Temporary_Item_Index,
          Selection_Contains (Model, Temporary_Item_Index));
    end if;
 end For_Each_Visible_Row;

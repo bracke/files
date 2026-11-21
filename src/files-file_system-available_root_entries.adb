@@ -2,6 +2,10 @@ with Hostkit.Metadata;
 with Hostkit.Process;
 with Hostkit.Fs;
 with Hostkit.Mounts;
+with Files.Name_Parts;
+with Files.Text_Basics;
+use Files.Text_Basics;
+
 separate (Files.File_System)
 function Available_Root_Entries return Root_Entry_Vectors.Vector is
    Roots : Root_Entry_Vectors.Vector;
@@ -45,8 +49,6 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
    --  the host's separator after it.
    Mounts_Child   : constant String := Hostkit.Fs.Join (Desktop_Mounts, "x");
    Mounts_Prefix  : constant String := Mounts_Child (Mounts_Child'First .. Mounts_Child'Last - 1);
-
-   function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
 
    function Is_Pseudo_Mount_Type (Filesystem_Type : String) return Boolean renames Hostkit.Mounts.Is_Pseudo;
 
@@ -115,10 +117,10 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       if Natural (Roots.Length) >= Max_Discovered_Roots then
          return;
       end if;
-      if Files.Fs_Primitives.Directory_Exists (Path)
+      if Files.IO.Fs_Primitives.Directory_Exists (Path)
       then
-         Full := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
-         Name := To_Unbounded_String (Files.Types.Leaf_Of (To_String (Full)));
+         Full := To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Path));
+         Name := To_Unbounded_String (Files.Name_Parts.Leaf_Of (To_String (Full)));
          if Length (Name) = 0 then
             Name := Full;
          end if;
@@ -172,7 +174,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
             return;
          end if;
          --  Folders only, a link to one included.
-         if not Files.Fs_Primitives.Directory_Exists (Full) then
+         if not Files.IO.Fs_Primitives.Directory_Exists (Full) then
             return;
          end if;
          Root_Entries_Scanned := Root_Entries_Scanned + 1;
@@ -188,12 +190,12 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
    begin
       if Root_Entries_Scanned >= Max_Root_Entries_Scanned
         or else Natural (Roots.Length) >= Max_Discovered_Roots
-        or else not Files.Fs_Primitives.Directory_Exists (Parent)
+        or else not Files.IO.Fs_Primitives.Directory_Exists (Parent)
       then
          return;
       end if;
 
-      Files.Fs_Primitives.For_Each_Name (Parent, Visit'Access);
+      Files.IO.Fs_Primitives.For_Each_Name (Parent, Visit'Access);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
@@ -262,7 +264,7 @@ begin
 
    if Roots.Is_Empty then
       declare
-         Full : constant String := Files.Fs_Primitives.Full_Name (Hostkit.Fs.Current_Directory);
+         Full : constant String := Files.IO.Fs_Primitives.Full_Name (Hostkit.Fs.Current_Directory);
       begin
          Roots.Append
            (Root_Entry'
@@ -271,7 +273,7 @@ begin
                Name  => Null_Unbounded_String,
                Detail => Null_Unbounded_String,
                Kind  => Root_Current,
-               Volume_Name => To_Unbounded_String (Files.Types.Leaf_Of (Full)),
+               Volume_Name => To_Unbounded_String (Files.Name_Parts.Leaf_Of (Full)),
                Removable => False));
       end;
    end if;

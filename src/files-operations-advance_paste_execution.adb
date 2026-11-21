@@ -1,3 +1,5 @@
+with Files.Name_Parts;
+
 separate (Files.Operations)
 function Advance_Paste_Execution
   (Model     : in out Files.Model.Window_Model;
@@ -15,7 +17,7 @@ is
      (Files.Model.Pasting.Execution_Mode (Model) = Files.File_System.Drop_Move
       --  refusal-safe: a refused source counts as vacated, so undo moves the copy back
       --  without replacing anything and never deletes what may be the only copy
-      and then Files.Fs_Primitives.Entry_Exists (To_String (Action.Source_Path)));
+      and then Files.IO.Fs_Primitives.Entry_Exists (To_String (Action.Source_Path)));
 
    --  Start the current action in a helper when none runs, then poll it:
    --  the model holds the transfer handle, this drives it.
@@ -102,7 +104,7 @@ begin
                   else
                      Record_Paste_Write
                        (Model, Action.Dest_Path, Action.Source_Path,
-                        Files.Types.Leaf_Of (To_String (Action.Dest_Path)),
+                        Files.Name_Parts.Leaf_Of (To_String (Action.Dest_Path)),
                         To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision));
                   end if;
                end if;
@@ -113,7 +115,7 @@ begin
                end if;
                Record_Paste_Write
                  (Model, Action.Dest_Path, Action.Source_Path,
-                  Files.Types.Leaf_Of (To_String (Action.Dest_Path)),
+                  Files.Name_Parts.Leaf_Of (To_String (Action.Dest_Path)),
                   To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision),
                   Retain_Verified_Snapshot => Result.Recovered);
                if Result.Recovered then
@@ -157,7 +159,7 @@ begin
                   elsif Length (Created_Identity) > 0 then
                      Record_Paste_Write
                        (Model, Action.Dest_Path, Action.Source_Path,
-                        Files.Types.Leaf_Of (To_String (Action.Dest_Path)),
+                        Files.Name_Parts.Leaf_Of (To_String (Action.Dest_Path)),
                         To_String (Created_Identity), To_String (Created_Tree_Revision));
                   end if;
                   return Finalize_Paste_Execution (Model, Settings, To_String (Mutation.Error_Key));
@@ -166,7 +168,7 @@ begin
                  (Model,
                   Action.Dest_Path,
                   Action.Source_Path,
-                  Files.Types.Leaf_Of (To_String (Action.Dest_Path)),
+                  Files.Name_Parts.Leaf_Of (To_String (Action.Dest_Path)),
                   To_String (Created_Identity),
                   To_String (Created_Tree_Revision));
             end;

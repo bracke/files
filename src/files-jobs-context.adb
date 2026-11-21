@@ -5,27 +5,28 @@ with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
-with Files.Bounded_Streams;
+with Files.IO.Record_Fields;
 with Files.Jobs.Storage;
-with Files.Fs_Primitives;
-with Files.Durable_Writes;
-with Files.Private_Directories;
+with Files.IO.Fs_Primitives;
+with Files.IO.Durable_Writes;
+with Files.IO.Private_Directories;
 with Files.Jobs.Process;
-with Files.Durability;
+with Files.IO.Durability;
 with Hostkit.Durability;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 with Files.File_Identities;
-with Files.Lease_Streams;
+with Files.IO.Lease_Streams;
 with Files.Path_Checks;
 with Ada.Real_Time;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
+with Files.Name_Parts;
 
 package body Files.Jobs.Context is
    use Ada.Strings.Unbounded;
    use type Ada.Streams.Stream_Element_Offset;
-   use type Files.Private_Directories.Create_Result;
+   use type Files.IO.Private_Directories.Create_Result;
    use type Hostkit.Durability.Outcome;
    use type Hostkit.Fs.Entry_Kind;
    use type Hostkit.Lease_Files.Open_Outcome;
@@ -38,9 +39,9 @@ package body Files.Jobs.Context is
    Created_Intent_Header : constant String := "files-created-intent-1";
    Moved_Record_Header   : constant String := "files-moved-1";
    Moved_Intent_Header   : constant String := "files-moved-intent-1";
-   Max_Record_Header_Length : constant := Files.Bounded_Streams.Max_Header_Length;
-   Max_Record_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
-   Max_Record_Token_Length : constant := Files.Bounded_Streams.Max_Token_Length;
+   Max_Record_Header_Length : constant := Files.IO.Record_Fields.Max_Header_Length;
+   Max_Record_Path_Length : constant := Files.IO.Record_Fields.Max_Path_Length;
+   Max_Record_Token_Length : constant := Files.IO.Record_Fields.Max_Token_Length;
    Max_Stage_Metadata_Bytes : constant := 64 * 1024;
    Max_Journal_Bytes : constant := 64 * 1024 * 1024;
    Max_Journal_Records : constant := 100_000;
@@ -152,7 +153,7 @@ package body Files.Jobs.Context is
         (Stream : not null access Ada.Streams.Root_Stream_Type'Class)) is
    begin
       --  Write_And_Publish refuses a Target that is a link or not a file.
-      if not Files.Durable_Writes.Published (Files.Durable_Writes.Write_And_Publish (Target, Write_Record)) then
+      if not Files.IO.Durable_Writes.Published (Files.IO.Durable_Writes.Write_And_Publish (Target, Write_Record)) then
          raise Ada.Directories.Use_Error;
       end if;
    end Publish_Record;
@@ -165,7 +166,7 @@ package body Files.Jobs.Context is
       Journal : constant String := Hostkit.Fs.Join (To_String (Current), Name);
       Existing : constant Boolean :=
         --  refusal-safe: a refused journal is created exclusively, which fails
-        Files.Fs_Primitives.Entry_Exists (Journal);
+        Files.IO.Fs_Primitives.Entry_Exists (Journal);
       Handle : Hostkit.Lease_Files.Lease;
       Opened : Hostkit.Lease_Files.Open_Outcome;
       Buffer : aliased Memory_Output_Stream;
@@ -225,12 +226,12 @@ package body Files.Jobs.Context is
    --  record holds unless the machine stops before the device catches up.
    --  It is traced, for a dying disk shows here first.
    procedure Sync_Journal (Path : String) is
-      File_Sync : constant Hostkit.Durability.Outcome := Files.Durability.Sync_File (Path);
+      File_Sync : constant Hostkit.Durability.Outcome := Files.IO.Durability.Sync_File (Path);
    begin
       if File_Sync = Hostkit.Durability.Failed then
          Files.Diagnostics.Trace ("Files.Jobs.Context", "journal_sync_failed=" & Path);
       elsif File_Sync = Hostkit.Durability.Synced
-        and then Files.Durability.Sync_Directory (Files.Fs_Primitives.Parent_Directory (Path)) =
+        and then Files.IO.Durability.Sync_Directory (Files.IO.Fs_Primitives.Parent_Directory (Path)) =
           Hostkit.Durability.Failed
       then
          Files.Diagnostics.Trace ("Files.Jobs.Context", "journal_folder_sync_failed=" & Path);
@@ -247,9 +248,9 @@ package body Files.Jobs.Context is
    begin
       if Record_Directory /= ""
         and then not Hostkit.Fs.Is_Link (Record_Directory)
-        and then Files.Fs_Primitives.Directory_Exists (Record_Directory)
+        and then Files.IO.Fs_Primitives.Directory_Exists (Record_Directory)
       then
-         Files.Fs_Primitives.Delete_Tree_If_Present (Record_Directory);
+         Files.IO.Fs_Primitives.Delete_Tree_If_Present (Record_Directory);
       end if;
    exception
       when Swallowed : others =>
@@ -325,9 +326,9 @@ package body Files.Jobs.Context is
       Owner_Directory : constant String := Stage_Owner_Directory;
       Stages : constant String := Hostkit.Fs.Join (Owner_Directory, Files.Protocol_Names.Stages_Directory);
    begin
-      if Files.Private_Directories.Try_Create (Stages) =
-        Files.Private_Directories.Collision
-        and then (Hostkit.Fs.Is_Link (Stages) or else not Files.Fs_Primitives.Directory_Exists (Stages))
+      if Files.IO.Private_Directories.Try_Create (Stages) =
+        Files.IO.Private_Directories.Collision
+        and then (Hostkit.Fs.Is_Link (Stages) or else not Files.IO.Fs_Primitives.Directory_Exists (Stages))
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -337,8 +338,8 @@ package body Files.Jobs.Context is
             Record_Directory : constant String :=
               Hostkit.Fs.Join (Stages, "stage-" & Image (2 .. Image'Last));
          begin
-            if Files.Private_Directories.Try_Create (Record_Directory) =
-              Files.Private_Directories.Collision
+            if Files.IO.Private_Directories.Try_Create (Record_Directory) =
+              Files.IO.Private_Directories.Collision
             then
                goto Continue;
             end if;
@@ -373,8 +374,8 @@ package body Files.Jobs.Context is
             Record_Directory : Files.Types.UString;
          begin
             Record_Directory := To_Unbounded_String (Begin_Stage_Record (Candidate));
-            if Files.Private_Directories.Try_Create (Candidate) =
-              Files.Private_Directories.Collision
+            if Files.IO.Private_Directories.Try_Create (Candidate) =
+              Files.IO.Private_Directories.Collision
             then
                Remove_Record (To_String (Record_Directory));
                goto Continue;
@@ -387,7 +388,7 @@ package body Files.Jobs.Context is
             exception
                when others =>
                   begin
-                     Files.Fs_Primitives.Delete_Directory (Candidate);
+                     Files.IO.Fs_Primitives.Delete_Directory (Candidate);
                      Remove_Record (To_String (Record_Directory));
                   exception
                      when Swallowed : others =>
@@ -408,7 +409,7 @@ package body Files.Jobs.Context is
                   begin
                      null;
                   end;
-                  if Files.Fs_Primitives.Entry_Is_Absent (Candidate) then
+                  if Files.IO.Fs_Primitives.Entry_Is_Absent (Candidate) then
                      Remove_Record (To_String (Record_Directory));
                   end if;
                   raise;
@@ -571,51 +572,51 @@ package body Files.Jobs.Context is
    is
       Count : Natural := 0;
       Path : constant String := Hostkit.Fs.Join (Directory, Name);
-      Input : aliased Files.Lease_Streams.Input_Stream;
+      Input : aliased Files.IO.Lease_Streams.Input_Stream;
       Size : Long_Long_Integer;
    begin
       Entries.Clear;
       if Valid_Record_Path (Directory)
         and then not Hostkit.Fs.Is_Link (Directory)
-        and then Files.Fs_Primitives.Entry_Is_Absent (Path)
+        and then Files.IO.Fs_Primitives.Entry_Is_Absent (Path)
       then
          return;
       end if;
       if not Valid_Record_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Files.Fs_Primitives.Directory_Exists (Directory)
-        or else Files.Lease_Streams.Open (Path, Input) /=
+        or else not Files.IO.Fs_Primitives.Directory_Exists (Directory)
+        or else Files.IO.Lease_Streams.Open (Path, Input) /=
           Hostkit.Lease_Files.Opened
       then
          Files.Diagnostics.Trace ("Files.Jobs.Context", "journal_refused=" & Path);
          return;
       end if;
-      Size := Files.Lease_Streams.Size (Input);
+      Size := Files.IO.Lease_Streams.Size (Input);
       if Size < 0 or else Size > Long_Long_Integer (Max_Journal_Bytes)
       then
-         Files.Lease_Streams.Release (Input);
+         Files.IO.Lease_Streams.Release (Input);
          return; --  A journal past the limit, or of no readable size, is not read.
       end if;
-      if Files.Bounded_Streams.Input_String
+      if Files.IO.Record_Fields.Input_String
         (Input'Access, Max_Record_Header_Length) /= Header
       then
-         Files.Lease_Streams.Release (Input);
+         Files.IO.Lease_Streams.Release (Input);
          return;
       end if;
-      while not Files.Lease_Streams.End_Of_Stream (Input) loop
+      while not Files.IO.Lease_Streams.End_Of_Stream (Input) loop
          if Count = Max_Journal_Records then
             raise Ada.IO_Exceptions.Data_Error;
          end if;
          declare
-            Destination : constant String := Files.Bounded_Streams.Input_String
+            Destination : constant String := Files.IO.Record_Fields.Input_String
               (Input'Access, Max_Record_Path_Length);
-            Source      : constant String := Files.Bounded_Streams.Input_String
+            Source      : constant String := Files.IO.Record_Fields.Input_String
               (Input'Access, Max_Record_Path_Length);
-            Identity    : constant String := Files.Bounded_Streams.Input_String
+            Identity    : constant String := Files.IO.Record_Fields.Input_String
               (Input'Access, Max_Record_Token_Length);
             Revision    : constant String :=
               (if Shape = Creation_Record
-               then Files.Bounded_Streams.Input_String (Input'Access, Max_Record_Token_Length)
+               then Files.IO.Record_Fields.Input_String (Input'Access, Max_Record_Token_Length)
                else "");
          begin
             if not Valid_Record_Path (Destination)
@@ -635,11 +636,11 @@ package body Files.Jobs.Context is
             Count := Count + 1;
          end;
       end loop;
-      Files.Lease_Streams.Release (Input);
+      Files.IO.Lease_Streams.Release (Input);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Jobs.Context");
-         Files.Lease_Streams.Release (Input);
+         Files.IO.Lease_Streams.Release (Input);
    end Read_Journal;
 
    --  Add to Entries each intent the journal Intents (under Header) holds
@@ -699,7 +700,7 @@ package body Files.Jobs.Context is
       --  sure (a source the host will not answer for is not taken as moved).
       function Moved (Item : Journal_Entry) return Boolean is
         (Files.File_Identities.Token (To_String (Item.Destination)) = To_String (Item.Identity)
-         and then Files.Fs_Primitives.Entry_Is_Absent (To_String (Item.Source)));
+         and then Files.IO.Fs_Primitives.Entry_Is_Absent (To_String (Item.Source)));
    begin
       return Entries : Journal_Entry_Vectors.Vector do
          Read_Journal (Directory, "moved", Moved_Record_Header, Move_Record, Entries);
@@ -740,8 +741,8 @@ package body Files.Jobs.Context is
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value  : out Owner_Record) is
    begin
-      Value.Directory := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Record_Path_Length));
-      Value.Identity := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Record_Token_Length));
+      Value.Directory := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Record_Path_Length));
+      Value.Identity := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Record_Token_Length));
    end Read_Owner_Body;
 
    function Owner_Is_Valid (Value : Owner_Record) return Boolean is
@@ -749,7 +750,7 @@ package body Files.Jobs.Context is
       and then Valid_Record_Path (To_String (Value.Directory))
       and then Nul_Free (To_String (Value.Identity)));
 
-   function Read_Owner_Record is new Files.Lease_Streams.Read_Record
+   function Read_Owner_Record is new Files.IO.Lease_Streams.Read_Record
      (Item => Owner_Record, Read_Body => Read_Owner_Body, Is_Consistent => Owner_Is_Valid);
 
    procedure Read_Owner
@@ -811,7 +812,7 @@ package body Files.Jobs.Context is
          --  longer waiting for its discard: forgotten here, or the cleanup
          --  below would never run again in this process.
          for Index in reverse Foreground_Paths.First_Index .. Foreground_Paths.Last_Index loop
-            if Files.Fs_Primitives.Entry_Is_Absent (To_String (Foreground_Paths (Index))) then
+            if Files.IO.Fs_Primitives.Entry_Is_Absent (To_String (Foreground_Paths (Index))) then
                Remove_Record (To_String (Foreground_Records (Index)));
                Foreground_Paths.Delete (Index);
                Foreground_Records.Delete (Index);
@@ -838,7 +839,7 @@ package body Files.Jobs.Context is
             return False;
          end if;
       end if;
-      if Files.Fs_Primitives.Entry_Is_Absent (Path) then
+      if Files.IO.Fs_Primitives.Entry_Is_Absent (Path) then
          Removed := True;
          Release_Foreground;
          return True;
@@ -879,7 +880,7 @@ package body Files.Jobs.Context is
       Path, Expected     : out Files.Types.UString;
       Reading            : out Record_Reading)
    is
-      Input : aliased Files.Lease_Streams.Input_Stream;
+      Input : aliased Files.IO.Lease_Streams.Input_Stream;
       Data : constant String := Hostkit.Fs.Join (Record_Directory, "data");
       Open_Result : Hostkit.Lease_Files.Open_Outcome;
    begin
@@ -888,7 +889,7 @@ package body Files.Jobs.Context is
       Reading := Record_Discarded;
       --  No published data means creation stopped before the staging
       --  pathname could be created, so this empty reservation is disposable.
-      if Files.Fs_Primitives.Entry_Is_Absent (Data) then
+      if Files.IO.Fs_Primitives.Entry_Is_Absent (Data) then
          return;
       end if;
       --  There, but the host will not say what it is: that may pass, so
@@ -901,12 +902,12 @@ package body Files.Jobs.Context is
       end if;
       --  A published record is always an ordinary file. Discard the record
       --  without inspecting an injected object or trusting it as a pathname.
-      if Hostkit.Fs.Is_Link (Data) or else not Files.Fs_Primitives.File_Exists (Data) then
+      if Hostkit.Fs.Is_Link (Data) or else not Files.IO.Fs_Primitives.File_Exists (Data) then
          return;
       end if;
-      Open_Result := Files.Lease_Streams.Open (Data, Input);
+      Open_Result := Files.IO.Lease_Streams.Open (Data, Input);
       if Open_Result /= Hostkit.Lease_Files.Opened then
-         Files.Lease_Streams.Release (Input);
+         Files.IO.Lease_Streams.Release (Input);
          --  Refused objects (including links and multiply-linked files)
          --  cannot become valid records. Other failures may be transient,
          --  so the bounded worker retains them for retry.
@@ -914,26 +915,26 @@ package body Files.Jobs.Context is
             Reading := Record_Kept;
          end if;
          return;
-      elsif Files.Lease_Streams.Size (Input) > Max_Stage_Metadata_Bytes then
-         Files.Lease_Streams.Release (Input);
+      elsif Files.IO.Lease_Streams.Size (Input) > Max_Stage_Metadata_Bytes then
+         Files.IO.Lease_Streams.Release (Input);
          return;
       end if;
       begin
-         if Files.Bounded_Streams.Input_String (Input'Access, Max_Record_Header_Length) /= Stage_Record_Header then
-            Files.Lease_Streams.Release (Input);
+         if Files.IO.Record_Fields.Input_String (Input'Access, Max_Record_Header_Length) /= Stage_Record_Header then
+            Files.IO.Lease_Streams.Release (Input);
             return;
          end if;
-         Path := To_Unbounded_String (Files.Bounded_Streams.Input_String (Input'Access, Max_Record_Path_Length));
-         Expected := To_Unbounded_String (Files.Bounded_Streams.Input_String (Input'Access, Max_Record_Token_Length));
-         if not Files.Lease_Streams.End_Of_Stream (Input) then
+         Path := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Input'Access, Max_Record_Path_Length));
+         Expected := To_Unbounded_String (Files.IO.Record_Fields.Input_String (Input'Access, Max_Record_Token_Length));
+         if not Files.IO.Lease_Streams.End_Of_Stream (Input) then
             raise Ada.IO_Exceptions.Data_Error;
          end if;
-         Files.Lease_Streams.Release (Input);
+         Files.IO.Lease_Streams.Release (Input);
          Reading := Record_Read;
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Jobs.Context");
-            Files.Lease_Streams.Release (Input);
+            Files.IO.Lease_Streams.Release (Input);
             --  Data is published by atomic replacement and is never
             --  subsequently edited. Once it can be opened, a truncated or
             --  undecodable stream cannot become valid on a later pass. Drop
@@ -945,7 +946,7 @@ package body Files.Jobs.Context is
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Jobs.Context");
-         Files.Lease_Streams.Release (Input);
+         Files.IO.Lease_Streams.Release (Input);
          Reading := Record_Kept;
    end Read_Stage_Record;
 
@@ -972,7 +973,7 @@ package body Files.Jobs.Context is
    --  @param Directory The transport that should own it.
    --  @return True when it may be removed.
    function Is_Own_Stage (Path, Expected, Directory : String) return Boolean is
-      Name : constant String := Files.Types.Leaf_Of (Path);
+      Name : constant String := Files.Name_Parts.Leaf_Of (Path);
    begin
       return Name'Length > Files.Protocol_Names.Work_Stage_Prefix'Length
         and then Ada.Strings.Fixed.Head (Name, Files.Protocol_Names.Work_Stage_Prefix'Length)
@@ -998,7 +999,7 @@ package body Files.Jobs.Context is
       begin
          if Name'Length >= Prefix'Length
            and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
-           and then Files.Fs_Primitives.Directory_Exists (Hostkit.Fs.Join (Stages, Name))
+           and then Files.IO.Fs_Primitives.Directory_Exists (Hostkit.Fs.Join (Stages, Name))
          then
             Records.Append (To_Unbounded_String (Hostkit.Fs.Join (Stages, Name)));
          end if;
@@ -1009,7 +1010,7 @@ package body Files.Jobs.Context is
          Reading        : Record_Reading;
       begin
          if Hostkit.Fs.Is_Link (Record_Directory)
-           or else not Files.Fs_Primitives.Directory_Exists (Record_Directory)
+           or else not Files.IO.Fs_Primitives.Directory_Exists (Record_Directory)
          then
             return;
          end if;
@@ -1025,7 +1026,7 @@ package body Files.Jobs.Context is
          end case;
          if not Valid_Record_Path (To_String (Path))
            or else not Nul_Free (To_String (Expected))
-           or else Files.Fs_Primitives.Entry_Is_Absent (To_String (Path))
+           or else Files.IO.Fs_Primitives.Entry_Is_Absent (To_String (Path))
          then
             Remove_Record (Record_Directory);
             return;
@@ -1049,15 +1050,15 @@ package body Files.Jobs.Context is
       if not Files.Jobs.Transports.Holds (Owner, Directory) then
          return;
       end if;
-      if Hostkit.Fs.Is_Link (Stages) or else not Files.Fs_Primitives.Directory_Exists (Stages) then
+      if Hostkit.Fs.Is_Link (Stages) or else not Files.IO.Fs_Primitives.Directory_Exists (Stages) then
          return;
       end if;
-      Files.Fs_Primitives.For_Each_Name (Stages, Collect'Access);
+      Files.IO.Fs_Primitives.For_Each_Name (Stages, Collect'Access);
       for Record_Directory of Records loop
          Clean_Record (To_String (Record_Directory));
       end loop;
       begin
-         Files.Fs_Primitives.Delete_Directory (Stages);
+         Files.IO.Fs_Primitives.Delete_Directory (Stages);
       exception
          when Ada.Directories.Use_Error => null;
       end;

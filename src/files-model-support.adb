@@ -6,6 +6,7 @@ with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 
 with Files.Grouping;
+with Files.Text_Case;
 
 package body Files.Model.Support is
 
@@ -110,7 +111,7 @@ package body Files.Model.Support is
       end if;
 
       for Field of Model.Rename.Fields loop
-         if Field.Item_Index = 0 then
+         if Field.Item_Index = Temporary_Item_Index then
             return True;
          end if;
       end loop;
@@ -138,7 +139,7 @@ package body Files.Model.Support is
       end if;
       --  No filter (the common case): no copy of it, nor of the name.
       return Length (Model.Filter.Text) = 0
-        or else Files.Types.Contains_Case_Insensitive (To_String (Item.Name), To_String (Model.Filter.Text));
+        or else Files.Text_Case.Contains_Case_Insensitive (To_String (Item.Name), To_String (Model.Filter.Text));
    end Item_Is_Visible;
 
    function Temporary_Is_Visible (Model : Window_Model) return Boolean is
@@ -432,7 +433,7 @@ package body Files.Model.Support is
       end if;
 
       --  Capture each rename field's item identity before the reorder. The
-      --  temporary field (Item_Index = 0) records a null path sentinel so it
+      --  temporary field (Temporary_Item_Index) records a null path so it
       --  can be preserved rather than remapped by identity.
       for Field of Model.Rename.Fields loop
          Rename_Old_Paths.Append (Path_At (Field.Item_Index));
@@ -487,7 +488,7 @@ package body Files.Model.Support is
                Old_Path  : constant Unbounded_String := Rename_Old_Paths.Element (Cursor);
                New_Field : Rename_Field := Field;
             begin
-               if Field.Item_Index = 0 then
+               if Field.Item_Index = Temporary_Item_Index then
                   Rebuilt.Append (Field);
                else
                   declare
@@ -526,7 +527,7 @@ package body Files.Model.Support is
       Model.Rename.Fields.Clear;
       Model.Rename.Fields.Append
         (Rename_Field'
-           (Item_Index => 0,
+           (Item_Index => Temporary_Item_Index,
             Edit       => (Text => To_Unbounded_String (Name), Cursor => Name'Length)));
       Model.Rename.Active := True;
       Model.Main_View_Scroll := 0;

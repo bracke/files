@@ -1,3 +1,5 @@
+with Files.Name_Parts;
+
 separate (Files.Operations)
 --  Build the paste work-list from validated plans: one item per valid plan,
 --  skipping a move whose destination equals its source (moving an item into
@@ -20,8 +22,8 @@ begin
                Dest_Dir    => To_Unbounded_String (Directory),
                Dest_Name   =>
                  To_Unbounded_String
-                   (Files.Types.Leaf_Of (To_String (Plan.Source_Path))),
-               Is_Directory => Files.Fs_Primitives.Is_Plain_Directory (To_String (Plan.Source_Path))));
+                   (Files.Name_Parts.Leaf_Of (To_String (Plan.Source_Path))),
+               Is_Directory => Files.IO.Fs_Primitives.Is_Plain_Directory (To_String (Plan.Source_Path))));
       end if;
    end loop;
    return Work;

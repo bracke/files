@@ -8,8 +8,9 @@ with Ada.Unchecked_Deallocation;
 with Interfaces;
 with Hostkit.Fs;
 with Files.File_System;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Types;
+with Files.Text_Case;
 
 package body Files.Archive_Writing is
    use Ada.Strings.Unbounded;
@@ -86,7 +87,7 @@ package body Files.Archive_Writing is
 
       --  The name two entries collide under on the destination.
       function Key (Path : String) return String is
-        (if Case_Insensitive then Files.Types.Fold_Case (Path) else Path);
+        (if Case_Insensitive then Files.Text_Case.Fold_Case (Path) else Path);
    begin
       for Member of Entries loop
          declare
@@ -248,8 +249,8 @@ package body Files.Archive_Writing is
       begin
          --  Only an output that is gone for sure is skipped: one a refused
          --  lookup cannot see is still tried, and a failed delete is noted.
-         if not Files.Fs_Primitives.Entry_Is_Absent (Output_Path) then
-            Files.Fs_Primitives.Delete_File (Output_Path);
+         if not Files.IO.Fs_Primitives.Entry_Is_Absent (Output_Path) then
+            Files.IO.Fs_Primitives.Delete_File (Output_Path);
          end if;
       exception
          when Failed : Ada.IO_Exceptions.Name_Error | Ada.IO_Exceptions.Use_Error =>
@@ -275,7 +276,7 @@ package body Files.Archive_Writing is
             end if;
             Names_Seen.Insert (Name);
             Status := Zlib.Input_File_Error;
-            if Files.Fs_Primitives.Kind (Path) = Ada.Directories.Directory then
+            if Files.IO.Fs_Primitives.Kind (Path) = Ada.Directories.Directory then
                Directory_Names.Append (To_Unbounded_String (Name));
             else
                File_Paths.Append (To_Unbounded_String (Path));

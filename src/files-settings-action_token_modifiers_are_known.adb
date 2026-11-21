@@ -1,3 +1,5 @@
+with Files.Text_Case;
+
 separate (Files.Settings)
    function Action_Token_Modifiers_Are_Known (Token : String) return Boolean is
       Clean    : constant String := Trim (Token);
@@ -23,7 +25,7 @@ separate (Files.Settings)
                return False;
             else
                declare
-                  Name : constant String := Files.Types.To_Lower_Ascii (Trim (Clean (Position .. Last - 1)));
+                  Name : constant String := Files.Text_Case.To_Lower_Ascii (Trim (Clean (Position .. Last - 1)));
                begin
                   if Name /= "shift"
                     and then Name /= "control"

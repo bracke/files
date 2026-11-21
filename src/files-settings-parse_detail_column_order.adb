@@ -1,4 +1,6 @@
 with Files.Preference_Types;
+with Files.Text_Case;
+
 separate (Files.Settings)
    function Parse_Detail_Column_Order
      (Value : String;
@@ -20,7 +22,7 @@ separate (Files.Settings)
          if Index > Value'Last or else Value (Index) = ',' then
             declare
                Token : constant String :=
-                 Files.Types.To_Lower_Ascii (Trim (Value (First .. Index - 1)));
+                 Files.Text_Case.To_Lower_Ascii (Trim (Value (First .. Index - 1)));
             begin
                if not Detail_Column_For_Order_Token (Token, Column)
                  or else Seen (Column)
@@ -53,7 +55,7 @@ separate (Files.Settings)
          if Index > Value'Last or else Value (Index) = ',' then
             declare
                Token : constant String :=
-                 Files.Types.To_Lower_Ascii (Trim (Value (First .. Index - 1)));
+                 Files.Text_Case.To_Lower_Ascii (Trim (Value (First .. Index - 1)));
             begin
                if Detail_Column_For_Order_Token (Token, Column)
                  and then Column /= Files.Preference_Types.Name_Column

@@ -68,7 +68,7 @@ begin
       Modified : Ada.Calendar.Time := Files.Types.Unknown_Time;
    begin
       begin
-         Kind := Files.Fs_Primitives.Kind (Full);
+         Kind := Files.IO.Fs_Primitives.Kind (Full);
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.File_System");
@@ -76,7 +76,7 @@ begin
 
       if Kind = Ada.Directories.Ordinary_File then
          begin
-            Size := Long_Long_Integer (Files.Fs_Primitives.Size (Full));
+            Size := Long_Long_Integer (Files.IO.Fs_Primitives.Size (Full));
          exception
             when Swallowed : others =>
                Files.Diagnostics.Note (Swallowed, "Files.File_System");
@@ -88,7 +88,7 @@ begin
         Mix_Checksum (Result.Entry_State_Checksum, Long_Long_Integer (Entry_Checksum (Name, Kind, Size)), Step => 1);
 
       begin
-         Modified := Files.Fs_Primitives.Modification_Time (Full);
+         Modified := Files.IO.Fs_Primitives.Modification_Time (Full);
          if not Result.Latest_Modified_Known
            or else Modified > Result.Latest_Modified
          then

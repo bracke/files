@@ -5,9 +5,9 @@ with Ada.Directories;
 with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
-with Files.Exclusive_Streams;
+with Files.IO.Exclusive_Streams;
 with Files.Jobs.Storage;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Files.Jobs.Context;
 with Files.Jobs.Records;
 with Hostkit.Fs;
@@ -156,7 +156,7 @@ package body Files.Jobs.Process is
    --  Neither the transport nor a link in its place is there any more.
    function Transport_Gone (Item : State_Access) return Boolean is
    begin
-      return Files.Fs_Primitives.Entry_Is_Absent (To_String (Item.Directory));
+      return Files.IO.Fs_Primitives.Entry_Is_Absent (To_String (Item.Directory));
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Jobs.Process");
@@ -458,7 +458,7 @@ package body Files.Jobs.Process is
          --  Stage records that may be there (the host will not say) are kept
          --  as surely as present ones: the transport is the only pointer to
          --  the staged entries they name.
-         if not Files.Fs_Primitives.Entry_Is_Absent (Stages) then
+         if not Files.IO.Fs_Primitives.Entry_Is_Absent (Stages) then
             Facts.Stages_Present := True;
             Facts.Retry_Due := Ada.Real_Time.Clock >= Item.Cleanup_Retry_At;
             return Facts;
@@ -708,16 +708,16 @@ package body Files.Jobs.Process is
       Mode  : Files.Jobs.Helper_Modes.Helper_Mode;
       Write : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class))
    is
-      File : aliased Files.Exclusive_Streams.Output_Stream;
+      File : aliased Files.IO.Exclusive_Streams.Output_Stream;
    begin
-      Files.Exclusive_Streams.Create (File, Path (Job, Request_File));
+      Files.IO.Exclusive_Streams.Create (File, Path (Job, Request_File));
       Write (File'Access);
-      Files.Jobs.Records.Validate_Size (Files.Exclusive_Streams.Size (File));
-      Files.Exclusive_Streams.Close (File);
+      Files.Jobs.Records.Validate_Size (Files.IO.Exclusive_Streams.Size (File));
+      Files.IO.Exclusive_Streams.Close (File);
       Launch (Job, Files.Jobs.Helper_Modes.Flag (Mode));
    exception
       when others =>
-         Files.Exclusive_Streams.Close_Safely (File);
+         Files.IO.Exclusive_Streams.Close_Safely (File);
          raise;
    end Launch_With_Request;
 

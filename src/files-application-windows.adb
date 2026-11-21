@@ -30,6 +30,7 @@ with Files.Model.Selection;
 with Files.Rendering.Layouts;
 with Files.Application.Windows.Gestures;
 with Files.Application.Windows.Watch;
+with Files.Text_Basics;
 
 package body Files.Application.Windows is
    use Ada.Strings.Unbounded;
@@ -297,8 +298,8 @@ package body Files.Application.Windows is
                   Fire_Key (Runtime, Event.Key, Event.Modifiers, Consumed);
                   Files.Diagnostics.Trace
                     ("Files.Application.Windows",
-                     "selected=" & Files.Types.Natural_Text (Key_Selected_Before) & "->"
-                     & Files.Types.Natural_Text (Files.Model.Selection.Selected_Index (Runtime.Model)));
+                     "selected=" & Files.Text_Basics.Natural_Text (Key_Selected_Before) & "->"
+                     & Files.Text_Basics.Natural_Text (Files.Model.Selection.Selected_Index (Runtime.Model)));
                end;
             when Text_Event =>
                if not (Event.Parallel and then Consumed) then

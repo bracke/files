@@ -38,7 +38,7 @@ separate (Files_Suite.Recovery)
       --  Rebuild the pre-lease directory Test_Unmarked_Transport_Recovery
       --  leaves this far: a partial marker and a future timestamp.
       Remove_Transport_Fixture (Young_Path);
-      Files.Private_Directories.Create (To_String (Young_Path));
+      Files.IO.Private_Directories.Create (To_String (Young_Path));
       Write_Binary_File
         (Join (To_String (Young_Path), ".files-job-transport.tmp"), "partial marker");
       GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp

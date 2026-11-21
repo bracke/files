@@ -1,3 +1,5 @@
+with Files.Text_Basics;
+
 separate (Files.File_System.Thumbnails)
 function Thumbnail_Path_For
   (Source_Path      : String;
@@ -11,7 +13,7 @@ begin
         "thumb_"
         & Sanitized_Thumbnail_Extension (Source_Path)
         & "_"
-        & Files.Types.Natural_Text (Size)
+        & Files.Text_Basics.Natural_Text (Size)
         & "_"
         & Thumbnail_Cache_Key (Source_Path)
         & ".ppm");

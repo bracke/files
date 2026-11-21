@@ -1,3 +1,5 @@
+with Files.Text_Case;
+
 separate (Files.Settings)
    function Normalize_Action_Token (Token : String) return String is
       Clean : constant String := Trim (Token);
@@ -14,7 +16,7 @@ separate (Files.Settings)
          Unknowns  : Unbounded_String := Null_Unbounded_String;
 
          procedure Add_Modifier (Text : String) is
-            Name : constant String := Files.Types.To_Lower_Ascii (Trim (Text));
+            Name : constant String := Files.Text_Case.To_Lower_Ascii (Trim (Text));
          begin
             if Name = "shift" then
                Modifiers (Guikit.Input.Shift_Key) := True;

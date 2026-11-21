@@ -14,7 +14,7 @@ with Files.Jobs.Transports;
 with Files.Job_Drivers.Operation;
 with Files.Job_Drivers.Operation.Testing;
 with Files.Paste;
-with Files.Private_Directories;
+with Files.IO.Private_Directories;
 with Files.Jobs.Process;
 with Files.Jobs.Process.Testing;
 with Files.Refresh.Testing;
@@ -134,7 +134,7 @@ package body Test_Helpers is
          then
             Hostkit.Process.End_Now (1);
          end if;
-         Files.Private_Directories.Create (Directory);
+         Files.IO.Private_Directories.Create (Directory);
          if Mode = Crash_After_Lease then
             if Hostkit.Lease_Files.Create
               (Hostkit.Fs.Join (Directory, ".files-job-owner"), Owner) /=
@@ -212,15 +212,15 @@ package body Test_Helpers is
          Ada.Environment_Variables.Clear ("FILES_TEST_NO_BTIME");
          Files.File_Identities.Testing.Set_Unavailable (True);
          Ada.Environment_Variables.Set ("TMPDIR", Parent);
-         Files.Private_Directories.Create (Fake_Stage);
+         Files.IO.Private_Directories.Create (Fake_Stage);
          Seed_Nonce (Fake_Stage, ".files-stage-id");
-         Files.Private_Directories.Create (Fake_Transport);
+         Files.IO.Private_Directories.Create (Fake_Transport);
          Seed_Nonce (Fake_Transport, ".files-job-owner");
-         Files.Private_Directories.Create (Fake_Recovery);
-         Files.Private_Directories.Create (Fake_Payload);
+         Files.IO.Private_Directories.Create (Fake_Recovery);
+         Files.IO.Private_Directories.Create (Fake_Payload);
          Seed_Nonce (Fake_Payload, ".files-job-owner");
-         Files.Private_Directories.Create (Ordinary_Parent);
-         Files.Private_Directories.Create (Ordinary_Payload);
+         Files.IO.Private_Directories.Create (Ordinary_Parent);
+         Files.IO.Private_Directories.Create (Ordinary_Payload);
          Seed_Nonce (Ordinary_Payload, ".files-job-owner");
          if not Hostkit.Fs.Create_Link (Ordinary_Parent, Recovery_Alias) then
             Hostkit.Process.End_Now (1);
@@ -237,7 +237,7 @@ package body Test_Helpers is
          --  reuse must not make it match any old identity.
          Ada.Directories.Delete_File (Hostkit.Fs.Join (Fake_Transport, ".files-job-owner"));
          Ada.Directories.Delete_Directory (Fake_Transport);
-         Files.Private_Directories.Create (Fake_Transport);
+         Files.IO.Private_Directories.Create (Fake_Transport);
          Seed_Nonce (Fake_Transport, ".files-job-owner");
          if Files.File_Identities.Token (Fake_Transport) /= "" then
             Hostkit.Process.End_Now (1);

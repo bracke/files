@@ -1,7 +1,7 @@
 with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Unbounded.Hash;
-with Files.Capped_Files;
+with Files.IO.Capped_Files;
 with Files.Diagnostics;
 separate (Files.Settings)
    procedure Merge_From_File
@@ -10,7 +10,7 @@ separate (Files.Settings)
       Merged   : out Boolean;
       Refused  : out Boolean)
    is
-      use type Files.Capped_Files.Read_Status;
+      use type Files.IO.Capped_Files.Read_Status;
 
       package Item_Sets is new Ada.Containers.Hashed_Sets
         (Element_Type        => Unbounded_String,
@@ -212,18 +212,19 @@ separate (Files.Settings)
       function Merged_Strings is new Merged_Map (String_Maps);
       function Merged_Actions is new Merged_Map (Action_Maps);
 
-      Status : Files.Capped_Files.Read_Status;
+      Status : Files.IO.Capped_Files.Read_Status;
    begin
       Merged := False;
       Refused := False;
-      if not Seen_Known or else To_String (Seen_Path) /= Path or else Files.Fs_Primitives.Entry_Is_Absent (Path) then
+      if not Seen_Known or else To_String (Seen_Path) /= Path or else Files.IO.Fs_Primitives.Entry_Is_Absent (Path) then
          return;
       end if;
       declare
          Text : constant String :=
-           Files.Capped_Files.Read_Capped (Path, Max_Settings_Text_Bytes, Files.Capped_Files.Follow_Links, Status);
+           Files.IO.Capped_Files.Read_Capped (Path, Max_Settings_Text_Bytes, Files.IO.Capped_Files.Follow_Links,
+                                              Status);
       begin
-         if Status /= Files.Capped_Files.Read_Complete or else Text = To_String (Seen_Text) then
+         if Status /= Files.IO.Capped_Files.Read_Complete or else Text = To_String (Seen_Text) then
             return;
          end if;
          declare

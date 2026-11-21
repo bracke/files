@@ -1,5 +1,5 @@
 with Files.Diagnostics;
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
 
@@ -14,7 +14,7 @@ package body Files.Resources is
         Hostkit.Fs.Own_Executable_Directory;
 
       function Parent (Path : String) return String is
-        (Files.Fs_Primitives.Parent_Directory (Path));
+        (Files.IO.Fs_Primitives.Parent_Directory (Path));
 
       function Share_At (Levels : Natural) return String is
          Base : Unbounded_String :=
@@ -27,7 +27,7 @@ package body Files.Resources is
          if Levels > 0 and then Length (Base) = 0 then
             return "";
          end if;
-         return Files.Fs_Primitives.Full_Name (Hostkit.Fs.Join (To_String (Base), "share"));
+         return Files.IO.Fs_Primitives.Full_Name (Hostkit.Fs.Join (To_String (Base), "share"));
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Resources");
@@ -42,11 +42,11 @@ package body Files.Resources is
          --  next candidate; nothing is written there.
          return Path /= ""
            --  refusal-safe: as above.
-           and then Files.Fs_Primitives.Exists (Catalog)
-           and then Files.Fs_Primitives.Kind (Catalog) = Ada.Directories.Ordinary_File
+           and then Files.IO.Fs_Primitives.Exists (Catalog)
+           and then Files.IO.Fs_Primitives.Kind (Catalog) = Ada.Directories.Ordinary_File
            --  refusal-safe: as above.
-           and then Files.Fs_Primitives.Exists (Icons)
-           and then Files.Fs_Primitives.Kind (Icons) = Ada.Directories.Directory;
+           and then Files.IO.Fs_Primitives.Exists (Icons)
+           and then Files.IO.Fs_Primitives.Kind (Icons) = Ada.Directories.Directory;
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Resources");

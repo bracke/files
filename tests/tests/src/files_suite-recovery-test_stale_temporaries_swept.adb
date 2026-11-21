@@ -1,5 +1,5 @@
 with Ada.Streams;
-with Files.Durable_Writes;
+with Files.IO.Durable_Writes;
 with Files_Suite.Support.Disk;
 with Files_Suite.Operations_Support;
 separate (Files_Suite.Recovery)
@@ -26,7 +26,7 @@ separate (Files_Suite.Recovery)
       --  An owner-only file at Path, last written long before this run.
       procedure Make_Stale (Path : String) is
       begin
-         Files.Durable_Writes.Write_Private_File (Path, Write_Text'Access, Identity);
+         Files.IO.Durable_Writes.Write_Private_File (Path, Write_Text'Access, Identity);
          GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp (Path, Old_Time);
       end Make_Stale;
    begin
@@ -40,7 +40,7 @@ separate (Files_Suite.Recovery)
         (Files.File_System.Permissions.Set_Permissions (Base & ".tmp-2", 8#644#).Success,
          "prepare a temporary others may read");
       --  Written since this process started: perhaps another writer's.
-      Files.Durable_Writes.Write_Private_File (Base & ".tmp-3", Write_Text'Access, Identity);
+      Files.IO.Durable_Writes.Write_Private_File (Base & ".tmp-3", Write_Text'Access, Identity);
       --  Named otherwise, a folder, and a link: never one of its temporaries.
       Make_Stale (Base & ".tmpx");
       Make_Stale (Base & ".tmp-0");
@@ -48,7 +48,7 @@ separate (Files_Suite.Recovery)
       declare
          Linked : constant Boolean := Files_Suite.Support.Disk.Create_Symlink (Base & ".tmp-17", Base & ".tmp-6");
       begin
-         Files.Durable_Writes.Sweep_Stale_Temporaries (Base);
+         Files.IO.Durable_Writes.Sweep_Stale_Temporaries (Base);
          Assert (not Ada.Directories.Exists (Base & ".tmp"), "a stale temporary is swept");
          Assert (not Ada.Directories.Exists (Base & ".tmp-17"), "a numbered stale temporary is swept");
          Assert (Ada.Directories.Exists (Base & ".tmp-2"), "one others may read is kept");
@@ -70,7 +70,7 @@ separate (Files_Suite.Recovery)
          Ada.Directories.Create_Directory (Locked_Folder);
          Make_Stale (Locked_Base & ".tmp");
          if Files_Suite.Operations_Support.Lock_Directory (Locked_Folder) then
-            Files.Durable_Writes.Sweep_Stale_Temporaries (Locked_Base);
+            Files.IO.Durable_Writes.Sweep_Stale_Temporaries (Locked_Base);
             Files_Suite.Operations_Support.Unlock_Directory (Locked_Folder);
             Assert (Ada.Directories.Exists (Locked_Base & ".tmp"),
                     "without the folder's own time, nothing is judged stale");
@@ -80,14 +80,14 @@ separate (Files_Suite.Recovery)
       end;
 
       --  A taken name, and a create refused for another reason.
-      Files.Durable_Writes.Write_Private_File (Base & ".tmp-3", Write_Text'Access, Identity, Taken);
+      Files.IO.Durable_Writes.Write_Private_File (Base & ".tmp-3", Write_Text'Access, Identity, Taken);
       Assert (Taken, "a create refused by an entry there says the name is taken");
       Files_Suite.Support.Assert_Equal
         (Ada.Strings.Unbounded.Length (Identity), 0, "a taken name returns no identity");
       Assert (File_Has_Bytes (Base & ".tmp-3", "left behind"), "and the entry there is kept as it was");
       Raised := False;
       begin
-         Files.Durable_Writes.Write_Private_File
+         Files.IO.Durable_Writes.Write_Private_File
            (Join (Join (Root, "no-such-folder"), "x.tmp"), Write_Text'Access, Identity, Taken);
       exception
          when Ada.IO_Exceptions.Use_Error =>

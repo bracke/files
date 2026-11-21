@@ -1,9 +1,11 @@
+with Files.Name_Parts;
+use Files.Name_Parts;
+
 separate (Files_Suite.Names)
    --  The one stem/extension split every "(copy)", "name 2" and link name
    --  uses: a recovered payload split "foo." into "foo" and "." on its own.
    procedure Test_Stem_And_Extension (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use Files.Types;
       function Taken (Leaf : String) return Boolean is (Leaf = "draft.");
    begin
       Files_Suite.Support.Assert_Equal (Stem_Of ("notes.txt"), "notes", "a stem");

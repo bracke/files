@@ -52,7 +52,7 @@ begin
    for Item of Items loop
       exit when Files.Jobs.Context.Cancelled;
       --  refusal-safe: a refused lookup refuses the trash
-      if not Files.Fs_Primitives.Entry_Exists (To_String (Item.Full_Path)) then
+      if not Files.IO.Fs_Primitives.Entry_Exists (To_String (Item.Full_Path)) then
          Files.Model.Set_Error (Model, "error.trash.failed");
          Reload_With_Error (Model, Settings, "error.trash.failed");
          return Make_Result (Operation_Failed, "error.trash.failed", To_String (Item.Full_Path));

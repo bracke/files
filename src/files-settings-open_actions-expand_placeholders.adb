@@ -1,5 +1,5 @@
 with Hostkit.Path_Text;
-with Files.Types;
+with Files.Name_Parts;
 
 separate (Files.Settings.Open_Actions)
    function Expand_Placeholders
@@ -21,8 +21,8 @@ separate (Files.Settings.Open_Actions)
          else Up);
       --  As the name spells them (Files.Types' one rule): "{extension}" of
       --  "Photo.JPG" is "JPG", as "{stem}" is "Photo".
-      Extension : constant String := Files.Types.Extension_Of (Name);
-      Stem      : constant String := Files.Types.Stem_Of (Name);
+      Extension : constant String := Files.Name_Parts.Extension_Of (Name);
+      Stem      : constant String := Files.Name_Parts.Stem_Of (Name);
    begin
       Result.Arguments.Clear;
       for Argument of Action.Arguments loop

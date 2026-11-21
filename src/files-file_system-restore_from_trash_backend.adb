@@ -1,3 +1,5 @@
+with Files.Name_Parts;
+
 separate (Files.File_System)
 function Restore_From_Trash_Backend
   (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
@@ -23,7 +25,7 @@ is
             return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
          --  refusal-safe: the Recycle Bin's restore never replaces
          --  (Restore_Taken), so an original not seen is not written over.
-         elsif Files.Fs_Primitives.Entry_Exists (Original) then
+         elsif Files.IO.Fs_Primitives.Entry_Exists (Original) then
             return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_exists"));
          elsif Expected_Identity /= ""
            and then Files.File_Identities.Token (Trashed_Path) /= Expected_Identity
@@ -45,7 +47,7 @@ is
       end;
    end From_Recycle_Bin;
 begin
-   Files.Io_Errors.Reset;
+   Files.IO.Errors.Reset;
    if Trash_Backend_Of_Current_Environment = Trash_Windows_Recycle_Bin then
       return From_Recycle_Bin;
    end if;
@@ -56,7 +58,7 @@ begin
    end if;
 
    declare
-      Simple    : constant String := Files.Types.Leaf_Of (Trashed_Path);
+      Simple    : constant String := Files.Name_Parts.Leaf_Of (Trashed_Path);
       Info_Path : constant String :=
         Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Simple & ".trashinfo");
       Original  : Unbounded_String;
@@ -67,7 +69,7 @@ begin
       Info_Identity : constant String := Files.File_Identities.Token (Info_Path);
    begin
       --  refusal-safe: an info file not seen refuses the restore.
-      if Expected_Original = "" and then not Files.Fs_Primitives.Exists (Info_Path) then
+      if Expected_Original = "" and then not Files.IO.Fs_Primitives.Exists (Info_Path) then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.restore_unavailable"));
@@ -81,9 +83,9 @@ begin
             Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
       end if;
 
-      Parent := To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (To_String (Original)));
+      Parent := To_Unbounded_String (Files.IO.Fs_Primitives.Parent_Directory (To_String (Original)));
       if To_String (Parent) = ""
-        or else not Files.Fs_Primitives.Directory_Exists (To_String (Parent))
+        or else not Files.IO.Fs_Primitives.Directory_Exists (To_String (Parent))
       then
          return
            (Success   => False,
@@ -92,7 +94,7 @@ begin
 
       --  refusal-safe: the move and the copy below never replace, so an
       --  original not seen is not written over.
-      if Files.Fs_Primitives.Entry_Exists (To_String (Original)) then
+      if Files.IO.Fs_Primitives.Entry_Exists (To_String (Original)) then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.restore_exists"));
@@ -142,7 +144,7 @@ begin
       --  the same name, stays.
       begin
          if Info_Identity /= "" and then Files.File_Identities.Token (Info_Path) = Info_Identity then
-            Files.Fs_Primitives.Delete_File (Info_Path);
+            Files.IO.Fs_Primitives.Delete_File (Info_Path);
          end if;
       exception
          when Swallowed : others =>
@@ -156,5 +158,5 @@ exception
       Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return
         (Success   => False,
-         Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
+         Error_Key => Files.IO.Errors.Error_Key ("error.trash.restore_failed"));
 end Restore_From_Trash_Backend;

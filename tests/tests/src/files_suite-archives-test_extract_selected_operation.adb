@@ -1,4 +1,4 @@
-with Files.Durability.Testing;
+with Files.IO.Durability.Testing;
 with Hostkit.Fs;
 with Files.Operation_Results;
 with Ada.Unchecked_Deallocation;
@@ -338,16 +338,16 @@ separate (Files_Suite.Archives)
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "bundle.zip");
-      Files.Durability.Testing.Fail_Syncs_Ending_With ("/notes.txt");
+      Files.IO.Durability.Testing.Fail_Syncs_Ending_With ("/notes.txt");
       begin
          Routed :=
            Files.Controller.Execute_Non_Settings_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
       exception
          when others =>
-            Files.Durability.Testing.Clear;
+            Files.IO.Durability.Testing.Clear;
             raise;
       end;
-      Files.Durability.Testing.Clear;
+      Files.IO.Durability.Testing.Clear;
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status, Files.Operation_Results.Operation_Failed, "an extraction it cannot flush fails");
       Assert (not Ada.Directories.Exists (Join (Dir, "bundle (1)")), "and publishes no folder");

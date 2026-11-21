@@ -5,18 +5,18 @@ separate (Files.File_System.Move_To_Trash)
 procedure Prepare_Directories is
 begin
    begin
-      Files.Io_Errors.Clear_Os_Error;
-      Files.Fs_Primitives.Create_Path (Files.Fs_Primitives.Parent_Directory (Base));
+      Files.IO.Errors.Clear_Os_Error;
+      Files.IO.Fs_Primitives.Create_Path (Files.IO.Fs_Primitives.Parent_Directory (Base));
    exception
       when others =>
-         Files.Io_Errors.Capture;
+         Files.IO.Errors.Capture;
          raise;
    end;
-   Files.Private_Directories.Ensure (Base);
+   Files.IO.Private_Directories.Ensure (Base);
    if Files_Dir /= Base then
-      Files.Private_Directories.Ensure (Files_Dir);
+      Files.IO.Private_Directories.Ensure (Files_Dir);
    end if;
    if Info_Dir /= "" then
-      Files.Private_Directories.Ensure (Info_Dir);
+      Files.IO.Private_Directories.Ensure (Info_Dir);
    end if;
 end Prepare_Directories;

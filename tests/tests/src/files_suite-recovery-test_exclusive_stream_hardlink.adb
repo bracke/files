@@ -7,7 +7,7 @@ separate (Files_Suite.Recovery)
       declare
          Victim : constant String := Join (Root, "exclusive-stream-victim");
          Alias  : constant String := Join (Root, "exclusive-stream-alias");
-         Output : Files.Exclusive_Streams.Output_Stream;
+         Output : Files.IO.Exclusive_Streams.Output_Stream;
          Refused : Boolean := False;
          Linked  : Boolean := False;
       begin
@@ -15,11 +15,11 @@ separate (Files_Suite.Recovery)
          Linked := Hostkit.Fs.Create_Hard_Link (Victim, Alias);
          if Linked then
             begin
-               Files.Exclusive_Streams.Create (Output, Alias);
+               Files.IO.Exclusive_Streams.Create (Output, Alias);
             exception
                when Ada.IO_Exceptions.Use_Error => Refused := True;
             end;
-            Files.Exclusive_Streams.Close_Safely (Output);
+            Files.IO.Exclusive_Streams.Close_Safely (Output);
             Assert
               (Refused
                and then Project_Tools.Files.Read_Raw_File (Victim) = "unchanged",
@@ -32,7 +32,7 @@ separate (Files_Suite.Recovery)
          Ada.Directories.Delete_File (Victim);
       exception
          when others =>
-            Files.Exclusive_Streams.Close_Safely (Output);
+            Files.IO.Exclusive_Streams.Close_Safely (Output);
             if Linked and then Ada.Directories.Exists (Alias) then
                Ada.Directories.Delete_File (Alias);
             end if;

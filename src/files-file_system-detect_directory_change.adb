@@ -14,5 +14,5 @@ begin
       After_State  => After_State,
       Error_Key    =>
         (if After_State.Exists then Null_Unbounded_String
-         else To_Unbounded_String (Files.Io_Errors.Directory_Load_Key)));
+         else To_Unbounded_String (Files.IO.Errors.Directory_Load_Key)));
 end Detect_Directory_Change;

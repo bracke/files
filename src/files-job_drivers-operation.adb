@@ -1,6 +1,6 @@
 with Files.UI_Types;
 with Files.Model.Jobs;
-with Files.Bounded_Streams;
+with Files.IO.Record_Fields;
 with Files.Operations.Undo_Recording;
 with Files.Window_Polls;
 with Files.Jobs.Helper_Modes;
@@ -13,7 +13,7 @@ with Ada.Strings.Unbounded;
 
 with Files.Jobs.Context;
 with Files.Jobs.Records;
-with Files.Lease_Streams;
+with Files.IO.Lease_Streams;
 with Files.Undo.Journal;
 with Files.Refresh;
 with Files.Jobs.Process;
@@ -24,6 +24,7 @@ with Files.Model.Selection;
 with Files.Settings.Path_References;
 with Files.Undo.History;
 with Ada.Real_Time;
+with Files.Text_Basics;
 
 package body Files.Job_Drivers.Operation is
    use Ada.Strings.Unbounded;
@@ -88,10 +89,10 @@ package body Files.Job_Drivers.Operation is
       end if;
       String'Output (Stream, Request_Header);
       Operation_Kind'Output (Stream, Work.Kind);
-      Files.Bounded_Streams.Output_String
+      Files.IO.Record_Fields.Output_String
         (Stream, To_String (Work.Root), Files.Jobs.Records.Max_Path_Length);
       Boolean'Output (Stream, Work.Recent);
-      Files.Bounded_Streams.Output_String
+      Files.IO.Record_Fields.Output_String
         (Stream, To_String (Work.Query), Files.Jobs.Records.Max_Text_Length);
       Files.Jobs.Records.Write_Items (Stream, Work.Selected);
       Files.Jobs.Records.Write_Settings (Stream, Work.Settings);
@@ -106,10 +107,10 @@ package body Files.Job_Drivers.Operation is
    begin
       Work.Kind := Operation_Kind'Input (Stream);
       Work.Root :=
-        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
       Work.Recent := Boolean'Input (Stream);
       Work.Query :=
-        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Jobs.Records.Max_Text_Length));
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Text_Length));
       Work.Selected := Files.Jobs.Records.Read_Items (Stream);
       Work.Settings := Files.Jobs.Records.Read_Settings (Stream);
       Work.Context_Revision := Natural'Input (Stream);
@@ -120,7 +121,7 @@ package body Files.Job_Drivers.Operation is
    function Request_Is_Consistent (Work : Request) return Boolean is
      (Request_Path_Is_Consistent (To_String (Work.Root), Work.Recent));
 
-   function Read_Request_Record is new Files.Lease_Streams.Read_Record
+   function Read_Request_Record is new Files.IO.Lease_Streams.Read_Record
      (Request, Read_Request_Body, Request_Is_Consistent);
 
    function Read_Request (Path : String) return Request is
@@ -136,9 +137,9 @@ package body Files.Job_Drivers.Operation is
       Boolean'Output (Stream, Done.Recent);
       Files.Jobs.Records.Write_Operation_Result (Stream, Done.Result);
       Files.Jobs.Records.Write_Items (Stream, Done.Items);
-      Files.Bounded_Streams.Output_String
+      Files.IO.Record_Fields.Output_String
         (Stream, To_String (Done.Selection), Files.Jobs.Records.Max_Path_Length);
-      Files.Bounded_Streams.Output_String
+      Files.IO.Record_Fields.Output_String
         (Stream, To_String (Done.Visible_Error),
          Files.Jobs.Records.Max_Error_Length);
       Files.Jobs.Records.Write_Signature (Stream, Done.Signature);
@@ -154,9 +155,9 @@ package body Files.Job_Drivers.Operation is
       Done.Result := Files.Jobs.Records.Read_Operation_Result (Stream);
       Done.Items := Files.Jobs.Records.Read_Items (Stream);
       Done.Selection :=
-        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
       Done.Visible_Error :=
-        To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Files.Jobs.Records.Max_Error_Length));
+        To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Error_Length));
       Done.Signature := Files.Jobs.Records.Read_Signature (Stream);
       Done.Moves := Files.Jobs.Records.Read_Path_Moves (Stream);
    end Read_Outcome_Body;
@@ -165,7 +166,7 @@ package body Files.Job_Drivers.Operation is
    function Outcome_Is_Consistent (Done : Outcome) return Boolean is
      (Natural (Done.Moves.Length) <= Files.Jobs.Records.Max_Path_Moves);
 
-   function Read_Outcome_Record is new Files.Lease_Streams.Read_Record
+   function Read_Outcome_Record is new Files.IO.Lease_Streams.Read_Record
      (Outcome, Read_Outcome_Body, Outcome_Is_Consistent);
 
    function Read_Outcome (Path : String) return Outcome is
@@ -400,7 +401,7 @@ package body Files.Job_Drivers.Operation is
          else
             Files.Diagnostics.Trace
               ("Files.Job_Drivers.Operation",
-               "undone_entry_not_newest=" & Files.Types.Natural_Text (Work.Undo_Sequence));
+               "undone_entry_not_newest=" & Files.Text_Basics.Natural_Text (Work.Undo_Sequence));
          end if;
       end if;
    exception

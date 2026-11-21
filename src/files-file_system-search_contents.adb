@@ -1,4 +1,6 @@
 with Files.Text_Encoding;
+with Files.Text_Case;
+
 separate (Files.File_System)
 function Search_Contents
   (Root_Path : String;
@@ -10,7 +12,7 @@ is
    Max_Files  : constant := 20_000;
    Files_Read : Natural := 0;
    --  Folded once for the whole search.
-   Folded_Query : constant String := Files.Types.Fold_Case (Query);
+   Folded_Query : constant String := Files.Text_Case.Fold_Case (Query);
 
    --  Only what is read is built into an item (folders always are).
    function Wanted (Name : String; Kind : Files.Types.Item_Kind) return Boolean is
@@ -39,7 +41,7 @@ is
       begin
          if not Read_Ok then
             return Undecided;
-         elsif Files.Types.Text_Contains (Text, Folded_Query) then
+         elsif Files.Text_Case.Text_Contains (Text, Folded_Query) then
             return Found;
          elsif Bytes'Length > Max_Bytes and then not Files.Text_Encoding.Looks_Binary (Text) then
             --  A text file longer than is read and no match in what was:

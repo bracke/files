@@ -1,9 +1,6 @@
 with Files.Items;
 private package Files.Model.Support is
 
-   --  Sentinel item index marking the temporary create-item row.
-   Temporary_Item_Index : constant Natural := Natural'Last;
-
    --  Clear the Quick Look overlay state. Declared early so the navigation and
    --  selection resets below can close a stale preview when the previewed item
    --  is no longer the single, current selection.

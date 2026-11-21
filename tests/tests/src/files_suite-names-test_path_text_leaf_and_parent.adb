@@ -1,4 +1,5 @@
-with Files.Fs_Primitives;
+with Files.IO.Fs_Primitives;
+with Files.Name_Parts;
 
 separate (Files_Suite.Names)
    --  GNAT's Windows runtime refuses a path component over 256 characters, so
@@ -7,7 +8,7 @@ separate (Files_Suite.Names)
    --  reading it falls back to splits Windows and POSIX paths on any host.
    procedure Test_Path_Text_Leaf_And_Parent (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      package P renames Files.Fs_Primitives;
+      package P renames Files.IO.Fs_Primitives;
       Long : constant String := [1 .. 300 => 'n'];
 
       --  Directory joined with a leaf made of Stem and Extension, from text
@@ -15,17 +16,18 @@ separate (Files_Suite.Names)
       function Compose_Text (Directory : String; Stem : String; Extension : String := "") return String is
         (Hostkit.Fs.Join (Directory, (if Extension = "" then Stem else Stem & "." & Extension)));
    begin
-      Files_Suite.Support.Assert_Equal (Files.Types.Leaf_Of ("C:\dir\" & Long), Long, "a long Windows leaf");
+      Files_Suite.Support.Assert_Equal (Files.Name_Parts.Leaf_Of ("C:\dir\" & Long), Long, "a long Windows leaf");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("C:\dir\" & Long), "C:\dir", "and its parent");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("C:\" & Long), "C:\", "a drive root keeps its separator");
-      Files_Suite.Support.Assert_Equal (Files.Types.Leaf_Of ("C:\"), "", "a drive root has no leaf");
-      Files_Suite.Support.Assert_Equal (Files.Types.Leaf_Of ("/a/b/"), "b", "trailing separators are not a component");
+      Files_Suite.Support.Assert_Equal (Files.Name_Parts.Leaf_Of ("C:\"), "", "a drive root has no leaf");
+      Files_Suite.Support.Assert_Equal (Files.Name_Parts.Leaf_Of ("/a/b/"), "b",
+                                        "trailing separators are not a component");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("/a/b/"), "/a", "nor part of the parent");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("/x"), "/", "the POSIX root keeps its separator");
-      Files_Suite.Support.Assert_Equal (Files.Types.Leaf_Of ("/"), "", "the POSIX root has no leaf");
+      Files_Suite.Support.Assert_Equal (Files.Name_Parts.Leaf_Of ("/"), "", "the POSIX root has no leaf");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("\\server\share\" & Long), "\\server\share", "a share");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("\\server\share"), "", "a share's root has no parent");
-      Files_Suite.Support.Assert_Equal (Files.Types.Leaf_Of ("\\server\share\"), "", "nor a leaf");
+      Files_Suite.Support.Assert_Equal (Files.Name_Parts.Leaf_Of ("\\server\share\"), "", "nor a leaf");
       Files_Suite.Support.Assert_Equal (P.Parent_Directory ("\\server\share"), "", "nor a parent directory");
       Files_Suite.Support.Assert_Equal (P.Parent_Directory ("name"), ".", "a name alone lies in the current directory");
       Files_Suite.Support.Assert_Equal (P.Parent_Directory ("/"), "", "the POSIX root has no parent directory");

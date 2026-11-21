@@ -22,6 +22,7 @@ with Hostkit.Metadata;
 with Hostkit.Process;
 
 with Files_Suite.Support.Timing;
+with Files.Text_Basics;
 
 package body Files_Suite.Support.Disk is
    use Files_Suite.Support.Timing;
@@ -416,6 +417,6 @@ package body Files_Suite.Support.Disk is
    end Case_Insensitive_Filesystem;
 
    function Numbered_File (Directory : String; N : Positive) return String is
-     (Join (Directory, "f" & Files.Types.Natural_Text (N) & ".txt"));
+     (Join (Directory, "f" & Files.Text_Basics.Natural_Text (N) & ".txt"));
 
 end Files_Suite.Support.Disk;

@@ -4,13 +4,13 @@ separate (Files_Suite.Startup)
    is
       pragma Unreferenced (T);
       use Hostkit.Durability;
-      use Files.Durable_Writes;
+      use Files.IO.Durable_Writes;
       function Outcome
         (File_Sync      : Hostkit.Durability.Outcome;
          Replaced       : Boolean;
          Directory_Sync : Hostkit.Durability.Outcome)
          return Publication_Result
-        renames Files.Durable_Writes.Testing.Outcome_Of;
+        renames Files.IO.Durable_Writes.Testing.Outcome_Of;
    begin
       Assert
         (Outcome (Failed, True, Synced) = Not_Published,

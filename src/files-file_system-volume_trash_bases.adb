@@ -10,7 +10,7 @@ function Volume_Trash_Bases return Files.Types.String_Vectors.Vector is
       --  A valid base's files/ is never a link; it may not have been made yet.
       if not Result.Contains (To_Unbounded_String (Base))
         and then Valid_Volume_Trash_Base (Base)
-        and then Files.Fs_Primitives.Directory_Exists (Trash_Items_Directory (Base))
+        and then Files.IO.Fs_Primitives.Directory_Exists (Trash_Items_Directory (Base))
       then
          Result.Append (To_Unbounded_String (Base));
       end if;
