@@ -73,7 +73,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
             Cell          => Item_Rect,
             Line_Height   => Line_Height,
             Favorite      => Item.Is_Favorite,
-            Star_Glyph    => To_Unbounded_String (Favorite_Star_Filled_Text),
+            Star_Glyph    => Favorite_Star_Glyph,
             Star_Color    => Accent_Gold_Color,
             Has_Label     => Item.Label /= Files.Types.No_Label,
             Label_Color   => Label_Render_Color (Item.Label));
@@ -166,10 +166,22 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
          return Result;
       end Detail_Cells;
 
+      --  The row's cells and the description that repeats them.
+      function Format_Row return Row_Texts_Entry is
+         Cells : constant Detail_Column_Texts := Detail_Cells;
+      begin
+         return
+           (Cells       => Cells,
+            Description =>
+              Item_Accessible_Description
+                (Detail_Column_Labels, Cells, Snapshot.Detail_Column_Order, Snapshot.Detail_Columns_Visible,
+                 Item, Details));
+      end Format_Row;
+
       --  The item's accessibility node: a table row in Details, else a list
       --  item; focused when it is the primary selection and the keyboard is
       --  on the grid.
-      procedure Add_Item_Accessibility (Cells : Detail_Column_Texts) is
+      procedure Add_Item_Accessibility (Description : UString) is
       begin
          Add_Accessibility_Node
            ((if Details then Role_Table_Row else Role_List_Item),
@@ -178,9 +190,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
             Item_Rect.Width,
             Item_Rect.Height,
             Item.Name,
-            Item_Accessible_Description
-              (Detail_Column_Labels, Cells, Snapshot.Detail_Column_Order, Snapshot.Detail_Columns_Visible,
-               Item, Details),
+            Description,
             Enabled  => True,
             Selected => Item.Selected,
             Focused  =>
@@ -219,15 +229,21 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
            and then Hovered;
          --  The Details row's cells, each formatted once for both the row and
          --  its accessibility description, and only for a shown column: the
-         --  icon views draw none of them.
-         Cells : constant Detail_Column_Texts := Detail_Cells;
+         --  icon views draw none of them. Formatted once a snapshot build: a
+         --  frame redrawn for a pointer move reads them back.
+         Texts : constant Row_Text_Maps.Cursor := Row_Texts.Rows.Find (Index);
+         Row   : constant Row_Texts_Entry :=
+           (if Row_Text_Maps.Has_Element (Texts) then Row_Text_Maps.Element (Texts) else Format_Row);
       begin
+         if not Row_Text_Maps.Has_Element (Texts) then
+            Row_Texts.Rows.Insert (Index, Row);
+         end if;
          Draw_Background (Hovered, Drop_Target);
          Draw_Icon;
          Draw_Name;
          if Details then
-            Draw_Details_Columns (Hovered, Cells);
+            Draw_Details_Columns (Hovered, Row.Cells);
          end if;
-         Add_Item_Accessibility (Cells);
+         Add_Item_Accessibility (Row.Description);
       end;
    end Draw_Item;

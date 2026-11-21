@@ -542,6 +542,23 @@ package body Files.Model.Selection is
       Files.Model.Support.For_Each_Selected_Item (Model, Visit);
    end For_Each_Selected_Item;
 
+   function Any_Selected_Item
+     (Model : Window_Model;
+      Test  : not null access function (Item : Files.Items.Directory_Item) return Boolean)
+      return Boolean is
+   begin
+      --  An index past the loaded items is the transient create-file row,
+      --  which For_Each_Selected_Item leaves out too.
+      for Index of Model.Selected_Item_Indexes loop
+         if Index in Model.Items.First_Index .. Model.Items.Last_Index
+           and then Test (Model.Items (Index))
+         then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Any_Selected_Item;
+
    function Selected_Paths
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector

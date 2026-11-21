@@ -13,6 +13,7 @@ with All_Suites;
 with Files.Diagnostics;
 with Files.Job_Helpers;
 with Files.Job_Context;
+with Files.Localization;
 with Files.Job_Scavenger;
 with Files.Durability.Testing;
 with Files.File_System;
@@ -146,6 +147,7 @@ begin
    --  Pin the locale so localization-dependent assertions are deterministic
    --  regardless of the developer machine's locale (C normalizes to "en").
    Ada.Environment_Variables.Set ("LC_ALL", "C");
+   Files.Localization.Reread_Locale_Environment;
    --  Keep every test's trash payload separate from the user's desktop trash.
    declare
       Trash_Root : constant String := Hostkit.Fs.Create_Temporary_Directory ("files-test-trash-");

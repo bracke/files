@@ -2,6 +2,7 @@ with Files.Events;
 with Files.UI_Types;
 with Files.Operation_Results;
 with Ada.Calendar;
+with Ada.Containers;
 with Files.Window_Polls;
 with Files.Foreground_Jobs;
 with Files.Preview_Decoder;
@@ -710,18 +711,19 @@ package body Files.Application.Windows is
       Text          : Guikit.Draw.Text_Command_Vectors.Vector;
       Accessibility : Guikit.Draw.Accessibility_Node_Vectors.Vector;
       Icons         : Guikit.Draw.Icon_Command_Vectors.Vector :=
-        Guikit.Draw.Icon_Command_Vectors.Empty_Vector) is
-   begin
+        Guikit.Draw.Icon_Command_Vectors.Empty_Vector)
+   is
       --  Panels (command palette, settings) draw into the overlay layer, which
       --  is composited after all of the main layer's rectangles, icons and
       --  text, so nothing of the file view shows through an opaque panel; their
       --  icons go to the overlay icon pass, above the panel's own background.
-      for C of Rectangles loop
-         Frame.Overlay_Rectangles.Append (C);
-      end loop;
-      for C of Text loop
-         Frame.Overlay_Text.Append (C);
-      end loop;
+      --  Each vector grows once to its new length, and the rectangles, text
+      --  and accessibility nodes go over whole.
+      use type Ada.Containers.Count_Type;
+   begin
+      Frame.Overlay_Rectangles.Append_Vector (Rectangles);
+      Frame.Overlay_Text.Append_Vector (Text);
+      Frame.Icons.Reserve_Capacity (Frame.Icons.Length + Icons.Length);
       for C of Icons loop
          declare
             Command : Guikit.Draw.Icon_Command := C;
@@ -730,9 +732,7 @@ package body Files.Application.Windows is
             Frame.Icons.Append (Command);
          end;
       end loop;
-      for N of Accessibility loop
-         Frame.Accessibility.Append (N);
-      end loop;
+      Frame.Accessibility.Append_Vector (Accessibility);
    end Append_Overlay;
 
    --  Prepare the topmost modal layer. Cached frames can already contain a

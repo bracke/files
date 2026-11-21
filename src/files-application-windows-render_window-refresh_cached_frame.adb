@@ -57,6 +57,8 @@ separate (Files.Application.Windows.Render_Window)
          Runtime.Cached_Frame :=
            Files.Rendering.Build_Frame_Commands
              (Snapshot    => Snapshot,
+              Build       => Runtime.View.Slot_Contents (Runtime.View.Current_Slot),
+              Row_Texts   => Runtime.Row_Texts,
               Width       => Inputs.Width,
               Height      => Inputs.Height,
               Line_Height => Inputs.Line_Height,

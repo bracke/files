@@ -8,8 +8,9 @@ separate (Files.Rendering.Build_Snapshot_Into)
         Files.Model.Clipboard.Mode_Of (Model) = Files.Model.Clipboard_Cut;
 
       --  A set, not a vector: Is_Cut_Pending is asked once per visible item
-      --  every frame, so a linear scan of the cut list is O(items x cut) per
-      --  frame. Hash the cut paths once and test membership in O(1).
+      --  every time the rows are built, so a linear scan of the cut list is
+      --  O(items x cut) per build. Hash the cut paths once and test
+      --  membership in O(1).
       package Cut_Path_Sets is new Ada.Containers.Hashed_Sets
         (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
          Hash                => Ada.Strings.Unbounded.Hash,

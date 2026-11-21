@@ -14,6 +14,8 @@ separate (Files_Suite.Model)
       Utf16_Le_Path : constant String := Join (Root, "utf16le.txt");
       Utf16_Be_Path : constant String := Join (Root, "utf16be.txt");
       Unmarked_Utf16_Path : constant String := Join (Root, "unmarked-utf16.txt");
+      Trailing_Le_Path : constant String := Join (Root, "trailing-utf16le.txt");
+      Trailing_Be_Path : constant String := Join (Root, "trailing-utf16be.txt");
       NUL : constant Character := Character'Val (0);
       Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Load      : Files.File_System.Directory_Load_Result;
@@ -30,6 +32,8 @@ separate (Files_Suite.Model)
       Found_Utf16_Le : Boolean := False;
       Found_Utf16_Be : Boolean := False;
       Found_Unmarked_Utf16 : Boolean := False;
+      Found_Trailing_Le : Boolean := False;
+      Found_Trailing_Be : Boolean := False;
    begin
       Reset_Root;
       Write_File (Long_Text_Path, String'(1 .. 2048 => 'x'));
@@ -64,6 +68,17 @@ separate (Files_Suite.Model)
         (Utf16_Be_Path,
          Character'Val (16#FE#) & Character'Val (16#FF#) & NUL & "a" & NUL & ASCII.LF & NUL & "b");
       Write_Binary_File (Unmarked_Utf16_Path, "h" & NUL & "i" & NUL & "!" & NUL);
+      --  Two lines, each ending in a line feed: a UTF-16 line feed is a whole
+      --  unit, not its 0A byte. U+0A0A (two 0A bytes) is no line feed, and the
+      --  NUL after the last line feed starts no third line.
+      Write_Binary_File
+        (Trailing_Le_Path,
+         Character'Val (16#FF#) & Character'Val (16#FE#) & "a" & NUL
+         & ASCII.LF & ASCII.LF & ASCII.LF & NUL & "b" & NUL & ASCII.LF & NUL);
+      Write_Binary_File
+        (Trailing_Be_Path,
+         Character'Val (16#FE#) & Character'Val (16#FF#) & NUL & "a"
+         & ASCII.LF & ASCII.LF & NUL & ASCII.LF & NUL & "b" & NUL & ASCII.LF);
 
       Load := Files.File_System.Load_Directory (Root, Settings);
 
@@ -140,6 +155,18 @@ separate (Files_Suite.Model)
               (Item_Extra (Item),
                "text.lines_encoding|1|utf16le",
                "UTF-16 text without a byte order mark is named as the search reads it");
+         elsif To_String (Item.Name) = "trailing-utf16le.txt" then
+            Found_Trailing_Le := True;
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|2|utf16le",
+               "a UTF-16 LE file ending in a line feed counts its lines by unit");
+         elsif To_String (Item.Name) = "trailing-utf16be.txt" then
+            Found_Trailing_Be := True;
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|2|utf16be",
+               "a UTF-16 BE file ending in a line feed counts its lines by unit");
          elsif To_String (Item.Name) = "notes.md" then
             Found_Markdown := True;
             Files_Suite.Support.Assert_Equal
@@ -162,4 +189,6 @@ separate (Files_Suite.Model)
       Assert (Found_Utf16_Le, "UTF-16 LE item was loaded");
       Assert (Found_Utf16_Be, "UTF-16 BE item was loaded");
       Assert (Found_Unmarked_Utf16, "unmarked UTF-16 item was loaded");
+      Assert (Found_Trailing_Le, "UTF-16 LE item with a trailing line feed was loaded");
+      Assert (Found_Trailing_Be, "UTF-16 BE item with a trailing line feed was loaded");
    end Test_Text_Encoding_Metadata;

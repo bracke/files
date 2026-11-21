@@ -18,6 +18,7 @@ separate (Files_Suite.Startup)
 
       --  LC_MESSAGES unset, as the precedence walk leaves it.
       Ada.Environment_Variables.Clear ("LC_MESSAGES");
+      Files.Localization.Reread_Locale_Environment;
       declare
          Fake_Home   : constant String := Join (Root, "locale-home");
          Config_Dir  : constant String := Join (Fake_Home, ".config");
@@ -34,6 +35,7 @@ separate (Files_Suite.Startup)
          Ada.Environment_Variables.Clear ("LC_NUMERIC");
          Ada.Environment_Variables.Set ("LANG", "C.UTF-8");
          Ada.Environment_Variables.Set ("HOME", Fake_Home);
+         Files.Localization.Reread_Locale_Environment;
          --  Only Linux reads KDE's formats (Hostkit.Host.Configured_Format_Locale);
          --  Windows and macOS keep them in the regional setting the host reports.
          if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Linux) then
@@ -49,6 +51,7 @@ separate (Files_Suite.Startup)
 
          Ada.Environment_Variables.Set
            ("HOME", Join (Root, "missing-locale-home"));
+         Files.Localization.Reread_Locale_Environment;
          declare
             Expected_Time : constant String :=
               Files.Localization.System_Time_Locale;
@@ -57,6 +60,7 @@ separate (Files_Suite.Startup)
             File : Ada.Streams.Stream_IO.File_Type;
          begin
             Ada.Environment_Variables.Set ("HOME", Fake_Home);
+            Files.Localization.Reread_Locale_Environment;
             Ada.Streams.Stream_IO.Create
               (File, Ada.Streams.Stream_IO.Out_File, Config_Path);
             Ada.Streams.Stream_IO.Set_Index

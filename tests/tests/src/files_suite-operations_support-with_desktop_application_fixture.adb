@@ -294,6 +294,7 @@ separate (Files_Suite.Operations_Support)
       Ada.Environment_Variables.Set
         ("XDG_CURRENT_DESKTOP", "FilesTest:GNOME:Escaped;Desktop");
       Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
+      Files.Localization.Reread_Locale_Environment;
 
       Check.all;
    end With_Desktop_Application_Fixture;

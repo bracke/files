@@ -7,6 +7,7 @@ with Ada.Text_IO;
 with Project_Tools.Files;
 
 with Files.Commands;
+with Files.Localization;
 with Files.Refresh_Jobs;
 
 package body Files_Suite.Support.Guards is
@@ -39,6 +40,8 @@ package body Files_Suite.Support.Guards is
          end;
       end loop;
       Guard.Count := 0;
+      --  A restored locale variable must be read again, not remembered.
+      Files.Localization.Reread_Locale_Environment;
    end Finalize;
 
    overriding procedure Finalize (Guard : in out Shortcut_Guard) is

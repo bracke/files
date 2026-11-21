@@ -192,6 +192,7 @@ package body Files_Suite.Rendering is
    procedure Test_Details_Description_Follows_Columns (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Image_High_Res (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Localized_Text_Follows_Locale_Change (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Row_Texts_Kept_Across_Pointer_Frames (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -403,6 +404,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Main_Text_Kept_Under_Stacked_Overlays'Access,
          "the file view's names stay in the frame under the palette opened over settings");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Row_Texts_Kept_Across_Pointer_Frames'Access,
+         "a pointer frame over the same snapshot build reads the Details rows' texts back");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Details_Description_Follows_Columns'Access,
          "a details row's accessibility description announces the shown columns in order and no hidden one");
@@ -879,6 +883,10 @@ package body Files_Suite.Rendering is
    is separate;
 
    procedure Test_Localized_Text_Follows_Locale_Change (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Row_Texts_Kept_Across_Pointer_Frames
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is separate;
 
    procedure Test_Quick_Look_Image_High_Res (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -15,11 +15,18 @@ package Files.Localization is
    function Normalize_Locale (Value : String) return String;
 
    --  Return the process locale inferred from the environment. The answer is
-   --  remembered until LC_ALL, LC_MESSAGES or LANG changes; with none of them
-   --  set, the host's native locale is therefore asked once, not per call.
+   --  worked out once and remembered until Reread_Locale_Environment: files
+   --  never changes its own locale variables, and the label of every frame
+   --  asks.
    --
    --  @return Normalized locale from LC_ALL, LC_MESSAGES, or LANG; en when none is usable.
    function System_Locale return String;
+
+   --  Forget the remembered System_Locale, System_Time_Locale and
+   --  System_Number_Locale, so the next call reads LC_ALL, LC_MESSAGES,
+   --  LC_TIME, LC_NUMERIC, LANG and the desktop's configuration under HOME
+   --  again. For a caller that changed them (a test).
+   procedure Reread_Locale_Environment;
 
    --  Whether the interface reads right to left: System_Locale is Arabic,
    --  Persian, Urdu, Hebrew, Yiddish or another locale I18N.Locales calls

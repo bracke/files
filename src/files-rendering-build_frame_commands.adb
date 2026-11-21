@@ -4,6 +4,8 @@ with Guikit.List_Panel;
 separate (Files.Rendering)
    function Build_Frame_Commands
      (Snapshot    : View_Snapshot;
+      Build       : Natural;
+      Row_Texts   : in out Row_Text_Cache;
       Width       : Natural;
       Height      : Natural;
       Line_Height : Positive;
@@ -614,6 +616,12 @@ separate (Files.Rendering)
          Has_Press := Pointer.Pressed;
       end Release_Pointer;
    begin
+      --  Rows formatted for another build say another minute, locale or
+      --  column set.
+      if Build = 0 or else Row_Texts.Build /= Build then
+         Row_Texts.Rows.Clear;
+         Row_Texts.Build := Build;
+      end if;
       Draw_Toolbar;
       Draw_Bottom_Bar;
 

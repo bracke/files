@@ -13,19 +13,13 @@ package body Files.Commands.Status is
 
    --  Return whether at least one selected item is a recognized archive.
    function Selection_Has_Archive (Model : Files.Model.Window_Model) return Boolean is
-      Found : Boolean := False;
-
-      --  Read in place: every snapshot asks, and copying a Select All in a
-      --  large folder for it cost more than the rest of the commands.
-      procedure Check (Item : Files.Items.Directory_Item) is
-      begin
-         if not Found then
-            Found := Files.File_Types.Is_Extractable_Archive (To_String (Item.Name));
-         end if;
-      end Check;
+      --  Read in place, and only up to the first archive: every snapshot
+      --  asks, and a Select All in a large folder made it the costliest of
+      --  the commands.
+      function Is_Archive (Item : Files.Items.Directory_Item) return Boolean is
+        (Files.File_Types.Is_Extractable_Archive (To_String (Item.Name)));
    begin
-      Files.Model.Selection.For_Each_Selected_Item (Model, Check'Access);
-      return Found;
+      return Files.Model.Selection.Any_Selected_Item (Model, Is_Archive'Access);
    end Selection_Has_Archive;
 
    --  Return whether the model currently shows the platform trash payload

@@ -384,6 +384,25 @@ package body Files.File_System is
 
    function Trash_Location_For_Environment return Trash_Location is separate;
 
+   --  The system drive's Recycle Bin folder once found (Trash_Files_Directory);
+   --  empty until then, as it is before anything was ever recycled there.
+   --  Protected: a listing on a background reader may ask too.
+   protected Primary_Recycle_Bin is
+      function Get return String;
+      procedure Set (Folder : String);
+   private
+      Value : Unbounded_String;
+   end Primary_Recycle_Bin;
+
+   protected body Primary_Recycle_Bin is
+      function Get return String is (To_String (Value));
+
+      procedure Set (Folder : String) is
+      begin
+         Value := To_Unbounded_String (Folder);
+      end Set;
+   end Primary_Recycle_Bin;
+
    function Trash_Base_Path return String is separate;
 
    function Trash_Files_Directory return String is separate;

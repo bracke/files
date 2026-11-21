@@ -36,13 +36,11 @@ package body Files.Localization is
    --  rest of this package's state the memos are main-thread only: a task
    --  must not call Text (see Files.Job_Scavenger).
    --
-   --  System_Locale, keyed on the raw locale variables it reads. Reading them
-   --  is cheap next to normalizing them (and, with none set, asking the host),
-   --  and a changed variable (a test switching LC_ALL) misses the memo.
+   --  System_Locale, worked out once: the process never changes its locale
+   --  variables, so reading three of them (and allocating each) on every
+   --  Text call was pure cost. Reread_Locale_Environment forgets it, for a
+   --  caller that does change them (a test switching LC_ALL).
    Locale_Memo_Valid       : Boolean := False;
-   Locale_Memo_LC_All      : Unbounded_String;
-   Locale_Memo_LC_Messages : Unbounded_String;
-   Locale_Memo_Lang        : Unbounded_String;
    Locale_Memo_Value       : Unbounded_String;
 
    --  Rendered text by effective locale and key. A render depends only on the
@@ -173,28 +171,12 @@ package body Files.Localization is
      (I18N.Locales.Is_Right_To_Left (System_Locale));
 
    function System_Locale return String is
-      LC_All      : constant String := Files.Environment.Value ("LC_ALL");
-      LC_Messages : constant String := Files.Environment.Value ("LC_MESSAGES");
-      Lang        : constant String := Files.Environment.Value ("LANG");
    begin
-      if Locale_Memo_Valid
-        and then Locale_Memo_LC_All = LC_All
-        and then Locale_Memo_LC_Messages = LC_Messages
-        and then Locale_Memo_Lang = Lang
-      then
-         return To_String (Locale_Memo_Value);
-      end if;
-
-      declare
-         Resolved : constant String := Resolve_System_Locale;
-      begin
-         Locale_Memo_LC_All := To_Unbounded_String (LC_All);
-         Locale_Memo_LC_Messages := To_Unbounded_String (LC_Messages);
-         Locale_Memo_Lang := To_Unbounded_String (Lang);
-         Locale_Memo_Value := To_Unbounded_String (Resolved);
+      if not Locale_Memo_Valid then
+         Locale_Memo_Value := To_Unbounded_String (Resolve_System_Locale);
          Locale_Memo_Valid := True;
-         return Resolved;
-      end;
+      end if;
+      return To_String (Locale_Memo_Value);
    end System_Locale;
 
    function Resolve_System_Locale return String is
@@ -216,19 +198,15 @@ package body Files.Localization is
       return "en";
    end Resolve_System_Locale;
 
-   --  The date or the number category's locale, worked out once for the
-   --  environment it was worked out from: it is asked per formatted date or
-   --  size, and where the variables do not decide it the desktop's
-   --  configuration files are read.
+   --  The date or the number category's locale, worked out once: it is
+   --  asked per formatted date or size, and where the variables do not decide
+   --  it the desktop's configuration files are read. Reread_Locale_Environment
+   --  forgets it.
    type Locale_Category is (Time_Category, Number_Category);
 
    type Category_Memo is record
-      Valid    : Boolean := False;
-      LC_All   : Unbounded_String;
-      Category : Unbounded_String;
-      Lang     : Unbounded_String;
-      Home     : Unbounded_String;
-      Value    : Unbounded_String;
+      Valid : Boolean := False;
+      Value : Unbounded_String;
    end record;
 
    Category_Memos : array (Locale_Category) of Category_Memo;
@@ -238,10 +216,6 @@ package body Files.Localization is
         (case Category is
             when Time_Category   => "LC_TIME",
             when Number_Category => "LC_NUMERIC");
-      Raw_LC_All   : constant String := Files.Environment.Value ("LC_ALL");
-      Raw_Category : constant String := Files.Environment.Value (Category_Key);
-      Raw_Lang     : constant String := Files.Environment.Value ("LANG");
-      Raw_Home     : constant String := Files.Environment.Value ("HOME");
       Memo         : Category_Memo renames Category_Memos (Category);
 
       --  The variables decide by the precedence messages follow too
@@ -279,22 +253,17 @@ package body Files.Localization is
          return "en";
       end Resolve;
    begin
-      if not Memo.Valid
-        or else Memo.LC_All /= Raw_LC_All
-        or else Memo.Category /= Raw_Category
-        or else Memo.Lang /= Raw_Lang
-        or else Memo.Home /= Raw_Home
-      then
-         Memo :=
-           (Valid    => True,
-            LC_All   => To_Unbounded_String (Raw_LC_All),
-            Category => To_Unbounded_String (Raw_Category),
-            Lang     => To_Unbounded_String (Raw_Lang),
-            Home     => To_Unbounded_String (Raw_Home),
-            Value    => To_Unbounded_String (Resolve));
+      if not Memo.Valid then
+         Memo := (Valid => True, Value => To_Unbounded_String (Resolve));
       end if;
       return To_String (Memo.Value);
    end System_Category_Locale;
+
+   procedure Reread_Locale_Environment is
+   begin
+      Locale_Memo_Valid := False;
+      Category_Memos := [others => (Valid => False, Value => Null_Unbounded_String)];
+   end Reread_Locale_Environment;
 
    function System_Time_Locale return String is (System_Category_Locale (Time_Category));
 

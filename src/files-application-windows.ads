@@ -362,6 +362,9 @@ private
       --  current (Files.Snapshot_Slots; Refresh_Snapshot refreshes them).
       View                 : Files.Snapshot_Slots.View_Slots;
       Cached_Frame         : Files.Rendering.Frame_Commands;
+      --  The Details rows' texts Cached_Frame was drawn with, kept for the
+      --  next frame drawn from the same snapshot build (a pointer move).
+      Row_Texts            : Files.Rendering.Row_Text_Cache;
       --  The pointer and size inputs Cached_Frame was built for. The time
       --  it shows is its snapshot's (View_Snapshot.Now).
       Cached_Inputs        : Frame_Inputs;

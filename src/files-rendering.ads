@@ -1,4 +1,6 @@
 with Ada.Calendar;
+with Ada.Containers;
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Vectors;
 
 with Files.Breadcrumbs;
@@ -524,6 +526,44 @@ package Files.Rendering is
       Pointer     : Pointer_State := No_Pointer)
       return Frame_Commands;
 
+   --  The Details rows' cell texts and accessibility descriptions a window
+   --  has formatted, kept across the frames drawn from one snapshot build: a
+   --  pointer move rebuilds the frame but not the snapshot, so the rows it
+   --  draws again need not be humanized and localized again. Only drawn rows
+   --  are formatted, and only once a build: the rows a snapshot keeps across
+   --  a new minute (relative times) or a column drag (descriptions) belong
+   --  to a new build, so they are never baked into the snapshot itself.
+   type Row_Text_Cache is private;
+
+   --  Build_Frame_Commands with the window's row texts: those formatted for
+   --  the same build are read back, the rest formatted and kept.
+   --
+   --  @param Snapshot View snapshot to render.
+   --  @param Build Which build Snapshot is (Files.Snapshot_Slots.Slot_Contents):
+   --    equal numbers mean equal contents but for the scroll offsets, which
+   --    the row texts do not depend on.
+   --  @param Row_Texts The window's cache; cleared when Build moves.
+   --  @param Width Window width in pixels.
+   --  @param Height Window height in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @param Pointer Where the pointer is and what it is doing.
+   --  @return Frame command list for a renderer backend.
+   function Build_Frame_Commands
+     (Snapshot    : View_Snapshot;
+      Build       : Natural;
+      Row_Texts   : in out Row_Text_Cache;
+      Width       : Natural;
+      Height      : Natural;
+      Line_Height : Positive;
+      Pointer     : Pointer_State := No_Pointer)
+      return Frame_Commands;
+
+   --  How many rows Row_Texts holds formatted (for tests).
+   --
+   --  @param Row_Texts A window's cache.
+   --  @return The number of rows formatted for its build.
+   function Formatted_Rows (Row_Texts : Row_Text_Cache) return Natural;
+
    --  The text line height for a font pixel size.
    --
    --  @param Size Font pixel size.
@@ -532,6 +572,36 @@ package Files.Rendering is
      (Positive'Max (1, Size * 5 / 4));
 
 private
+
+   --  One text per details column: the column names a row's accessibility
+   --  description repeats, or one row's cells.
+   type Detail_Column_Texts is array (Files.Types.Detail_Column) of UString;
+
+   --  One drawn row's texts.
+   type Row_Texts_Entry is record
+      Cells       : Detail_Column_Texts;
+      Description : UString;
+   end record;
+
+   function Hash_Row (Index : Positive) return Ada.Containers.Hash_Type is
+     (Ada.Containers.Hash_Type'Mod (Index));
+
+   --  By the row's index in the snapshot's items: a handful of drawn rows,
+   --  so clearing it when the build moves costs nothing in a large folder.
+   package Row_Text_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Positive,
+      Element_Type    => Row_Texts_Entry,
+      Hash            => Hash_Row,
+      Equivalent_Keys => "=");
+
+   type Row_Text_Cache is record
+      --  The build the rows were formatted for; 0 never matches a build.
+      Build : Natural := 0;
+      Rows  : Row_Text_Maps.Map;
+   end record;
+
+   function Formatted_Rows (Row_Texts : Row_Text_Cache) return Natural is
+     (Natural (Row_Texts.Rows.Length));
 
    --  The text cell width is the advance every layout measures labels with,
    --  taken from the same line height. Derived separately (Size * 3 / 4) it

@@ -29,6 +29,10 @@ private package Files.Rendering.Labels is
    Favorite_Star_Filled_Text : constant String :=
      [Character'Val (16#E2#), Character'Val (16#98#), Character'Val (16#85#)];
 
+   --  The same star as drawn over a favorite's icon, converted once rather
+   --  than once a row a frame.
+   Favorite_Star_Glyph : constant UString := To_Unbounded_String (Favorite_Star_Filled_Text);
+
    --  Folder-tree expander glyphs: a plus/minus affordance, not translatable text.
    Tree_Expander_Collapsed_Text : constant String := "+";
    Tree_Expander_Expanded_Text  : constant String := "-";
@@ -131,10 +135,6 @@ private package Files.Rendering.Labels is
    --  @return The details view's size cell: the size, or "" when unknown.
    function Detail_Size_Text (Item : Item_Snapshot) return UString is
      (if Item.Size_Available then To_Unbounded_String (Size_Text (Item.Size)) else Null_Unbounded_String);
-
-   --  One text per details column: the column names a row's accessibility
-   --  description repeats (Detail_Names), or one row's cells.
-   type Detail_Column_Texts is array (Files.Types.Detail_Column) of UString;
 
    --  The localized details column names, looked up once a frame, not once
    --  a row.

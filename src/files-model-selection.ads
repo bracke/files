@@ -272,6 +272,20 @@ package Files.Model.Selection is
      (Model : Window_Model;
       Visit : not null access procedure (Item : Files.Items.Directory_Item));
 
+   --  Whether some selected loaded item passes Test, asked of the selection
+   --  in the order it was made and no further than the first that does: no
+   --  flags over the whole folder, no copy. For a question of any item (is
+   --  one an archive?) that every snapshot asks.
+   --
+   --  @param Model Model to inspect.
+   --  @param Test Asked of selected loaded items, the model's own, until one
+   --    passes.
+   --  @return True when one passed.
+   function Any_Selected_Item
+     (Model : Window_Model;
+      Test  : not null access function (Item : Files.Items.Directory_Item) return Boolean)
+      return Boolean;
+
    --  The full paths of the selected items, in the order Selected_Items
    --  lists them: what Copy, Cut, Open With, Copy to... and a label act on.
    --

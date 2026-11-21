@@ -1,5 +1,4 @@
 with Files.File_System;
-with Ada.Containers;
 with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings;
@@ -98,12 +97,28 @@ package body Files.Rendering is
 
    function Build_Frame_Commands
      (Snapshot    : View_Snapshot;
+      Build       : Natural;
+      Row_Texts   : in out Row_Text_Cache;
       Width       : Natural;
       Height      : Natural;
       Line_Height : Positive;
       Pointer     : Pointer_State := No_Pointer)
       return Frame_Commands
    is separate;
+
+   function Build_Frame_Commands
+     (Snapshot    : View_Snapshot;
+      Width       : Natural;
+      Height      : Natural;
+      Line_Height : Positive;
+      Pointer     : Pointer_State := No_Pointer)
+      return Frame_Commands
+   is
+      --  A one-off frame: nothing formatted is kept.
+      Row_Texts : Row_Text_Cache;
+   begin
+      return Build_Frame_Commands (Snapshot, 0, Row_Texts, Width, Height, Line_Height, Pointer);
+   end Build_Frame_Commands;
 
    function Item_Now
      (Drawn : View_Snapshot;

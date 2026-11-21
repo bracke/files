@@ -15,10 +15,13 @@ separate (Files_Suite.Rendering)
       Files_Suite.Support.Guards.Save (Environment, "LANG");
 
       Ada.Environment_Variables.Set ("LC_ALL", "en_US.UTF-8");
+      Files.Localization.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal (Files.Display_Text.Grouped_Integer_Text (1_234_567), "1,234,567", "English");
       Ada.Environment_Variables.Set ("LC_ALL", "de_DE.UTF-8");
+      Files.Localization.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal (Files.Display_Text.Grouped_Integer_Text (1_234_567), "1.234.567", "German");
       Ada.Environment_Variables.Set ("LC_ALL", "ar_EG.UTF-8");
+      Files.Localization.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal
         (Files.Display_Text.Grouped_Integer_Text (14),
          Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("١٤"),
