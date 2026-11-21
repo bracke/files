@@ -634,7 +634,7 @@ package body Files.Interaction is
 
    procedure End_Column_Resize
      (Model         : in out Files.Model.Window_Model;
-      Settings      : Files.Settings.Settings_Model;
+      Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
       Changed       : Boolean) is
    begin

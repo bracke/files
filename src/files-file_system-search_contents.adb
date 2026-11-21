@@ -27,18 +27,17 @@ is
       declare
          Read_Ok : Boolean;
          Bytes   : constant String := Read_Preview_Text (To_String (Item.Full_Path), Max_Bytes + 1, Read_Ok);
-         --  What is searched ends on a whole character: a cut one would
-         --  leave text that is not UTF-8, and lose its folding.
+         --  What is searched: the first Max_Bytes as text (Content_Matches
+         --  decodes them, dropping a character the cut split).
          Searched : constant String :=
-           (if Bytes'Length > Max_Bytes
-            then Files.Types.Trim_To_Character (Bytes (Bytes'First .. Bytes'First - 1 + Max_Bytes))
-            else Bytes);
+           (if Bytes'Length > Max_Bytes then Bytes (Bytes'First .. Bytes'First - 1 + Max_Bytes) else Bytes);
       begin
          if not Read_Ok then
             return Undecided;
          elsif Content_Matches (Searched, Query) then
             return Found;
-         elsif Bytes'Length > Max_Bytes and then not Files.Types.Looks_Binary (Bytes) then
+         elsif Bytes'Length > Max_Bytes and then not Files.Types.Looks_Binary (Files.Types.Searchable_Text (Searched))
+         then
             --  A text file longer than is read and no match in what was:
             --  its match could lie past it.
             return Undecided;

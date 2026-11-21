@@ -191,7 +191,7 @@ package Files.Interaction is
    --  @param Changed Whether any step of the drag reported Settings_Changed.
    procedure End_Column_Resize
      (Model         : in out Files.Model.Window_Model;
-      Settings      : Files.Settings.Settings_Model;
+      Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
       Changed       : Boolean);
 

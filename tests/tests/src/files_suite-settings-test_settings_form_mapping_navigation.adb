@@ -64,7 +64,8 @@ separate (Files_Suite.Settings)
       Files.Commands.Reset_Shortcut_Overrides;
       Files.Settings.Normalize_Draft (Draft);
       Live := Files.Settings.Apply_Draft (Base, Draft).Settings;
-      Files.Settings_Form.Begin_Edit (Model, Draft, Live);
+      Files.Settings_Form.Begin_Edit (Model, Live);
+      Files.Settings_Form.Set_Draft (Model, Draft);
 
       Files_Suite.Support.Assert_Equal
 
@@ -178,19 +179,30 @@ separate (Files_Suite.Settings)
       Files.Commands.Reset_Shortcut_Overrides;
 
       --  Reset with nothing to reset does not save, however the pane was left
-      --  (an entry paged to, an error shown); with shortcut overrides it does.
+      --  (an entry paged to, an error shown); with a saved shortcut override
+      --  it does, to drop it.
       declare
          Defaults : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Files.Settings.Default_Settings);
-         Had_Overrides : constant Boolean := Files.Commands.Has_Shortcut_Overrides;
+         With_Override : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Reset_Button  : constant SP.Change :=
+           (Kind  => SP.Button_Pressed,
+            Key   => To_Unbounded_String ("form.actions"),
+            Value => To_Unbounded_String ("reset"));
       begin
          Defaults.Valid := False;
          Defaults.Error_Key := To_Unbounded_String ("settings.invalid");
-         Files.Settings_Form.Begin_Edit (Model, Defaults, Files.Settings.Default_Settings);
-         Saved := Files.Settings_Form.Apply_Change
-           (Model,
-            (Kind  => SP.Button_Pressed,
-             Key   => To_Unbounded_String ("form.actions"),
-             Value => To_Unbounded_String ("reset")));
-         Assert (Saved = Had_Overrides, "a reset that changes nothing saves only to drop shortcut overrides");
+         Files.Settings_Form.Begin_Edit (Model, Files.Settings.Default_Settings);
+         Files.Settings_Form.Set_Draft (Model, Defaults);
+         Saved := Files.Settings_Form.Apply_Change (Model, Reset_Button);
+         Assert (not Saved, "a reset that changes nothing does not save");
+
+         Files.Commands.Set_Shortcut_Override
+           (Files.Commands.Select_Small_Icons_Command, Files.Commands.Parse_Shortcut ("control+shift+5"));
+         Files.Settings_Form.Store_Shortcut_Overrides (With_Override);
+         Files.Settings_Form.Begin_Edit (Model, With_Override);
+         Files.Settings_Form.Set_Draft (Model, Defaults);
+         Saved := Files.Settings_Form.Apply_Change (Model, Reset_Button);
+         Assert (Saved, "a reset saves to drop a saved shortcut override");
+         Files.Commands.Reset_Shortcut_Overrides;
       end;
    end Test_Settings_Form_Mapping_Navigation;

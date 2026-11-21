@@ -25,6 +25,53 @@ separate (Files_Suite.Search)
         (not Files.Operations.Testing.Content_Matches ("nee" & Character'Val (0) & "dle needle", "needle"),
          "binary bytes (NUL) are skipped even when the query text is present");
 
+      --  Text that is not UTF-8 is searched as what it says.
+      declare
+         Nul : constant Character := Character'Val (0);
+         --  Text (ASCII) as UTF-16, low byte first when Little.
+         function Utf16 (Text : String; Little : Boolean) return String is
+            Result : String (1 .. 2 * Text'Length);
+         begin
+            for I in Text'Range loop
+               Result (2 * (I - Text'First) + 1 .. 2 * (I - Text'First) + 2) :=
+                 (if Little then Text (I) & Nul else Nul & Text (I));
+            end loop;
+            return Result;
+         end Utf16;
+         Le_Bom : constant String := Character'Val (16#FF#) & Character'Val (16#FE#);
+         Be_Bom : constant String := Character'Val (16#FE#) & Character'Val (16#FF#);
+         --  U+1F600 as a UTF-16LE surrogate pair.
+         function U8 (Text : Wide_Wide_String) return String is
+           (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode (Text));
+         Pair   : constant String :=
+           Character'Val (16#3D#) & Character'Val (16#D8#) & Character'Val (16#00#) & Character'Val (16#DE#);
+      begin
+         Assert (Files.Operations.Testing.Content_Matches (Le_Bom & Utf16 ("a Needle here", True), "needle"),
+                 "UTF-16LE text with its byte order mark is searched");
+         Assert (Files.Operations.Testing.Content_Matches (Be_Bom & Utf16 ("a Needle here", False), "needle"),
+                 "UTF-16BE text with its byte order mark is searched");
+         Assert (Files.Operations.Testing.Content_Matches (Utf16 ("log line: needle", True), "NEEDLE"),
+                 "UTF-16LE text without a byte order mark is searched");
+         Assert (not Files.Operations.Testing.Content_Matches (Le_Bom & Utf16 ("nothing", True), "needle"),
+                 "UTF-16 text without the query does not match");
+         Files_Suite.Support.Assert_Equal
+           (Files.Types.Searchable_Text (Le_Bom & Utf16 ("x", True) & Pair),
+            "x" & Character'Val (16#F0#) & Character'Val (16#9F#) & Character'Val (16#98#) & Character'Val (16#80#),
+            "a UTF-16 surrogate pair decodes to its character");
+         Files_Suite.Support.Assert_Equal
+           (Files.Types.Searchable_Text (Le_Bom & Utf16 ("x", True) & Pair (1 .. 3)), "x",
+            "a surrogate pair a read cut short is dropped");
+         Assert (Files.Operations.Testing.Content_Matches ("caf" & Character'Val (16#E9#) & " au lait", U8 ("CAFÉ")),
+                 "Latin-1 text is searched as the characters it says");
+         Assert
+           (Files.Operations.Testing.Content_Matches
+              ("say " & Character'Val (16#93#) & "hi" & Character'Val (16#94#), U8 ("“hi”")),
+            "Windows-1252 quotation marks are read as such");
+         Files_Suite.Support.Assert_Equal
+           (Files.Types.Searchable_Text ("caf" & Character'Val (16#C3#) & Character'Val (16#A9#)), U8 ("café"),
+            "UTF-8 text is searched as it is");
+      end;
+
       Reset_Root;
       Ada.Directories.Create_Path (Search_Root);
       Ada.Directories.Create_Path (Nested);

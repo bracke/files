@@ -352,4 +352,29 @@ separate (Files_Suite.Archives)
         (Routed.Operation.Status, Files.Operation_Results.Operation_Failed, "an extraction it cannot flush fails");
       Assert (not Ada.Directories.Exists (Join (Dir, "bundle (1)")), "and publishes no folder");
       Assert (No_Stage_Left, "and leaves no staging folder behind");
+
+      --  A member whose data is damaged says so, rather than only that the
+      --  archive failed: the first member's first data byte is flipped.
+      declare
+         Bytes     : String := Project_Tools.Files.Read_Raw_File (Archive_Path);
+         --  The local header's name and extra lengths (offsets 26 and 28),
+         --  then the data after the 30-byte header.
+         function U16 (At_Offset : Natural) return Natural is
+           (Character'Pos (Bytes (Bytes'First + At_Offset))
+            + 256 * Character'Pos (Bytes (Bytes'First + At_Offset + 1)));
+         Data_At   : constant Positive := Bytes'First + 30 + U16 (26) + U16 (28);
+      begin
+         Bytes (Data_At) := Character'Val (255 - Character'Pos (Bytes (Data_At)));
+         Write_Binary_File (Join (Dir, "damaged.zip"), Bytes);
+      end;
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Files.Model.Initialize (Model, Dir, Load.Items, Root);
+      Select_Name (Model, "damaged.zip");
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status, Files.Operation_Results.Operation_Failed, "a damaged archive is not extracted");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model), "error.extract.damaged", "with the message that says it is damaged");
+      Assert (not Ada.Directories.Exists (Join (Dir, "damaged")), "and publishes no folder");
+      Assert (No_Stage_Left, "and leaves no staging folder behind");
    end Test_Extract_Selected_Operation;

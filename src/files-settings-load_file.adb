@@ -44,6 +44,7 @@ separate (Files.Settings)
                Error_Key => To_Unbounded_String ("error.settings.load"));
          end if;
 
+         Note_Seen (Path, Text);
          return Parse (Text);
       end;
    exception

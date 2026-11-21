@@ -27,9 +27,11 @@ separate (Files.Controller)
             return Activate_Palette_Command (Model, Settings, Modifiers);
          when Files.UI_Types.Focus_Settings_Input =>
             declare
-               Parsed : constant Files.Settings.Settings_Parse_Result :=
-                 Files.Settings.Validate_Draft (Files.Model.Settings_Pane.Draft_Of (Model));
+               Saved  : constant Files.Settings.Settings_Model := Files.Model.Settings_Pane.Saved_Of (Model);
                Draft  : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
+               --  Checked and applied in one: the verdict and what a save
+               --  would write.
+               Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Apply_Draft (Saved, Draft);
             begin
                if Parsed.Success then
                   Draft.Valid := True;
@@ -39,9 +41,7 @@ separate (Files.Controller)
                   --  A committed edit is saved, as every other control's
                   --  change is, when the file would hold something new;
                   --  Save_Settings reports how that went.
-                  if Files.Settings_Form.Needs_Save
-                    (Files.Model.Settings_Pane.Saved_Of (Model), Draft)
-                  then
+                  if Files.Settings_Form.Needs_Save (Saved, Parsed.Settings) then
                      Files.Settings_Form.Set_Draft (Model, Draft);
                      return Make_Result (Controller_Needs_Settings_Path, Files.Commands.Save_Settings_Command);
                   end if;

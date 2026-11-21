@@ -617,6 +617,9 @@ package body Files.Model.Support is
       end if;
       Touch (Model);
       Model.Settings_Pane_Open := False;
+      --  What was saved is weighed only while the pane is open; do not keep
+      --  a copy of every label, favorite and recent item past it.
+      Model.Settings_Saved_Value := (others => <>);
       if Model.Focus_Value = Files.UI_Types.Focus_Settings_Input then
          Model.Focus_Value := Files.UI_Types.Focus_None;
       end if;

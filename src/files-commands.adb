@@ -274,9 +274,6 @@ package body Files.Commands is
       Override_Set := [others => False];
    end Reset_Shortcut_Overrides;
 
-   function Has_Shortcut_Overrides return Boolean is
-     (for some Is_Set of Override_Set => Is_Set);
-
    function Shortcut_Override (Id : Command_Id; Is_Set : out Boolean) return Shortcut is
    begin
       Is_Set := Override_Set (Id);

@@ -17,10 +17,12 @@ package body Files.Model.Settings_Pane is
    procedure Begin_Edit
      (Model  : in out Window_Model;
       Draft  : Files.Settings.Settings_Draft;
-      Fields : Guikit.Settings_Panel.Field_Vectors.Vector) is
+      Fields : Guikit.Settings_Panel.Field_Vectors.Vector;
+      Saved  : Files.Settings.Settings_Model) is
    begin
       Touch (Model);
       Model.Settings_Draft_Value := Draft;
+      Model.Settings_Saved_Value := Saved;
       Model.Settings_Pane_Open := True;
       Claim_Overlay_Input (Model);
       Clear_Edit_State (Model);

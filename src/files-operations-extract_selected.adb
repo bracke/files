@@ -21,11 +21,28 @@ is
    --  An entry it cannot extract, named in the message.
    Refused_Key : constant String := "error.extract.entry_refused";
 
-   function Failed return Operation_Result is
+   function Failed (Key : String := "error.extract.failed") return Operation_Result is
    begin
       Finish_Failed_Undo (Model, Progress);
-      return Batch_Failed
-        (Model, Settings, "error.extract.failed", Directory, Wrote_Some => not Progress.Items.Is_Empty);
+      return Batch_Failed (Model, Settings, Key, Directory, Wrote_Some => not Progress.Items.Is_Empty);
+   end Failed;
+
+   --  The message for an archive zlib would not read or extract: what the
+   --  user can act on (a password, a damaged or unsupported archive), else
+   --  the general one. The status itself is traced with the archive.
+   function Failed (Archive : String; Status : Zlib.Status_Code) return Operation_Result is
+   begin
+      Files.Diagnostics.Trace ("Files.Operations", "extract_status=" & Status'Image & ",archive=" & Archive);
+      return Failed
+        (case Status is
+            when Zlib.Password_Required | Zlib.Invalid_Password => "error.extract.encrypted",
+            when Zlib.Unsupported_Method | Zlib.Unsupported_Preset_Dictionary => "error.extract.unsupported",
+            when Zlib.Invalid_Header | Zlib.Invalid_Checksum | Zlib.Invalid_Block_Type | Zlib.Invalid_Stored_Block
+               | Zlib.Invalid_Huffman_Code | Zlib.Invalid_Distance | Zlib.Unexpected_End_Of_Input =>
+               "error.extract.damaged",
+            when Zlib.Ok | Zlib.Input_File_Error | Zlib.Output_File_Error | Zlib.Insufficient_Memory
+               | Zlib.Cancelled =>
+               "error.extract.failed");
    end Failed;
 
    --  Extract one selected item beside it, if it is an archive: into a stage
@@ -109,8 +126,12 @@ is
                   end if;
                end;
             end if;
-            if Catalog_Status /= Zlib.Ok
-              or else not Files.Archive_Writing.Extraction_Is_Within_Limits
+            if Catalog_Status /= Zlib.Ok then
+               Discard_Stage;
+               Stop := True;
+               Result := Failed (Full_Path, Catalog_Status);
+               return;
+            elsif not Files.Archive_Writing.Extraction_Is_Within_Limits
                 (Entries,
                  Free_Bytes        => Capacity.Free_Bytes,
                  Free_Bytes_Known  => Capacity.Available,
@@ -131,7 +152,12 @@ is
          Zlib.Extract_Archive_File_To_Directory
            (Full_Path, Payload, "", Cancel => Files.Job_Context.Cancelled'Access, Status => Status);
 
-         if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
+         if Status /= Zlib.Ok then
+            Discard_Stage;
+            Stop := True;
+            Result := Failed (Full_Path, Status);
+            return;
+         elsif Files.Job_Context.Cancelled
            or else not Publish_Staged (Payload, Dest_Dir, Made_Identity, Made_Revision)
          then
             Discard_Stage;

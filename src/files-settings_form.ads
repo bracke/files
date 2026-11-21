@@ -31,6 +31,16 @@ package Files.Settings_Form is
    --  @param Settings Settings to update in place.
    procedure Store_Shortcut_Overrides (Settings : in out Files.Settings.Settings_Model);
 
+   --  Make Settings' shortcut overrides the live keymap's (Files.Commands),
+   --  then hold them as a save writes them (Store_Shortcut_Overrides). An
+   --  override for a command this build does not know, or with a combo it
+   --  cannot read (a typo), is dropped: the command keeps its default
+   --  binding rather than losing it or taking whatever the rest names. An
+   --  empty combo is an explicit unbind.
+   --
+   --  @param Settings Settings whose overrides take effect, updated in place.
+   procedure Apply_Shortcut_Overrides (Settings : in out Files.Settings.Settings_Model);
+
    --  Whether saving Draft would change the settings as saved (Saved):
    --  Draft applied over Saved, with the live shortcut overrides, says
    --  something else (Files.Settings.Same_Content). False for a draft that
@@ -42,6 +52,18 @@ package Files.Settings_Form is
    function Needs_Save
      (Saved : Files.Settings.Settings_Model;
       Draft : Files.Settings.Settings_Draft)
+      return Boolean;
+
+   --  Needs_Save for a draft already applied over Saved
+   --  (Files.Settings.Apply_Draft, which also checks it): for a caller that
+   --  needs the check's verdict too, so the draft is parsed once.
+   --
+   --  @param Saved The settings as saved.
+   --  @param Applied The draft applied over Saved.
+   --  @return True when a save would write something new.
+   function Needs_Save
+     (Saved   : Files.Settings.Settings_Model;
+      Applied : Files.Settings.Settings_Model)
       return Boolean;
 
    --  Apply a change emitted by the panel to a draft. Reset (to the
@@ -72,17 +94,6 @@ package Files.Settings_Form is
    procedure Begin_Edit
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model);
-
-   --  Open the settings pane on Draft, with Saved as what is saved: for a
-   --  draft that is not simply the saved settings' own.
-   --
-   --  @param Model Model whose settings pane opens.
-   --  @param Draft The draft to edit.
-   --  @param Saved The settings as saved.
-   procedure Begin_Edit
-     (Model : in out Files.Model.Window_Model;
-      Draft : Files.Settings.Settings_Draft;
-      Saved : Files.Settings.Settings_Model);
 
    --  Replace the open pane's draft: normalized here, the one place a draft
    --  is, and handed to the model with the panel's fields for it.

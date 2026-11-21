@@ -1,11 +1,14 @@
 with Files_Suite.Support.Guards;
 with Guikit.Input;
+with Files.Settings_Form;
 separate (Files_Suite.Startup)
    --  Hand-edited settings: a misspelt shortcut combo is skipped, so the
    --  command keeps its default binding (secondary included) instead of
    --  being unbound or taking whatever the rest of the combo names; a valid
    --  override next to it still applies. Upper-case booleans load for every
    --  flag, so "info_pane_open = TRUE" no longer rejects the whole file.
+   --  The settings hold the overrides as a save would write them, so the
+   --  settings pane does not take the hand-written lines for a change.
    procedure Test_Settings_File_Typos_Keep_Defaults (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Shortcuts     : Files_Suite.Support.Guards.Shortcut_Guard;
@@ -52,4 +55,15 @@ separate (Files_Suite.Startup)
       Assert
         (Files.Commands.Shortcut_For (Files.Commands.Select_Small_Icons_Command).Key = Guikit.Input.Key_7,
          "a valid override beside the typos still applies");
+
+      Files_Suite.Support.Assert_Equal
+        (Natural (Startup.Settings.Shortcut_Overrides.Length), 1,
+         "only the override that applies is held, as a save writes it");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Settings.Shortcut_Overrides.First_Element.Command), "view.small",
+         "the held override names its command");
+      Assert
+        (not Files.Settings_Form.Needs_Save
+           (Startup.Settings, Files.Settings.Make_Draft (Startup.Settings)),
+         "an unchanged draft of hand-edited settings needs no save");
    end Test_Settings_File_Typos_Keep_Defaults;

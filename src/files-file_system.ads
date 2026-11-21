@@ -367,6 +367,8 @@ package Files.File_System is
       return Recursive_Search_Result;
 
    --  Whether Bytes, text and not binary, contain Query, ignoring case.
+   --  UTF-16 and Windows-1252 text is searched as what it says
+   --  (Files.Types.Searchable_Text).
    --
    --  @param Bytes A file's first bytes.
    --  @param Query Text to look for; "" matches nothing.

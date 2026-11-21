@@ -461,6 +461,27 @@ package Files.Settings is
      (Path : String)
       return Settings_Write_Result;
 
+   --  Take into Settings what another process (another files, an editor)
+   --  wrote to the settings file at Path since this one last read or wrote
+   --  it (Load_File, Save_Text), so a save does not throw that away. Each
+   --  setting -- each scalar, each mapping, the favorites, the recent items,
+   --  the labels, the shortcut overrides -- keeps Settings' value where this
+   --  process changed it since and takes the file's otherwise. Nothing is
+   --  taken when the file is as it was seen, cannot be read, or was never
+   --  seen at Path.
+   --
+   --  @param Path Settings file path about to be written.
+   --  @param Settings This process's settings, merged in place.
+   --  @param Merged Set when Settings took something from the file.
+   --  @param Refused Set when the file was changed into something this
+   --    build cannot load: writing over it would lose that change, so the
+   --    caller does not write.
+   procedure Merge_From_File
+     (Path     : String;
+      Settings : in out Settings_Model;
+      Merged   : out Boolean;
+      Refused  : out Boolean);
+
    --  Write settings text to Path, creating parent directories as needed.
    --
    --  @param Path Settings file path.

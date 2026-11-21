@@ -82,7 +82,7 @@ separate (Files_Suite.History)
                      Assert
                        (Found
                         and then Files.Model.Last_Error_Key (Model) =
-                          (if Extracting then "error.extract.failed" else "error.duplicate.failed"),
+                          (if Extracting then "error.extract.damaged" else "error.duplicate.failed"),
                         "partial batches refresh committed outputs and retain their diagnostic");
                   end;
                end if;

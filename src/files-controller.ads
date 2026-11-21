@@ -108,11 +108,12 @@ package Files.Controller is
    --  the window's error line while the change stays applied for the session.
    --
    --  @param Model Window whose error line reports a failed write.
-   --  @param Settings Settings model to serialize.
+   --  @param Settings Settings model to serialize; takes what another
+   --    process wrote to the file since (Files.Settings.Merge_From_File).
    --  @param Settings_Path Central settings file path (empty disables persistence).
    procedure Persist_Settings
      (Model         : in out Files.Model.Window_Model;
-      Settings      : Files.Settings.Settings_Model;
+      Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String);
 
    --  The one policy for a settings change, wherever it comes from: Updated

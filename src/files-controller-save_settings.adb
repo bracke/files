@@ -9,6 +9,9 @@ separate (Files.Controller)
       Applied : constant Files.Settings.Settings_Parse_Result :=
         Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Pane.Draft_Of (Model));
       Final     : Files.Settings.Settings_Model;
+      --  Whether Final is now the live settings (with what another process
+      --  wrote to the file taken in, they need not equal it).
+      Accepted  : Boolean := True;
       Saved     : Files.Settings.Settings_Write_Result;
       Operation : Files.Operation_Results.Operation_Result := Empty_Operation;
    begin
@@ -36,11 +39,17 @@ separate (Files.Controller)
       Files.Settings_Form.Store_Shortcut_Overrides (Final);
       --  Save writes even an unchanged draft: it is how a save that failed
       --  earlier is tried again.
-      Saved :=
-        (if Files.Settings.Same_Content (Settings, Final)
-         then Persisted (Model, Settings, Settings_Path)
-         else Commit_Settings (Model, Settings, Final, Settings_Path));
-      if not Files.Settings.Same_Content (Settings, Final) then
+      if Files.Settings.Same_Content (Settings, Final) then
+         Saved := Persisted (Model, Settings, Settings_Path);
+      else
+         declare
+            Outcome : constant Commit_Outcome := Commit (Model, Settings, Final, Settings_Path);
+         begin
+            Saved := Outcome.Saved;
+            Accepted := Outcome.Accepted;
+         end;
+      end if;
+      if not Accepted then
          Operation.Status := Files.Operation_Results.Operation_Failed;
          Operation.Error_Key := Saved.Error_Key;
          Operation.Path := To_Unbounded_String (Settings_Path);
@@ -50,7 +59,7 @@ separate (Files.Controller)
       --  Apply the saved view mode and sort to the live model so a change made in
       --  the settings pane takes effect now, not only on the next launch. Do this
       --  before the refresh so the reload lists items in the new order.
-      Files.Operations.Apply_Ui_State (Model, Final);
+      Files.Operations.Apply_Ui_State (Model, Settings);
 
       Operation := Files.Operations.Refresh (Model, Settings);
       --  The pane shows what was saved -- every mapping row as the file

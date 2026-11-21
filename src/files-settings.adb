@@ -19,6 +19,19 @@ package body Files.Settings is
    Max_Settings_Entries         : constant Natural := 4_096;
    Max_Parsed_Action_Arguments  : constant Natural := 256;
 
+   --  The settings file as this process last read or wrote it (Load_File,
+   --  Save_Text): what Merge_From_File tells another process's change by.
+   Seen_Path  : Unbounded_String;
+   Seen_Text  : Unbounded_String;
+   Seen_Known : Boolean := False;
+
+   procedure Note_Seen (Path, Text : String) is
+   begin
+      Seen_Path := To_Unbounded_String (Path);
+      Seen_Text := To_Unbounded_String (Text);
+      Seen_Known := True;
+   end Note_Seen;
+
    function Contains_Nul (Text : String) return Boolean is
    begin
       for Value of Text loop
@@ -917,6 +930,13 @@ package body Files.Settings is
      (Path : String;
       Text : String)
       return Settings_Write_Result
+ is separate;
+
+   procedure Merge_From_File
+     (Path     : String;
+      Settings : in out Settings_Model;
+      Merged   : out Boolean;
+      Refused  : out Boolean)
  is separate;
 
    function Ensure_Default_File

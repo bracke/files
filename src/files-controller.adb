@@ -66,10 +66,15 @@ package body Files.Controller is
    --  off (smoke runs, tests): the settings apply in memory and count as saved.
    --  A session whose settings file could not be loaded refuses to write it:
    --  the change applies in memory and the result says it was not saved.
+   --  What another process wrote to the file since this one saw it is taken
+   --  into Settings first (Files.Settings.Merge_From_File); a file changed
+   --  into something this build cannot load is not written over.
    function Write_Settings
      (Settings_Path : String;
-      Settings      : Files.Settings.Settings_Model)
-      return Files.Settings.Settings_Write_Result is
+      Settings      : in out Files.Settings.Settings_Model)
+      return Files.Settings.Settings_Write_Result
+   is
+      Merged, Refused : Boolean;
    begin
       if Settings.Persistence_Refused then
          return
@@ -79,6 +84,14 @@ package body Files.Controller is
             Error_Key => To_Unbounded_String ("error.settings.not_persisted"));
       elsif Settings_Path = "" then
          return (Success => True, Durable => True, Path => Null_Unbounded_String, Error_Key => Null_Unbounded_String);
+      end if;
+      Files.Settings.Merge_From_File (Settings_Path, Settings, Merged, Refused);
+      if Refused then
+         return
+           (Success   => True,
+            Durable   => False,
+            Path      => To_Unbounded_String (Settings_Path),
+            Error_Key => To_Unbounded_String ("error.settings.changed_elsewhere"));
       end if;
       return Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Settings));
    end Write_Settings;
@@ -91,10 +104,12 @@ package body Files.Controller is
    --  leaves that operation's message.)
    function Persisted
      (Model         : in out Files.Model.Window_Model;
-      Settings      : Files.Settings.Settings_Model;
+      Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String)
       return Files.Settings.Settings_Write_Result
    is
+      use type Files.Settings.Shortcut_Override_Vectors.Vector;
+      Before : constant Files.Settings.Settings_Model := Settings;
    begin
       if not Files.Settings.Loadable (Settings) then
          Files.Model.Set_Error (Model, "error.settings.full");
@@ -107,6 +122,18 @@ package body Files.Controller is
       declare
          Saved : constant Files.Settings.Settings_Write_Result := Write_Settings (Settings_Path, Settings);
       begin
+         if not Files.Settings.Same_Content (Settings, Before) then
+            --  Another process's change, taken in: in force here too, and
+            --  shared with this process's other windows.
+            if Settings.Shortcut_Overrides /= Before.Shortcut_Overrides then
+               Files.Settings_Form.Apply_Shortcut_Overrides (Settings);
+            end if;
+            Files.Model.Note_Settings_Changed (Model);
+            Follow_Favorites (Model, Before, Settings);
+            if Files.Model.Settings_Pane.Is_Open (Model) then
+               Files.Settings_Form.Mark_Saved (Model, Settings);
+            end if;
+         end if;
          if not Saved.Success or else not Saved.Durable then
             --  Applied, but not saved (or not safely): say so.
             Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
@@ -184,7 +211,7 @@ package body Files.Controller is
 
    procedure Persist_Settings
      (Model         : in out Files.Model.Window_Model;
-      Settings      : Files.Settings.Settings_Model;
+      Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String)
    is
       Saved : constant Files.Settings.Settings_Write_Result := Persisted (Model, Settings, Settings_Path);

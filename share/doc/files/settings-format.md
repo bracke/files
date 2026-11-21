@@ -6,6 +6,18 @@ entries. Missing settings use built-in defaults. A value may be quoted
 in a blank intact. Sections are written in the order below; the last four are
 written only when they hold something.
 
+## Edits from elsewhere
+
+The file may change while files runs: another files process saves it, or
+you edit it by hand. Before each save, files reads the file again; when it
+changed since files last read or wrote it, every setting files changed in
+the meantime keeps files' value and every other one takes the file's (each
+scalar, each mapping section, the favorites, the recent items, the labels
+and the shortcuts count as one setting each). A file changed into one that
+is rejected (below) is not saved over: files says so and keeps its changes
+for the session. The same applies at startup to a settings file that cannot
+be looked at: files runs on defaults and saves nothing.
+
 ## What rejects the file
 
 The file loads whole or not at all. When it is rejected, files reports why at
@@ -137,4 +149,5 @@ identifiers are ignored, so a stale file never blocks startup. A combo with a
 token files does not know -- a misspelt modifier or key (`control+bogus`,
 `control+shfit+1`), an empty token, or more than one key -- is skipped as
 well: the command keeps its default binding instead of losing it or taking
-whatever the rest of the combo names.
+whatever the rest of the combo names. Such ignored lines are not kept: the
+next save writes the shortcuts as they are in force.

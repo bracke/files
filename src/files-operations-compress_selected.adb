@@ -212,6 +212,10 @@ is
       --  What identifies the published archive, for its Undo.
       Identity, Tree_Revision : Unbounded_String;
    begin
+      if Status /= Zlib.Ok then
+         --  Why zlib refused, for a report: the message stays general.
+         Files.Diagnostics.Trace ("Files.Operations", "compress_status=" & Status'Image & ",archive=" & Output_Path);
+      end if;
       if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
         or else not Publish_Staged (Staged, Output_Path, Identity, Tree_Revision)
       then

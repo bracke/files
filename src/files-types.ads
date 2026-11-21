@@ -368,6 +368,17 @@ package Files.Types is
    --  @return Raw without a trailing incomplete character.
    function Trim_To_Character (Raw : String) return String;
 
+   --  A file's first bytes as UTF-8 text to search: UTF-16 (with a byte
+   --  order mark, or without one when every other byte is NUL, as ASCII
+   --  text in UTF-16 is) transcoded; UTF-8 cut back to its last whole
+   --  character; text that is not UTF-8 read as Windows-1252 (Latin-1 with
+   --  the printable 0x80 .. 0x9F). Bytes that look binary are returned as
+   --  they are. A unit or character a bounded read cut short is dropped.
+   --
+   --  @param Raw Bytes read from the start of a file, possibly cut short.
+   --  @return The text, UTF-8 encoded.
+   function Searchable_Text (Raw : String) return String;
+
    --  Return a case-insensitive, accent-folded sort key for Text, the one key
    --  every name list sorts by (listings, the application picker). Every
    --  script's letters fold to lower case (Ada's own Unicode tables), and an

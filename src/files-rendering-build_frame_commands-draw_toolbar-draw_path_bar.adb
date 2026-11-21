@@ -65,7 +65,10 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
             Text_Region.Width,
             Toolbar_Input_Text_H,
             To_Unbounded_String (Path_Raw (Path_Raw'First + View.Skip_Bytes .. Path_Raw'Last)),
-            Fit         => True,
+            --  A cut counts columns of the whole laid-out text: shortening
+            --  it first would cut the wrong cells (and Cursor_At maps clicks
+            --  against the whole text), so bidi text is drawn unfitted.
+            Fit         => View.Cut_Columns = Guikit.Draw.Auto_Cut,
             Cut_Columns => View.Cut_Columns);
       end Draw_Edit_Text;
 

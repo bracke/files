@@ -42,7 +42,8 @@ separate (Files_Suite.Settings)
          Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
          Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
          Repair_Draft.Filetype_Index := 1;
-         Files.Settings_Form.Begin_Edit (Empty_Model, Repair_Draft, Empty_Settings);
+         Files.Settings_Form.Begin_Edit (Empty_Model, Empty_Settings);
+         Files.Settings_Form.Set_Draft (Empty_Model, Repair_Draft);
          Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Pane.Draft_Of (Empty_Model));
          Assert (Empty_Load.Success, "repaired misaligned filetype draft validates");
          Files_Suite.Support.Assert_Equal
@@ -53,7 +54,8 @@ separate (Files_Suite.Settings)
          Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
          Repair_Draft.Icon_Values.Append (To_Unbounded_String ("orphan-icon"));
          Repair_Draft.Icon_Index := 1;
-         Files.Settings_Form.Begin_Edit (Empty_Model, Repair_Draft, Empty_Settings);
+         Files.Settings_Form.Begin_Edit (Empty_Model, Empty_Settings);
+         Files.Settings_Form.Set_Draft (Empty_Model, Repair_Draft);
          Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Pane.Draft_Of (Empty_Model));
          Assert (Empty_Load.Success, "repaired misaligned icon draft validates");
          Files_Suite.Support.Assert_Equal
@@ -64,7 +66,8 @@ separate (Files_Suite.Settings)
          Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
          Repair_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/x-orphan"));
          Repair_Draft.Open_Action_Index := 1;
-         Files.Settings_Form.Begin_Edit (Empty_Model, Repair_Draft, Empty_Settings);
+         Files.Settings_Form.Begin_Edit (Empty_Model, Empty_Settings);
+         Files.Settings_Form.Set_Draft (Empty_Model, Repair_Draft);
          Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Pane.Draft_Of (Empty_Model));
          Assert (Empty_Load.Success, "repaired misaligned open-action draft validates");
          Lookup :=
@@ -77,7 +80,8 @@ separate (Files_Suite.Settings)
          Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
          Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
          Repair_Draft.Filetype_Index := 1;
-         Files.Settings_Form.Begin_Edit (Empty_Model, Repair_Draft, Empty_Settings);
+         Files.Settings_Form.Begin_Edit (Empty_Model, Empty_Settings);
+         Files.Settings_Form.Set_Draft (Empty_Model, Repair_Draft);
          Files_Suite.Support.Assert_Equal
            (Natural (Files.Model.Settings_Pane.Draft_Of (Empty_Model).Filetype_Keys.Length),
             0,
@@ -89,6 +93,7 @@ separate (Files_Suite.Settings)
          Repair_Draft.Filetype_Index := Natural (Repair_Draft.Filetype_Keys.Length);
          Repair_Draft.Filetype_Extension := To_Unbounded_String ("stale-ext");
          Repair_Draft.Filetype_Value := To_Unbounded_String ("text/x-stale");
-         Files.Settings_Form.Begin_Edit (Empty_Model, Repair_Draft, Empty_Settings);
+         Files.Settings_Form.Begin_Edit (Empty_Model, Empty_Settings);
+         Files.Settings_Form.Set_Draft (Empty_Model, Repair_Draft);
       end;
    end Test_Settings_Draft_Ignores_Orphan_Rows;

@@ -61,19 +61,8 @@ separate (Files.Rendering)
       Tree_Rows_Layout : constant Tree_Row_Layout_Vectors.Vector :=
         Calculate_Tree_Row_Layout (Snapshot, Tree_Panel, Line_Height);
 
-      function Clipped_Size
-        (Start : Natural;
-         Size  : Natural;
-         Limit : Natural)
-         return Natural
-      is
-      begin
-         if Start >= Limit or else Size = 0 then
-            return 0;
-         else
-            return Natural'Min (Size, Limit - Start);
-         end if;
-      end Clipped_Size;
+      --  How much of a run starting at Start lies inside [0, Limit).
+      function Clipped_Size (Start, Size, Limit : Natural) return Natural renames Guikit.Widgets.Clipped_Size;
 
       --  One rectangle into Target, clipped to the window; nothing when
       --  none of it is inside.
@@ -207,11 +196,7 @@ separate (Files.Rendering)
 
       --  Text cut to Capacity columns with an ellipsis: guikit's one
       --  truncation rule, which every component shares.
-      function Fitted_Text_For
-        (Text     : UString;
-         Capacity : Natural)
-         return UString
-      is (To_Unbounded_String (Guikit.Utf8.Fit_With_Ellipsis (To_String (Text), Capacity)));
+      function Fitted_Text_For (Text : UString; Capacity : Natural) return UString renames Guikit.Widgets.Fitted_Text;
 
       --  One text command into Target, its box clipped to the window and
       --  its text fitted to the box when Fit says so; Mirror_Glyph marks a

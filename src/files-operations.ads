@@ -840,9 +840,11 @@ private
    --  Return whether Query occurs, case-insensitively, in the raw bytes Bytes.
    --
    --  This is the pure, filesystem-free match seam the content search uses on
-   --  each file's bounded leading bytes. An empty Query never matches, and bytes
-   --  classified as binary (via the Quick Look NUL/control heuristic) never match
-   --  so binary files are skipped without further inspection.
+   --  each file's bounded leading bytes, decoded from UTF-16 or Windows-1252
+   --  when they are not UTF-8 (Files.Types.Searchable_Text). An empty Query
+   --  never matches, and bytes classified as binary (via the Quick Look
+   --  NUL/control heuristic) never match, so binary files are skipped
+   --  without further inspection.
    --
    --  @param Bytes Raw leading bytes of a file.
    --  @param Query Text to look for.

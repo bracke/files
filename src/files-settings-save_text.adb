@@ -95,6 +95,7 @@ separate (Files.Settings)
       end if;
       Temp := Null_Unbounded_String;
       Temp_Identity := Null_Unbounded_String;
+      Note_Seen (Path, Text);
 
       return
         (Success   => True,

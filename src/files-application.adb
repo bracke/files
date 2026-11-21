@@ -9,7 +9,6 @@ with GNAT.OS_Lib;
 
 with Hostkit.Fs;
 
-with Files.Commands;
 with Files.Diagnostics;
 with Files.File_System;
 with Files.Fs_Primitives;
@@ -20,21 +19,12 @@ with Files.Icon_Assets;
 with Files.Localization;
 with Files.Operations;
 with Files.Rendering;
+with Files.Settings_Form;
 with Guikit.Frame_Analysis;
 with Guikit.Mirroring;
 with Guikit.Vulkan;
 
 package body Files.Application is
-
-   --  Replace the process-global keyboard-shortcut override table in
-   --  Files.Commands with the overrides persisted in Settings. Every unknown
-   --  command identifier is ignored, so a stale settings file never blocks
-   --  startup. Called during startup resolution and after the shortcut editor
-   --  rebinds a key.
-   --
-   --  @param Settings Settings model carrying the persisted overrides.
-   procedure Apply_Shortcut_Overrides
-     (Settings : Files.Settings.Settings_Model);
 
    use Ada.Strings.Unbounded;
    use type Files.File_System.Path_Status;
@@ -253,32 +243,6 @@ package body Files.Application is
       return Default_Settings_Path (Home_Path);
    end Configured_Settings_Path;
 
-   procedure Apply_Shortcut_Overrides
-     (Settings : Files.Settings.Settings_Model)
-   is
-      use type Files.Commands.Command_Id;
-   begin
-      Files.Commands.Reset_Shortcut_Overrides;
-      for Entry_Value of Settings.Shortcut_Overrides loop
-         declare
-            Id : constant Files.Commands.Command_Id :=
-              Files.Commands.Id_For_Identifier (To_String (Entry_Value.Command));
-         begin
-            --  Parse_Shortcut of an empty combo yields an absent shortcut, which
-            --  Set_Shortcut_Override records as an explicit unbind. A combo
-            --  with a token it does not know (a typo) is skipped: the command
-            --  keeps its default binding rather than losing it or taking
-            --  whatever the rest of the combo names.
-            if Id /= Files.Commands.No_Command
-              and then Files.Commands.Is_Valid_Shortcut_Text (To_String (Entry_Value.Combo))
-            then
-               Files.Commands.Set_Shortcut_Override
-                 (Id, Files.Commands.Parse_Shortcut (To_String (Entry_Value.Combo)));
-            end if;
-         end;
-      end loop;
-   end Apply_Shortcut_Overrides;
-
    function Resolve_Startup
      (Arguments     : String_Vectors.Vector;
       Settings_Path : String := "")
@@ -323,16 +287,24 @@ package body Files.Application is
             Result.Errors.Append
               (Startup_Error'
                  (Input_Path => To_Unbounded_String (Effective_Path), Error_Key => Ensured.Error_Key));
+            --  Nothing was loaded either way. Where no file surely is, the
+            --  defaults may be written later; where one may be (it could not
+            --  be looked at, or is not a plain file), saving the defaults
+            --  would replace what it holds, so run read-only as above.
+            Load_Failed := not Files.Fs_Primitives.Entry_Is_Absent (Effective_Path);
          end if;
       end;
 
       --  Run read-only after a failed load, and say so on every later save
       --  rather than letting changes look saved.
       Settings.Persistence_Refused := Load_Failed;
+      --  Held as a save writes them (known commands, valid combos, canonical
+      --  text and order), so the settings pane does not take a file written
+      --  by hand for a change of its own.
+      Files.Settings_Form.Apply_Shortcut_Overrides (Settings);
       Result.Settings := Settings;
       Result.Settings_Path :=
         (if Load_Failed then Null_Unbounded_String else To_Unbounded_String (Effective_Path));
-      Apply_Shortcut_Overrides (Settings);
       Resolved := Resolve_Startup_Paths (Arguments, Settings);
       Result.Windows := Resolved.Windows;
       for Error of Resolved.Errors loop

@@ -477,18 +477,44 @@ package body Files.Settings_Form is
       end loop;
    end Store_Shortcut_Overrides;
 
+   procedure Apply_Shortcut_Overrides (Settings : in out Files.Settings.Settings_Model) is
+   begin
+      Files.Commands.Reset_Shortcut_Overrides;
+      for Entry_Value of Settings.Shortcut_Overrides loop
+         declare
+            Id : constant Files.Commands.Command_Id :=
+              Files.Commands.Id_For_Identifier (To_String (Entry_Value.Command));
+         begin
+            if Id /= Files.Commands.No_Command
+              and then Files.Commands.Is_Valid_Shortcut_Text (To_String (Entry_Value.Combo))
+            then
+               Files.Commands.Set_Shortcut_Override
+                 (Id, Files.Commands.Parse_Shortcut (To_String (Entry_Value.Combo)));
+            end if;
+         end;
+      end loop;
+      Store_Shortcut_Overrides (Settings);
+   end Apply_Shortcut_Overrides;
+
+   function Needs_Save
+     (Saved   : Files.Settings.Settings_Model;
+      Applied : Files.Settings.Settings_Model)
+      return Boolean
+   is
+      With_Overrides : Files.Settings.Settings_Model := Applied;
+   begin
+      Store_Shortcut_Overrides (With_Overrides);
+      return not Files.Settings.Same_Content (Saved, With_Overrides);
+   end Needs_Save;
+
    function Needs_Save
      (Saved : Files.Settings.Settings_Model;
       Draft : Files.Settings.Settings_Draft)
       return Boolean
    is
-      Applied : Files.Settings.Settings_Parse_Result := Files.Settings.Apply_Draft (Saved, Draft);
+      Applied : constant Files.Settings.Settings_Parse_Result := Files.Settings.Apply_Draft (Saved, Draft);
    begin
-      if not Applied.Success then
-         return False;
-      end if;
-      Store_Shortcut_Overrides (Applied.Settings);
-      return not Files.Settings.Same_Content (Saved, Applied.Settings);
+      return Applied.Success and then Needs_Save (Saved, Applied.Settings);
    end Needs_Save;
 
    function Apply
@@ -616,14 +642,16 @@ package body Files.Settings_Form is
                --  what it holds, not with the draft before the button, which
                --  may carry text edits not yet saved. Reset also drops the
                --  shortcut overrides, which Needs_Save weighs with the rest.
+               --  One Apply_Draft (it validates the draft) does both.
                if Is_Reset or else Button = "add" or else Button = "remove" then
                   declare
-                     Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Validate_Draft (D);
+                     Applied : constant Files.Settings.Settings_Parse_Result :=
+                       Files.Settings.Apply_Draft (Saved, D);
                   begin
                      Rechecked := True;
-                     D.Valid := Parsed.Success;
-                     D.Error_Key := (if Parsed.Success then Null_Unbounded_String else Parsed.Error_Key);
-                     Save := Parsed.Success and then Needs_Save (Saved, D);
+                     D.Valid := Applied.Success;
+                     D.Error_Key := (if Applied.Success then Null_Unbounded_String else Applied.Error_Key);
+                     Save := Applied.Success and then Needs_Save (Saved, Applied.Settings);
                   end;
                end if;
             end;
@@ -633,22 +661,13 @@ package body Files.Settings_Form is
    end Apply;
 
    procedure Begin_Edit
-     (Model : in out Files.Model.Window_Model;
-      Draft : Files.Settings.Settings_Draft;
-      Saved : Files.Settings.Settings_Model)
-   is
-      Normalized : Files.Settings.Settings_Draft := Draft;
-   begin
-      Files.Settings.Normalize_Draft (Normalized);
-      Files.Model.Settings_Pane.Begin_Edit (Model, Normalized, Fields (Normalized));
-      Files.Model.Settings_Pane.Set_Saved (Model, Saved);
-   end Begin_Edit;
-
-   procedure Begin_Edit
      (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model) is
+      Settings : Files.Settings.Settings_Model)
+   is
+      Draft : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Settings);
    begin
-      Begin_Edit (Model, Files.Settings.Make_Draft (Settings), Settings);
+      Files.Settings.Normalize_Draft (Draft);
+      Files.Model.Settings_Pane.Begin_Edit (Model, Draft, Fields (Draft), Saved => Settings);
    end Begin_Edit;
 
    procedure Set_Draft

@@ -48,7 +48,8 @@ separate (Files_Suite.Settings)
           (Files.Commands.Default_Shortcut_For (Files.Commands.Select_Small_Icons_Command));
    begin
       Files.Commands.Reset_Shortcut_Overrides;
-      Files.Settings_Form.Begin_Edit (Model, Draft, Base);
+      Files.Settings_Form.Begin_Edit (Model, Base);
+      Files.Settings_Form.Set_Draft (Model, Draft);
 
       --  The form emits a row per command, keyed by "shortcut.<identifier>",
       --  showing the command's current shortcut.

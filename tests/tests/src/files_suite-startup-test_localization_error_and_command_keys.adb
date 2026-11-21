@@ -60,7 +60,11 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("error.move.source_set_aside");
       Add_Error_Key ("error.paste.undo_unavailable");
       Add_Error_Key ("error.settings.not_persisted");
+      Add_Error_Key ("error.settings.changed_elsewhere");
       Add_Error_Key ("error.extract.not_archive");
+      Add_Error_Key ("error.extract.encrypted");
+      Add_Error_Key ("error.extract.damaged");
+      Add_Error_Key ("error.extract.unsupported");
       Add_Error_Key ("error.clipboard.empty");
       Add_Error_Key ("error.command.recent_view");
       Add_Error_Key ("error.command.trash_view");

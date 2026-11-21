@@ -415,6 +415,124 @@ package body Files.Types is
       return Ada.Strings.Unbounded.To_String (Result);
    end Fold_Case;
 
+   function Searchable_Text (Raw : String) return String is
+      use Ada.Strings.Unbounded;
+      Replacement : constant String := Guikit.Utf8.Encode (16#FFFD#);
+
+      --  Raw from First on as UTF-16 units, Little or big endian.
+      function From_Utf16 (First : Positive; Little : Boolean) return String is
+         Result : Unbounded_String;
+         Index  : Natural := First;
+
+         function Unit_At (At_Index : Positive) return Natural is
+           (if Little
+            then Character'Pos (Raw (At_Index)) + 256 * Character'Pos (Raw (At_Index + 1))
+            else 256 * Character'Pos (Raw (At_Index)) + Character'Pos (Raw (At_Index + 1)));
+      begin
+         --  A trailing odd byte is half a unit a read cut short: dropped.
+         while Index < Raw'Last loop
+            declare
+               Unit : constant Natural := Unit_At (Index);
+            begin
+               Index := Index + 2;
+               if Unit in 16#D800# .. 16#DBFF# then
+                  if Index >= Raw'Last then
+                     --  The pair's second half was cut off.
+                     exit;
+                  elsif Unit_At (Index) in 16#DC00# .. 16#DFFF# then
+                     Append
+                       (Result,
+                        Guikit.Utf8.Encode (16#10000# + (Unit - 16#D800#) * 16#400# + (Unit_At (Index) - 16#DC00#)));
+                     Index := Index + 2;
+                  else
+                     Append (Result, Replacement);
+                  end if;
+               elsif Unit in 16#DC00# .. 16#DFFF# then
+                  Append (Result, Replacement);
+               else
+                  Append (Result, Guikit.Utf8.Encode (Unit));
+               end if;
+            end;
+         end loop;
+         return To_String (Result);
+      end From_Utf16;
+
+      --  Whether Raw, without a byte order mark, reads as UTF-16 text in
+      --  the order Little says: of its first units, most have a NUL high
+      --  byte and next to none a NUL low byte.
+      function Looks_Utf16 (Little : Boolean) return Boolean is
+         Units     : constant Natural := Natural'Min (Raw'Length / 2, 512);
+         High_Nuls : Natural := 0;
+         Low_Nuls  : Natural := 0;
+      begin
+         if Units < 2 then
+            return False;
+         end if;
+         for Unit in 0 .. Units - 1 loop
+            declare
+               Even : constant Character := Raw (Raw'First + 2 * Unit);
+               Odd  : constant Character := Raw (Raw'First + 2 * Unit + 1);
+            begin
+               if (if Little then Odd else Even) = ASCII.NUL then
+                  High_Nuls := High_Nuls + 1;
+               end if;
+               if (if Little then Even else Odd) = ASCII.NUL then
+                  Low_Nuls := Low_Nuls + 1;
+               end if;
+            end;
+         end loop;
+         return High_Nuls * 4 >= Units * 3 and then Low_Nuls * 16 <= Units;
+      end Looks_Utf16;
+
+      --  Windows-1252's 0x80 .. 0x9F; 0 where it has no character.
+      Cp1252 : constant array (16#80# .. 16#9F#) of Natural :=
+        [16#20AC#, 0, 16#201A#, 16#0192#, 16#201E#, 16#2026#, 16#2020#, 16#2021#,
+         16#02C6#, 16#2030#, 16#0160#, 16#2039#, 16#0152#, 0, 16#017D#, 0,
+         0, 16#2018#, 16#2019#, 16#201C#, 16#201D#, 16#2022#, 16#2013#, 16#2014#,
+         16#02DC#, 16#2122#, 16#0161#, 16#203A#, 16#0153#, 0, 16#017E#, 16#0178#];
+
+      function From_Cp1252 return String is
+         Result : Unbounded_String;
+      begin
+         for Char of Raw loop
+            declare
+               Code : constant Natural := Character'Pos (Char);
+            begin
+               if Code < 16#80# then
+                  Append (Result, Char);
+               elsif Code <= 16#9F# then
+                  Append (Result, (if Cp1252 (Code) = 0 then Replacement else Guikit.Utf8.Encode (Cp1252 (Code))));
+               else
+                  Append (Result, Guikit.Utf8.Encode (Code));
+               end if;
+            end;
+         end loop;
+         return To_String (Result);
+      end From_Cp1252;
+   begin
+      if Raw'Length >= 2 and then Raw (Raw'First) = Character'Val (16#FF#)
+        and then Raw (Raw'First + 1) = Character'Val (16#FE#)
+      then
+         return From_Utf16 (Raw'First + 2, Little => True);
+      elsif Raw'Length >= 2 and then Raw (Raw'First) = Character'Val (16#FE#)
+        and then Raw (Raw'First + 1) = Character'Val (16#FF#)
+      then
+         return From_Utf16 (Raw'First + 2, Little => False);
+      elsif Looks_Utf16 (Little => True) then
+         return From_Utf16 (Raw'First, Little => True);
+      elsif Looks_Utf16 (Little => False) then
+         return From_Utf16 (Raw'First, Little => False);
+      end if;
+      declare
+         Text : constant String := Trim_To_Character (Raw);
+      begin
+         if Looks_Binary (Text) or else Guikit.Utf8.Is_Valid (Text) then
+            return Text;
+         end if;
+      end;
+      return From_Cp1252;
+   end Searchable_Text;
+
    function Trim_To_Character (Raw : String) return String is
       Lead : Natural := Raw'Last;
    begin

@@ -32,6 +32,9 @@ package body Files.Model.Folder_Sizes is
          "=" => Ada.Calendar."=");
       --  Each selected directory, and when it was listed as it is now.
       Selected : Time_Maps.Map;
+      --  Whether a measurement was taken in: only then does the header show
+      --  anything new.
+      Taken    : Boolean := False;
    begin
       Stale.Clear;
       if Measured.Is_Empty then
@@ -51,6 +54,7 @@ package body Files.Model.Folder_Sizes is
            or else Ada.Calendar."=" (Done.Listed, Selected.Element (Done.Path))
          then
             Model.Folder_Sizes.Include (Done.Path, Done.Result);
+            Taken := True;
          else
             --  Measured as the folder was before it changed: dropped, and
             --  handed back to be measured again as it is now.
@@ -59,7 +63,9 @@ package body Files.Model.Folder_Sizes is
                  (Path => Done.Path, Result => Done.Result, Listed => Selected.Element (Done.Path)));
          end if;
       end loop;
-      Support.Touch_Header (Model);
+      if Taken then
+         Support.Touch_Header (Model);
+      end if;
    end Note;
 
    procedure Clear

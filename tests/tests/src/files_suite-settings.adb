@@ -74,6 +74,7 @@ package body Files_Suite.Settings is
    procedure Test_Settings_Draft_Ignores_Orphan_Rows (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Settings_Save (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Ensure_Default_File_Existing_And_Invalid (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Save_Keeps_Another_Process_Change (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Invalid_Boolean (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Columns_And_Grouping (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -167,6 +168,9 @@ package body Files_Suite.Settings is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Ensure_Default_File_Existing_And_Invalid'Access,
          "ensure default file keeps an existing file and rejects directory, blocked-parent, and empty paths");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Save_Keeps_Another_Process_Change'Access,
+         "a save keeps what another process wrote to the settings file since");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Invalid_Boolean'Access, "settings invalid boolean");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -359,6 +363,7 @@ package body Files_Suite.Settings is
    procedure Test_Controller_Settings_Save (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Ensure_Default_File_Existing_And_Invalid (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Save_Keeps_Another_Process_Change (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Settings_Invalid_Boolean (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

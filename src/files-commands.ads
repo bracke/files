@@ -248,9 +248,6 @@ package Files.Commands is
    --  Clear every shortcut override, reverting all commands to their defaults.
    procedure Reset_Shortcut_Overrides;
 
-   --  @return True when some command has a shortcut override.
-   function Has_Shortcut_Overrides return Boolean;
-
    --  The override in effect for a command, if any.
    --
    --  @param Id Command identifier.

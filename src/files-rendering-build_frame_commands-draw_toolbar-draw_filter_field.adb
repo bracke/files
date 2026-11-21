@@ -45,7 +45,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
              then To_Unbounded_String (Files.Localization.Text ("filter.placeholder"))
              else Filter_Shown),
             (if Length (Snapshot.Filter_Text) = 0 then Muted_Text_Color else Text_Color),
-            Fit         => True,
+            --  Unfitted under a bidi cut, as the path field's text.
+            Fit         => Length (Snapshot.Filter_Text) = 0 or else View.Cut_Columns = Guikit.Draw.Auto_Cut,
             Cut_Columns => (if Length (Snapshot.Filter_Text) = 0 then Guikit.Draw.Auto_Cut else View.Cut_Columns));
          Draw_Field_State (Text_Region, Focused, Valid => True, Caret_X => View.Caret_X);
 

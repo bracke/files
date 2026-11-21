@@ -45,6 +45,11 @@ separate (Files_Suite.Startup)
         (Startup.Settings.Default_View,
          Files.Settings.Default_Settings.Default_View,
          "settings directory leaves startup result on default settings");
+      --  Something is at the path, so the defaults the session runs on are
+      --  never written over it.
+      Assert (Startup.Settings.Persistence_Refused, "settings directory runs the session read-only");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Settings_Path), "", "settings directory leaves no path to save to");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Startup.Windows.Element (1).Model),
          1,
