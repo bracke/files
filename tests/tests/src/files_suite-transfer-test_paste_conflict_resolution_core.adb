@@ -110,6 +110,25 @@ separate (Files_Suite.Transfer)
          Actions := Files.Paste.Resolve (Cased, Files.Paste.Policy_Ask, None, No_Existing);
          Assert (To_String (Actions.Element (2).Dest_Path) = Dest ("README.md"),
                  "where names keep their case, both keep their names");
+
+         --  The conflict search folds by the same rule: README.md asks about
+         --  an existing readme.md only where the destination folds case.
+         declare
+            Lower : Files.Types.String_Vectors.Vector;
+            Upper : Files.Paste.Work_Item_Vectors.Vector;
+         begin
+            Lower.Append (To_Unbounded_String (Dest ("readme.md")));
+            Upper.Append (Work_Item ("README.md"));
+            Files_Suite.Support.Assert_Equal
+              (Files.Paste.Next_Unresolved_Conflict
+                 (Upper, Files.Paste.Policy_Ask, None, Lower, Rules => (Fold_Names => True, others => <>)),
+               1,
+               "a case-only twin of an existing entry is a conflict where names fold");
+            Files_Suite.Support.Assert_Equal
+              (Files.Paste.Next_Unresolved_Conflict (Upper, Files.Paste.Policy_Ask, None, Lower),
+               0,
+               "and is no conflict where names keep their case");
+         end;
       end;
 
       --  Skip_All: colliding ones are skipped, the free one is written.

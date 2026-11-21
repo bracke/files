@@ -95,161 +95,171 @@ package body Files.Model.History is
       return True;
    end Completion_Markers_Valid;
 
+   --  The validators History_Entry_Usable is made of. Each reads one part
+   --  of an entry read back from the journal; Parts are the vectors several
+   --  of them share, built once.
+   type Entry_Parts is record
+      Tos, Forwards                         : Files.Types.String_Vectors.Vector;
+      Kept_Paths, Kept_Identities           : Files.Types.String_Vectors.Vector;
+      Restore_Identities, Restore_Targets   : Files.Types.String_Vectors.Vector;
+      Restore_Trash                         : Files.Types.String_Vectors.Vector;
+      --  Reverse markers name a From path or a kept copy.
+      Reverse_Allowed                       : Files.Types.String_Vectors.Vector;
+   end record;
+
+   function Parts_Of (Action : Files.Undo_History.Undo_Entry) return Entry_Parts is
+   begin
+      return Parts : Entry_Parts do
+         for Item of Action.Items loop
+            Parts.Tos.Append (Item.To);
+            Parts.Forwards.Append (Item.Forward);
+         end loop;
+         for Copy of Action.Kept loop
+            Parts.Kept_Paths.Append (Copy.Path);
+            Parts.Kept_Identities.Append (Copy.Identity);
+         end loop;
+         for Original of Action.Replaced loop
+            Parts.Restore_Identities.Append (Original.Identity);
+            Parts.Restore_Targets.Append (Original.Target);
+         end loop;
+         Parts.Restore_Trash := Files.Undo_History.Replaced_Trash (Action);
+         Parts.Reverse_Allowed := Files.Undo_History.From_Paths (Action);
+         Parts.Reverse_Allowed.Append_Vector (Parts.Kept_Paths);
+      end return;
+   end Parts_Of;
+
+   --  No item carries a To, or a Forward.
+   function No_To (Action : Files.Undo_History.Undo_Entry) return Boolean is
+     (for all Item of Action.Items => Length (Item.To) = 0);
+   function No_Forward (Action : Files.Undo_History.Undo_Entry) return Boolean is
+     (for all Item of Action.Items => Length (Item.Forward) = 0);
+
+   --  Every value is a permission (or, for Ownership, an owner) payload.
+   function Payload_Images_Valid
+     (Values : Files.Types.String_Vectors.Vector;
+      Ownership : Boolean) return Boolean is
+   begin
+      for Value of Values loop
+         if (if Ownership then not Files.Undo_Payloads.Is_Ownership_Text (To_String (Value))
+             else not Files.Undo_Payloads.Is_Mode_Text (To_String (Value)))
+         then
+            return False;
+         end if;
+      end loop;
+      return True;
+   end Payload_Images_Valid;
+
+   --  What every kind needs: items with unique absolute From paths and an
+   --  identity each, kept copies only on an undo-only move, and a redo only
+   --  of what can be redone.
+   function Shape_Valid
+     (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts; For_Redo : Boolean) return Boolean is
+     (Action.Kind /= Files.Undo_History.Undo_None
+      and then not Action.Items.Is_Empty
+      and then Unique_Absolute_Paths (Files.Undo_History.From_Paths (Action))
+      and then (Action.Kept.Is_Empty
+        or else (Action.Kind = Files.Undo_History.Undo_Move
+          and then not Action.Redoable
+          and then Unique_Absolute_Paths (Parts.Kept_Paths)
+          and then Nonempty_Values (Parts.Kept_Identities)
+          and then Unique_Nonempty_Values (Parts.Reverse_Allowed)))
+      and then (for all Item of Action.Items => Length (Item.Identity) /= 0)
+      and then (not For_Redo or else Action.Redoable));
+
+   --  Replaced originals to restore: only on an undo-only move or
+   --  delete-created, each with a unique trash path, identity and target,
+   --  and completion markers naming their trash paths.
+   function Restores_Valid (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts) return Boolean is
+     (if Action.Replaced.Is_Empty then Action.Restores_Completed.Is_Empty
+      else not Action.Redoable
+        and then Action.Kind in Files.Undo_History.Undo_Move | Files.Undo_History.Undo_Delete_Created
+        and then Unique_Absolute_Paths (Parts.Restore_Trash)
+        and then Nonempty_Values (Parts.Restore_Identities)
+        and then Unique_Absolute_Paths (Parts.Restore_Targets)
+        and then Completion_Markers_Valid (Action.Restores_Completed, Parts.Restore_Trash));
+
+   --  A rename or move: unique absolute To paths, no Forward, no create;
+   --  forward markers name a To path.
+   function Move_Valid (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts) return Boolean is
+     (Unique_Absolute_Paths (Parts.Tos)
+      and then No_Forward (Action)
+      and then Action.Create_Kind = Files.Undo_History.Create_None
+      and then Completion_Markers_Valid (Action.Forward_Completed, Parts.Tos));
+
+   --  A restore from the trash: undo-only, like a move but with nothing
+   --  replaced and no forward markers.
+   function Restore_Trash_Valid (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts) return Boolean is
+     (not Action.Redoable
+      and then Unique_Absolute_Paths (Parts.Tos)
+      and then No_Forward (Action)
+      and then Action.Create_Kind = Files.Undo_History.Create_None
+      and then Action.Replaced.Is_Empty
+      and then Action.Forward_Completed.Is_Empty);
+
+   --  A delete of what was created: no To; a redoable one says what it
+   --  created and where (Forward); forward markers name a From path.
+   function Delete_Created_Valid (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts) return Boolean is
+     (No_To (Action)
+      and then (if Action.Redoable
+                then Action.Create_Kind /= Files.Undo_History.Create_None and then Absolute_Paths (Parts.Forwards)
+                else No_Forward (Action))
+      and then Completion_Markers_Valid (Action.Forward_Completed, Files.Undo_History.From_Paths (Action)));
+
+   --  A permission or ownership change: payload images to go back to (and
+   --  forward to, when redoable), no create, nothing replaced, no markers.
+   function Payload_Change_Valid (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts) return Boolean is
+      Ownership : constant Boolean := Action.Kind = Files.Undo_History.Undo_Set_Ownership;
+   begin
+      return Action.Create_Kind = Files.Undo_History.Create_None
+        and then Action.Replaced.Is_Empty
+        and then Payload_Images_Valid (Parts.Tos, Ownership)
+        and then (if Action.Redoable then Payload_Images_Valid (Parts.Forwards, Ownership)
+                  else No_Forward (Action))
+        and then Action.Reverse_Completed.Is_Empty
+        and then Action.Forward_Completed.Is_Empty;
+   end Payload_Change_Valid;
+
+   --  What the kind itself requires, forward completion markers included.
+   function Kind_Valid (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts) return Boolean is
+     (case Action.Kind is
+         when Files.Undo_History.Undo_Rename | Files.Undo_History.Undo_Move => Move_Valid (Action, Parts),
+         when Files.Undo_History.Undo_Restore_Trash => Restore_Trash_Valid (Action, Parts),
+         when Files.Undo_History.Undo_Delete_Created => Delete_Created_Valid (Action, Parts),
+         when Files.Undo_History.Undo_Set_Permissions
+            | Files.Undo_History.Undo_Set_Ownership => Payload_Change_Valid (Action, Parts),
+         when Files.Undo_History.Undo_None => False);
+
+   --  Where a half-done step stands: reverse markers name a From path or a
+   --  kept copy; a redo has no reverse or restore step done, an undo no
+   --  forward step; copy records only on a redoable copy-create delete.
+   function Progress_Valid
+     (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts; For_Redo : Boolean) return Boolean is
+     (Completion_Markers_Valid (Action.Reverse_Completed, Parts.Reverse_Allowed)
+      and then (not For_Redo or else
+        (Action.Reverse_Completed.Is_Empty and then Action.Restores_Completed.Is_Empty))
+      and then (For_Redo or else Action.Forward_Completed.Is_Empty)
+      and then
+        (Action.Copy_Records.Is_Empty
+         or else (Action.Kind = Files.Undo_History.Undo_Delete_Created
+           and then Action.Redoable
+           and then Action.Create_Kind = Files.Undo_History.Create_Copy
+           and then Files.Copy_Context.Valid (Action.Copy_Records))));
+
    function History_Entry_Usable
      (Action : Files.Undo_History.Undo_Entry; Side : Files.Undo_History.History_Side) return Boolean
    is
       For_Redo : constant Boolean := Side = Files.Undo_History.Redo_Side;
-      Main_Count : constant Natural := Natural (Action.Items.Length);
-      Restore_Count : constant Natural := Natural (Action.Replaced.Length);
-
-      --  Each item's To, or Forward.
-      function Tos return Files.Types.String_Vectors.Vector is
-      begin
-         return Values : Files.Types.String_Vectors.Vector do
-            for Item of Action.Items loop
-               Values.Append (Item.To);
-            end loop;
-         end return;
-      end Tos;
-
-      function Forwards return Files.Types.String_Vectors.Vector is
-      begin
-         return Values : Files.Types.String_Vectors.Vector do
-            for Item of Action.Items loop
-               Values.Append (Item.Forward);
-            end loop;
-         end return;
-      end Forwards;
-
-      --  No item carries a To, or a Forward.
-      function No_To return Boolean is (for all Item of Action.Items => Length (Item.To) = 0);
-      function No_Forward return Boolean is (for all Item of Action.Items => Length (Item.Forward) = 0);
-
-      function Payload_Images_Valid
-        (Values : Files.Types.String_Vectors.Vector;
-         Ownership : Boolean) return Boolean is
-      begin
-         for Value of Values loop
-            if (if Ownership then not Files.Undo_Payloads.Is_Ownership_Text (To_String (Value))
-                else not Files.Undo_Payloads.Is_Mode_Text (To_String (Value)))
-            then
-               return False;
-            end if;
-         end loop;
-         return True;
-      end Payload_Images_Valid;
-
-      Kept_Paths, Kept_Identities, Restore_Identities, Restore_Targets : Files.Types.String_Vectors.Vector;
-      Restore_Trash : constant Files.Types.String_Vectors.Vector := Files.Undo_History.Replaced_Trash (Action);
-      Forward_Markers_Valid : Boolean := False;
-      --  Reverse markers name a From path or a kept copy.
-      Reverse_Allowed : Files.Types.String_Vectors.Vector := Files.Undo_History.From_Paths (Action);
+      Parts    : constant Entry_Parts := Parts_Of (Action);
    begin
-      for Copy of Action.Kept loop
-         Kept_Paths.Append (Copy.Path);
-         Kept_Identities.Append (Copy.Identity);
-      end loop;
-      for Original of Action.Replaced loop
-         Restore_Identities.Append (Original.Identity);
-         Restore_Targets.Append (Original.Target);
-      end loop;
-      Reverse_Allowed.Append_Vector (Kept_Paths);
-      if Action.Kind = Files.Undo_History.Undo_None
-        or else Main_Count = 0
-        or else not Unique_Absolute_Paths (Files.Undo_History.From_Paths (Action))
-        or else (not Action.Kept.Is_Empty
-          and then (Action.Kind /= Files.Undo_History.Undo_Move
-            or else Action.Redoable
-            or else not Unique_Absolute_Paths (Kept_Paths)
-            or else not Nonempty_Values (Kept_Identities)
-            or else not Unique_Nonempty_Values (Reverse_Allowed)))
-        or else (for some Item of Action.Items => Length (Item.Identity) = 0)
-        or else (For_Redo and then not Action.Redoable)
-      then
-         return False;
-      end if;
-
-      if Restore_Count = 0 then
-         if not Action.Restores_Completed.Is_Empty then
-            return False;
-         end if;
-      elsif Action.Redoable
-        or else Action.Kind not in Files.Undo_History.Undo_Move | Files.Undo_History.Undo_Delete_Created
-        or else not Unique_Absolute_Paths (Restore_Trash)
-        or else not Nonempty_Values (Restore_Identities)
-        or else not Unique_Absolute_Paths (Restore_Targets)
-        or else not Completion_Markers_Valid (Action.Restores_Completed, Restore_Trash)
-      then
-         return False;
-      end if;
-
-      case Action.Kind is
-         when Files.Undo_History.Undo_Rename | Files.Undo_History.Undo_Move =>
-            if not Unique_Absolute_Paths (Tos)
-              or else not No_Forward
-              or else Action.Create_Kind /= Files.Undo_History.Create_None
-            then
-               return False;
-            end if;
-            Forward_Markers_Valid :=
-              Completion_Markers_Valid (Action.Forward_Completed, Tos);
-
-         when Files.Undo_History.Undo_Restore_Trash =>
-            if Action.Redoable
-              or else not Unique_Absolute_Paths (Tos)
-              or else not No_Forward
-              or else Action.Create_Kind /= Files.Undo_History.Create_None
-              or else Restore_Count /= 0
-              or else not Action.Forward_Completed.Is_Empty
-            then
-               return False;
-            end if;
-            Forward_Markers_Valid := True;
-
-         when Files.Undo_History.Undo_Delete_Created =>
-            if not No_To
-              or else (Action.Redoable
-                and then (Action.Create_Kind = Files.Undo_History.Create_None
-                  or else not Absolute_Paths (Forwards)))
-              or else (not Action.Redoable and then not No_Forward)
-            then
-               return False;
-            end if;
-            Forward_Markers_Valid :=
-              Completion_Markers_Valid (Action.Forward_Completed, Files.Undo_History.From_Paths (Action));
-
-         when Files.Undo_History.Undo_Set_Permissions | Files.Undo_History.Undo_Set_Ownership =>
-            if Action.Create_Kind /= Files.Undo_History.Create_None
-              or else Restore_Count /= 0
-              or else not Payload_Images_Valid (Tos, Action.Kind = Files.Undo_History.Undo_Set_Ownership)
-              or else (Action.Redoable
-                and then not Payload_Images_Valid (Forwards, Action.Kind = Files.Undo_History.Undo_Set_Ownership))
-              or else (not Action.Redoable and then not No_Forward)
-              or else not Action.Reverse_Completed.Is_Empty
-              or else not Action.Forward_Completed.Is_Empty
-            then
-               return False;
-            end if;
-            Forward_Markers_Valid := True;
-
-         when Files.Undo_History.Undo_None =>
-            return False;
-      end case;
-
-      return Forward_Markers_Valid
-        and then Completion_Markers_Valid (Action.Reverse_Completed, Reverse_Allowed)
-        and then (not For_Redo or else
-          (Action.Reverse_Completed.Is_Empty and then Action.Restores_Completed.Is_Empty))
-        and then (For_Redo or else Action.Forward_Completed.Is_Empty)
-        and then
-          ((Action.Copy_Records.Is_Empty)
-           or else (Action.Kind = Files.Undo_History.Undo_Delete_Created
-             and then Action.Redoable
-             and then Action.Create_Kind = Files.Undo_History.Create_Copy
-             and then Files.Copy_Context.Valid (Action.Copy_Records)));
+      return Shape_Valid (Action, Parts, For_Redo)
+        and then Restores_Valid (Action, Parts)
+        and then Kind_Valid (Action, Parts)
+        and then Progress_Valid (Action, Parts, For_Redo);
    exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Model");
+      --  The checks are pure reads of what the journal held; a value out of
+      --  any range they assume (a corrupt record) makes the entry unusable.
+      when Malformed : Constraint_Error =>
+         Files.Diagnostics.Note (Malformed, "Files.Model");
          return False;
    end History_Entry_Usable;
 

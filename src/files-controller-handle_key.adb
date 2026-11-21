@@ -85,6 +85,7 @@ separate (Files.Controller)
       procedure Focus_Ring_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
       procedure Settings_Input_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
       procedure Editing_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
+      procedure Grid_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
 
       --  The key, offered to the overlay on top (Files.Model.Topmost_Overlay):
       --  only it owns the keyboard, in the order the pointer and the drawing
@@ -131,7 +132,8 @@ separate (Files.Controller)
          Menu_Key'Access,
          Focus_Ring_Key'Access,
          Settings_Input_Key'Access,
-         Editing_Key'Access];
+         Editing_Key'Access,
+         Grid_Key'Access];
    begin
       for Owner of Owners loop
          declare

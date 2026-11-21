@@ -42,6 +42,34 @@ package Files.Input_Actions is
       Context_Menu_Command_Input_Action,
       Right_Click_Input_Action);
 
+   --  The move along a list or grid a navigation key asks for: a step in a
+   --  direction (an arrow), the first or the last row (Home, End), or a page
+   --  (Page Up, Page Down). One mapping for every list the keys move through:
+   --  the file grid, Quick Look's selection underneath and the root selector.
+   type Grid_Move is (No_Grid_Move, Grid_Step, Grid_First, Grid_Last, Grid_Page_Up, Grid_Page_Down);
+
+   type Grid_Navigation is record
+      Move      : Grid_Move := No_Grid_Move;
+      --  The step's direction; meaningful for Grid_Step only.
+      Direction : Guikit.Input.Navigation_Direction := Guikit.Input.Move_Down;
+   end record;
+
+   --  The grid move Key names, ignoring modifiers.
+   --
+   --  @param Key Key pressed.
+   --  @return Its move, or No_Grid_Move for a key that is no navigation key.
+   function Grid_Navigation_Of (Key : Guikit.Input.Key_Code) return Grid_Navigation is
+     (case Key is
+         when Guikit.Input.Key_Left      => (Grid_Step, Guikit.Input.Move_Left),
+         when Guikit.Input.Key_Right     => (Grid_Step, Guikit.Input.Move_Right),
+         when Guikit.Input.Key_Up        => (Grid_Step, Guikit.Input.Move_Up),
+         when Guikit.Input.Key_Down      => (Grid_Step, Guikit.Input.Move_Down),
+         when Guikit.Input.Key_Home      => (Move => Grid_First, others => <>),
+         when Guikit.Input.Key_End       => (Move => Grid_Last, others => <>),
+         when Guikit.Input.Key_Page_Up   => (Move => Grid_Page_Up, others => <>),
+         when Guikit.Input.Key_Page_Down => (Move => Grid_Page_Down, others => <>),
+         when others                     => (others => <>));
+
    --  Which paste-conflict-dialog control a Conflict_Click_Input_Action hit.
    type Conflict_Button_Kind is
      (No_Conflict_Button,

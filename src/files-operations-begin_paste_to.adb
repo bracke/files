@@ -75,10 +75,13 @@ begin
       Listed   : Boolean;
       Listing  : constant Files.Types.String_Vectors.Vector := Existing_Destination_Paths (Directory, Listed);
       Existing : constant Files.Types.String_Vectors.Vector :=
-        With_Case_Aliases (Work, (if Listed then Listing else Probed_Destinations (Work)), Directory);
+        (if Listed then Listing else Probed_Destinations (Work));
+      --  Where the directory folds case, Report.txt conflicts with an
+      --  existing report.txt (Files.Paste folds both lookups by these rules).
+      Rules    : constant Files.Paste.Name_Rules := Files.Paste.Name_Rules_Of (Directory);
       Conflict : constant Natural :=
         Files.Paste.Next_Unresolved_Conflict
-          (Work, Files.Paste.Policy_Ask, Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing);
+          (Work, Files.Paste.Policy_Ask, Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing, Rules);
    begin
       if Conflict = 0 then
          --  No collisions: arm the resumable execution and run the first
@@ -88,8 +91,7 @@ begin
             Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
               Files.Paste.Resolve
                 (Work, Files.Paste.Policy_Ask,
-                 Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing,
-                 Rules => Files.Paste.Name_Rules_Of (Directory));
+                 Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing, Rules);
          begin
             Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, From_Clipboard);
             return Advance_Paste_Execution (Model, Settings, Paste_Execution_First_Batch);

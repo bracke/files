@@ -84,6 +84,9 @@ package body Files.Model.Settings_Pane is
       Guikit.Settings_Panel.Scroll (Model.Settings_Panel_View, Lines);
    end Scroll;
 
+   function Scroll_Offset (Model : Window_Model) return Natural is
+     (Guikit.Settings_Panel.Scroll_Offset (Model.Settings_Panel_View));
+
    function Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean is
       Clicked : constant Boolean :=
         Guikit.Settings_Panel.Click (Model.Settings_Panel_View, X, Y);

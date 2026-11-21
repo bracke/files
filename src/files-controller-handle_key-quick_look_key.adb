@@ -7,38 +7,20 @@ separate (Files.Controller.Handle_Key)
 --  selected item, so the user can flip through files without leaving
 --  Quick Look. Every other key is swallowed.
 procedure Quick_Look_Key (Handled : out Boolean; Result : out Controller_Result) is
+   Navigation : constant Files.Input_Actions.Grid_Navigation := Files.Input_Actions.Grid_Navigation_Of (Key);
 begin
    Handled := True;
    Result := Make_Result (Controller_Ignored);
    if Modifiers /= Guikit.Input.No_Modifiers then
       return;
-   end if;
-   case Key is
-      when Guikit.Input.Key_Space =>
-         Files.Model.Quick_Look.Close (Model);
-         Result := Successful_Command_Result (Files.Commands.Toggle_Quick_Look_Command);
-         return;
-      when Guikit.Input.Key_Up =>
-         Result := Step_Selection_Result (Model, Guikit.Input.Move_Up);
-      when Guikit.Input.Key_Down =>
-         Result := Step_Selection_Result (Model, Guikit.Input.Move_Down);
-      when Guikit.Input.Key_Left =>
-         Result := Step_Selection_Result (Model, Guikit.Input.Move_Left);
-      when Guikit.Input.Key_Right =>
-         Result := Step_Selection_Result (Model, Guikit.Input.Move_Right);
-      when Guikit.Input.Key_Home =>
-         Result := First_Selection_Result (Model);
-      when Guikit.Input.Key_End =>
-         Result := Last_Selection_Result (Model);
-      when Guikit.Input.Key_Page_Up =>
-         Result := Page_Selection_Result (Model, Down => False);
-      when Guikit.Input.Key_Page_Down =>
-         Result := Page_Selection_Result (Model, Down => True);
-      when others =>
-         return;
-   end case;
-   if Result.Status = Controller_Selection_Moved then
-      Files.Model.Quick_Look.Open
-        (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
+   elsif Key = Guikit.Input.Key_Space then
+      Files.Model.Quick_Look.Close (Model);
+      Result := Successful_Command_Result (Files.Commands.Toggle_Quick_Look_Command);
+   elsif Navigation.Move /= Files.Input_Actions.No_Grid_Move then
+      Result := Selection_Result (Model, Navigation);
+      if Result.Status = Controller_Selection_Moved then
+         Files.Model.Quick_Look.Open
+           (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
+      end if;
    end if;
 end Quick_Look_Key;

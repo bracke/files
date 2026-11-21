@@ -30,18 +30,6 @@ package body Files.Paste is
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=");
 
-   function To_Set
-     (Paths : Files.Types.String_Vectors.Vector)
-      return Path_Sets.Set
-   is
-      Result : Path_Sets.Set;
-   begin
-      for Path of Paths loop
-         Result.Include (To_String (Path));
-      end loop;
-      return Result;
-   end To_Set;
-
    function Desired_Path
      (Dir  : String;
       Name : String)
@@ -82,21 +70,39 @@ package body Files.Paste is
       return Decision_Pending;
    end Override_At;
 
+   --  The name a set holds a path under: folded where the destination folds
+   --  case, so Readme.md and README.md are one destination there.
+   function Name_Key (Path : String; Fold_Names : Boolean) return String is
+     (if Fold_Names then Files.Types.Fold_Case (Path) else Path);
+
+   --  Existing, each path under its Name_Key.
+   function Key_Set (Existing : Files.Types.String_Vectors.Vector; Fold_Names : Boolean) return Path_Sets.Set is
+      Result : Path_Sets.Set;
+   begin
+      for Path of Existing loop
+         Result.Include (Name_Key (To_String (Path), Fold_Names));
+      end loop;
+      return Result;
+   end Key_Set;
+
    function Next_Unresolved_Conflict
-     (Items     : Work_Item_Vectors.Vector;
-      Policy    : Conflict_Policy;
-      Overrides : Item_Decision_Vectors.Vector;
-      Existing  : Files.Types.String_Vectors.Vector;
-      After     : Natural := 0)
+     (Items      : Work_Item_Vectors.Vector;
+      Policy     : Conflict_Policy;
+      Overrides  : Item_Decision_Vectors.Vector;
+      Existing   : Files.Types.String_Vectors.Vector;
+      After      : Natural := 0;
+      Fold_Names : Boolean := False)
       return Natural is
-      Existing_Set : constant Path_Sets.Set := To_Set (Existing);
+      Existing_Set : constant Path_Sets.Set := Key_Set (Existing, Fold_Names);
    begin
       for Index in Items.First_Index .. Items.Last_Index loop
          if Index > After
            and then Existing_Set.Contains
-             (Desired_Path
-                (To_String (Items.Element (Index).Dest_Dir),
-                 To_String (Items.Element (Index).Dest_Name)))
+             (Name_Key
+                (Desired_Path
+                   (To_String (Items.Element (Index).Dest_Dir),
+                    To_String (Items.Element (Index).Dest_Name)),
+                 Fold_Names))
            and then Effective_Decision (Policy, Override_At (Overrides, Index)) = Decision_Pending
          then
             return Index;
@@ -152,22 +158,10 @@ package body Files.Paste is
       Name_Limit : Hostkit.Fs.Leaf_Name_Limit := Files.Leaf_Names.Default_Limit)
       return Resolved_Action_Vectors.Vector
    is
-      --  The name a set holds a path under: folded where the destination
-      --  folds case, so Readme.md and README.md are one destination there.
-      function Key (Path : String) return String is
-        (if Fold_Names then Files.Types.Fold_Case (Path) else Path);
-
-      function Key_Set return Path_Sets.Set is
-         Result : Path_Sets.Set;
-      begin
-         for Path of Existing loop
-            Result.Include (Key (To_String (Path)));
-         end loop;
-         return Result;
-      end Key_Set;
+      function Key (Path : String) return String is (Name_Key (Path, Fold_Names));
 
       --  Where names fold, the existing entry's own spelling for each key:
-      --  the first listed, as later Existing paths may be incoming aliases.
+      --  the first listed.
       function Spellings return Spelling_Maps.Map is
          Result : Spelling_Maps.Map;
       begin
@@ -182,7 +176,7 @@ package body Files.Paste is
       end Spellings;
 
       Actions : Resolved_Action_Vectors.Vector;
-      Existing_Set : constant Path_Sets.Set := Key_Set;
+      Existing_Set : constant Path_Sets.Set := Key_Set (Existing, Fold_Names);
       Existing_Spelling : constant Spelling_Maps.Map := Spellings;
 
       --  A replace writes over the existing entry under its own name, as a
@@ -267,6 +261,16 @@ package body Files.Paste is
       then (others => <>)
       else (Fold_Names => Hostkit.Fs.Folds_Name_Case (Directory),
             Name_Limit => Hostkit.Fs.Leaf_Name_Limit_At (Directory)));
+
+   function Next_Unresolved_Conflict
+     (Items     : Work_Item_Vectors.Vector;
+      Policy    : Conflict_Policy;
+      Overrides : Item_Decision_Vectors.Vector;
+      Existing  : Files.Types.String_Vectors.Vector;
+      Rules     : Name_Rules;
+      After     : Natural := 0)
+      return Natural is
+     (Next_Unresolved_Conflict (Items, Policy, Overrides, Existing, After, Fold_Names => Rules.Fold_Names));
 
    function Resolve
      (Items     : Work_Item_Vectors.Vector;

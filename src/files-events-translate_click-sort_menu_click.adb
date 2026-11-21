@@ -1,3 +1,4 @@
+with Files.Commands.Overlay_Buttons;
 separate (Files.Events.Translate_Click)
 --  The open sort menu: a row picks the sort, a click outside closes it.
 procedure Sort_Menu_Click (Handled : out Boolean; Result : out Input_Action) is
@@ -21,7 +22,8 @@ begin
          Result := No_Action;
          return;
       else
-         Result := Command_Action (Files.Commands.Close_Overlay_Command);
+         Result := Command_Action
+           (Files.Commands.Overlay_Buttons.Dismiss_Command (Files.UI_Types.Sort_Menu_Overlay));
          return;
       end if;
    end if;

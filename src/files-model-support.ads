@@ -75,6 +75,19 @@ private package Files.Model.Support is
       Visible_Index : Positive)
       return Natural;
 
+   --  The selection index of a visible row: its item-list index, the
+   --  Temporary_Item_Index sentinel for the temporary create-item row (the
+   --  last visible row while it shows), or zero when the row is beyond the
+   --  list.
+   --
+   --  @param Model Model providing the filtered view.
+   --  @param Visible_Index 1-based row index in the visible list.
+   --  @return Item-list index, Temporary_Item_Index, or 0.
+   function Selection_Index_Of_Visible
+     (Model         : Window_Model;
+      Visible_Index : Positive)
+      return Natural;
+
    --  Whether Item_Index is part of the current multi-selection.
    --
    --  @param Model Model to inspect.

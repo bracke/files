@@ -50,8 +50,10 @@ begin
         Conflict.Overrides;
       Mode     : constant Files.File_System.Drop_Import_Mode :=
         Conflict.Mode;
+      Rules    : constant Files.Paste.Name_Rules :=
+        Files.Paste.Name_Rules_Of (if Work.Is_Empty then "" else To_String (Work.First_Element.Dest_Dir));
       Next     : constant Natural :=
-        Files.Paste.Next_Unresolved_Conflict (Work, Policy, Overrides, Existing);
+        Files.Paste.Next_Unresolved_Conflict (Work, Policy, Overrides, Existing, Rules);
    begin
       if Next /= 0 then
          Files.Model.Pasting.Set_Conflict_Index (Model, Next);
@@ -60,11 +62,7 @@ begin
 
       declare
          Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
-           Files.Paste.Resolve
-             (Work, Policy, Overrides, Existing,
-              Rules =>
-                Files.Paste.Name_Rules_Of
-                  (if Work.Is_Empty then "" else To_String (Work.First_Element.Dest_Dir)));
+           Files.Paste.Resolve (Work, Policy, Overrides, Existing, Rules);
          --  Carry the clipboard-clearing intent (clipboard paste vs
          --  drag-and-drop) captured when the conflict dialog was armed, since
          --  Pasting.Clear_Conflict below resets it.

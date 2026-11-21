@@ -14,6 +14,7 @@ with Files.Model.Command_Palette;
 with Files.Model.Context_Menu;
 with Files.Model.Label_Picker;
 with Files.Model.Settings_Pane;
+with Files.Commands.Overlay_Buttons;
 with Files.Settings.Path_References;
 
 package body Files.Interaction is
@@ -37,26 +38,7 @@ package body Files.Interaction is
       if not Files.Model.Topmost_Overlay (Model, Overlay) then
          return True;
       end if;
-      case Overlay is
-         when Files.UI_Types.Foreground_Job_Overlay | Files.UI_Types.Paste_Conflict_Overlay =>
-            return False;
-         when Files.UI_Types.Quick_Look_Overlay =>
-            return Command = Files.Commands.Toggle_Quick_Look_Command;
-         when Files.UI_Types.Label_Picker_Overlay
-            | Files.UI_Types.Command_Palette_Overlay
-            | Files.UI_Types.Context_Menu_Overlay =>
-            return Command = Files.Commands.Close_Overlay_Command;
-         when Files.UI_Types.Settings_Pane_Overlay =>
-            return Command = Files.Commands.Toggle_Settings_Pane_Command;
-         when Files.UI_Types.Root_Selector_Overlay =>
-            return Command in Files.Commands.Select_Drive_Command
-                              | Files.Commands.Close_Overlay_Command;
-         when Files.UI_Types.Sort_Menu_Overlay =>
-            return Command in Files.Commands.Sort_Command_Id
-                              | Files.Commands.Close_Overlay_Command;
-         when Files.UI_Types.Tree_Pick_Overlay =>
-            return Command = Files.Commands.Toggle_Folder_Tree_Command;
-      end case;
+      return Files.Commands.Overlay_Buttons.Accepts (Overlay, Command);
    end Command_Action_Is_Current;
 
    --  Copy the common controller observations into the public interaction

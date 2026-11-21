@@ -108,6 +108,12 @@ package Files.Model.Settings_Pane is
    --  @param Lines Rows to scroll.
    procedure Scroll (Model : in out Window_Model; Lines : Integer);
 
+   --  How far the panel content is scrolled.
+   --
+   --  @param Model Model to inspect.
+   --  @return The scroll offset in rows; 0 at the top.
+   function Scroll_Offset (Model : Window_Model) return Natural;
+
    --  Hit-test a window coordinate, focusing/editing the field under it.
    --
    --  @param Model Model to update.

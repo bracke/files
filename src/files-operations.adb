@@ -322,13 +322,6 @@ package body Files.Operations is
       return Files.Types.String_Vectors.Vector
    is separate;
 
-   function With_Case_Aliases
-     (Work      : Files.Paste.Work_Item_Vectors.Vector;
-      Existing  : Files.Types.String_Vectors.Vector;
-      Directory : String)
-      return Files.Types.String_Vectors.Vector
-   is separate;
-
    function Paste_Work_List
      (Plans     : Files.File_System.Drop_Import_Plan_Vectors.Vector;
       Directory : String)

@@ -17,17 +17,12 @@ package body Files.Model.Rename is
       Visible_Index : Positive)
       return Natural
    is
-      Loaded : constant Natural := Visible_To_Item_Index (Model, Visible_Index);
-      Target : Natural;
+      Row    : constant Natural := Selection_Index_Of_Visible (Model, Visible_Index);
+      --  A rename field names the temporary row's item as 0.
+      Target : constant Natural := (if Row = Temporary_Item_Index then 0 else Row);
    begin
-      if Loaded = 0 then
-         if Temporary_Is_Visible (Model) and then Visible_Index = Visible_Count (Model) then
-            Target := 0;
-         else
-            return 0;
-         end if;
-      else
-         Target := Loaded;
+      if Row = 0 then
+         return 0;
       end if;
 
       for Index in Model.Rename.Fields.First_Index .. Model.Rename.Fields.Last_Index loop

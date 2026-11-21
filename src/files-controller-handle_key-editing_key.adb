@@ -47,125 +47,48 @@ procedure Editing_Key (Handled : out Boolean; Result : out Controller_Result) is
       end case;
       return Changed_Result (Old_Position, Files.Model.Text_Cursor_Position (Model), Controller_Text_Updated);
    end Move_Caret;
+   Plain         : constant Boolean := Modifiers = Guikit.Input.No_Modifiers;
+   --  A text field has the keyboard; the palette's query field has no caret
+   --  of its own to move (its arrows move the result highlight).
+   Field_Focused : constant Boolean := Files.Model.Focus (Model) /= Files.UI_Types.Focus_None;
+   Caret_Field   : constant Boolean :=
+     Field_Focused and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_Command_Palette;
 begin
    Handled := True;
-   if Key = Guikit.Input.Key_Return then
-      if Modifiers = Guikit.Input.No_Modifiers then
-         Result := Commit_Focused_Text (Model, Settings, Modifiers);
-         return;
-      elsif Files.Model.Focus (Model) = Files.UI_Types.Focus_None then
-         Result := Execute_Non_Settings_Command
-           (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
-         return;
-      end if;
-   elsif Key = Guikit.Input.Key_Backspace
-     and then Control_Only
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_None
-   then
-      Result := Delete_Focused_Text (Model, Delete_Backward, By_Word => True);
-      return;
-   elsif Key = Guikit.Input.Key_Delete
-     and then Control_Only
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_None
-   then
-      Result := Delete_Focused_Text (Model, Delete_Forward, By_Word => True);
-      return;
-   elsif Key = Guikit.Input.Key_Left
-     and then Control_Only
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_None
-   then
-      Result := Move_Caret (Word_Left);
-      return;
-   elsif Key = Guikit.Input.Key_Right
-     and then Control_Only
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_None
-   then
-      Result := Move_Caret (Word_Right);
-      return;
-   elsif Key = Guikit.Input.Key_Backspace
-     and then Modifiers = Guikit.Input.No_Modifiers
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_None
-   then
-      Result := Delete_Focused_Text (Model, Delete_Backward, By_Word => False);
-      return;
-   elsif Key = Guikit.Input.Key_Delete
-     and then Modifiers = Guikit.Input.No_Modifiers
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_None
-   then
-      Result := Delete_Focused_Text (Model, Delete_Forward, By_Word => False);
-      return;
-   elsif Key = Guikit.Input.Key_Left
-     and then Modifiers = Guikit.Input.No_Modifiers
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_None
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_Command_Palette
-   then
-      Result := Move_Caret (Char_Left);
-      return;
-   elsif Key = Guikit.Input.Key_Right
-     and then Modifiers = Guikit.Input.No_Modifiers
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_None
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_Command_Palette
-   then
-      Result := Move_Caret (Char_Right);
-      return;
-   elsif Key = Guikit.Input.Key_Home
-     and then Modifiers = Guikit.Input.No_Modifiers
-     and then Files.Model.Focus (Model) = Files.UI_Types.Focus_None
-     and then not Files.Model.Settings_Pane.Is_Open (Model)
-   then
-      --  Plain Home in the file grid selects the first visible item. This has
-      --  no modifier, so it never collides with Alt+Home = navigate home.
-      Result := First_Selection_Result (Model);
-      return;
-   elsif Key = Guikit.Input.Key_End
-     and then Modifiers = Guikit.Input.No_Modifiers
-     and then Files.Model.Focus (Model) = Files.UI_Types.Focus_None
-     and then not Files.Model.Settings_Pane.Is_Open (Model)
-   then
-      --  Plain End in the file grid selects the last visible item.
-      Result := Last_Selection_Result (Model);
-      return;
-   elsif Key = Guikit.Input.Key_Home
-     and then Modifiers = Guikit.Input.No_Modifiers
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_None
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_Command_Palette
-   then
-      Result := Move_Caret (To_Home);
-      return;
-   elsif Key = Guikit.Input.Key_End
-     and then Modifiers = Guikit.Input.No_Modifiers
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_None
-     and then Files.Model.Focus (Model) /= Files.UI_Types.Focus_Command_Palette
-   then
-      Result := Move_Caret (To_End);
-      return;
-   elsif Key = Guikit.Input.Key_Page_Up
-     and then Modifiers = Guikit.Input.No_Modifiers
-     and then Files.Model.Focus (Model) = Files.UI_Types.Focus_None
-     and then not Files.Model.Settings_Pane.Is_Open (Model)
-   then
-      --  With the info pane open Page Up scrolls it; over the file grid it
-      --  pages the selection up by a page (like the arrow keys move it).
-      if Files.Model.Info_Pane_Is_Open (Model) then
-         Result := Scroll_Info_Result (Model, -10);
-         return;
-      else
-         Result := Page_Selection_Result (Model, Down => False);
-         return;
-      end if;
-   elsif Key = Guikit.Input.Key_Page_Down
-     and then Modifiers = Guikit.Input.No_Modifiers
-     and then Files.Model.Focus (Model) = Files.UI_Types.Focus_None
-     and then not Files.Model.Settings_Pane.Is_Open (Model)
-   then
-      if Files.Model.Info_Pane_Is_Open (Model) then
-         Result := Scroll_Info_Result (Model, 10);
-         return;
-      else
-         Result := Page_Selection_Result (Model, Down => True);
-         return;
-      end if;
-   end if;
+   case Key is
+      when Guikit.Input.Key_Return =>
+         if Plain then
+            Result := Commit_Focused_Text (Model, Settings, Modifiers);
+            return;
+         elsif not Field_Focused then
+            Result := Execute_Non_Settings_Command
+              (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
+            return;
+         end if;
+      when Guikit.Input.Key_Backspace | Guikit.Input.Key_Delete =>
+         if Field_Focused and then (Plain or else Control_Only) then
+            Result := Delete_Focused_Text
+              (Model,
+               (if Key = Guikit.Input.Key_Backspace then Delete_Backward else Delete_Forward),
+               By_Word => Control_Only);
+            return;
+         end if;
+      when Guikit.Input.Key_Left | Guikit.Input.Key_Right =>
+         if Field_Focused and then Control_Only then
+            Result := Move_Caret (if Key = Guikit.Input.Key_Left then Word_Left else Word_Right);
+            return;
+         elsif Caret_Field and then Plain then
+            Result := Move_Caret (if Key = Guikit.Input.Key_Left then Char_Left else Char_Right);
+            return;
+         end if;
+      when Guikit.Input.Key_Home | Guikit.Input.Key_End =>
+         if Caret_Field and then Plain then
+            Result := Move_Caret (if Key = Guikit.Input.Key_Home then To_Home else To_End);
+            return;
+         end if;
+      when others =>
+         null;
+   end case;
    Handled := False;
    Result := Make_Result (Controller_Ignored);
 end Editing_Key;

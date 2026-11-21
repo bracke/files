@@ -4,43 +4,29 @@ separate (Files.Events)
       Modifiers : Guikit.Input.Modifier_Set)
       return Input_Action
    is
-      Command : constant Files.Commands.Command_Id := Files.Commands.Find_By_Shortcut (Key, Modifiers);
+      Command    : constant Files.Commands.Command_Id := Files.Commands.Find_By_Shortcut (Key, Modifiers);
+      Navigation : constant Grid_Navigation := Grid_Navigation_Of (Key);
    begin
       if Command /= Files.Commands.No_Command then
          return Command_Action (Command);
       end if;
 
-      if Modifiers = Guikit.Input.No_Modifiers
-        or else
-          (Modifiers (Guikit.Input.Shift_Key)
-           and then not Modifiers (Guikit.Input.Control_Key)
-           and then not Modifiers (Guikit.Input.Alt_Key)
-           and then not Modifiers (Guikit.Input.Meta_Key))
+      --  An arrow, plain or with Shift (which extends the selection), is a
+      --  selection step; the other grid keys are the controller's
+      --  (Files.Controller.Handle_Key), which knows what owns them.
+      if Navigation.Move = Grid_Step
+        and then
+          (Modifiers = Guikit.Input.No_Modifiers
+           or else
+             (Modifiers (Guikit.Input.Shift_Key)
+              and then not Modifiers (Guikit.Input.Control_Key)
+              and then not Modifiers (Guikit.Input.Alt_Key)
+              and then not Modifiers (Guikit.Input.Meta_Key)))
       then
-         case Key is
-            when Guikit.Input.Key_Left =>
-               return
-                 (Kind            => Selection_Input_Action,
-                  Direction       => Guikit.Input.Move_Left,
-                  Extend          => Modifiers (Guikit.Input.Shift_Key));
-            when Guikit.Input.Key_Right =>
-               return
-                 (Kind            => Selection_Input_Action,
-                  Direction       => Guikit.Input.Move_Right,
-                  Extend          => Modifiers (Guikit.Input.Shift_Key));
-            when Guikit.Input.Key_Up =>
-               return
-                 (Kind            => Selection_Input_Action,
-                  Direction       => Guikit.Input.Move_Up,
-                  Extend          => Modifiers (Guikit.Input.Shift_Key));
-            when Guikit.Input.Key_Down =>
-               return
-                 (Kind            => Selection_Input_Action,
-                  Direction       => Guikit.Input.Move_Down,
-                  Extend          => Modifiers (Guikit.Input.Shift_Key));
-            when others =>
-               null;
-         end case;
+         return
+           (Kind      => Selection_Input_Action,
+            Direction => Navigation.Direction,
+            Extend    => Modifiers (Guikit.Input.Shift_Key));
       end if;
 
       return No_Action;

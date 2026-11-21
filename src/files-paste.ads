@@ -88,13 +88,17 @@ package Files.Paste is
    --  @param Overrides Per-item overrides (may be empty; missing entries are Pending).
    --  @param Existing Full destination paths known to exist.
    --  @param After Only items with index greater than After are considered.
+   --  @param Fold_Names Whether the destination folds case
+   --    (Hostkit.Fs.Folds_Name_Case): an item whose name differs from an
+   --    existing entry's only in case then conflicts with it, as in Resolve.
    --  @return One-based index of the next unresolved conflict, or 0 when none.
    function Next_Unresolved_Conflict
-     (Items     : Work_Item_Vectors.Vector;
-      Policy    : Conflict_Policy;
-      Overrides : Item_Decision_Vectors.Vector;
-      Existing  : Files.Types.String_Vectors.Vector;
-      After     : Natural := 0)
+     (Items      : Work_Item_Vectors.Vector;
+      Policy     : Conflict_Policy;
+      Overrides  : Item_Decision_Vectors.Vector;
+      Existing   : Files.Types.String_Vectors.Vector;
+      After      : Natural := 0;
+      Fold_Names : Boolean := False)
       return Natural;
 
    --  Resolve a whole work-list into concrete actions. Non-conflicting items are
@@ -142,6 +146,24 @@ package Files.Paste is
    --  @param Directory Destination directory; empty for none.
    --  @return Its rules; neither for an empty Directory.
    function Name_Rules_Of (Directory : String) return Name_Rules;
+
+   --  Next_Unresolved_Conflict with a destination's Name_Rules_Of.
+   --
+   --  @param Items Work-list.
+   --  @param Policy Batch-wide policy.
+   --  @param Overrides Per-item overrides (may be empty; missing entries are Pending).
+   --  @param Existing Full destination paths known to exist.
+   --  @param Rules The destination's naming rules.
+   --  @param After Only items with index greater than After are considered.
+   --  @return One-based index of the next unresolved conflict, or 0 when none.
+   function Next_Unresolved_Conflict
+     (Items     : Work_Item_Vectors.Vector;
+      Policy    : Conflict_Policy;
+      Overrides : Item_Decision_Vectors.Vector;
+      Existing  : Files.Types.String_Vectors.Vector;
+      Rules     : Name_Rules;
+      After     : Natural := 0)
+      return Natural;
 
    --  Resolve with a destination's Name_Rules_Of.
    --

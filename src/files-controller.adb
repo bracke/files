@@ -26,6 +26,7 @@ with Files.Settings.Path_References;
 package body Files.Controller is
    use Ada.Strings.Unbounded;
    use type Files.Commands.Command_Id;
+   use type Files.Input_Actions.Grid_Move;
    use type Files.Input_Actions.Input_Action_Kind;
    use type Files.Input_Actions.Scroll_Target;
    use type Files.File_System.Root_Kind;
@@ -992,47 +993,40 @@ package body Files.Controller is
       end if;
    end Import_Pending_Drops;
 
-   function Scroll_Info_Result
-     (Model : in out Files.Model.Window_Model;
-      Lines : Integer)
+   --  How far Target is scrolled; 0 for a region without a position of
+   --  its own (the palette scrolls its selection, Scroll_Palette_Selection).
+   function Scroll_Position
+     (Model  : Files.Model.Window_Model;
+      Target : Files.Input_Actions.Scroll_Target)
+      return Natural is
+     (case Target is
+         when Files.Input_Actions.Scroll_Main_View     => Files.Model.Main_View_Scroll_Lines (Model),
+         when Files.Input_Actions.Scroll_Info_Pane     => Files.Model.Info_Pane_Scroll_Lines (Model),
+         when Files.Input_Actions.Scroll_Tree_Panel    => Files.Model.Tree_Panel.Scroll_Rows (Model),
+         when Files.Input_Actions.Scroll_Settings_Pane => Files.Model.Settings_Pane.Scroll_Offset (Model),
+         when Files.Input_Actions.No_Scroll_Target
+            | Files.Input_Actions.Scroll_Command_Palette => 0);
+
+   --  Scroll Target by Lines: executed when it moved, ignored when it was
+   --  already at that end.
+   function Scroll_Result
+     (Model  : in out Files.Model.Window_Model;
+      Target : Files.Input_Actions.Scroll_Target;
+      Lines  : Integer)
       return Controller_Result
    is
-      Old_Lines : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
+      Old : constant Natural := Scroll_Position (Model, Target);
    begin
-      Files.Model.Scroll_Info_Pane (Model, Lines);
-      return Changed_Result (Old_Lines, Files.Model.Info_Pane_Scroll_Lines (Model));
-   end Scroll_Info_Result;
-
-   function Scroll_Tree_Result
-     (Model : in out Files.Model.Window_Model;
-      Rows  : Integer)
-      return Controller_Result
-   is
-      Old_Rows : constant Natural := Files.Model.Tree_Panel.Scroll_Rows (Model);
-   begin
-      Files.Model.Tree_Panel.Scroll (Model, Rows);
-      return Changed_Result (Old_Rows, Files.Model.Tree_Panel.Scroll_Rows (Model));
-   end Scroll_Tree_Result;
-
-   function Scroll_Settings_Result
-     (Model : in out Files.Model.Window_Model;
-      Lines : Integer)
-      return Controller_Result is
-   begin
-      Files.Model.Settings_Pane.Scroll (Model, Lines);
-      return Make_Result (Controller_Command_Executed);
-   end Scroll_Settings_Result;
-
-   function Scroll_Main_Result
-     (Model : in out Files.Model.Window_Model;
-      Lines : Integer)
-      return Controller_Result
-   is
-      Old_Lines : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
-   begin
-      Files.Model.Scroll_Main_View (Model, Lines);
-      return Changed_Result (Old_Lines, Files.Model.Main_View_Scroll_Lines (Model));
-   end Scroll_Main_Result;
+      case Target is
+         when Files.Input_Actions.Scroll_Main_View     => Files.Model.Scroll_Main_View (Model, Lines);
+         when Files.Input_Actions.Scroll_Info_Pane     => Files.Model.Scroll_Info_Pane (Model, Lines);
+         when Files.Input_Actions.Scroll_Tree_Panel    => Files.Model.Tree_Panel.Scroll (Model, Lines);
+         when Files.Input_Actions.Scroll_Settings_Pane => Files.Model.Settings_Pane.Scroll (Model, Lines);
+         when Files.Input_Actions.No_Scroll_Target
+            | Files.Input_Actions.Scroll_Command_Palette => null;
+      end case;
+      return Changed_Result (Old, Scroll_Position (Model, Target));
+   end Scroll_Result;
 
    function Handle_Targeted_Scroll
      (Model  : in out Files.Model.Window_Model;
@@ -1113,69 +1107,52 @@ package body Files.Controller is
       return Controller_Result
  is separate;
 
-   function Root_Selection_Result
-     (Model     : in out Files.Model.Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
+   function Root_Highlight_Result
+     (Model      : in out Files.Model.Window_Model;
+      Navigation : Files.Input_Actions.Grid_Navigation)
       return Controller_Result
    is
       Old_Index : constant Natural := Files.Model.Root_Selector.Selected_Index (Model);
    begin
-      Files.Model.Root_Selector.Move_Selection (Model, Direction);
+      case Navigation.Move is
+         when Files.Input_Actions.Grid_Step =>
+            Files.Model.Root_Selector.Move_Selection (Model, Navigation.Direction);
+         when Files.Input_Actions.Grid_First =>
+            Files.Model.Root_Selector.Set_Selected_Index (Model, 1);
+         when Files.Input_Actions.Grid_Last =>
+            Files.Model.Root_Selector.Set_Selected_Index (Model, Files.Model.Root_Selector.Count (Model));
+         --  The selector shows every root at once: there is no page to turn.
+         when Files.Input_Actions.No_Grid_Move
+            | Files.Input_Actions.Grid_Page_Up
+            | Files.Input_Actions.Grid_Page_Down =>
+            null;
+      end case;
       return Changed_Result (Old_Index, Files.Model.Root_Selector.Selected_Index (Model), Controller_Selection_Moved);
-   end Root_Selection_Result;
+   end Root_Highlight_Result;
 
-   function Root_Jump_Result
-     (Model : in out Files.Model.Window_Model;
-      Index : Natural)
-      return Controller_Result
-   is
-      Old_Index : constant Natural := Files.Model.Root_Selector.Selected_Index (Model);
-   begin
-      Files.Model.Root_Selector.Set_Selected_Index (Model, Index);
-      return Changed_Result (Old_Index, Files.Model.Root_Selector.Selected_Index (Model), Controller_Selection_Moved);
-   end Root_Jump_Result;
-
-   function Step_Selection_Result
-     (Model     : in out Files.Model.Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
+   function Selection_Result
+     (Model      : in out Files.Model.Window_Model;
+      Navigation : Files.Input_Actions.Grid_Navigation)
       return Controller_Result
    is
       Old_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);
    begin
-      Files.Model.Selection.Move (Model, Direction);
+      case Navigation.Move is
+         when Files.Input_Actions.Grid_Step =>
+            Files.Model.Selection.Move (Model, Navigation.Direction);
+         when Files.Input_Actions.Grid_First =>
+            Files.Model.Selection.Select_First_Visible (Model);
+         when Files.Input_Actions.Grid_Last =>
+            Files.Model.Selection.Select_Last_Visible (Model);
+         when Files.Input_Actions.Grid_Page_Up | Files.Input_Actions.Grid_Page_Down =>
+            Files.Model.Selection.Move_By_Page
+              (Model, Files.Model.Selection.Page_Rows (Model),
+               Down => Navigation.Move = Files.Input_Actions.Grid_Page_Down);
+         when Files.Input_Actions.No_Grid_Move =>
+            null;
+      end case;
       return Changed_Result (Old_Index, Files.Model.Selection.Selected_Index (Model), Controller_Selection_Moved);
-   end Step_Selection_Result;
-
-   function First_Selection_Result
-     (Model : in out Files.Model.Window_Model)
-      return Controller_Result
-   is
-      Old_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);
-   begin
-      Files.Model.Selection.Select_First_Visible (Model);
-      return Changed_Result (Old_Index, Files.Model.Selection.Selected_Index (Model), Controller_Selection_Moved);
-   end First_Selection_Result;
-
-   function Last_Selection_Result
-     (Model : in out Files.Model.Window_Model)
-      return Controller_Result
-   is
-      Old_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);
-   begin
-      Files.Model.Selection.Select_Last_Visible (Model);
-      return Changed_Result (Old_Index, Files.Model.Selection.Selected_Index (Model), Controller_Selection_Moved);
-   end Last_Selection_Result;
-
-   function Page_Selection_Result
-     (Model : in out Files.Model.Window_Model;
-      Down  : Boolean)
-      return Controller_Result
-   is
-      Old_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);
-   begin
-      Files.Model.Selection.Move_By_Page (Model, Files.Model.Selection.Page_Rows (Model), Down);
-      return Changed_Result (Old_Index, Files.Model.Selection.Selected_Index (Model), Controller_Selection_Moved);
-   end Page_Selection_Result;
+   end Selection_Result;
 
    function Handle_Key
      (Model     : in out Files.Model.Window_Model;

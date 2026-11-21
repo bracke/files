@@ -48,18 +48,18 @@ separate (Files.Controller)
             end if;
          when Files.Input_Actions.Scroll_Info_Pane =>
             if Files.Model.Info_Pane_Is_Open (Model) then
-               return Scroll_Info_Result (Model, Lines);
+               return Scroll_Result (Model, Target, Lines);
             end if;
          when Files.Input_Actions.Scroll_Tree_Panel =>
             if Files.Model.Tree_Panel.Is_Open (Model) then
-               return Scroll_Tree_Result (Model, Lines);
+               return Scroll_Result (Model, Target, Lines);
             end if;
          when Files.Input_Actions.Scroll_Settings_Pane =>
             if Files.Model.Settings_Pane.Is_Open (Model) then
-               return Scroll_Settings_Result (Model, Lines);
+               return Scroll_Result (Model, Target, Lines);
             end if;
          when Files.Input_Actions.Scroll_Main_View =>
-            return Scroll_Main_Result (Model, Lines);
+            return Scroll_Result (Model, Target, Lines);
       end case;
 
       return Make_Result (Controller_Ignored);

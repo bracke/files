@@ -10,20 +10,8 @@ begin
       case Key is
          when Guikit.Input.Key_Return =>
             Result := Handle_Root_Click (Model, Settings, Files.Model.Root_Selector.Selected_Index (Model));
-         when Guikit.Input.Key_Left =>
-            Result := Root_Selection_Result (Model, Guikit.Input.Move_Left);
-         when Guikit.Input.Key_Right =>
-            Result := Root_Selection_Result (Model, Guikit.Input.Move_Right);
-         when Guikit.Input.Key_Up =>
-            Result := Root_Selection_Result (Model, Guikit.Input.Move_Up);
-         when Guikit.Input.Key_Down =>
-            Result := Root_Selection_Result (Model, Guikit.Input.Move_Down);
-         when Guikit.Input.Key_Home =>
-            Result := Root_Jump_Result (Model, 1);
-         when Guikit.Input.Key_End =>
-            Result := Root_Jump_Result (Model, Files.Model.Root_Selector.Count (Model));
          when others =>
-            null;
+            Result := Root_Highlight_Result (Model, Files.Input_Actions.Grid_Navigation_Of (Key));
       end case;
    elsif Action.Kind = Files.Input_Actions.Command_Input_Action
      and then Action.Command = Files.Commands.Open_Command_Palette_Command

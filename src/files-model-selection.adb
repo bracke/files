@@ -89,17 +89,10 @@ package body Files.Model.Selection is
      (Model         : in out Window_Model;
       Visible_Index : Positive)
    is
-      Item_Index : constant Natural := Visible_To_Item_Index (Model, Visible_Index);
    begin
       Touch_Selection (Model);
-      Model.Selected_Item_Index := Item_Index;
+      Model.Selected_Item_Index := Selection_Index_Of_Visible (Model, Visible_Index);
       Model.Selected_Item_Indexes.Clear;
-      if Item_Index = 0
-        and then Temporary_Is_Visible (Model)
-        and then Visible_Index = Visible_Count (Model)
-      then
-         Model.Selected_Item_Index := Temporary_Item_Index;
-      end if;
       Add_Selected_Index (Model, Model.Selected_Item_Index);
       Model.Info_Pane_Scroll := 0;
       Reconcile_Rename_With_Selection (Model);
@@ -196,16 +189,10 @@ package body Files.Model.Selection is
      (Model         : in out Window_Model;
       Visible_Index : Positive)
    is
-      Item_Index : Natural := Visible_To_Item_Index (Model, Visible_Index);
+      Item_Index : constant Natural := Selection_Index_Of_Visible (Model, Visible_Index);
    begin
       Touch_Selection (Model);
       Reset_Type_Ahead (Model);
-      if Item_Index = 0
-        and then Temporary_Is_Visible (Model)
-        and then Visible_Index = Visible_Count (Model)
-      then
-         Item_Index := Temporary_Item_Index;
-      end if;
 
       if Item_Index = 0 then
          return;
@@ -276,13 +263,7 @@ package body Files.Model.Selection is
          Model.Selected_Item_Indexes := Rows;
       end;
 
-      Model.Selected_Item_Index := Visible_To_Item_Index (Model, Target_Index);
-      if Model.Selected_Item_Index = 0
-        and then Temporary_Is_Visible (Model)
-        and then Natural (Target_Index) = Count
-      then
-         Model.Selected_Item_Index := Temporary_Item_Index;
-      end if;
+      Model.Selected_Item_Index := Selection_Index_Of_Visible (Model, Target_Index);
       Model.Info_Pane_Scroll := 0;
       Reconcile_Rename_With_Selection (Model);
    end Select_Visible_Range;
@@ -524,16 +505,8 @@ package body Files.Model.Selection is
      (Model         : Window_Model;
       Visible_Index : Positive)
       return Boolean is
-      Item_Index : Natural := Visible_To_Item_Index (Model, Visible_Index);
    begin
-      if Item_Index = 0
-        and then Temporary_Is_Visible (Model)
-        and then Visible_Index = Visible_Count (Model)
-      then
-         Item_Index := Temporary_Item_Index;
-      end if;
-
-      return Selection_Contains (Model, Item_Index);
+      return Selection_Contains (Model, Selection_Index_Of_Visible (Model, Visible_Index));
    end Is_Selected;
 
    function Selected_Index

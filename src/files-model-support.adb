@@ -167,6 +167,22 @@ package body Files.Model.Support is
               then Model.Visible_Items (Visible_Index) else 0);
    end Visible_To_Item_Index;
 
+   function Selection_Index_Of_Visible
+     (Model         : Window_Model;
+      Visible_Index : Positive)
+      return Natural
+   is
+      Item_Index : constant Natural := Visible_To_Item_Index (Model, Visible_Index);
+   begin
+      if Item_Index = 0
+        and then Temporary_Is_Visible (Model)
+        and then Visible_Index = Visible_Count (Model)
+      then
+         return Temporary_Item_Index;
+      end if;
+      return Item_Index;
+   end Selection_Index_Of_Visible;
+
    --  Map an item-list index to its 1-based visible-row index, or zero when
    --  the item is hidden by the current filter.
    function Item_To_Visible_Index
@@ -367,7 +383,9 @@ package body Files.Model.Support is
    end Group_Items;
 
    procedure Resort_Items (Model : in out Window_Model; Field_Sort : Boolean := True) is
-      Previous_Selection : Files.Items.Item_Vectors.Vector;
+      --  The selected items' paths: only the path finds an item again after
+      --  the sort, so the items themselves are not copied.
+      Previous_Selection : Files.Types.String_Vectors.Vector;
       Primary_Sentinel   : constant Boolean := Model.Selected_Item_Index = Temporary_Item_Index;
       Primary_Path       : Unbounded_String := Null_Unbounded_String;
       Rename_Old_Paths   : Files.Types.String_Vectors.Vector;
@@ -405,7 +423,7 @@ package body Files.Model.Support is
       Touch (Model);
       for Item_Index of Model.Selected_Item_Indexes loop
          if Item_Index in 1 .. Natural (Model.Items.Last_Index) then
-            Previous_Selection.Append (Model.Items.Element (Positive (Item_Index)));
+            Previous_Selection.Append (Model.Items (Positive (Item_Index)).Full_Path);
          end if;
       end loop;
       if not Primary_Sentinel then
@@ -439,9 +457,9 @@ package body Files.Model.Support is
            Model.Selected_Item_Indexes.Contains (Temporary_Item_Index);
       begin
          Model.Selected_Item_Indexes.Clear;
-         for Item of Previous_Selection loop
+         for Path of Previous_Selection loop
             declare
-               New_Index : constant Natural := Index_Of (Item.Full_Path);
+               New_Index : constant Natural := Index_Of (Path);
             begin
                if New_Index /= 0 then
                   Model.Selected_Item_Indexes.Append (New_Index);

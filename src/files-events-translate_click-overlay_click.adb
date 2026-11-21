@@ -1,3 +1,4 @@
+with Files.Commands.Overlay_Buttons;
 with Files.Rendering.Layouts;
 separate (Files.Events.Translate_Click)
 --  The overlay on top (Files.Rendering.Topmost_Overlay_Position, the order
@@ -5,6 +6,14 @@ separate (Files.Events.Translate_Click)
 --  swallows the rest, so nothing behind it reacts. The sort menu and the
 --  tree pick have regions of their own further on.
 procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
+
+   Position : constant Natural := Files.Rendering.Topmost_Overlay_Position (Snapshot);
+
+   --  What the top overlay's close button, or a click outside it, runs:
+   --  the command the interaction layer admits for it
+   --  (Files.Commands.Overlay_Buttons).
+   function Dismiss return Input_Action is
+     (Command_Action (Files.Commands.Overlay_Buttons.Dismiss_Command (Files.UI_Types.Overlay_Stack (Position))));
 
    --  The paste-progress overlay is a modal-lite top-most panel: while a long
    --  copy/move runs, a click either hits its Cancel button or is swallowed.
@@ -47,7 +56,7 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
       if Close_Button_Hit (QL.Close_Button)
         or else not (Within (X, QL.X, QL.Width) and then Within (Y, QL.Y, QL.Height))
       then
-         return Command_Action (Files.Commands.Toggle_Quick_Look_Command);
+         return Dismiss;
       end if;
       return No_Action;
    end Quick_Look_Click;
@@ -71,7 +80,7 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
       if Close_Button_Hit (Picker.Close_Button)
         or else not (Within (X, Picker.X, Picker.Width) and then Within (Y, Picker.Y, Picker.Height))
       then
-         return Command_Action (Files.Commands.Close_Overlay_Command);
+         return Dismiss;
       end if;
       return No_Action;
    end Label_Picker_Click;
@@ -85,7 +94,7 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
         Files.Rendering.Layouts.Calculate_Command_Palette_Layout (Layout, Line_Height);
    begin
       if Close_Button_Hit (Palette_Layout.X, Palette_Layout.Y, Palette_Layout.Width, Palette_Layout.Height) then
-         return Command_Action (Files.Commands.Close_Overlay_Command);
+         return Dismiss;
       elsif Within (X, Palette_Layout.X, Palette_Layout.Width)
         and then Within (Y, Palette_Layout.Y, Palette_Layout.Height)
       then
@@ -103,7 +112,7 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
         Files.Rendering.Layouts.Settings_Pane_Region (Layout, Line_Height);
    begin
       if Close_Button_Hit (Settings_Pane.X, Settings_Pane.Y, Settings_Pane.Width, Settings_Pane.Height) then
-         return Command_Action (Files.Commands.Toggle_Settings_Pane_Command);
+         return Dismiss;
       elsif Within (X, Settings_Pane.X, Settings_Pane.Width) and then Within (Y, Settings_Pane.Y, Settings_Pane.Height)
       then
          return (Kind => Settings_Click_Input_Action, Click_X => X, Click_Y => Y);
@@ -122,7 +131,7 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
           (Files.Rendering.Layouts.Calculate_Root_Path_Layout (Snapshot, Root_Layout), X, Y);
    begin
       if Close_Button_Hit (Root_Layout.Close_Button) then
-         return Command_Action (Files.Commands.Close_Overlay_Command);
+         return Dismiss;
       elsif Root_Index /= 0 then
          return (Kind => Root_Click_Input_Action, Root_Index => Root_Index);
       elsif Files.Rendering.Hit.Toolbar_Command_At (X, Y, Width, Line_Height)
@@ -132,7 +141,7 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
       elsif Within (X, Root_Layout.X, Root_Layout.Width) and then Within (Y, Root_Layout.Y, Root_Layout.Height) then
          return No_Action;
       end if;
-      return Command_Action (Files.Commands.Close_Overlay_Command);
+      return Dismiss;
    end Root_Selector_Click;
 
    --  The context menu: a row runs its command, a click on its padding or a
@@ -147,10 +156,8 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
       elsif Files.Rendering.Hit.Context_Menu_Contains (Menu, X, Y) then
          return No_Action;
       end if;
-      return Command_Action (Files.Commands.Close_Overlay_Command);
+      return Dismiss;
    end Context_Menu_Click;
-
-   Position : constant Natural := Files.Rendering.Topmost_Overlay_Position (Snapshot);
 begin
    Handled := Position /= 0;
    Result := No_Action;
