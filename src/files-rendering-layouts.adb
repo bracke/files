@@ -326,7 +326,7 @@ package body Files.Rendering.Layouts is
 
    function Sort_Menu_Row_Field
      (Row : Positive)
-      return Files.Types.Sort_Field is (Files.Types.Sort_Field'Val (Row - 1));
+      return Files.Types.Sort_Field renames Files.Types.Sort_Menu_Field;
 
    function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector
    is separate;

@@ -155,6 +155,20 @@ package Files.Types is
       Sort_Created,
       Sort_Changed);
 
+   --  The sort menu's rows: one per Sort_Field, in declaration order. The
+   --  model's keyboard highlight and the layout's rows both go through
+   --  these, so a field added is a row added everywhere.
+   Sort_Menu_Rows : constant Positive := Sort_Field'Pos (Sort_Field'Last) + 1;
+
+   --  @param Field A sort field.
+   --  @return Its one-based sort-menu row.
+   function Sort_Menu_Row (Field : Sort_Field) return Positive is (Sort_Field'Pos (Field) + 1);
+
+   --  @param Row A one-based sort-menu row.
+   --  @return The field that row stands for.
+   function Sort_Menu_Field (Row : Positive) return Sort_Field is (Sort_Field'Val (Row - 1))
+     with Pre => Row <= Sort_Menu_Rows;
+
    --  The listing policy a directory load applies: whether hidden entries are
    --  listed, and the order the listed items are sorted into. A load reads only
    --  these from the settings for filtering and ordering, so a caller with its
@@ -339,8 +353,9 @@ package Files.Types is
 
    --  Return whether Raw_Bytes looks like binary (non-text) data: it contains a
    --  NUL byte, or too large a share of non-printable control bytes to render as
-   --  monospace text. An empty input is not considered binary. What Quick Look
-   --  will not show as text, and content search will not search.
+   --  monospace text. An empty input is not considered binary. Applied to
+   --  Searchable_Text's decoding, it is what Quick Look will not show as text
+   --  and content search will not search.
    --
    --  @param Raw_Bytes Leading bytes of a file.
    --  @return True when the bytes should not be read as text.
@@ -378,6 +393,16 @@ package Files.Types is
    --  @param Raw Bytes read from the start of a file, possibly cut short.
    --  @return The text, UTF-8 encoded.
    function Searchable_Text (Raw : String) return String;
+
+   --  Whether Text (Searchable_Text) is text, not binary (Looks_Binary), and
+   --  contains Folded_Query (a query already folded with Fold_Case),
+   --  ignoring case: content search's match, with the query folded once
+   --  per search rather than once per file.
+   --
+   --  @param Text A file's first bytes as Searchable_Text gives them.
+   --  @param Folded_Query Fold_Case of the text looked for; "" matches nothing.
+   --  @return True for a text match.
+   function Text_Contains (Text : String; Folded_Query : String) return Boolean;
 
    --  Return a case-insensitive, accent-folded sort key for Text, the one key
    --  every name list sorts by (listings, the application picker). Every

@@ -70,6 +70,13 @@ separate (Files_Suite.Search)
          Files_Suite.Support.Assert_Equal
            (Files.Types.Searchable_Text ("caf" & Character'Val (16#C3#) & Character'Val (16#A9#)), U8 ("café"),
             "UTF-8 text is searched as it is");
+         Assert
+           (Files.Operations.Testing.Content_Matches
+              (U8 ("Привет, мир") & Character'Val (16#E9#) & " fin", U8 ("ПРИВЕТ")),
+            "UTF-8 text with a stray byte keeps its characters");
+         Files_Suite.Support.Assert_Equal
+           (Files.Types.Searchable_Text ("ok " & Character'Val (16#E9#) & U8 ("é и")),
+            U8 ("ok éé и"), "only the stray byte is read as Windows-1252");
       end;
 
       Reset_Root;

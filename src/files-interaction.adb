@@ -1,5 +1,4 @@
 with Files.Events;
-with Files.Settings_Form;
 with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Window_Polls;
@@ -239,88 +238,15 @@ package body Files.Interaction is
       end;
    end Sync_Global_UI_State;
 
-   --  After a command (from a click, a shortcut or the palette) that changed
-   --  a setting the open settings pane edits: the pane shows the new value,
-   --  its next save cannot write the old one back, and it takes the file to
-   --  hold Settings now.
-   procedure Refresh_Open_Pane
-     (Model    : in out Files.Model.Window_Model;
-      Before   : Files.Settings.Settings_Model;
-      Settings : Files.Settings.Settings_Model) is
-   begin
-      if Files.Model.Settings_Pane.Is_Open (Model) then
-         declare
-            use type Files.Settings.Settings_Draft;
-            Shown     : constant Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
-            Refreshed : constant Files.Settings.Settings_Draft :=
-              Files.Settings.Refresh_Draft (Shown, Before, Settings);
-         begin
-            if Refreshed /= Shown then
-               Files.Settings_Form.Set_Draft (Model, Refreshed);
-            end if;
-            --  A command that changed them saved Settings (another window's
-            --  save is adopted the same way): the pane's next change is
-            --  weighed against them.
-            if not Files.Settings.Same_Content (Before, Settings) then
-               Files.Settings_Form.Mark_Saved (Model, Settings);
-            end if;
-         end;
-      end if;
-   end Refresh_Open_Pane;
-
    procedure Adopt_Shared_Settings
      (Model    : in out Files.Model.Window_Model;
       Settings : in out Files.Settings.Settings_Model;
       Shared   : Files.Settings.Settings_Model)
    is
-      use type Files.Types.Sort_Field;
-      use type Files.Settings.String_Maps.Map;
       Before : constant Files.Settings.Settings_Model := Settings;
    begin
       Settings := Shared;
-      Refresh_Open_Pane (Model, Before, Settings);
-      --  Shortcuts are the process's, rebound in the other window; this
-      --  window's palette listed them before.
-      if Files.Model.Command_Palette.Is_Open (Model) then
-         Files.Model.Command_Palette.Relist (Model);
-      end if;
-      Files.Controller.Follow_Favorites (Model, Before, Settings);
-      --  The sort is shared like the hidden filter: every window shows the
-      --  order the settings hold, so a later command here never writes an
-      --  order back that another window has since replaced. A sort alone
-      --  needs no read, folder or search results alike.
-      if Before.Sort_Field_Value /= Settings.Sort_Field_Value
-        or else Before.Sort_Ascending /= Settings.Sort_Ascending
-      then
-         Files.Model.Apply_Sort (Model, Settings.Sort_Field_Value, Settings.Sort_Ascending);
-      end if;
-      --  Items carry the hidden filter and the type and icon they were
-      --  classified with when the folder was read.
-      if Before.Show_Hidden_Files = Settings.Show_Hidden_Files
-        and then Before.Extension_Filetypes = Settings.Extension_Filetypes
-        and then Before.Icon_Mappings = Settings.Icon_Mappings
-      then
-         null;
-      elsif Files.Model.Search_Results_Are_Active (Model) then
-         --  Search results have no folder to read again (a reload would
-         --  replace them with the folder): the new settings apply to them in
-         --  place.
-         Files.Model.Reapply_Listing_Settings
-           (Model, Settings,
-            Reclassify => Before.Extension_Filetypes /= Settings.Extension_Filetypes
-                          or else Before.Icon_Mappings /= Settings.Icon_Mappings);
-      else
-         declare
-            --  A reload that fails says so in the window's error line. The
-            --  folder sizes stay: only a refresh the user asks for measures
-            --  them again.
-            Reloaded : constant Files.Operation_Results.Operation_Result :=
-              Files.Operations.Refresh (Model, Settings, Measure_Again => False);
-            pragma Unreferenced (Reloaded);
-         begin
-            null;
-         end;
-      end if;
+      Files.Controller.Take_In_Settings (Model, Before, Settings);
    end Adopt_Shared_Settings;
 
    --  Whether a settings command ran, judged by what it did, not by whether
@@ -359,7 +285,7 @@ package body Files.Interaction is
       then
          Result.Settings_Changed := True;
       end if;
-      Refresh_Open_Pane (Model, Before, Settings);
+      Files.Controller.Refresh_Open_Pane (Model, Before, Settings);
    end Finish_Settings_Command;
 
    --  Finish what a controller entry answered: a settings command it only

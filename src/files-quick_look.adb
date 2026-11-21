@@ -71,8 +71,6 @@ package body Files.Quick_Look is
       Bytes_Complete : Boolean := True)
       return Quick_Look_Content
    is
-      use type Files.Types.Item_Kind;
-
       Content : Quick_Look_Content;
    begin
       Content.Name           := To_Unbounded_String (Name);
@@ -90,16 +88,22 @@ package body Files.Quick_Look is
       --  Only ordinary and executable regular files are candidates for text
       --  preview; directories, symlinks, and unknown entries fall back to the
       --  info card, as do empty or binary reads.
-      if (Kind = Files.Types.Regular_File_Item
-          or else Kind = Files.Types.Executable_Item)
-        and then Raw_Bytes'Length > 0
-        and then not Looks_Binary (Raw_Bytes)
-      then
-         Content.Kind := Text_Content;
-         Split_Lines (Raw_Bytes, Bytes_Complete, Content.Text_Lines, Content.Text_Truncated);
-      else
+      if Kind not in Files.Types.Regular_File_Item | Files.Types.Executable_Item or else Raw_Bytes'Length = 0 then
          Content.Kind := Info_Content;
+         return Content;
       end if;
+      declare
+         --  Shown as content search reads it: UTF-16 and Windows-1252 text
+         --  decoded.
+         Text : constant String := Files.Types.Searchable_Text (Raw_Bytes);
+      begin
+         if Looks_Binary (Text) then
+            Content.Kind := Info_Content;
+         else
+            Content.Kind := Text_Content;
+            Split_Lines (Text, Bytes_Complete, Content.Text_Lines, Content.Text_Truncated);
+         end if;
+      end;
 
       return Content;
    end Prepare_Content;

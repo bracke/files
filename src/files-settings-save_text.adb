@@ -95,7 +95,13 @@ separate (Files.Settings)
       end if;
       Temp := Null_Unbounded_String;
       Temp_Identity := Null_Unbounded_String;
-      Note_Seen (Path, Text);
+      declare
+         Written : constant Settings_Parse_Result := Parse (Text);
+      begin
+         if Written.Success then
+            Note_Seen (Path, Text, Written.Settings);
+         end if;
+      end;
 
       return
         (Success   => True,

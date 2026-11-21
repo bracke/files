@@ -869,9 +869,6 @@ package body Files.File_System.Support is
          raise;
    end Copy_To_New_Path;
 
-   --  Recursively copy a file/directory tree. Used as the cross-device
-   --  fallback when Ada.Directories.Rename fails with EXDEV (it cannot move
-   --  across filesystems), by both trashing and drag-and-drop moves.
    --  Stop a copy the user or the job cancelled.
    procedure Check_Cancelled (Walk : Copy_Walk) is
    begin
@@ -1358,28 +1355,6 @@ package body Files.File_System.Support is
          end if;
          raise;
    end Copy_Node;
-
-   procedure Copy_Tree
-     (Source_Path : String;
-      Destination_Path : String;
-      Depth : Natural := 0;
-      Cancel : Cancellation_Check := Job_Cancelled;
-      Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
-      Purpose : Copy_Purpose := For_Copy;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session) is
-      Walk : Copy_Walk :=
-        (Cancel                 => Cancel,
-         Times                  => Times,
-         Preserve_Ownership     => Purpose = For_Move,
-         Copied_Files           => Load_Links (Batch),
-         Shared_Batch           => Files.Copy_Context.Directory (Batch) /= "",
-         Durable                => Purpose = For_Move,
-         others                 => <>);
-   begin
-      Check_Copy_Destination (Source_Path, Destination_Path);
-      Copy_Node_Deep (Source_Path, Destination_Path, Depth, Walk);
-      Save_Links (Batch, Walk.Copied_Files, Destination_Path, Destination_Path);
-   end Copy_Tree;
 
    procedure Delete_Owned_Tree (Path : String) is
       procedure Delete_Owned_Level (Path : String);

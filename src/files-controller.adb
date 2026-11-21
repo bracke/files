@@ -62,18 +62,101 @@ package body Files.Controller is
       end if;
    end Follow_Favorites;
 
+   procedure Refresh_Open_Pane
+     (Model    : in out Files.Model.Window_Model;
+      Before   : Files.Settings.Settings_Model;
+      Settings : Files.Settings.Settings_Model) is
+   begin
+      if Files.Model.Settings_Pane.Is_Open (Model) then
+         declare
+            use type Files.Settings.Settings_Draft;
+            Shown     : constant Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
+            Refreshed : constant Files.Settings.Settings_Draft :=
+              Files.Settings.Refresh_Draft (Shown, Before, Settings);
+         begin
+            if Refreshed /= Shown then
+               Files.Settings_Form.Set_Draft (Model, Refreshed);
+            end if;
+            --  A command that changed them saved Settings (another window's
+            --  save is adopted the same way): the pane's next change is
+            --  weighed against them.
+            if not Files.Settings.Same_Content (Before, Settings) then
+               Files.Settings_Form.Mark_Saved (Model, Settings);
+            end if;
+         end;
+      end if;
+   end Refresh_Open_Pane;
+
+   procedure Take_In_Settings
+     (Model    : in out Files.Model.Window_Model;
+      Before   : Files.Settings.Settings_Model;
+      Settings : Files.Settings.Settings_Model)
+   is
+      use type Files.Types.Sort_Field;
+      use type Files.Settings.String_Maps.Map;
+   begin
+      Refresh_Open_Pane (Model, Before, Settings);
+      --  Shortcuts are the process's, rebound in the other window; this
+      --  window's palette listed them before.
+      if Files.Model.Command_Palette.Is_Open (Model) then
+         Files.Model.Command_Palette.Relist (Model);
+      end if;
+      Follow_Favorites (Model, Before, Settings);
+      --  The sort is shared like the hidden filter: every window shows the
+      --  order the settings hold, so a later command here never writes an
+      --  order back that another window has since replaced. A sort alone
+      --  needs no read, folder or search results alike.
+      if Before.Sort_Field_Value /= Settings.Sort_Field_Value
+        or else Before.Sort_Ascending /= Settings.Sort_Ascending
+      then
+         Files.Model.Apply_Sort (Model, Settings.Sort_Field_Value, Settings.Sort_Ascending);
+      end if;
+      --  Items carry the hidden filter and the type and icon they were
+      --  classified with when the folder was read.
+      if Before.Show_Hidden_Files = Settings.Show_Hidden_Files
+        and then Before.Extension_Filetypes = Settings.Extension_Filetypes
+        and then Before.Icon_Mappings = Settings.Icon_Mappings
+      then
+         null;
+      elsif Files.Model.Search_Results_Are_Active (Model) then
+         --  Search results have no folder to read again (a reload would
+         --  replace them with the folder): the new settings apply to them in
+         --  place.
+         Files.Model.Reapply_Listing_Settings
+           (Model, Settings,
+            Reclassify => Before.Extension_Filetypes /= Settings.Extension_Filetypes
+                          or else Before.Icon_Mappings /= Settings.Icon_Mappings);
+      else
+         declare
+            --  A reload that fails says so in the window's error line. The
+            --  folder sizes stay: only a refresh the user asks for measures
+            --  them again.
+            Reloaded : constant Files.Operation_Results.Operation_Result :=
+              Files.Operations.Refresh (Model, Settings, Measure_Again => False);
+            pragma Unreferenced (Reloaded);
+         begin
+            null;
+         end;
+      end if;
+   end Take_In_Settings;
+
    --  The one place settings are written. An empty path turns persistence
    --  off (smoke runs, tests): the settings apply in memory and count as saved.
    --  A session whose settings file could not be loaded refuses to write it:
    --  the change applies in memory and the result says it was not saved.
-   --  What another process wrote to the file since this one saw it is taken
-   --  into Settings first (Files.Settings.Merge_From_File); a file changed
-   --  into something this build cannot load is not written over.
+   --  The shortcut overrides written are the live keymap's, a rebind not
+   --  saved yet included (Store_Shortcut_Overrides). What another process
+   --  wrote to the file since this one saw it is taken into Settings first
+   --  (Files.Settings.Merge_From_File), its shortcuts made the live keymap
+   --  and held as a save writes them; a file changed into one this build
+   --  cannot load is not written over, nor is a merge that would make it
+   --  too big to load (Settings then stay as they were).
    function Write_Settings
      (Settings_Path : String;
       Settings      : in out Files.Settings.Settings_Model)
       return Files.Settings.Settings_Write_Result
    is
+      use type Files.Settings.Shortcut_Override_Vectors.Vector;
       Merged, Refused : Boolean;
    begin
       if Settings.Persistence_Refused then
@@ -85,14 +168,30 @@ package body Files.Controller is
       elsif Settings_Path = "" then
          return (Success => True, Durable => True, Path => Null_Unbounded_String, Error_Key => Null_Unbounded_String);
       end if;
-      Files.Settings.Merge_From_File (Settings_Path, Settings, Merged, Refused);
-      if Refused then
-         return
-           (Success   => True,
-            Durable   => False,
-            Path      => To_Unbounded_String (Settings_Path),
-            Error_Key => To_Unbounded_String ("error.settings.changed_elsewhere"));
-      end if;
+      Files.Settings_Form.Store_Shortcut_Overrides (Settings);
+      declare
+         Own : constant Files.Settings.Settings_Model := Settings;
+      begin
+         Files.Settings.Merge_From_File (Settings_Path, Settings, Merged, Refused);
+         if Refused then
+            return
+              (Success   => True,
+               Durable   => False,
+               Path      => To_Unbounded_String (Settings_Path),
+               Error_Key => To_Unbounded_String ("error.settings.changed_elsewhere"));
+         elsif Merged then
+            if not Files.Settings.Loadable (Settings) then
+               Settings := Own;
+               return
+                 (Success   => False,
+                  Durable   => False,
+                  Path      => To_Unbounded_String (Settings_Path),
+                  Error_Key => To_Unbounded_String ("error.settings.full"));
+            elsif Settings.Shortcut_Overrides /= Own.Shortcut_Overrides then
+               Files.Settings_Form.Apply_Shortcut_Overrides (Settings);
+            end if;
+         end if;
+      end;
       return Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Settings));
    end Write_Settings;
 
@@ -108,7 +207,6 @@ package body Files.Controller is
       Settings_Path : String)
       return Files.Settings.Settings_Write_Result
    is
-      use type Files.Settings.Shortcut_Override_Vectors.Vector;
       Before : constant Files.Settings.Settings_Model := Settings;
    begin
       if not Files.Settings.Loadable (Settings) then
@@ -123,16 +221,11 @@ package body Files.Controller is
          Saved : constant Files.Settings.Settings_Write_Result := Write_Settings (Settings_Path, Settings);
       begin
          if not Files.Settings.Same_Content (Settings, Before) then
-            --  Another process's change, taken in: in force here too, and
-            --  shared with this process's other windows.
-            if Settings.Shortcut_Overrides /= Before.Shortcut_Overrides then
-               Files.Settings_Form.Apply_Shortcut_Overrides (Settings);
-            end if;
+            --  Another process's change (or a rebind not saved before),
+            --  taken in: in force in this window as in the others, which
+            --  take it from here.
+            Take_In_Settings (Model, Before, Settings);
             Files.Model.Note_Settings_Changed (Model);
-            Follow_Favorites (Model, Before, Settings);
-            if Files.Model.Settings_Pane.Is_Open (Model) then
-               Files.Settings_Form.Mark_Saved (Model, Settings);
-            end if;
          end if;
          if not Saved.Success or else not Saved.Durable then
             --  Applied, but not saved (or not safely): say so.

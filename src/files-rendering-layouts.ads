@@ -1025,7 +1025,7 @@ package Files.Rendering.Layouts is
    function Sort_Menu_Row_Field
      (Row : Positive)
       return Files.Types.Sort_Field
-     with Pre => Row <= Files.Types.Sort_Field'Pos (Files.Types.Sort_Field'Last) + 1;
+     with Pre => Row <= Files.Types.Sort_Menu_Rows;
 
    --  The bottom-bar view-mode switcher cells (Small / Large / Details), left to
    --  right, labelled with their short localized names. The renderer and the

@@ -9,11 +9,10 @@ package body Files.Model.Sort_Menu is
    begin
       Touch (Model);
       Model.Sort_Menu.Open := not Model.Sort_Menu.Open;
-      --  Open the menu with the keyboard highlight on the current sort field
-      --  (rows 1 .. 5 mirror Sort_Field'Val 0 .. 4).
+      --  Open the menu with the keyboard highlight on the current sort field.
       if Model.Sort_Menu.Open then
          Claim_Overlay_Input (Model);
-         Model.Sort_Menu.Highlight := Files.Types.Sort_Field'Pos (Model.Sort_Field_Value) + 1;
+         Model.Sort_Menu.Highlight := Files.Types.Sort_Menu_Row (Model.Sort_Field_Value);
       end if;
    end Toggle;
 
@@ -34,7 +33,7 @@ package body Files.Model.Sort_Menu is
    begin
       Touch (Model);
       Model.Sort_Menu.Highlight :=
-        Integer'Max (1, Integer'Min (5, Current + Delta_Value));
+        Integer'Max (1, Integer'Min (Files.Types.Sort_Menu_Rows, Current + Delta_Value));
    end Move_Highlight;
 
    function Highlight
@@ -46,8 +45,8 @@ package body Files.Model.Sort_Menu is
      (Model : Window_Model)
       return Files.Types.Sort_Field is
    begin
-      if Model.Sort_Menu.Highlight in 1 .. 5 then
-         return Files.Types.Sort_Field'Val (Model.Sort_Menu.Highlight - 1);
+      if Model.Sort_Menu.Highlight in 1 .. Files.Types.Sort_Menu_Rows then
+         return Files.Types.Sort_Menu_Field (Model.Sort_Menu.Highlight);
       else
          return Files.Types.Sort_Name;
       end if;

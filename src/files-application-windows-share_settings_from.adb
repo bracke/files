@@ -2,7 +2,8 @@ with Files.Settings_Sharing;
 separate (Files.Application.Windows)
    procedure Share_Settings_From
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
-      Index           : Positive)
+      Index           : Positive;
+      From            : Positive := Positive'First)
    is
       function Revision (Runtimes : Runtime_Window_Vectors.Vector; Window : Positive) return Natural is
         (Files.Model.Settings_Revision (Runtimes (Window).Model));
@@ -41,5 +42,5 @@ separate (Files.Application.Windows)
          Mark_Synced     => Mark_Synced,
          Adopt           => Adopt);
    begin
-      Share (Runtime_Windows, Runtime_Windows.First_Index, Runtime_Windows.Last_Index, Index);
+      Share (Runtime_Windows, Positive'Max (From, Runtime_Windows.First_Index), Runtime_Windows.Last_Index, Index);
    end Share_Settings_From;

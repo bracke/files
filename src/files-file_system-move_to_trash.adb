@@ -8,6 +8,9 @@ function Move_To_Trash
    Recorded_Path : String := "")
    return Mutation_Result
 is
+   --  How often a trash name another trash took first is looked for again.
+   Max_Name_Claims : constant := 16;
+
    function Unique_Trash_Name
      (Files_Directory : String;
       Info_Directory  : String;
@@ -149,7 +152,7 @@ is
    function Send_To_Recycle_Bin return Mutation_Result is separate;
    function Send_To_Finder_Trash return Mutation_Result is separate;
    procedure Prepare_Directories is separate;
-   procedure Write_Info_File is separate;
+   procedure Write_Info_File (Name_Taken : out Boolean) is separate;
    function Move_Item return Mutation_Result is separate;
 begin
    Files.Io_Errors.Reset;
@@ -168,14 +171,26 @@ begin
 
    Prepare_Directories;
 
-   Name := To_Unbounded_String
-     (Unique_Trash_Name (Files_Dir, Info_Dir, Files.Types.Leaf_Of (Path)));
-   Target := To_Unbounded_String (Hostkit.Fs.Join (Files_Dir, To_String (Name)));
-
-   if not Macos_Home then
+   --  The info file, made exclusively, claims the name: one another trash
+   --  took between finding it free and claiming it sends this one to the
+   --  next free name. (The macOS home trash has no info file; its move
+   --  never replaces, so a name taken in between fails that trash only.)
+   for Attempt in 1 .. Max_Name_Claims loop
+      Name := To_Unbounded_String
+        (Unique_Trash_Name (Files_Dir, Info_Dir, Files.Types.Leaf_Of (Path)));
+      Target := To_Unbounded_String (Hostkit.Fs.Join (Files_Dir, To_String (Name)));
+      exit when Macos_Home;
       Info_Path := To_Unbounded_String (Hostkit.Fs.Join (Info_Dir, To_String (Name) & ".trashinfo"));
-      Write_Info_File;
-   end if;
+      declare
+         Taken : Boolean;
+      begin
+         Write_Info_File (Taken);
+         exit when not Taken;
+         if Attempt = Max_Name_Claims then
+            raise Ada.Directories.Use_Error with "trash_name_contended=" & To_String (Info_Path);
+         end if;
+      end;
+   end loop;
 
    declare
       Moved : constant Mutation_Result := Move_Item;

@@ -1073,6 +1073,13 @@ private
    --  @return Trashed-payload directory, or an empty string when unavailable.
    function Trash_Files_Directory return String;
 
+   --  Remove the freedesktop trashes' info files (home and volume) whose
+   --  item is surely not there and that are older than a trash in progress
+   --  can be: a trash writes its info file before the item moves in, so a
+   --  crash between the two (or a move lost before the folder was synced)
+   --  leaves one describing nothing, which keeps its name taken.
+   procedure Remove_Orphan_Trash_Info;
+
    --  Return whether Path identifies the active trash payload directory.
    --  Filesystem identity is used when possible so aliases such as symbolic
    --  links cannot bypass trash-view safety rules.

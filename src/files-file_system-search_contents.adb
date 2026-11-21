@@ -8,6 +8,8 @@ is
    Max_Bytes  : constant := 64 * 1024;
    Max_Files  : constant := 20_000;
    Files_Read : Natural := 0;
+   --  Folded once for the whole search.
+   Folded_Query : constant String := Files.Types.Fold_Case (Query);
 
    --  Only what is read is built into an item (folders always are).
    function Wanted (Name : String; Kind : Files.Types.Item_Kind) return Boolean is
@@ -27,17 +29,18 @@ is
       declare
          Read_Ok : Boolean;
          Bytes   : constant String := Read_Preview_Text (To_String (Item.Full_Path), Max_Bytes + 1, Read_Ok);
-         --  What is searched: the first Max_Bytes as text (Content_Matches
-         --  decodes them, dropping a character the cut split).
+         --  What is searched: the first Max_Bytes, as text (Searchable_Text
+         --  drops a character the cut split).
          Searched : constant String :=
            (if Bytes'Length > Max_Bytes then Bytes (Bytes'First .. Bytes'First - 1 + Max_Bytes) else Bytes);
+         --  Decoded once, for the match and for whether it is text.
+         Text     : constant String := (if Read_Ok then Files.Types.Searchable_Text (Searched) else "");
       begin
          if not Read_Ok then
             return Undecided;
-         elsif Content_Matches (Searched, Query) then
+         elsif Files.Types.Text_Contains (Text, Folded_Query) then
             return Found;
-         elsif Bytes'Length > Max_Bytes and then not Files.Types.Looks_Binary (Files.Types.Searchable_Text (Searched))
-         then
+         elsif Bytes'Length > Max_Bytes and then not Files.Types.Looks_Binary (Text) then
             --  A text file longer than is read and no match in what was:
             --  its match could lie past it.
             return Undecided;

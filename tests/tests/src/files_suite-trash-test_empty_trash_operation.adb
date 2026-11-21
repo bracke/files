@@ -2,6 +2,8 @@ with Files.Operation_Results;
 with Files.File_System.Trash;
 with Files.Commands.Status;
 with Files_Suite.Support.Guards;
+with Ada.Calendar.Formatting;
+with Hostkit.Metadata;
 separate (Files_Suite.Trash)
    procedure Test_Empty_Trash_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -77,6 +79,31 @@ separate (Files_Suite.Trash)
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
          "empty trash is disabled once the trash view is empty");
+
+      --  An info file describing nothing (a crash between writing it and
+      --  moving the item in) goes with Empty Trash once it is old enough
+      --  not to be a trash in progress; a fresh one stays.
+      declare
+         Unix_Now : constant Long_Long_Integer :=
+           Long_Long_Integer
+             (Ada.Calendar."-" (Ada.Calendar.Clock, Ada.Calendar.Formatting.Time_Of (1970, 1, 1, 0.0, Time_Zone => 0)));
+         Old_Orphan   : constant String := Join (Trash_Info, "gone.txt.trashinfo");
+         Fresh_Orphan : constant String := Join (Trash_Info, "moving.txt.trashinfo");
+      begin
+         Write_File (Old_Orphan, "[Trash Info]");
+         Write_File (Fresh_Orphan, "[Trash Info]");
+         Assert (Hostkit.Metadata.Set_File_Times (Old_Orphan, Unix_Now - 3600, Unix_Now - 3600),
+                 "the old orphan is dated an hour back");
+         Write_File (Source_A, "aaa");
+         Assert (Files.File_System.Trash.Move_To_Trash (Source_A).Success, "an item is trashed beside them");
+         Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
+         Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
+         Files.Operations.Settle_Current_Is_Trash (Model);
+         Result :=
+           Files.Controller.Execute_Non_Settings_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
+         Assert (not Ada.Directories.Exists (Old_Orphan), "an old info file describing nothing is removed");
+         Assert (Ada.Directories.Exists (Fresh_Orphan), "a fresh one, maybe a trash in progress, stays");
+      end;
 
       Project_Tools.Files.Delete_Tree (Trash_Home);
    end Test_Empty_Trash_Operation;

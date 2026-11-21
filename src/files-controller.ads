@@ -99,6 +99,37 @@ package Files.Controller is
       Before   : Files.Settings.Settings_Model;
       Settings : Files.Settings.Settings_Model);
 
+   --  After a change to settings the open settings pane edits (a command
+   --  from a click, a shortcut or the palette, another window's or another
+   --  process's change): the pane shows the new values, its next save
+   --  cannot write the old ones back, and it takes the file to hold
+   --  Settings now (Files.Settings_Form.Mark_Saved). Nothing when the pane
+   --  is closed.
+   --
+   --  @param Model Window whose pane follows.
+   --  @param Before The settings before the change.
+   --  @param Settings The settings now live.
+   procedure Refresh_Open_Pane
+     (Model    : in out Files.Model.Window_Model;
+      Before   : Files.Settings.Settings_Model;
+      Settings : Files.Settings.Settings_Model);
+
+   --  Make settings that replaced Before -- another window's, or another
+   --  process's taken in by a save -- in force in this window: the open
+   --  pane follows (Refresh_Open_Pane), an open palette lists its commands
+   --  again (a shortcut rebound elsewhere), the folder tree follows the
+   --  favorites, the sort is applied, and the listing is read again (or
+   --  search results reclassified in place) when what it lists or how it
+   --  names types changed (hidden files, filetype or icon mappings).
+   --
+   --  @param Model This window's model.
+   --  @param Before The settings before.
+   --  @param Settings The settings now live.
+   procedure Take_In_Settings
+     (Model    : in out Files.Model.Window_Model;
+      Before   : Files.Settings.Settings_Model;
+      Settings : Files.Settings.Settings_Model);
+
    --  Persist the already-applied settings model to the central settings file:
    --  for a scalar applied as the user drags or scrolls (a column width, the
    --  zoom by wheel, the window's size), which cannot make the file too big.

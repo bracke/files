@@ -20,17 +20,28 @@ package body Files.Settings is
    Max_Parsed_Action_Arguments  : constant Natural := 256;
 
    --  The settings file as this process last read or wrote it (Load_File,
-   --  Save_Text): what Merge_From_File tells another process's change by.
+   --  Save_Text): its text, which tells another process's change, and what
+   --  it said (Note_Seen_Settings may restate it), which Merge_From_File
+   --  weighs this process's changes against.
    Seen_Path  : Unbounded_String;
    Seen_Text  : Unbounded_String;
+   Seen_Base  : Settings_Model;
    Seen_Known : Boolean := False;
 
-   procedure Note_Seen (Path, Text : String) is
+   procedure Note_Seen (Path, Text : String; Base : Settings_Model) is
    begin
       Seen_Path := To_Unbounded_String (Path);
       Seen_Text := To_Unbounded_String (Text);
+      Seen_Base := Base;
       Seen_Known := True;
    end Note_Seen;
+
+   procedure Note_Seen_Settings (Path : String; Settings : Settings_Model) is
+   begin
+      if Seen_Known and then To_String (Seen_Path) = Path then
+         Seen_Base := Settings;
+      end if;
+   end Note_Seen_Settings;
 
    function Contains_Nul (Text : String) return Boolean is
    begin

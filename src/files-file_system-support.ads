@@ -287,28 +287,6 @@ private package Files.File_System.Support is
    --    Raises when a directory cannot be completely verified.
    function Tree_Revision (Path : String) return String;
 
-   --  Recursively copy a file or directory tree from Source_Path to
-   --  Destination_Path (Depth guards against symlink cycles). The shared
-   --  worker behind the public Copy_Tree function and the cross-device
-   --  trash/restore fallbacks.
-   --
-   --  @param Source_Path Source file or directory.
-   --  @param Destination_Path Destination path to create.
-   --  @param Depth Current recursion depth (0 at the top).
-   --  @param Cancel Checked between entries and file chunks: the job's
-   --    cancellation unless given another, null for none.
-   --  @param Times Optional times captured before verification reads the source.
-   --  @param Purpose A plain copy, or a move's (see Copy_Purpose).
-   --  @param Batch Shared journal for hard links across copied roots.
-   procedure Copy_Tree
-     (Source_Path      : String;
-      Destination_Path : String;
-      Depth            : Natural := 0;
-      Cancel           : Cancellation_Check := Job_Cancelled;
-      Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
-      Purpose : Copy_Purpose := For_Copy;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
-
    --  Remove a private or identity-verified owned copy, releasing directory
    --  write restrictions preserved from its source. Never follows symlinks.
    --  @param Path Private or identity-verified owned entry to remove.

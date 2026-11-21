@@ -517,6 +517,8 @@ package body Files.File_System is
 
    function Volume_Trash_Bases return Files.Types.String_Vectors.Vector is separate;
 
+   procedure Remove_Orphan_Trash_Info is separate;
+
    function Trash_Base_Of (Trashed_Path : String) return String is separate;
 
    function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean is separate;

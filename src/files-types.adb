@@ -491,24 +491,101 @@ package body Files.Types is
          0, 16#2018#, 16#2019#, 16#201C#, 16#201D#, 16#2022#, 16#2013#, 16#2014#,
          16#02DC#, 16#2122#, 16#0161#, 16#203A#, 16#0153#, 0, 16#017E#, 16#0178#];
 
-      function From_Cp1252 return String is
-         Result : Unbounded_String;
+      --  One byte as Windows-1252 says it, UTF-8 encoded.
+      function Cp1252_Char (Char : Character) return String is
+         Code : constant Natural := Character'Pos (Char);
       begin
-         for Char of Raw loop
+         if Code < 16#80# then
+            return [1 => Char];
+         elsif Code <= 16#9F# then
+            return (if Cp1252 (Code) = 0 then Replacement else Guikit.Utf8.Encode (Cp1252 (Code)));
+         else
+            return Guikit.Utf8.Encode (Code);
+         end if;
+      end Cp1252_Char;
+
+      --  The length of the well-formed UTF-8 multibyte sequence starting at
+      --  Raw (At_Index); 0 when none does (an ASCII byte included).
+      function Sequence_Length (At_Index : Positive) return Natural is
+         Lead   : constant Natural := Character'Pos (Raw (At_Index));
+         Length : constant Natural :=
+           (if Lead in 16#C2# .. 16#DF# then 2
+            elsif Lead in 16#E0# .. 16#EF# then 3
+            elsif Lead in 16#F0# .. 16#F4# then 4
+            else 0);
+      begin
+         if Length = 0 or else At_Index + Length - 1 > Raw'Last then
+            return 0;
+         end if;
+         for Offset in 1 .. Length - 1 loop
+            if not Is_Continuation (Raw (At_Index + Offset)) then
+               return 0;
+            end if;
+         end loop;
+         declare
+            Second : constant Natural := Character'Pos (Raw (At_Index + 1));
+         begin
+            --  No overlong form, surrogate or value past U+10FFFF.
+            if (Lead = 16#E0# and then Second < 16#A0#)
+              or else (Lead = 16#ED# and then Second > 16#9F#)
+              or else (Lead = 16#F0# and then Second < 16#90#)
+              or else (Lead = 16#F4# and then Second > 16#8F#)
+            then
+               return 0;
+            end if;
+         end;
+         return Length;
+      end Sequence_Length;
+
+      --  Raw decoded byte by byte: each well-formed UTF-8 sequence kept,
+      --  every other byte read as Windows-1252 -- or, when Mixed is False,
+      --  every byte read so (text with next to no UTF-8 in it is not UTF-8:
+      --  the odd pair of Latin-1 letters that happens to form a sequence is
+      --  not one).
+      function Decoded (Mixed : Boolean) return String is
+         Result : Unbounded_String;
+         Index  : Positive := Raw'First;
+      begin
+         while Index <= Raw'Last loop
             declare
-               Code : constant Natural := Character'Pos (Char);
+               Length : constant Natural := (if Mixed then Sequence_Length (Index) else 0);
             begin
-               if Code < 16#80# then
-                  Append (Result, Char);
-               elsif Code <= 16#9F# then
-                  Append (Result, (if Cp1252 (Code) = 0 then Replacement else Guikit.Utf8.Encode (Cp1252 (Code))));
+               if Length > 0 then
+                  Append (Result, Raw (Index .. Index + Length - 1));
+                  Index := Index + Length;
                else
-                  Append (Result, Guikit.Utf8.Encode (Code));
+                  Append (Result, Cp1252_Char (Raw (Index)));
+                  Index := Index + 1;
                end if;
             end;
          end loop;
          return To_String (Result);
-      end From_Cp1252;
+      end Decoded;
+
+      --  Whether Raw holds more well-formed UTF-8 sequences than stray
+      --  high bytes: UTF-8 text with a few bytes of something else.
+      function Mostly_Utf8 return Boolean is
+         Sequences : Natural := 0;
+         Strays    : Natural := 0;
+         Index     : Positive := Raw'First;
+      begin
+         while Index <= Raw'Last loop
+            declare
+               Length : constant Natural := Sequence_Length (Index);
+            begin
+               if Length > 0 then
+                  Sequences := Sequences + 1;
+                  Index := Index + Length;
+               else
+                  if Character'Pos (Raw (Index)) >= 16#80# then
+                     Strays := Strays + 1;
+                  end if;
+                  Index := Index + 1;
+               end if;
+            end;
+         end loop;
+         return Sequences > Strays;
+      end Mostly_Utf8;
    begin
       if Raw'Length >= 2 and then Raw (Raw'First) = Character'Val (16#FF#)
         and then Raw (Raw'First + 1) = Character'Val (16#FE#)
@@ -530,8 +607,15 @@ package body Files.Types is
             return Text;
          end if;
       end;
-      return From_Cp1252;
+      --  Not UTF-8 throughout: UTF-8 with a stray byte keeps its characters
+      --  (only the stray bytes are read as Windows-1252); anything else is
+      --  read as Windows-1252 whole.
+      return Decoded (Mixed => Mostly_Utf8);
    end Searchable_Text;
+
+   function Text_Contains (Text : String; Folded_Query : String) return Boolean is
+     (Folded_Query /= "" and then Text'Length > 0 and then not Looks_Binary (Text)
+      and then Ada.Strings.Fixed.Index (Fold_Case (Text), Folded_Query) > 0);
 
    function Trim_To_Character (Raw : String) return String is
       Lead : Natural := Raw'Last;

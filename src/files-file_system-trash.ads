@@ -99,4 +99,12 @@ package Files.File_System.Trash is
      (Trashed_Path : String)
       return Mutation_Result;
 
+   --  Remove the freedesktop trashes' info files whose item is surely gone
+   --  (a refused lookup is not gone) and that are older than a trash in
+   --  progress can be: a crash between writing one and moving its item in
+   --  leaves one describing nothing, which keeps its name taken. Nothing on
+   --  hosts whose trash keeps no info files. Best effort: what cannot be
+   --  judged or removed stays.
+   procedure Remove_Orphan_Info_Files;
+
 end Files.File_System.Trash;

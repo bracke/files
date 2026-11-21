@@ -44,8 +44,14 @@ separate (Files.Settings)
                Error_Key => To_Unbounded_String ("error.settings.load"));
          end if;
 
-         Note_Seen (Path, Text);
-         return Parse (Text);
+         declare
+            Parsed : constant Settings_Parse_Result := Parse (Text);
+         begin
+            if Parsed.Success then
+               Note_Seen (Path, Text, Parsed.Settings);
+            end if;
+            return Parsed;
+         end;
       end;
    exception
       when Swallowed : others =>

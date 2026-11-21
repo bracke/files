@@ -302,6 +302,9 @@ package body Files.Application is
       --  text and order), so the settings pane does not take a file written
       --  by hand for a change of its own.
       Files.Settings_Form.Apply_Shortcut_Overrides (Settings);
+      --  The file, as read, says that: a later merge weighs this session's
+      --  changes against it, not against how the file happened to spell it.
+      Files.Settings.Note_Seen_Settings (Effective_Path, Settings);
       Result.Settings := Settings;
       Result.Settings_Path :=
         (if Load_Failed then Null_Unbounded_String else To_Unbounded_String (Effective_Path));

@@ -42,4 +42,7 @@ package body Files.File_System.Trash is
       return Mutation_Result
      renames Files.File_System.Delete_Trashed_Item;
 
+   procedure Remove_Orphan_Info_Files
+     renames Files.File_System.Remove_Orphan_Trash_Info;
+
 end Files.File_System.Trash;

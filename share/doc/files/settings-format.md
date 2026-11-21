@@ -10,12 +10,15 @@ written only when they hold something.
 
 The file may change while files runs: another files process saves it, or
 you edit it by hand. Before each save, files reads the file again; when it
-changed since files last read or wrote it, every setting files changed in
-the meantime keeps files' value and every other one takes the file's (each
-scalar, each mapping section, the favorites, the recent items, the labels
-and the shortcuts count as one setting each). A file changed into one that
-is rejected (below) is not saved over: files says so and keeps its changes
-for the session. The same applies at startup to a settings file that cannot
+changed since files last read or wrote it, each `[settings]` value files
+changed in the meantime keeps files' value and every other one takes the
+file's. Lists and mappings merge entry by entry: a favorite, label,
+filetype, icon, open action or shortcut that files added, removed or
+changed is applied to the file's, and the file's other entries stay;
+recent items files opened in the meantime come first, then the file's. A
+file changed into one that is rejected (below) is not saved over, nor is a
+merge that would make the file too large to load: files says so and keeps
+its changes for the session. The same applies at startup to a settings file that cannot
 be looked at: files runs on defaults and saves nothing.
 
 ## What rejects the file

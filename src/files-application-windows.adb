@@ -334,10 +334,12 @@ package body Files.Application.Windows is
    --  Each other window adopts them (Interaction.Adopt_Shared_Settings): an
    --  open settings pane there is refreshed, a listing whose options or type
    --  mappings changed is reloaded. Files.Settings_Sharing.Share_From makes
-   --  the decisions.
+   --  the decisions. Only windows from From on take them (a window being
+   --  closed in turn hands them to those not closed yet).
    procedure Share_Settings_From
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
-      Index           : Positive)
+      Index           : Positive;
+      From            : Positive := Positive'First)
    is separate;
 
    procedure Sync_Settings_Across_Windows
@@ -597,6 +599,9 @@ package body Files.Application.Windows is
                Released := Runtime.Handle = null;
             end;
             if Released then
+               --  Closing saved its size or zoom, which may have taken in
+               --  another process's change: the windows left take it too.
+               Share_Settings_From (Runtime_Windows, Index);
                Runtime_Windows.Delete (Index);
             end if;
          end;
@@ -605,9 +610,12 @@ package body Files.Application.Windows is
 
    procedure Release_All (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      --  Each window's scan ends with the window (Release_Window).
-      for Runtime of Runtime_Windows loop
-         Release_Window (Runtime);
+      --  Each window's scan ends with the window (Release_Window). What its
+      --  closing saved (and took in from another process) goes to the
+      --  windows not closed yet, whose own saves would write it back.
+      for Index in Runtime_Windows.First_Index .. Runtime_Windows.Last_Index loop
+         Release_Window (Runtime_Windows (Index));
+         Share_Settings_From (Runtime_Windows, Index, From => Index + 1);
       end loop;
       Runtime_Windows.Clear;
    end Release_All;

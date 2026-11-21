@@ -48,6 +48,12 @@ begin
       end;
    end loop;
 
+   --  Info files left describing nothing (a crash mid-trash) go too: they
+   --  are not listed, so the loop above never meets them.
+   if not Files.Job_Context.Cancelled then
+      Files.File_System.Trash.Remove_Orphan_Info_Files;
+   end if;
+
    --  Reload the (now emptied) trash view regardless of per-item outcome.
    declare
       Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
