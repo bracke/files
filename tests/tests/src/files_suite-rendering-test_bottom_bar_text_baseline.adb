@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  Every text element in the bottom bar -- including the view-mode chooser's
    --  segment labels -- sits on a single shared baseline, so nothing looks
    --  vertically off-centre relative to the rest of the bar.
    procedure Test_Bottom_Bar_Text_Baseline (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snapshot : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
       Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
       Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
       Bottom_Y : constant Natural := Layout.Height - Layout.Bottom_Bar_Height;

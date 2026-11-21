@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Model.Context_Menu;
 with Files.Rendering.Layouts;
@@ -35,7 +36,7 @@ separate (Files_Suite.Context_Menu)
       end loop;
       Files.Model.Initialize
         (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root,
-         Default_View_Mode => Files.Types.Details);
+         Default_View_Mode => Files.Preference_Types.Details);
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);

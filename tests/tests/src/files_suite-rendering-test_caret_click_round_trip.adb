@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  The caret renderer and the click hit-test measure text with one shared
@@ -5,7 +6,7 @@ separate (Files_Suite.Rendering)
    --  resolve back to cursor k.
    procedure Test_Caret_Click_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+      Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Details);
       CX, CY, CW, CH : Natural;
       Found          : Boolean;
    begin

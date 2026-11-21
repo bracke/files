@@ -5,11 +5,12 @@ package body Files.Model.Status_Samples is
    use Files.Model.Support;
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
+   use type Files.File_System_Types.Volume_Space;
 
    procedure Set_Volume_Space
      (Model   : in out Window_Model;
       Path    : String;
-      Space   : Volume_Space;
+      Space   : Files.File_System_Types.Volume_Space;
       Sampled : Ada.Calendar.Time) is
    begin
       --  The bar and the free-space text are header: no row changes.
@@ -33,13 +34,13 @@ package body Files.Model.Status_Samples is
 
    function Volume_Space_Of
      (Model : Window_Model)
-      return Volume_Space is
+      return Files.File_System_Types.Volume_Space is
      (if To_String (Model.Volume_Sample.Path) = Current_Path (Model) then Model.Volume_Sample.Space
       else (others => <>));
 
    procedure Set_Account_Name
      (Model : in out Window_Model;
-      Kind  : Account_Kind;
+      Kind  : Files.File_System_Types.Account_Kind;
       Id    : Files.Types.Account_Id;
       Name  : String)
    is
@@ -65,14 +66,14 @@ package body Files.Model.Status_Samples is
 
    function Account_Name_Known
      (Model : Window_Model;
-      Kind  : Account_Kind;
+      Kind  : Files.File_System_Types.Account_Kind;
       Id    : Files.Types.Account_Id)
       return Boolean is
      (Model.Account_Names.Names (Kind).Contains (Id));
 
    function Account_Name
      (Model : Window_Model;
-      Kind  : Account_Kind;
+      Kind  : Files.File_System_Types.Account_Kind;
       Id    : Files.Types.Account_Id)
       return String
    is

@@ -11,6 +11,8 @@ with Files.Durable_Writes;
 with Files.Lease_Streams;
 with Files.Fs_Primitives;
 with Files.Path_Checks;
+with Files.Process_Jobs;
+with Ada.Unchecked_Deallocation;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 
@@ -96,23 +98,56 @@ package body Files.Copy_Context is
          Destination_Revision => Items (First + 5));
    end Decode;
 
-   function Create return Session is
-      Result : Session;
+   type Batch_State is record
+      References : Positive := 1;
+      Job        : Files.Process_Jobs.Session;
+   end record;
+
+   procedure Free is new Ada.Unchecked_Deallocation (Batch_State, Batch_Access);
+
+   overriding procedure Adjust (Batch : in out Session) is
    begin
-      Files.Process_Jobs.Reserve (Result.Job);
-      return Result;
+      if Batch.Shared /= null then
+         Batch.Shared.References := Batch.Shared.References + 1;
+      end if;
+   end Adjust;
+
+   overriding procedure Finalize (Batch : in out Session) is
+   begin
+      if Batch.Shared /= null then
+         if Batch.Shared.References > 1 then
+            Batch.Shared.References := Batch.Shared.References - 1;
+            Batch.Shared := null;
+         else
+            --  Freeing finalizes the job session, which releases the job.
+            Free (Batch.Shared);
+         end if;
+      end if;
+   end Finalize;
+
+   function Empty_Session return Session is
+     (Ada.Finalization.Controlled with Shared => null, Borrowed => Null_Unbounded_String);
+
+   function Create return Session is
+   begin
+      return Result : constant Session :=
+        (Ada.Finalization.Controlled with Shared => new Batch_State, Borrowed => Null_Unbounded_String)
+      do
+         Files.Process_Jobs.Reserve (Result.Shared.Job);
+      end return;
    end Create;
 
    function Directory (Batch : Session) return String is
      (if Length (Batch.Borrowed) > 0 then To_String (Batch.Borrowed)
-      else Files.Process_Jobs.Path (Batch.Job, ""));
+      elsif Batch.Shared = null then ""
+      else Files.Process_Jobs.Path (Batch.Shared.Job, ""));
 
    function Borrow (Path : String) return Session is
    begin
       if not Valid_Batch_Directory (Path) then
          raise Ada.Directories.Use_Error;
       end if;
-      return (Job => <>, Borrowed => To_Unbounded_String (Path));
+      return (Ada.Finalization.Controlled with Shared => null, Borrowed => To_Unbounded_String (Path));
    end Borrow;
 
    function Records (Batch : Session) return Files.Types.String_Vectors.Vector is

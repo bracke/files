@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Rendering.Testing;
 separate (Files_Suite.Rendering)
    --  A root selector opens directly beneath the toolbar.  Hovering the
@@ -7,7 +8,7 @@ separate (Files_Suite.Rendering)
      (T : in out AUnit.Test_Cases.Test_Case'Class)
    is
       pragma Unreferenced (T);
-      Snap    : View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Snap    : View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       Layout  : Guikit.Draw.Layout_Metrics;
       Root    : Root_Selector_Layout;
       Toolbar : Guikit.Layout.Toolbar_Layout;
@@ -67,7 +68,7 @@ separate (Files_Suite.Rendering)
 
          use type Files.UI_Types.Input_Overlay;
          Stack : Files.UI_Types.Overlay_Order renames Files.UI_Types.Overlay_Stack;
-         Base  : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+         Base  : constant View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       begin
          Assert (not Files.Rendering.Testing.Any_Overlay_Open (Base), "the sample has no overlay open");
          Files_Suite.Support.Assert_Equal

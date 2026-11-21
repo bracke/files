@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Startup)
    procedure Test_Startup_Loads_Settings_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -43,7 +44,7 @@ separate (Files_Suite.Startup)
          "startup result records loaded settings path");
       Files_Suite.Support.Assert_Equal
         (Startup.Settings.Default_View,
-         Files.Types.Details,
+         Files.Preference_Types.Details,
          "startup result exposes loaded default view");
       Assert (Startup.Settings.Show_Hidden_Files, "startup result exposes loaded hidden-file setting");
       Files_Suite.Support.Assert_Equal
@@ -60,7 +61,7 @@ separate (Files_Suite.Startup)
          "settings startup model uses normalized path");
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Startup.Windows.Element (1).Model),
-         Files.Types.Details,
+         Files.Preference_Types.Details,
          "view setting loads");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Startup.Windows.Element (1).Model),

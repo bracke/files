@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Model.Clipboard;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Disk;
@@ -18,7 +19,7 @@ separate (Files_Suite.Context_Menu)
       Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Sub);
       Files_Suite.Support.Disk.Write_File (Source, "payload");
-      Files.Settings.Path_References.Set_Label (Settings, Source, Files.Types.Red);
+      Files.Settings.Path_References.Set_Label (Settings, Source, Files.Preference_Types.Red);
 
       --  Step 1: cut a file from the source directory.
       Model := Loaded_Model (Src_Dir);
@@ -47,9 +48,9 @@ separate (Files_Suite.Context_Menu)
          Load := Files.File_System.Load_Directory (Sub, Settings);
          for Item of Load.Items loop
             if Ada.Strings.Unbounded.To_String (Item.Name) = "movable.txt" then
-               Kept := Files.Types."="
+               Kept := Files.Preference_Types."="
                  (Files.Settings.Path_References.Label_Of (Settings, Ada.Strings.Unbounded.To_String (Item.Full_Path)),
-                  Files.Types.Red);
+                  Files.Preference_Types.Red);
             end if;
          end loop;
          Assert (Kept, "the moved file keeps its label under its listed path");

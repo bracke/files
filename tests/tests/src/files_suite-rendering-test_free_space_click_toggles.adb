@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 with Files.Rendering.Layouts;
 separate (Files_Suite.Rendering)
    --  Clicking the counts area toggles hidden files; clicking the free-space
    --  field toggles between free and used space.
    procedure Test_Free_Space_Click_Toggles (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Snap : View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
    begin
       Snap.Free_Space_Known := True;
       Snap.Free_Space_Bytes := 12_000_000_000;

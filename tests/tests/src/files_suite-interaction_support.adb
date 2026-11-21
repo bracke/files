@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Events;
 with Files.Controller.Testing;
 with Ada.Strings.Unbounded;
@@ -10,7 +11,6 @@ with Files.Model.Root_Selector;
 with Files.Model.Selection;
 with Files.Rendering;
 with Files.Rendering.Hit;
-with Files.Types;
 with Guikit.Draw;
 with Files_Suite.Support;
 with Files.Rendering.Layouts;
@@ -127,7 +127,7 @@ package body Files_Suite.Interaction_Support is
    --  The targeted-scroll fixture: detail view, Gamma.md selected, info pane open.
    procedure Open_Targeted_Scroll_Fixture (Model : in out Files.Model.Window_Model) is
    begin
-      Files.Model.Set_View_Mode (Model, Files.Types.Details);
+      Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
       Files_Suite.Support.Models.Select_Name (Model, "Gamma.md");
       Files.Model.Toggle_Info_Pane (Model);
    end Open_Targeted_Scroll_Fixture;

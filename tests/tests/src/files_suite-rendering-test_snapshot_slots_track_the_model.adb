@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Ada.Calendar;
 with Ada.Real_Time;
 with Files.Rendering.Testing;
@@ -51,7 +52,8 @@ separate (Files_Suite.Rendering)
       procedure Space_Bar is begin Settings.Show_Space_Bar := not Settings.Show_Space_Bar; end Space_Bar;
       procedure Widen is
       begin
-         Settings.Column_Widths (Files.Types.Size_Column) := Settings.Column_Widths (Files.Types.Size_Column) + 7;
+         Settings.Column_Widths (Files.Preference_Types.Size_Column) := Settings.Column_Widths
+           (Files.Preference_Types.Size_Column) + 7;
       end Widen;
       procedure Extensions is
       begin
@@ -60,7 +62,7 @@ separate (Files_Suite.Rendering)
       procedure Label is
       begin
          Files.Settings.Path_References.Set_Label
-           (Settings, To_String (Files.Model.Visible_Item (Model, 2).Full_Path), Files.Types.Green);
+           (Settings, To_String (Files.Model.Visible_Item (Model, 2).Full_Path), Files.Preference_Types.Green);
       end Label;
    begin
       for I in 1 .. 60 loop
@@ -69,7 +71,7 @@ separate (Files_Suite.Rendering)
                                          "text/plain"));
       end loop;
       Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
-      Files.Model.Set_View_Mode (Model, Files.Types.Details);
+      Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
       for Draw in Boolean loop
          declare
             Mode : constant String := (if Draw then "drawn each step: " else "not drawn: ");

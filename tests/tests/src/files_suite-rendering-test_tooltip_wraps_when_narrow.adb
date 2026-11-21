@@ -1,7 +1,8 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Tooltip_Wraps_When_Narrow (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Base : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Base : constant View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
 
       --  Centre of the longest-text tooltip region in the frame.
       procedure Longest_Tooltip

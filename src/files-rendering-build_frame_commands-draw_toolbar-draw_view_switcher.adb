@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
    --  The view-mode switcher, a segmented control.
    procedure Draw_View_Switcher is
@@ -12,9 +13,9 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          Seg_Nodes     : Guikit.Draw.Accessibility_Node_Vectors.Vector;
          Active        : constant Natural :=
            (case Snapshot.View_Mode is
-               when Files.Types.Small_Icons => 1,
-               when Files.Types.Large_Icons => 2,
-               when Files.Types.Details     => 3);
+               when Files.Preference_Types.Small_Icons => 1,
+               when Files.Preference_Types.Large_Icons => 2,
+               when Files.Preference_Types.Details     => 3);
 
          procedure Enrich (Cell : Positive; Command : Files.Commands.Registered_Command_Id) is
             S : Guikit.Segmented.Segment := View_Segments.Element (Cell);

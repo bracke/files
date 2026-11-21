@@ -1,3 +1,5 @@
+with Files.UI_Types;
+with Files.Preference_Types;
 with Ada.Characters.Handling;
 with Ada.Strings.Fixed;
 with Files_Suite.Support.Disk;
@@ -80,7 +82,7 @@ separate (Files_Suite.Model)
       --  A search shows its results whatever the filter; ending it filters again.
       Files.Model.Set_Filter (Model, "et");
       Check ("filter et");
-      Files.Model.Note_Search_Results (Model, Files.Types.Search_Names);
+      Files.Model.Note_Search_Results (Model, Files.UI_Types.Search_Names);
       Check ("search results under the filter");
       Files.Model.Clear_Search_Results (Model);
       Check ("search ended");
@@ -91,11 +93,11 @@ separate (Files_Suite.Model)
            (Files_Suite.Support.Disk.Root, "atlas-et", Files.Types.Directory_Item, "inode/directory"));
       Files.Model.Replace_Items (Model, Mixed);
       Check ("a refresh with a folder under the filter");
-      Files.Model.Set_View_Mode (Model, Files.Types.Details);
-      Settings.Group_By := Files.Types.Group_By_Type;
+      Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
+      Settings.Group_By := Files.Preference_Types.Group_By_Type;
       Files.Model.Sync_Grouping (Model, Settings);
       Check ("grouped by type");
-      Settings.Group_By := Files.Types.No_Grouping;
+      Settings.Group_By := Files.Preference_Types.No_Grouping;
       Files.Model.Sync_Grouping (Model, Settings);
       Check ("ungrouped");
 

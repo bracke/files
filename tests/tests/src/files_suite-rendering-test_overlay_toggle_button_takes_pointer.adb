@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Rendering.Layouts;
 with Guikit.Layout;
 separate (Files_Suite.Rendering)
@@ -12,7 +13,7 @@ separate (Files_Suite.Rendering)
       pragma Unreferenced (T);
       Width  : constant := 900;
       Height : constant := 480;
-      Base   : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Base   : constant View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       Frame  : constant Files.Rendering.Layouts.Frame_Layout :=
         Files.Rendering.Layouts.Calculate_Frame_Layout (Base, Width, Height, 20);
       Toolbar : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Width, 20);

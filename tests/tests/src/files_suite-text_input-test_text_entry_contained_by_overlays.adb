@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Input_Actions;
 with Files.Settings_Form;
 with Files.Model.Testing;
@@ -38,7 +39,7 @@ separate (Files_Suite.Text_Input)
          Path_Before   : constant String := Files.Model.Current_Path (Model);
          Favorite_Before : constant Boolean :=
            Files.Settings.Path_References.Is_Favorite (Settings, Path_Before);
-         Scope_Before : constant Files.Types.Search_Scope :=
+         Scope_Before : constant Files.UI_Types.Search_Scope :=
            Files.Model.Search_Scope_Of (Model);
       begin
          Files_Suite.Support.Assert_Equal

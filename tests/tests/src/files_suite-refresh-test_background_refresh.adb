@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Input_Actions;
 with Files_Suite.Interaction_Support;
 with Files.Operation_Results;
@@ -42,7 +43,7 @@ separate (Files_Suite.Refresh)
         (Step.Status,
          Files.Operation_Results.Operation_Success,
          "watch polling schedules a read while retaining the displayed items: status");
-      Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+      Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "watch polling schedules a read while retaining the displayed items: read scheduled");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),

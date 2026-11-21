@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Ada.Calendar;
 with Files.Types;
 
@@ -9,7 +10,7 @@ package Files.Grouping is
 
    --  @param Mode Grouping mode.
    --  @return Number of bands Mode partitions items into.
-   function Band_Count (Mode : Files.Types.Group_Mode) return Positive;
+   function Band_Count (Mode : Files.Preference_Types.Group_Mode) return Positive;
 
    --  The band an item belongs to under Mode, in drawing order.
    --
@@ -24,14 +25,14 @@ package Files.Grouping is
    --  @param Today Start of the current local day.
    --  @return Band number in 1 .. Band_Count (Mode); 1 for No_Grouping.
    function Band_Of
-     (Mode               : Files.Types.Group_Mode;
+     (Mode               : Files.Preference_Types.Group_Mode;
       Kind               : Files.Types.Item_Kind;
       Filetype           : String;
       Modified_Available : Boolean;
       Modified_Time      : Ada.Calendar.Time;
       Size_Available     : Boolean;
       Size               : Long_Long_Integer;
-      Label              : Files.Types.Color_Label;
+      Label              : Files.Preference_Types.Color_Label;
       Today              : Ada.Calendar.Time)
       return Positive;
 
@@ -39,7 +40,7 @@ package Files.Grouping is
    --  @param Band Band number.
    --  @return Localization key of the band's header text.
    function Band_Label_Key
-     (Mode : Files.Types.Group_Mode;
+     (Mode : Files.Preference_Types.Group_Mode;
       Band : Positive)
       return String;
 

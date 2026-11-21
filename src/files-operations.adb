@@ -119,7 +119,7 @@ package body Files.Operations is
    function Run_Search
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Scope    : Files.Types.Tree_Search_Scope)
+      Scope    : Files.UI_Types.Tree_Search_Scope)
       return Operation_Result
    is separate;
 

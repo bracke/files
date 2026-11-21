@@ -1,12 +1,13 @@
+with Files.Preference_Types;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
 separate (Files.Settings.Path_References)
    procedure Set_Labels
      (Settings : in out Settings_Model;
       Paths    : String_Vectors.Vector;
-      Label    : Files.Types.Color_Label)
+      Label    : Files.Preference_Types.Color_Label)
    is
-      use type Files.Types.Color_Label;
+      use type Files.Preference_Types.Color_Label;
       package Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
         (Key_Type => String, Element_Type => Positive, Hash => Ada.Strings.Hash, Equivalent_Keys => "=");
       type Flags is array (Positive range <>) of Boolean;
@@ -31,7 +32,7 @@ separate (Files.Settings.Path_References)
          begin
             if not Persistent_Path_Is_Valid (Name) then
                null;
-            elsif Label = Files.Types.No_Label then
+            elsif Label = Files.Preference_Types.No_Label then
                if Index_Maps.Has_Element (Found) then
                   Drop (Index_Maps.Element (Found)) := True;
                   Dropped := True;

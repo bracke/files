@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operation_Results;
 with Files.File_System.Permissions;
 with Ada.Directories;
@@ -30,7 +31,7 @@ package body Files_Suite.Search is
    use type Files.Commands.Command_Id;
    use type Files.Operation_Results.Operation_Status;
    use type Files.Operations.Archive_Format;
-   use type Files.Types.Search_Scope;
+   use type Files.UI_Types.Search_Scope;
    use Files_Suite.Support;
    use Files_Suite.Support.Disk;
    use Files_Suite.Operations_Support;

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Settings.Path_References;
 separate (Files_Suite.Model)
    procedure Test_Group_By_Label_Bands (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -10,12 +11,12 @@ separate (Files_Suite.Model)
       Gamma_Pos    : Natural := 0;
       Header_Before_Alpha : Boolean := False;
    begin
-      Files.Model.Set_View_Mode (Model, Files.Types.Details);
-      Settings.Group_By := Files.Types.Group_By_Label;
+      Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
+      Settings.Group_By := Files.Preference_Types.Group_By_Label;
       --  Alpha -> Red (band 1), Gamma -> Blue (band 5), Beta stays unlabeled
       --  (band 8, drawn last).
-      Files.Settings.Path_References.Set_Label (Settings, Join (Root, "Alpha.txt"), Files.Types.Red);
-      Files.Settings.Path_References.Set_Label (Settings, Join (Root, "Gamma.md"), Files.Types.Blue);
+      Files.Settings.Path_References.Set_Label (Settings, Join (Root, "Alpha.txt"), Files.Preference_Types.Red);
+      Files.Settings.Path_References.Set_Label (Settings, Join (Root, "Gamma.md"), Files.Preference_Types.Blue);
       --  The window loop does this before every frame.
       Files.Model.Sync_Grouping (Model, Settings);
 
@@ -70,12 +71,12 @@ separate (Files_Suite.Model)
       end;
 
       --  Leaving the grouping restores the plain name order.
-      Settings.Group_By := Files.Types.No_Grouping;
+      Settings.Group_By := Files.Preference_Types.No_Grouping;
       Files.Model.Sync_Grouping (Model, Settings);
       declare
          Reference : Files.Model.Window_Model := Sample_Model;
       begin
-         Files.Model.Set_View_Mode (Reference, Files.Types.Details);
+         Files.Model.Set_View_Mode (Reference, Files.Preference_Types.Details);
          Files.Model.Apply_Sort
            (Reference, Files.Model.Sort_Field_Of (Model), Files.Model.Sort_Is_Ascending (Model));
          declare

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Settings.Path_References;
 separate (Files.Rendering.Build_Snapshot_Into)
    --  A row per visible item, in the model's order, and a header row before
@@ -123,8 +124,8 @@ separate (Files.Rendering.Build_Snapshot_Into)
       --  with a non-selectable header row and never reorders: the drawn rows
       --  stay in the order keyboard and range selection walk. The header
       --  carries Visible_Index zero so hit-testing never selects it.
-      if Snapshot.View_Mode = Files.Types.Details
-        and then Snapshot.Group_By /= Files.Types.No_Grouping
+      if Snapshot.View_Mode = Files.Preference_Types.Details
+        and then Snapshot.Group_By /= Files.Preference_Types.No_Grouping
         and then not Snapshot.Items.Is_Empty
       then
          declare

@@ -1,6 +1,6 @@
+with Files.Preference_Types;
 with Ada.Calendar;
 
-with Files.Types;
 with Guikit.Item_Grid;
 with Guikit.Layout;
 
@@ -13,7 +13,7 @@ with Guikit.Layout;
 private package Files.Rendering.Geometry is
 
    use type Ada.Calendar.Time;
-   use type Files.Types.View_Mode;
+   use type Files.Preference_Types.View_Mode;
 
    --  The info pane's inner padding: 10 px at the reference line height.
    --
@@ -109,7 +109,7 @@ private package Files.Rendering.Geometry is
    --  @param Line_Height Text line height in pixels.
    --  @return The width in pixels.
    function Default_Detail_Column_Width
-     (Column      : Files.Types.Optional_Detail_Column;
+     (Column      : Files.Preference_Types.Optional_Detail_Column;
       Line_Height : Positive)
       return Natural;
 
@@ -149,11 +149,11 @@ private package Files.Rendering.Geometry is
    --
    --  @param Mode The view mode.
    --  @return The grid's view kind.
-   function Grid_View (Mode : Files.Types.View_Mode) return Guikit.Item_Grid.View_Kind is
+   function Grid_View (Mode : Files.Preference_Types.View_Mode) return Guikit.Item_Grid.View_Kind is
      (case Mode is
-         when Files.Types.Small_Icons => Guikit.Item_Grid.Icons_Small,
-         when Files.Types.Large_Icons => Guikit.Item_Grid.Icons_Large,
-         when Files.Types.Details     => Guikit.Item_Grid.Details);
+         when Files.Preference_Types.Small_Icons => Guikit.Item_Grid.Icons_Small,
+         when Files.Preference_Types.Large_Icons => Guikit.Item_Grid.Icons_Large,
+         when Files.Preference_Types.Details     => Guikit.Item_Grid.Details);
 
    --  The padding of a centred, titled panel (Quick Look, the label picker),
    --  which also places its title: the command palette's padding, scaled

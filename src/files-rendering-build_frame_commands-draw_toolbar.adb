@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files.Rendering.Build_Frame_Commands)
    --  The window background and the toolbar: its buttons, then its fields.
    procedure Draw_Toolbar is
@@ -148,7 +149,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          Layout.Toolbar_Height,
          Localized ("accessibility.toolbar"));
       Add_Accessibility_Node
-        ((if Snapshot.View_Mode = Files.Types.Details then Role_Table else Role_List),
+        ((if Snapshot.View_Mode = Files.Preference_Types.Details then Role_Table else Role_List),
          Layout.Main_X,
          Layout.Main_Y,
          Layout.Main_Width,

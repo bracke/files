@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  A scrolled destination tree maps its clipped layout rows back to the
    --  correct source rows and leaves the picker footer unobstructed.
@@ -5,7 +6,7 @@ separate (Files_Suite.Rendering)
       pragma Unreferenced (T);
       Width  : constant Natural  := 1000;
       LH     : constant Positive := 20;
-      Snap       : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Snap       : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
       Layout     : Guikit.Draw.Layout_Metrics;
       Panel      : Tree_Panel_Layout;
       Buttons    : Tree_Pick_Button_Layout;

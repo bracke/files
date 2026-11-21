@@ -1,3 +1,5 @@
+with Files.UI_Types;
+with Files.Model.Jobs;
 with Files.Bounded_Streams;
 with Files.Undo_Recording;
 with Files.Window_Polls;
@@ -233,7 +235,7 @@ package body Files.Operation_Jobs is
       begin
          Files.Process_Jobs.Launch_With_Request (Job, Files.Helper_Modes.Operation, Write'Access);
       end;
-      Files.Model.Begin_Operation_Job
+      Files.Model.Jobs.Begin_Operation_Job
         (Model, Job,
          (case Kind is
              when Duplicate => "command.file.duplicate",
@@ -356,17 +358,17 @@ package body Files.Operation_Jobs is
 
    --  Leave the merge of the modal job's unreadable journal to a later
    --  poll, unless Merge_Grace has passed since its first refusal. The wait
-   --  is the window's (Files.Model.Defer_Operation_Merge), so it ends with
+   --  is the window's (Files.Model.Jobs.Defer_Operation_Merge), so it ends with
    --  the job however the job ends.
    --  @return True when it is left to a later poll.
    function Defer_Merge (Model : in out Files.Model.Window_Model; Directory : String) return Boolean is
       use type Ada.Real_Time.Time;
       Now : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
    begin
-      if not Files.Model.Operation_Merge_Deferred (Model) then
-         Files.Model.Defer_Operation_Merge (Model, Now + Ada.Real_Time.To_Time_Span (Merge_Grace));
+      if not Files.Model.Jobs.Operation_Merge_Deferred (Model) then
+         Files.Model.Jobs.Defer_Operation_Merge (Model, Now + Ada.Real_Time.To_Time_Span (Merge_Grace));
          return True;
-      elsif Now < Files.Model.Operation_Merge_Deadline (Model) then
+      elsif Now < Files.Model.Jobs.Operation_Merge_Deadline (Model) then
          return True;
       end if;
       Files.Diagnostics.Trace ("Files.Operation_Jobs", "history_journal_given_up=" & Directory);
@@ -421,7 +423,7 @@ package body Files.Operation_Jobs is
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model) return Files.Operation_Results.Operation_Result
    is
-      Job       : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Model);
+      Job       : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Operation (Model);
       Transport : constant String := Files.Process_Jobs.Path (Job, "");
       Finished  : Boolean;
       Cancelled : Boolean := False;
@@ -531,7 +533,9 @@ package body Files.Operation_Jobs is
          Files.Model.Set_Directory_Signature (Model, Done.Signature);
          if Done.Kind in Search_Names | Search_Contents then
             Files.Model.Note_Search_Results
-              (Model, (if Done.Kind = Search_Names then Files.Types.Search_Names else Files.Types.Search_Contents));
+              (Model,
+               (if Done.Kind = Search_Names then Files.UI_Types.Search_Names
+                else Files.UI_Types.Search_Contents));
          else
             Files.Model.Clear_Search_Results (Model);
             if Length (Done.Selection) > 0 then

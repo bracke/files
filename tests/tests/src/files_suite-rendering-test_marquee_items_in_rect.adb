@@ -1,7 +1,8 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Marquee_Items_In_Rect (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snapshot : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       Layout   : constant Guikit.Draw.Layout_Metrics :=
         Calculate_Layout (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
       Items    : constant Item_Layout_Vectors.Vector :=

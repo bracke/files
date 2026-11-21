@@ -1,7 +1,8 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
+      Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Small_Icons);
       Frame    : Frame_Commands;
       Tree     : A11ykit.Tree.Accessibility_Tree;
       Roots    : Natural := 0;

@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -45,7 +46,7 @@ separate (Files_Suite.Transfer)
          Step := (if Redo_Recovery then Files.Operation_Commands.Redo_Last (Model, Settings)
                   else Files.Operation_Commands.Duplicate_Selected (Model, Settings));
          declare
-            Job : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Model);
+            Job : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Operation (Model);
          begin
             for Attempt in Files_Suite.Support.Timing.Polling loop
                Files.Process_Jobs.Poll (Job, Finished, Cancelled);

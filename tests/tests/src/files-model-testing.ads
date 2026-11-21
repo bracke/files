@@ -101,7 +101,7 @@ package Files.Model.Testing is
      (Model : in out Window_Model);
 
    --  The armed paste's write actions completed so far (the program reads
-   --  them through Foreground_Progress_Of).
+   --  them through Files.Model.Jobs.Foreground_Progress_Of).
    --
    --  @param Model Model to inspect.
    --  @return Count of items already copied or moved.

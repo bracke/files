@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
@@ -6,7 +7,7 @@ separate (Files_Suite.Operations)
    --  reported in the command's result, whichever command made the change.
    procedure Test_Settings_Change_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Types.Group_Mode;
+      use type Files.Preference_Types.Group_Mode;
       --  A folder where the settings file would be: no save succeeds.
       Unwritable : constant String := Join (Root, "settings-is-a-folder");
       Settings   : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -18,7 +19,7 @@ separate (Files_Suite.Operations)
       Ada.Directories.Create_Path (Unwritable);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       --  Where the column commands are enabled.
-      Files.Model.Set_View_Mode (Model, Files.Types.Details);
+      Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
 
       Saved := Files.Controller.Commit_Settings (Model, Settings, Settings, Unwritable);
       Assert (Saved.Success, "an unchanged change writes nothing, so nothing fails");

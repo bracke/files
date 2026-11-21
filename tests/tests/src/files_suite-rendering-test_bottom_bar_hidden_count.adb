@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  Item 8/9 invariant: the bottom bar renders the localized hidden-count
    --  label carrying the snapshot's Hidden_Count, and exposes the count region
@@ -9,7 +10,7 @@ separate (Files_Suite.Rendering)
       Hidden_Word  : constant String := Files.Localization.Text ("status.hidden");
       Toggle_Name  : constant String :=
         Files.Localization.Text (Files.Commands.Name_Key (Files.Commands.Toggle_Hidden_Files_Command));
-      Snapshot     : View_Snapshot := Sample_Snapshot (5, Files.Types.Small_Icons);
+      Snapshot     : View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Small_Icons);
       Frame        : Frame_Commands;
       Status_Text  : Unbounded_String;
       Found_Status : Boolean := False;

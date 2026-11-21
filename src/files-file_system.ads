@@ -1,4 +1,3 @@
-private with Files.Job_Context;
 with Files.Copy_Context;
 with Files.Extra_Info;
 with Ada.Calendar;
@@ -813,7 +812,8 @@ package Files.File_System is
    --  The job's own cancellation (Files.Job_Context.Cancelled): what a copy
    --  or a check stops for unless it is handed another check, or null for
    --  none -- recovery, which must finish once the job is cancelled.
-   Job_Cancelled : constant Cancellation_Check;
+   --  @return Files.Job_Context.Cancelled.
+   function Job_Cancelled return Cancellation_Check;
 
    --  Import one paste action, preserving the destination it replaces first
    --  and putting that original back when the import fails. The one routine
@@ -1144,8 +1144,6 @@ private
    function Delete_Trashed_Item
      (Trashed_Path : String)
       return Mutation_Result;
-
-   Job_Cancelled : constant Cancellation_Check := Files.Job_Context.Cancelled'Access;
 
    --  What one completed import plan published: the entry's identity token
    --  and, for a directory, its recursive tree revision.

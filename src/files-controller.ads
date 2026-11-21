@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Commands;
 with Files.Drop_Events;
@@ -38,7 +39,7 @@ package Files.Controller is
       Command    : Files.Commands.Command_Id := Files.Commands.No_Command;
       Operation  : Files.Operation_Results.Operation_Result;
       Activation : Overlay_Activation := No_Activation;
-      Label      : Files.Types.Color_Label := Files.Types.No_Label;
+      Label      : Files.Preference_Types.Color_Label := Files.Preference_Types.No_Label;
    end record;
 
    --  Append text to the currently focused text input.

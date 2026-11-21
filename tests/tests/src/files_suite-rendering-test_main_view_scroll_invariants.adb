@@ -1,14 +1,15 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Main_View_Scroll_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Few    : constant View_Snapshot := Sample_Snapshot (2, Files.Types.Details);
+      Few    : constant View_Snapshot := Sample_Snapshot (2, Files.Preference_Types.Details);
       Few_L  : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Few, 1000, 800, 20);
       Few_MV : constant Main_View_Layout := Calculate_Main_View_Layout (Few, Few_L, 20);
    begin
       Assert (not Few_MV.Scrollbar_Visible, "no scrollbar is shown when content fits the viewport");
 
       declare
-         Many   : constant View_Snapshot := Sample_Snapshot (40, Files.Types.Details);
+         Many   : constant View_Snapshot := Sample_Snapshot (40, Files.Preference_Types.Details);
          Layout : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Many, 400, 160, 20);
          MV     : constant Main_View_Layout := Calculate_Main_View_Layout (Many, Layout, 20);
       begin
@@ -49,7 +50,7 @@ separate (Files_Suite.Rendering)
       --  (thumb / track ~= track / content), and it must saturate: near-full
       --  content gives a near-full thumb, huge content gives the minimum.
       declare
-         Mid    : constant View_Snapshot := Sample_Snapshot (26, Files.Types.Details);
+         Mid    : constant View_Snapshot := Sample_Snapshot (26, Files.Preference_Types.Details);
          Layout : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Mid, 900, 400, 20);
          MV     : constant Main_View_Layout := Calculate_Main_View_Layout (Mid, Layout, 20);
          Track  : constant Natural := MV.Scrollbar_Track_Height;
@@ -65,8 +66,8 @@ separate (Files_Suite.Rendering)
       end;
 
       declare
-         Top    : View_Snapshot := Sample_Snapshot (40, Files.Types.Details);
-         Bottom : View_Snapshot := Sample_Snapshot (40, Files.Types.Details);
+         Top    : View_Snapshot := Sample_Snapshot (40, Files.Preference_Types.Details);
+         Bottom : View_Snapshot := Sample_Snapshot (40, Files.Preference_Types.Details);
       begin
          Top.Main_View_Scroll_Lines    := 0;
          Bottom.Main_View_Scroll_Lines := 1000;
@@ -95,8 +96,8 @@ separate (Files_Suite.Rendering)
       --  (rows scroll below it), so its track starts lower than an equivalent
       --  header-less icons view over the same layout.
       declare
-         D_Snap : constant View_Snapshot := Sample_Snapshot (40, Files.Types.Details);
-         I_Snap : constant View_Snapshot := Sample_Snapshot (40, Files.Types.Large_Icons);
+         D_Snap : constant View_Snapshot := Sample_Snapshot (40, Files.Preference_Types.Details);
+         I_Snap : constant View_Snapshot := Sample_Snapshot (40, Files.Preference_Types.Large_Icons);
          L      : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (D_Snap, 400, 300, 20);
          D_MV   : constant Main_View_Layout := Calculate_Main_View_Layout (D_Snap, L, 20);
          I_MV   : constant Main_View_Layout := Calculate_Main_View_Layout (I_Snap, L, 20);
@@ -113,7 +114,7 @@ separate (Files_Suite.Rendering)
       --  height) at maximum scroll. Row-period snapping must not floor the
       --  offset below the point that brings the final, partially-fitting row
       --  fully into view, in any view mode.
-      for Mode in Files.Types.View_Mode loop
+      for Mode in Files.Preference_Types.View_Mode loop
          declare
             Full  : View_Snapshot := Sample_Snapshot (60, Mode);
             L     : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Full, 400, 300, 20);

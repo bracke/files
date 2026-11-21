@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -33,7 +34,7 @@ separate (Files_Suite.Recovery)
       Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
       declare
          Job : constant Files.Process_Jobs.Session :=
-           Files.Model.Background_Operation (Model);
+           Files.Model.Jobs.Background_Operation (Model);
          Finished, Cancelled : Boolean;
       begin
          for Attempt in Files_Suite.Support.Timing.Polling loop
@@ -83,7 +84,7 @@ separate (Files_Suite.Recovery)
       Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
       declare
          Job : constant Files.Process_Jobs.Session :=
-           Files.Model.Background_Operation (Model);
+           Files.Model.Jobs.Background_Operation (Model);
          Finished, Cancelled : Boolean;
       begin
          for Attempt in Files_Suite.Support.Timing.Polling loop
@@ -127,7 +128,7 @@ separate (Files_Suite.Recovery)
       Step := Files.Operation_Commands.Delete_Selected (Model, Settings);
       declare
          Job : constant Files.Process_Jobs.Session :=
-           Files.Model.Background_Operation (Model);
+           Files.Model.Jobs.Background_Operation (Model);
          Finished, Cancelled : Boolean;
       begin
          for Attempt in Files_Suite.Support.Timing.Polling loop
@@ -154,7 +155,7 @@ separate (Files_Suite.Recovery)
          "error.trash.restore_exists",
          "an old destructive result cannot refresh or alter newer view state: error key");
       Assert
-        (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+        (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
          "an old destructive result cannot refresh or alter newer view state: no refresh started");
       Assert
         (not Ada.Directories.Exists (Join (Root, "a.txt"))

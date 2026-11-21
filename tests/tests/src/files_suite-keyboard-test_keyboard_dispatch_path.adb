@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -35,7 +36,7 @@ separate (Files_Suite.Keyboard)
             "Ctrl+3 dispatched through Handle_Key reports the details-view command");
          Files_Suite.Support.Assert_Equal
            (Files.Model.View_Mode_Of (Model),
-            Files.Types.Details,
+            Files.Preference_Types.Details,
             "the key seam switches the model to the details view");
       end;
 

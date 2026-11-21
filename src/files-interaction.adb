@@ -88,7 +88,7 @@ package body Files.Interaction is
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
-      Label         : Files.Types.Color_Label;
+      Label         : Files.Preference_Types.Color_Label;
       Result        : in out Interaction_Result)
    is
       Updated : Files.Settings.Settings_Model := Settings;
@@ -169,7 +169,7 @@ package body Files.Interaction is
    --  that, is written back: a value the window never adopted from another
    --  window (its view mode, its info pane) must not overwrite the shared one.
    type UI_State is record
-      View      : Files.Types.View_Mode := Files.Types.Small_Icons;
+      View      : Files.Preference_Types.View_Mode := Files.Preference_Types.Small_Icons;
       Sort      : Files.Types.Sort_Field := Files.Types.Sort_Name;
       Ascending : Boolean := True;
       Info      : Boolean := False;
@@ -192,7 +192,7 @@ package body Files.Interaction is
       Before_UI     : UI_State)
       return Boolean
    is
-      use type Files.Types.View_Mode;
+      use type Files.Preference_Types.View_Mode;
       use type Files.Types.Sort_Field;
 
       Now     : constant UI_State := UI_State_Of (Model);
@@ -498,7 +498,7 @@ package body Files.Interaction is
    procedure Apply_Column_Resize
      (Model        : in out Files.Model.Window_Model;
       Settings     : in out Files.Settings.Settings_Model;
-      Column       : Files.Types.Detail_Column;
+      Column       : Files.Preference_Types.Detail_Column;
       Origin_X     : Integer;
       Origin_Width : Natural;
       Current_X    : Integer;
@@ -555,11 +555,11 @@ package body Files.Interaction is
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
-      Column        : Files.Types.Detail_Column;
-      To_Index      : Files.Types.Detail_Column_Index;
+      Column        : Files.Preference_Types.Detail_Column;
+      To_Index      : Files.Preference_Types.Detail_Column_Index;
       Result        : out Interaction_Result)
    is
-      use type Files.Types.Detail_Column_Order;
+      use type Files.Preference_Types.Detail_Column_Order;
       Updated : constant Files.Settings.Settings_Model :=
         Files.Settings.With_Column_Order (Settings, Column, To_Index);
    begin

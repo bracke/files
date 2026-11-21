@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The counts (hidden-files toggle) and the free-space field (free/used
    --  toggle) are two separate hover regions: hovering one highlights only it.
    procedure Test_Free_Space_Outside_Toggle_Hover (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Snap : View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
    begin
       Snap.Free_Space_Known := True;
       Snap.Free_Space_Bytes := 12_000_000_000;

@@ -1,3 +1,5 @@
+with Files.UI_Types;
+with Files.Preference_Types;
 with Files.Controller.Testing;
 with Files.Model.Quick_Look;
 with Files_Suite.Support.Disk;
@@ -15,7 +17,7 @@ separate (Files_Suite.Interaction)
       use Files_Suite.Support.Disk;
       use Files_Suite.Support.Models;
       use type Files.Types.Sort_Field;
-      use type Files.Types.View_Mode;
+      use type Files.Preference_Types.View_Mode;
       Model    : Files.Model.Window_Model;
       Other    : Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -36,7 +38,7 @@ separate (Files_Suite.Interaction)
       Write_File (Join (Root, ".hidden_two"));
       Settings.Show_Hidden_Files := True;
       Load (Model);
-      Files.Model.Note_Search_Results (Model, Files.Types.Search_Names);
+      Files.Model.Note_Search_Results (Model, Files.UI_Types.Search_Names);
 
       --  A rename in progress over the results.
       Select_Name (Model, "Beta.txt");
@@ -74,12 +76,12 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Execute_Command
            (Other, Other_Settings, "", Files.Commands.Select_Details_Command, Result => Result);
          Assert (Other_Settings.Sort_Field_Value = Files.Types.Sort_Size, "the first window sorts by size");
-         Assert (Other_Settings.Default_View = Files.Types.Details, "and remembers details");
+         Assert (Other_Settings.Default_View = Files.Preference_Types.Details, "and remembers details");
          Files.Interaction.Adopt_Shared_Settings (Model, Settings, Other_Settings);
       end;
       Assert (Files.Model.Sort_Field_Of (Model) = Files.Types.Sort_Size,
               "the second window, showing a folder, takes the shared sort");
-      Assert (Files.Model.View_Mode_Of (Model) /= Files.Types.Details,
+      Assert (Files.Model.View_Mode_Of (Model) /= Files.Preference_Types.Details,
               "but keeps its own view mode");
 
       --  A command here that changes neither the order nor the view writes
@@ -88,6 +90,6 @@ separate (Files_Suite.Interaction)
         (Model, Settings, "", Files.Commands.Toggle_Info_Pane_Command, Result => Result);
       Assert (Settings.Info_Pane_Open, "the info pane change is written");
       Assert (Settings.Sort_Field_Value = Files.Types.Sort_Size, "the shared sort is not written back over");
-      Assert (Settings.Default_View = Files.Types.Details, "nor is the shared view mode");
+      Assert (Settings.Default_View = Files.Preference_Types.Details, "nor is the shared view mode");
       Reset_Root;
    end Test_Shared_Settings_Keep_Edits_And_Order;

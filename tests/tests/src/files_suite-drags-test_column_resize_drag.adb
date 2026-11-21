@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Drags)
    procedure Test_Column_Resize_Drag (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Types.Detail_Column;
+      use type Files.Preference_Types.Detail_Column;
 
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
@@ -20,7 +21,7 @@ separate (Files_Suite.Drags)
       end loop;
       Files.Model.Initialize
         (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root,
-         Default_View_Mode => Files.Types.Details);
+         Default_View_Mode => Files.Preference_Types.Details);
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
@@ -50,7 +51,7 @@ separate (Files_Suite.Drags)
          Sep_X    := Row.Size_X;
          Base_W   := Row.Size_Width;
          Header_Y := (Layout.Main_Y + Row.Y) / 2;
-         Assert (Base_W > Files.Types.Minimum_Detail_Column_Width,
+         Assert (Base_W > Files.Preference_Types.Minimum_Detail_Column_Width,
                  "the sample size column starts above the minimum width");
 
          --  A press on the size column's left-edge separator translates to a
@@ -64,7 +65,7 @@ separate (Files_Suite.Drags)
             "a press on a header separator begins a column resize");
          Files_Suite.Support.Assert_Equal
            (Action.Column,
-            Files.Types.Size_Column,
+            Files.Preference_Types.Size_Column,
             "the resize targets the column whose left edge was pressed");
          Assert (Action.Origin_X = Sep_X and then Action.Column_Width = Base_W,
                  "the drag-begin action carries the separator origin and column width");
@@ -82,7 +83,7 @@ separate (Files_Suite.Drags)
          --  Dragging the separator left by 40 px widens the size column by ~40.
          Revision_Before := Files.Model.Settings_Revision (Model);
          Files.Interaction.Apply_Column_Resize
-           (Model, Settings, Files.Types.Size_Column,
+           (Model, Settings, Files.Preference_Types.Size_Column,
             Origin_X     => Action.Origin_X,
             Origin_Width => Action.Column_Width,
             Current_X    => Sep_X - 40,
@@ -92,7 +93,7 @@ separate (Files_Suite.Drags)
          Assert (Files.Model.Settings_Revision (Model) /= Revision_Before,
                  "the resize step notes the settings change on the window's model itself");
          Files_Suite.Support.Assert_Equal
-           (Settings.Column_Widths (Files.Types.Size_Column),
+           (Settings.Column_Widths (Files.Preference_Types.Size_Column),
             Base_W + 40,
             "dragging the separator left widens the persisted column width by the drag distance");
 
@@ -118,39 +119,39 @@ separate (Files_Suite.Drags)
 
          --  A far rightward drag (raw width below the minimum) clamps up to it.
          Files.Interaction.Apply_Column_Resize
-           (Model, Settings, Files.Types.Size_Column,
+           (Model, Settings, Files.Preference_Types.Size_Column,
             Origin_X     => Action.Origin_X,
             Origin_Width => Action.Column_Width,
             Current_X    => Sep_X + (Base_W - 10),
             Result       => Result,
             Line_Height  => Line);
          Files_Suite.Support.Assert_Equal
-           (Settings.Column_Widths (Files.Types.Size_Column),
-            Files.Types.Minimum_Detail_Column_Width,
+           (Settings.Column_Widths (Files.Preference_Types.Size_Column),
+            Files.Preference_Types.Minimum_Detail_Column_Width,
             "a drag that shrinks the column past the minimum clamps up to it");
 
          --  The public reducer must clamp extreme synthetic coordinates rather
          --  than overflowing before the ordinary width rules can run.
          Files.Interaction.Apply_Column_Resize
-           (Model, Settings, Files.Types.Size_Column,
+           (Model, Settings, Files.Preference_Types.Size_Column,
             Origin_X     => Integer'Last,
             Origin_Width => Natural'Last,
             Current_X    => Integer'First,
             Result       => Result,
             Line_Height  => Line);
          Files_Suite.Support.Assert_Equal
-           (Settings.Column_Widths (Files.Types.Size_Column),
+           (Settings.Column_Widths (Files.Preference_Types.Size_Column),
             Natural'Last,
             "an overflowing positive resize delta saturates at Natural'Last");
          Files.Interaction.Apply_Column_Resize
-           (Model, Settings, Files.Types.Size_Column,
+           (Model, Settings, Files.Preference_Types.Size_Column,
             Origin_X     => Integer'First,
             Origin_Width => 0,
             Current_X    => Integer'Last,
             Result       => Result,
             Line_Height  => Line);
          Files_Suite.Support.Assert_Equal
-           (Settings.Column_Widths (Files.Types.Size_Column),
+           (Settings.Column_Widths (Files.Preference_Types.Size_Column),
             0,
             "an overflowing negative resize delta clamps to the default width");
       end;

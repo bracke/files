@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Compact_Frame_Commands_Bounded
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -7,7 +8,7 @@ separate (Files_Suite.Rendering)
         [0, 1, 7, 40, 119, 279, 280, 639, 640];
       Heights : constant array (Positive range <>) of Natural :=
         [0, 1, 7, 8, 9, 20, 39, 40, 41, 72, 73, 100];
-      Snap    : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Snap    : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
    begin
       --  Exercise both the filled-star triangles and the toolbar asset icons.
       Snap.Current_Path_Is_Favorite := True;

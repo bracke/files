@@ -1,7 +1,8 @@
+with Files.Preference_Types;
 separate (Files.Model)
 procedure Set_View_Mode
   (Model : in out Window_Model;
-   Mode  : Files.Types.View_Mode) is
+   Mode  : Files.Preference_Types.View_Mode) is
 begin
    Touch (Model);
    Model.View_Value := Mode;

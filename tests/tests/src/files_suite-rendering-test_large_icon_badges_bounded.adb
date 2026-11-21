@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Large_Icon_Badges_Bounded
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -6,7 +7,7 @@ separate (Files_Suite.Rendering)
       Widths : constant array (Positive range <>) of Natural :=
         [20, 40, 80, 139, 140, 141, 280, 421, 640];
       Heights : constant array (Positive range <>) of Natural := [173, 300];
-      Snap   : View_Snapshot := Sample_Snapshot (12, Files.Types.Large_Icons);
+      Snap   : View_Snapshot := Sample_Snapshot (12, Files.Preference_Types.Large_Icons);
       Found  : Boolean := False;
    begin
       for Index in 1 .. Natural (Snap.Items.Length) loop

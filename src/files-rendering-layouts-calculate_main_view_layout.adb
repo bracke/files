@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files.Rendering.Layouts)
    function Calculate_Main_View_Layout
      (Snapshot    : View_Snapshot;
@@ -24,7 +25,7 @@ separate (Files.Rendering.Layouts)
       Cell_W       : constant Natural := Metrics.Width;
       Cell_H       : constant Natural := Metrics.Height;
       Columns      : constant Natural :=
-        (if Snapshot.View_Mode = Files.Types.Details or else Cell_W = 0
+        (if Snapshot.View_Mode = Files.Preference_Types.Details or else Cell_W = 0
          then 1
          elsif Content_W < Cell_W
          then 1
@@ -35,7 +36,7 @@ separate (Files.Rendering.Layouts)
       Rows         : constant Natural := (if Count = 0 then 0 else 1 + (Count - 1) / Columns);
       Row_Content_H : constant Natural :=
         (if Rows = 0 then 0
-         elsif Snapshot.View_Mode = Files.Types.Details
+         elsif Snapshot.View_Mode = Files.Preference_Types.Details
          then Saturating_Multiply (Rows, Cell_H)
          else Guikit.Layout.Saturating_Add
            (Saturating_Multiply (Rows, Cell_H),
@@ -45,7 +46,7 @@ separate (Files.Rendering.Layouts)
       --  area (View_H minus the header), starting below the header -- otherwise
       --  the track spans the non-scrolling header band and the ends misalign.
       Header_H      : constant Natural :=
-        (if Snapshot.View_Mode = Files.Types.Details
+        (if Snapshot.View_Mode = Files.Preference_Types.Details
          then Details_Header_Height (View_H, Line_Height)
          else 0);
       Viewport_H    : constant Natural := (if View_H > Header_H then View_H - Header_H else 0);
@@ -59,7 +60,7 @@ separate (Files.Rendering.Layouts)
       --  out rows on Cell_H + Main_Grid_Gap (Line_Height) centers; Details has no row gap
       --  so the period is just Cell_H.
       Row_Stride   : constant Natural :=
-        (if Snapshot.View_Mode = Files.Types.Details
+        (if Snapshot.View_Mode = Files.Preference_Types.Details
          then Cell_H
          else Guikit.Layout.Saturating_Add (Cell_H, Main_Grid_Gap (Line_Height)));
       --  At the very end of the list use the exact Max_Scroll instead of the

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Operations)
    procedure Test_Apply_Ui_State_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -11,13 +12,13 @@ separate (Files_Suite.Operations)
          Model    : Files.Model.Window_Model := Sample_Model;
          Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       begin
-         Settings.Default_View     := Files.Types.Details;
+         Settings.Default_View     := Files.Preference_Types.Details;
          Settings.Sort_Field_Value := Field;
          Settings.Sort_Ascending   := Ascending;
          Files.Operations.Apply_Ui_State (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Files.Model.View_Mode_Of (Model),
-            Files.Types.Details,
+            Files.Preference_Types.Details,
             Label & ": view mode applied");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Sort_Field_Of (Model),

@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Model.Command_Palette;
 with Files.Model.Quick_Look;
@@ -55,15 +56,15 @@ separate (Files_Suite.Refresh)
       begin
          for Attempt in Polling loop
             Applied := Files.Refresh_Jobs.Advance (Model, Settings);
-            Files.Process_Jobs.Poll (Files.Model.Background_Refresh (Model), Finished, Cancelled);
-            exit when Finished or else not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
+            Files.Process_Jobs.Poll (Files.Model.Jobs.Background_Refresh (Model), Finished, Cancelled);
+            exit when Finished or else not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model));
          end loop;
          Assert (Finished and then not Cancelled, "the refresh started under the palette finishes its read");
       end;
       Applied := Files.Refresh_Jobs.Advance (Model, Settings);
       Assert (Files.Model.Command_Palette.Is_Open (Model) and then not Listed ("later"),
               "an in-flight refresh neither closes the palette nor replaces the items under it");
-      Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+      Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "the finished refresh is kept, waiting for the palette to close");
       Files.Model.Command_Palette.Close (Model);
       Await_View (Model, Settings);

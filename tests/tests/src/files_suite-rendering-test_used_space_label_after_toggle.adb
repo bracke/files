@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  In used-space mode the field's label shows the used-space suffix, not the
    --  free-space one.
    procedure Test_Used_Space_Label_After_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap     : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Snap     : View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
       Used_Sfx : constant String :=
         Ada.Strings.Fixed.Trim (Files.Localization.Text ("status.used_space", "size", ""), Ada.Strings.Both);
       Free_Sfx : constant String :=

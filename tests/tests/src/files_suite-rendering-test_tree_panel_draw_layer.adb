@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The folder tree sits beside the view, so it is drawn with the view, not
    --  as an overlay over it; only while it picks a destination, which blocks
@@ -7,7 +8,7 @@ separate (Files_Suite.Rendering)
       Width : constant Natural  := 1000;
       Height : constant Natural := 800;
       LH    : constant Positive := 20;
-      Snap  : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Snap  : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
 
       function Inside (Rects : Rectangle_Command_Vectors.Vector; Panel : Tree_Panel_Layout) return Natural is
          Count : Natural := 0;

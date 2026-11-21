@@ -1,8 +1,8 @@
+with Files.UI_Types;
 with Files.Model;
 with Files.Operation_Results;
 with Files.Operations;
 with Files.Settings;
-with Files.Types;
 
 --  The selection, trash, search and history commands a window can run in a
 --  helper job: there when the window runs them in the background
@@ -78,7 +78,7 @@ package Files.Operation_Commands is
    function Run_Search
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Scope    : Files.Types.Tree_Search_Scope)
+      Scope    : Files.UI_Types.Tree_Search_Scope)
       return Files.Operation_Results.Operation_Result;
 
    --  Undo the newest action. A helper replays only what its journal hands

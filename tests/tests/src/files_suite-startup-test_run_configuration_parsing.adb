@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Startup)
    procedure Test_Run_Configuration_Parsing (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -146,7 +147,7 @@ separate (Files_Suite.Startup)
             "split settings flag drives startup settings path");
          Files_Suite.Support.Assert_Equal
            (Startup.Settings.Default_View,
-            Files.Types.Details,
+            Files.Preference_Types.Details,
             "split settings flag loads startup default view");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Item_Count (Startup.Windows.Element (1).Model),

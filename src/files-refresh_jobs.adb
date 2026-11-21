@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Window_Polls;
 with Files.Protocol_Names;
 with Files.Quick_Look.Preparation;
@@ -186,7 +187,7 @@ package body Files.Refresh_Jobs is
    procedure Cancel (Model : in out Files.Model.Window_Model) is
       Empty : Files.Process_Jobs.Session;
    begin
-      Files.Model.Set_Background_Refresh (Model, Empty);
+      Files.Model.Jobs.Set_Background_Refresh (Model, Empty);
    end Cancel;
 
    function Start
@@ -228,7 +229,7 @@ package body Files.Refresh_Jobs is
          Files.Model.Note_Owed_Refresh (Model, Force => False, Select_Name => Select_Name);
          return (Status => Files.Operation_Results.Operation_Success, others => <>);
       end if;
-      if not Force and then Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)) then
+      if not Force and then Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)) then
          return (Status => Files.Operation_Results.Operation_Success, others => <>);
       end if;
       Cancel (Model);
@@ -241,7 +242,7 @@ package body Files.Refresh_Jobs is
       begin
          Files.Process_Jobs.Launch_With_Request (Job, Files.Helper_Modes.Refresh, Write'Access);
       end;
-      Files.Model.Set_Background_Refresh (Model, Job);
+      Files.Model.Jobs.Set_Background_Refresh (Model, Job);
       --  This read covers the current view, so any reload owed to it is paid.
       Files.Model.Clear_Owed_Refresh (Model);
       return (Status => Files.Operation_Results.Operation_Success, Path => Work.Root, others => <>);
@@ -260,7 +261,7 @@ package body Files.Refresh_Jobs is
       Settings : Files.Settings.Settings_Model) is
    begin
       if not Files.Model.Refresh_Is_Owed (Model)
-        or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
+        or else Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model))
         or else Files.Model.Foreground_Job_Is_Active (Model)
       then
          return;
@@ -363,7 +364,7 @@ package body Files.Refresh_Jobs is
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model) return Boolean
    is
-      Job : constant Files.Process_Jobs.Session := Files.Model.Background_Refresh (Model);
+      Job : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Refresh (Model);
       Work : Request;
       Done : Outcome;
       Finished, Cancelled : Boolean;

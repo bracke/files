@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
    --  The Details view's column dividers, down the rows on screen.
    procedure Draw_Column_Separators is
@@ -36,7 +37,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
          Add_Rect (Column_Separator_X (Column_X, Line_Height), Separator_Y, 1, Separator_H, Border_Color);
       end Add_Column_Separator;
    begin
-      for Column in Files.Types.Optional_Detail_Column loop
+      for Column in Files.Preference_Types.Optional_Detail_Column loop
          if Columns (Column).Visible then
             Add_Column_Separator (Columns (Column).X);
          end if;

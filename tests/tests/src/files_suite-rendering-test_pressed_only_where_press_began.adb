@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Rendering.Layouts;
 with Guikit.Layout;
 separate (Files_Suite.Rendering)
@@ -7,7 +8,7 @@ separate (Files_Suite.Rendering)
    procedure Test_Pressed_Only_Where_Press_Began (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Width : constant := 900;
-      Snap  : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Snap  : constant View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       Box   : constant Files.Rendering.Layouts.Field_Text_Region :=
         Files.Rendering.Layouts.Path_Field_Text_Region (Guikit.Layout.Calculate_Toolbar_Layout (Width, 20), Width, 20);
       X     : constant Natural := Box.Field_X + Box.Field_Width / 2;

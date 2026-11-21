@@ -27,11 +27,11 @@ package body Files.Rendering is
    use type Files.Types.Sort_Field;
    use type Files.Model.Tree_Pick_Mode;
    use type Files.Quick_Look.Content_Kind;
-   use type Files.Types.Color_Label;
+   use type Files.Preference_Types.Color_Label;
    use type Files.UI_Types.Focus_Target;
-   use type Files.Types.Group_Mode;
+   use type Files.Preference_Types.Group_Mode;
    use type Files.Types.Item_Kind;
-   use type Files.Types.View_Mode;
+   use type Files.Preference_Types.View_Mode;
 
    --  Thumbnail pixels never contribute to Item_Snapshot equality (see the
    --  Thumbnail_Bitmap type in the spec).

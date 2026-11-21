@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 separate (Files_Suite.Search)
@@ -32,7 +33,7 @@ separate (Files_Suite.Search)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, False);
          Files.Model.Set_Filter (Model, Query);
-         Result := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Names);
+         Result := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
          Assert (Files.Model.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 1,
                  "the search finds the one deep file for " & Query);
          Files.Model.Selection.Select_Visible (Model, 1);

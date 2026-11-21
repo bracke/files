@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Ada.Strings;
 with Ada.Strings.Unbounded;
 
@@ -73,11 +74,11 @@ package body Files.Settings_Form is
 
       --  The view choice uses the same short labels as the bottom bar's
       --  view-mode selector.
-      function View_Label_Key (Mode : Files.Types.View_Mode) return String is
+      function View_Label_Key (Mode : Files.Preference_Types.View_Mode) return String is
         (case Mode is
-            when Files.Types.Small_Icons => "command.view.small.short",
-            when Files.Types.Large_Icons => "command.view.large.short",
-            when Files.Types.Details     => "command.view.details.short");
+            when Files.Preference_Types.Small_Icons => "command.view.small.short",
+            when Files.Preference_Types.Large_Icons => "command.view.large.short",
+            when Files.Preference_Types.Details     => "command.view.details.short");
       function Sort_Label_Key (Field : Files.Types.Sort_Field) return String is
         ("settings.sort." & Files.Settings.Sort_Field_Name (Field));
       function Theme_Label_Key (Theme : Files.Settings.Theme_Choice) return String is
@@ -86,11 +87,11 @@ package body Files.Settings_Form is
         (case Theme is
             when Files.Icon_Themes.Basic         => "settings.icon_theme.basic",
             when Files.Icon_Themes.High_Contrast => "settings.icon_theme.high_contrast");
-      function Group_Label_Key (Mode : Files.Types.Group_Mode) return String is
+      function Group_Label_Key (Mode : Files.Preference_Types.Group_Mode) return String is
         ("settings.group." & Files.Settings.Group_Mode_Name (Mode));
 
       procedure View_Choice is new Enum_Choice
-        (Files.Types.View_Mode, Files.Settings.View_Mode_Name, View_Label_Key);
+        (Files.Preference_Types.View_Mode, Files.Settings.View_Mode_Name, View_Label_Key);
       procedure Sort_Choice is new Enum_Choice
         (Files.Types.Sort_Field, Files.Settings.Sort_Field_Name, Sort_Label_Key);
       procedure Color_Theme_Choice is new Enum_Choice
@@ -98,7 +99,7 @@ package body Files.Settings_Form is
       procedure Icon_Theme_Choice is new Enum_Choice
         (Files.Icon_Themes.Icon_Theme, Files.Icon_Themes.Image, Icon_Theme_Label_Key);
       procedure Group_Choice is new Enum_Choice
-        (Files.Types.Group_Mode, Files.Settings.Group_Mode_Name, Group_Label_Key);
+        (Files.Preference_Types.Group_Mode, Files.Settings.Group_Mode_Name, Group_Label_Key);
 
       procedure Number_Field (Key : String; Value : UString; Min, Max : Integer; Help_Key : String := "") is
       begin

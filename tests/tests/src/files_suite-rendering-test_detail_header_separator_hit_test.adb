@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Types.Detail_Column;
+      use type Files.Preference_Types.Detail_Column;
 
-      Base   : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Base   : constant View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
       Layout : constant Guikit.Draw.Layout_Metrics :=
         Calculate_Layout (Base, Width => 1000, Height => 800, Line_Height => 20);
       Items  : constant Item_Layout_Vectors.Vector :=
@@ -39,11 +40,11 @@ separate (Files_Suite.Rendering)
            Files.Rendering.Hit.Details_Header_Separator_At
              (Base, Layout, Row.Size_X, Row.Y + Row.Height, Line_Height => 20);
       begin
-         Assert (At_Size.Present and then At_Size.Column = Files.Types.Size_Column,
+         Assert (At_Size.Present and then At_Size.Column = Files.Preference_Types.Size_Column,
                  "a press on the size column's left edge resolves to the size separator");
          Assert (At_Size.Origin_X = Row.Size_X and then At_Size.Width = Row.Size_Width,
                  "the separator reports the column's edge and current width");
-         Assert (At_Modified.Present and then At_Modified.Column = Files.Types.Modified_Column,
+         Assert (At_Modified.Present and then At_Modified.Column = Files.Preference_Types.Modified_Column,
                  "the boundary between name and the first fixed column resizes that fixed column");
          Assert (not Mid_Name.Present,
                  "a press in the middle of a header cell is not a separator");

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Settings_Form;
 with Files.Input_Actions;
 with Files.Model.Settings_Pane;
@@ -88,7 +89,7 @@ separate (Files_Suite.Interaction)
                Press (Guikit.Input.Key_0);
             when Column_Resize =>
                Files.Interaction.Apply_Column_Resize
-                 (Model, Settings, Files.Types.Size_Column,
+                 (Model, Settings, Files.Preference_Types.Size_Column,
                   Origin_X     => 500,
                   Origin_Width => 300,
                   Current_X    => 423,

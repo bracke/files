@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
@@ -19,7 +20,7 @@ separate (Files_Suite.Drags)
       end loop;
       Files.Model.Initialize
         (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root,
-         Default_View_Mode => Files.Types.Details);
+         Default_View_Mode => Files.Preference_Types.Details);
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=

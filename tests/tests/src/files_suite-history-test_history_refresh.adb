@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.Settings.Path_References;
@@ -37,13 +38,14 @@ separate (Files_Suite.History)
                      Applied : Boolean := False;
                   begin
                      if Background then
-                        Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+                        Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
                                 "the history action schedules a background refresh");
                         Await_View (Model, Settings, Applied);
-                        Assert (Applied and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+                        Assert (Applied and then not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh
+                          (Model)),
                                 "Undo or Redo's own refresh applies without a fallback poll or manual reload");
                      else
-                        Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+                        Assert (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
                                 "headless history actions still reload synchronously");
                      end if;
                      Files_Suite.Support.Assert_Equal

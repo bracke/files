@@ -1,10 +1,12 @@
-with Files.Process_Jobs;
+private with Ada.Finalization;
 with Files.Types;
 
 --  Private batch journal shared by consecutive copy helpers and history retries.
 package Files.Copy_Context is
    type Session is private;
-   Empty_Session : constant Session;
+
+   --  @return The session of no batch: an isolated copy.
+   function Empty_Session return Session;
 
    --  @return A reference-counted private batch directory.
    function Create return Session;
@@ -68,9 +70,17 @@ package Files.Copy_Context is
    --    long, or contains NUL.
    function Borrow (Path : String) return Session;
 private
-   type Session is record
-      Job : Files.Process_Jobs.Session;
+   --  The batch's reserved job (Files.Process_Jobs), completed in the body so
+   --  that this spec -- and Files.File_System's, which names Session -- does
+   --  not depend on the job layer. Shared by reference count, like the job
+   --  session it holds.
+   type Batch_State;
+   type Batch_Access is access Batch_State;
+
+   type Session is new Ada.Finalization.Controlled with record
+      Shared   : Batch_Access;
       Borrowed : Files.Types.UString;
    end record;
-   Empty_Session : constant Session := (others => <>);
+   overriding procedure Adjust (Batch : in out Session);
+   overriding procedure Finalize (Batch : in out Session);
 end Files.Copy_Context;

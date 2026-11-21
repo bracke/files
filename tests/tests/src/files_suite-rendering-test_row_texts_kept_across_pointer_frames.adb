@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Ada.Real_Time;
 with Ada.Text_IO;
 separate (Files_Suite.Rendering)
@@ -12,7 +13,7 @@ separate (Files_Suite.Rendering)
       Width  : constant Natural  := 1000;
       Height : constant Natural := 800;
       LH     : constant Positive := 20;
-      Snap   : View_Snapshot := Sample_Snapshot (30, Files.Types.Details);
+      Snap   : View_Snapshot := Sample_Snapshot (30, Files.Preference_Types.Details);
       Texts  : Row_Text_Cache;
 
       function Frame (Build : Natural; Hover_Y : Natural) return Frame_Commands is
@@ -59,7 +60,7 @@ separate (Files_Suite.Rendering)
       end;
 
       --  A new build (here: permissions shown) is formatted afresh.
-      Snap.Detail_Columns_Visible (Files.Types.Permissions_Column) := True;
+      Snap.Detail_Columns_Visible (Files.Preference_Types.Permissions_Column) := True;
       declare
          Rebuilt : constant Frame_Commands := Frame (Build => 8, Hover_Y => 140);
       begin

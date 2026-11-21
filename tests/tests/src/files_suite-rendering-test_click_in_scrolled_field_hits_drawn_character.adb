@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  A focused filter field scrolled so that column 2 falls inside a wide
@@ -32,7 +33,7 @@ separate (Files_Suite.Rendering)
          "the wide character that straddles column 2 scrolls off with the a before it");
 
       declare
-         Snapshot : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+         Snapshot : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
       begin
          Snapshot.Filter_Text := To_Unbounded_String (Raw);
          Snapshot.Focus := Files.UI_Types.Focus_Filter_Input;

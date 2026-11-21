@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  Free space is drawn as its own field (separate from the hidden/visible
    --  counts) with a vertical divider between them in the info region.
    procedure Test_Free_Space_Separate_Field (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap     : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Snap     : View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
       Free_Sfx : constant String :=
         Ada.Strings.Fixed.Trim (Files.Localization.Text ("status.free_space", "size", ""), Ada.Strings.Both);
       Vis_Lbl  : constant String := Files.Localization.Text ("status.visible");

@@ -1,3 +1,5 @@
+with Files.Preference_Types;
+with Files.File_System_Types;
 with Files.Model.Status_Samples;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Rendering)
@@ -19,8 +21,8 @@ separate (Files_Suite.Rendering)
       Free_Word : constant String :=
         Ada.Strings.Fixed.Trim (Files.Localization.Text ("status.free_space", "size", ""), Ada.Strings.Both);
       Gib_Unit  : constant String := Files.Localization.Text ("details.size.unit.gib");
-      Known     : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
-      Unknown   : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
+      Known     : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Small_Icons);
+      Unknown   : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Small_Icons);
       Frame     : Frame_Commands;
    begin
       --  A known free-space value renders the "<X GB> free" indicator.
@@ -46,7 +48,8 @@ separate (Files_Suite.Rendering)
          Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Path     : constant String := Files.Model.Current_Path (Model);
          Now      : constant Ada.Calendar.Time := Ada.Calendar.Clock;
-         Space    : constant Files.Model.Volume_Space := (Known => True, Free_Bytes => 100, Total_Bytes => 400);
+         Space    : constant Files.File_System_Types.Volume_Space := (Known => True, Free_Bytes => 100, Total_Bytes =>
+           400);
          Revision : Natural;
       begin
          Assert

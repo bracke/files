@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  A synchronized multi-rename must draw one field and one caret per renaming
    --  row, each caret at that row's own cursor.
    procedure Test_Multi_Rename_Fields_And_Carets (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+      Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Details);
       Carets   : Natural := 0;
       First_X  : Natural := 0;
       Second_X : Natural := 0;

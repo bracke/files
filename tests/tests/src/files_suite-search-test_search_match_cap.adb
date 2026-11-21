@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -40,8 +41,9 @@ separate (Files_Suite.Search)
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Model.Set_Filter (Model, "needle");
             Files.Model.Set_Background_Transfers (Model, Background);
-            Step := (if Contents then Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Contents)
-                     else Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Names));
+            Step := (if Contents then Files.Operation_Commands.Run_Search (Model, Settings,
+              Files.UI_Types.Search_Contents)
+                     else Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
             Step := Complete_Operation (Model, Settings, Step);
             Assert (Step.Status = Files.Operation_Results.Operation_Success
                     and then Files.Model.Search_Results_Are_Active (Model),

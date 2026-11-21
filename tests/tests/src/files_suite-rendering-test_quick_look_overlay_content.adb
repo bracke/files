@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,7 +8,7 @@ separate (Files_Suite.Rendering)
    begin
       --  A text preview draws its dialog panel and the previewed lines.
       declare
-         Snap  : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Snap  : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
          Frame : Frame_Commands;
       begin
          Snap.Quick_Look.Open := True;
@@ -25,7 +26,7 @@ separate (Files_Suite.Rendering)
       --  row explicitly says the preview is truncated instead of silently
       --  ending at an arbitrary source line.
       declare
-         Snap  : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Snap  : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
          Frame : Frame_Commands;
       begin
          Snap.Quick_Look.Open := True;
@@ -46,7 +47,7 @@ separate (Files_Suite.Rendering)
 
       --  When closed the overlay draws nothing.
       declare
-         Snap  : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Snap  : constant View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
          Frame : constant Frame_Commands := Build_Frame_Commands (Snap, Width, Height, LH);
       begin
          Assert (not Frame_Has_Text (Frame, "readme.txt"), "no quick look content is drawn when closed");

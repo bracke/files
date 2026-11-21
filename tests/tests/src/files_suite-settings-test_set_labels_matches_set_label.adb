@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Settings.Path_References;
 separate (Files_Suite.Settings)
    --  Labelling a selection at once gives what labelling it one path at a
@@ -8,7 +9,8 @@ separate (Files_Suite.Settings)
       pragma Unreferenced (T);
       Base : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
 
-      procedure Check (What : String; Names : Files.Types.String_Vectors.Vector; Label : Files.Types.Color_Label) is
+      procedure Check
+        (What : String; Names : Files.Types.String_Vectors.Vector; Label : Files.Preference_Types.Color_Label) is
          One_By_One : Files.Settings.Settings_Model := Base;
          At_Once    : Files.Settings.Settings_Model := Base;
       begin
@@ -38,12 +40,13 @@ separate (Files_Suite.Settings)
          return Result;
       end List;
    begin
-      Check ("new labels", List ("/a", "/b", "/c", "/d"), Files.Types.Red);
-      Check ("some changed, some new", List ("/c", "/e", "/a"), Files.Types.Blue);
-      Check ("repeated paths", List ("/f", "/f", "/b"), Files.Types.Green);
-      Check ("cleared in the middle", List ("/b", "/e", "/z"), Files.Types.No_Label);
-      Check ("cleared twice", List ("/a", "/a"), Files.Types.No_Label);
-      Check ("an invalid path among them", List ("/g", "/broken" & ASCII.LF & "name", "/h"), Files.Types.Red);
+      Check ("new labels", List ("/a", "/b", "/c", "/d"), Files.Preference_Types.Red);
+      Check ("some changed, some new", List ("/c", "/e", "/a"), Files.Preference_Types.Blue);
+      Check ("repeated paths", List ("/f", "/f", "/b"), Files.Preference_Types.Green);
+      Check ("cleared in the middle", List ("/b", "/e", "/z"), Files.Preference_Types.No_Label);
+      Check ("cleared twice", List ("/a", "/a"), Files.Preference_Types.No_Label);
+      Check ("an invalid path among them", List ("/g", "/broken" & ASCII.LF & "name", "/h"),
+        Files.Preference_Types.Red);
       Files_Suite.Support.Assert_Equal (Natural (Files.Settings.Path_References.Path_Labels (Base).Length), 5,
                                         "five labels remain");
    end Test_Set_Labels_Matches_Set_Label;

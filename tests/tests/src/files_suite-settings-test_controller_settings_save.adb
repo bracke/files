@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Settings_Form;
 with Files.Operation_Results;
 with Files.Controller.Testing;
@@ -123,7 +124,7 @@ separate (Files_Suite.Settings)
             "controller saves edited settings draft");
          Files_Suite.Support.Assert_Equal
            (Draft_Settings.Default_View,
-            Files.Types.Details,
+            Files.Preference_Types.Details,
             "controller save updates live settings");
          Assert
            (Draft_Settings.Theme = Files.Settings.Theme_High_Contrast,
@@ -170,7 +171,7 @@ separate (Files_Suite.Settings)
                Directory_Path    => Missing_Current_Path,
                Items             => Missing_Items,
                Home_Path         => "/home/test",
-               Default_View_Mode => Files.Types.Small_Icons);
+               Default_View_Mode => Files.Preference_Types.Small_Icons);
             Missing_Result :=
               Files.Controller.Execute_Non_Settings_Command
                 (Files.Commands.Toggle_Settings_Pane_Command, Missing_Model, Missing_Settings);

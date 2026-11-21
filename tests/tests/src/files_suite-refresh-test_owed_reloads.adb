@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Timing;
@@ -31,7 +32,7 @@ separate (Files_Suite.Refresh)
       --  diagnostic) cannot apply its old snapshot, but must still relist.
       Select_Name (Model, "a.txt");
       Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
-      Await_Job (Files.Model.Background_Operation (Model), "the duplicate helper finishes");
+      Await_Job (Files.Model.Jobs.Background_Operation (Model), "the duplicate helper finishes");
       Files.Model.Set_Error (Model, "error.undo.failed");
       Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
       Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
@@ -46,7 +47,7 @@ separate (Files_Suite.Refresh)
       --  owed reload keeps the newer diagnostic.
       Write_Binary_File (Join (Root, "late.txt"), "late");
       Step := Files.Operations.Refresh (Model, Settings);
-      Await_Job (Files.Model.Background_Refresh (Model), "the refresh helper finishes");
+      Await_Job (Files.Model.Jobs.Background_Refresh (Model), "the refresh helper finishes");
       Files.Model.Set_Error (Model, "error.trash.restore_exists");
       Applied := Files.Refresh_Jobs.Advance (Model, Settings);
       Assert (not Applied and then Files.Model.Item_Count (Model) = 2,
@@ -54,7 +55,7 @@ separate (Files_Suite.Refresh)
       Assert (Files.Model.Refresh_Is_Owed (Model) and then Files.Model.Owed_Refresh_Force (Model),
               "the discarded forced read leaves a forced reload owed");
       Files.Refresh_Jobs.Resume_Owed (Model, Settings);
-      Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
+      Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model))
               and then not Files.Model.Refresh_Is_Owed (Model),
               "resuming relaunches the owed reload and settles the debt");
       Await_View (Model, Settings);
@@ -65,7 +66,7 @@ separate (Files_Suite.Refresh)
       --  Navigation loads the new view itself, so it cancels the debt.
       Write_Binary_File (Join (Root, "later.txt"), "later");
       Step := Files.Operations.Refresh (Model, Settings);
-      Await_Job (Files.Model.Background_Refresh (Model), "the second refresh helper finishes");
+      Await_Job (Files.Model.Jobs.Background_Refresh (Model), "the second refresh helper finishes");
       Files.Model.Set_Error (Model, "");
       Applied := Files.Refresh_Jobs.Advance (Model, Settings);
       Assert (Files.Model.Refresh_Is_Owed (Model), "the outdated read is owed again");

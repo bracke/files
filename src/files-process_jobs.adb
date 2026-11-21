@@ -6,7 +6,7 @@ with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
 with Files.Exclusive_Streams;
-with Files.File_System;
+with Files.Job_Storage;
 with Files.Fs_Primitives;
 with Files.Job_Context;
 with Files.Job_Records;
@@ -468,8 +468,8 @@ package body Files.Process_Jobs is
               (if Test_Removal_Attempts = Natural'Last then 0 else Test_Removal_Attempts + 1);
             Facts.Removed :=
               Files.Job_Transports.Matches (To_String (Item.Directory), To_String (Item.Identity))
-              and then Files.File_System.Delete_Transport_Entry
-                (To_String (Item.Directory), To_String (Item.Identity)).Success;
+              and then Files.Job_Storage.Delete_Transport_Entry
+                (To_String (Item.Directory), To_String (Item.Identity));
          exception
             when Swallowed : others =>
                Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs");

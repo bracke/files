@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  Folder-tree sidebar.
@@ -6,7 +7,7 @@ separate (Files_Suite.Rendering)
       Width  : constant Natural  := 1000;
       Height : constant Natural  := 800;
       LH     : constant Positive := 20;
-      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
       Layout : Guikit.Draw.Layout_Metrics;
       Panel  : Tree_Panel_Layout;
       Rows   : Tree_Row_Layout_Vectors.Vector;

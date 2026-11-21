@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  A long name being renamed scrolls so its caret shows; a click must map
@@ -9,7 +10,7 @@ separate (Files_Suite.Rendering)
       Long_Name : constant String :=
         "a-rename-target-whose-name-is-far-too-long-for-the-details-name-column-of-a-thousand-pixel-window-"
         & "so-the-field-has-to-scroll-to-keep-the-caret-in-view-while-typing-at-its-very-end-0123456789.txt";
-      Snapshot  : View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+      Snapshot  : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Details);
 
       procedure Set_Rename (Index : Positive; Cursor : Natural) is
          Item : Item_Snapshot := Snapshot.Items.Element (Index);

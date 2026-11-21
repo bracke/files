@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Settings_Form;
 with Files.Operation_Results;
 with Files.Operation_Commands;
@@ -105,9 +106,9 @@ separate (Files.Controller)
          when Files.Commands.Generate_Thumbnails_Command =>
             Operation := Files.Operations.Generate_Selected_Thumbnails (Model, Settings);
          when Files.Commands.Search_Recursive_Command =>
-            Operation := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Names);
+            Operation := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
          when Files.Commands.Search_Contents_Command =>
-            Operation := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Contents);
+            Operation := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents);
          when Files.Commands.Refresh_Directory_Command =>
             Operation := Files.Operations.Refresh (Model, Settings);
          when Files.Commands.Open_Containing_Folder_Command =>

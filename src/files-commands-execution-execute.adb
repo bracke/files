@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Model.Clipboard;
 with Files.Model.Command_Palette;
 with Files.Model.Label_Picker;
@@ -12,11 +13,11 @@ separate (Files.Commands.Execution)
          when No_Command =>
             null;
          when Select_Small_Icons_Command =>
-            Files.Model.Set_View_Mode (Model, Files.Types.Small_Icons);
+            Files.Model.Set_View_Mode (Model, Files.Preference_Types.Small_Icons);
          when Select_Large_Icons_Command =>
-            Files.Model.Set_View_Mode (Model, Files.Types.Large_Icons);
+            Files.Model.Set_View_Mode (Model, Files.Preference_Types.Large_Icons);
          when Select_Details_Command =>
-            Files.Model.Set_View_Mode (Model, Files.Types.Details);
+            Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
          when Toggle_Info_Pane_Command =>
             Files.Model.Toggle_Info_Pane (Model);
          when Toggle_Sort_Menu_Command =>

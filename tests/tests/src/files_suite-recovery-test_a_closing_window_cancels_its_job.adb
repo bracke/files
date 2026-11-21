@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Commands;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -41,7 +42,8 @@ separate (Files_Suite.Recovery)
       Step := Files.Operation_Commands.Delete_Selected_Permanently (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success
               and then Files.Model.Foreground_Job_Is_Active (Model), "the delete runs in a helper");
-      Started := To_Unbounded_String (Files.Process_Jobs.Path (Files.Model.Background_Operation (Model), "started"));
+      Started := To_Unbounded_String (Files.Process_Jobs.Path (Files.Model.Jobs.Background_Operation (Model),
+        "started"));
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (To_String (Started));
       end loop;

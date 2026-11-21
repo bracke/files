@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Controller.Testing;
 with Files.Operations;
 with Files.Undo_Recording;
@@ -58,7 +59,7 @@ package body Files_Suite.Model is
    use type Files.Types.Sort_Field;
    use type Files.Undo_History.Undo_Entry;
    use type Files.Types.Item_Kind;
-   use type Files.Types.View_Mode;
+   use type Files.Preference_Types.View_Mode;
    use Files_Suite.Support;
    use Files_Suite.Support.Models;
    use Files_Suite.Support.Disk;

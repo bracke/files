@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Interaction;
 with Files.Model.Tree_Panel;
 with Files.Rendering.Hit;
@@ -8,7 +9,7 @@ package body Files.Application.Windows.Gestures is
    use Ada.Strings.Unbounded;
    use type Glfw.Size;
    use type Files.Commands.Command_Id;
-   use type Files.Types.Detail_Column;
+   use type Files.Preference_Types.Detail_Column;
 
    procedure Arm
      (Runtime : in out Runtime_Window;

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
 separate (Files_Suite.Rendering)
@@ -9,8 +10,8 @@ separate (Files_Suite.Rendering)
    --  the end and back up to the top, in every view mode.
    procedure Test_Wheel_Moves_Every_Row_Period (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Modes : constant array (1 .. 3) of Files.Types.View_Mode :=
-        [Files.Types.Small_Icons, Files.Types.Large_Icons, Files.Types.Details];
+      Modes : constant array (1 .. 3) of Files.Preference_Types.View_Mode :=
+        [Files.Preference_Types.Small_Icons, Files.Preference_Types.Large_Icons, Files.Preference_Types.Details];
       Width  : constant Natural := 900;
       Height : constant Natural := 600;
       LH     : constant Positive := 20;
@@ -41,7 +42,7 @@ separate (Files_Suite.Rendering)
                return True;
             end Notch;
 
-            Name    : constant String := Files.Types.View_Mode'Image (Mode);
+            Name    : constant String := Files.Preference_Types.View_Mode'Image (Mode);
             Notches : Natural := 0;
          begin
             Assert

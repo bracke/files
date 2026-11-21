@@ -9,7 +9,7 @@ package body Files.Rendering.Testing is
      (Build_Snapshot (Model, Files.Settings.Default_Settings));
 
    function Label_Render_Color
-     (Label : Files.Types.Color_Label)
+     (Label : Files.Preference_Types.Color_Label)
       return Guikit.Draw.Render_Color
      renames Files.Rendering.Labels.Label_Render_Color;
 

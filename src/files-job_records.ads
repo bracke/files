@@ -2,7 +2,7 @@ with Files.Items;
 with Ada.Streams;
 with Files.Bounded_Streams;
 
-with Files.File_System;
+with Files.File_System_Types;
 with Files.Operation_Results;
 with Files.Process_Jobs;
 with Files.Settings;
@@ -57,14 +57,14 @@ package Files.Job_Records is
    --  @param Value Signature to encode.
    procedure Write_Signature
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value : Files.File_System.Directory_Signature);
+      Value : Files.File_System_Types.Directory_Signature);
 
    --  Decode a bounded directory change signature.
    --  @param Stream Source stream.
    --  @return Decoded signature.
    function Read_Signature
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
-      return Files.File_System.Directory_Signature;
+      return Files.File_System_Types.Directory_Signature;
 
    --  Encode a bounded vector of directory items and thumbnail data.
    --  @param Stream Destination stream.

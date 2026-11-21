@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Ada.Containers.Vectors;
 with Files.Rendering.Geometry;
 with Guikit.Segmented;
@@ -6,7 +7,7 @@ package body Files.Rendering.Hit is
 
    use Files.Rendering.Geometry;
    use Guikit.Layout;
-   use type Files.Types.View_Mode;
+   use type Files.Preference_Types.View_Mode;
    use type Files.Commands.Context_Menu_Row_Kind;
 
    --  The region a point is in. A frame records regions in drawing order,
@@ -107,7 +108,7 @@ package body Files.Rendering.Hit is
    --  Columns that do not define a sort (the permissions column) return
    --  No_Command.
    function Header_Sort_Command
-     (Column : Files.Types.Detail_Column)
+     (Column : Files.Preference_Types.Detail_Column)
       return Files.Commands.Command_Id is
      (if Detail_Column_Sorts (Column).Sortable
       then Files.Commands.Sort_Command (Detail_Column_Sorts (Column).Field)
@@ -136,21 +137,21 @@ package body Files.Rendering.Hit is
       Header_H  : constant Natural := Header.Height;
       Columns   : Detail_Column_Geometry_Array renames Header.Columns;
 
-      function Within (Column : Files.Types.Detail_Column) return Boolean is
+      function Within (Column : Files.Preference_Types.Detail_Column) return Boolean is
       begin
          return Columns (Column).Visible
            and then Contains_Rectangle_Point
              (Columns (Column).X, Content_Y, Columns (Column).Width, Header_H, X, Y);
       end Within;
    begin
-      if Snapshot.View_Mode /= Files.Types.Details
+      if Snapshot.View_Mode /= Files.Preference_Types.Details
         or else Header_H = 0
         or else not Contains_Rectangle_Point (Content_X, Content_Y, Content_W, Header_H, X, Y)
       then
          return (Present => False, others => <>);
       end if;
 
-      for Column in Files.Types.Detail_Column loop
+      for Column in Files.Preference_Types.Detail_Column loop
          if Within (Column) then
             return
               (Present => True,
@@ -170,7 +171,7 @@ package body Files.Rendering.Hit is
       Line_Height : Positive)
       return Natural
    is
-      use type Files.Types.Detail_Column;
+      use type Files.Preference_Types.Detail_Column;
       Header    : constant Details_Header_Layout :=
         Details_Header_Geometry (Snapshot, Layout, Line_Height);
       Content_X : constant Natural := Header.Content.X;
@@ -179,7 +180,7 @@ package body Files.Rendering.Hit is
       Header_H  : constant Natural := Header.Height;
       Columns   : Detail_Column_Geometry_Array renames Header.Columns;
    begin
-      if Snapshot.View_Mode /= Files.Types.Details
+      if Snapshot.View_Mode /= Files.Preference_Types.Details
         or else Header_H = 0
         or else Y < Content_Y
         or else Y >= Saturating_Add (Content_Y, Header_H)
@@ -195,10 +196,10 @@ package body Files.Rendering.Hit is
       --  the final slot.
       for Slot in Snapshot.Detail_Column_Order'Range loop
          declare
-            Column : constant Files.Types.Detail_Column :=
+            Column : constant Files.Preference_Types.Detail_Column :=
               Snapshot.Detail_Column_Order (Slot);
          begin
-            if Column /= Files.Types.Name_Column
+            if Column /= Files.Preference_Types.Name_Column
               and then Columns (Column).Visible
               and then X < Saturating_Add (Columns (Column).X, Columns (Column).Width)
             then
@@ -207,7 +208,7 @@ package body Files.Rendering.Hit is
          end;
       end loop;
 
-      return Files.Types.Detail_Column_Count;
+      return Files.Preference_Types.Detail_Column_Count;
    end Details_Header_Drop_Index;
 
    function Details_Header_Separator_At
@@ -224,7 +225,7 @@ package body Files.Rendering.Hit is
       Header_H  : constant Natural := Header.Height;
       Columns   : Detail_Column_Geometry_Array renames Header.Columns;
    begin
-      if Snapshot.View_Mode /= Files.Types.Details
+      if Snapshot.View_Mode /= Files.Preference_Types.Details
         or else Header_H = 0
         or else Y < Content_Y
         or else Y >= Saturating_Add (Content_Y, Header_H)
@@ -232,7 +233,7 @@ package body Files.Rendering.Hit is
          return (Present => False, others => <>);
       end if;
 
-      for Column in Files.Types.Optional_Detail_Column loop
+      for Column in Files.Preference_Types.Optional_Detail_Column loop
          if Columns (Column).Visible
            and then On_Column_Separator (Columns (Column).X, X, Line_Height)
          then

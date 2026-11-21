@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  The selector floats over file content.  Its two offset strips are a
@@ -7,7 +8,7 @@ separate (Files_Suite.Rendering)
      (T : in out AUnit.Test_Cases.Test_Case'Class)
    is
       pragma Unreferenced (T);
-      Snap         : View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Snap         : View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       Shadow_Count : Natural := 0;
    begin
       Snap.Root_Selector_Open := True;

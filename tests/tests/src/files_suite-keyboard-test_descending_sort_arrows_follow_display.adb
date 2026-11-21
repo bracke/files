@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -26,7 +27,7 @@ separate (Files_Suite.Keyboard)
       Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "d.txt"));
       Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "e.txt"));
       Model := Loaded_Model (Dir);
-      Files.Model.Set_View_Mode (Model, Files.Types.Details);
+      Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
 
       --  Toggle to descending name sort through the real command path.
       declare

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
    --  The label picker: a titled panel of colour swatches, the keyboard
    --  highlight ringed twice so it reads apart from a mouse hover.
@@ -18,7 +19,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
       for Index in Picker.Swatches'Range loop
          declare
             Swatch  : constant Label_Swatch_Bounds := Picker.Swatches (Index);
-            Label   : constant Files.Types.Color_Label := Files.UI_Types.Label_For_Swatch (Index);
+            Label   : constant Files.Preference_Types.Color_Label := Files.UI_Types.Label_For_Swatch (Index);
             Hovered : constant Boolean :=
               Has_Hover
               and then Contains_Point (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height, Hover_X, Hover_Y);
@@ -26,16 +27,16 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
             Name    : constant UString :=
               Localized
                 ((case Label is
-                    when Files.Types.No_Label => "label.color.none",
-                    when Files.Types.Red      => "label.color.red",
-                    when Files.Types.Orange   => "label.color.orange",
-                    when Files.Types.Yellow   => "label.color.yellow",
-                    when Files.Types.Green    => "label.color.green",
-                    when Files.Types.Blue     => "label.color.blue",
-                    when Files.Types.Purple   => "label.color.purple",
-                    when Files.Types.Gray     => "label.color.gray"));
+                    when Files.Preference_Types.No_Label => "label.color.none",
+                    when Files.Preference_Types.Red      => "label.color.red",
+                    when Files.Preference_Types.Orange   => "label.color.orange",
+                    when Files.Preference_Types.Yellow   => "label.color.yellow",
+                    when Files.Preference_Types.Green    => "label.color.green",
+                    when Files.Preference_Types.Blue     => "label.color.blue",
+                    when Files.Preference_Types.Purple   => "label.color.purple",
+                    when Files.Preference_Types.Gray     => "label.color.gray"));
          begin
-            if Label = Files.Types.No_Label then
+            if Label = Files.Preference_Types.No_Label then
                --  The clear swatch is an empty bordered box rather than a
                --  filled color, so it reads as "remove any label".
                Add_Overlay_Rect

@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Show_Extensions_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
 
       function Rendered (Name : String; Kind : Files.Types.Item_Kind; Show_Ext : Boolean) return Frame_Commands is
-         Snapshot : View_Snapshot := Sample_Snapshot (1, Files.Types.Small_Icons);
+         Snapshot : View_Snapshot := Sample_Snapshot (1, Files.Preference_Types.Small_Icons);
          Item     : Item_Snapshot := Snapshot.Items.Element (1);
       begin
          Item.Name := To_Unbounded_String (Name);

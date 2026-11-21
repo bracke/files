@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 --  The colour-label picker overlay and its keyboard highlight.
 package Files.Model.Label_Picker is
 
@@ -47,6 +48,6 @@ package Files.Model.Label_Picker is
    --  @return Color label under the highlight.
    function Highlight_Color
      (Model : Window_Model)
-      return Files.Types.Color_Label;
+      return Files.Preference_Types.Color_Label;
 
 end Files.Model.Label_Picker;

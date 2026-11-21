@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Io_Errors;
 with Files.Operation_Results;
 with Files.Operations;
@@ -66,7 +67,7 @@ package body Files.Application.Windows.Watch is
            (Pacer       => Runtime.Watch_Pacing,
             Now         => Now,
             Changed     => Changed,
-            Read_Active => Files.Process_Jobs.Active (Files.Model.Background_Refresh (Runtime.Model)),
+            Read_Active => Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Runtime.Model)),
             Load_Failed => Load_Failed,
             Poll_Due    =>
               Now >= Runtime.Last_Watch_Poll + File_Watch_Poll_Interval

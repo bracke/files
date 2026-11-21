@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Settings)
    procedure Test_Ensure_Default_File_Existing_And_Invalid (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,7 +18,7 @@ separate (Files_Suite.Settings)
       Loaded := Files.Settings.Load_File (Ensured_Path);
       Files_Suite.Support.Assert_Equal
         (Loaded.Settings.Default_View,
-         Files.Types.Details,
+         Files.Preference_Types.Details,
          "ensure default settings does not overwrite");
       Ensured := Files.Settings.Ensure_Default_File (Join (Root, "settings-dir"));
       Assert (not Ensured.Success, "ensure default settings rejects directory path");

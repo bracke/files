@@ -33,7 +33,7 @@ package body Files_Suite.Text_Input is
    use type Files.Controller.Controller_Status;
    use type Files.Input_Actions.Input_Action_Kind;
    use type Files.UI_Types.Focus_Target;
-   use type Files.Types.Search_Scope;
+   use type Files.UI_Types.Search_Scope;
    use Files_Suite.Interaction_Support;
 
    type Text_Input_Test_Case is new AUnit.Test_Cases.Test_Case with null record;

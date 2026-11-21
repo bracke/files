@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Settings.Open_Actions;
@@ -70,7 +71,7 @@ separate (Files_Suite.Settings)
          Assert (Draft_Load.Success, "settings draft applies to a settings model");
          Files_Suite.Support.Assert_Equal
            (Draft_Load.Settings.Default_View,
-            Files.Types.Details,
+            Files.Preference_Types.Details,
             "draft applies default view");
          Assert (Draft_Load.Settings.Show_Hidden_Files, "draft applies hidden-file flag");
          Files_Suite.Support.Assert_Equal
@@ -108,7 +109,7 @@ separate (Files_Suite.Settings)
          Assert (Draft_Load.Success, "saved draft settings load");
          Files_Suite.Support.Assert_Equal
            (Draft_Load.Settings.Default_View,
-            Files.Types.Details,
+            Files.Preference_Types.Details,
             "saved draft persists default view");
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Filetype_For_Extension (Draft_Load.Settings, "log"),

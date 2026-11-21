@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Hostkit.Path_Text;
 with Files.Settings.Path_References;
 separate (Files_Suite.Settings)
@@ -6,7 +7,7 @@ separate (Files_Suite.Settings)
    --  a sibling that only shares a folder's name as a prefix is left alone.
    procedure Test_Forget_Follows_The_Move_Rule (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Types.Color_Label;
+      use type Files.Preference_Types.Color_Label;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Changed  : Boolean;
       Folder   : constant String := Join (Root, "srv");
@@ -17,15 +18,15 @@ separate (Files_Suite.Settings)
       Tree     : constant String := Root;
       Top      : constant String := Tree (Tree'First .. Tree'First + Hostkit.Path_Text.Root_Length (Tree) - 1);
    begin
-      Files.Settings.Path_References.Set_Label (Settings, Inside, Files.Types.Green);
-      Files.Settings.Path_References.Set_Label (Settings, Sibling, Files.Types.Red);
+      Files.Settings.Path_References.Set_Label (Settings, Inside, Files.Preference_Types.Green);
+      Files.Settings.Path_References.Set_Label (Settings, Sibling, Files.Preference_Types.Red);
       Files.Settings.Path_References.Forget_Path_References (Settings, Folder, Changed);
       Assert (Changed, "forgetting a folder drops what lies inside it");
       Assert
-        (Files.Settings.Path_References.Label_Of (Settings, Inside) = Files.Types.No_Label,
+        (Files.Settings.Path_References.Label_Of (Settings, Inside) = Files.Preference_Types.No_Label,
          "a label inside the forgotten folder is gone");
       Assert
-        (Files.Settings.Path_References.Label_Of (Settings, Sibling) = Files.Types.Red,
+        (Files.Settings.Path_References.Label_Of (Settings, Sibling) = Files.Preference_Types.Red,
          "a sibling sharing only the name's prefix keeps its label");
       Assert
         (Top'Length > 0 and then Hostkit.Path_Text.Is_Separator_In (Top, Top (Top'Last)),
@@ -33,6 +34,6 @@ separate (Files_Suite.Settings)
       Files.Settings.Path_References.Forget_Path_References (Settings, Top, Changed);
       Assert (Changed, "forgetting the root drops what lies below it");
       Assert
-        (Files.Settings.Path_References.Label_Of (Settings, Sibling) = Files.Types.No_Label,
+        (Files.Settings.Path_References.Label_Of (Settings, Sibling) = Files.Preference_Types.No_Label,
          "a label below the root is gone, as a move of the root would carry it");
    end Test_Forget_Follows_The_Move_Rule;

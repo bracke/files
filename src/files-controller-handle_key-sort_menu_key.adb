@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Model.Sort_Menu;
 separate (Files.Controller.Handle_Key)
 --  The sort menu on top owns the keyboard: Up and Down move its highlight,
@@ -25,9 +26,9 @@ begin
       when Guikit.Input.Key_Down =>
          Result := Moved (1);
       when Guikit.Input.Key_Home =>
-         Result := Moved (-Files.Types.Sort_Menu_Rows);
+         Result := Moved (-Files.UI_Types.Sort_Menu_Rows);
       when Guikit.Input.Key_End =>
-         Result := Moved (Files.Types.Sort_Menu_Rows);
+         Result := Moved (Files.UI_Types.Sort_Menu_Rows);
       when Guikit.Input.Key_Return =>
          declare
             Command : constant Files.Commands.Command_Id :=

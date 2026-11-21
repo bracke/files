@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Keyboard)
@@ -36,6 +37,6 @@ separate (Files_Suite.Keyboard)
          "the result echoes the dispatched command id");
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
-         Files.Types.Details,
+         Files.Preference_Types.Details,
          "dispatching the shortcut switches the model to the details view");
    end Test_Keyboard_Shortcut_Command;

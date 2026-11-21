@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Input_Actions;
 separate (Files_Suite.Info)
    procedure Test_Info_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -23,7 +24,7 @@ separate (Files_Suite.Info)
            (Model, Settings, "",
             (Kind => Files.Input_Actions.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command),
             Guikit.Input.No_Modifiers, Routed);
-         Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)), "the refresh is scheduled");
+         Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)), "the refresh is scheduled");
          Await_View (Model, Settings, Applied);
          Assert (Applied and then Files.Model.Item_Count (Model) = 3,
                  "info metadata cannot invalidate a manual refresh started by the same action");

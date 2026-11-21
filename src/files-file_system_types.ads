@@ -97,4 +97,15 @@ package Files.File_System_Types is
      (Index_Type   => Positive,
       Element_Type => Root_Entry);
 
+   --  Free and total space of a volume (the one holding the window's
+   --  current directory).
+   type Volume_Space is record
+      Known       : Boolean := False;
+      Free_Bytes  : Long_Long_Integer := 0;
+      Total_Bytes : Long_Long_Integer := 0;
+   end record;
+
+   --  Which numeric account an owner name belongs to: a user id or a group id.
+   type Account_Kind is (User_Account, Group_Account);
+
 end Files.File_System_Types;

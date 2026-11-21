@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Commands;
 with Files.Controller;
@@ -174,7 +175,7 @@ package Files.Interaction is
    procedure Apply_Column_Resize
      (Model        : in out Files.Model.Window_Model;
       Settings     : in out Files.Settings.Settings_Model;
-      Column       : Files.Types.Detail_Column;
+      Column       : Files.Preference_Types.Detail_Column;
       Origin_X     : Integer;
       Origin_Width : Natural;
       Current_X    : Integer;
@@ -212,8 +213,8 @@ package Files.Interaction is
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
-      Column        : Files.Types.Detail_Column;
-      To_Index      : Files.Types.Detail_Column_Index;
+      Column        : Files.Preference_Types.Detail_Column;
+      To_Index      : Files.Preference_Types.Detail_Column_Index;
       Result        : out Interaction_Result);
 
    --  Make labels, favorites and recent entries follow the renames and moves

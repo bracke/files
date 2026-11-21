@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
@@ -29,7 +30,7 @@ separate (Files_Suite.Interaction)
       begin
          Files.Model.Initialize (Model, Directory_Path => Root, Items => Load_Result.Items, Home_Path => "/home/test");
       end;
-      Files.Model.Note_Search_Results (Model, Files.Types.Search_Names);
+      Files.Model.Note_Search_Results (Model, Files.UI_Types.Search_Names);
       Assert_Equal (Files.Model.Visible_Count (Model), 3, "the results hold the hidden match");
       Select_Name (Model, "Beta.txt");
       Files.Model.Set_Info_Pane_Scroll_Lines (Model, 4);

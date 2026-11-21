@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.Settings.Path_References;
@@ -5,7 +6,7 @@ with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    procedure Test_Labels_Travel_Through_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Types.Color_Label;
+      use type Files.Preference_Types.Color_Label;
       Settings   : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Photo      : constant String := Join (Root, "photo.txt");
       Trash_Home : constant String := Root & "_label_trash";
@@ -36,7 +37,7 @@ separate (Files_Suite.Trash)
 
       function Labeled_Anywhere return Boolean is
         (for some Entry_Label of Files.Settings.Path_References.Path_Labels (Settings) =>
-           Entry_Label.Label = Files.Types.Purple);
+           Entry_Label.Label = Files.Preference_Types.Purple);
    begin
       Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
       Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
@@ -47,19 +48,19 @@ separate (Files_Suite.Trash)
          Project_Tools.Files.Delete_Tree (Trash_Home);
          Settings := Files.Settings.Default_Settings;
          Write_Binary_File (Photo, "x");
-         Files.Settings.Path_References.Set_Label (Settings, Photo, Files.Types.Purple);
+         Files.Settings.Path_References.Set_Label (Settings, Photo, Files.Preference_Types.Purple);
 
          Trash_Photo (Background);
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Path_References.Label_Of (Settings, Photo),
-            Files.Types.No_Label,
+            Files.Preference_Types.No_Label,
             "the label went into the trash with the file" & Mode (Background) & ": the old path has no label");
          Assert (Labeled_Anywhere,
                  "the label went into the trash with the file" & Mode (Background) & ": the label is still stored");
          Write_Binary_File (Photo, "a new file at the old path");
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Path_References.Label_Of (Settings, Photo),
-            Files.Types.No_Label,
+            Files.Preference_Types.No_Label,
             "a new file at the old path inherits no label");
          Ada.Directories.Delete_File (Photo);
 
@@ -70,7 +71,7 @@ separate (Files_Suite.Trash)
          Assert (Followed, "restoring moves the stored label back" & Mode (Background));
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Path_References.Label_Of (Settings, Photo),
-            Files.Types.Purple,
+            Files.Preference_Types.Purple,
             "restoring brings the label back" & Mode (Background));
 
          Trash_Photo (Background);

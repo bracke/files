@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Model)
    --  "This week" began 6 x 86,400 seconds before today's midnight, which
    --  across a daylight-saving change is an hour off the midnight six days
@@ -19,8 +20,8 @@ separate (Files_Suite.Model)
       --  The band of At_Time when today is Today's local day.
       function Band (At_Time, Today : Ada.Calendar.Time) return Positive is
         (Files.Grouping.Band_Of
-           (Files.Types.Group_By_Modified, Files.Types.Regular_File_Item, "", True, At_Time, False, 0,
-            Files.Types.No_Label, Files.Grouping.Day_Start (Today)));
+           (Files.Preference_Types.Group_By_Modified, Files.Types.Regular_File_Item, "", True, At_Time, False, 0,
+            Files.Preference_Types.No_Label, Files.Grouping.Day_Start (Today)));
 
       Spring : constant Ada.Calendar.Time := Local (2025, 3, 12, 12.0 * Hour);
       Autumn : constant Ada.Calendar.Time := Local (2025, 11, 5, 12.0 * Hour);

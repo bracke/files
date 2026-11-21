@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Settings_Form;
 with Files.Operation_Results;
 with Files.Controller.Testing;
@@ -16,7 +17,7 @@ separate (Files_Suite.Commands)
       --  Sample_Model opens in the small-icons view sorted ascending by name.
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
-         Files.Types.Small_Icons,
+         Files.Preference_Types.Small_Icons,
          "model starts in small-icons view");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
@@ -52,7 +53,7 @@ separate (Files_Suite.Commands)
       --  next launch.
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
-         Files.Types.Details,
+         Files.Preference_Types.Details,
          "the saved view mode is applied live");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),

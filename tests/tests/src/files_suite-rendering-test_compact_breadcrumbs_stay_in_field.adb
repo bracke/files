@@ -1,8 +1,9 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Compact_Breadcrumbs_Stay_In_Field (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Width   : constant Natural := 640;
-      Snap    : View_Snapshot := Sample_Snapshot (0, Files.Types.Details);
+      Snap    : View_Snapshot := Sample_Snapshot (0, Files.Preference_Types.Details);
       Toolbar : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Width);
       Margin  : constant Natural := 6;
       End_X   : constant Natural :=

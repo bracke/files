@@ -1,13 +1,14 @@
+with Files.Preference_Types;
 separate (Files_Suite.Settings)
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Types.Detail_Column;
-      use type Files.Types.Detail_Column_Order;
-      Default : constant Files.Types.Detail_Column_Order :=
-        Files.Types.Default_Detail_Column_Order;
+      use type Files.Preference_Types.Detail_Column;
+      use type Files.Preference_Types.Detail_Column_Order;
+      Default : constant Files.Preference_Types.Detail_Column_Order :=
+        Files.Preference_Types.Default_Detail_Column_Order;
 
-      function Is_Permutation (Order : Files.Types.Detail_Column_Order) return Boolean is
-         Seen : array (Files.Types.Detail_Column) of Boolean := [others => False];
+      function Is_Permutation (Order : Files.Preference_Types.Detail_Column_Order) return Boolean is
+         Seen : array (Files.Preference_Types.Detail_Column) of Boolean := [others => False];
       begin
          for Slot in Order'Range loop
             if Seen (Order (Slot)) then
@@ -15,7 +16,7 @@ separate (Files_Suite.Settings)
             end if;
             Seen (Order (Slot)) := True;
          end loop;
-         for Column in Files.Types.Detail_Column loop
+         for Column in Files.Preference_Types.Detail_Column loop
             if not Seen (Column) then
                return False;
             end if;
@@ -25,44 +26,44 @@ separate (Files_Suite.Settings)
    begin
       --  Move a column to a new slot: size (slot 3) before modified (slot 2).
       declare
-         Moved : constant Files.Types.Detail_Column_Order :=
-           Files.Types.Move_Column (Default, Files.Types.Size_Column, 2);
+         Moved : constant Files.Preference_Types.Detail_Column_Order :=
+           Files.Preference_Types.Move_Column (Default, Files.Preference_Types.Size_Column, 2);
       begin
          Files_Suite.Support.Assert_Equal
            (Moved (2),
-            Files.Types.Size_Column,
+            Files.Preference_Types.Size_Column,
             "the moved column lands in the target slot");
          Files_Suite.Support.Assert_Equal
            (Moved (3),
-            Files.Types.Modified_Column,
+            Files.Preference_Types.Modified_Column,
             "the displaced column shifts right by one");
          Files_Suite.Support.Assert_Equal
            (Moved (1),
-            Files.Types.Name_Column,
+            Files.Preference_Types.Name_Column,
             "the name column stays pinned to the first slot");
          Assert (Is_Permutation (Moved), "a move preserves a valid permutation");
       end;
 
       --  Moving to the slot a column already occupies is a no-op.
       Assert
-        (Files.Types.Move_Column (Default, Files.Types.Size_Column, 3) = Default,
+        (Files.Preference_Types.Move_Column (Default, Files.Preference_Types.Size_Column, 3) = Default,
          "moving a column to its current slot is a no-op");
 
       --  The mandatory name column never moves, and no move may displace it.
       Assert
-        (Files.Types.Move_Column (Default, Files.Types.Name_Column, 4) = Default,
+        (Files.Preference_Types.Move_Column (Default, Files.Preference_Types.Name_Column, 4) = Default,
          "moving the name column is rejected");
       declare
-         Clamped : constant Files.Types.Detail_Column_Order :=
-           Files.Types.Move_Column (Default, Files.Types.Permissions_Column, 1);
+         Clamped : constant Files.Preference_Types.Detail_Column_Order :=
+           Files.Preference_Types.Move_Column (Default, Files.Preference_Types.Permissions_Column, 1);
       begin
          Files_Suite.Support.Assert_Equal
            (Clamped (1),
-            Files.Types.Name_Column,
+            Files.Preference_Types.Name_Column,
             "a move into the first slot is clamped after name");
          Files_Suite.Support.Assert_Equal
            (Clamped (2),
-            Files.Types.Permissions_Column,
+            Files.Preference_Types.Permissions_Column,
             "the clamped move lands in the second slot");
          Assert (Is_Permutation (Clamped), "a clamped move preserves a valid permutation");
       end;
@@ -71,11 +72,11 @@ separate (Files_Suite.Settings)
       declare
          Base    : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Updated : constant Files.Settings.Settings_Model :=
-           Files.Settings.With_Column_Order (Base, Files.Types.Permissions_Column, 2);
+           Files.Settings.With_Column_Order (Base, Files.Preference_Types.Permissions_Column, 2);
       begin
          Files_Suite.Support.Assert_Equal
            (Updated.Column_Order (2),
-            Files.Types.Permissions_Column,
+            Files.Preference_Types.Permissions_Column,
             "With_Column_Order moves the column in the settings model");
       end;
 
@@ -83,8 +84,8 @@ separate (Files_Suite.Settings)
       declare
          Source : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       begin
-         Source := Files.Settings.With_Column_Order (Source, Files.Types.Size_Column, 2);
-         Source := Files.Settings.With_Column_Order (Source, Files.Types.Permissions_Column, 3);
+         Source := Files.Settings.With_Column_Order (Source, Files.Preference_Types.Size_Column, 2);
+         Source := Files.Settings.With_Column_Order (Source, Files.Preference_Types.Permissions_Column, 3);
          declare
             Reloaded : constant Files.Settings.Settings_Parse_Result :=
               Files.Settings.Parse (Files.Settings.To_Text (Source));
@@ -136,7 +137,7 @@ separate (Files_Suite.Settings)
          Assert (Aliased_Order.Success, "a full permutation with the type alias parses");
          Files_Suite.Support.Assert_Equal
            (Aliased_Order.Settings.Column_Order (2),
-            Files.Types.Filetype_Column,
+            Files.Preference_Types.Filetype_Column,
             "the type alias resolves to the filetype column in the parsed order");
       end;
    end Test_Column_Order_Reorder;

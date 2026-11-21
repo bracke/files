@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The toolbar input text is optically centred in its field the same way as
    --  the (accepted) bottom-bar text, so it lines up vertically with the
    --  geometric-centred toolbar icons and favourite star.
    procedure Test_Toolbar_Text_Optically_Centered (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap        : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Snap        : constant View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       Frame       : constant Frame_Commands := Build_Frame_Commands (Snap, 1000, 800, 20);
       Layout      : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 1000, 800, 20);
       Toolbar_Top : constant Natural := Guikit.Layout.Toolbar_Input_Y (20);

@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -34,8 +35,8 @@ separate (Files_Suite.Search)
                Mutation := Files.File_System.Permissions.Set_Permissions (To_String (Denied), 0);
                Assert (Mutation.Success, "make the search input unreadable");
                Step :=
-                 (if Contents then Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Contents)
-                  else Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Names));
+                 (if Contents then Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents)
+                  else Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
                Step := Complete_Operation (Model, Settings, Step);
                Mutation := Files.File_System.Permissions.Set_Permissions (To_String (Denied), 8#755#);
                if Case_Id = 1 then

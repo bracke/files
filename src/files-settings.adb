@@ -161,7 +161,7 @@ package body Files.Settings is
       --  default, keeping untouched files minimal.
       Omit_Default : Boolean := False;
       --  The detail column a per-column setting refers to; unused otherwise.
-      Column       : Files.Types.Optional_Detail_Column := Files.Types.Modified_Column;
+      Column       : Files.Preference_Types.Optional_Detail_Column := Files.Preference_Types.Modified_Column;
    end record;
 
    Scalar_Table : constant array (Scalar_Setting) of Scalar_Descriptor :=
@@ -209,34 +209,34 @@ package body Files.Settings is
          Omit_Default => True, others => <>),
       Detail_Column_Modified_Setting =>
         (Key => +"detail_column_modified", Error_Key => +"error.settings.invalid_boolean",
-         Pane => Pane_Optional, Column => Files.Types.Modified_Column, others => <>),
+         Pane => Pane_Optional, Column => Files.Preference_Types.Modified_Column, others => <>),
       Detail_Column_Width_Modified_Setting =>
         (Key => +"detail_column_width_modified", Error_Key => +"",
-         Omit_Default => True, Column => Files.Types.Modified_Column, others => <>),
+         Omit_Default => True, Column => Files.Preference_Types.Modified_Column, others => <>),
       Detail_Column_Size_Setting =>
         (Key => +"detail_column_size", Error_Key => +"error.settings.invalid_boolean",
-         Pane => Pane_Optional, Column => Files.Types.Size_Column, others => <>),
+         Pane => Pane_Optional, Column => Files.Preference_Types.Size_Column, others => <>),
       Detail_Column_Width_Size_Setting =>
         (Key => +"detail_column_width_size", Error_Key => +"",
-         Omit_Default => True, Column => Files.Types.Size_Column, others => <>),
+         Omit_Default => True, Column => Files.Preference_Types.Size_Column, others => <>),
       Detail_Column_Filetype_Setting =>
         (Key => +"detail_column_filetype", Error_Key => +"error.settings.invalid_boolean",
-         Pane => Pane_Optional, Column => Files.Types.Filetype_Column, others => <>),
+         Pane => Pane_Optional, Column => Files.Preference_Types.Filetype_Column, others => <>),
       Detail_Column_Width_Filetype_Setting =>
         (Key => +"detail_column_width_filetype", Error_Key => +"",
-         Omit_Default => True, Column => Files.Types.Filetype_Column, others => <>),
+         Omit_Default => True, Column => Files.Preference_Types.Filetype_Column, others => <>),
       Detail_Column_Created_Setting =>
         (Key => +"detail_column_created", Error_Key => +"error.settings.invalid_boolean",
-         Pane => Pane_Optional, Column => Files.Types.Created_Column, others => <>),
+         Pane => Pane_Optional, Column => Files.Preference_Types.Created_Column, others => <>),
       Detail_Column_Width_Created_Setting =>
         (Key => +"detail_column_width_created", Error_Key => +"",
-         Omit_Default => True, Column => Files.Types.Created_Column, others => <>),
+         Omit_Default => True, Column => Files.Preference_Types.Created_Column, others => <>),
       Detail_Column_Permissions_Setting =>
         (Key => +"detail_column_permissions", Error_Key => +"error.settings.invalid_boolean",
-         Pane => Pane_Optional, Column => Files.Types.Permissions_Column, others => <>),
+         Pane => Pane_Optional, Column => Files.Preference_Types.Permissions_Column, others => <>),
       Detail_Column_Width_Permissions_Setting =>
         (Key => +"detail_column_width_permissions", Error_Key => +"",
-         Omit_Default => True, Column => Files.Types.Permissions_Column, others => <>),
+         Omit_Default => True, Column => Files.Preference_Types.Permissions_Column, others => <>),
       Window_Width_Setting =>
         (Key => +"window_width", Error_Key => +"", Omit_Default => True, others => <>),
       Window_Height_Setting =>
@@ -269,17 +269,17 @@ package body Files.Settings is
    end Scalar_For_Key;
 
    --  Return the stable on-disk token for a color label.
-   function Color_Label_Name (Value : Files.Types.Color_Label) return String is
+   function Color_Label_Name (Value : Files.Preference_Types.Color_Label) return String is
    begin
       case Value is
-         when Files.Types.No_Label => return "none";
-         when Files.Types.Red      => return "red";
-         when Files.Types.Orange   => return "orange";
-         when Files.Types.Yellow   => return "yellow";
-         when Files.Types.Green    => return "green";
-         when Files.Types.Blue     => return "blue";
-         when Files.Types.Purple   => return "purple";
-         when Files.Types.Gray     => return "gray";
+         when Files.Preference_Types.No_Label => return "none";
+         when Files.Preference_Types.Red      => return "red";
+         when Files.Preference_Types.Orange   => return "orange";
+         when Files.Preference_Types.Yellow   => return "yellow";
+         when Files.Preference_Types.Green    => return "green";
+         when Files.Preference_Types.Blue     => return "blue";
+         when Files.Preference_Types.Purple   => return "purple";
+         when Files.Preference_Types.Gray     => return "gray";
       end case;
    end Color_Label_Name;
 
@@ -287,7 +287,7 @@ package body Files.Settings is
    --  (leaving Label unchanged) so the caller can skip the invalid entry.
    function Color_Label_From_Name
      (Text  : String;
-      Label : out Files.Types.Color_Label)
+      Label : out Files.Preference_Types.Color_Label)
       return Boolean
  is separate;
 
@@ -348,18 +348,18 @@ package body Files.Settings is
    --  Return the stable settings-file key suffix for a toggleable detail column.
    --  The suffix is a bare identifier (no spaces) so that assembling a settings
    --  key with " = " never yields a user-text literal (see check_all).
-   function Detail_Column_Key (Column : Files.Types.Optional_Detail_Column) return String is
+   function Detail_Column_Key (Column : Files.Preference_Types.Optional_Detail_Column) return String is
    begin
       case Column is
-         when Files.Types.Modified_Column =>
+         when Files.Preference_Types.Modified_Column =>
             return "modified";
-         when Files.Types.Size_Column =>
+         when Files.Preference_Types.Size_Column =>
             return "size";
-         when Files.Types.Filetype_Column =>
+         when Files.Preference_Types.Filetype_Column =>
             return "filetype";
-         when Files.Types.Created_Column =>
+         when Files.Preference_Types.Created_Column =>
             return "created";
-         when Files.Types.Permissions_Column =>
+         when Files.Preference_Types.Permissions_Column =>
             return "permissions";
       end case;
    end Detail_Column_Key;
@@ -367,10 +367,10 @@ package body Files.Settings is
    --  Return the toggleable column named by Suffix, if any.
    function Detail_Column_For_Key
      (Suffix : String;
-      Column : out Files.Types.Optional_Detail_Column)
+      Column : out Files.Preference_Types.Optional_Detail_Column)
       return Boolean is
    begin
-      for Candidate in Files.Types.Optional_Detail_Column loop
+      for Candidate in Files.Preference_Types.Optional_Detail_Column loop
          if Detail_Column_Key (Candidate) = Suffix then
             Column := Candidate;
             return True;
@@ -382,10 +382,10 @@ package body Files.Settings is
    --  Return the settings-file token for a detail column in the column-order
    --  list. The optional columns reuse their stable visibility/width suffix; the
    --  mandatory name column is written as "name".
-   function Detail_Column_Order_Token (Column : Files.Types.Detail_Column) return String is
-      use type Files.Types.Detail_Column;
+   function Detail_Column_Order_Token (Column : Files.Preference_Types.Detail_Column) return String is
+      use type Files.Preference_Types.Detail_Column;
    begin
-      if Column = Files.Types.Name_Column then
+      if Column = Files.Preference_Types.Name_Column then
          return "name";
       else
          return Detail_Column_Key (Column);
@@ -396,16 +396,16 @@ package body Files.Settings is
    --  detail column. Accepts "type" as an alias for the filetype column.
    function Detail_Column_For_Order_Token
      (Token  : String;
-      Column : out Files.Types.Detail_Column)
+      Column : out Files.Preference_Types.Detail_Column)
       return Boolean
    is
-      Optional : Files.Types.Optional_Detail_Column;
+      Optional : Files.Preference_Types.Optional_Detail_Column;
    begin
       if Token = "name" then
-         Column := Files.Types.Name_Column;
+         Column := Files.Preference_Types.Name_Column;
          return True;
       elsif Token = "type" then
-         Column := Files.Types.Filetype_Column;
+         Column := Files.Preference_Types.Filetype_Column;
          return True;
       elsif Detail_Column_For_Key (Token, Optional) then
          Column := Optional;
@@ -420,35 +420,35 @@ package body Files.Settings is
    --  list is not a full permutation of the known columns.
    function Parse_Detail_Column_Order
      (Value : String;
-      Order : out Files.Types.Detail_Column_Order)
+      Order : out Files.Preference_Types.Detail_Column_Order)
       return Boolean
  is separate;
 
-   function Group_Mode_Name (Value : Files.Types.Group_Mode) return String is
+   function Group_Mode_Name (Value : Files.Preference_Types.Group_Mode) return String is
    begin
       case Value is
-         when Files.Types.No_Grouping =>
+         when Files.Preference_Types.No_Grouping =>
             return "none";
-         when Files.Types.Group_By_Type =>
+         when Files.Preference_Types.Group_By_Type =>
             return "type";
-         when Files.Types.Group_By_Modified =>
+         when Files.Preference_Types.Group_By_Modified =>
             return "modified";
-         when Files.Types.Group_By_Size =>
+         when Files.Preference_Types.Group_By_Size =>
             return "size";
-         when Files.Types.Group_By_Label =>
+         when Files.Preference_Types.Group_By_Label =>
             return "label";
       end case;
    end Group_Mode_Name;
 
    function Toggle_Column
      (Settings : Settings_Model;
-      Column   : Files.Types.Detail_Column)
+      Column   : Files.Preference_Types.Detail_Column)
       return Settings_Model
    is
-      use type Files.Types.Detail_Column;
+      use type Files.Preference_Types.Detail_Column;
       Result : Settings_Model := Settings;
    begin
-      if Column /= Files.Types.Name_Column then
+      if Column /= Files.Preference_Types.Name_Column then
          Result.Column_Visible (Column) := not Result.Column_Visible (Column);
       end if;
       return Result;
@@ -456,7 +456,7 @@ package body Files.Settings is
 
    function With_Column_Width
      (Settings : Settings_Model;
-      Column   : Files.Types.Detail_Column;
+      Column   : Files.Preference_Types.Detail_Column;
       Width    : Natural)
       return Settings_Model
    is
@@ -466,21 +466,21 @@ package body Files.Settings is
          Result.Column_Widths (Column) := 0;
       else
          Result.Column_Widths (Column) :=
-           Natural'Max (Width, Files.Types.Minimum_Detail_Column_Width);
+           Natural'Max (Width, Files.Preference_Types.Minimum_Detail_Column_Width);
       end if;
       return Result;
    end With_Column_Width;
 
    function With_Column_Order
      (Settings : Settings_Model;
-      Column   : Files.Types.Detail_Column;
-      To_Index : Files.Types.Detail_Column_Index)
+      Column   : Files.Preference_Types.Detail_Column;
+      To_Index : Files.Preference_Types.Detail_Column_Index)
       return Settings_Model
    is
       Result : Settings_Model := Settings;
    begin
       Result.Column_Order :=
-        Files.Types.Move_Column (Settings.Column_Order, Column, To_Index);
+        Files.Preference_Types.Move_Column (Settings.Column_Order, Column, To_Index);
       return Result;
    end With_Column_Order;
 
@@ -488,13 +488,13 @@ package body Files.Settings is
      (Settings : Settings_Model)
       return Settings_Model
    is
-      use type Files.Types.Group_Mode;
+      use type Files.Preference_Types.Group_Mode;
       Result : Settings_Model := Settings;
    begin
-      if Settings.Group_By = Files.Types.Group_Mode'Last then
-         Result.Group_By := Files.Types.Group_Mode'First;
+      if Settings.Group_By = Files.Preference_Types.Group_Mode'Last then
+         Result.Group_By := Files.Preference_Types.Group_Mode'First;
       else
-         Result.Group_By := Files.Types.Group_Mode'Succ (Settings.Group_By);
+         Result.Group_By := Files.Preference_Types.Group_Mode'Succ (Settings.Group_By);
       end if;
       return Result;
    end Cycle_Group_By;
@@ -692,14 +692,14 @@ package body Files.Settings is
       return To_Text (Default_Settings);
    end Default_Settings_Text;
 
-   function View_Mode_Name (Mode : Files.Types.View_Mode) return String is
+   function View_Mode_Name (Mode : Files.Preference_Types.View_Mode) return String is
    begin
       case Mode is
-         when Files.Types.Small_Icons =>
+         when Files.Preference_Types.Small_Icons =>
             return "small_icons";
-         when Files.Types.Large_Icons =>
+         when Files.Preference_Types.Large_Icons =>
             return "large_icons";
-         when Files.Types.Details =>
+         when Files.Preference_Types.Details =>
             return "details";
       end case;
    end View_Mode_Name;

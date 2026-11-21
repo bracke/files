@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Diagnostics;
 with Files.Settings.Path_References;
 with Files.Settings.Open_Actions;
@@ -6,7 +7,7 @@ separate (Files.Settings)
      (Text : String)
       return Settings_Parse_Result
    is
-      use type Files.Types.Color_Label;
+      use type Files.Preference_Types.Color_Label;
 
       Settings   : Settings_Model := Default_Settings;
       Section    : Settings_Section := No_Section;
@@ -125,7 +126,7 @@ separate (Files.Settings)
                Bar   : constant Natural :=
                  Ada.Strings.Fixed.Index (Value, "|");
                --  Left at No_Label by an unknown color, which is skipped.
-               Label : Files.Types.Color_Label := Files.Types.No_Label;
+               Label : Files.Preference_Types.Color_Label := Files.Preference_Types.No_Label;
             begin
                if Bar > Value'First and then Bar < Value'Last then
                   declare
@@ -138,7 +139,7 @@ separate (Files.Settings)
                        and then Persistent_Path_Is_Valid (Path_Text)
                      then
                         Path_References.Load_Label (Settings, Known_Labels, Path_Text, Label);
-                     elsif Label /= Files.Types.No_Label then
+                     elsif Label /= Files.Preference_Types.No_Label then
                         Err := To_Unbounded_String ("error.settings.invalid");
                      end if;
                   end;

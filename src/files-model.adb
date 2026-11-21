@@ -31,34 +31,6 @@ package body Files.Model is
    function Foreground_Job_Is_Active (Model : Window_Model) return Boolean is
      (Model.Foreground_Kind /= No_Foreground_Job);
 
-   function Foreground_Progress_Of (Model : Window_Model) return Foreground_Progress is
-     (case Model.Foreground_Kind is
-         when No_Foreground_Job => (others => <>),
-         when Paste_Job =>
-           (Done      => Model.Paste_Exec.Done,
-            Total     => Model.Paste_Exec.Total,
-            Name      => Model.Paste_Exec.Current,
-            Moving    => Files.File_System_Types."=" (Model.Paste_Exec.Mode, Files.File_System_Types.Drop_Move),
-            Label_Key => Null_Unbounded_String),
-         when Operation_Job =>
-           (Done      => 0,
-            Total     => 1,
-            Name      => Model.Operation_Name,
-            Moving    => False,
-            Label_Key => Model.Operation_Label_Key));
-
-   procedure Begin_Operation_Job
-     (Model : in out Window_Model; Job : Files.Process_Jobs.Session; Label_Key : String) is
-   begin
-      End_Foreground_Job (Model);
-      Support.Claim_Overlay_Input (Model);
-      Model.Foreground_Kind := Operation_Job;
-      Model.Operation_Job := Job;
-      Model.Operation_Label_Key := To_Unbounded_String (Label_Key);
-      Model.Operation_Name := To_Unbounded_String (Current_Path (Model));
-      Support.Touch (Model);
-   end Begin_Operation_Job;
-
    procedure End_Foreground_Job (Model : in out Window_Model) is
    begin
       --  Released, not driven: a helper still running is stopped and reaped
@@ -73,31 +45,11 @@ package body Files.Model is
       Support.Touch (Model);
    end End_Foreground_Job;
 
-   function Background_Operation (Model : Window_Model) return Files.Process_Jobs.Session is (Model.Operation_Job);
-
-   procedure Defer_Operation_Merge (Model : in out Window_Model; Deadline : Ada.Real_Time.Time) is
-   begin
-      Model.Operation_Merge_Deferred := True;
-      Model.Operation_Merge_Deadline := Deadline;
-   end Defer_Operation_Merge;
-
-   function Operation_Merge_Deferred (Model : Window_Model) return Boolean is (Model.Operation_Merge_Deferred);
-
-   function Operation_Merge_Deadline (Model : Window_Model) return Ada.Real_Time.Time is
-     (Model.Operation_Merge_Deadline);
-
-   procedure Set_Background_Refresh (Model : in out Window_Model; Job : Files.Process_Jobs.Session) is
-   begin
-      Model.Refresh_Job := Job;
-   end Set_Background_Refresh;
-
-   function Background_Refresh (Model : Window_Model) return Files.Process_Jobs.Session is (Model.Refresh_Job);
-
    use type Ada.Calendar.Time;
    use type Files.File_System_Types.Path_Status;
    use type Files.UI_Types.Focus_Target;
    use type Guikit.Input.Navigation_Direction;
-   use type Files.Types.Search_Scope;
+   use type Files.UI_Types.Search_Scope;
 
    use Files.Model.Support;
 
@@ -340,7 +292,7 @@ package body Files.Model is
       Directory_Path    : String;
       Items             : Files.Items.Item_Vectors.Vector;
       Home_Path         : String;
-      Default_View_Mode : Files.Types.View_Mode := Files.Types.Small_Icons) is
+      Default_View_Mode : Files.Preference_Types.View_Mode := Files.Preference_Types.Small_Icons) is
    begin
       Clear_Folder_Size (Model);
       Support.Touch (Model);
@@ -361,7 +313,7 @@ package body Files.Model is
       Model.Back_History.Clear;
       Model.Forward_History.Clear;
       Model.Recent_View_Active := False;
-      Model.Search_Scope_Value := Files.Types.Filter_Here;
+      Model.Search_Scope_Value := Files.UI_Types.Filter_Here;
       Model.Search_Results_Active := False;
       Model.Results_Hide_Hidden := False;
       Support.Invalidate_Visible (Model);
@@ -523,12 +475,12 @@ package body Files.Model is
 
    function View_Mode_Of
      (Model : Window_Model)
-      return Files.Types.View_Mode is
+      return Files.Preference_Types.View_Mode is
      (Model.View_Value);
 
    procedure Set_View_Mode
      (Model : in out Window_Model;
-      Mode  : Files.Types.View_Mode) is separate;
+      Mode  : Files.Preference_Types.View_Mode) is separate;
 
    function Sort_Field_Of
      (Model : Window_Model)
@@ -577,12 +529,12 @@ package body Files.Model is
 
    function Search_Scope_Of
      (Model : Window_Model)
-      return Files.Types.Search_Scope is
+      return Files.UI_Types.Search_Scope is
      (Model.Search_Scope_Value);
 
    procedure Set_Search_Scope
      (Model : in out Window_Model;
-      Scope : Files.Types.Search_Scope) is separate;
+      Scope : Files.UI_Types.Search_Scope) is separate;
 
    function Search_Results_Are_Active
      (Model : Window_Model)
@@ -591,7 +543,7 @@ package body Files.Model is
 
    procedure Note_Search_Results
      (Model : in out Window_Model;
-      Scope : Files.Types.Search_Scope) is separate;
+      Scope : Files.UI_Types.Search_Scope) is separate;
 
    procedure Clear_Search_Results
      (Model : in out Window_Model) is separate;
@@ -660,7 +612,7 @@ package body Files.Model is
    begin
       Clear_Folder_Size (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-      Model.Search_Scope_Value := Files.Types.Filter_Here;
+      Model.Search_Scope_Value := Files.UI_Types.Filter_Here;
       Model.Search_Results_Active := False;
       Model.Results_Hide_Hidden := False;
       Support.Invalidate_Visible (Model);

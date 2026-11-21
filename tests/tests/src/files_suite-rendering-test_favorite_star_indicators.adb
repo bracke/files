@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -46,7 +47,7 @@ separate (Files_Suite.Rendering)
    begin
       --  Grid indicator: exactly the favorited items carry a gold filled star.
       declare
-         Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
+         Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Small_Icons);
          First    : Item_Snapshot := Snapshot.Items.Element (1);
       begin
          First.Is_Favorite := True;
@@ -63,7 +64,7 @@ separate (Files_Suite.Rendering)
       end;
 
       declare
-         Snapshot : constant View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+         Snapshot : constant View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Details);
          Frame    : constant Frame_Commands :=
            Build_Frame_Commands (Snapshot, 1000, 800, 20);
       begin
@@ -76,7 +77,7 @@ separate (Files_Suite.Rendering)
       --  Path-bar toggle: with no items in the view, the only star is the path
       --  star, so its filled/outline shape reflects the current-dir state.
       declare
-         Fav      : View_Snapshot := Sample_Snapshot (0, Files.Types.Small_Icons);
+         Fav      : View_Snapshot := Sample_Snapshot (0, Files.Preference_Types.Small_Icons);
       begin
          Fav.Current_Path := To_Unbounded_String ("/tmp/starred");
          Fav.Current_Path_Is_Favorite := True;
@@ -94,7 +95,7 @@ separate (Files_Suite.Rendering)
       end;
 
       declare
-         Plain : View_Snapshot := Sample_Snapshot (0, Files.Types.Small_Icons);
+         Plain : View_Snapshot := Sample_Snapshot (0, Files.Preference_Types.Small_Icons);
       begin
          Plain.Current_Path := To_Unbounded_String ("/tmp/plain");
          Plain.Current_Path_Is_Favorite := False;

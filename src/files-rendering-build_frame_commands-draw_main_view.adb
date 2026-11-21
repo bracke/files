@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files.Rendering.Build_Frame_Commands)
    procedure Draw_Main_View is
       procedure Draw_Details_Header is separate;
@@ -6,7 +7,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       procedure Draw_Drag_Preview is separate;
       procedure Draw_Empty_State is separate;
    begin
-      if Snapshot.View_Mode = Files.Types.Details then
+      if Snapshot.View_Mode = Files.Preference_Types.Details then
          Draw_Details_Header;
       end if;
 
@@ -14,7 +15,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          Draw_Item (Index);
       end loop;
 
-      if Snapshot.View_Mode = Files.Types.Details and then not Items.Is_Empty then
+      if Snapshot.View_Mode = Files.Preference_Types.Details and then not Items.Is_Empty then
          Draw_Column_Separators;
       end if;
 

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Drags)
@@ -36,7 +37,7 @@ separate (Files_Suite.Drags)
          Result : Files.Interaction.Interaction_Result;
       begin
          Files.Interaction.Apply_Column_Resize
-           (Model, Settings, Files.Types.Size_Column,
+           (Model, Settings, Files.Preference_Types.Size_Column,
             Origin_X     => 500,
             Origin_Width => Origin_Width,
             Current_X    => 500 - Delta_X,
@@ -53,7 +54,7 @@ separate (Files_Suite.Drags)
       end loop;
       Files.Model.Initialize
         (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root,
-         Default_View_Mode => Files.Types.Details);
+         Default_View_Mode => Files.Preference_Types.Details);
 
       --  At 2x: an even pixel target is stored as exactly half and drawn back
       --  at the same pixel width.
@@ -63,11 +64,11 @@ separate (Files_Suite.Drags)
          Delta_X  : constant Natural := 40 + Base_W mod 2;
          Target   : constant Natural := Base_W + Delta_X;
       begin
-         Assert (Base_W > 2 * Files.Types.Minimum_Detail_Column_Width,
+         Assert (Base_W > 2 * Files.Preference_Types.Minimum_Detail_Column_Width,
                  "the size column starts well above the scaled minimum at 2x");
          Drag (Settings, Base_W, Delta_X, Double);
          Files_Suite.Support.Assert_Equal
-           (Settings.Column_Widths (Files.Types.Size_Column),
+           (Settings.Column_Widths (Files.Preference_Types.Size_Column),
             Target / 2,
             "a width dragged at line height 40 is stored as half its framebuffer pixels");
          Files_Suite.Support.Assert_Equal
@@ -88,7 +89,7 @@ separate (Files_Suite.Drags)
       begin
          Drag (Settings, Base_W, 37, Line);
          Files_Suite.Support.Assert_Equal
-           (Settings.Column_Widths (Files.Types.Size_Column),
+           (Settings.Column_Widths (Files.Preference_Types.Size_Column),
             Base_W + 37,
             "at line height 20 the stored width equals the dragged pixel width");
          Files_Suite.Support.Assert_Equal

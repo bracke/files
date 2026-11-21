@@ -2,14 +2,15 @@ package body Files.Grouping is
 
    use type Ada.Calendar.Time;
    use type Files.Types.Item_Kind;
-   use type Files.Types.Color_Label;
+   use type Files.Preference_Types.Color_Label;
 
    --  Each mode's bands in display order; a band number is 'Pos + 1.
    type Type_Band is (Folders, Images, Audio, Video, Documents, Archives, Other);
    type Modified_Band is (Today_Band, This_Week, Earlier, Unknown_Date);
    type Size_Band is (Empty, Small, Medium, Large, Unknown_Size);
    --  Red .. Gray (Real_Color_Label order), then unlabeled.
-   Label_Band_Count : constant Positive := Files.Types.Color_Label'Pos (Files.Types.Color_Label'Last) + 1;
+   Label_Band_Count : constant Positive := Files.Preference_Types.Color_Label'Pos
+     (Files.Preference_Types.Color_Label'Last) + 1;
 
    Type_Keys : constant array (Type_Band) of access constant String :=
      [Folders   => new String'("details.group.folders"),
@@ -39,13 +40,13 @@ package body Files.Grouping is
    Small_Size_Limit  : constant Long_Long_Integer := 1024 * 1024;
    Medium_Size_Limit : constant Long_Long_Integer := 1024 * 1024 * 1024;
 
-   function Band_Count (Mode : Files.Types.Group_Mode) return Positive is
+   function Band_Count (Mode : Files.Preference_Types.Group_Mode) return Positive is
      (case Mode is
-         when Files.Types.Group_By_Type     => Type_Band'Pos (Type_Band'Last) + 1,
-         when Files.Types.Group_By_Modified => Modified_Band'Pos (Modified_Band'Last) + 1,
-         when Files.Types.Group_By_Size     => Size_Band'Pos (Size_Band'Last) + 1,
-         when Files.Types.Group_By_Label    => Label_Band_Count,
-         when Files.Types.No_Grouping       => 1);
+         when Files.Preference_Types.Group_By_Type     => Type_Band'Pos (Type_Band'Last) + 1,
+         when Files.Preference_Types.Group_By_Modified => Modified_Band'Pos (Modified_Band'Last) + 1,
+         when Files.Preference_Types.Group_By_Size     => Size_Band'Pos (Size_Band'Last) + 1,
+         when Files.Preference_Types.Group_By_Label    => Label_Band_Count,
+         when Files.Preference_Types.No_Grouping       => 1);
 
    function Day_Start (Value : Ada.Calendar.Time) return Ada.Calendar.Time is
       Year    : Ada.Calendar.Year_Number;
@@ -64,14 +65,14 @@ package body Files.Grouping is
      (Day_Start (Day - Duration (Days) * 86_400.0 + 43_200.0));
 
    function Band_Of
-     (Mode               : Files.Types.Group_Mode;
+     (Mode               : Files.Preference_Types.Group_Mode;
       Kind               : Files.Types.Item_Kind;
       Filetype           : String;
       Modified_Available : Boolean;
       Modified_Time      : Ada.Calendar.Time;
       Size_Available     : Boolean;
       Size               : Long_Long_Integer;
-      Label              : Files.Types.Color_Label;
+      Label              : Files.Preference_Types.Color_Label;
       Today              : Ada.Calendar.Time)
       return Positive
    is
@@ -138,21 +139,22 @@ package body Files.Grouping is
       end Size_Of;
    begin
       case Mode is
-         when Files.Types.Group_By_Type =>
+         when Files.Preference_Types.Group_By_Type =>
             return Type_Band'Pos (Type_Of) + 1;
-         when Files.Types.Group_By_Modified =>
+         when Files.Preference_Types.Group_By_Modified =>
             return Modified_Band'Pos (Modified_Of) + 1;
-         when Files.Types.Group_By_Size =>
+         when Files.Preference_Types.Group_By_Size =>
             return Size_Band'Pos (Size_Of) + 1;
-         when Files.Types.Group_By_Label =>
-            return (if Label = Files.Types.No_Label then Label_Band_Count else Files.Types.Color_Label'Pos (Label));
-         when Files.Types.No_Grouping =>
+         when Files.Preference_Types.Group_By_Label =>
+            return (if Label = Files.Preference_Types.No_Label then Label_Band_Count
+              else Files.Preference_Types.Color_Label'Pos (Label));
+         when Files.Preference_Types.No_Grouping =>
             return 1;
       end case;
    end Band_Of;
 
    function Band_Label_Key
-     (Mode : Files.Types.Group_Mode;
+     (Mode : Files.Preference_Types.Group_Mode;
       Band : Positive)
       return String
    is
@@ -160,17 +162,17 @@ package body Files.Grouping is
       function Clamped (Last : Natural) return Natural is (Natural'Min (Band - 1, Last));
    begin
       case Mode is
-         when Files.Types.Group_By_Type =>
+         when Files.Preference_Types.Group_By_Type =>
             return Type_Keys (Type_Band'Val (Clamped (Type_Band'Pos (Type_Band'Last)))).all;
-         when Files.Types.Group_By_Modified =>
+         when Files.Preference_Types.Group_By_Modified =>
             return Modified_Keys (Modified_Band'Val (Clamped (Modified_Band'Pos (Modified_Band'Last)))).all;
-         when Files.Types.Group_By_Size =>
+         when Files.Preference_Types.Group_By_Size =>
             return Size_Keys (Size_Band'Val (Clamped (Size_Band'Pos (Size_Band'Last)))).all;
-         when Files.Types.Group_By_Label =>
+         when Files.Preference_Types.Group_By_Label =>
             return
               (if Band >= Label_Band_Count then "details.group.unlabeled"
-               else "label.color." & Files.Types.To_Lower_Ascii (Files.Types.Color_Label'Val (Band)'Image));
-         when Files.Types.No_Grouping =>
+               else "label.color." & Files.Types.To_Lower_Ascii (Files.Preference_Types.Color_Label'Val (Band)'Image));
+         when Files.Preference_Types.No_Grouping =>
             return "";
       end case;
    end Band_Label_Key;

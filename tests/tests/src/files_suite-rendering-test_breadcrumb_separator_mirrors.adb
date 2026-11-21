@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Guikit.Mirroring;
 separate (Files_Suite.Rendering)
    --  The breadcrumb separator is a symbol pointing along the path: it is
@@ -5,7 +6,7 @@ separate (Files_Suite.Rendering)
    --  name, drawn as it is.
    procedure Test_Breadcrumb_Separator_Mirrors (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap : View_Snapshot := Sample_Snapshot (0, Files.Types.Details);
+      Snap : View_Snapshot := Sample_Snapshot (0, Files.Preference_Types.Details);
    begin
       Snap.Breadcrumb_Segments := Files.Breadcrumbs.Segments ("/home/>/files");
       declare

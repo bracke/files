@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 separate (Files_Suite.Archives)
@@ -19,7 +20,7 @@ separate (Files_Suite.Archives)
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Filter (Model, "readme");
-      Result := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Names);
+      Result := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success, "the search runs");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the search finds both files");
       Files.Model.Selection.Select_All_Visible (Model);

@@ -1,8 +1,9 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Item_Layout_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Modes : constant array (1 .. 3) of Files.Types.View_Mode :=
-        [Files.Types.Small_Icons, Files.Types.Large_Icons, Files.Types.Details];
+      Modes : constant array (1 .. 3) of Files.Preference_Types.View_Mode :=
+        [Files.Preference_Types.Small_Icons, Files.Preference_Types.Large_Icons, Files.Preference_Types.Details];
    begin
       for Mode of Modes loop
          declare

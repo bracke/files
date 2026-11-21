@@ -1,11 +1,12 @@
+with Files.UI_Types;
 separate (Files.Operations)
 function Run_Search
   (Model    : in out Files.Model.Window_Model;
    Settings : Files.Settings.Settings_Model;
-   Scope    : Files.Types.Tree_Search_Scope)
+   Scope    : Files.UI_Types.Tree_Search_Scope)
    return Operation_Result
 is
-   use type Files.Types.Search_Scope;
+   use type Files.UI_Types.Search_Scope;
    Query : constant String := Files.Model.Filter_Text (Model);
    Root  : constant String := Files.Model.Current_Path (Model);
 begin
@@ -19,7 +20,7 @@ begin
 
    declare
       Found : constant Files.File_System.Recursive_Search_Result :=
-        (if Scope = Files.Types.Search_Contents then Files.File_System.Search_Contents (Root, Query, Settings)
+        (if Scope = Files.UI_Types.Search_Contents then Files.File_System.Search_Contents (Root, Query, Settings)
          else Files.File_System.Search_Names (Root, Query, Settings));
    begin
       if not Found.Success then

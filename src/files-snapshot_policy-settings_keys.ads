@@ -1,6 +1,6 @@
+with Files.Preference_Types;
 with Files.Icon_Themes;
 with Files.Settings;
-with Files.Types;
 
 --  The settings a view snapshot is built from, captured so the window can
 --  tell whether its cached snapshot still shows them (Action_For's
@@ -19,13 +19,13 @@ package Files.Snapshot_Policy.Settings_Keys is
       Show_Space_Bar       : Boolean := False;
       Theme                : Files.Settings.Theme_Choice := Files.Settings.Theme_Dark;
       Icon_Theme           : Files.Icon_Themes.Icon_Theme := Files.Icon_Themes.Basic;
-      Column_Visible       : Files.Types.Detail_Column_Visibility :=
-        Files.Types.Default_Detail_Column_Visibility;
-      Column_Widths        : Files.Types.Detail_Column_Widths :=
-        Files.Types.Default_Detail_Column_Widths;
-      Column_Order         : Files.Types.Detail_Column_Order :=
-        Files.Types.Default_Detail_Column_Order;
-      Group_By             : Files.Types.Group_Mode := Files.Types.No_Grouping;
+      Column_Visible       : Files.Preference_Types.Detail_Column_Visibility :=
+        Files.Preference_Types.Default_Detail_Column_Visibility;
+      Column_Widths        : Files.Preference_Types.Detail_Column_Widths :=
+        Files.Preference_Types.Default_Detail_Column_Widths;
+      Column_Order         : Files.Preference_Types.Detail_Column_Order :=
+        Files.Preference_Types.Default_Detail_Column_Order;
+      Group_By             : Files.Preference_Types.Group_Mode := Files.Preference_Types.No_Grouping;
       Favorite_Paths       : Files.Settings.String_Vectors.Vector;
       Labels               : Files.Settings.Path_Label_Vectors.Vector;
    end record;

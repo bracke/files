@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The folder tree takes the view's left side instead of covering it: the
    --  view starts where the panel ends, so no item lies under the panel where
@@ -5,7 +6,7 @@ separate (Files_Suite.Rendering)
    procedure Test_Tree_Panel_Leaves_Items_Visible (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
    begin
-      for Mode in Files.Types.View_Mode loop
+      for Mode in Files.Preference_Types.View_Mode loop
          declare
             Snap   : View_Snapshot := Sample_Snapshot (40, Mode);
             Closed : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 900, 600, 20);

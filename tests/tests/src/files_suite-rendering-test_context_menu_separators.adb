@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 with Files.Rendering.Layouts;
 separate (Files_Suite.Rendering)
    procedure Test_Context_Menu_Separators (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Files.Commands.Context_Menu_Row_Kind;
 
-      Snapshot : View_Snapshot := Sample_Snapshot (6, Files.Types.Small_Icons);
+      Snapshot : View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Small_Icons);
 
       --  The full set of real commands the item menu must still offer, in any
       --  order, regardless of the separators woven between the groups.

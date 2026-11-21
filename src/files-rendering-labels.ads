@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Ada.Calendar;
 with Ada.Strings.Unbounded;
 
@@ -15,7 +16,7 @@ with Guikit.Draw;
 private package Files.Rendering.Labels is
 
    use Ada.Strings.Unbounded;
-   use type Files.Types.Color_Label;
+   use type Files.Preference_Types.Color_Label;
 
    --  U+00D7 MULTIPLICATION SIGN, the conventional close-affordance glyph.
    Close_Glyph_Text : constant String :=
@@ -154,8 +155,8 @@ private package Files.Rendering.Labels is
    function Item_Accessible_Description
      (Names   : Detail_Column_Texts;
       Cells   : Detail_Column_Texts;
-      Order   : Files.Types.Detail_Column_Order;
-      Visible : Files.Types.Detail_Column_Visibility;
+      Order   : Files.Preference_Types.Detail_Column_Order;
+      Visible : Files.Preference_Types.Detail_Column_Visibility;
       Item    : Item_Snapshot;
       Details : Boolean)
       return UString;
@@ -320,7 +321,7 @@ private package Files.Rendering.Labels is
    --  @param Label Color label to resolve.
    --  @return The palette role drawn in that label's color.
    function Label_Render_Color
-     (Label : Files.Types.Color_Label)
+     (Label : Files.Preference_Types.Color_Label)
       return Guikit.Draw.Render_Color;
 
 private
@@ -333,7 +334,7 @@ private
 
    --  @param Mode A view mode.
    --  @return Its localized name.
-   function View_Mode_Label (Mode : Files.Types.View_Mode) return String;
+   function View_Mode_Label (Mode : Files.Preference_Types.View_Mode) return String;
 
    --  @param Snapshot The view snapshot.
    --  @return The labelled hidden, visible and selected counts ("3 hidden

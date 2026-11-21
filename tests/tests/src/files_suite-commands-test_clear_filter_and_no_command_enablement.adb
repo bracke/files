@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Commands.Status;
 with Files_Suite.Support.Models;
@@ -52,6 +53,6 @@ separate (Files_Suite.Commands)
          "no-command execution does not change path");
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
-         Files.Types.Small_Icons,
+         Files.Preference_Types.Small_Icons,
          "no-command execution preserves view");
    end Test_Clear_Filter_And_No_Command_Enablement;

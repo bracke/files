@@ -1,7 +1,8 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Extreme_Size_Saturation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snapshot : View_Snapshot := Sample_Snapshot (8, Files.Types.Details);
+      Snapshot : View_Snapshot := Sample_Snapshot (8, Files.Preference_Types.Details);
       Layout   : Guikit.Draw.Layout_Metrics;
       Items    : Item_Layout_Vectors.Vector;
       Main     : Main_View_Layout;
@@ -42,7 +43,7 @@ separate (Files_Suite.Rendering)
       end;
 
       declare
-         Overlay : View_Snapshot := Sample_Snapshot (1, Files.Types.Small_Icons);
+         Overlay : View_Snapshot := Sample_Snapshot (1, Files.Preference_Types.Small_Icons);
       begin
          Overlay.Quick_Look.Open := True;
          Overlay.Context_Menu_Open := True;

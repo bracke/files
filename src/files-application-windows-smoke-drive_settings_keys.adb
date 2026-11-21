@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Fs_Primitives;
 with Guikit.Settings_Panel;
 with Hostkit.Fs;
@@ -262,7 +263,7 @@ separate (Files.Application.Windows.Smoke)
          end Release_Left;
       begin
          Files.Model.Replace_Items (Runtime.Model, Scenario_Overflow_Items (Runtime.Model));
-         Files.Model.Set_View_Mode (Runtime.Model, Files.Types.Details);
+         Files.Model.Set_View_Mode (Runtime.Model, Files.Preference_Types.Details);
          Files.Model.Selection.Select_Visible (Runtime.Model, 1);
          Render_Window (Runtime);
          Press (Guikit.Input.Key_End);

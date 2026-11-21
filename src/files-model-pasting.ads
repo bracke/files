@@ -1,3 +1,6 @@
+with Files.Paste;
+with Files.Copy_Context;
+with Files.Paste_States;
 with Files.Transfer_Jobs;
 --  A paste, a drop or a Copy to.../Move to... as the model holds it: the
 --  conflict dialog that resolves its collisions, and the execution that
@@ -31,7 +34,7 @@ package Files.Model.Pasting is
    --
    --  @param Model Model to inspect.
    --  @return A copy of the conflict state.
-   function Conflict_Of (Model : Window_Model) return Paste_Conflict_State;
+   function Conflict_Of (Model : Window_Model) return Files.Paste_States.Conflict_State;
 
    --  Whether the pending paste-conflict dialog is active.
    --
@@ -120,7 +123,7 @@ package Files.Model.Pasting is
    --
    --  @param Model Model to inspect.
    --  @return A copy of the execution state.
-   function Execution_Of (Model : Window_Model) return Paste_Execution_State;
+   function Execution_Of (Model : Window_Model) return Files.Paste_States.Execution_State;
 
    --  The helper running the current paste action: a handle the model holds
    --  as data, which Files.Operations starts, polls and cancels.

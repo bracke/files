@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The counts (hidden-files toggle) and the free-space field (free/used
    --  toggle) are both clickable, so their text uses the same active colour as
    --  the info-pane toggle button.
    procedure Test_Counts_Text_Uses_Active_Color (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap     : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Snap     : View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
       Vis_Lbl  : constant String := Files.Localization.Text ("status.visible");
       Free_Sfx : constant String :=
         Ada.Strings.Fixed.Trim (Files.Localization.Text ("status.free_space", "size", ""), Ada.Strings.Both);

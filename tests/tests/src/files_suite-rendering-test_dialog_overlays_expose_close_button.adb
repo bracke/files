@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Dialog_Overlays_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,7 +8,7 @@ separate (Files_Suite.Rendering)
    begin
       --  Quick Look overlay.
       declare
-         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
          Layout : Guikit.Draw.Layout_Metrics;
          QL     : Quick_Look_Layout;
          Close  : Close_Button_Layout;
@@ -28,7 +29,7 @@ separate (Files_Suite.Rendering)
 
       --  Color-label picker overlay.
       declare
-         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
          Layout : Guikit.Draw.Layout_Metrics;
          Picker : Label_Picker_Layout;
          Close  : Close_Button_Layout;
@@ -47,7 +48,7 @@ separate (Files_Suite.Rendering)
 
       --  Paste-conflict dialog.
       declare
-         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
          Layout : Guikit.Draw.Layout_Metrics;
          Dialog : Conflict_Dialog_Layout;
          Close  : Close_Button_Layout;

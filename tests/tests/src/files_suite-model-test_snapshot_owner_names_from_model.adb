@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Permissions;
 with Files.Model.Status_Samples;
 separate (Files_Suite.Model)
@@ -61,10 +62,10 @@ separate (Files_Suite.Model)
       --  An unchanged name is not a change; a new one is, and is shown.
       Revision := Files.Model.Revision (Model);
       Files.Model.Status_Samples.Set_Account_Name
-        (Model, Files.Model.User_Account, 0, Files.File_System.Permissions.User_Name_For_Id (0));
+        (Model, Files.File_System_Types.User_Account, 0, Files.File_System.Permissions.User_Name_For_Id (0));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Revision (Model), Revision, "recording the same name leaves the revision alone");
-      Files.Model.Status_Samples.Set_Account_Name (Model, Files.Model.User_Account, 0, "renamed_owner");
+      Files.Model.Status_Samples.Set_Account_Name (Model, Files.File_System_Types.User_Account, 0, "renamed_owner");
       Assert (Files.Model.Revision (Model) /= Revision, "a changed name bumps the revision so the view rebuilds");
       Files_Suite.Support.Assert_Equal
         (To_String (Shown_Info.Owner_Name), "renamed_owner", "the pane shows the newly recorded name");

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Glfw.Windows.Drop.Paths;
 with Files.Model;
 with Files.Refresh_Jobs;
@@ -229,7 +230,7 @@ private
    type Column_Resize_Drag is record
       Active   : Boolean := False;
       Changed  : Boolean := False;
-      Target   : Files.Types.Detail_Column := Files.Types.Modified_Column;
+      Target   : Files.Preference_Types.Detail_Column := Files.Preference_Types.Modified_Column;
       Origin_X : Integer := 0;
       Origin_W : Natural := 0;
    end record;
@@ -241,7 +242,7 @@ private
    --  and Sort the sort to apply on a click without a drag.
    type Column_Reorder_Drag is record
       Active   : Boolean := False;
-      Target   : Files.Types.Detail_Column := Files.Types.Modified_Column;
+      Target   : Files.Preference_Types.Detail_Column := Files.Preference_Types.Modified_Column;
       Origin_X : Integer := 0;
       Started  : Boolean := False;
       Sort     : Files.Commands.Command_Id := Files.Commands.No_Command;

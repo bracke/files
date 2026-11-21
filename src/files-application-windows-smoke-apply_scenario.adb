@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Settings_Form;
 with Files.Folder_Tree;
 with Files.Quick_Look;
@@ -126,10 +127,10 @@ separate (Files.Application.Windows.Smoke)
             --  Render the details layout, unless the startup already uses it
             --  (a user default), in which case switch to a large-icons layout
             --  so the view-mode relayout still provably changes the frame.
-            if Files.Model.View_Mode_Of (Runtime.Model) = Files.Types.Details then
-               Files.Model.Set_View_Mode (Runtime.Model, Files.Types.Large_Icons);
+            if Files.Model.View_Mode_Of (Runtime.Model) = Files.Preference_Types.Details then
+               Files.Model.Set_View_Mode (Runtime.Model, Files.Preference_Types.Large_Icons);
             else
-               Files.Model.Set_View_Mode (Runtime.Model, Files.Types.Details);
+               Files.Model.Set_View_Mode (Runtime.Model, Files.Preference_Types.Details);
             end if;
 
          when Scenario_Quick_Look =>

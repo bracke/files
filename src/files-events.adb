@@ -1,10 +1,10 @@
+with Files.Preference_Types;
 with Ada.Strings.Unbounded;
 
 with Guikit.Layout;
 with Files.Commands;
 with Files.Rendering.Hit;
 with Files.Rendering.Layouts;
-with Files.Types;
 with Files.UI_Types;
 
 package body Files.Events is
@@ -49,7 +49,7 @@ package body Files.Events is
 
    --  Build a label-picker swatch-choice action (No_Label clears the label).
    function Label_Choice_Action
-     (Label : Files.Types.Color_Label)
+     (Label : Files.Preference_Types.Color_Label)
       return Input_Action is
    begin
       return
@@ -120,7 +120,7 @@ package body Files.Events is
    --  @param Origin_Width Column's effective width at drag start.
    --  @return Column-resize drag-begin input action.
    function Column_Resize_Begin_Action
-     (Column       : Files.Types.Optional_Detail_Column;
+     (Column       : Files.Preference_Types.Optional_Detail_Column;
       Origin_X     : Natural;
       Origin_Width : Natural)
       return Input_Action is
@@ -144,7 +144,7 @@ package body Files.Events is
    --  @param Sort_Command Sort command for a plain click on the column.
    --  @return Column-reorder drag-begin input action.
    function Column_Reorder_Begin_Action
-     (Column       : Files.Types.Optional_Detail_Column;
+     (Column       : Files.Preference_Types.Optional_Detail_Column;
       Origin_X     : Natural;
       Sort_Command : Files.Commands.Command_Id)
       return Input_Action is

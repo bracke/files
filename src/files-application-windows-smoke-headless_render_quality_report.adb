@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.File_Types;
 with Guikit.Shared_Bytes;
 
@@ -110,7 +111,7 @@ separate (Files.Application.Windows.Smoke)
                         Is_Group_Header    => False,
                         Group_Label        => Null_Unbounded_String,
                         Is_Favorite        => False,
-                        Label              => Files.Types.No_Label));
+                        Label              => Files.Preference_Types.No_Label));
                end if;
 
                declare

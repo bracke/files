@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Display_Text;
 separate (Files_Suite.Rendering)
    --  A frame is a function of its snapshot: the relative times it draws are
@@ -12,7 +13,7 @@ separate (Files_Suite.Rendering)
       Later    : constant Ada.Calendar.Time := Ada.Calendar.Time_Of (2025, 4, 1, Duration (12 * 3_600));
 
       function Frame_At (Now : Ada.Calendar.Time) return Frame_Commands is
-         Snapshot : View_Snapshot := Sample_Snapshot (1, Files.Types.Details);
+         Snapshot : View_Snapshot := Sample_Snapshot (1, Files.Preference_Types.Details);
       begin
          Snapshot.Now := Now;
          Snapshot.Items (1).Modified_Available := True;

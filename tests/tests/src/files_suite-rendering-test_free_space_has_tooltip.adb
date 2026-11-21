@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The free-space field carries its own tooltip, positioned over the field
    --  (right side of the info region), distinct from the toggle's tooltip.
    procedure Test_Free_Space_Has_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap    : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Snap    : View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
       Tip_Txt : constant String := Files.Localization.Text ("status.free_space.tooltip");
    begin
       Snap.Free_Space_Known := True;

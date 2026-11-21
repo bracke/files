@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Controller.Testing;
 with Files.Operation_Results;
 with Files.Foreground_Jobs;
@@ -44,7 +45,7 @@ package body Files_Suite.Refresh is
    use type Files.Operations.Archive_Format;
    use type Files.UI_Types.Focus_Target;
    use type Files.Types.Item_Kind;
-   use type Files.Types.View_Mode;
+   use type Files.Preference_Types.View_Mode;
    use Files_Suite.Support;
    use Files_Suite.Support.Models;
    use Files_Suite.Support.Disk;

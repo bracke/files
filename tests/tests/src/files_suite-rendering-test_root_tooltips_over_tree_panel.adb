@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The root selector opens over the folder-tree panel. Its rows' tooltips
    --  are its own, registered after the covered controls' were dropped: they
    --  show over the panel like anywhere else.
    procedure Test_Root_Tooltips_Over_Tree_Panel (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap   : View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Snap   : View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       Layout : Guikit.Draw.Layout_Metrics;
       Root   : Root_Selector_Layout;
       Tree   : Tree_Panel_Layout;

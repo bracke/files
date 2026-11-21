@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Settings.Path_References;
 separate (Files_Suite.Settings)
    --  Windows Notepad saves a hand-edited settings file with a UTF-8
@@ -18,7 +19,7 @@ separate (Files_Suite.Settings)
    begin
       Assert (Parsed.Success, "a BOM and CRLF line ends do not reject the file");
       Assert (Parsed.Settings.Show_Hidden_Files, "a boolean before a CR loads");
-      Assert (Parsed.Settings.Default_View = Files.Types.Details, "a keyword before a CR loads");
+      Assert (Parsed.Settings.Default_View = Files.Preference_Types.Details, "a keyword before a CR loads");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Settings.Path_References.Favorite_Paths (Parsed.Settings).Length), 1,
          "the quoted bookmark loads");

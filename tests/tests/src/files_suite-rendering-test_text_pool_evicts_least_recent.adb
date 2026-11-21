@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Rendering.Text.Testing; use Files.Rendering.Text.Testing;
 separate (Files_Suite.Rendering)
    --  Of the pooled text renderers, the one used least recently is reloaded
@@ -6,7 +7,7 @@ separate (Files_Suite.Rendering)
    procedure Test_Text_Pool_Evicts_Least_Recent (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Frame     : constant Frame_Commands := Build_Frame_Commands
-        (Sample_Snapshot (2, Files.Types.Small_Icons), Width => 800, Height => 600, Line_Height => 20);
+        (Sample_Snapshot (2, Files.Preference_Types.Small_Icons), Width => 800, Height => 600, Line_Height => 20);
       Renderers : array (1 .. 5) of Text_Renderer;
       Glyphs    : array (1 .. 5) of Files.Rendering.Text.Text_Render_Result;
    begin

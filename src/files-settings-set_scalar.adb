@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files.Settings)
    procedure Set_Scalar
      (Settings  : in out Settings_Model;
@@ -5,7 +6,7 @@ separate (Files.Settings)
       Text      : String;
       Error_Key : out UString)
    is
-      Column : constant Files.Types.Optional_Detail_Column := Scalar_Table (Setting).Column;
+      Column : constant Files.Preference_Types.Optional_Detail_Column := Scalar_Table (Setting).Column;
       Lower  : constant String := Files.Types.To_Lower_Ascii (Text);
       Valid  : Boolean := True;
 
@@ -51,17 +52,17 @@ separate (Files.Settings)
             --  Read back exactly the tokens View_Mode_Name writes, plus the
             --  older short spellings "small" and "large".
             Valid := False;
-            for Mode in Files.Types.View_Mode loop
+            for Mode in Files.Preference_Types.View_Mode loop
                if Lower = View_Mode_Name (Mode) then
                   Settings.Default_View := Mode;
                   Valid := True;
                end if;
             end loop;
             if Lower = "small" then
-               Settings.Default_View := Files.Types.Small_Icons;
+               Settings.Default_View := Files.Preference_Types.Small_Icons;
                Valid := True;
             elsif Lower = "large" then
-               Settings.Default_View := Files.Types.Large_Icons;
+               Settings.Default_View := Files.Preference_Types.Large_Icons;
                Valid := True;
             end if;
          when Show_Hidden_Files_Setting =>
@@ -113,7 +114,7 @@ separate (Files.Settings)
             Parse_Boolean (Lower, Settings.Use_System_Default_Opener, Valid);
          when Group_By_Setting =>
             Valid := False;
-            for Mode in Files.Types.Group_Mode loop
+            for Mode in Files.Preference_Types.Group_Mode loop
                if Lower = Group_Mode_Name (Mode) then
                   Settings.Group_By := Mode;
                   Valid := True;
@@ -121,7 +122,7 @@ separate (Files.Settings)
             end loop;
          when Detail_Column_Order_Setting =>
             declare
-               Order : Files.Types.Detail_Column_Order;
+               Order : Files.Preference_Types.Detail_Column_Order;
             begin
                --  A rejected order comes back as the default order.
                Valid := Parse_Detail_Column_Order (Text, Order);

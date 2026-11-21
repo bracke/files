@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 separate (Files.Rendering.Build_Snapshot_Into)
    --  The info pane's rows: one per selected item, up to Max_Info_Items, and
    --  whether the single selected item's permissions and owner can be edited.
@@ -53,10 +54,10 @@ separate (Files.Rendering.Build_Snapshot_Into)
          if Item.Ownership_Available then
             Info.Owner_Name :=
               To_Unbounded_String
-                (Files.Model.Status_Samples.Account_Name (Model, Files.Model.User_Account, Item.Owner_Id));
+                (Files.Model.Status_Samples.Account_Name (Model, Files.File_System_Types.User_Account, Item.Owner_Id));
             Info.Group_Name :=
               To_Unbounded_String
-                (Files.Model.Status_Samples.Account_Name (Model, Files.Model.Group_Account, Item.Group_Id));
+                (Files.Model.Status_Samples.Account_Name (Model, Files.File_System_Types.Group_Account, Item.Group_Id));
          end if;
 
          return Info;

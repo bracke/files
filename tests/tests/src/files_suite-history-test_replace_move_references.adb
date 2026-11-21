@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.Foreground_Jobs;
@@ -12,7 +13,7 @@ separate (Files_Suite.History)
    --  with it to its recovery stage, and come back with it on Undo.
    procedure Test_Replace_Move_References (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Types.Color_Label;
+      use type Files.Preference_Types.Color_Label;
       Settings    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Trash_Home  : constant String := Root & "_references_xdg";
       Src_Dir     : constant String := Join (Root, "references-src");
@@ -54,7 +55,7 @@ separate (Files_Suite.History)
       end Labels;
 
       --  Path is labelled Label once, a favorite once and recent once.
-      procedure Assert_Once (Path : String; Label : Files.Types.Color_Label; What : String) is
+      procedure Assert_Once (Path : String; Label : Files.Preference_Types.Color_Label; What : String) is
       begin
          Assert (Files.Settings.Path_References.Label_Of (Settings, Path) = Label and then Labels (Path) = 1,
                  What & " has its own label, once:" & Labels (Path)'Image);
@@ -76,8 +77,8 @@ separate (Files_Suite.History)
       Ada.Directories.Create_Path (Dest_Dir);
       Write_File (Source, "new");
       Write_File (Dest, "old");
-      Files.Settings.Path_References.Set_Label (Settings, Source, Files.Types.Blue);
-      Files.Settings.Path_References.Set_Label (Settings, Dest, Files.Types.Red);
+      Files.Settings.Path_References.Set_Label (Settings, Source, Files.Preference_Types.Blue);
+      Files.Settings.Path_References.Set_Label (Settings, Dest, Files.Preference_Types.Red);
       Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Source);
       Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Dest);
       Files.Settings.Path_References.Note_Recent (Settings, Dest);
@@ -98,8 +99,8 @@ separate (Files_Suite.History)
         (Step.Status, Files.Operation_Results.Operation_Success, "the move-replace paste succeeds");
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       Assert (Followed, "the move changes the settings");
-      Assert_Once (Dest, Files.Types.Blue, "the moved item at its new path");
-      Assert (Files.Settings.Path_References.Label_Of (Settings, Source) = Files.Types.No_Label
+      Assert_Once (Dest, Files.Preference_Types.Blue, "the moved item at its new path");
+      Assert (Files.Settings.Path_References.Label_Of (Settings, Source) = Files.Preference_Types.No_Label
               and then not Files.Settings.Path_References.Is_Favorite (Settings, Source)
               and then Count (Files.Settings.Path_References.Recent_Paths (Settings), Source) = 0,
               "nothing is left at the moved item's old path");
@@ -112,8 +113,8 @@ separate (Files_Suite.History)
         (Step.Status, Files.Operation_Results.Operation_Success, "the move-replace is undone");
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       Assert (Followed, "the undo changes the settings");
-      Assert_Once (Source, Files.Types.Blue, "the moved item back at its old path");
-      Assert_Once (Dest, Files.Types.Red, "the replaced item back at its path");
+      Assert_Once (Source, Files.Preference_Types.Blue, "the moved item back at its old path");
+      Assert_Once (Dest, Files.Preference_Types.Red, "the replaced item back at its path");
       Files_Suite.Support.Assert_Equal (Natural (Files.Settings.Path_References.Path_Labels (Settings).Length), 2,
                                         "and no label is left elsewhere");
       Reset_Root;

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Settings.Path_References;
 with Hostkit.Fs;
 with Hostkit.Host;
@@ -9,7 +10,7 @@ separate (Files_Suite.Model)
    --  repeated labels.
    procedure Test_Snapshot_Labels_And_Favorites_At_Scale (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Types.Color_Label;
+      use type Files.Preference_Types.Color_Label;
       Count    : constant := 400;
       Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
@@ -26,8 +27,8 @@ separate (Files_Suite.Model)
       function Name_Of (Index : Positive) return String is
         ("item_" & Ada.Strings.Fixed.Trim (Index'Image, Ada.Strings.Left) & ".txt");
 
-      function Color_For (Index : Positive) return Files.Types.Color_Label is
-        (if Index mod 2 = 0 then Files.Types.Red else Files.Types.Blue);
+      function Color_For (Index : Positive) return Files.Preference_Types.Color_Label is
+        (if Index mod 2 = 0 then Files.Preference_Types.Red else Files.Preference_Types.Blue);
    begin
       for Index in 1 .. Count loop
          Items.Append
@@ -46,7 +47,7 @@ separate (Files_Suite.Model)
       --  Paths that only resemble an item's: another case, a trailing
       --  separator. Neither names item 1 or 2 for the settings.
       Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Join (Root, "ITEM_1.TXT"));
-      Files.Settings.Path_References.Set_Label (Settings, Join (Root, Name_Of (2)) & "/", Files.Types.Green);
+      Files.Settings.Path_References.Set_Label (Settings, Join (Root, Name_Of (2)) & "/", Files.Preference_Types.Green);
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
@@ -66,7 +67,7 @@ separate (Files_Suite.Model)
                if Item.Is_Favorite then
                   Favorites := Favorites + 1;
                end if;
-               if Item.Label /= Files.Types.No_Label then
+               if Item.Label /= Files.Preference_Types.No_Label then
                   Labelled := Labelled + 1;
                end if;
                if Name = Name_Of (1) then
@@ -76,7 +77,7 @@ separate (Files_Suite.Model)
                   Assert (Item.Is_Favorite = Folds_Case,
                           "a favorite stored in another case marks the item exactly where names fold case");
                elsif Name = Name_Of (2) then
-                  Assert (Item.Label = Files.Types.No_Label,
+                  Assert (Item.Label = Files.Preference_Types.No_Label,
                           "a label stored with a trailing separator does not mark the item");
                end if;
             end;

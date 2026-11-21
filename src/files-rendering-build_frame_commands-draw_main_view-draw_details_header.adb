@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
    --  The Details view's column header row: its labels, sort marks, dividers
    --  and accessibility nodes.
@@ -27,25 +28,25 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
             then Column_W - Details_Column_Padding (Line_Height) else 0);
       end Cell_W;
 
-      function Header_Label (Column : Files.Types.Detail_Column) return String is
+      function Header_Label (Column : Files.Preference_Types.Detail_Column) return String is
       begin
          case Column is
-            when Files.Types.Name_Column =>
+            when Files.Preference_Types.Name_Column =>
                return "details.name";
-            when Files.Types.Modified_Column =>
+            when Files.Preference_Types.Modified_Column =>
                return "details.modified";
-            when Files.Types.Size_Column =>
+            when Files.Preference_Types.Size_Column =>
                return "details.size";
-            when Files.Types.Filetype_Column =>
+            when Files.Preference_Types.Filetype_Column =>
                return "details.filetype";
-            when Files.Types.Created_Column =>
+            when Files.Preference_Types.Created_Column =>
                return "details.created";
-            when Files.Types.Permissions_Column =>
+            when Files.Preference_Types.Permissions_Column =>
                return "details.permissions";
          end case;
       end Header_Label;
 
-      function Header_Text (Column : Files.Types.Detail_Column) return UString is
+      function Header_Text (Column : Files.Preference_Types.Detail_Column) return UString is
          Label : constant String := Files.Localization.Text (Header_Label (Column));
          Sort  : constant Detail_Column_Sort := Detail_Column_Sorts (Column);
       begin
@@ -59,7 +60,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
       function Header_Description return UString is
          Result : Unbounded_String := Null_Unbounded_String;
       begin
-         for Column in Files.Types.Detail_Column loop
+         for Column in Files.Preference_Types.Detail_Column loop
             if Columns (Column).Visible then
                if Length (Result) > 0 then
                   Append (Result, ", ");
@@ -72,7 +73,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
    begin
       Add_Rect (Content_X, Header_Y, Header_W, Header_H, Pane_Color);
       Add_Border (Content_X, Header_Y, Header_W, Header_H, Border_Color);
-      for Column in Files.Types.Detail_Column loop
+      for Column in Files.Preference_Types.Detail_Column loop
          if Columns (Column).Visible then
             Add_Text
               (Cell_X (Columns (Column).X),
@@ -94,7 +95,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
          Header_Description);
       --  Each sortable cell on its own, so a screen reader can reach a
       --  column and activate it to sort, as a click on it does.
-      for Column in Files.Types.Detail_Column loop
+      for Column in Files.Preference_Types.Detail_Column loop
          if Columns (Column).Visible and then Detail_Column_Sorts (Column).Sortable then
             Add_Accessibility_Node
               (Role_Button,
@@ -111,7 +112,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
             --  The accent rule is this tall.
             Rule_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (2, Line_Height), Header_H);
          begin
-            for Column in Files.Types.Optional_Detail_Column loop
+            for Column in Files.Preference_Types.Optional_Detail_Column loop
                if Columns (Column).Visible then
                   Add_Rect (Column_Separator_X (Columns (Column).X, Line_Height), Header_Y, 1, Header_H, Border_Color);
                end if;

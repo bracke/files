@@ -173,38 +173,38 @@ package body Files.Settings.Path_References is
    function Label_Of
      (Settings : Settings_Model;
       Path     : String)
-      return Files.Types.Color_Label is
+      return Files.Preference_Types.Color_Label is
    begin
       if not Persistent_Path_Is_Valid (Path) then
-         return Files.Types.No_Label;
+         return Files.Preference_Types.No_Label;
       end if;
       for Entry_Value of Settings.Paths.Labels loop
          if Same (To_String (Entry_Value.Path), Path) then
             return Entry_Value.Label;
          end if;
       end loop;
-      return Files.Types.No_Label;
+      return Files.Preference_Types.No_Label;
    end Label_Of;
 
    procedure Set_Label
      (Settings : in out Settings_Model;
       Path     : String;
-      Label    : Files.Types.Color_Label)
+      Label    : Files.Preference_Types.Color_Label)
  is separate;
 
    procedure Set_Labels
      (Settings : in out Settings_Model;
       Paths    : String_Vectors.Vector;
-      Label    : Files.Types.Color_Label)
+      Label    : Files.Preference_Types.Color_Label)
  is separate;
 
    procedure Load_Label
      (Settings : in out Settings_Model;
       Known    : in out Label_Position_Maps.Map;
       Path     : String;
-      Label    : Files.Types.Color_Label)
+      Label    : Files.Preference_Types.Color_Label)
    is
-      use type Files.Types.Color_Label;
+      use type Files.Preference_Types.Color_Label;
       Matched : constant String := Key (Path);
       Place   : Label_Position_Maps.Cursor;
    begin
@@ -232,7 +232,7 @@ package body Files.Settings.Path_References is
             return;
          end if;
       end if;
-      if Label = Files.Types.No_Label then
+      if Label = Files.Preference_Types.No_Label then
          Set_Label (Settings, Path, Label);
          Known.Clear;
          return;
@@ -282,18 +282,18 @@ package body Files.Settings.Path_References is
    function Label_Of
      (Index : Path_Index;
       Path  : String)
-      return Files.Types.Color_Label
+      return Files.Preference_Types.Color_Label
    is
       Found : Path_Label_Maps.Cursor;
    begin
       if not Persistent_Path_Is_Valid (Path) then
-         return Files.Types.No_Label;
+         return Files.Preference_Types.No_Label;
       end if;
       Found := Index.Labels.Find (Key (Path));
       if Path_Label_Maps.Has_Element (Found) then
          return Path_Label_Maps.Element (Found);
       end if;
-      return Files.Types.No_Label;
+      return Files.Preference_Types.No_Label;
    end Label_Of;
 
    procedure Move_Path_References

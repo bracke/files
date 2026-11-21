@@ -217,7 +217,11 @@ separate (Check_All)
             To_Unbounded_String ("Files.Items"),
             To_Unbounded_String ("Files.Model.Support"),
             To_Unbounded_String ("Files.Paste"),
+            --  The paste prompt's and run's state as values (no I/O).
+            To_Unbounded_String ("Files.Paste_States"),
             To_Unbounded_String ("Files.Path_Checks"),
+            --  The view preferences' value types.
+            To_Unbounded_String ("Files.Preference_Types"),
             To_Unbounded_String ("Files.Process_Jobs"),
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Settings"),

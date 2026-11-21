@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Rendering.Testing;
 with Files.Settings.Testing;
 with Files.Settings.Path_References;
@@ -40,7 +41,7 @@ separate (Files_Suite.Rendering)
 
       First_Path : constant String := To_String (Files.Model.Visible_Item (Model, 1).Full_Path);
    begin
-      for View in Files.Types.View_Mode loop
+      for View in Files.Preference_Types.View_Mode loop
          Files.Model.Set_View_Mode (Model, View);
          for Setting in Files.Settings.Scalar_Setting loop
             for Text of Candidates loop
@@ -73,7 +74,7 @@ separate (Files_Suite.Rendering)
          declare
             Changed : Files.Settings.Settings_Model := Base;
          begin
-            Files.Settings.Path_References.Set_Label (Changed, First_Path, Files.Types.Red);
+            Files.Settings.Path_References.Set_Label (Changed, First_Path, Files.Preference_Types.Red);
             Check ("a label", Changed);
          end;
          declare

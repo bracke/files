@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Settings)
    procedure Test_Settings_Ensure_And_Save_Text (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -35,7 +36,7 @@ separate (Files_Suite.Settings)
                     "saving through a symlinked settings file keeps the link");
             Files_Suite.Support.Assert_Equal
               (Files.Settings.Load_File (Saved_Path).Settings.Default_View,
-               Files.Types.Details,
+               Files.Preference_Types.Details,
                "the save lands in the link's target");
             Saved := Files.Settings.Save_Text
               (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
@@ -56,7 +57,7 @@ separate (Files_Suite.Settings)
       Assert (Loaded.Success, "saved settings file loads");
       Files_Suite.Support.Assert_Equal
         (Loaded.Settings.Default_View,
-         Files.Types.Large_Icons,
+         Files.Preference_Types.Large_Icons,
          "saved settings text is persisted");
       --  Saving over an existing file goes through the atomic temp+rename path:
       --  the new content replaces the old and no temporary file is left behind.
@@ -71,7 +72,7 @@ separate (Files_Suite.Settings)
       Assert (Loaded.Success, "resaved settings file loads");
       Files_Suite.Support.Assert_Equal
         (Loaded.Settings.Default_View,
-         Files.Types.Details,
+         Files.Preference_Types.Details,
          "resaved settings text replaces the previous content");
       Saved := Files.Settings.Save_Text
         (Saved_Path,
@@ -84,7 +85,7 @@ separate (Files_Suite.Settings)
       Loaded := Files.Settings.Load_File (Saved_Path);
       Assert
         (Loaded.Success
-         and then Loaded.Settings.Default_View = Files.Types.Details,
+         and then Loaded.Settings.Default_View = Files.Preference_Types.Details,
          "a rejected NUL-containing save preserves the existing settings file");
       declare
          --  On the heap: a megabyte on the stack overflowed Windows' 1 MiB
@@ -101,7 +102,7 @@ separate (Files_Suite.Settings)
          Loaded := Files.Settings.Load_File (Saved_Path);
          Assert
            (Loaded.Success
-            and then Loaded.Settings.Default_View = Files.Types.Details,
+            and then Loaded.Settings.Default_View = Files.Preference_Types.Details,
             "a rejected oversized save preserves the existing settings file");
       end;
       declare

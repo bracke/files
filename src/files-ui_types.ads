@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Types;
 
 --  Window-state value types that only the model, input and rendering layers
@@ -57,8 +58,8 @@ package Files.UI_Types is
    --  The label picker's swatch count: one per real color, then the clear
    --  swatch.
    Swatch_Count : constant :=
-     Files.Types.Real_Color_Label'Pos (Files.Types.Real_Color_Label'Last)
-     - Files.Types.Real_Color_Label'Pos (Files.Types.Real_Color_Label'First) + 2;
+     Files.Preference_Types.Real_Color_Label'Pos (Files.Preference_Types.Real_Color_Label'Last)
+     - Files.Preference_Types.Real_Color_Label'Pos (Files.Preference_Types.Real_Color_Label'First) + 2;
 
    --  The label picker's clear (No_Label) swatch: the last one.
    Clear_Swatch : constant := Swatch_Count;
@@ -69,9 +70,47 @@ package Files.UI_Types is
    --
    --  @param Index One-based swatch index.
    --  @return The label that swatch sets.
-   function Label_For_Swatch (Index : Positive) return Files.Types.Color_Label is
-     (if Index <= Files.Types.Real_Color_Label'Pos (Files.Types.Real_Color_Label'Last)
-      then Files.Types.Color_Label'Val (Index)
-      else Files.Types.No_Label);
+   function Label_For_Swatch (Index : Positive) return Files.Preference_Types.Color_Label is
+     (if Index <= Files.Preference_Types.Real_Color_Label'Pos (Files.Preference_Types.Real_Color_Label'Last)
+      then Files.Preference_Types.Color_Label'Val (Index)
+      else Files.Preference_Types.No_Label);
+
+   --  The sort menu's rows: one per sort field (Files.Types.Sort_Field), in
+   --  declaration order. The model's keyboard highlight and the layout's
+   --  rows both go through these, so a field added is a row added everywhere.
+   Sort_Menu_Rows : constant Positive := Files.Types.Sort_Field'Pos (Files.Types.Sort_Field'Last) + 1;
+
+   --  @param Field A sort field.
+   --  @return Its one-based sort-menu row.
+   function Sort_Menu_Row (Field : Files.Types.Sort_Field) return Positive is (Files.Types.Sort_Field'Pos (Field) + 1);
+
+   --  @param Row A one-based sort-menu row.
+   --  @return The field that row stands for.
+   function Sort_Menu_Field (Row : Positive) return Files.Types.Sort_Field is (Files.Types.Sort_Field'Val (Row - 1))
+     with Pre => Row <= Sort_Menu_Rows;
+
+   --  Scope the shared filter-bar query applies to. Filter_Here live-filters the
+   --  current directory by name (the default), Search_Names replaces the view
+   --  with a recursive name search of the subtree, and Search_Contents replaces
+   --  it with a recursive content (grep) search. All three reuse one query text.
+   type Search_Scope is
+     (Filter_Here,
+      Search_Names,
+      Search_Contents);
+
+   --  The scopes that search the tree below the current folder, replacing
+   --  the view with what they find.
+   subtype Tree_Search_Scope is Search_Scope range Search_Names .. Search_Contents;
+
+   --  Return the search scope reached by cycling one step forward, wrapping from
+   --  Search_Contents back to Filter_Here.
+   --
+   --  @param Scope Current search scope.
+   --  @return Next search scope in the cycle.
+   function Next_Scope (Scope : Search_Scope) return Search_Scope is
+     (case Scope is
+         when Filter_Here     => Search_Names,
+         when Search_Names    => Search_Contents,
+         when Search_Contents => Filter_Here);
 
 end Files.UI_Types;

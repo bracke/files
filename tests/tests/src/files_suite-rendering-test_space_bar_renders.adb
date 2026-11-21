@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  In bar mode the free field draws a track (Input_Color) with a blue
    --  (Selection_Color) core whose width is the used fraction, and no text.
    procedure Test_Space_Bar_Renders (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap     : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Snap     : View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
       Used_Sfx : constant String :=
         Ada.Strings.Fixed.Trim (Files.Localization.Text ("status.used_space", "size", ""), Ada.Strings.Both);
       Free_Sfx : constant String :=

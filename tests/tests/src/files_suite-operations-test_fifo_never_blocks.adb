@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.File_System.Thumbnails;
@@ -49,7 +50,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Files.Model.Set_Filter (Model, "needle");
       Step := Complete_Operation
-        (Model, Settings, Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Contents));
+        (Model, Settings, Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents));
       Assert (Step.Status = Files.Operation_Results.Operation_Success and then Files.Model.Item_Count (Model) = 1,
               "content search reads the file and passes the FIFO by");
 

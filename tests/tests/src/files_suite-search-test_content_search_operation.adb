@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Text_Encoding;
 with Files.Operation_Results;
 with Files.Commands.Status;
@@ -95,7 +96,7 @@ separate (Files_Suite.Search)
 
       --  Default scope is Filter_Here and the command is disabled without a query.
       Assert
-        (Files.Model.Search_Scope_Of (Model) = Files.Types.Filter_Here,
+        (Files.Model.Search_Scope_Of (Model) = Files.UI_Types.Filter_Here,
          "a freshly loaded directory defaults to the Filter_Here scope");
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Search_Contents_Command, Model),
@@ -117,7 +118,7 @@ separate (Files_Suite.Search)
          Files.Operation_Results.Operation_Success,
          "content search command succeeds");
       Assert
-        (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Contents,
+        (Files.Model.Search_Scope_Of (Model) = Files.UI_Types.Search_Contents,
          "running content search sets the Search_Contents scope");
       Assert (Files.Model.Search_Results_Are_Active (Model), "content search shows search results");
       Files_Suite.Support.Assert_Equal
@@ -138,13 +139,13 @@ separate (Files_Suite.Search)
       Routed :=
         Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Recursive_Command, Model, Settings);
       Assert
-        (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Names,
+        (Files.Model.Search_Scope_Of (Model) = Files.UI_Types.Search_Names,
          "recursive name search sets the Search_Names scope");
 
       --  Clearing the filter returns to Filter_Here and drops search-results state.
       Files_Suite.Support.Models.Run_Command (Files.Commands.Clear_Filter_Command, Model);
       Assert
-        (Files.Model.Search_Scope_Of (Model) = Files.Types.Filter_Here,
+        (Files.Model.Search_Scope_Of (Model) = Files.UI_Types.Filter_Here,
          "clearing the filter returns to the Filter_Here scope");
       Assert
         (not Files.Model.Search_Results_Are_Active (Model),

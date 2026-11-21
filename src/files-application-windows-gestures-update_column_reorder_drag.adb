@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
 separate (Files.Application.Windows.Gestures)
@@ -45,7 +46,7 @@ is
           (Snapshot, Layout, Natural'Max (0, X_Frame), Y_Frame, Line_Height);
       Result : Files.Interaction.Interaction_Result;
    begin
-      if Drop in Files.Types.Detail_Column_Index then
+      if Drop in Files.Preference_Types.Detail_Column_Index then
          Files.Interaction.Apply_Column_Reorder
            (Model         => Runtime.Model,
             Settings      => Runtime.Settings,

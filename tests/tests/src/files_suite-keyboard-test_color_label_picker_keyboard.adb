@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Model.Label_Picker;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Disk;
@@ -37,7 +38,7 @@ separate (Files_Suite.Keyboard)
       Files_Suite.Support.Assert_Equal (Files.Model.Label_Picker.Highlight (Model), 4, "four Lefts land on swatch 4");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Label_Picker.Highlight_Color (Model),
-         Files.Types.Green,
+         Files.Preference_Types.Green,
          "swatch 4 chooses Green");
 
       --  Enter applies the highlighted color to the whole selection and closes.
@@ -46,6 +47,6 @@ separate (Files_Suite.Keyboard)
       Assert (not Files.Model.Label_Picker.Is_Open (Model), "Enter closes the picker");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Path_References.Label_Of (Settings, One),
-         Files.Types.Green,
+         Files.Preference_Types.Green,
          "Enter applies the highlighted color to the selection");
    end Test_Color_Label_Picker_Keyboard;

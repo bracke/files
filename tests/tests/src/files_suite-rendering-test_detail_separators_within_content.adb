@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The column dividers span the visible rows only: they stop at the bottom of
    --  the last on-screen row, never descending past it into empty space below the
@@ -27,7 +28,7 @@ separate (Files_Suite.Rendering)
       --  Overflow: the last row is off-screen, yet the dividers stop within the
       --  content, never running into the bottom bar.
       declare
-         Snapshot : constant View_Snapshot := Sample_Snapshot (40, Files.Types.Details);
+         Snapshot : constant View_Snapshot := Sample_Snapshot (40, Files.Preference_Types.Details);
          Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
          Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
          Bottom   : constant Natural := Max_Divider_Bottom (Frame, Layout);
@@ -40,7 +41,7 @@ separate (Files_Suite.Rendering)
       --  Short list: the dividers stop exactly at the last visible row's bottom,
       --  well above the content bottom -- not filling the empty space below.
       declare
-         Snapshot : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+         Snapshot : constant View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
          Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
          Items    : constant Item_Layout_Vectors.Vector :=
            Calculate_Item_Layout (Snapshot, Layout, 20);

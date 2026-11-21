@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Rendering.Layouts;
 separate (Files.Events.Translate_Click)
 --  The main view: details header, items, and the empty-space marquee.
@@ -29,7 +30,7 @@ begin
         Files.Rendering.Hit.Details_Header_Cell_At (Snapshot, Layout, X, Y, Line_Height);
    begin
       if Cell.Present then
-         if Cell.Column in Files.Types.Optional_Detail_Column then
+         if Cell.Column in Files.Preference_Types.Optional_Detail_Column then
             Result := Column_Reorder_Begin_Action (Cell.Column, X, Cell.Command);
             return;
          elsif Cell.Command /= Files.Commands.No_Command then

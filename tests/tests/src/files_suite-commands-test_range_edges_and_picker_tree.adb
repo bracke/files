@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Model.Tree_Panel;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Commands)
@@ -33,7 +34,7 @@ separate (Files_Suite.Commands)
       end if;
 
       --  Shift+Up on the first item would wrap to the last and select all.
-      Files.Model.Set_View_Mode (Model, Files.Types.Details);
+      Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
       Files.Model.Selection.Select_Visible (Model, 1);
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Up, Shift);
       Assert

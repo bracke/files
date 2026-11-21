@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Compact_Empty_State_Stays_In_View
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -6,7 +7,7 @@ separate (Files_Suite.Rendering)
       LH      : constant Positive := 20;
       Height  : constant Natural :=
         3 * LH + 2 * Guikit.Layout.Bottom_Bar_Padding + 1;
-      Snap    : constant View_Snapshot := Sample_Snapshot (0, Files.Types.Small_Icons);
+      Snap    : constant View_Snapshot := Sample_Snapshot (0, Files.Preference_Types.Small_Icons);
       Found   : Boolean := False;
    begin
       for Width in 1 .. 120 loop

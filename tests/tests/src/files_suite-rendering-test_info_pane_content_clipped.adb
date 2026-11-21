@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Info_Pane_Content_Clipped (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -19,7 +20,7 @@ separate (Files_Suite.Rendering)
 
       for Selection_Count in 0 .. 2 loop
          declare
-            Snap : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+            Snap : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
          begin
             Snap.Info_Pane_Open := True;
             Snap.Permissions_Editable := True;

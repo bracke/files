@@ -1,3 +1,5 @@
+with Files.Model.Jobs;
+with Files.File_System_Types;
 with Files.Settings.Path_References;
 separate (Files.Rendering.Build_Snapshot_Into)
    --  The header, status and pane fields: copied straight from the model
@@ -29,7 +31,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
       declare
          --  Sampled by the window layer (see Volume_Space_Is_Current); unknown
          --  until it has been, so a bogus zero is never shown as a known value.
-         Space : constant Files.Model.Volume_Space := Files.Model.Status_Samples.Volume_Space_Of (Model);
+         Space : constant Files.File_System_Types.Volume_Space := Files.Model.Status_Samples.Volume_Space_Of (Model);
       begin
          Snapshot.Free_Space_Known := Space.Known;
          Snapshot.Free_Space_Bytes := Space.Free_Bytes;
@@ -75,7 +77,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
       Snapshot.Paste_Conflict_Name := To_Unbounded_String (Files.Model.Pasting.Conflict_Name (Model));
       Snapshot.Paste_Conflict_Apply_All := Files.Model.Pasting.Conflict_Apply_All (Model);
       declare
-         Progress : constant Files.Model.Foreground_Progress := Files.Model.Foreground_Progress_Of (Model);
+         Progress : constant Files.Model.Jobs.Foreground_Progress := Files.Model.Jobs.Foreground_Progress_Of (Model);
       begin
          Snapshot.Paste_Progress :=
            (Open            => Files.Model.Foreground_Job_Is_Active (Model),

@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 separate (Files.Controller)
@@ -6,9 +7,9 @@ separate (Files.Controller)
       Settings : Files.Settings.Settings_Model)
       return Controller_Result
    is
-      use type Files.Types.Search_Scope;
-      Next : constant Files.Types.Search_Scope :=
-        Files.Types.Next_Scope (Files.Model.Search_Scope_Of (Model));
+      use type Files.UI_Types.Search_Scope;
+      Next : constant Files.UI_Types.Search_Scope :=
+        Files.UI_Types.Next_Scope (Files.Model.Search_Scope_Of (Model));
       Had_Results : constant Boolean := Files.Model.Search_Results_Are_Active (Model);
       Has_Query   : constant Boolean := Files.Model.Filter_Text (Model) /= "";
       Operation   : Files.Operation_Results.Operation_Result;
@@ -20,7 +21,7 @@ separate (Files.Controller)
       Files.Model.Set_Search_Scope (Model, Next);
 
       case Next is
-         when Files.Types.Filter_Here =>
+         when Files.UI_Types.Filter_Here =>
             --  Returning to live filtering: drop any recorded search results and
             --  reload the real directory so the plain listing comes back.
             Files.Model.Clear_Search_Results (Model);
@@ -30,7 +31,7 @@ separate (Files.Controller)
                  (Controller_Command_Executed, Files.Commands.Clear_Filter_Command, Operation);
             end if;
             return Make_Result (Controller_Command_Executed, Files.Commands.Clear_Filter_Command);
-         when Files.Types.Tree_Search_Scope =>
+         when Files.UI_Types.Tree_Search_Scope =>
             if Has_Query then
                Operation := Files.Operation_Commands.Run_Search (Model, Settings, Next);
             elsif Had_Results then
@@ -40,7 +41,7 @@ separate (Files.Controller)
             end if;
             return Make_Result
               (Controller_Command_Executed,
-               (if Next = Files.Types.Search_Names then Files.Commands.Search_Recursive_Command
+               (if Next = Files.UI_Types.Search_Names then Files.Commands.Search_Recursive_Command
                 else Files.Commands.Search_Contents_Command),
                Operation);
       end case;

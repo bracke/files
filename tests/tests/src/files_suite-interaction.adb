@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Events;
 with Files.Input_Actions;
 with Files.Controller.Testing;
@@ -41,7 +42,7 @@ package body Files_Suite.Interaction is
    use type Files.Input_Actions.Input_Action_Kind;
    use type Files.Input_Actions.Scroll_Target;
    use type Guikit.Draw.Accessibility_Role;
-   use type Files.Types.Color_Label;
+   use type Files.Preference_Types.Color_Label;
    use type Files.UI_Types.Focus_Target;
    use Files_Suite.Interaction_Support;
 

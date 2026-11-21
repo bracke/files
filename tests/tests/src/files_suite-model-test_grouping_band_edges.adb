@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Model)
    procedure Test_Grouping_Band_Edges (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,17 +7,18 @@ separate (Files_Suite.Model)
 
       function Typed (Kind : Files.Types.Item_Kind; Filetype : String) return Positive is
         (Files.Grouping.Band_Of
-           (Files.Types.Group_By_Type, Kind, Filetype, False, Today, False, 0, Files.Types.No_Label, Today));
+           (Files.Preference_Types.Group_By_Type, Kind, Filetype, False, Today, False, 0,
+             Files.Preference_Types.No_Label, Today));
 
       function Dated (Known : Boolean; At_Time : Ada.Calendar.Time) return Positive is
         (Files.Grouping.Band_Of
-           (Files.Types.Group_By_Modified, Files.Types.Regular_File_Item, "", Known, At_Time, False, 0,
-            Files.Types.No_Label, Today));
+           (Files.Preference_Types.Group_By_Modified, Files.Types.Regular_File_Item, "", Known, At_Time, False, 0,
+            Files.Preference_Types.No_Label, Today));
 
       function Sized (Known : Boolean; Size : Long_Long_Integer) return Positive is
         (Files.Grouping.Band_Of
-           (Files.Types.Group_By_Size, Files.Types.Regular_File_Item, "", False, Today, Known, Size,
-            Files.Types.No_Label, Today));
+           (Files.Preference_Types.Group_By_Size, Files.Types.Regular_File_Item, "", False, Today, Known, Size,
+            Files.Preference_Types.No_Label, Today));
 
       Mib : constant Long_Long_Integer := 1024 * 1024;
    begin

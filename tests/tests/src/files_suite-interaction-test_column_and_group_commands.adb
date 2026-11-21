@@ -1,13 +1,14 @@
+with Files.Preference_Types;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Interaction)
    procedure Test_Column_And_Group_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Types.Group_Mode;
+      use type Files.Preference_Types.Group_Mode;
       Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       Before   : constant Boolean :=
-        Settings.Column_Visible (Files.Types.Permissions_Column);
+        Settings.Column_Visible (Files.Preference_Types.Permissions_Column);
    begin
       --  The toggle command flips the persisted visibility and reports the
       --  settings change through the interaction result.
@@ -17,7 +18,7 @@ separate (Files_Suite.Interaction)
          Settings_Path     => "",
          Command           => Files.Commands.Toggle_Column_Permissions_Command,
          Result            => Result);
-      Assert (Settings.Column_Visible (Files.Types.Permissions_Column) /= Before,
+      Assert (Settings.Column_Visible (Files.Preference_Types.Permissions_Column) /= Before,
               "the permissions-column command flips its visibility");
       Assert (Result.Settings_Changed, "the column toggle reports a settings change");
 
@@ -29,7 +30,7 @@ separate (Files_Suite.Interaction)
          Command           => Files.Commands.Toggle_Column_Permissions_Command,
          Result            => Result);
       Files_Suite.Support.Assert_Equal
-        (Settings.Column_Visible (Files.Types.Permissions_Column),
+        (Settings.Column_Visible (Files.Preference_Types.Permissions_Column),
          Before,
          "the interaction layer applies the settings command once per call");
 
@@ -43,7 +44,7 @@ separate (Files_Suite.Interaction)
          Result            => Result);
       Files_Suite.Support.Assert_Equal
         (Settings.Group_By,
-         Files.Types.Group_By_Type,
+         Files.Preference_Types.Group_By_Type,
          "the group-by command advances the grouping mode");
       Assert
         (not Result.Clear_Pending_Text,
@@ -51,7 +52,7 @@ separate (Files_Suite.Interaction)
 
       --  With grouping active in the details view, Build_Snapshot inserts a
       --  non-selectable header row (Visible_Index zero) ahead of the items.
-      Files.Model.Set_View_Mode (Model, Files.Types.Details);
+      Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);

@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
    --  One item of the grid or list: nothing for an item the layout put off
    --  screen, a caption for a group header, otherwise the whole cell.
    procedure Draw_Item (Index : Positive) is
       Item_Rect : constant Item_Layout := Items.Element (Index);
       Item      : Item_Snapshot renames Snapshot.Items (Index);
-      Details   : constant Boolean := Snapshot.View_Mode = Files.Types.Details;
+      Details   : constant Boolean := Snapshot.View_Mode = Files.Preference_Types.Details;
 
       --  Grouping band header: a non-selectable caption row. It draws its
       --  own subdued background and label and none of the per-item drawing
@@ -32,7 +33,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
            (if Drop_Target then Guikit.Item_Grid.Drop_Target
             elsif Item.Selected then Guikit.Item_Grid.Selected
             elsif Hovered then Guikit.Item_Grid.Hovered
-            elsif Snapshot.View_Mode = Files.Types.Details and then Index mod 2 = 0
+            elsif Snapshot.View_Mode = Files.Preference_Types.Details and then Index mod 2 = 0
             then Guikit.Item_Grid.Alternate
             else Guikit.Item_Grid.No_Background);
       begin
@@ -54,7 +55,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
       --  draws only when set, so a bare icon means neither.
       procedure Draw_Icon is
       begin
-         if Snapshot.View_Mode = Files.Types.Details then
+         if Snapshot.View_Mode = Files.Preference_Types.Details then
             Add_Icon (Item, Item_Rect.Icon_X, Item_Rect.Icon_Y, Item_Rect.Icon_Size);
          else
             Add_Icon
@@ -62,7 +63,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
                Item_Rect.Icon_X,
                Item_Rect.Icon_Y,
                Item_Rect.Icon_Size,
-               Use_Thumbnail => Snapshot.View_Mode = Files.Types.Large_Icons);
+               Use_Thumbnail => Snapshot.View_Mode = Files.Preference_Types.Large_Icons);
          end if;
 
          Guikit.Item_Grid.Draw_Item_Indicators
@@ -75,7 +76,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
             Favorite      => Item.Is_Favorite,
             Star_Glyph    => Favorite_Star_Glyph,
             Star_Color    => Accent_Gold_Color,
-            Has_Label     => Item.Label /= Files.Types.No_Label,
+            Has_Label     => Item.Label /= Files.Preference_Types.No_Label,
             Label_Color   => Label_Render_Color (Item.Label));
       end Draw_Icon;
 
@@ -116,11 +117,11 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
             Clip_Height      => Layout.Height,
             Cell             => Item_Rect,
             Line_Height      => Line_Height,
-            Modified         => Cells (Files.Types.Modified_Column),
-            Size             => Cells (Files.Types.Size_Column),
-            Filetype         => Cells (Files.Types.Filetype_Column),
-            Created          => Cells (Files.Types.Created_Column),
-            Permissions      => Cells (Files.Types.Permissions_Column),
+            Modified         => Cells (Files.Preference_Types.Modified_Column),
+            Size             => Cells (Files.Preference_Types.Size_Column),
+            Filetype         => Cells (Files.Preference_Types.Filetype_Column),
+            Created          => Cells (Files.Preference_Types.Created_Column),
+            Permissions      => Cells (Files.Preference_Types.Permissions_Column),
             Modified_Tooltip =>
               (if Hovered and then Item.Modified_Available
                then To_Unbounded_String (Full_Time_Text (Item.Modified_Time))
@@ -140,28 +141,28 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
       --  The Details row's cell texts for the columns shown, empty for the
       --  hidden ones and in the icon views.
       function Detail_Cells return Detail_Column_Texts is
-         Shown  : Files.Types.Detail_Column_Visibility renames Snapshot.Detail_Columns_Visible;
+         Shown  : Files.Preference_Types.Detail_Column_Visibility renames Snapshot.Detail_Columns_Visible;
          Result : Detail_Column_Texts := [others => Null_Unbounded_String];
       begin
          if not Details then
             return Result;
          end if;
-         if Shown (Files.Types.Modified_Column) then
-            Result (Files.Types.Modified_Column) :=
+         if Shown (Files.Preference_Types.Modified_Column) then
+            Result (Files.Preference_Types.Modified_Column) :=
               Detail_Time_Text (Item.Modified_Available, Item.Modified_Time, Snapshot.Now);
          end if;
-         if Shown (Files.Types.Size_Column) then
-            Result (Files.Types.Size_Column) := Detail_Size_Text (Item);
+         if Shown (Files.Preference_Types.Size_Column) then
+            Result (Files.Preference_Types.Size_Column) := Detail_Size_Text (Item);
          end if;
-         if Shown (Files.Types.Filetype_Column) then
-            Result (Files.Types.Filetype_Column) := Item.Filetype_Detail;
+         if Shown (Files.Preference_Types.Filetype_Column) then
+            Result (Files.Preference_Types.Filetype_Column) := Item.Filetype_Detail;
          end if;
-         if Shown (Files.Types.Created_Column) then
-            Result (Files.Types.Created_Column) :=
+         if Shown (Files.Preference_Types.Created_Column) then
+            Result (Files.Preference_Types.Created_Column) :=
               Detail_Time_Text (Item.Creation_Available, Item.Creation_Time, Snapshot.Now);
          end if;
-         if Shown (Files.Types.Permissions_Column) then
-            Result (Files.Types.Permissions_Column) := Item.Permissions;
+         if Shown (Files.Preference_Types.Permissions_Column) then
+            Result (Files.Preference_Types.Permissions_Column) := Item.Permissions;
          end if;
          return Result;
       end Detail_Cells;

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Ada.Calendar;
 with Ada.Containers;
 with Ada.Containers.Hashed_Maps;
@@ -76,7 +77,7 @@ package Files.Rendering is
       Is_Favorite        : Boolean := False;
       --  The item's color label (tag). Drives the small colored dot drawn in a
       --  corner of the icon; No_Label draws nothing.
-      Label              : Files.Types.Color_Label := Files.Types.No_Label;
+      Label              : Files.Preference_Types.Color_Label := Files.Preference_Types.No_Label;
    end record;
 
    package Item_Snapshot_Vectors is new Ada.Containers.Vectors
@@ -193,7 +194,7 @@ package Files.Rendering is
       --  True while the virtual recent-items view is shown, so the empty-state
       --  message reads as an empty recent list rather than an empty directory.
       In_Recent_View       : Boolean := False;
-      View_Mode            : Files.Types.View_Mode := Files.Types.Small_Icons;
+      View_Mode            : Files.Preference_Types.View_Mode := Files.Preference_Types.Small_Icons;
       Show_Extensions      : Boolean := True;
       Sort_Field           : Files.Types.Sort_Field := Files.Types.Sort_Name;
       Sort_Ascending       : Boolean := True;
@@ -220,7 +221,7 @@ package Files.Rendering is
       --  recursive search results (name or content) rather than a plain
       --  directory listing, so the renderer can draw the scope chip in its
       --  current state and mark the results as a search rather than a directory.
-      Search_Scope          : Files.Types.Search_Scope := Files.Types.Filter_Here;
+      Search_Scope          : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
       Search_Results_Active : Boolean := False;
       Last_Error_Key        : UString;
       --  The last error's message, in the user's language, with the path
@@ -288,13 +289,13 @@ package Files.Rendering is
       --  Detail-view column customization mirrored from settings so the pure
       --  layout functions can lay out only the visible columns, honour custom
       --  widths, and insert grouping bands without reaching back into settings.
-      Detail_Columns_Visible         : Files.Types.Detail_Column_Visibility :=
-        Files.Types.Default_Detail_Column_Visibility;
-      Detail_Column_Widths           : Files.Types.Detail_Column_Widths :=
-        Files.Types.Default_Detail_Column_Widths;
-      Detail_Column_Order            : Files.Types.Detail_Column_Order :=
-        Files.Types.Default_Detail_Column_Order;
-      Group_By                       : Files.Types.Group_Mode := Files.Types.No_Grouping;
+      Detail_Columns_Visible         : Files.Preference_Types.Detail_Column_Visibility :=
+        Files.Preference_Types.Default_Detail_Column_Visibility;
+      Detail_Column_Widths           : Files.Preference_Types.Detail_Column_Widths :=
+        Files.Preference_Types.Default_Detail_Column_Widths;
+      Detail_Column_Order            : Files.Preference_Types.Detail_Column_Order :=
+        Files.Preference_Types.Default_Detail_Column_Order;
+      Group_By                       : Files.Preference_Types.Group_Mode := Files.Preference_Types.No_Grouping;
       --  Pending paste-conflict dialog: open when a paste/move is paused waiting
       --  for the user to resolve the colliding destination named Paste_Conflict_Name.
       Paste_Conflict_Open            : Boolean := False;
@@ -575,7 +576,7 @@ private
 
    --  One text per details column: the column names a row's accessibility
    --  description repeats, or one row's cells.
-   type Detail_Column_Texts is array (Files.Types.Detail_Column) of UString;
+   type Detail_Column_Texts is array (Files.Preference_Types.Detail_Column) of UString;
 
    --  One drawn row's texts.
    type Row_Texts_Entry is record

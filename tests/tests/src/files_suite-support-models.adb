@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Events;
 with Files.Operations;
 with Files.Foreground_Jobs;
@@ -68,7 +69,7 @@ package body Files_Suite.Support.Models is
          Directory_Path    => Root,
          Items             => Sample_Items,
          Home_Path         => "/home/test",
-         Default_View_Mode => Files.Types.Small_Icons);
+         Default_View_Mode => Files.Preference_Types.Small_Icons);
       return Model;
    end Sample_Model;
 

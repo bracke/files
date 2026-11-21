@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  A wide bar shows the labelled counts; a narrow one drops the labels and
    --  slash-separates the three numbers.
    procedure Test_Counts_Compact_When_Narrow (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap    : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Snap    : constant View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
       Vis_Lbl : constant String := Files.Localization.Text ("status.visible");
 
       function Bottom_Has

@@ -6,7 +6,7 @@ with Ada.Streams;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Files.Bounded_Streams;
-with Files.File_System;
+with Files.Job_Storage;
 with Files.Fs_Primitives;
 with Files.Durable_Writes;
 with Files.Private_Directories;
@@ -401,8 +401,8 @@ package body Files.Job_Context is
             exception
                when others =>
                   declare
-                     Removed : constant Files.File_System.Mutation_Result :=
-                       Files.File_System.Delete_Staging_Entry
+                     Removed : constant Boolean :=
+                       Files.Job_Storage.Delete_Staging_Entry
                          (Candidate, To_String (Identity));
                      pragma Unreferenced (Removed);
                   begin
@@ -451,7 +451,7 @@ package body Files.Job_Context is
    function Creation_Snapshot_Matches
      (Path, Identity, Tree_Revision : String;
       Retain_Verified : Boolean := False) return Boolean
-     renames Files.File_System.Creation_Matches;
+     renames Files.Job_Storage.Creation_Matches;
 
    procedure Record_Created (Destination : String; Source : String := "") is
    begin
@@ -460,7 +460,7 @@ package body Files.Job_Context is
 
    procedure Record_Created (Destination, Source, Identity : String) is
    begin
-      Record_Created (Destination, Source, Identity, Files.File_System.Tree_Revision (Destination));
+      Record_Created (Destination, Source, Identity, Files.Job_Storage.Tree_Revision (Destination));
    end Record_Created;
 
    procedure Intend_Created (Destination, Source, Identity, Tree_Revision : String) is
@@ -848,8 +848,7 @@ package body Files.Job_Context is
         and then To_String (Directory) =
           (if Foreground then Files.Process_Jobs.Path (Foreground_Job, "") else To_String (Current))
       then
-         Removed := Files.File_System.Delete_Staging_Entry
-           (Path, To_String (Identity)).Success;
+         Removed := Files.Job_Storage.Delete_Staging_Entry (Path, To_String (Identity));
       end if;
       Release_Foreground;
       return Removed;
@@ -1036,7 +1035,7 @@ package body Files.Job_Context is
             Expected := To_Unbounded_String (Owner_Identity (To_String (Path), Directory));
          end if;
          if Is_Own_Stage (To_String (Path), To_String (Expected), Directory)
-           and then Files.File_System.Delete_Staging_Entry (To_String (Path), To_String (Expected)).Success
+           and then Files.Job_Storage.Delete_Staging_Entry (To_String (Path), To_String (Expected))
          then
             Remove_Record (Record_Directory);
          end if;

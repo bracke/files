@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Ada.Containers;
 with Files.File_Types;
 with Guikit.Shared_Bytes;
@@ -9,7 +10,7 @@ separate (Files_Suite.Rendering)
       LH     : constant Positive := 20;
       IW     : constant Natural  := 200;
       IH     : constant Natural  := 150;
-      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
       Frame  : Frame_Commands;
       Found  : Boolean := False;
    begin

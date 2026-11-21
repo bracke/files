@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  An item icon the vector layer draws (in the theme's colours) gets no
    --  atlas tile as well: the tile, in fixed colours, was painted over it.
    procedure Test_Item_Icons_Drawn_Once (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
    begin
-      for Mode in Files.Types.View_Mode loop
+      for Mode in Files.Preference_Types.View_Mode loop
          declare
             Frame : constant Frame_Commands := Build_Frame_Commands
               (Sample_Snapshot (6, Mode), Width => 1200, Height => 800, Line_Height => 20);

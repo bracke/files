@@ -1,7 +1,8 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Base   : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Small_Icons);
+      Base   : constant View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Small_Icons);
       Layout : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Base, 1000, 800, 20);
       Items  : constant Item_Layout_Vectors.Vector := Calculate_Item_Layout (Base, Layout, 20);
       Cell   : Item_Layout;

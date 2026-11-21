@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  File icons are submitted after main-layer rectangles and text.  A
    --  floating picker therefore has to live wholly in the overlay layer or a
@@ -9,7 +10,7 @@ separate (Files_Suite.Rendering)
       Width  : constant Natural  := 1000;
       Height : constant Natural  := 800;
       LH     : constant Positive := 20;
-      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
       Layout : Guikit.Draw.Layout_Metrics;
       Picker : Label_Picker_Layout;
       Frame  : Frame_Commands;
@@ -57,7 +58,7 @@ separate (Files_Suite.Rendering)
       declare
          Compact_W      : constant Natural := 160;
          Compact_H      : constant Natural := 55;
-         Compact_Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Compact_Snap   : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
          Compact_Layout : Guikit.Draw.Layout_Metrics;
          Compact_Picker : Label_Picker_Layout;
          Compact_Frame  : Frame_Commands;

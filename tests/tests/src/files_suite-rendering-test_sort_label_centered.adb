@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The sort button's content (the field label plus its direction arrow) sits
    --  horizontally centred in the button, not left-aligned against the padding.
    procedure Test_Sort_Label_Centered (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snapshot : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
       Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
       Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
       Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=

@@ -1,3 +1,4 @@
+with Files.UI_Types;
 separate (Files.Rendering.Layouts)
    function Calculate_Sort_Menu_Layout
      (Width       : Natural;
@@ -8,7 +9,7 @@ separate (Files.Rendering.Layouts)
    is
       Bottom    : constant Guikit.Layout.Bottom_Bar_Layout :=
         Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
-      Row_Count : constant Natural := Files.Types.Sort_Menu_Rows;
+      Row_Count : constant Natural := Files.UI_Types.Sort_Menu_Rows;
       --  Each row is as tall as the bottom bar itself.
       Row_H     : constant Natural := Bottom_Bar_Height (Line_Height);
       Menu_Pad  : constant Natural := Guikit.Layout.Scaled (Guikit.Layout.Sort_Menu_Padding, Line_Height);

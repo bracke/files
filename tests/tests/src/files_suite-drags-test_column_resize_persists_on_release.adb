@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Drags)
    procedure Test_Column_Resize_Persists_On_Release (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -15,12 +16,12 @@ separate (Files_Suite.Drags)
       end if;
       Files.Model.Initialize
         (Model, Files_Suite.Support.Disk.Root, Files.Items.Item_Vectors.Empty_Vector, Files_Suite.Support.Disk.Root,
-         Default_View_Mode => Files.Types.Details);
+         Default_View_Mode => Files.Preference_Types.Details);
 
       --  Several pointer moves of one drag change the width in memory only.
       for Step in 1 .. 5 loop
          Files.Interaction.Apply_Column_Resize
-           (Model, Settings, Files.Types.Size_Column,
+           (Model, Settings, Files.Preference_Types.Size_Column,
             Origin_X     => Origin_X,
             Origin_Width => Origin_W,
             Current_X    => Origin_X - 10 * Step,
@@ -31,7 +32,7 @@ separate (Files_Suite.Drags)
       end loop;
       Assert (Changed, "the drag's moves report a width change");
       Files_Suite.Support.Assert_Equal
-        (Settings.Column_Widths (Files.Types.Size_Column),
+        (Settings.Column_Widths (Files.Preference_Types.Size_Column),
          Origin_W + 50,
          "the last move's width is live in memory");
 
@@ -43,7 +44,7 @@ separate (Files_Suite.Drags)
       begin
          Assert (Reloaded.Success, "the persisted settings file reloads cleanly");
          Files_Suite.Support.Assert_Equal
-           (Reloaded.Settings.Column_Widths (Files.Types.Size_Column),
+           (Reloaded.Settings.Column_Widths (Files.Preference_Types.Size_Column),
             Origin_W + 50,
             "the settings file holds the drag's final width");
       end;

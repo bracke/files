@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Model.Context_Menu;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
@@ -20,7 +21,7 @@ separate (Files_Suite.Context_Menu)
       end loop;
       Files.Model.Initialize
         (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root,
-         Default_View_Mode => Files.Types.Details);
+         Default_View_Mode => Files.Preference_Types.Details);
 
       --  Right-click the details header, deriving the coordinate from the real
       --  header hit-test (rule a) and driving the real translator and dispatch (rule d).
@@ -76,14 +77,14 @@ separate (Files_Suite.Context_Menu)
 
       --  Selecting a toggle flips the persisted setting through the reducer.
       declare
-         Before : constant Boolean := Settings.Column_Visible (Files.Types.Size_Column);
+         Before : constant Boolean := Settings.Column_Visible (Files.Preference_Types.Size_Column);
       begin
          Dispatch_Menu_Command
            (Model, Settings, "", Files.Commands.Toggle_Column_Size_Command, Result, Found);
          Assert (Found, "the header menu offers the size-column toggle for dispatch");
          Assert (Result.Settings_Changed, "toggling a column reports a persisted settings change");
          Assert
-           (Settings.Column_Visible (Files.Types.Size_Column) /= Before,
+           (Settings.Column_Visible (Files.Preference_Types.Size_Column) /= Before,
             "dispatching the toggle flips the column's visibility setting");
          Assert (not Files.Model.Context_Menu.Is_Open (Model), "dispatching a menu row closes the menu");
       end;

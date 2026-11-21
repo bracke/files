@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  An icon atlas that has not changed is the same buffer from frame to
    --  frame, not a copy; and two windows showing different pictures do not
@@ -5,7 +6,7 @@ separate (Files_Suite.Rendering)
    procedure Test_Icon_Atlas_Shared_Across_Frames (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Frame : constant Frame_Commands := Build_Frame_Commands
-        (Sample_Snapshot (2, Files.Types.Details), Width => 800, Height => 600, Line_Height => 20);
+        (Sample_Snapshot (2, Files.Preference_Types.Details), Width => 800, Height => 600, Line_Height => 20);
 
       --  One window's icons: a 2x2 picture of one colour.
       function Window_Icons (Red : Interfaces.Unsigned_8) return Guikit.Draw.Icon_Command_Vectors.Vector is

@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations;
 with Ada.Strings.Unbounded;
 with Files.Diagnostics;
@@ -33,7 +34,7 @@ package body Files.Foreground_Jobs is
             --  Refused when no trustworthy marker could be written: it stays
             --  retryable, and a later Cancel asks again.
             begin
-               Files.Process_Jobs.Cancel (Files.Model.Background_Operation (Model));
+               Files.Process_Jobs.Cancel (Files.Model.Jobs.Background_Operation (Model));
             exception
                when Swallowed : others =>
                   Files.Diagnostics.Note (Swallowed, "Files.Foreground_Jobs");

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The height the info pane is laid out for follows the rows its text is
    --  drawn in: both wrap at the same width (the scrollbar's column left free
@@ -13,7 +14,7 @@ separate (Files_Suite.Rendering)
    begin
       for Length in 20 .. Words'Length * 3 loop
          declare
-            Snap : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+            Snap : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
             Info : Info_Snapshot;
             Text : String (1 .. Length);
          begin

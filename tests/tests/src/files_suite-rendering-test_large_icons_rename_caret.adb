@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  Bug 13: in large-icons view the rename edit must span the cell width,
    --  left-aligned on the label line, with the caret contained in the cell's
    --  label region -- not pinned inside a narrow, name-width centered label.
    procedure Test_Large_Icons_Rename_Caret (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Large_Icons);
+      Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Large_Icons);
       Cell     : Item_Layout;
       Found    : Boolean := False;
    begin

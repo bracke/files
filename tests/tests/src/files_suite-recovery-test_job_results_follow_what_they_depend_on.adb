@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operation_Commands;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
@@ -26,7 +27,7 @@ separate (Files_Suite.Recovery)
 
       --  Another window zooms and opens a file while the search runs.
       Files.Model.Set_Filter (Model, "needle");
-      Step := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Names);
+      Step := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
       Assert (Files.Model.Foreground_Job_Is_Active (Model), "the search runs as the window's job");
       Changed.Font_Pixel_Size := Settings.Font_Pixel_Size + 4;
       Files.Settings.Path_References.Note_Recent (Changed, Join (Root, "a.txt"));

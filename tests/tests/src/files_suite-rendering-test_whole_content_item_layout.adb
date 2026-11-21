@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Guikit.Item_Grid;
 separate (Files_Suite.Rendering)
    --  A marquee that auto-scrolls hit-tests every item where it sits in the
@@ -5,7 +6,7 @@ separate (Files_Suite.Rendering)
    --  yet it is still inside the band and must stay selected.
    procedure Test_Whole_Content_Item_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Unscrolled : constant View_Snapshot := Sample_Snapshot (40, Files.Types.Details);
+      Unscrolled : constant View_Snapshot := Sample_Snapshot (40, Files.Preference_Types.Details);
       Scrolled   : View_Snapshot := Unscrolled;
    begin
       Scrolled.Main_View_Scroll_Lines := 10;
@@ -51,7 +52,7 @@ separate (Files_Suite.Rendering)
       --  In every view, grouped Details too, the cells on screen are where
       --  the whole content has them less the scroll, every other cell has
       --  no area, and nothing hit-tests a cell without one.
-      for Mode in Files.Types.View_Mode loop
+      for Mode in Files.Preference_Types.View_Mode loop
          for Grouped in Boolean loop
             declare
                Many   : View_Snapshot := Sample_Snapshot (400, Mode);
@@ -74,7 +75,7 @@ separate (Files_Suite.Rendering)
                     Calculate_Item_Layout (Many, Layout, 20, Whole_Content => True);
                   On     : Natural := 0;
                   Context : constant String :=
-                    Files.Types.View_Mode'Image (Mode) & (if Grouped then " grouped" else "");
+                    Files.Preference_Types.View_Mode'Image (Mode) & (if Grouped then " grouped" else "");
                begin
                   for Index in Shown.First_Index .. Shown.Last_Index loop
                      if Shown (Index).Height > 0 then
@@ -110,7 +111,7 @@ separate (Files_Suite.Rendering)
       --  A marquee lays out only its band's rows, at their unscrolled places:
       --  every band hits exactly what the whole-content layout hits, in
       --  every view, partly cut rows and cells included.
-      for Mode in Files.Types.View_Mode loop
+      for Mode in Files.Preference_Types.View_Mode loop
          declare
             Many   : constant View_Snapshot := Sample_Snapshot (400, Mode);
             Layout : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Many, 1000, 800, 20);
@@ -131,7 +132,7 @@ separate (Files_Suite.Rendering)
                        (Files.Rendering.Hit.Items_In_Rect (Band, 30, Band_Y, 500, Band_H)
                         = Files.Rendering.Hit.Items_In_Rect (Whole, 30, Band_Y, 500, Band_H),
                         "a band layout hits what the whole content does: "
-                        & Files.Types.View_Mode'Image (Mode) & Band_Y'Image & Band_H'Image);
+                        & Files.Preference_Types.View_Mode'Image (Mode) & Band_Y'Image & Band_H'Image);
                   end;
                end loop;
             end loop;

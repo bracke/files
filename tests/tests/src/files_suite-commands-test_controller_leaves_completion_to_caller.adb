@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Items;
 with Files.Model.Context_Menu;
 with Files.Model.Label_Picker;
@@ -10,7 +11,7 @@ separate (Files_Suite.Commands)
       pragma Unreferenced (T);
       use type Files.Controller.Controller_Status;
       use type Files.Controller.Overlay_Activation;
-      use type Files.Types.Color_Label;
+      use type Files.Preference_Types.Color_Label;
       use type Files.Commands.Command_Id;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Items    : Files.Items.Item_Vectors.Vector;
@@ -54,7 +55,7 @@ separate (Files_Suite.Commands)
         (Result.Status = Files.Controller.Controller_Activation_Requested
          and then Result.Activation = Files.Controller.Choose_Label
          and then Result.Label = Files.Model.Label_Picker.Highlight_Color (Model)
-         and then Result.Label /= Files.Types.No_Label,
+         and then Result.Label /= Files.Preference_Types.No_Label,
          "Enter on the label picker asks for the highlighted label");
       Assert (Files.Model.Label_Picker.Is_Open (Model), "the picker stays open until the label is applied");
       Files.Model.Label_Picker.Close (Model);

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Controller.Testing;
 with Files.File_System.Permissions;
 with Files.Settings.Testing;
@@ -41,7 +42,7 @@ package body Files_Suite.Settings is
    use type Hostkit.Host.Kind;
    use type Files.Settings.Theme_Choice;
    use type Guikit.Input.Modifier_Set;
-   use type Files.Types.View_Mode;
+   use type Files.Preference_Types.View_Mode;
    use Files_Suite.Support;
    use Files_Suite.Support.Models;
    use Files_Suite.Support.Disk;

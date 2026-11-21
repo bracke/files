@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  Conflict resolution consumes every click while it is open.  Dim the
    --  inactive file view so the visual hierarchy communicates the same modal
@@ -9,7 +10,7 @@ separate (Files_Suite.Rendering)
       Width  : constant Natural  := 640;
       Height : constant Natural  := 480;
       LH     : constant Positive := 20;
-      Snap   : View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Snap   : View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       Layout : Guikit.Draw.Layout_Metrics;
       Dialog : Conflict_Dialog_Layout;
       Backdrop_Seen     : Boolean := False;

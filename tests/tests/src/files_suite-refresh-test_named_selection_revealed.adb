@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Rendering.Testing;
 with Files.Operation_Results;
 with Files.Rendering.Layouts;
@@ -23,7 +24,7 @@ separate (Files_Suite.Refresh)
            (Files.File_System.Make_Item (Root, "f" & Index'Image, Files.Types.Regular_File_Item, "text/plain"));
       end loop;
       Files.Model.Initialize (Model, Root, Items, Root);
-      Files.Model.Set_View_Mode (Model, Files.Types.Details);
+      Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
       Assert (not Files.Model.Reveal_Is_Pending (Model), "a new view has nothing to reveal");
       Files.Model.Selection.Select_Visible (Model, 2);
       Assert (not Files.Model.Reveal_Is_Pending (Model), "a click's selection is where the user pointed");

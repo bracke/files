@@ -1,7 +1,8 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snapshot : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Small_Icons);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Small_Icons);
       Idle     : constant Frame_Commands :=
         Build_Frame_Commands (Snapshot, 1000, 800, 20);
       Active   : constant Frame_Commands :=

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  Hebrew is drawn right to left, so the caret of a rename field standing
@@ -14,7 +15,7 @@ separate (Files_Suite.Rendering)
    begin
       for Cursor in 0 .. 3 loop
          declare
-            Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+            Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Details);
             CX, CY, CW, CH : Natural;
             Found          : Boolean;
          begin

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Operation_Results;
 with Files.Operation_Commands;
@@ -39,22 +40,22 @@ separate (Files_Suite.Interaction)
       Ada.Directories.Create_Path (Sub);
       Files_Suite.Support.Disk.Write_File (One, "a");
       Files_Suite.Support.Disk.Write_File (Inner, "b");
-      Files.Settings.Path_References.Set_Label (Settings, One, Files.Types.Green);
-      Files.Settings.Path_References.Set_Label (Settings, Inner, Files.Types.Blue);
-      Files.Settings.Path_References.Set_Label (Settings, Sibling, Files.Types.Red);
+      Files.Settings.Path_References.Set_Label (Settings, One, Files.Preference_Types.Green);
+      Files.Settings.Path_References.Set_Label (Settings, Inner, Files.Preference_Types.Blue);
+      Files.Settings.Path_References.Set_Label (Settings, Sibling, Files.Preference_Types.Red);
       Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Sub);
       Model := Loaded_Model (Dir);
 
       Rename ("one.txt", "first.txt");
       Assert (Followed, "a rename of a labeled file changes the settings");
-      Assert (Files.Settings.Path_References.Label_Of (Settings, Renamed) = Files.Types.Green
-              and then Files.Settings.Path_References.Label_Of (Settings, One) = Files.Types.No_Label,
+      Assert (Files.Settings.Path_References.Label_Of (Settings, Renamed) = Files.Preference_Types.Green
+              and then Files.Settings.Path_References.Label_Of (Settings, One) = Files.Preference_Types.No_Label,
               "the label follows the renamed file and leaves the old path");
 
       Rename ("sub", "sub2");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Path_References.Label_Of (Settings, Files_Suite.Support.Disk.Join (Sub_Two, "inner.txt")),
-         Files.Types.Blue,
+         Files.Preference_Types.Blue,
          "a label inside a renamed folder follows it");
       Assert
         (Files.Settings.Path_References.Is_Favorite (Settings, Sub_Two)
@@ -62,12 +63,12 @@ separate (Files_Suite.Interaction)
          "a favorite folder follows its rename");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Path_References.Label_Of (Settings, Sibling),
-         Files.Types.Red,
+         Files.Preference_Types.Red,
          "a path that only shares the folder's name as a prefix is left alone");
 
       Op := Files.Operation_Commands.Undo_Last (Model, Settings);
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
-      Assert (Files.Settings.Path_References.Label_Of (Settings, Inner) = Files.Types.Blue
+      Assert (Files.Settings.Path_References.Label_Of (Settings, Inner) = Files.Preference_Types.Blue
               and then Files.Settings.Path_References.Is_Favorite (Settings, Sub),
               "Undo of the folder rename brings its label and favorite back");
 
@@ -82,7 +83,7 @@ separate (Files_Suite.Interaction)
          loop
             Grown := Settings;
             for Index in Next + 1 .. Next + 10 loop
-               Files.Settings.Path_References.Set_Label (Grown, "/nowhere/" & Index'Image, Files.Types.Gray);
+               Files.Settings.Path_References.Set_Label (Grown, "/nowhere/" & Index'Image, Files.Preference_Types.Gray);
             end loop;
             exit when not Files.Settings.Loadable (Grown) or else Next > 10_000;
             Settings := Grown;
@@ -100,12 +101,12 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
          (Kind => Files.Input_Actions.Label_Picker_Choice_Input_Action,
-          Label      => Files.Types.Purple),
+          Label      => Files.Preference_Types.Purple),
          Guikit.Input.No_Modifiers, Result);
       Assert
         (Files.Settings.Path_References.Label_Of (Settings, Files_Suite.Support.Disk.Join (Dir,
                                                                                            "f" & Integer'(1)'Image))
-                = Files.Types.No_Label
+                = Files.Preference_Types.No_Label
               and then Files.Settings.Loadable (Settings),
               "an edit past the bound is refused and the settings stay loadable");
       Files_Suite.Support.Assert_Equal

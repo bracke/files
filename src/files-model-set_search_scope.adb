@@ -1,7 +1,8 @@
+with Files.UI_Types;
 separate (Files.Model)
 procedure Set_Search_Scope
   (Model : in out Window_Model;
-   Scope : Files.Types.Search_Scope) is
+   Scope : Files.UI_Types.Search_Scope) is
 begin
    Touch (Model);
    Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Detail_Column_Customization (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -22,7 +23,7 @@ separate (Files_Suite.Rendering)
          return 0;
       end Size_Width_Of;
 
-      Base   : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Base   : constant View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
       Layout : constant Guikit.Draw.Layout_Metrics :=
         Calculate_Layout (Base, Width => 1000, Height => 800, Line_Height => 20);
       Base_Items : constant Item_Layout_Vectors.Vector :=
@@ -38,7 +39,7 @@ separate (Files_Suite.Rendering)
          Hidden : View_Snapshot := Base;
          Items  : Item_Layout_Vectors.Vector;
       begin
-         Hidden.Detail_Columns_Visible (Files.Types.Size_Column) := False;
+         Hidden.Detail_Columns_Visible (Files.Preference_Types.Size_Column) := False;
          Items := Calculate_Item_Layout (Hidden, Layout, Line_Height => 20);
          Files_Suite.Support.Assert_Equal (Size_Width_Of (Items), 0, "a hidden column contributes no width");
          Assert (Name_Width_Of (Items) > Base_Name_W,
@@ -52,8 +53,8 @@ separate (Files_Suite.Rendering)
          Wide_Items : Item_Layout_Vectors.Vector;
          Thin_Items : Item_Layout_Vectors.Vector;
       begin
-         Wide.Detail_Column_Widths (Files.Types.Size_Column) := 220;
-         Thin.Detail_Column_Widths (Files.Types.Size_Column) := 4;
+         Wide.Detail_Column_Widths (Files.Preference_Types.Size_Column) := 220;
+         Thin.Detail_Column_Widths (Files.Preference_Types.Size_Column) := 4;
          Wide_Items := Calculate_Item_Layout (Wide, Layout, Line_Height => 20);
          Thin_Items := Calculate_Item_Layout (Thin, Layout, Line_Height => 20);
          Files_Suite.Support.Assert_Equal
@@ -62,7 +63,7 @@ separate (Files_Suite.Rendering)
             "a custom column width drives the layout width");
          Files_Suite.Support.Assert_Equal
            (Size_Width_Of (Thin_Items),
-            Files.Types.Minimum_Detail_Column_Width,
+            Files.Preference_Types.Minimum_Detail_Column_Width,
             "a sub-minimum custom width is clamped up to the minimum");
       end;
    end Test_Detail_Column_Customization;

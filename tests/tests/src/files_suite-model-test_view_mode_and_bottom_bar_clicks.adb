@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Model)
    procedure Test_View_Mode_And_Bottom_Bar_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -19,7 +20,7 @@ separate (Files_Suite.Model)
          "Control+2 routes large-icons command");
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
-         Files.Types.Large_Icons,
+         Files.Preference_Types.Large_Icons,
          "large mode shortcut works");
 
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_3, Ctrl);
@@ -29,7 +30,7 @@ separate (Files_Suite.Model)
          "Control+3 routes details command");
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
-         Files.Types.Details,
+         Files.Preference_Types.Details,
          "details shortcut works");
 
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_1, Ctrl);
@@ -39,7 +40,7 @@ separate (Files_Suite.Model)
          "Control+1 routes small-icons command");
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
-         Files.Types.Small_Icons,
+         Files.Preference_Types.Small_Icons,
          "small mode shortcut works");
 
       --  The info pane can always be toggled, even with no selection: the click
@@ -72,7 +73,7 @@ separate (Files_Suite.Model)
          "details click routes command");
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
-         Files.Types.Details,
+         Files.Preference_Types.Details,
          "details click changes view mode");
 
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.No_Command, Model, Settings);

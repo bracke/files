@@ -1,3 +1,4 @@
+with Files.Copy_Context;
 with Ada.Containers.Ordered_Sets;
 with Files.Diagnostics;
 with Files.Path_Checks;

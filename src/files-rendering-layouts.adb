@@ -14,7 +14,7 @@ package body Files.Rendering.Layouts is
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
    use type Files.UI_Types.Focus_Target;
-   use type Files.Types.View_Mode;
+   use type Files.Preference_Types.View_Mode;
 
    function Free_Space_Label_Width
      (Snapshot : View_Snapshot; Line_Height : Positive) return Natural
@@ -31,7 +31,7 @@ package body Files.Rendering.Layouts is
    end Free_Space_Label_Width;
 
    function Metrics_For
-     (Mode        : Files.Types.View_Mode;
+     (Mode        : Files.Preference_Types.View_Mode;
       Main_Width  : Natural;
       Line_Height : Positive)
       return Item_Cell_Metrics
@@ -147,7 +147,7 @@ package body Files.Rendering.Layouts is
 
    procedure Rename_Field_Extent
      (Item        : Item_Layout;
-      View_Mode   : Files.Types.View_Mode;
+      View_Mode   : Files.Preference_Types.View_Mode;
       Renaming    : Boolean;
       Field_X     : out Natural;
       Field_W     : out Natural;
@@ -326,7 +326,7 @@ package body Files.Rendering.Layouts is
 
    function Sort_Menu_Row_Field
      (Row : Positive)
-      return Files.Types.Sort_Field renames Files.Types.Sort_Menu_Field;
+      return Files.Types.Sort_Field renames Files.UI_Types.Sort_Menu_Field;
 
    function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector
    is separate;
@@ -349,9 +349,9 @@ package body Files.Rendering.Layouts is
    is separate;
 
    function Compute_Detail_Columns
-     (Visible     : Files.Types.Detail_Column_Visibility;
-      Widths      : Files.Types.Detail_Column_Widths;
-      Order       : Files.Types.Detail_Column_Order;
+     (Visible     : Files.Preference_Types.Detail_Column_Visibility;
+      Widths      : Files.Preference_Types.Detail_Column_Widths;
+      Order       : Files.Preference_Types.Detail_Column_Order;
       Content_X   : Natural;
       Content_W   : Natural;
       Line_Height : Positive;

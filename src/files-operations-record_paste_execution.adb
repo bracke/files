@@ -1,3 +1,4 @@
+with Files.Paste_States;
 with Files.Model.Clipboard;
 separate (Files.Operations)
 --  Record one undo covering the items an armed paste actually completed
@@ -9,7 +10,7 @@ procedure Record_Paste_Execution
    Kept  : Kept_Copy := No_Kept_Copy)
 is
    --  Read once: everything recorded below is what the paste gathered.
-   Exec       : constant Files.Model.Paste_Execution_State := Files.Model.Pasting.Execution_Of (Model);
+   Exec       : constant Files.Paste_States.Execution_State := Files.Model.Pasting.Execution_Of (Model);
    Mode       : constant Files.File_System.Drop_Import_Mode :=
      Exec.Mode;
    --  Each write: destination (From) and source (To), with its provenance.

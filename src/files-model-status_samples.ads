@@ -19,7 +19,7 @@ package Files.Model.Status_Samples is
    procedure Set_Volume_Space
      (Model   : in out Window_Model;
       Path    : String;
-      Space   : Volume_Space;
+      Space   : Files.File_System_Types.Volume_Space;
       Sampled : Ada.Calendar.Time);
 
    --  @param Model Model to inspect.
@@ -36,7 +36,7 @@ package Files.Model.Status_Samples is
    --    another directory.
    function Volume_Space_Of
      (Model : Window_Model)
-      return Volume_Space;
+      return Files.File_System_Types.Volume_Space;
 
    --  Record the name of a user or group id. The window layer resolves it (an
    --  NSS lookup); Build_Snapshot only reads it, so building a snapshot asks
@@ -48,7 +48,7 @@ package Files.Model.Status_Samples is
    --  @param Name Resolved name, or "" when the id has none.
    procedure Set_Account_Name
      (Model : in out Window_Model;
-      Kind  : Account_Kind;
+      Kind  : Files.File_System_Types.Account_Kind;
       Id    : Files.Types.Account_Id;
       Name  : String);
 
@@ -58,7 +58,7 @@ package Files.Model.Status_Samples is
    --  @return True when a name (possibly "") was recorded for Id.
    function Account_Name_Known
      (Model : Window_Model;
-      Kind  : Account_Kind;
+      Kind  : Files.File_System_Types.Account_Kind;
       Id    : Files.Types.Account_Id)
       return Boolean;
 
@@ -68,7 +68,7 @@ package Files.Model.Status_Samples is
    --  @return The recorded name, or "" when none was recorded.
    function Account_Name
      (Model : Window_Model;
-      Kind  : Account_Kind;
+      Kind  : Files.File_System_Types.Account_Kind;
       Id    : Files.Types.Account_Id)
       return String;
 

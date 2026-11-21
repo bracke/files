@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  With grouping on, the rows hold group headers between the items, so an
@@ -10,7 +11,7 @@ separate (Files_Suite.Rendering)
       Long_Name : constant String :=
         "a-rename-target-whose-name-is-far-too-long-for-the-details-name-column-of-a-thousand-pixel-window-"
         & "so-the-field-has-to-scroll-to-keep-the-caret-in-view-while-typing-at-its-very-end-0123456789.txt";
-      Snapshot  : View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+      Snapshot  : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Details);
       Header    : constant Item_Snapshot :=
         (Is_Group_Header => True,
          Group_Label     => To_Unbounded_String ("band"),
@@ -34,7 +35,7 @@ separate (Files_Suite.Rendering)
       --  Bands before items 1 and 3: rows are header, 1, 2, header, 3, 4.
       Snapshot.Items.Insert (Snapshot.Items.First_Index + 2, Header);
       Snapshot.Items.Insert (Snapshot.Items.First_Index, Header);
-      Snapshot.Group_By := Files.Types.Group_By_Type;
+      Snapshot.Group_By := Files.Preference_Types.Group_By_Type;
       Snapshot.Selected_Count := 1;
       Snapshot.Rename_Active := True;
       Snapshot.Focus := Files.UI_Types.Focus_Rename_Input;

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Rendering.Testing;
 with Files.Model.Status_Samples;
 with Files.Model.Testing;
@@ -43,8 +44,8 @@ separate (Files_Suite.Rendering)
    begin
       for Grouped in Boolean loop
          if Grouped then
-            Settings.Group_By := Files.Types.Group_By_Type;
-            Files.Model.Set_View_Mode (Model, Files.Types.Details);
+            Settings.Group_By := Files.Preference_Types.Group_By_Type;
+            Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
             Files.Model.Sync_Grouping (Model, Settings);
          end if;
          declare
@@ -109,7 +110,8 @@ separate (Files_Suite.Rendering)
          Key    : constant Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key :=
            Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key_Of (Settings);
       begin
-         Settings.Column_Widths (Files.Types.Name_Column) := Settings.Column_Widths (Files.Types.Name_Column) + 24;
+         Settings.Column_Widths (Files.Preference_Types.Name_Column) := Settings.Column_Widths
+           (Files.Preference_Types.Name_Column) + 24;
          Assert
            (Files.Snapshot_Policy.Settings_Keys.Same_Row_Settings (Settings, Key), "a column width is no row setting");
          Assert

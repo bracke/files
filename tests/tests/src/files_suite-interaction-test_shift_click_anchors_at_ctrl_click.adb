@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
    --  The range anchor is the item the last plain or Ctrl click chose, not an
@@ -36,7 +37,7 @@ separate (Files_Suite.Interaction)
       end loop;
       Files.Model.Initialize
         (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root,
-         Default_View_Mode => Files.Types.Details);
+         Default_View_Mode => Files.Preference_Types.Details);
 
       Click_Item (3, Guikit.Input.No_Modifiers);
       Click_Item (7, Ctrl);

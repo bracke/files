@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Operation_Results;
 with Files_Suite.Support.Disk;
@@ -25,7 +26,7 @@ separate (Files_Suite.Keyboard)
          end loop;
       end;
       Model := Loaded_Model (Dir);
-      Files.Model.Set_View_Mode (Model, Files.Types.Small_Icons);
+      Files.Model.Set_View_Mode (Model, Files.Preference_Types.Small_Icons);
       declare
          Action : constant Files.Input_Actions.Input_Action :=
            (Kind    => Files.Input_Actions.Command_Input_Action,

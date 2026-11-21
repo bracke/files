@@ -1,7 +1,8 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Empty_Info_Pane_Message (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap    : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+      Snap    : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
       Message : constant String := Files.Localization.Text ("error.selection.empty");
       Found   : Boolean := False;
    begin

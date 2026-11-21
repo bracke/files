@@ -1,3 +1,5 @@
+with Files.Model.Jobs;
+with Files.File_System_Types;
 with Ada.Calendar;
 with Ada.Real_Time;
 with Hostkit.Metadata;
@@ -45,7 +47,7 @@ package body Files.Window_Polls is
    --  runs, measurements carry on but their results wait in the scan.
    function Folder_Sizes_Paused (Model : Files.Model.Window_Model) return Boolean is
      (Files.Model.Foreground_Job_Is_Active (Model)
-      or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)));
+      or else Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)));
 
    procedure Poll_Selected_Item_Extra
      (Model       : in out Files.Model.Window_Model;
@@ -260,14 +262,18 @@ package body Files.Window_Polls is
          if not Item.Ownership_Available then
             return;
          end if;
-         if not Files.Model.Status_Samples.Account_Name_Known (Model, Files.Model.User_Account, Item.Owner_Id) then
+         if not Files.Model.Status_Samples.Account_Name_Known
+           (Model, Files.File_System_Types.User_Account, Item.Owner_Id)
+         then
             Files.Model.Status_Samples.Set_Account_Name
-              (Model, Files.Model.User_Account, Item.Owner_Id,
+              (Model, Files.File_System_Types.User_Account, Item.Owner_Id,
                Files.File_System.Permissions.User_Name_For_Id (Item.Owner_Id));
          end if;
-         if not Files.Model.Status_Samples.Account_Name_Known (Model, Files.Model.Group_Account, Item.Group_Id) then
+         if not Files.Model.Status_Samples.Account_Name_Known
+           (Model, Files.File_System_Types.Group_Account, Item.Group_Id)
+         then
             Files.Model.Status_Samples.Set_Account_Name
-              (Model, Files.Model.Group_Account, Item.Group_Id,
+              (Model, Files.File_System_Types.Group_Account, Item.Group_Id,
                Files.File_System.Permissions.Group_Name_For_Id (Item.Group_Id));
          end if;
       end Sample;

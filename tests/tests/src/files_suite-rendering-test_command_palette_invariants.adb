@@ -1,7 +1,8 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Command_Palette_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snapshot : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
       Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
       Palette  : constant Command_Palette_Layout := Calculate_Command_Palette_Layout (Layout, 20);
    begin

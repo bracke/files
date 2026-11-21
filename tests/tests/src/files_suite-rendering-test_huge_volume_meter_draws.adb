@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  hostkit saturates a volume's capacity to Long_Long_Integer'Last when
    --  blocks times block size overflows (a vast network mount). The space
@@ -5,7 +6,7 @@ separate (Files_Suite.Rendering)
    --  stopped drawing for as long as that folder was open.
    procedure Test_Huge_Volume_Meter_Draws (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snapshot : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+      Snapshot : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
    begin
       Snapshot.Free_Space_Known := True;
       Snapshot.Show_Space_Bar := True;

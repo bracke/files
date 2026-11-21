@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Input_Actions;
 separate (Files_Suite.Refresh)
    --  A session whose settings file failed to load marks its settings as not
@@ -24,7 +25,7 @@ separate (Files_Suite.Refresh)
          (Kind => Files.Input_Actions.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command),
          Guikit.Input.No_Modifiers, Routed);
       Await_View (Model, Settings, Applied);
-      Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+      Assert (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "the refresh finishes instead of being requested again");
       Assert (Applied, "its result applies");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the new file is listed");

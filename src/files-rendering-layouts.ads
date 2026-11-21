@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Ada.Containers.Vectors;
 
 with Files.Commands;
@@ -130,7 +131,7 @@ package Files.Rendering.Layouts is
 
    --  Geometry of the centered color-label picker overlay: the outer panel,
    --  its title and its row of clickable swatches. Swatches 1 .. 7
-   --  correspond to the colors Red .. Gray (Files.Types.Real_Color_Label in
+   --  correspond to the colors Red .. Gray (Files.Preference_Types.Real_Color_Label in
    --  order); the last, Files.UI_Types.Clear_Swatch, is the "None" clear swatch.
    type Label_Picker_Layout is record
       X           : Natural := 0;
@@ -533,7 +534,7 @@ package Files.Rendering.Layouts is
    --  @param Line_Height Current line height.
    procedure Rename_Field_Extent
      (Item        : Item_Layout;
-      View_Mode   : Files.Types.View_Mode;
+      View_Mode   : Files.Preference_Types.View_Mode;
       Renaming    : Boolean;
       Field_X     : out Natural;
       Field_W     : out Natural;
@@ -547,7 +548,7 @@ package Files.Rendering.Layouts is
    --  Command to fall back to a sort when the press turns out to be a click.
    type Detail_Header_Cell is record
       Present : Boolean := False;
-      Column  : Files.Types.Detail_Column := Files.Types.Name_Column;
+      Column  : Files.Preference_Types.Detail_Column := Files.Preference_Types.Name_Column;
       Command : Files.Commands.Command_Id := Files.Commands.No_Command;
    end record;
 
@@ -559,7 +560,7 @@ package Files.Rendering.Layouts is
    --  column relative to the size it had when the drag began.
    type Detail_Column_Separator is record
       Present  : Boolean := False;
-      Column   : Files.Types.Optional_Detail_Column := Files.Types.Modified_Column;
+      Column   : Files.Preference_Types.Optional_Detail_Column := Files.Preference_Types.Modified_Column;
       Origin_X : Natural := 0;
       Width    : Natural := 0;
    end record;
@@ -1025,7 +1026,7 @@ package Files.Rendering.Layouts is
    function Sort_Menu_Row_Field
      (Row : Positive)
       return Files.Types.Sort_Field
-     with Pre => Row <= Files.Types.Sort_Menu_Rows;
+     with Pre => Row <= Files.UI_Types.Sort_Menu_Rows;
 
    --  The bottom-bar view-mode switcher cells (Small / Large / Details), left to
    --  right, labelled with their short localized names. The renderer and the
@@ -1151,7 +1152,7 @@ package Files.Rendering.Layouts is
    end record;
 
    type Detail_Column_Geometry_Array is
-     array (Files.Types.Detail_Column) of Detail_Column_Geometry;
+     array (Files.Preference_Types.Detail_Column) of Detail_Column_Geometry;
 
    --  Lay out the visible detail columns left to right across the row content
    --  area (see the body for the sizing rules). The sticky header, the header
@@ -1168,9 +1169,9 @@ package Files.Rendering.Layouts is
    --  @param Pad Row content padding applied before the icon gutter.
    --  @return Per-column geometry for the visible columns.
    function Compute_Detail_Columns
-     (Visible     : Files.Types.Detail_Column_Visibility;
-      Widths      : Files.Types.Detail_Column_Widths;
-      Order       : Files.Types.Detail_Column_Order;
+     (Visible     : Files.Preference_Types.Detail_Column_Visibility;
+      Widths      : Files.Preference_Types.Detail_Column_Widths;
+      Order       : Files.Preference_Types.Detail_Column_Order;
       Content_X   : Natural;
       Content_W   : Natural;
       Line_Height : Positive;
@@ -1236,13 +1237,13 @@ package Files.Rendering.Layouts is
    --  The one mapping from a detail column to its sort field. The header label
    --  (which column shows the direction indicator) and the header click
    --  hit-test both read it. The permissions column defines no sort.
-   Detail_Column_Sorts : constant array (Files.Types.Detail_Column) of Detail_Column_Sort :=
-     [Files.Types.Name_Column        => (Sortable => True, Field => Files.Types.Sort_Name),
-      Files.Types.Modified_Column    => (Sortable => True, Field => Files.Types.Sort_Changed),
-      Files.Types.Size_Column        => (Sortable => True, Field => Files.Types.Sort_Size),
-      Files.Types.Filetype_Column    => (Sortable => True, Field => Files.Types.Sort_Type),
-      Files.Types.Created_Column     => (Sortable => True, Field => Files.Types.Sort_Created),
-      Files.Types.Permissions_Column => (Sortable => False, Field => Files.Types.Sort_Name)];
+   Detail_Column_Sorts : constant array (Files.Preference_Types.Detail_Column) of Detail_Column_Sort :=
+     [Files.Preference_Types.Name_Column        => (Sortable => True, Field => Files.Types.Sort_Name),
+      Files.Preference_Types.Modified_Column    => (Sortable => True, Field => Files.Types.Sort_Changed),
+      Files.Preference_Types.Size_Column        => (Sortable => True, Field => Files.Types.Sort_Size),
+      Files.Preference_Types.Filetype_Column    => (Sortable => True, Field => Files.Types.Sort_Type),
+      Files.Preference_Types.Created_Column     => (Sortable => True, Field => Files.Types.Sort_Created),
+      Files.Preference_Types.Permissions_Column => (Sortable => False, Field => Files.Types.Sort_Name)];
 
    --  Zero-based index of a left-toolbar button, left to right.
    subtype Toolbar_Button_Index is Natural range 0 .. Guikit.Layout.Toolbar_Button_Count - 1;

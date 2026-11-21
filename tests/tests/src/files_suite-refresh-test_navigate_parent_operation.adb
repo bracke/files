@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.File_System.Trash;
@@ -162,13 +163,13 @@ separate (Files_Suite.Refresh)
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then not Files.Process_Jobs.Active
-                    (Files.Model.Background_Operation (Trash_Model)),
+                    (Files.Model.Jobs.Background_Operation (Trash_Model)),
                   "direct delete cannot re-trash a trash payload or launch a helper");
                Trash_Result := Files.Operation_Commands.Duplicate_Selected (Trash_Model, Settings);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then not Files.Process_Jobs.Active
-                    (Files.Model.Background_Operation (Trash_Model)),
+                    (Files.Model.Jobs.Background_Operation (Trash_Model)),
                   "direct duplicate cannot create an orphaned trash payload");
                Trash_Result :=
                  Files.Operation_Commands.Compress_Selected
@@ -176,13 +177,13 @@ separate (Files_Suite.Refresh)
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then not Files.Process_Jobs.Active
-                    (Files.Model.Background_Operation (Trash_Model)),
+                    (Files.Model.Jobs.Background_Operation (Trash_Model)),
                   "direct compression cannot create an orphaned trash payload");
                Trash_Result := Files.Operation_Commands.Extract_Selected (Trash_Model, Settings);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then not Files.Process_Jobs.Active
-                    (Files.Model.Background_Operation (Trash_Model)),
+                    (Files.Model.Jobs.Background_Operation (Trash_Model)),
                   "direct extraction cannot create an orphaned trash payload");
                Trash_Result := Files.Operations.Create_Symlink_Selected (Trash_Model, Settings);
                Files_Suite.Support.Assert_Equal

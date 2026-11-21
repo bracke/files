@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Guikit.Text_Fields;
 separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
    --  The filter field and its search-scope chip.
@@ -25,9 +26,9 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
            To_Unbounded_String (Filter_Raw (Filter_Raw'First + View.Skip_Bytes .. Filter_Raw'Last));
          Scope_Key : constant String :=
            (case Snapshot.Search_Scope is
-              when Files.Types.Filter_Here => "search.scope.here",
-              when Files.Types.Search_Names => "search.scope.names",
-              when Files.Types.Search_Contents => "search.scope.contents");
+              when Files.UI_Types.Filter_Here => "search.scope.here",
+              when Files.UI_Types.Search_Names => "search.scope.names",
+              when Files.UI_Types.Search_Contents => "search.scope.contents");
       begin
          Add_Input_Field
            (Filter_X,

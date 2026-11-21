@@ -36,7 +36,7 @@ package body Files.Job_Records is
        (Files.Path_Checks.Valid_Absolute_Path (To_String (Value)));
 
    function Signature_Is_Consistent
-     (Value : Files.File_System.Directory_Signature) return Boolean is
+     (Value : Files.File_System_Types.Directory_Signature) return Boolean is
    begin
       return Length (Value.Path) = 0
         or else Valid_Absolute_Path (Value.Path);
@@ -154,7 +154,7 @@ package body Files.Job_Records is
 
    procedure Write_Signature
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value : Files.File_System.Directory_Signature)
+      Value : Files.File_System_Types.Directory_Signature)
    is
    begin
       if not Signature_Is_Consistent (Value) then
@@ -171,9 +171,9 @@ package body Files.Job_Records is
 
    function Read_Signature
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
-      return Files.File_System.Directory_Signature
+      return Files.File_System_Types.Directory_Signature
    is
-      Result : Files.File_System.Directory_Signature;
+      Result : Files.File_System_Types.Directory_Signature;
    begin
       Result.Path := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
       Result.Exists := Boolean'Input (Stream);

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Model)
    procedure Test_Selection_Movement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -45,7 +46,7 @@ separate (Files_Suite.Model)
             Directory_Path    => Root,
             Items             => Grid_Items,
             Home_Path         => "/home/test",
-            Default_View_Mode => Files.Types.Small_Icons);
+            Default_View_Mode => Files.Preference_Types.Small_Icons);
          Files.Model.Selection.Set_Grid_Columns (Grid_Model, 2);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Testing.Selection_Grid_Columns (Grid_Model),

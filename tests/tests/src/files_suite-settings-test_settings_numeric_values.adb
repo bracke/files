@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Settings)
    --  Numeric settings are plain decimal digits: Ada literal syntax that
    --  Natural'Value would accept is rejected, window sizes are clamped into
@@ -13,7 +14,8 @@ separate (Files_Suite.Settings)
         (Parse_Setting ("window_width = " & Value).Settings.Window_Width);
 
       function Size_Column_Width_Of (Value : String) return Natural is
-        (Parse_Setting ("detail_column_width_size = " & Value).Settings.Column_Widths (Files.Types.Size_Column));
+        (Parse_Setting ("detail_column_width_size = " & Value).Settings.Column_Widths
+          (Files.Preference_Types.Size_Column));
 
       Font_Literals : constant array (Positive range <>) of Unbounded_String :=
         [To_Unbounded_String ("16#10#"), To_Unbounded_String ("1_6"), To_Unbounded_String ("16E0"),
@@ -32,7 +34,8 @@ separate (Files_Suite.Settings)
       Files_Suite.Support.Assert_Equal (Normal.Settings.Window_Height, 800, "a normal window height is unchanged");
       Files_Suite.Support.Assert_Equal (Normal.Settings.Font_Pixel_Size, 18, "a normal font pixel size is unchanged");
       Files_Suite.Support.Assert_Equal
-        (Normal.Settings.Column_Widths (Files.Types.Modified_Column), 175, "a normal column width is unchanged");
+        (Normal.Settings.Column_Widths (Files.Preference_Types.Modified_Column), 175,
+          "a normal column width is unchanged");
 
       Files_Suite.Support.Assert_Equal (Width_Of ("16#400#"), 0, "a based window width literal is rejected");
       Files_Suite.Support.Assert_Equal (Width_Of ("1_024"), 0, "an underscored window width literal is rejected");
@@ -52,7 +55,7 @@ separate (Files_Suite.Settings)
 
       Files_Suite.Support.Assert_Equal
         (Size_Column_Width_Of ("5"),
-         Files.Types.Minimum_Detail_Column_Width,
+         Files.Preference_Types.Minimum_Detail_Column_Width,
          "a column width below the minimum is clamped up to it");
       Files_Suite.Support.Assert_Equal (Size_Column_Width_Of ("200"), 200, "a column width above the minimum is kept");
       Files_Suite.Support.Assert_Equal (Size_Column_Width_Of ("16#C8#"), 0, "a based column width literal is rejected");

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Item_Lists;
 with Files.UI_Types;
 with Ada.Containers.Indefinite_Hashed_Maps;
@@ -10,7 +11,7 @@ package body Files.Model.Support is
 
    use Ada.Strings.Unbounded;
    use type Files.UI_Types.Focus_Target;
-   use type Files.Types.Group_Mode;
+   use type Files.Preference_Types.Group_Mode;
 
    procedure Invalidate_Visible (Model : in out Window_Model) is
    begin
@@ -305,15 +306,15 @@ package body Files.Model.Support is
 
    package Label_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
-      Element_Type    => Files.Types.Color_Label,
+      Element_Type    => Files.Preference_Types.Color_Label,
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=",
-      "="             => Files.Types."=");
+      "="             => Files.Preference_Types."=");
 
    function Group_Labels_Map (Model : Window_Model) return Label_Maps.Map is
       Result : Label_Maps.Map;
    begin
-      if Model.Grouping.Mode = Files.Types.Group_By_Label then
+      if Model.Grouping.Mode = Files.Preference_Types.Group_By_Label then
          for Entry_Value of Model.Grouping.Labels loop
             Result.Include (To_String (Entry_Value.Path), Entry_Value.Label);
          end loop;
@@ -332,7 +333,7 @@ package body Files.Model.Support is
       return Files.Grouping.Band_Of
         (Model.Grouping.Mode, Item.Kind, To_String (Item.Filetype),
          Item.Modified_Available, Item.Modified_Time, Item.Size_Available, Item.Size,
-         (if Label_Maps.Has_Element (Found) then Label_Maps.Element (Found) else Files.Types.No_Label),
+         (if Label_Maps.Has_Element (Found) then Label_Maps.Element (Found) else Files.Preference_Types.No_Label),
          Model.Grouping.Day);
    end Group_Band;
 
@@ -340,7 +341,7 @@ package body Files.Model.Support is
       Labels   : Label_Maps.Map;
       Previous : Positive := 1;
    begin
-      if Model.Grouping.Mode = Files.Types.No_Grouping then
+      if Model.Grouping.Mode = Files.Preference_Types.No_Grouping then
          return True;
       end if;
       Labels := Group_Labels_Map (Model);
@@ -362,7 +363,7 @@ package body Files.Model.Support is
    procedure Group_Items (Model : in out Window_Model) is
       Labels : Label_Maps.Map;
    begin
-      if Model.Grouping.Mode = Files.Types.No_Grouping then
+      if Model.Grouping.Mode = Files.Preference_Types.No_Grouping then
          return;
       end if;
       Labels := Group_Labels_Map (Model);

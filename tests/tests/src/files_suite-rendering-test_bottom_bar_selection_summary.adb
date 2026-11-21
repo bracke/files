@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,7 +6,7 @@ separate (Files_Suite.Rendering)
       Selected_Word : constant String := Files.Localization.Text ("status.selected");
       Mib_Unit      : constant String := Files.Localization.Text ("details.size.unit.mib");
       One_Mib       : constant Long_Long_Integer := 1024 * 1024;
-      Snapshot      : View_Snapshot := Sample_Snapshot (5, Files.Types.Small_Icons);
+      Snapshot      : View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Small_Icons);
       Frame         : Frame_Commands;
 
       procedure Mark_Selected (Index : Positive; Size : Long_Long_Integer) is

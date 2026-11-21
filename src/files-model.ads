@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 with Files.Extra_Info;
 with Files.Items;
 with Ada.Calendar;
-with Ada.Real_Time;
-with Files.Copy_Context;
+private with Ada.Real_Time;
 private with Files.Desktop_Applications;
-with Files.Process_Jobs;
+private with Files.Process_Jobs;
+private with Files.Paste_States;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
@@ -12,7 +13,6 @@ with Ada.Strings.Unbounded;
 with Files.File_System_Types;
 private with Files.Folder_Tree;
 private with Files.Folder_Size;
-with Files.Paste;
 private with Files.Quick_Look;
 with Files.Settings;
 private with Guikit.Command_Palette;
@@ -20,7 +20,7 @@ with Guikit.Input;
 private with Guikit.Settings_Panel;
 with Files.Types;
 with Files.UI_Types;
-with Files.Undo_History;
+private with Files.Undo_History;
 private with Files.Transfer_Jobs;
 
 --  Directory state, selection, filtering, history, input state, and pane state.
@@ -41,7 +41,7 @@ package Files.Model is
       Directory_Path    : String;
       Items             : Files.Items.Item_Vectors.Vector;
       Home_Path         : String;
-      Default_View_Mode : Files.Types.View_Mode := Files.Types.Small_Icons);
+      Default_View_Mode : Files.Preference_Types.View_Mode := Files.Preference_Types.Small_Icons);
 
    --  Return the model's change revision -- a counter bumped by every mutator.
    --  The render layer compares this against the revision it last built a
@@ -308,7 +308,7 @@ package Files.Model is
    --  @return Active view mode.
    function View_Mode_Of
      (Model : Window_Model)
-      return Files.Types.View_Mode;
+      return Files.Preference_Types.View_Mode;
 
    --  Set the active view mode.
    --
@@ -316,7 +316,7 @@ package Files.Model is
    --  @param Mode New view mode.
    procedure Set_View_Mode
      (Model : in out Window_Model;
-      Mode  : Files.Types.View_Mode);
+      Mode  : Files.Preference_Types.View_Mode);
 
    --  Return the active item sort field.
    --
@@ -509,7 +509,7 @@ package Files.Model is
    --  @return Current search scope.
    function Search_Scope_Of
      (Model : Window_Model)
-      return Files.Types.Search_Scope;
+      return Files.UI_Types.Search_Scope;
 
    --  Set the active scope of the shared filter-bar query. Does not itself run a
    --  search; callers run the matching operation and record results separately.
@@ -518,7 +518,7 @@ package Files.Model is
    --  @param Scope New search scope.
    procedure Set_Search_Scope
      (Model : in out Window_Model;
-      Scope : Files.Types.Search_Scope);
+      Scope : Files.UI_Types.Search_Scope);
 
    --  Return whether the current view holds recursive search results rather than
    --  a plain directory listing.
@@ -536,7 +536,7 @@ package Files.Model is
    --  @param Scope Scope that produced the results.
    procedure Note_Search_Results
      (Model : in out Window_Model;
-      Scope : Files.Types.Search_Scope);
+      Scope : Files.UI_Types.Search_Scope);
 
    --  Drop any recorded search-results state and reset the scope to Filter_Here,
    --  leaving the loaded items untouched so the caller can restore the directory.
@@ -1023,44 +1023,6 @@ package Files.Model is
 
    type Clipboard_Mode is (Clipboard_None, Clipboard_Copy, Clipboard_Cut);
 
-   --  The replace-or-skip prompt shown when a paste meets existing names.
-   --  Every default is the closed state, as for Paste_Execution_State.
-   type Paste_Conflict_State is record
-      Active           : Boolean := False;
-      Items            : Files.Paste.Work_Item_Vectors.Vector;
-      Existing         : Files.Types.String_Vectors.Vector;
-      Overrides        : Files.Paste.Item_Decision_Vectors.Vector;
-      Policy           : Files.Paste.Conflict_Policy := Files.Paste.Policy_Ask;
-      Mode             : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy;
-      Index            : Natural := 0;
-      Apply_All        : Boolean := False;
-      Clears_Clipboard : Boolean := True;
-   end record;
-
-   --  One paste (or drop) being carried out, action by action. Every field's
-   --  default is the idle state, so a paste starts and ends by assigning a
-   --  fresh aggregate rather than clearing each field by hand.
-   type Paste_Execution_State is record
-      Active                  : Boolean := False;
-      Copy_Context            : Files.Copy_Context.Session;
-      Actions                 : Files.Paste.Resolved_Action_Vectors.Vector;
-      Cursor                  : Natural := 0;
-      Done                    : Natural := 0;
-      Total                   : Natural := 0;
-      Mode                    : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy;
-      Cancelled               : Boolean := False;
-      Clears_Clipboard        : Boolean := True;
-      Current                 : UString;
-      First_Dest              : UString;
-      --  Each write: the destination (From), its source (To), and the
-      --  identity and tree revision it was published with, Verified when
-      --  the published entry was checked.
-      Written                 : Files.Undo_History.Recorded_Item_Vectors.Vector;
-      --  Destinations a Replace overwrote during this paste, preserved so the
-      --  undo entry can restore each to its own recorded original path.
-      Replaced                : Files.Undo_History.Recorded_Original_Vectors.Vector;
-   end record;
-
    --  Select helper execution for a live window; headless callers can step synchronously.
    --  @param Model Window model to configure before starting a paste.
    --  @param Enabled Whether filesystem actions run on helper processes.
@@ -1085,77 +1047,12 @@ package Files.Model is
    --  @return True while a paste or an operation runs modally.
    function Foreground_Job_Is_Active (Model : Window_Model) return Boolean;
 
-   --  What the progress overlay shows of the modal job.
-   type Foreground_Progress is record
-      --  Writes finished and to do: an operation is one step.
-      Done      : Natural := 0;
-      Total     : Natural := 0;
-      --  The item being written, or the folder an operation runs in.
-      Name      : UString;
-      --  A paste that moves rather than copies.
-      Moving    : Boolean := False;
-      --  An operation's command caption key; empty for a paste.
-      Label_Key : UString;
-   end record;
-
-   --  @param Model Window to inspect.
-   --  @return Its modal job's progress (all zero with no job).
-   function Foreground_Progress_Of (Model : Window_Model) return Foreground_Progress;
-
-   --  Run Job as the window's modal operation: it owns the input and shows
-   --  progress under Label_Key until End_Foreground_Job.
-   --
-   --  @param Model Window to update; it runs no other modal job.
-   --  @param Job The operation's started helper session.
-   --  @param Label_Key Localized command caption for the progress overlay.
-   procedure Begin_Operation_Job
-     (Model : in out Window_Model; Job : Files.Process_Jobs.Session; Label_Key : String);
-
    --  End the modal job, whichever it is: its helper handles are released
    --  (a helper still running is stopped and reaped by Files.Process_Jobs)
    --  and its state forgotten.
    --
    --  @param Model Window to update.
    procedure End_Foreground_Job (Model : in out Window_Model);
-
-   --  @param Model Window to inspect.
-   --  @return The modal operation's helper session; inactive for a paste.
-   function Background_Operation (Model : Window_Model) return Files.Process_Jobs.Session;
-
-   --  Wait for the modal operation's finished helper's history journal, not
-   --  readable yet, until Deadline (Files.Operation_Jobs). Forgotten with
-   --  the job: End_Foreground_Job, a new modal job, or the window going.
-   --
-   --  @param Model Window running a modal operation.
-   --  @param Deadline When the journal is given up if still unreadable.
-   procedure Defer_Operation_Merge (Model : in out Window_Model; Deadline : Ada.Real_Time.Time);
-
-   --  @param Model Window to inspect.
-   --  @return True while its modal operation's journal is waited for.
-   function Operation_Merge_Deferred (Model : Window_Model) return Boolean;
-
-   --  @param Model Window to inspect.
-   --  @return When that wait ends; meaningful while Operation_Merge_Deferred.
-   function Operation_Merge_Deadline (Model : Window_Model) return Ada.Real_Time.Time;
-
-   --  @param Model Window whose nonmodal directory-read session to replace.
-   --  @param Job Shared helper session, or empty to cancel the pending read.
-   --  Transport changes do not change the visible model revision.
-   procedure Set_Background_Refresh (Model : in out Window_Model; Job : Files.Process_Jobs.Session);
-
-   --  @param Model Window owning a nonmodal directory-read helper.
-   --  @return Shared refresh session, or an empty session.
-   function Background_Refresh (Model : Window_Model) return Files.Process_Jobs.Session;
-
-   --  Free and total space of the volume holding the current directory.
-   type Volume_Space is record
-      Known       : Boolean := False;
-      Free_Bytes  : Long_Long_Integer := 0;
-      Total_Bytes : Long_Long_Integer := 0;
-   end record;
-
-   --  Which numeric account an owner name belongs to: a user id or a group id.
-   type Account_Kind is (User_Account, Group_Account);
 
    --  Record a recoverable error key, and the path its message names.
    --
@@ -1263,7 +1160,7 @@ private
       Element_Type => UString,
       "="          => Ada.Strings.Unbounded."=");
 
-   type Account_Name_Tables is array (Account_Kind) of Account_Name_Maps.Map;
+   type Account_Name_Tables is array (Files.File_System_Types.Account_Kind) of Account_Name_Maps.Map;
 
    --  The right-click menu: where it opened, what it was opened on, and the
    --  keyboard highlight (0 = none). Every default is the closed state.
@@ -1402,7 +1299,7 @@ private
    --  The volume-space sample and where and when it was taken; Sampled is
    --  meaningful only once Path is set. Every default is the unsampled state.
    type Volume_Sample_State is record
-      Space   : Volume_Space;
+      Space   : Files.File_System_Types.Volume_Space;
       Path    : UString;
       Sampled : Ada.Calendar.Time;
    end record;
@@ -1412,7 +1309,7 @@ private
    --  checked at (a selection or scroll moves no item). Every default is the
    --  never-synced, ungrouped state.
    type Grouping_State is record
-      Mode            : Files.Types.Group_Mode := Files.Types.No_Grouping;
+      Mode            : Files.Preference_Types.Group_Mode := Files.Preference_Types.No_Grouping;
       Labels          : Files.Settings.Path_Label_Vectors.Vector;
       Day             : Ada.Calendar.Time := Files.Types.Unknown_Time;
       Synced_Revision : Natural := Natural'Last;
@@ -1434,7 +1331,7 @@ private
       --  Active scope of the shared filter-bar query, and whether the current
       --  view holds recursive search results (name or content) rather than a
       --  plain directory listing. Both reset on navigation and on Clear_Filter.
-      Search_Scope_Value    : Files.Types.Search_Scope := Files.Types.Filter_Here;
+      Search_Scope_Value    : Files.UI_Types.Search_Scope := Files.UI_Types.Filter_Here;
       Search_Results_Active : Boolean := False;
       --  Whether search results leave out their hidden items: the setting
       --  applies when the rows are worked out (Item_Is_Visible), so the
@@ -1474,7 +1371,7 @@ private
       Selection_Page_Rows_Value : Positive := 10;
       --  Set by Select_By_Name, cleared once the window revealed it.
       Reveal_Pending : Boolean := False;
-      View_Value           : Files.Types.View_Mode := Files.Types.Small_Icons;
+      View_Value           : Files.Preference_Types.View_Mode := Files.Preference_Types.Small_Icons;
       Sort_Field_Value     : Files.Types.Sort_Field := Files.Types.Sort_Name;
       Sort_Ascending       : Boolean := True;
       Sort_Menu            : Sort_Menu_State;
@@ -1510,7 +1407,7 @@ private
       Folder_Sizes            : Folder_Size_Maps.Map;
       Folder_Scan             : Files.Folder_Size.Session;
       Context_Menu                  : Context_Menu_State;
-      Paste_Conflict                : Paste_Conflict_State;
+      Paste_Conflict                : Files.Paste_States.Conflict_State;
       Background_Transfers_Value    : Boolean := False;
       Paste_Exec_Job                 : Files.Transfer_Jobs.Session;
       Foreground_Kind               : Foreground_Job_Kind := No_Foreground_Job;
@@ -1522,7 +1419,7 @@ private
       Operation_Name                : UString;
       Refresh_Job                   : Files.Process_Jobs.Session;
       Operation_Label_Key           : UString;
-      Paste_Exec                    : Paste_Execution_State;
+      Paste_Exec                    : Files.Paste_States.Execution_State;
       --  Monotonic change counter bumped by every model mutator. The render
       --  layer caches the value it built a snapshot at and rebuilds only when it
       --  differs, so snapshot invalidation follows the model automatically

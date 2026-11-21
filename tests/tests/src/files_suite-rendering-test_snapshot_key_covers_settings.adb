@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Settings.Path_References;
 with Files.Snapshot_Policy.Settings_Keys;
 with Files_Suite.Support.Models;
@@ -31,8 +32,8 @@ separate (Files_Suite.Rendering)
       function Changed (Field : Setting_Field) return Files.Settings.Settings_Model is
          use type Files.Settings.Theme_Choice;
          use type Files.Types.Sort_Field;
-         use type Files.Types.View_Mode;
-         use type Files.Types.Group_Mode;
+         use type Files.Preference_Types.View_Mode;
+         use type Files.Preference_Types.Group_Mode;
          Result : Files.Settings.Settings_Model := Base;
       begin
          case Field is
@@ -47,7 +48,8 @@ separate (Files_Suite.Rendering)
                     (Executable => To_Unbounded_String ("zzq"), Arguments => <>, Use_Shell => False, others => <>));
             when Default_View =>
                Result.Default_View :=
-                 (if Base.Default_View = Files.Types.Details then Files.Types.Small_Icons else Files.Types.Details);
+                 (if Base.Default_View = Files.Preference_Types.Details then Files.Preference_Types.Small_Icons
+                   else Files.Preference_Types.Details);
             when Show_Hidden_Files =>
                Result.Show_Hidden_Files := not Base.Show_Hidden_Files;
             when Show_File_Extensions =>
@@ -85,21 +87,22 @@ separate (Files_Suite.Rendering)
             when Recent_Paths =>
                Files.Settings.Path_References.Note_Recent (Result, Item_Path);
             when Labels =>
-               Files.Settings.Path_References.Set_Label (Result, Item_Path, Files.Types.Red);
+               Files.Settings.Path_References.Set_Label (Result, Item_Path, Files.Preference_Types.Red);
             when Use_System_Default_Opener =>
                Result.Use_System_Default_Opener := not Base.Use_System_Default_Opener;
             when Column_Visible =>
-               Result.Column_Visible (Files.Types.Created_Column) :=
-                 not Base.Column_Visible (Files.Types.Created_Column);
+               Result.Column_Visible (Files.Preference_Types.Created_Column) :=
+                 not Base.Column_Visible (Files.Preference_Types.Created_Column);
             when Column_Widths =>
-               Result.Column_Widths (Files.Types.Size_Column) := Base.Column_Widths (Files.Types.Size_Column) + 100;
+               Result.Column_Widths (Files.Preference_Types.Size_Column) := Base.Column_Widths
+                 (Files.Preference_Types.Size_Column) + 100;
             when Column_Order =>
                Result.Column_Order (2) := Base.Column_Order (3);
                Result.Column_Order (3) := Base.Column_Order (2);
             when Group_By =>
                Result.Group_By :=
-                 (if Base.Group_By = Files.Types.Group_By_Type then Files.Types.No_Grouping
-                  else Files.Types.Group_By_Type);
+                 (if Base.Group_By = Files.Preference_Types.Group_By_Type then Files.Preference_Types.No_Grouping
+                  else Files.Preference_Types.Group_By_Type);
             when Shortcut_Overrides =>
                Result.Shortcut_Overrides.Append
                  (Files.Settings.Shortcut_Override'

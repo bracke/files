@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Detail_Group_Header_Rows (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -10,8 +11,8 @@ separate (Files_Suite.Rendering)
       Item_Center_Y   : Natural := 0;
       Header_Rows     : Natural := 0;
    begin
-      Snapshot.View_Mode := Files.Types.Details;
-      Snapshot.Group_By := Files.Types.Group_By_Type;
+      Snapshot.View_Mode := Files.Preference_Types.Details;
+      Snapshot.Group_By := Files.Preference_Types.Group_By_Type;
       Snapshot.Items.Append
         (Item_Snapshot'
            (Is_Group_Header => True,

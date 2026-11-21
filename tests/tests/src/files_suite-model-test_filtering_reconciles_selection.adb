@@ -1,3 +1,5 @@
+with Files.UI_Types;
+with Files.Preference_Types;
 separate (Files_Suite.Model)
    procedure Test_Filtering_Reconciles_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -18,7 +20,7 @@ separate (Files_Suite.Model)
          Search_Model : Files.Model.Window_Model := Sample_Model;
       begin
          Files.Model.Set_Filter (Search_Model, "zzz-not-in-any-name");
-         Files.Model.Note_Search_Results (Search_Model, Files.Types.Search_Contents);
+         Files.Model.Note_Search_Results (Search_Model, Files.UI_Types.Search_Contents);
          Assert
            (Natural (Files.Model.Visible_Rows (Search_Model).Length) = Files.Model.Visible_Count (Search_Model)
             and then Files.Model.Visible_Count (Search_Model) = Files.Model.Item_Count (Search_Model),
@@ -50,7 +52,7 @@ separate (Files_Suite.Model)
       begin
          Unicode_Items.Append
            (Files.File_System.Make_Item (Root, Upper_Name, Files.Types.Regular_File_Item, "text/plain"));
-         Files.Model.Initialize (Unicode_Model, Root, Unicode_Items, Root, Files.Types.Small_Icons);
+         Files.Model.Initialize (Unicode_Model, Root, Unicode_Items, Root, Files.Preference_Types.Small_Icons);
          Files.Model.Set_Filter (Unicode_Model, Lower_Query);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Visible_Count (Unicode_Model),

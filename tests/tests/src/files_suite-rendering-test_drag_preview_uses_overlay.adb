@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Drag_Preview_Uses_Overlay
      (T : in out AUnit.Test_Cases.Test_Case'Class)
    is
       pragma Unreferenced (T);
-      Snap : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Snap : constant View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
       Base : constant Frame_Commands := Build_Frame_Commands (Snap, 640, 480, 20);
       Drag : constant Frame_Commands :=
         Build_Frame_Commands

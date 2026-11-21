@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 separate (Files.Settings)
    function Scalar_Text
      (Settings : Settings_Model;
       Setting  : Scalar_Setting)
       return String
    is
-      Column : constant Files.Types.Optional_Detail_Column := Scalar_Table (Setting).Column;
+      Column : constant Files.Preference_Types.Optional_Detail_Column := Scalar_Table (Setting).Column;
 
       function Order_Text return String is
          Order_Value : Unbounded_String := Null_Unbounded_String;

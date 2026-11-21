@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Model)
    procedure Test_Grid_Paging_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -19,7 +20,7 @@ separate (Files_Suite.Model)
             Directory_Path    => Root,
             Items             => Items,
             Home_Path         => "/home/test",
-            Default_View_Mode => Files.Types.Small_Icons);
+            Default_View_Mode => Files.Preference_Types.Small_Icons);
          return Built;
       end Paging_Model;
 

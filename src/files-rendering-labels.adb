@@ -28,12 +28,12 @@ package body Files.Rendering.Labels is
    function Sort_Button_Label (Field : Files.Types.Sort_Field; Ascending : Boolean) return UString is
      (To_Unbounded_String (Sort_Field_Label (Field) & " " & Direction_Text (Ascending)));
 
-   function View_Mode_Label (Mode : Files.Types.View_Mode) return String is
+   function View_Mode_Label (Mode : Files.Preference_Types.View_Mode) return String is
    begin
       case Mode is
-         when Files.Types.Small_Icons => return Files.Localization.Text ("command.view.small");
-         when Files.Types.Large_Icons => return Files.Localization.Text ("command.view.large");
-         when Files.Types.Details     => return Files.Localization.Text ("command.view.details");
+         when Files.Preference_Types.Small_Icons => return Files.Localization.Text ("command.view.small");
+         when Files.Preference_Types.Large_Icons => return Files.Localization.Text ("command.view.large");
+         when Files.Preference_Types.Details     => return Files.Localization.Text ("command.view.details");
       end case;
    end View_Mode_Label;
 
@@ -94,23 +94,24 @@ package body Files.Rendering.Labels is
      (Info_Value (Label_Key, To_String (Info_Metadata_Text (Available, Value, Now))));
 
    function Detail_Names return Detail_Column_Texts is
-     ([Files.Types.Name_Column        => To_Unbounded_String (Files.Localization.Text ("details.name")),
-       Files.Types.Modified_Column    => To_Unbounded_String (Files.Localization.Text ("details.modified")),
-       Files.Types.Size_Column        => To_Unbounded_String (Files.Localization.Text ("details.size")),
-       Files.Types.Filetype_Column    => To_Unbounded_String (Files.Localization.Text ("details.filetype")),
-       Files.Types.Created_Column     => To_Unbounded_String (Files.Localization.Text ("details.created")),
-       Files.Types.Permissions_Column => To_Unbounded_String (Files.Localization.Text ("details.permissions"))]);
+     ([Files.Preference_Types.Name_Column        => To_Unbounded_String (Files.Localization.Text ("details.name")),
+       Files.Preference_Types.Modified_Column    => To_Unbounded_String (Files.Localization.Text ("details.modified")),
+       Files.Preference_Types.Size_Column        => To_Unbounded_String (Files.Localization.Text ("details.size")),
+       Files.Preference_Types.Filetype_Column    => To_Unbounded_String (Files.Localization.Text ("details.filetype")),
+       Files.Preference_Types.Created_Column     => To_Unbounded_String (Files.Localization.Text ("details.created")),
+       Files.Preference_Types.Permissions_Column =>
+         To_Unbounded_String (Files.Localization.Text ("details.permissions"))]);
 
    function Item_Accessible_Description
      (Names   : Detail_Column_Texts;
       Cells   : Detail_Column_Texts;
-      Order   : Files.Types.Detail_Column_Order;
-      Visible : Files.Types.Detail_Column_Visibility;
+      Order   : Files.Preference_Types.Detail_Column_Order;
+      Visible : Files.Preference_Types.Detail_Column_Visibility;
       Item    : Item_Snapshot;
       Details : Boolean)
       return UString
    is
-      use type Files.Types.Detail_Column;
+      use type Files.Preference_Types.Detail_Column;
       Result : UString;
    begin
       if not Details then
@@ -118,7 +119,10 @@ package body Files.Rendering.Labels is
       end if;
       --  The name is the node's own name, so it is not said again.
       for Column of Order loop
-         if Column /= Files.Types.Name_Column and then Visible (Column) and then Length (Cells (Column)) > 0 then
+         if Column /= Files.Preference_Types.Name_Column
+           and then Visible (Column)
+           and then Length (Cells (Column)) > 0
+         then
             declare
                Field : constant String :=
                  Files.Localization.Label_Value (To_String (Names (Column)), To_String (Cells (Column)));
@@ -190,18 +194,18 @@ package body Files.Rendering.Labels is
    end Folder_Contents_Text;
 
    function Label_Render_Color
-     (Label : Files.Types.Color_Label)
+     (Label : Files.Preference_Types.Color_Label)
       return Guikit.Draw.Render_Color is
    begin
       case Label is
-         when Files.Types.No_Label => return Guikit.Draw.Muted_Text_Color;
-         when Files.Types.Red      => return Guikit.Draw.Accent_Red_Color;
-         when Files.Types.Orange   => return Guikit.Draw.Accent_Orange_Color;
-         when Files.Types.Yellow   => return Guikit.Draw.Accent_Yellow_Color;
-         when Files.Types.Green    => return Guikit.Draw.Accent_Green_Color;
-         when Files.Types.Blue     => return Guikit.Draw.Accent_Blue_Color;
-         when Files.Types.Purple   => return Guikit.Draw.Accent_Purple_Color;
-         when Files.Types.Gray     => return Guikit.Draw.Accent_Gray_Color;
+         when Files.Preference_Types.No_Label => return Guikit.Draw.Muted_Text_Color;
+         when Files.Preference_Types.Red      => return Guikit.Draw.Accent_Red_Color;
+         when Files.Preference_Types.Orange   => return Guikit.Draw.Accent_Orange_Color;
+         when Files.Preference_Types.Yellow   => return Guikit.Draw.Accent_Yellow_Color;
+         when Files.Preference_Types.Green    => return Guikit.Draw.Accent_Green_Color;
+         when Files.Preference_Types.Blue     => return Guikit.Draw.Accent_Blue_Color;
+         when Files.Preference_Types.Purple   => return Guikit.Draw.Accent_Purple_Color;
+         when Files.Preference_Types.Gray     => return Guikit.Draw.Accent_Gray_Color;
       end case;
    end Label_Render_Color;
 

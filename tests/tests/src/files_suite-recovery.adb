@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Undo_Recording;
 with Files.Foreground_Jobs;
@@ -84,7 +85,7 @@ package body Files_Suite.Recovery is
    use type Hostkit.Lease_Files.Open_Outcome;
    use type Files.Types.Item_Kind;
    use type Files.Types.String_Vectors.Vector;
-   use type Files.Types.Search_Scope;
+   use type Files.UI_Types.Search_Scope;
    use Files_Suite.Support;
    use Files_Suite.Support.Models;
    use Files_Suite.Support.Disk;

@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operations;
 with Files.Operation_Results;
 with Files.Items;
@@ -37,7 +38,7 @@ package body Files_Suite.Names is
    use type Ada.Directories.File_Kind;
    use type Hostkit.Host.Kind;
    use type Files.Operation_Results.Operation_Status;
-   use type Files.Types.Search_Scope;
+   use type Files.UI_Types.Search_Scope;
    use Files_Suite.Support;
    use Files_Suite.Support.Models;
    use Files_Suite.Support.Disk;

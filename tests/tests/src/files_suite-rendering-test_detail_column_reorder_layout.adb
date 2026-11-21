@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,7 +18,7 @@ separate (Files_Suite.Rendering)
          end loop;
       end Locate_Row;
 
-      Base   : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Base   : constant View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
       Layout : constant Guikit.Draw.Layout_Metrics :=
         Calculate_Layout (Base, Width => 1000, Height => 800, Line_Height => 20);
    begin
@@ -31,9 +32,9 @@ separate (Files_Suite.Rendering)
       declare
          Reordered : View_Snapshot := Base;
       begin
-         Reordered.Detail_Column_Widths (Files.Types.Size_Column) := 150;
+         Reordered.Detail_Column_Widths (Files.Preference_Types.Size_Column) := 150;
          Reordered.Detail_Column_Order :=
-           Files.Types.Move_Column (Base.Detail_Column_Order, Files.Types.Size_Column, 2);
+           Files.Preference_Types.Move_Column (Base.Detail_Column_Order, Files.Preference_Types.Size_Column, 2);
          Locate_Row (Calculate_Item_Layout (Reordered, Layout, Line_Height => 20));
          Assert (Row_Found, "the reordered details list lays out a first data row");
          Assert (Row.Size_X < Row.Modified_X, "the reordered order lays size left of modified");
@@ -49,8 +50,8 @@ separate (Files_Suite.Rendering)
          Reordered : View_Snapshot := Base;
       begin
          Reordered.Detail_Column_Order :=
-           Files.Types.Move_Column (Base.Detail_Column_Order, Files.Types.Filetype_Column, 2);
-         Reordered.Detail_Columns_Visible (Files.Types.Filetype_Column) := False;
+           Files.Preference_Types.Move_Column (Base.Detail_Column_Order, Files.Preference_Types.Filetype_Column, 2);
+         Reordered.Detail_Columns_Visible (Files.Preference_Types.Filetype_Column) := False;
          Locate_Row (Calculate_Item_Layout (Reordered, Layout, Line_Height => 20));
          Assert (Row_Found, "the list lays out a first row with a hidden reordered column");
          Files_Suite.Support.Assert_Equal
@@ -58,7 +59,7 @@ separate (Files_Suite.Rendering)
             0,
             "a hidden column contributes no width in its ordered slot");
 
-         Reordered.Detail_Columns_Visible (Files.Types.Filetype_Column) := True;
+         Reordered.Detail_Columns_Visible (Files.Preference_Types.Filetype_Column) := True;
          Locate_Row (Calculate_Item_Layout (Reordered, Layout, Line_Height => 20));
          Assert (Row.Filetype_Width > 0, "re-showing the column restores its width");
          Assert (Row.Filetype_X < Row.Modified_X and then Row.Filetype_X < Row.Size_X,

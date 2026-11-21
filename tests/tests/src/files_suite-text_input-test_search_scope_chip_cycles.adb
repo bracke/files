@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Input_Actions;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Text_Input)
@@ -49,7 +50,7 @@ separate (Files_Suite.Text_Input)
          Found    : Boolean := False;
       begin
          Assert
-           (Snapshot.Search_Scope = Files.Types.Filter_Here,
+           (Snapshot.Search_Scope = Files.UI_Types.Filter_Here,
             "the snapshot starts on the Filter_Here scope for the renderer to draw");
          for Node of Frame.Accessibility loop
             if Ada.Strings.Unbounded.To_String (Node.Name) =
@@ -74,7 +75,7 @@ separate (Files_Suite.Text_Input)
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert
-        (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Names,
+        (Files.Model.Search_Scope_Of (Model) = Files.UI_Types.Search_Names,
          "the first chip click cycles to the Search_Names scope");
       Assert
         (Files.Model.Focus (Model) /= Files.UI_Types.Focus_Filter_Input,
@@ -92,7 +93,7 @@ separate (Files_Suite.Text_Input)
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert
-        (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Contents,
+        (Files.Model.Search_Scope_Of (Model) = Files.UI_Types.Search_Contents,
          "the second chip click cycles to the Search_Contents scope");
       Assert (Files.Model.Search_Results_Are_Active (Model), "content results are shown");
       Files_Suite.Support.Assert_Equal
@@ -108,7 +109,7 @@ separate (Files_Suite.Text_Input)
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert
-        (Files.Model.Search_Scope_Of (Model) = Files.Types.Filter_Here,
+        (Files.Model.Search_Scope_Of (Model) = Files.UI_Types.Filter_Here,
          "the third chip click cycles back to Filter_Here");
       Assert
         (not Files.Model.Search_Results_Are_Active (Model),

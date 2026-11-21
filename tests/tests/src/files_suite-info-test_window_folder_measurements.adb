@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
@@ -89,7 +90,7 @@ separate (Files_Suite.Info)
       Step := Files.Operations.Refresh (Other, Settings);
       Files.Window_Polls.Update_Folder_Size (Other);
       Files.Window_Polls.Poll_Folder_Sizes (Other);
-      Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Other))
+      Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Other))
               and then not Files.Model.Testing.Folder_Scan_Is_Active (Other),
               "size results cannot invalidate a pending listing request by changing its captured revision");
       Await_View (Other, Settings);

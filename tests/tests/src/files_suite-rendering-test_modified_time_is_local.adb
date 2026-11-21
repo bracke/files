@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  Ada.Calendar.Time_Of reads its fields as local time, so a file stamped
    --  09:30 here must show 09:30 -- not that moment's UTC clock.
    procedure Test_Modified_Time_Is_Local (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Ada.Calendar.Time_Zones.Time_Offset;
-      Snapshot : View_Snapshot := Sample_Snapshot (1, Files.Types.Details);
+      Snapshot : View_Snapshot := Sample_Snapshot (1, Files.Preference_Types.Details);
       Frame    : Frame_Commands;
       Stamp    : constant Ada.Calendar.Time :=
         Ada.Calendar.Time_Of (2025, 1, 15, Duration (9 * 3_600 + 30 * 60 + 12));

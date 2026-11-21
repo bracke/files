@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Input_Actions;
 with Files.Window_Polls;
 with Files.File_System.Permissions;
@@ -123,9 +124,9 @@ package body Files_Suite.Operations_Support is
       Applied := False;
       for Attempt in Files_Suite.Support.Timing.Polling loop
          Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
-         exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
+         exit when not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model));
       end loop;
-      Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+      Assert (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "the operation's reload completes");
    end Await_View;
 
@@ -137,7 +138,7 @@ package body Files_Suite.Operations_Support is
    end Await_View;
 
    procedure Await_Refresh_Ready (Model : Files.Model.Window_Model; What : String) is
-      Job : constant Files.Process_Jobs.Session := Files.Model.Background_Refresh (Model);
+      Job : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Refresh (Model);
       Finished, Cancelled : Boolean;
    begin
       for Attempt in Polling loop
@@ -156,7 +157,7 @@ package body Files_Suite.Operations_Support is
       Applied : Boolean := False;
    begin
       Await_View (Model, Settings, Applied);
-      Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)), What & ": the read ends");
+      Assert (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)), What & ": the read ends");
       Files_Suite.Support.Assert_Equal (Applied, Expected, What);
    end Await_Refresh_Applied;
 

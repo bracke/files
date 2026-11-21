@@ -1,11 +1,12 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Drags)
    procedure Test_Column_Reorder_Drag (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Types.Detail_Column;
-      use type Files.Types.Detail_Column_Order;
+      use type Files.Preference_Types.Detail_Column;
+      use type Files.Preference_Types.Detail_Column_Order;
       use type Files.Types.Sort_Field;
 
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -21,7 +22,7 @@ separate (Files_Suite.Drags)
       end loop;
       Files.Model.Initialize
         (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root,
-         Default_View_Mode => Files.Types.Details);
+         Default_View_Mode => Files.Preference_Types.Details);
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
@@ -64,7 +65,7 @@ separate (Files_Suite.Drags)
             "a press on a header cell body begins a column reorder");
          Files_Suite.Support.Assert_Equal
            (Action.Column,
-            Files.Types.Size_Column,
+            Files.Preference_Types.Size_Column,
             "the reorder targets the column whose cell body was pressed");
          Files_Suite.Support.Assert_Equal
            (Action.Sort_Command,
@@ -76,14 +77,14 @@ separate (Files_Suite.Drags)
          Drop :=
            Files.Rendering.Hit.Details_Header_Drop_Index
              (Snapshot, Layout, Drop_X, Header_Y, Line_Height => Line);
-         Assert (Drop in Files.Types.Detail_Column_Index,
+         Assert (Drop in Files.Preference_Types.Detail_Column_Index,
                  "the drop coordinate resolves to a valid target slot");
          Files.Interaction.Apply_Column_Reorder
-           (Model, Settings, "", Files.Types.Size_Column, Drop, Result);
+           (Model, Settings, "", Files.Preference_Types.Size_Column, Drop, Result);
          Assert (Result.Settings_Changed, "the reorder drop reports a persisted change");
          Files_Suite.Support.Assert_Equal
            (Settings.Column_Order (2),
-            Files.Types.Size_Column,
+            Files.Preference_Types.Size_Column,
             "the dropped column takes the target slot in the persisted order");
       end;
 
@@ -92,7 +93,7 @@ separate (Files_Suite.Drags)
       --  column order untouched.
       declare
          Fresh    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-         Order_Before : constant Files.Types.Detail_Column_Order := Fresh.Column_Order;
+         Order_Before : constant Files.Preference_Types.Detail_Column_Order := Fresh.Column_Order;
          Sort_Before  : constant Files.Types.Sort_Field := Files.Model.Sort_Field_Of (Model);
          Sort_Action  : constant Files.Input_Actions.Input_Action :=
            (Kind    => Files.Input_Actions.Command_Input_Action,

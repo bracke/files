@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Rendering.Hit;
 separate (Files_Suite.Rendering)
    --  Each sortable details-header cell is a button of its own for screen
@@ -5,7 +6,7 @@ separate (Files_Suite.Rendering)
    --  what activating it from a screen reader dispatches.
    procedure Test_Header_Cells_Are_Accessible_Buttons (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap    : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Snap    : constant View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       Layout  : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 900, 480, 20);
       Frame   : constant Frame_Commands := Build_Frame_Commands (Snap, 900, 480, 20);
       Buttons : Natural := 0;

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.File_System.Testing;
 with Files.Items;
 with Files.Commands.Status;
@@ -31,7 +32,7 @@ separate (Files_Suite.Commands)
       Files_Suite.Support.Models.Run_Command (Files.Commands.Select_Details_Command, Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
-         Files.Types.Small_Icons,
+         Files.Preference_Types.Small_Icons,
          "command execution respects root-selector modal disablement");
       Files_Suite.Support.Models.Run_Command (Files.Commands.Close_Overlay_Command, Model);
       Assert

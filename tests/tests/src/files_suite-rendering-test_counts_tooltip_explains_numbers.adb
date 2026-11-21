@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The counts tooltip spells out what the three numbers mean, so the compact
    --  "N/N/N" form (which drops the labels) stays understandable.
    procedure Test_Counts_Tooltip_Explains_Numbers (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap   : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Snap   : constant View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Details);
       Legend : constant String :=
         Files.Localization.Text ("status.hidden") & " / "
         & Files.Localization.Text ("status.visible") & " / "

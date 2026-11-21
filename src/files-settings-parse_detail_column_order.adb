@@ -1,16 +1,17 @@
+with Files.Preference_Types;
 separate (Files.Settings)
    function Parse_Detail_Column_Order
      (Value : String;
-      Order : out Files.Types.Detail_Column_Order)
+      Order : out Files.Preference_Types.Detail_Column_Order)
       return Boolean
    is
-      use type Files.Types.Detail_Column;
-      Seen  : array (Files.Types.Detail_Column) of Boolean := [others => False];
+      use type Files.Preference_Types.Detail_Column;
+      Seen  : array (Files.Preference_Types.Detail_Column) of Boolean := [others => False];
       Slot  : Natural := 0;
       First : Positive := Value'First;
-      Column : Files.Types.Detail_Column;
+      Column : Files.Preference_Types.Detail_Column;
    begin
-      Order := Files.Types.Default_Detail_Column_Order;
+      Order := Files.Preference_Types.Default_Detail_Column_Order;
       if Value'Length = 0 then
          return False;
       end if;
@@ -34,10 +35,10 @@ separate (Files.Settings)
       end loop;
 
       --  Every column must appear exactly once for a valid permutation.
-      if Slot /= Files.Types.Detail_Column_Count then
+      if Slot /= Files.Preference_Types.Detail_Column_Count then
          return False;
       end if;
-      for Column_Value in Files.Types.Detail_Column loop
+      for Column_Value in Files.Preference_Types.Detail_Column loop
          if not Seen (Column_Value) then
             return False;
          end if;
@@ -45,7 +46,7 @@ separate (Files.Settings)
 
       --  Rebuild with name pinned to the first slot, preserving the optional
       --  columns' relative order as listed.
-      Order (1) := Files.Types.Name_Column;
+      Order (1) := Files.Preference_Types.Name_Column;
       Slot := 1;
       First := Value'First;
       for Index in Value'First .. Value'Last + 1 loop
@@ -55,7 +56,7 @@ separate (Files.Settings)
                  Files.Types.To_Lower_Ascii (Trim (Value (First .. Index - 1)));
             begin
                if Detail_Column_For_Order_Token (Token, Column)
-                 and then Column /= Files.Types.Name_Column
+                 and then Column /= Files.Preference_Types.Name_Column
                then
                   Slot := Slot + 1;
                   Order (Slot) := Column;

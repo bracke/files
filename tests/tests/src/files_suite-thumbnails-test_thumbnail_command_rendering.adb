@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Rendering.Text;
 with Files_Suite.Support.Guards;
@@ -50,7 +51,7 @@ separate (Files_Suite.Thumbnails)
         (To_String (Files.Model.Selection.Selected_Item (Model).Thumbnail_Path),
          To_String (Routed.Operation.Path),
          "thumbnail command refresh records the generated thumbnail path");
-      Files.Model.Set_View_Mode (Model, Files.Types.Large_Icons);
+      Files.Model.Set_View_Mode (Model, Files.Preference_Types.Large_Icons);
       declare
          Thumbnail_Frame : constant Files.Rendering.Frame_Commands :=
            Files.Rendering.Build_Frame_Commands
@@ -117,8 +118,8 @@ separate (Files_Suite.Thumbnails)
                "vulkan icon atlas rasterizes large-icons cached thumbnail pixels: alpha");
          end;
       end;
-      for Mode in Files.Types.Small_Icons .. Files.Types.Details loop
-         if Mode /= Files.Types.Large_Icons then
+      for Mode in Files.Preference_Types.Small_Icons .. Files.Preference_Types.Details loop
+         if Mode /= Files.Preference_Types.Large_Icons then
             Files.Model.Set_View_Mode (Model, Mode);
             declare
                Non_Thumbnail_Frame : constant Files.Rendering.Frame_Commands :=

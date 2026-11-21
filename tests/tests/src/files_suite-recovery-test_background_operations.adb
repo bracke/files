@@ -1,3 +1,5 @@
+with Files.UI_Types;
+with Files.Model.Jobs;
 with Files.Model.Testing;
 with Files.Operation_Results;
 with Files.Operation_Commands;
@@ -32,7 +34,7 @@ separate (Files_Suite.Recovery)
               and then not Files.Model.Pasting.Execution_Is_Active (Model),
               "a background operation runs as the modal operation job, not as a paste");
       Files_Suite.Support.Assert_Equal
-        (To_String (Files.Model.Foreground_Progress_Of (Model).Label_Key), "command.file.duplicate",
+        (To_String (Files.Model.Jobs.Foreground_Progress_Of (Model).Label_Key), "command.file.duplicate",
          "its progress shows its command");
       Finish;
       Files_Suite.Support.Assert_Equal
@@ -77,11 +79,11 @@ separate (Files_Suite.Recovery)
          end;
       end loop;
       Files.Model.Set_Filter (Model, "needle");
-      Step := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Names);
+      Step := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
       Finish;
       Assert (Files.Model.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 1,
               "background name search returns recursive results");
-      Step := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Contents);
+      Step := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents);
       Finish;
       Assert (Files.Model.Search_Results_Are_Active (Model),
               "background content search returns matches regardless of filename: search results active");
@@ -106,7 +108,7 @@ separate (Files_Suite.Recovery)
          Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
          declare
             Job : constant Files.Process_Jobs.Session :=
-              Files.Model.Background_Operation (Model);
+              Files.Model.Jobs.Background_Operation (Model);
             Marker : constant String := Files.Process_Jobs.Path (Job, "started");
          begin
             for Attempt in Files_Suite.Support.Timing.Polling loop

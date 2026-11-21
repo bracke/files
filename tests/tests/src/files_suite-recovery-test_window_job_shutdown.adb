@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
@@ -41,7 +42,7 @@ separate (Files_Suite.Recovery)
          Marker := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
          Files.Process_Jobs.Launch (Job, "--files-test-blocked");
          Await_Started (To_String (Marker));
-         Files.Model.Begin_Operation_Job (Model, Job, "command.file.duplicate");
+         Files.Model.Jobs.Begin_Operation_Job (Model, Job, "command.file.duplicate");
          Files.Process_Jobs.Reset (Job); --  The window is now its helper's only owner.
       end Attach_Operation;
    begin
@@ -80,7 +81,7 @@ separate (Files_Suite.Recovery)
             when Refresh_Job =>
                Step := Files.Operations.Refresh (Closing, Settings);
                declare
-                  Job : constant Files.Process_Jobs.Session := Files.Model.Background_Refresh (Closing);
+                  Job : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Refresh (Closing);
                begin
                   Started := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
                   Await_Started (To_String (Started));
@@ -95,13 +96,13 @@ separate (Files_Suite.Recovery)
            (not Files.Model.Foreground_Job_Is_Active (Closing),
             "repeated window closure releases all of the window's jobs: paste released");
          Assert
-           (not Files.Process_Jobs.Active (Files.Model.Background_Operation (Closing)),
+           (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Operation (Closing)),
             "repeated window closure releases all of the window's jobs: operation job released");
          Assert
-           (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Closing)),
+           (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Closing)),
             "repeated window closure releases all of the window's jobs: refresh job released");
          declare
-            Other : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Remaining);
+            Other : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Operation (Remaining);
          begin
             Files.Process_Jobs.Poll (Other, Finished, Cancelled);
             Assert (not Finished, "closing one window leaves the surviving window and its helper active: not finished");

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
@@ -128,7 +129,7 @@ package Files.Settings.Path_References is
    function Label_Of
      (Settings : Settings_Model;
       Path     : String)
-      return Files.Types.Color_Label;
+      return Files.Preference_Types.Color_Label;
 
    --  Assign Label to Path, replacing any existing label. Passing No_Label
    --  clears Path's label by removing its stored entry. The empty path is
@@ -140,7 +141,7 @@ package Files.Settings.Path_References is
    procedure Set_Label
      (Settings : in out Settings_Model;
       Path     : String;
-      Label    : Files.Types.Color_Label);
+      Label    : Files.Preference_Types.Color_Label);
 
    --  Set_Label for each of Paths, in one pass over the stored labels: the
    --  same result as calling it per path, without a search of every label
@@ -152,15 +153,15 @@ package Files.Settings.Path_References is
    procedure Set_Labels
      (Settings : in out Settings_Model;
       Paths    : String_Vectors.Vector;
-      Label    : Files.Types.Color_Label);
+      Label    : Files.Preference_Types.Color_Label);
 
    --  Path-keyed color labels, as indexed by Index_Paths.
    package Path_Label_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
-      Element_Type    => Files.Types.Color_Label,
+      Element_Type    => Files.Preference_Types.Color_Label,
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=",
-      "="             => Files.Types."=");
+      "="             => Files.Preference_Types."=");
 
    --  Where each label stands in the settings, by the form its path is
    --  matched in, as Load_Label keeps it.
@@ -185,7 +186,7 @@ package Files.Settings.Path_References is
      (Settings : in out Settings_Model;
       Known    : in out Label_Position_Maps.Map;
       Path     : String;
-      Label    : Files.Types.Color_Label);
+      Label    : Files.Preference_Types.Color_Label);
 
    --  Favorite paths, as indexed by Index_Paths.
    package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
@@ -230,7 +231,7 @@ package Files.Settings.Path_References is
    function Label_Of
      (Index : Path_Index;
       Path  : String)
-      return Files.Types.Color_Label;
+      return Files.Preference_Types.Color_Label;
 
    --  Follow a rename or move: every label, favorite and recent path that is
    --  From, or lies inside the folder From, is rewritten to the same place

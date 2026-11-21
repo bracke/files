@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Compact_Overlay_Commands_Bounded
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -10,7 +11,7 @@ separate (Files_Suite.Rendering)
    begin
       for Scenario in 1 .. 10 loop
          declare
-            Snap : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+            Snap : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
          begin
             Snap.Command_Enabled := [others => True];
             case Scenario is

@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
@@ -24,7 +25,7 @@ separate (Files_Suite.Refresh)
       end Cleanup;
 
       procedure Await_Stall is
-         Job : constant Files.Process_Jobs.Session := Files.Model.Background_Refresh (Model);
+         Job : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Refresh (Model);
       begin
          for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Ada.Directories.Exists (Files.Process_Jobs.Path (Job, "started"));
@@ -100,7 +101,7 @@ separate (Files_Suite.Refresh)
       Assert_Within (Before, Prompt_Limit, "repeated UI polls return promptly while helpers are stalled");
       Files.Model.Set_Filter (Model, "source");
       Assert (not Files.Refresh_Jobs.Advance (Model, Settings)
-              and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+              and then not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "a model edit cancels even a refresh that cannot finish");
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
       Await_Stall;
@@ -109,7 +110,7 @@ separate (Files_Suite.Refresh)
                          To_Unbounded_String (Join (Root, "dest")), False, False));
       Before := Now;
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-      Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+      Assert (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "starting paste immediately releases an outstanding read");
       Files.Foreground_Jobs.Cancel (Model);
       Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
@@ -117,14 +118,14 @@ separate (Files_Suite.Refresh)
       Assert (not Files.Model.Foreground_Job_Is_Active (Model)
               and then not Ada.Directories.Exists (Join (Root, "dest")),
               "paste cancellation finalizes without copying");
-      Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+      Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "paste finalization schedules its directory refresh independently");
       Await_Stall;
       Before := Now;
       Cleanup;
       Assert_Within
         (Before, Prompt_Limit, "window cleanup releases stalled refresh and native-watch helpers without waiting");
-      Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+      Assert (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "window cleanup leaves no refresh helper active");
    exception
       when others =>

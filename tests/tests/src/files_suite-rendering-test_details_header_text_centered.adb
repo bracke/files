@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The details-view header labels are optically centred in the header field
    --  using the same vertical offset as the (accepted) bottom-bar text, rather
    --  than sitting low at the full geometric inset.
    procedure Test_Details_Header_Text_Centered (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snap     : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Snap     : constant View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       Mod_Lbl  : constant String := Files.Localization.Text ("details.modified");
       Frame    : constant Frame_Commands := Build_Frame_Commands (Snap, 1000, 800, 20);
       Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 1000, 800, 20);

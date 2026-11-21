@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Operation_Results;
 with Files.Commands;
@@ -115,11 +116,11 @@ package Files_Suite.Support is
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.UI_Types.Focus_Target);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Guikit.Input.Key_Code);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Input_Actions.Input_Action_Kind);
-   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Color_Label);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Preference_Types.Color_Label);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Account_Id);
-   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.View_Mode);
-   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Detail_Column);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Preference_Types.View_Mode);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Preference_Types.Detail_Column);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Sort_Field);
-   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Group_Mode);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Preference_Types.Group_Mode);
 
 end Files_Suite.Support;

@@ -32,9 +32,9 @@ package body Files.Snapshot_Policy.Settings_Keys is
       return Same_Row_Settings (Settings, Key)
         and then Settings.Show_Used_Space = Key.Show_Used_Space
         and then Settings.Show_Space_Bar = Key.Show_Space_Bar
-        and then Files.Types."=" (Settings.Column_Visible, Key.Column_Visible)
-        and then Files.Types."=" (Settings.Column_Widths, Key.Column_Widths)
-        and then Files.Types."=" (Settings.Column_Order, Key.Column_Order);
+        and then Files.Preference_Types."=" (Settings.Column_Visible, Key.Column_Visible)
+        and then Files.Preference_Types."=" (Settings.Column_Widths, Key.Column_Widths)
+        and then Files.Preference_Types."=" (Settings.Column_Order, Key.Column_Order);
    end Same_Snapshot_Settings;
 
    function Same_Row_Settings
@@ -45,7 +45,7 @@ package body Files.Snapshot_Policy.Settings_Keys is
       return Settings.Show_File_Extensions = Key.Show_File_Extensions
         and then Settings.Theme = Key.Theme
         and then Files.Icon_Themes."=" (Settings.Icon_Theme, Key.Icon_Theme)
-        and then Files.Types."=" (Settings.Group_By, Key.Group_By)
+        and then Files.Preference_Types."=" (Settings.Group_By, Key.Group_By)
         and then Files.Settings.Path_References.Same_Favorites (Settings, Key.Favorite_Paths)
         and then Files.Settings.Path_References.Same_Labels (Settings, Key.Labels);
    end Same_Row_Settings;

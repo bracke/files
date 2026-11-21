@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -83,7 +84,7 @@ separate (Files_Suite.Recovery)
                     Kind'Image (Job_Kind) & " command left no background job running");
          end;
          declare
-            Job : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Model);
+            Job : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Operation (Model);
          begin
             Started := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
          end;

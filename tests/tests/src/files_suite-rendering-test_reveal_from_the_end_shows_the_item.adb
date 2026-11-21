@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  At the end of a list the view draws at the exact maximum, which is
    --  rarely a whole row period, while any other offset is snapped down to
@@ -8,8 +9,8 @@ separate (Files_Suite.Rendering)
    --  at many window heights.
    procedure Test_Reveal_From_The_End_Shows_The_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Modes : constant array (1 .. 3) of Files.Types.View_Mode :=
-        [Files.Types.Small_Icons, Files.Types.Large_Icons, Files.Types.Details];
+      Modes : constant array (1 .. 3) of Files.Preference_Types.View_Mode :=
+        [Files.Preference_Types.Small_Icons, Files.Preference_Types.Large_Icons, Files.Preference_Types.Details];
       LH    : constant Positive := 20;
       Count : constant Positive := 400;
 
@@ -33,7 +34,7 @@ separate (Files_Suite.Rendering)
                Snapshot : View_Snapshot := Sample_Snapshot (Count, Mode);
                Layout   : constant Guikit.Draw.Layout_Metrics :=
                  Calculate_Layout (Snapshot, Width => 1000, Height => Height, Line_Height => LH);
-               Name     : constant String := Files.Types.View_Mode'Image (Mode) & Height'Image;
+               Name     : constant String := Files.Preference_Types.View_Mode'Image (Mode) & Height'Image;
             begin
                for Index in reverse Count - 40 .. Count loop
                   --  From the very end of the list.

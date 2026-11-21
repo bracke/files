@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Protocol_Names;
 with Files.Items;
@@ -39,7 +40,7 @@ package body Files_Suite.Archives is
    use type Files.Operation_Results.Operation_Status;
    use type Files.Operations.Archive_Format;
    use type Files.Types.Item_Kind;
-   use type Files.Types.Search_Scope;
+   use type Files.UI_Types.Search_Scope;
    use Files_Suite.Support;
    use Files_Suite.Support.Models;
    use Files_Suite.Support.Disk;

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files.Rendering.Layouts)
    --  Lay out the visible detail columns left to right across the row content
    --  area. The mandatory name column starts after the icon gutter and absorbs
@@ -15,16 +16,16 @@ separate (Files.Rendering.Layouts)
    --  @param Pad Row content padding applied before the icon gutter.
    --  @return Per-column geometry for the visible columns.
    function Compute_Detail_Columns
-     (Visible     : Files.Types.Detail_Column_Visibility;
-      Widths      : Files.Types.Detail_Column_Widths;
-      Order       : Files.Types.Detail_Column_Order;
+     (Visible     : Files.Preference_Types.Detail_Column_Visibility;
+      Widths      : Files.Preference_Types.Detail_Column_Widths;
+      Order       : Files.Preference_Types.Detail_Column_Order;
       Content_X   : Natural;
       Content_W   : Natural;
       Line_Height : Positive;
       Pad         : Natural)
       return Detail_Column_Geometry_Array
    is
-      use type Files.Types.Detail_Column;
+      use type Files.Preference_Types.Detail_Column;
       Icon_Gap  : constant Natural := Guikit.Layout.Saturating_Add (Line_Height, Guikit.Layout.Scaled (6, Line_Height));
       Base_X    : constant Natural :=
         Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Content_X, Pad), Icon_Gap);
@@ -42,9 +43,9 @@ separate (Files.Rendering.Layouts)
       --  the same visual sequence the columns will be laid out.
       for Slot in Order'Range loop
          declare
-            Column : constant Files.Types.Detail_Column := Order (Slot);
+            Column : constant Files.Preference_Types.Detail_Column := Order (Slot);
          begin
-            if Column /= Files.Types.Name_Column and then Visible (Column) then
+            if Column /= Files.Preference_Types.Name_Column and then Visible (Column) then
                declare
                   --  A stored width is in reference units (pixels at
                   --  Guikit.Layout.Reference_Line_Height), so it shows the
@@ -52,7 +53,8 @@ separate (Files.Rendering.Layouts)
                   Raw   : constant Natural :=
                     (if Widths (Column) > 0
                      then Guikit.Layout.Scaled
-                            (Natural'Max (Widths (Column), Files.Types.Minimum_Detail_Column_Width), Line_Height)
+                            (Natural'Max (Widths (Column), Files.Preference_Types.Minimum_Detail_Column_Width),
+                             Line_Height)
                      else Default_Detail_Column_Width (Column, Line_Height));
                   Room  : constant Natural :=
                     (if Available > Guikit.Layout.Saturating_Add (Fixed_Sum, Min_Name)
@@ -67,7 +69,7 @@ separate (Files.Rendering.Layouts)
          end;
       end loop;
 
-      Result (Files.Types.Name_Column) :=
+      Result (Files.Preference_Types.Name_Column) :=
         (Visible => True,
          X       => Base_X,
          Width   => (if Available > Fixed_Sum then Available - Fixed_Sum else 0));
@@ -75,12 +77,12 @@ separate (Files.Rendering.Layouts)
       --  Place columns left to right: the name column absorbs the remainder in
       --  the first slot, then the visible optional columns follow in stored
       --  order.
-      Cursor := Guikit.Layout.Saturating_Add (Base_X, Result (Files.Types.Name_Column).Width);
+      Cursor := Guikit.Layout.Saturating_Add (Base_X, Result (Files.Preference_Types.Name_Column).Width);
       for Slot in Order'Range loop
          declare
-            Column : constant Files.Types.Detail_Column := Order (Slot);
+            Column : constant Files.Preference_Types.Detail_Column := Order (Slot);
          begin
-            if Column /= Files.Types.Name_Column and then Result (Column).Visible then
+            if Column /= Files.Preference_Types.Name_Column and then Result (Column).Visible then
                Result (Column).X := Cursor;
                Cursor := Guikit.Layout.Saturating_Add (Cursor, Result (Column).Width);
             end if;

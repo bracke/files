@@ -1,8 +1,9 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Frame_Rendering_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Selected : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
-      Invalid  : View_Snapshot := Sample_Snapshot (1, Files.Types.Details);
+      Selected : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
+      Invalid  : View_Snapshot := Sample_Snapshot (1, Files.Preference_Types.Details);
    begin
       declare
          Frame : constant Frame_Commands := Build_Frame_Commands (Selected, 1000, 800, 20);

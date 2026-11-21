@@ -1,27 +1,28 @@
+with Files.Preference_Types;
 separate (Files.Settings)
    function Color_Label_From_Name
      (Text  : String;
-      Label : out Files.Types.Color_Label)
+      Label : out Files.Preference_Types.Color_Label)
       return Boolean
    is
       Lower : constant String := Files.Types.To_Lower_Ascii (Text);
    begin
       if Lower = "red" then
-         Label := Files.Types.Red;
+         Label := Files.Preference_Types.Red;
       elsif Lower = "orange" then
-         Label := Files.Types.Orange;
+         Label := Files.Preference_Types.Orange;
       elsif Lower = "yellow" then
-         Label := Files.Types.Yellow;
+         Label := Files.Preference_Types.Yellow;
       elsif Lower = "green" then
-         Label := Files.Types.Green;
+         Label := Files.Preference_Types.Green;
       elsif Lower = "blue" then
-         Label := Files.Types.Blue;
+         Label := Files.Preference_Types.Blue;
       elsif Lower = "purple" then
-         Label := Files.Types.Purple;
+         Label := Files.Preference_Types.Purple;
       elsif Lower = "gray" or else Lower = "grey" then
-         Label := Files.Types.Gray;
+         Label := Files.Preference_Types.Gray;
       else
-         Label := Files.Types.No_Label;
+         Label := Files.Preference_Types.No_Label;
          return False;
       end if;
       return True;

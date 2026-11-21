@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.File_Types;
 separate (Files_Suite.Rendering)
    --  Quick Look composites in the overlay layer (on top of the grid), so its
@@ -8,7 +9,7 @@ separate (Files_Suite.Rendering)
       Width  : constant Natural  := 1000;
       Height : constant Natural  := 800;
       LH     : constant Positive := 20;
-      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
       Layout : Guikit.Draw.Layout_Metrics;
       QL     : Quick_Look_Layout;
       Frame  : Frame_Commands;

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Window_Policy;
 with Guikit.Mirroring;
@@ -9,7 +10,7 @@ separate (Files_Suite.Rendering)
    procedure Test_Mirrored_Text_Fields_Are_Focused_By_Requests (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Width : constant := 800;
-      Snap  : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Snap  : constant View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       Shown : Guikit.Draw.Accessibility_Node_Vectors.Vector :=
         Build_Frame_Commands (Snap, Width, 480, 20).Accessibility;
       Path_Seen, Filter_Seen : Boolean := False;

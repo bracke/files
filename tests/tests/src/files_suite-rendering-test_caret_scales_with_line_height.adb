@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  Bug 14: the text-input caret height must scale with the font/line height,
    --  the way the glyph height does, rather than being a fixed size.
@@ -5,7 +6,7 @@ separate (Files_Suite.Rendering)
       pragma Unreferenced (T);
 
       function Caret_H (L : Positive) return Natural is
-         Snapshot : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+         Snapshot : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
          X, Y, W, H : Natural;
          Found      : Boolean;
       begin

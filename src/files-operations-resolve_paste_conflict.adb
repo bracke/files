@@ -1,3 +1,4 @@
+with Files.Paste_States;
 separate (Files.Operations)
 function Resolve_Paste_Conflict
   (Model     : in out Files.Model.Window_Model;
@@ -41,7 +42,7 @@ begin
 
    declare
       --  Read after the choice above was recorded.
-      Conflict : constant Files.Model.Paste_Conflict_State := Files.Model.Pasting.Conflict_Of (Model);
+      Conflict : constant Files.Paste_States.Conflict_State := Files.Model.Pasting.Conflict_Of (Model);
       Work     : constant Files.Paste.Work_Item_Vectors.Vector := Conflict.Items;
       Existing : constant Files.Types.String_Vectors.Vector :=
         Conflict.Existing;

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files.Rendering.Layouts)
    function Calculate_Item_Layout
      (Snapshot      : View_Snapshot;
@@ -32,14 +33,14 @@ separate (Files.Rendering.Layouts)
 
       --  By name, so a reordered or extended enum on either side fails to
       --  compile instead of mislabelling columns.
-      function As_Grid_Column (C : Files.Types.Detail_Column) return Guikit.Item_Grid.Detail_Column is
+      function As_Grid_Column (C : Files.Preference_Types.Detail_Column) return Guikit.Item_Grid.Detail_Column is
         (case C is
-            when Files.Types.Name_Column        => Guikit.Item_Grid.Name_Column,
-            when Files.Types.Modified_Column    => Guikit.Item_Grid.Modified_Column,
-            when Files.Types.Size_Column        => Guikit.Item_Grid.Size_Column,
-            when Files.Types.Filetype_Column    => Guikit.Item_Grid.Filetype_Column,
-            when Files.Types.Created_Column     => Guikit.Item_Grid.Created_Column,
-            when Files.Types.Permissions_Column => Guikit.Item_Grid.Permissions_Column);
+            when Files.Preference_Types.Name_Column        => Guikit.Item_Grid.Name_Column,
+            when Files.Preference_Types.Modified_Column    => Guikit.Item_Grid.Modified_Column,
+            when Files.Preference_Types.Size_Column        => Guikit.Item_Grid.Size_Column,
+            when Files.Preference_Types.Filetype_Column    => Guikit.Item_Grid.Filetype_Column,
+            when Files.Preference_Types.Created_Column     => Guikit.Item_Grid.Created_Column,
+            when Files.Preference_Types.Permissions_Column => Guikit.Item_Grid.Permissions_Column);
 
       --  Read in place: only the cells on screen ask for their name.
       function Visible_Index_At (Position : Positive) return Natural is
@@ -49,7 +50,7 @@ separate (Files.Rendering.Layouts)
       function Label_At (Position : Positive) return String is
         (To_String (Snapshot.Items.Constant_Reference (Position).Name));
    begin
-      for C in Files.Types.Detail_Column loop
+      for C in Files.Preference_Types.Detail_Column loop
          Columns (As_Grid_Column (C)) := (X => Geometry (C).X, Width => Geometry (C).Width);
       end loop;
 

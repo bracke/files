@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
@@ -55,8 +56,8 @@ package body Files.Operation_Jobs.Helper is
             when Compress_Seven_Zip =>
               Files.Operations.Compress_Selected (Model, Work.Settings, Files.Operations.Seven_Zip_Archive),
             when Extract => Files.Operations.Extract_Selected (Model, Work.Settings),
-            when Search_Names => Files.Operations.Run_Search (Model, Work.Settings, Files.Types.Search_Names),
-            when Search_Contents => Files.Operations.Run_Search (Model, Work.Settings, Files.Types.Search_Contents),
+            when Search_Names => Files.Operations.Run_Search (Model, Work.Settings, Files.UI_Types.Search_Names),
+            when Search_Contents => Files.Operations.Run_Search (Model, Work.Settings, Files.UI_Types.Search_Contents),
             when Trash => Files.Operations.Delete_Selected (Model, Work.Settings),
             when Delete_Permanently => Files.Operations.Delete_Selected_Permanently (Model, Work.Settings),
             when Restore => Files.Operations.Restore_Selected_From_Trash (Model, Work.Settings),

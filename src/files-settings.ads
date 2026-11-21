@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Vectors;
 with Ada.Strings.Hash;
@@ -18,7 +19,7 @@ package Files.Settings is
    --  a stored entry: clearing a label removes the entry entirely.
    type Path_Label is record
       Path  : UString;
-      Label : Files.Types.Color_Label := Files.Types.No_Label;
+      Label : Files.Preference_Types.Color_Label := Files.Preference_Types.No_Label;
    end record;
 
    package Path_Label_Vectors is new Ada.Containers.Vectors
@@ -75,7 +76,7 @@ package Files.Settings is
       Extension_Filetypes    : String_Maps.Map;
       Icon_Mappings          : String_Maps.Map;
       Open_Actions           : Action_Maps.Map;
-      Default_View           : Files.Types.View_Mode := Files.Types.Small_Icons;
+      Default_View           : Files.Preference_Types.View_Mode := Files.Preference_Types.Small_Icons;
       Show_Hidden_Files      : Boolean := False;
       Show_File_Extensions   : Boolean := True;
       Show_Used_Space        : Boolean := False;
@@ -109,16 +110,16 @@ package Files.Settings is
       --  width is in reference units, pixels at
       --  Guikit.Layout.Reference_Line_Height, scaled with the line height when
       --  drawn), and Group_By selects the optional non-selectable grouping bands.
-      Column_Visible         : Files.Types.Detail_Column_Visibility :=
-        Files.Types.Default_Detail_Column_Visibility;
-      Column_Widths          : Files.Types.Detail_Column_Widths :=
-        Files.Types.Default_Detail_Column_Widths;
+      Column_Visible         : Files.Preference_Types.Detail_Column_Visibility :=
+        Files.Preference_Types.Default_Detail_Column_Visibility;
+      Column_Widths          : Files.Preference_Types.Detail_Column_Widths :=
+        Files.Preference_Types.Default_Detail_Column_Widths;
       --  Persisted left-to-right order of the detail columns (a permutation with
       --  the mandatory name column pinned first). Every layout path iterates the
       --  visible columns in this order.
-      Column_Order           : Files.Types.Detail_Column_Order :=
-        Files.Types.Default_Detail_Column_Order;
-      Group_By               : Files.Types.Group_Mode := Files.Types.No_Grouping;
+      Column_Order           : Files.Preference_Types.Detail_Column_Order :=
+        Files.Preference_Types.Default_Detail_Column_Order;
+      Group_By               : Files.Preference_Types.Group_Mode := Files.Preference_Types.No_Grouping;
       --  Persisted keyboard-shortcut overrides, one entry per rebound or
       --  explicitly-unbound command. Empty by default so an untouched keymap
       --  leaves every built-in shortcut in force. Serialized as the
@@ -268,7 +269,7 @@ package Files.Settings is
    --
    --  @param Mode View mode to name.
    --  @return Its settings-file token.
-   function View_Mode_Name (Mode : Files.Types.View_Mode) return String;
+   function View_Mode_Name (Mode : Files.Preference_Types.View_Mode) return String;
 
    --  @param Field Sort field to name.
    --  @return Its settings-file token.
@@ -280,7 +281,7 @@ package Files.Settings is
 
    --  @param Value Grouping mode to name.
    --  @return Its settings-file token.
-   function Group_Mode_Name (Value : Files.Types.Group_Mode) return String;
+   function Group_Mode_Name (Value : Files.Preference_Types.Group_Mode) return String;
 
    --  Clamp a requested font pixel size into the supported range.
    --
@@ -302,7 +303,7 @@ package Files.Settings is
    --  @return Updated settings model.
    function Toggle_Column
      (Settings : Settings_Model;
-      Column   : Files.Types.Detail_Column)
+      Column   : Files.Preference_Types.Detail_Column)
       return Settings_Model;
 
    --  Return Settings with a detail column's persisted width set to Width,
@@ -316,12 +317,12 @@ package Files.Settings is
    --  @return Updated settings model.
    function With_Column_Width
      (Settings : Settings_Model;
-      Column   : Files.Types.Detail_Column;
+      Column   : Files.Preference_Types.Detail_Column;
       Width    : Natural)
       return Settings_Model;
 
    --  Return Settings with Column moved so it occupies slot To_Index in the
-   --  detail column order. Delegates to Files.Types.Move_Column, so the name
+   --  detail column order. Delegates to Files.Preference_Types.Move_Column, so the name
    --  column stays pinned to the first slot and a no-op move returns Settings
    --  unchanged. Per-column widths and visibility are unaffected: they follow
    --  their column, not its position.
@@ -332,8 +333,8 @@ package Files.Settings is
    --  @return Updated settings model.
    function With_Column_Order
      (Settings : Settings_Model;
-      Column   : Files.Types.Detail_Column;
-      To_Index : Files.Types.Detail_Column_Index)
+      Column   : Files.Preference_Types.Detail_Column;
+      To_Index : Files.Preference_Types.Detail_Column_Index)
       return Settings_Model;
 
    --  Return Settings with Group_By advanced to the next grouping mode, cycling

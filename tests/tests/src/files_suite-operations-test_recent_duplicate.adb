@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files.Settings.Path_References;
@@ -75,7 +76,7 @@ separate (Files_Suite.Operations)
             begin
                if Background then
                   Await_View (Model, Settings, Applied);
-                  Assert (Applied and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+                  Assert (Applied and then not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
                           "history refresh applies to the Recent view after a duplicate");
                end if;
             end Await_Refresh;

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Operations;
 with Files.File_System.Thumbnails;
 with Files.Items;
@@ -49,7 +50,7 @@ package body Files_Suite.Thumbnails is
    use type Files.File_System.Thumbnails.Thumbnail_Status;
    use type Interfaces.Unsigned_8;
    use type Textrender.Fonts.Load_Result;
-   use type Files.Types.View_Mode;
+   use type Files.Preference_Types.View_Mode;
    use Files_Suite.Support;
    use Files_Suite.Support.Models;
    use Files_Suite.Support.Disk;

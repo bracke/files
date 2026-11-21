@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Rendering.Layouts;
 with Files.File_Types;
 with Files.Rendering.Testing;
@@ -48,7 +49,7 @@ separate (Files_Suite.Rendering)
         (Guikit.Item_Grid.Column_Padding (2 * Reference), 2 * Guikit.Item_Grid.Details_Column_Padding,
          "a details column's padding");
       declare
-         Snap : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Snap : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
       begin
          Snap.Root_Selector_Open := True;
          Files_Suite.Support.Assert_Equal
@@ -62,7 +63,7 @@ separate (Files_Suite.Rendering)
       --  The context menu's padding and minimum width feed both its drawing
       --  and its hit-test, so the two stay in agreement at any line height.
       declare
-         Snap : View_Snapshot := Sample_Snapshot (6, Files.Types.Small_Icons);
+         Snap : View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Small_Icons);
 
          function Menu_At (LH : Positive) return Context_Menu_Layout is
            (Calculate_Context_Menu_Layout (Snap, 2_000, 1_600, LH));
@@ -96,7 +97,7 @@ separate (Files_Suite.Rendering)
 
       --  A hover tooltip's gap from the pointer and its padding.
       declare
-         Snap : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+         Snap : constant View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
 
          --  Where the first row of a toolbar button's tooltip lands, relative
          --  to the pointer hovering the button's centre.
@@ -154,7 +155,7 @@ separate (Files_Suite.Rendering)
          2 * Files.Rendering.Layouts.Bottom_Bar_Height (Reference),
          "the bottom bar's padding scales with its text");
       declare
-         Snap : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+         Snap : constant View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
 
          function Conflict_Inset (LH : Positive) return Natural is
             Dialog : constant Conflict_Dialog_Layout :=
@@ -178,7 +179,7 @@ separate (Files_Suite.Rendering)
 
       --  The info-pane toggle's label inset in the bottom bar.
       declare
-         Snap : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+         Snap : constant View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
 
          function Toggle_Inset (LH : Positive) return Natural is
             Frame    : constant Frame_Commands := Build_Frame_Commands (Snap, 2_000, 1_600, LH);
@@ -203,7 +204,7 @@ separate (Files_Suite.Rendering)
 
       --  A toolbar icon's margins inside its button.
       declare
-         Snap : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+         Snap : constant View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
 
          function Toolbar_Icon_Size (LH : Positive) return Natural is
          begin
@@ -228,7 +229,7 @@ separate (Files_Suite.Rendering)
       --  A dragged item's preview: its icon's size clamps, offset and padding.
       declare
          Folder_Blue : constant Guikit.Draw.Icon_Rgb := (R => 82, G => 128, B => 209);
-         Snap        : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+         Snap        : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Details);
 
          procedure Preview (LH : Positive; DX, DY, Size : out Natural; Base : out Guikit.Draw.Icon_Rgb) is
             Frame : constant Frame_Commands :=

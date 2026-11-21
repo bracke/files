@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Ada.Real_Time;
 with Files.Desktop_Applications;
 with Files.Items;
@@ -224,7 +225,7 @@ package Files.Operations is
    function Run_Search
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Scope    : Files.Types.Tree_Search_Scope)
+      Scope    : Files.UI_Types.Tree_Search_Scope)
       return Operation_Result;
 
    --  Commit the current path-input text by validating and loading the destination.

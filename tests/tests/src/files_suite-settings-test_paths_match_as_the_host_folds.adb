@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Settings.Path_References;
 with Files.Settings.Path_References.Testing;
 separate (Files_Suite.Settings)
@@ -10,7 +11,7 @@ separate (Files_Suite.Settings)
    procedure Test_Paths_Match_As_The_Host_Folds (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       package Refs renames Files.Settings.Path_References;
-      use type Files.Types.Color_Label;
+      use type Files.Preference_Types.Color_Label;
       Stored  : constant String := "/Users/Me/Documents";
       Typed   : constant String := "/users/me/DOCUMENTS";
       File    : constant String := "/Users/Me/Documents/Report.txt";
@@ -19,12 +20,13 @@ separate (Files_Suite.Settings)
    begin
       Refs.Testing.Simulate_Folding_Host (True);
       Refs.Add_Favorite (Settings, Stored);
-      Refs.Set_Label (Settings, File, Files.Types.Red);
+      Refs.Set_Label (Settings, File, Files.Preference_Types.Red);
       Assert (Refs.Is_Favorite (Settings, Typed), "the star shows for the folder however it is typed");
       Assert (Refs.Is_Favorite (Refs.Index_Paths (Settings), Typed), "and through the index");
-      Assert (Refs.Label_Of (Settings, "/users/me/documents/report.TXT") = Files.Types.Red,
+      Assert (Refs.Label_Of (Settings, "/users/me/documents/report.TXT") = Files.Preference_Types.Red,
               "the label shows for the file however it is typed");
-      Assert (Refs.Label_Of (Refs.Index_Paths (Settings), "/users/me/documents/report.TXT") = Files.Types.Red,
+      Assert (Refs.Label_Of (Refs.Index_Paths (Settings),
+        "/users/me/documents/report.TXT") = Files.Preference_Types.Red,
               "and through the index");
 
       Refs.Add_Favorite (Settings, Typed);
@@ -32,9 +34,9 @@ separate (Files_Suite.Settings)
       Refs.Note_Recent (Settings, Stored);
       Refs.Note_Recent (Settings, Typed);
       Assert (Natural (Refs.Recent_Paths (Settings).Length) = 1, "Recent keeps the folder once");
-      Refs.Set_Label (Settings, "/USERS/me/documents/report.txt", Files.Types.Blue);
+      Refs.Set_Label (Settings, "/USERS/me/documents/report.txt", Files.Preference_Types.Blue);
       Assert (Natural (Refs.Path_Labels (Settings).Length) = 1
-              and then Refs.Label_Of (Settings, File) = Files.Types.Blue,
+              and then Refs.Label_Of (Settings, File) = Files.Preference_Types.Blue,
               "relabelling under another spelling changes the one label");
 
       Refs.Toggle_Favorite_Path (Settings, Typed);
@@ -42,7 +44,7 @@ separate (Files_Suite.Settings)
 
       Refs.Toggle_Favorite_Path (Settings, Stored);
       Refs.Move_Path_References (Settings, "/users/me/documents", "/Users/Me/Archive", Changed);
-      Assert (Changed and then Refs.Label_Of (Settings, "/Users/Me/Archive/Report.txt") = Files.Types.Blue,
+      Assert (Changed and then Refs.Label_Of (Settings, "/Users/Me/Archive/Report.txt") = Files.Preference_Types.Blue,
               "a move named in another spelling takes the label along");
       Refs.Forget_Path_References (Settings, "/users/ME/archive", Changed);
       Assert (Changed and then Refs.Path_Labels (Settings).Is_Empty and then Refs.Favorite_Paths (Settings).Is_Empty

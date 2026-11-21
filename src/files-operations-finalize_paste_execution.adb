@@ -1,3 +1,4 @@
+with Files.Paste_States;
 separate (Files.Operations)
 --  Finalize an armed paste execution: record one undo covering what it did
 --  (Record_Paste_Execution), reload, and clear the execution state. A
@@ -11,7 +12,7 @@ function Finalize_Paste_Execution
    return Operation_Result
 is
    --  Read once: everything recorded below is what the paste gathered.
-   Exec       : constant Files.Model.Paste_Execution_State := Files.Model.Pasting.Execution_Of (Model);
+   Exec       : constant Files.Paste_States.Execution_State := Files.Model.Pasting.Execution_Of (Model);
    --  Destinations a Replace overwrote.
    Replaced   : Files.Undo_History.Recorded_Original_Vectors.Vector renames Exec.Replaced;
    Has_Kept   : constant Boolean := Length (Kept.Dest_Path) > 0;

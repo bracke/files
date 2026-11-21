@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  A Details row tells a screen reader the columns that are shown, in
    --  their drawn order, and none that are hidden.
@@ -8,7 +9,7 @@ separate (Files_Suite.Rendering)
       Width : constant Natural  := 1000;
       Height : constant Natural := 800;
       LH    : constant Positive := 20;
-      Snap  : View_Snapshot := Sample_Snapshot (1, Files.Types.Details);
+      Snap  : View_Snapshot := Sample_Snapshot (1, Files.Preference_Types.Details);
 
       --  The first item's description in a frame of Snap.
       function Row_Description return String is
@@ -39,9 +40,9 @@ separate (Files_Suite.Rendering)
          Assert (not Contains (Default, "rw-r--r--"), "hidden permissions are not announced");
       end;
 
-      Snap.Detail_Columns_Visible (Files.Types.Created_Column) := True;
-      Snap.Detail_Columns_Visible (Files.Types.Permissions_Column) := True;
-      Snap.Detail_Columns_Visible (Files.Types.Size_Column) := False;
+      Snap.Detail_Columns_Visible (Files.Preference_Types.Created_Column) := True;
+      Snap.Detail_Columns_Visible (Files.Preference_Types.Permissions_Column) := True;
+      Snap.Detail_Columns_Visible (Files.Preference_Types.Size_Column) := False;
       declare
          Shown : constant String := Row_Description;
       begin

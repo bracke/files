@@ -75,18 +75,18 @@ package body Files.Rendering.Geometry is
    --  @param Line_Height Text line height in pixels.
    --  @return Default column width in pixels.
    function Default_Detail_Column_Width
-     (Column      : Files.Types.Optional_Detail_Column;
+     (Column      : Files.Preference_Types.Optional_Detail_Column;
       Line_Height : Positive)
       return Natural is
    begin
       case Column is
-         when Files.Types.Modified_Column | Files.Types.Created_Column =>
+         when Files.Preference_Types.Modified_Column | Files.Preference_Types.Created_Column =>
             return Time_Column_Width (Line_Height);
-         when Files.Types.Size_Column =>
+         when Files.Preference_Types.Size_Column =>
             return Saturating_Multiply (Line_Height, 6);
-         when Files.Types.Filetype_Column =>
+         when Files.Preference_Types.Filetype_Column =>
             return Saturating_Multiply (Line_Height, 9);
-         when Files.Types.Permissions_Column =>
+         when Files.Preference_Types.Permissions_Column =>
             return Saturating_Multiply (Line_Height, 8);
       end case;
    end Default_Detail_Column_Width;

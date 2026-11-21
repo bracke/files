@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Ada.Calendar;
 
 --  Test-only access to private subprograms of Files.Rendering, kept out of the program.
@@ -18,7 +19,7 @@ package Files.Rendering.Testing is
    --  @param Label Color label to resolve.
    --  @return The palette role drawn in that label's color.
    function Label_Render_Color
-     (Label : Files.Types.Color_Label)
+     (Label : Files.Preference_Types.Color_Label)
       return Guikit.Draw.Render_Color;
 
    --  Whether any overlay covers the view (what hides background tooltips).

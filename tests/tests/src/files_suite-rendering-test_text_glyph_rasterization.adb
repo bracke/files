@@ -1,8 +1,9 @@
+with Files.Preference_Types;
 with Files.Rendering.Text.Testing; use Files.Rendering.Text.Testing;
 separate (Files_Suite.Rendering)
    procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Snapshot : constant View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Details);
       Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
       Renderer : Text_Renderer;
       Result   : Guikit.Draw.Text_Render_Result;

@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -27,7 +28,7 @@ separate (Files_Suite.Transfer)
          Files.Model.Set_Background_Transfers (Model, True);
          Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
          declare
-            Job : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Model);
+            Job : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Operation (Model);
             Revision : constant Natural := Files.Model.Revision (Model);
          begin
             if Ready then
@@ -51,7 +52,7 @@ separate (Files_Suite.Transfer)
                  (Step.Status, Files.Operation_Results.Operation_Disabled, Context & ": direct paste disabled");
                Files_Suite.Support.Assert_Equal (Files.Model.Revision (Model), Revision, Context & ": revision");
                Files_Suite.Support.Assert_Equal
-                 (Files.Process_Jobs.Path (Files.Model.Background_Operation (Model), ""),
+                 (Files.Process_Jobs.Path (Files.Model.Jobs.Background_Operation (Model), ""),
                   Files.Process_Jobs.Path (Job, ""),
                   Context & ": active job");
             end;

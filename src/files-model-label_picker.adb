@@ -40,7 +40,7 @@ package body Files.Model.Label_Picker is
 
    function Highlight_Color
      (Model : Window_Model)
-      return Files.Types.Color_Label is
+      return Files.Preference_Types.Color_Label is
      (Files.UI_Types.Label_For_Swatch (Model.Label_Picker.Swatch));
 
 end Files.Model.Label_Picker;

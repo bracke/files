@@ -1,4 +1,6 @@
 with Files.Fs_Primitives;
+with Files.Job_Context;
+with Files.Job_Storage;
 with Ada.Streams;
 with Guikit.Shared_Bytes;
 with Files.Environment;
@@ -1045,4 +1047,25 @@ package body Files.File_System is
          return False;
    end Creation_Matches;
 
+   function Job_Cancelled return Cancellation_Check is (Files.Job_Context.Cancelled'Access);
+
+   --  Files.Job_Storage's operations: the job layer's view of the removals
+   --  and the creation check above, which it reaches without naming this
+   --  package.
+   function Remove_Stage_For_Jobs (Path, Expected_Identity : String) return Boolean is
+     (Delete_Staging_Entry (Path, Expected_Identity).Success);
+
+   function Remove_Transport_For_Jobs (Path, Expected_Identity : String) return Boolean is
+     (Delete_Transport_Entry (Path, Expected_Identity).Success);
+
+   function Creation_Matches_For_Jobs
+     (Path, Identity, Tree_Revision : String; Retain_Verified : Boolean) return Boolean is
+     (Creation_Matches (Path, Identity, Tree_Revision, Retain_Verified));
+
+begin
+   Files.Job_Storage.Install
+     (Delete_Staging   => Remove_Stage_For_Jobs'Access,
+      Delete_Transport => Remove_Transport_For_Jobs'Access,
+      Matches          => Creation_Matches_For_Jobs'Access,
+      Revision         => Tree_Revision'Access);
 end Files.File_System;

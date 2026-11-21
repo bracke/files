@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Info_And_Root_Selector_Close_Buttons (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,7 +8,7 @@ separate (Files_Suite.Rendering)
    begin
       --  Info pane.
       declare
-         Snap    : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Snap    : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
          Layout  : Guikit.Draw.Layout_Metrics;
          Info    : Info_Pane_Layout;
          Panel_W : Natural;
@@ -31,7 +32,7 @@ separate (Files_Suite.Rendering)
 
       --  Root selector.
       declare
-         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
          Layout : Guikit.Draw.Layout_Metrics;
          Root   : Root_Selector_Layout;
          Close  : Close_Button_Layout;

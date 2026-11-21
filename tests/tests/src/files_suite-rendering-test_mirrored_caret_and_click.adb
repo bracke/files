@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 with Guikit.Mirroring;
 separate (Files_Suite.Rendering)
@@ -12,7 +13,7 @@ separate (Files_Suite.Rendering)
       Guikit.Mirroring.Set_Mirrored_Layout (True);
       for Cursor in 0 .. 3 loop
          declare
-            Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+            Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Details);
             CX, CY, CW, CH : Natural;
             Found          : Boolean;
          begin

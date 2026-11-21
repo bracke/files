@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Input_Actions;
 separate (Files_Suite.Rendering)
    --  Menus float over the file view.  Use the same opaque overlay surface and
@@ -12,7 +13,7 @@ separate (Files_Suite.Rendering)
       LH     : constant Positive := 20;
    begin
       declare
-         Snap : View_Snapshot := Sample_Snapshot (6, Files.Types.Small_Icons);
+         Snap : View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Small_Icons);
       begin
          Snap.Context_Menu_Open := True;
          Snap.Context_Menu_Target := Files.UI_Types.Context_Menu_Item;
@@ -55,7 +56,7 @@ separate (Files_Suite.Rendering)
       end;
 
       declare
-         Snap : View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+         Snap : View_Snapshot := Sample_Snapshot (6, Files.Preference_Types.Details);
       begin
          Snap.Sort_Menu_Open := True;
          declare

@@ -1,10 +1,11 @@
+with Files.Preference_Types;
 separate (Files.Settings.Path_References)
    procedure Set_Label
      (Settings : in out Settings_Model;
       Path     : String;
-      Label    : Files.Types.Color_Label)
+      Label    : Files.Preference_Types.Color_Label)
    is
-      use type Files.Types.Color_Label;
+      use type Files.Preference_Types.Color_Label;
       Existing : Natural := 0;
    begin
       if not Persistent_Path_Is_Valid (Path) then
@@ -19,7 +20,7 @@ separate (Files.Settings.Path_References)
             exit;
          end if;
       end loop;
-      if Label = Files.Types.No_Label then
+      if Label = Files.Preference_Types.No_Label then
          if Existing /= 0 then
             Settings.Paths.Labels.Delete (Existing);
          end if;

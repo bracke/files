@@ -1,9 +1,10 @@
+with Files.Preference_Types;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Rendering)
    procedure Test_Reveal_Scroll_Shows_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Modes : constant array (1 .. 3) of Files.Types.View_Mode :=
-        [Files.Types.Small_Icons, Files.Types.Large_Icons, Files.Types.Details];
+      Modes : constant array (1 .. 3) of Files.Preference_Types.View_Mode :=
+        [Files.Preference_Types.Small_Icons, Files.Preference_Types.Large_Icons, Files.Preference_Types.Details];
 
       --  Whether the item with Visible_Index is laid out whole.
       function Shown (Snapshot : View_Snapshot; Layout : Guikit.Draw.Layout_Metrics; Index : Positive)
@@ -47,7 +48,7 @@ separate (Files_Suite.Rendering)
                  (Files_Suite.Support.Disk.Root, "f" & Index'Image, Files.Types.Regular_File_Item, "text/plain"));
          end loop;
          Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
-         Files.Model.Set_View_Mode (Model, Files.Types.Details);
+         Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);
          Files.Model.Selection.Select_Visible (Model, 1);
          Files.Model.Selection.Set_Page_Rows (Model, 23);
          Files.Model.Selection.Move_By_Page (Model, Files.Model.Selection.Page_Rows (Model), True);

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Settings_Form;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
@@ -107,18 +108,18 @@ begin
          | Files.Commands.Toggle_Column_Created_Command
          | Files.Commands.Toggle_Column_Permissions_Command =>
          declare
-            Column : constant Files.Types.Detail_Column :=
+            Column : constant Files.Preference_Types.Detail_Column :=
               (case Id is
                   when Files.Commands.Toggle_Column_Modified_Command =>
-                     Files.Types.Modified_Column,
+                     Files.Preference_Types.Modified_Column,
                   when Files.Commands.Toggle_Column_Size_Command =>
-                     Files.Types.Size_Column,
+                     Files.Preference_Types.Size_Column,
                   when Files.Commands.Toggle_Column_Type_Command =>
-                     Files.Types.Filetype_Column,
+                     Files.Preference_Types.Filetype_Column,
                   when Files.Commands.Toggle_Column_Created_Command =>
-                     Files.Types.Created_Column,
+                     Files.Preference_Types.Created_Column,
                   when others =>
-                     Files.Types.Permissions_Column);
+                     Files.Preference_Types.Permissions_Column);
          begin
             return
               Apply_Settings_Change

@@ -1,6 +1,6 @@
+with Files.Preference_Types;
 with Files.Commands;
 with Guikit.Input;
-with Files.Types;
 with Files.UI_Types;
 
 --  The input actions Files.Events translates input into and Files.Controller
@@ -113,7 +113,8 @@ package Files.Input_Actions is
             --  marquee, whether it adds to the selection (Ctrl or Shift).
             Origin_X     : Natural := 0;
             Origin_Y     : Natural := 0;
-            Column       : Files.Types.Optional_Detail_Column := Files.Types.Optional_Detail_Column'First;
+            Column       : Files.Preference_Types.Optional_Detail_Column :=
+              Files.Preference_Types.Optional_Detail_Column'First;
             Column_Width : Natural := 0;
             Additive     : Boolean := False;
             --  A reorder press that ends without crossing the drag threshold
@@ -154,7 +155,7 @@ package Files.Input_Actions is
             Conflict_Button : Conflict_Button_Kind := No_Conflict_Button;
          when Label_Picker_Choice_Input_Action =>
             --  The chosen swatch (No_Label clears).
-            Label : Files.Types.Color_Label := Files.Types.No_Label;
+            Label : Files.Preference_Types.Color_Label := Files.Preference_Types.No_Label;
          when Context_Menu_Command_Input_Action =>
             --  The command of the context-menu row clicked.
             Menu_Command : Files.Commands.Command_Id := Files.Commands.No_Command;

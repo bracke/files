@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    --  The palette opened from settings hides the settings pane, so the file
    --  view must still be drawn where the pane would be: every overlay panel
@@ -9,7 +10,7 @@ separate (Files_Suite.Rendering)
       Width  : constant Natural  := 1000;
       Height : constant Natural  := 800;
       LH     : constant Positive := 20;
-      Snap   : View_Snapshot := Sample_Snapshot (12, Files.Types.Details);
+      Snap   : View_Snapshot := Sample_Snapshot (12, Files.Preference_Types.Details);
       Frame  : Frame_Commands;
       Pane   : Guikit.Layout.Settings_Pane_Layout;
       Under_Pane : Natural := 0;

@@ -5,7 +5,7 @@ with Files.Undo_History;
 
 package body Files.Operation_Commands is
    use type Files.Operation_Results.Operation_Status;
-   use type Files.Types.Search_Scope;
+   use type Files.UI_Types.Search_Scope;
 
    subtype Operation_Result is Files.Operation_Results.Operation_Result;
 
@@ -129,7 +129,7 @@ package body Files.Operation_Commands is
    function Run_Search
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Scope    : Files.Types.Tree_Search_Scope)
+      Scope    : Files.UI_Types.Tree_Search_Scope)
       return Operation_Result is
    begin
       if Files.Model.Background_Transfers (Model) then
@@ -138,7 +138,7 @@ package body Files.Operation_Commands is
          begin
             return Start_Unless_Refused
               (Model, Settings,
-               (if Scope = Files.Types.Search_Contents then Files.Operation_Jobs.Search_Contents
+               (if Scope = Files.UI_Types.Search_Contents then Files.Operation_Jobs.Search_Contents
                 else Files.Operation_Jobs.Search_Names),
                Refusal);
          end;

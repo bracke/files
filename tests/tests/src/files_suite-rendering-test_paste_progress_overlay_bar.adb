@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Rendering.Layouts;
 with Files.Rendering.Testing;
 separate (Files_Suite.Rendering)
@@ -8,7 +9,7 @@ separate (Files_Suite.Rendering)
       Width  : constant Natural  := 1000;
       Height : constant Natural  := 800;
       LH     : constant Positive := 20;
-      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Preference_Types.Small_Icons);
       Layout : Guikit.Draw.Layout_Metrics;
       Panel  : Paste_Progress_Layout;
       Frame  : Frame_Commands;

@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.Events;
 with Files.Input_Actions;
 with Files.Items;
@@ -552,7 +553,7 @@ package body Files_Suite.Rendering is
 
    function Sample_Snapshot
      (Count : Natural;
-      Mode  : Files.Types.View_Mode)
+      Mode  : Files.Preference_Types.View_Mode)
       return View_Snapshot
    is
       Snapshot : View_Snapshot;

@@ -29,7 +29,7 @@ package body Files.Model.Pasting is
       end loop;
    end Begin_Conflict;
 
-   function Conflict_Of (Model : Window_Model) return Paste_Conflict_State is (Model.Paste_Conflict);
+   function Conflict_Of (Model : Window_Model) return Files.Paste_States.Conflict_State is (Model.Paste_Conflict);
 
    function Conflict_Is_Active
      (Model : Window_Model)
@@ -129,7 +129,7 @@ package body Files.Model.Pasting is
          others           => <>);
    end Begin_Execution;
 
-   function Execution_Of (Model : Window_Model) return Paste_Execution_State is (Model.Paste_Exec);
+   function Execution_Of (Model : Window_Model) return Files.Paste_States.Execution_State is (Model.Paste_Exec);
 
    function Job (Model : Window_Model) return Files.Transfer_Jobs.Session is (Model.Paste_Exec_Job);
 
