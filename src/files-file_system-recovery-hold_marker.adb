@@ -26,12 +26,10 @@ separate (Files.File_System.Recovery)
             return True;
          when Hostkit.Lease_Files.Busy =>
             return False;
-         when others =>
-            --  It exists already (POSIX refuses the create, Windows reports
-            --  an error): left by a stopped operation, or held by a live one.
-            if Files.Fs_Primitives.Entry_Is_Absent (Path) then
-               raise Ada.Directories.Use_Error;
-            end if;
+         when Hostkit.Lease_Files.Refused =>
+            --  The name is taken (every host refuses the create then): left
+            --  by a stopped operation, or held by a live one. Whatever else
+            --  the refusal meant, the open below refuses too.
             case Hostkit.Lease_Files.Open (Path, Hostkit.Lease_Files.Exclusive, True, Item) is
                when Hostkit.Lease_Files.Opened =>
                   return True;
@@ -40,6 +38,8 @@ separate (Files.File_System.Recovery)
                when others =>
                   raise Ada.Directories.Use_Error;
             end case;
+         when Hostkit.Lease_Files.Unsupported | Hostkit.Lease_Files.Error =>
+            raise Ada.Directories.Use_Error;
       end case;
    exception
       when others => Hostkit.Lease_Files.Release (Item); raise;

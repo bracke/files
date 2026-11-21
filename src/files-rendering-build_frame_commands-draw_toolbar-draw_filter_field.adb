@@ -50,6 +50,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
             Fit         => Length (Snapshot.Filter_Text) = 0 or else View.Cut_Columns = Guikit.Draw.Auto_Cut,
             Cut_Columns => (if Length (Snapshot.Filter_Text) = 0 then Guikit.Draw.Auto_Cut else View.Cut_Columns));
          Draw_Field_State (Text_Region, Focused, Valid => True, Caret_X => View.Caret_X);
+         Add_Command_Tooltip
+           (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Files.Commands.Focus_Filter_Input_Command);
 
          if Scope_Chip.Visible then
             declare
@@ -85,9 +87,9 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
                   Localized (Scope_Key),
                   (if Chip_Active then Text_Color else Muted_Text_Color),
                   Fit => True);
-               --  The chip's own tooltip, added before the filter field's, so it
-               --  wins the first-match hit-test for points over the chip and
-               --  explains the scope control rather than the filter input.
+               --  The chip's own tooltip, recorded after the filter field's
+               --  and so on top of it: a point over the chip explains the
+               --  scope control rather than the filter input.
                Add_Tooltip
                  (Scope_Chip.X,
                   Scope_Chip.Y,
@@ -107,8 +109,6 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
             end;
          end if;
       end;
-      Add_Command_Tooltip
-        (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Files.Commands.Focus_Filter_Input_Command);
       --  The field's own box, not its whole toolbar section: a screen
       --  reader's request on it is answered by focusing the field
       --  (Files.Events.Translate_Field_Request matches exactly this box).

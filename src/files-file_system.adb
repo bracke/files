@@ -18,6 +18,7 @@ with Files.File_Types;
 with Files.Item_Lists;
 
 with Hostkit.Metadata;
+with Hostkit.Filesystem_Rules;
 with Hostkit.Fs;
 with Hostkit.Path_Text;
 with Hostkit.Host;
@@ -673,10 +674,6 @@ package body Files.File_System is
      (Path : String)
       return Path_Result
    is separate;
-
-   function Windows_Device_Basename (Name : String) return String is separate;
-
-   function Is_Windows_Device_Name (Name : String) return Boolean is separate;
 
    function Is_All_Whitespace (Name : String) return Boolean is separate;
 

@@ -47,6 +47,34 @@ package body Files.Jobs.Scavenger is
    Previous_Report_Directory : Files.Types.UString;
    Previous_Report_Existed : Boolean := False;
 
+   --  The folder a report goes to, as FILES_RECOVERY_REPORT_DIR names it.
+   --  The variable is read and changed on the main thread only (Scavenge,
+   --  Clean_Report, a helper's non-interruptible Run), which copies it here:
+   --  the Coordinator_Monitor task reads this copy, never the environment,
+   --  which the host does not guard against a concurrent change. The
+   --  variable itself stays, so a helper process inherits the folder.
+   protected Report_Target is
+      procedure Set (Directory : String);
+      function Get return String;
+   private
+      Value : Unbounded_String;
+   end Report_Target;
+
+   protected body Report_Target is
+      procedure Set (Directory : String) is
+      begin
+         Value := To_Unbounded_String (Directory);
+      end Set;
+
+      function Get return String is (To_String (Value));
+   end Report_Target;
+
+   --  Copy the variable into Report_Target. Main thread only.
+   procedure Take_Report_Target is
+   begin
+      Report_Target.Set (Files.Environment.Value (Report_Environment));
+   end Take_Report_Target;
+
    function Has_Unrecoverable return Boolean is
       Report : Hostkit.Lease_Files.Lease;
       Read_Back : Ada.Streams.Stream_Element_Array (Report_Marker'Range);
@@ -89,6 +117,7 @@ package body Files.Jobs.Scavenger is
                Files.Environment.Clear (Report_Environment);
             end if;
          end if;
+         Take_Report_Target;
          --  refusal-safe: a refused report folder is left, not removed
          if Files.Fs_Primitives.Exists (Directory)
            and then not Hostkit.Fs.Is_Link (Directory)
@@ -201,8 +230,7 @@ package body Files.Jobs.Scavenger is
            (Ada.Text_IO.Standard_Error,
             (if Label /= "" then Label else "recovery.unsafe_transport") & ": " & Directory);
          declare
-            Target_Directory : constant String :=
-              Files.Environment.Value (Report_Environment);
+            Target_Directory : constant String := Report_Target.Get;
          begin
             if Target_Directory /= ""
               --  refusal-safe: a refused report folder gets no report
@@ -481,6 +509,7 @@ package body Files.Jobs.Scavenger is
               (Report_Environment, To_String (Report_Directory));
          end if;
       end if;
+      Take_Report_Target;
       Scan_Requests.Submit (To_Unbounded_String (Resolved));
    end Scavenge;
 
@@ -655,8 +684,11 @@ package body Files.Jobs.Scavenger is
    begin
       --  Called non-interruptibly only on a main thread (a helper process
       --  runs it directly), where looking the label up is safe.
-      if not Interruptible and then Report_Label.Get = "" then
-         Report_Label.Set (Files.Localization.Text ("recovery.unsafe_transport"));
+      if not Interruptible then
+         if Report_Label.Get = "" then
+            Report_Label.Set (Files.Localization.Text ("recovery.unsafe_transport"));
+         end if;
+         Take_Report_Target;
       end if;
       Scan (Retry_Needed);
       if Wait_For_Grace and then Retry_Needed and then Grace > 0.0 then

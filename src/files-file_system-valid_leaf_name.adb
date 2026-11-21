@@ -30,7 +30,7 @@ begin
    --  round-trip there; a POSIX host accepts them as ordinary filenames.
    if Windows_Rules_Apply
      and then (Name (Name'Last) = '.'
-               or else Is_Windows_Device_Name (Name))
+               or else Hostkit.Filesystem_Rules.Is_Dos_Device_Name (Name))
    then
       return False;
    end if;

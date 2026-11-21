@@ -359,12 +359,15 @@ separate (Files.Rendering)
          Point_Y  : Natural)
          return Boolean renames Contains_Rectangle_Point;
 
+      --  The tooltip of the region recorded last under the point: regions are
+      --  recorded in drawing order, so, like Hit.Topmost_Hit_At, the one drawn
+      --  on top wins where two overlap.
       function Tooltip_At
         (Point_X : Natural;
          Point_Y : Natural)
          return UString is
       begin
-         for Command of Result.Tooltips loop
+         for Command of reverse Result.Tooltips loop
             if Contains_Point (Command.X, Command.Y, Command.Width, Command.Height, Point_X, Point_Y) then
                return Command.Text;
             end if;

@@ -215,8 +215,6 @@ package body Files.Model.Rename is
    is
       Changed : Boolean := False;
    begin
-      Touch (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       if Text = "" then
          return False;
       end if;
@@ -235,6 +233,11 @@ package body Files.Model.Rename is
          end;
       end loop;
 
+      --  Nothing typed, or no field to type into, changes nothing to redraw.
+      if Changed then
+         Touch (Model);
+         Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      end if;
       return Changed;
    end Insert_At_Carets;
 

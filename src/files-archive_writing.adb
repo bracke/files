@@ -37,32 +37,23 @@ package body Files.Archive_Writing is
      1024 * 1024 * 1024;
    Max_Free_Inode_Reserve : constant Interfaces.Unsigned_64 := 1_024;
 
-   function Safe_Archive_Name
-     (Name                     : String;
-      Allow_Trailing_Separator : Boolean := False) return Boolean
-   is
+   --  A relative, '/'-separated name with no empty, "." or ".." component
+   --  that Portable_Entry_Name accepts.
+   function Safe_Archive_Name (Name : String) return Boolean is
       First : Positive := Name'First;
    begin
-      if Name = "" then
+      if Name = "" or else not Portable_Entry_Name (Name) then
          return False;
       end if;
       for I in Name'Range loop
-         if Name (I) = ASCII.NUL or else Name (I) = '\' or else Name (I) = ':' then
-            return False;
-         elsif Name (I) = '/' then
-            if I = First
-              or else Name (First .. I - 1) in "." | ".."
-              or else (I = Name'Last and then not Allow_Trailing_Separator)
-            then
+         if Name (I) = '/' then
+            if I = First or else I = Name'Last or else Name (First .. I - 1) in "." | ".." then
                return False;
             end if;
             First := I + 1;
          end if;
       end loop;
-      return
-        (Allow_Trailing_Separator and then First = Name'Last + 1)
-        or else
-          (First <= Name'Last and then Name (First .. Name'Last) not in "." | "..");
+      return Name (First .. Name'Last) not in "." | "..";
    end Safe_Archive_Name;
 
    function First_Unextractable

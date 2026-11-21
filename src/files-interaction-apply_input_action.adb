@@ -50,8 +50,8 @@ separate (Files.Interaction)
       case Action.Kind is
          when Files.Input_Actions.Command_Input_Action =>
             --  Through Execute_Command, so a runtime view / sort / info change
-            --  (e.g. from the bottom bar) is synced to the settings and, for
-            --  sort, the listing is re-loaded to match the new order.
+            --  (e.g. from the bottom bar) is synced to the settings; a sort
+            --  re-orders the items in memory, with no new read.
             if Command_Action_Is_Current (Model, Action.Command) then
                Execute_Command
                  (Model, Settings, Settings_Path, Action.Command,

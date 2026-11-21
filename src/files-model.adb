@@ -615,7 +615,6 @@ package body Files.Model is
       Model.Search_Scope_Value := Files.UI_Types.Filter_Here;
       Model.Search_Results_Active := False;
       Model.Results_Hide_Hidden := False;
-      Support.Invalidate_Visible (Model);
       Set_Current_Path (Model, New_Path);
       Model.Path_Input := (Edit => (Text => New_Path, Cursor => Length (New_Path)), others => <>);
       Model.Selected_Item_Index := 0;
@@ -626,8 +625,10 @@ package body Files.Model is
       Model.Info_Pane_Scroll := 0;
       Model.Main_View_Scroll := 0;
       Model.Filter.Text := Null_Unbounded_String;
-      Support.Invalidate_Visible (Model);
       Model.Filter.Cursor := 0;
+      --  Once, after the search state and the filter are both reset: nothing
+      --  above reads the visible rows.
+      Support.Invalidate_Visible (Model);
       Hide_Command_Palette (Model);
       Model.Focus_Value := Files.UI_Types.Focus_None;
       Reset_Quick_Look (Model);

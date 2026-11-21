@@ -18,19 +18,42 @@ separate (Files_Suite.Rendering)
          CX : constant Natural := Chip.X + Chip.Width / 2;
          CY : constant Natural := Chip.Y + Chip.Height / 2;
       begin
-         for C of Frame.Tooltips loop
+         for C of reverse Frame.Tooltips loop
             if CX >= C.X and then CX < C.X + C.Width
               and then CY >= C.Y and then CY < C.Y + C.Height
             then
-               --  First tooltip covering the point wins, as Tooltip_At resolves it.
+               --  The last tooltip covering the point wins, as Tooltip_At resolves it.
                Files_Suite.Support.Assert_Equal
                  (To_String (C.Text),
                   Tip,
-                  "the first tooltip over the scope chip describes the scope");
+                  "the topmost tooltip over the scope chip describes the scope");
                Found := True;
                exit;
             end if;
          end loop;
          Assert (Found, "a tooltip covers the scope chip");
+         --  The tooltip the hover shows: the chip's, recorded over the
+         --  filter field's, not the field's beneath it.
+         declare
+            Hovered : constant Frame_Commands :=
+              Build_Frame_Commands
+                (Snap, 1400, 800, 20,
+                 Pointer => (Hover_X => CX, Hover_Y => CY, Has_Hover => True, others => <>));
+            Shown : Boolean := False;
+         begin
+            for Row of Hovered.Overlay_Text loop
+               declare
+                  Text : constant String := To_String (Row.Text);
+               begin
+                  if Text'Length > 0
+                    and then Text'Length <= Tip'Length
+                    and then Tip (Tip'First .. Tip'First + Text'Length - 1) = Text
+                  then
+                     Shown := True;
+                  end if;
+               end;
+            end loop;
+            Assert (Shown, "hovering the scope chip shows the scope tooltip");
+         end;
       end;
    end Test_Scope_Chip_Has_Own_Tooltip;
