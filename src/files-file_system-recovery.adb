@@ -17,7 +17,6 @@ with Ada.Strings.Unbounded;
 with Files.Durability;
 with Hostkit.Durability;
 with Hostkit.Fs;
-with Hostkit.Host;
 with Hostkit.Lease_Files;
 with Hostkit.Locks;
 with Hostkit.Metadata;
@@ -330,15 +329,16 @@ package body Files.File_System.Recovery is
    end Let_Go_Marker;
 
    --  Remove Stage, whose payload is gone, while Item holds one of its
-   --  markers. POSIX removes a held file, so the lease is kept until the
-   --  stage is gone; Windows refuses that, so the lease goes first. Another
-   --  claimer that slips into that gap can only remove the same stage.
+   --  markers. Where the host removes a held file (POSIX), the lease is kept
+   --  until the stage is gone; where it refuses (Windows), the lease goes
+   --  first (Hostkit.Lease_Files.Held_File_Removable). Another claimer that
+   --  slips into that gap can only remove the same stage.
    procedure Remove_Stage_Holding
      (Stage : String;
       Item  : in out Hostkit.Lease_Files.Lease)
    is
    begin
-      if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows) then
+      if not Hostkit.Lease_Files.Held_File_Removable then
          Hostkit.Lease_Files.Release (Item);
       end if;
       Delete_Owned_Tree (Stage);

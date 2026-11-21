@@ -17,7 +17,6 @@ with CryptoLib.Hashes;
 
 with Files.Durability;
 with Hostkit.Durability;
-with Hostkit.Host;
 with Hostkit.Metadata;
 with Hostkit.Regular_Files;
 
@@ -708,7 +707,8 @@ package body Files.File_System.Support is
    --  keeps the revision it was published with.
    --  @param Path The published entry.
    --  @param Revision Its revision at publication; read again for a folder
-   --    on Windows, where inheriting wrote the change times it reads.
+   --    where inheriting wrote the change times it reads (Windows:
+   --    Hostkit.Metadata.Inherit_Rewrites_Change_Times).
    procedure Inherit_Destination_Access
      (Path     : String;
       Revision : in out Files.Types.UString)
@@ -727,7 +727,7 @@ package body Files.File_System.Support is
       --  folder's revision reads for the files inside it: take it afresh, or
       --  Undo and crash recovery would see a changed copy. A file's revision
       --  leaves the change time out.
-      if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows)
+      if Hostkit.Metadata.Inherit_Rewrites_Change_Times
         and then not Hostkit.Fs.Is_Link (Path)
         and then Files.Fs_Primitives.Kind (Path) = Ada.Directories.Directory
       then

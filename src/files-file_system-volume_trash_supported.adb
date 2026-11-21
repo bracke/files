@@ -1,4 +1,5 @@
 with Hostkit.Process;
+with Hostkit.Trash;
 
 separate (Files.File_System)
 function Volume_Trash_Supported return Boolean is
@@ -9,7 +10,7 @@ begin
    --  volume trash turn it on.
    return not Environment_Equals ("FILES_TEST_VOLUME_TRASH", "off")
      and then Trash_Backend_Of_Current_Environment in Trash_Xdg_Data_Home | Trash_Home_Data | Trash_Macos_Home
-     and then Hostkit.Host.Current /= Hostkit.Host.Windows
+     and then Hostkit.Trash.Has_Volume_Trash_Folders
      and then Hostkit.Process.Current_User_Account (Uid);
 exception
    when Swallowed : others =>
