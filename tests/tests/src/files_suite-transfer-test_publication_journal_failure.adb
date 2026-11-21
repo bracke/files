@@ -22,7 +22,7 @@ separate (Files_Suite.Transfer)
                   Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
                   pragma Unreferenced (Paste);
                   Step : Files.Operation_Results.Operation_Result;
-                  Outcome : Files.Transfer_Jobs.Job_Result;
+                  Outcome : Files.Jobs.Transfer.Job_Result;
                begin
                   Write_Binary_File (Source, "source bytes");
                   if Replaced then
@@ -30,12 +30,12 @@ separate (Files_Suite.Transfer)
                   end if;
                   --  Refuse journal writes while keeping result transport usable.
                   Ada.Directories.Create_Path (Join (Transport, "created"));
-                  Files.Job_Context.Initialize (Transport);
+                  Files.Jobs.Context.Initialize (Transport);
                   if Via_Helper then
-                     Files.Transfer_Jobs.Testing.Write_Request
+                     Files.Jobs.Transfer.Testing.Write_Request
                        (Join (Transport, "request"), Action, Mode);
-                     Files.Transfer_Jobs.Run_Helper (Transport);
-                     Outcome := Files.Transfer_Jobs.Testing.Read_Result
+                     Files.Jobs.Transfer.Run_Helper (Transport);
+                     Outcome := Files.Jobs.Transfer.Testing.Read_Result
                        (Join (Transport, "result"));
                      Assert
                        (Outcome.Mutation.Success,
@@ -59,7 +59,7 @@ separate (Files_Suite.Transfer)
                      Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
                      Actions.Append (Action);
                      Files.Operations.Begin_Paste_Execution (Model, Actions, Mode);
-                     Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
+                     Step := Files.Jobs.Foreground.Advance (Model, Settings, 1);
                      Files_Suite.Support.Assert_Equal
                        (Step.Status,
                         Files.Operation_Results.Operation_Success,
@@ -83,7 +83,7 @@ separate (Files_Suite.Transfer)
                      Assert (not Ada.Directories.Exists (Join (Root, Files.Protocol_Names.Work_Stage_Prefix & "1")),
                              "a journal failure does not retain copy staging or remove the published output");
                   end if;
-                  Files.Job_Context.Initialize ("");
+                  Files.Jobs.Context.Initialize ("");
                   if not Via_Helper then
                      Step := Complete_Operation
                        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
@@ -103,7 +103,7 @@ separate (Files_Suite.Transfer)
       end loop;
    exception
       when others =>
-         Files.Job_Context.Initialize ("");
+         Files.Jobs.Context.Initialize ("");
          if Ada.Streams.Stream_IO.Is_Open (File) then
             Ada.Streams.Stream_IO.Close (File);
          end if;

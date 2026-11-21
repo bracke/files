@@ -9,7 +9,7 @@ separate (Files_Suite.Refresh)
       Model : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
-      Watch : Files.Refresh_Jobs.Watch_Session;
+      Watch : Files.Jobs.Refresh.Watch_Session;
       Step : Files.Operation_Results.Operation_Result;
       pragma Unreferenced (Step);
       Load : Files.File_System.Directory_Load_Result;
@@ -20,17 +20,17 @@ separate (Files_Suite.Refresh)
 
       procedure Cleanup is
       begin
-         Files.Refresh_Jobs.Cancel (Model);
-         Files.Refresh_Jobs.Release_Watch (Watch);
+         Files.Jobs.Refresh.Cancel (Model);
+         Files.Jobs.Refresh.Release_Watch (Watch);
       end Cleanup;
 
       procedure Await_Stall is
-         Job : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Refresh (Model);
+         Job : constant Files.Jobs.Process.Session := Files.Model.Jobs.Background_Refresh (Model);
       begin
          for Attempt in Files_Suite.Support.Timing.Polling loop
-            exit when Ada.Directories.Exists (Files.Process_Jobs.Path (Job, "started"));
+            exit when Ada.Directories.Exists (Files.Jobs.Process.Path (Job, "started"));
          end loop;
-         Assert (Ada.Directories.Exists (Files.Process_Jobs.Path (Job, "started")),
+         Assert (Ada.Directories.Exists (Files.Jobs.Process.Path (Job, "started")),
                  "the refresh helper has entered deliberately stalled filesystem work");
       end Await_Stall;
    begin
@@ -40,14 +40,14 @@ separate (Files_Suite.Refresh)
          Oversized : constant String (1 .. 32 * 1024 + 1) :=
            [others => 'x'];
       begin
-         Files.Refresh_Jobs.Watch_Path (Watch, "relative-watch");
+         Files.Jobs.Refresh.Watch_Path (Watch, "relative-watch");
          Files_Suite.Support.Assert_Equal
-           (Files.Refresh_Jobs.Testing.Watch_Target (Watch),
+           (Files.Jobs.Refresh.Testing.Watch_Target (Watch),
             "",
             "a relative watch path is rejected before launching a helper");
-         Files.Refresh_Jobs.Watch_Path (Watch, Oversized);
+         Files.Jobs.Refresh.Watch_Path (Watch, Oversized);
          Files_Suite.Support.Assert_Equal
-           (Files.Refresh_Jobs.Testing.Watch_Target (Watch),
+           (Files.Jobs.Refresh.Testing.Watch_Target (Watch),
             "",
             "an oversized watch path falls back without launching a doomed helper");
       end;
@@ -59,7 +59,7 @@ separate (Files_Suite.Refresh)
          Ada.Directories.Create_Directory (Directory);
          Write_Binary_File (Changed, "");
          Assert
-           (Files.Refresh_Jobs.Testing.Claim_Notification (Directory),
+           (Files.Jobs.Refresh.Testing.Claim_Notification (Directory),
             "watch polling atomically claims the notification being acknowledged: claimed");
          Assert
            (not Ada.Directories.Exists (Changed),
@@ -70,16 +70,16 @@ separate (Files_Suite.Refresh)
          Write_Binary_File (Changed, "");
          Ada.Directories.Delete_File (Claimed);
          Assert
-           (Files.Refresh_Jobs.Testing.Claim_Notification (Directory),
+           (Files.Jobs.Refresh.Testing.Claim_Notification (Directory),
             "a notification published after the claim remains for the next poll");
          Ada.Directories.Delete_File (Claimed);
          Ada.Directories.Create_Directory (Changed);
          Assert
-           (not Files.Refresh_Jobs.Testing.Post_Notification (Directory),
+           (not Files.Jobs.Refresh.Testing.Post_Notification (Directory),
             "a watch marker reports a transient publication failure");
          Ada.Directories.Delete_Directory (Changed);
          Assert
-           (Files.Refresh_Jobs.Testing.Post_Notification (Directory)
+           (Files.Jobs.Refresh.Testing.Post_Notification (Directory)
             and then Ada.Directories.Exists (Changed),
             "a consumed watch event can be published on a later retry");
          Ada.Directories.Delete_File (Changed);
@@ -91,17 +91,17 @@ separate (Files_Suite.Refresh)
       Files.Model.Set_Background_Transfers (Model, True);
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_READS", "1");
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
-      Files.Refresh_Jobs.Watch_Path (Watch, Root);
+      Files.Jobs.Refresh.Watch_Path (Watch, Root);
       Await_Stall;
       Before := Now;
       for Attempt in 1 .. 100 loop
-         Assert (not Files.Refresh_Jobs.Advance (Model, Settings), "stalled reads leave the current listing intact");
-         Assert (not Files.Refresh_Jobs.Poll_Watch (Watch), "watch polling never waits for registration or I/O");
+         Assert (not Files.Jobs.Refresh.Advance (Model, Settings), "stalled reads leave the current listing intact");
+         Assert (not Files.Jobs.Refresh.Poll_Watch (Watch), "watch polling never waits for registration or I/O");
       end loop;
       Assert_Within (Before, Prompt_Limit, "repeated UI polls return promptly while helpers are stalled");
       Files.Model.Set_Filter (Model, "source");
-      Assert (not Files.Refresh_Jobs.Advance (Model, Settings)
-              and then not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
+      Assert (not Files.Jobs.Refresh.Advance (Model, Settings)
+              and then not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "a model edit cancels even a refresh that cannot finish");
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
       Await_Stall;
@@ -110,22 +110,22 @@ separate (Files_Suite.Refresh)
                          To_Unbounded_String (Join (Root, "dest")), False, False));
       Before := Now;
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-      Assert (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
+      Assert (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "starting paste immediately releases an outstanding read");
-      Files.Foreground_Jobs.Cancel (Model);
-      Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
+      Files.Jobs.Foreground.Cancel (Model);
+      Step := Files.Jobs.Foreground.Advance (Model, Settings, 1);
       Assert_Within (Before, Prompt_Limit, "paste cancellation finalizes without waiting for a directory reload");
       Assert (not Files.Model.Foreground_Job_Is_Active (Model)
               and then not Ada.Directories.Exists (Join (Root, "dest")),
               "paste cancellation finalizes without copying");
-      Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
+      Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "paste finalization schedules its directory refresh independently");
       Await_Stall;
       Before := Now;
       Cleanup;
       Assert_Within
         (Before, Prompt_Limit, "window cleanup releases stalled refresh and native-watch helpers without waiting");
-      Assert (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
+      Assert (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "window cleanup leaves no refresh helper active");
    exception
       when others =>

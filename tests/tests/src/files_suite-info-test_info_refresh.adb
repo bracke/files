@@ -24,7 +24,7 @@ separate (Files_Suite.Info)
            (Model, Settings, "",
             (Kind => Files.Input_Actions.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command),
             Guikit.Input.No_Modifiers, Routed);
-         Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)), "the refresh is scheduled");
+         Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)), "the refresh is scheduled");
          Await_View (Model, Settings, Applied);
          Assert (Applied and then Files.Model.Item_Count (Model) = 3,
                  "info metadata cannot invalidate a manual refresh started by the same action");
@@ -42,5 +42,5 @@ separate (Files_Suite.Info)
             "cached metadata does not repeatedly change the revision");
       end loop;
    exception
-      when others => Files.Refresh_Jobs.Cancel (Model); raise;
+      when others => Files.Jobs.Refresh.Cancel (Model); raise;
    end Test_Info_Refresh;

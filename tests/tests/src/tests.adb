@@ -11,14 +11,14 @@ with AUnit.Run;
 with Files_Suite.Support;
 with All_Suites;
 with Files.Diagnostics;
-with Files.Job_Helpers;
-with Files.Job_Context;
+with Files.Jobs.Helpers;
+with Files.Jobs.Context;
 with Files.Localization;
-with Files.Job_Scavenger;
+with Files.Jobs.Scavenger;
 with Files.Durability.Testing;
 with Files.File_System;
 with Files.File_System.Testing;
-with Files.Process_Jobs;
+with Files.Jobs.Process;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Files.Types;
@@ -46,7 +46,7 @@ procedure Tests is
       Reaped : Boolean;
       pragma Warnings (Off, Reaped);
    begin
-      Files.Job_Scavenger.Shutdown (Reaped);
+      Files.Jobs.Scavenger.Shutdown (Reaped);
    end Shutdown_Scavenger;
 
    procedure Drop_Backup_Privileges is
@@ -129,14 +129,14 @@ begin
       --  environment, on every host.
       Files.Durability.Testing.Install_From_Environment;
       Files.File_System.Testing.Install_From_Environment;
-      if Files.Job_Helpers.Run_If_Requested then
+      if Files.Jobs.Helpers.Run_If_Requested then
          Test_Helpers.Damage_Result (Mode);
          Shutdown_Scavenger;
-         Files.Job_Context.Shutdown;
+         Files.Jobs.Context.Shutdown;
          declare
             Stopped : Boolean;
          begin
-            Files.Process_Jobs.Shutdown (Stopped);
+            Files.Jobs.Process.Shutdown (Stopped);
             if not Stopped then
                Hostkit.Process.End_Now (1);
             end if;
@@ -238,11 +238,11 @@ begin
          null;
       end;
       Shutdown_Scavenger;
-      Files.Job_Context.Shutdown;
+      Files.Jobs.Context.Shutdown;
       declare
          Stopped : Boolean;
       begin
-         Files.Process_Jobs.Shutdown (Stopped);
+         Files.Jobs.Process.Shutdown (Stopped);
          if not Stopped then
             Hostkit.Process.End_Now (1);
          end if;
@@ -272,13 +272,13 @@ begin
 exception
    when others =>
       Shutdown_Scavenger;
-      Files.Job_Context.Shutdown;
+      Files.Jobs.Context.Shutdown;
       declare
          --  Exiting anyway: the reaper's outcome changes nothing here.
          Stopped : Boolean;
          pragma Warnings (Off, Stopped);
       begin
-         Files.Process_Jobs.Shutdown (Stopped);
+         Files.Jobs.Process.Shutdown (Stopped);
       end;
       --  The scratch area this run made is not left behind by a crash.
       if Ada.Strings.Unbounded.Length (Owned_Temp) > 0 then

@@ -1,4 +1,4 @@
-with Files.Job_Helpers.Testing;
+with Files.Jobs.Helpers.Testing;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Transport_Cleanup_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -14,7 +14,7 @@ separate (Files_Suite.Recovery)
          Ada.Directories.Create_Directory (Victim);
          Write_Binary_File (Join (Victim, "keep"), "unrelated");
          Assert
-           (not Files.Job_Helpers.Testing.Run_Cleanup
+           (not Files.Jobs.Helpers.Testing.Run_Cleanup
               (Victim, Files.File_Identities.Token (Victim), Attempt_Limit => 1,
                Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0),
             "cleanup refuses an arbitrary unmarked directory: refused");
@@ -26,7 +26,7 @@ separate (Files_Suite.Recovery)
       end;
 
       declare
-         Job        : Files.Process_Jobs.Session;
+         Job        : Files.Jobs.Process.Session;
          Directory  : Files.Types.UString;
          Marker     : Files.Types.UString;
          Original   : Files.Types.UString;
@@ -34,18 +34,18 @@ separate (Files_Suite.Recovery)
          Read_Error : Boolean;
          Rejected   : Boolean;
       begin
-         Files.Process_Jobs.Reserve (Job);
-         Directory := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+         Files.Jobs.Process.Reserve (Job);
+         Directory := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
          Marker := To_Unbounded_String
            (Join (To_String (Directory), ".files-job-transport"));
          Original := To_Unbounded_String
            (Project_Tools.Files.Read_Raw_File (To_String (Marker)));
          Write_Binary_File (To_String (Marker), To_String (Original) & "trailing");
-         Files.Job_Transports.Inspect_Marker
+         Files.Jobs.Transports.Inspect_Marker
            (To_String (Directory), Recorded, Read_Error);
          Rejected := Length (Recorded) = 0 and then not Read_Error;
          Write_Binary_File (To_String (Marker), To_String (Original));
-         Files.Process_Jobs.Reset (Job);
+         Files.Jobs.Process.Reset (Job);
          Assert
            (Rejected,
             "transport ownership markers reject trailing data as invalid");
@@ -61,7 +61,7 @@ separate (Files_Suite.Recovery)
               (Hostkit.Fs.Is_Link (Link_Path),
                "cleanup never reports a dangling symlink as a removed transport: link present");
             Assert
-              (not Files.Job_Helpers.Testing.Run_Cleanup
+              (not Files.Jobs.Helpers.Testing.Run_Cleanup
                  (Link_Path, "untrusted", Attempt_Limit => 1, Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0),
                "cleanup never reports a dangling symlink as a removed transport: not reported removed");
             Assert
@@ -77,7 +77,7 @@ separate (Files_Suite.Recovery)
       --  A marked transport is removed through the symlink-safe owned-tree
       --  path, so injected links cannot redirect recursive cleanup.
       declare
-         Job       : Files.Process_Jobs.Session;
+         Job       : Files.Jobs.Process.Session;
          Owned     : Files.Types.UString;
          Target    : constant String := Join (Root, "cleanup-link-target");
          Link_Path : Files.Types.UString;
@@ -85,19 +85,19 @@ separate (Files_Suite.Recovery)
       begin
          Ada.Directories.Create_Directory (Target);
          Write_Binary_File (Join (Target, "keep"), "target");
-         Files.Process_Jobs.Reserve (Job);
-         Owned := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+         Files.Jobs.Process.Reserve (Job);
+         Owned := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
          Link_Path := To_Unbounded_String (Join (To_String (Owned), "injected-link"));
          Linked := Hostkit.Fs.Create_Link (Target, To_String (Link_Path));
          Assert
-           (not Files.Job_Helpers.Testing.Run_Cleanup
+           (not Files.Jobs.Helpers.Testing.Run_Cleanup
               (To_String (Owned), Files.File_Identities.Token (To_String (Owned)),
                Attempt_Limit => 1, Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0)
             and then Ada.Directories.Exists (To_String (Owned)),
             "cleanup refuses a marked transport while its owner holds the lease");
-         Files.Process_Jobs.Testing.Release_Owner (Job);
+         Files.Jobs.Process.Testing.Release_Owner (Job);
          Assert
-           (Files.Job_Helpers.Testing.Run_Cleanup
+           (Files.Jobs.Helpers.Testing.Run_Cleanup
               (To_String (Owned), Files.File_Identities.Token (To_String (Owned)),
                Attempt_Limit => 1, Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0)
             and then not Ada.Directories.Exists (To_String (Owned)),
@@ -110,7 +110,7 @@ separate (Files_Suite.Recovery)
       --  A marker copied from the genuine directory does not authorize a
       --  replacement subsequently installed at the same pathname.
       declare
-         Job      : Files.Process_Jobs.Session;
+         Job      : Files.Jobs.Process.Session;
          Original : Files.Types.UString;
          Saved    : Files.Types.UString;
          Expected : Files.Types.UString;
@@ -120,7 +120,7 @@ separate (Files_Suite.Recovery)
          begin
             --  Windows refuses to remove the transport while its lease handle
             --  is open, so release the session before restoring the fixture.
-            Files.Process_Jobs.Reset (Job);
+            Files.Jobs.Process.Reset (Job);
             if Length (Original) > 0 and then Ada.Directories.Exists (To_String (Original)) then
                Project_Tools.Files.Delete_Tree (To_String (Original));
             end if;
@@ -129,11 +129,11 @@ separate (Files_Suite.Recovery)
             end if;
          end Restore;
       begin
-         Files.Process_Jobs.Reserve (Job);
-         Original := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+         Files.Jobs.Process.Reserve (Job);
+         Original := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
          Saved := Original & "-saved";
          Expected := To_Unbounded_String (Files.File_Identities.Token (To_String (Original)));
-         Files.Process_Jobs.Testing.Release_Owner (Job);
+         Files.Jobs.Process.Testing.Release_Owner (Job);
          Ada.Directories.Rename (To_String (Original), To_String (Saved));
          Ada.Directories.Create_Directory (To_String (Original));
          Write_Binary_File
@@ -141,7 +141,7 @@ separate (Files_Suite.Recovery)
             Project_Tools.Files.Read_Raw_File (Join (To_String (Saved), Marker)));
          Write_Binary_File (Join (To_String (Original), "keep"), "replacement");
          Assert
-           (not Files.Job_Helpers.Testing.Run_Cleanup
+           (not Files.Jobs.Helpers.Testing.Run_Cleanup
               (To_String (Original), To_String (Expected), Attempt_Limit => 1,
                Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0),
             "cleanup refuses a replacement carrying the original transport marker: refused");

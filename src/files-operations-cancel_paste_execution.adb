@@ -6,13 +6,13 @@ begin
    if not Files.Model.Pasting.Execution_Is_Active (Model) then
       return;
    end if;
-   --  A cancel can fail (Process_Jobs refuses when it cannot write a
+   --  A cancel can fail (Jobs.Process refuses when it cannot write a
    --  trustworthy marker and stays retryable). Only show the paste as
    --  cancelled when the request went through; otherwise the UI said
    --  "cancelled" while the helper ran to completion, and a second Cancel
    --  was never possible.
    begin
-      Files.Transfer_Jobs.Cancel (Files.Model.Pasting.Job (Model));
+      Files.Jobs.Transfer.Cancel (Files.Model.Pasting.Job (Model));
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Operations");

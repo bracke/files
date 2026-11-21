@@ -8,7 +8,7 @@ with Files.Settings;
 --  helper job: there when the window runs them in the background
 --  (Files.Model.Background_Transfers), otherwise in process
 --  (Files.Operations). The one unit that sees both: Files.Operations never
---  starts a job, and a helper job (Files.Operation_Jobs.Helper) runs the
+--  starts a job, and a helper job (Files.Jobs.Operation.Helper) runs the
 --  in-process work. Each asks the command's refusal checks before it starts
 --  a job, as the in-process command does before it runs.
 package Files.Operation_Commands is

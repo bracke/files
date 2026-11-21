@@ -2,7 +2,7 @@ with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    procedure Test_Unmarked_Transport_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Active          : aliased Files.Process_Jobs.Session;
+      Active          : aliased Files.Jobs.Process.Session;
       Before_Lease_Path : constant Files.Types.UString := To_Unbounded_String
         (Join (Hostkit.Fs.Temp_Directory, "files-job-11111111111111111111111111111111"));
       After_Lease_Path : Files.Types.UString;
@@ -21,7 +21,7 @@ separate (Files_Suite.Recovery)
       Files_Suite.Support.Guards.Track (Jobs, Similar_Path);
       Reset_Root;
       --  A live job keeps its transport present, as it is during startup recovery.
-      Files.Process_Jobs.Reserve (Active);
+      Files.Jobs.Process.Reserve (Active);
 
       --  Exercise both sides of marker publication. A lease-free directory
       --  could belong to a paused creator, while a released lease with no
@@ -37,14 +37,14 @@ separate (Files_Suite.Recovery)
         (To_String (Before_Lease_Path), GNAT.OS_Lib.GM_Time_Of (2020, 1, 2, 3, 4, 5));
       declare
          Incomplete_Identity : Files.Types.UString;
-         Incomplete_Owner    : Files.Job_Transports.Lease;
+         Incomplete_Owner    : Files.Jobs.Transports.Lease;
       begin
-         Files.Job_Transports.Create
+         Files.Jobs.Transports.Create
            (After_Lease_Path, Incomplete_Identity, Incomplete_Owner);
          Files_Suite.Support.Guards.Track (Jobs, After_Lease_Path);
          Ada.Directories.Delete_File
            (Join (To_String (After_Lease_Path), ".files-job-transport"));
-         Files.Job_Transports.Release (Incomplete_Owner);
+         Files.Jobs.Transports.Release (Incomplete_Owner);
       end;
       Files.Private_Directories.Create (To_String (Young_Path));
       Files.Private_Directories.Create (To_String (Payload_Path));
@@ -57,28 +57,28 @@ separate (Files_Suite.Recovery)
 
       declare
          Candidate_Identity : Files.Types.UString;
-         Candidate_Owner    : Files.Job_Transports.Lease;
+         Candidate_Owner    : Files.Jobs.Transports.Lease;
       begin
          Assert
-           (Files.Job_Transports.Claim_Incomplete
+           (Files.Jobs.Transports.Claim_Incomplete
               (To_String (Young_Path), Candidate_Identity, Candidate_Owner,
-               Minimum_Age => 60.0) = Files.Job_Transports.Claim_Unrecoverable,
+               Minimum_Age => 60.0) = Files.Jobs.Transports.Claim_Unrecoverable,
             "a directory without this version's witness is not claimed by age alone");
          Assert
-           (Files.Job_Transports.Claim_Incomplete
+           (Files.Jobs.Transports.Claim_Incomplete
               (To_String (Before_Lease_Path), Candidate_Identity, Candidate_Owner,
-               Minimum_Age => 0.0) = Files.Job_Transports.Claim_Unrecoverable,
+               Minimum_Age => 0.0) = Files.Jobs.Transports.Claim_Unrecoverable,
             "age never authorizes a second lease for a potentially live creator");
          Assert
-           (Files.Job_Transports.Claim_Incomplete
+           (Files.Jobs.Transports.Claim_Incomplete
               (To_String (Payload_Path), Candidate_Identity, Candidate_Owner,
-               Minimum_Age => 0.0) = Files.Job_Transports.Claim_Refused,
+               Minimum_Age => 0.0) = Files.Jobs.Transports.Claim_Refused,
             "an unmarked directory with non-protocol payload is classified as refused");
       end;
 
       declare
          Complete : constant Boolean :=
-           Files.Job_Scavenger.Run (Wait_For_Grace => False);
+           Files.Jobs.Scavenger.Run (Wait_For_Grace => False);
       begin
          Assert
            (Complete,
@@ -105,7 +105,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File
         (Join (To_String (Young_Path), ".files-job-transport.tmp"), "partial marker");
       declare
-         Complete : constant Boolean := Files.Job_Scavenger.Run;
+         Complete : constant Boolean := Files.Jobs.Scavenger.Run;
       begin
          Assert
            (Complete,
@@ -119,12 +119,12 @@ separate (Files_Suite.Recovery)
         (To_String (Young_Path), GNAT.OS_Lib.GM_Time_Of (2099, 1, 2, 3, 4, 5));
       declare
          Candidate_Identity : Files.Types.UString;
-         Candidate_Owner : Files.Job_Transports.Lease;
+         Candidate_Owner : Files.Jobs.Transports.Lease;
       begin
          Assert
-           (Files.Job_Transports.Claim_Incomplete
+           (Files.Jobs.Transports.Claim_Incomplete
               (To_String (Young_Path), Candidate_Identity, Candidate_Owner) =
-                Files.Job_Transports.Claim_Unrecoverable,
+                Files.Jobs.Transports.Claim_Unrecoverable,
             "a future timestamp cannot keep a pre-lease directory retrying forever");
       end;
       Files_Suite.Support.Guards.Release (Jobs);

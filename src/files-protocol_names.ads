@@ -43,8 +43,8 @@ package Files.Protocol_Names is
    Recovery_Releasing : constant String := "releasing";
 
    --  The files of a helper job's private directory, besides its request and
-   --  result (Files.Process_Jobs.Request_File, Result_File). A ".tmp" name is
-   --  the staged copy (Files.Process_Jobs.Staged_Name), published whole by
+   --  result (Files.Jobs.Process.Request_File, Result_File). A ".tmp" name is
+   --  the staged copy (Files.Jobs.Process.Staged_Name), published whole by
    --  renaming it to the plain one.
 
    --  The window's request that the helper stop.

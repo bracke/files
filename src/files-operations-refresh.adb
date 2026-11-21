@@ -12,7 +12,7 @@ begin
       Files.Model.Folder_Sizes.Clear (Model);
    end if;
    if Files.Model.Background_Transfers (Model) then
-      return Files.Refresh_Jobs.Start (Model, Settings, Force => True);
+      return Files.Jobs.Refresh.Start (Model, Settings, Force => True);
    end if;
    --  The virtual recent view has no backing directory to reload; rebuild its
    --  synthetic listing from the current recent paths instead.

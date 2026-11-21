@@ -1,6 +1,6 @@
 with Files.Fs_Primitives;
-with Files.Job_Context;
-with Files.Job_Storage;
+with Files.Jobs.Context;
+with Files.Jobs.Storage;
 with Ada.Streams;
 with Guikit.Shared_Bytes;
 with Files.Environment;
@@ -912,7 +912,7 @@ package body Files.File_System is
    function Copy_Tree
      (Source_Path      : String;
       Destination_Path : String;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result is
    begin
       Files.Io_Errors.Reset;
@@ -929,7 +929,7 @@ package body Files.File_System is
    function Copy_Tree
      (Source_Path, Destination_Path : String;
       Identity, Tree_Revision_Value : out Files.Types.UString;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result is separate;
 
    function Delete_Permanently
@@ -948,7 +948,7 @@ package body Files.File_System is
      (Plans   : Drop_Import_Plan_Vectors.Vector;
       Created : out Created_Entry_Vectors.Vector;
       Cancel  : Cancellation_Check := Job_Cancelled;
-      Batch   : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch   : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result
    is separate;
 
@@ -962,7 +962,7 @@ package body Files.File_System is
       Created_Tree_Revision : out Files.Types.UString;
       Preserved             : access procedure (Backup, Backup_Identity : String) := null;
       Cancel                : Cancellation_Check := Job_Cancelled;
-      Batch                 : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch                 : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result
    is separate;
 
@@ -1047,9 +1047,9 @@ package body Files.File_System is
          return False;
    end Creation_Matches;
 
-   function Job_Cancelled return Cancellation_Check is (Files.Job_Context.Cancelled'Access);
+   function Job_Cancelled return Cancellation_Check is (Files.Jobs.Context.Cancelled'Access);
 
-   --  Files.Job_Storage's operations: the job layer's view of the removals
+   --  Files.Jobs.Storage's operations: the job layer's view of the removals
    --  and the creation check above, which it reaches without naming this
    --  package.
    function Remove_Stage_For_Jobs (Path, Expected_Identity : String) return Boolean is
@@ -1063,7 +1063,7 @@ package body Files.File_System is
      (Creation_Matches (Path, Identity, Tree_Revision, Retain_Verified));
 
 begin
-   Files.Job_Storage.Install
+   Files.Jobs.Storage.Install
      (Delete_Staging   => Remove_Stage_For_Jobs'Access,
       Delete_Transport => Remove_Transport_For_Jobs'Access,
       Matches          => Creation_Matches_For_Jobs'Access,

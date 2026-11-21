@@ -42,7 +42,7 @@ separate (Files_Suite.Transfer)
       Assert (Files.Model.Testing.Paste_Execution_Done (Model) < Count,
               "the first drop batch does not finish the whole set");
 
-      Step := Files.Foreground_Jobs.Advance (Model, Settings, Count);
+      Step := Files.Jobs.Foreground.Advance (Model, Settings, Count);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,

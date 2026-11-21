@@ -1,7 +1,7 @@
 with Files.Paste;
-with Files.Copy_Context;
+with Files.Jobs.Copy_Context;
 with Files.Paste_States;
-with Files.Transfer_Jobs;
+with Files.Jobs.Transfer;
 --  A paste, a drop or a Copy to.../Move to... as the model holds it: the
 --  conflict dialog that resolves its collisions, and the execution that
 --  works through its resolved actions, with the transfer job that runs
@@ -115,7 +115,7 @@ package Files.Model.Pasting is
       Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
       Mode            : Files.File_System_Types.Drop_Import_Mode;
       Clear_Clipboard : Boolean := True;
-      Batch           : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
+      Batch           : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session);
 
    --  The paste being carried out, as it stands. A copy, for a caller that
    --  reads several of its fields once (finishing the paste); progress read
@@ -130,13 +130,13 @@ package Files.Model.Pasting is
    --
    --  @param Model Window to inspect.
    --  @return Its transfer session (inactive between actions).
-   function Job (Model : Window_Model) return Files.Transfer_Jobs.Session;
+   function Job (Model : Window_Model) return Files.Jobs.Transfer.Session;
 
    --  Store the transfer session after driving it.
    --
    --  @param Model Window to update.
    --  @param Job Its transfer session.
-   procedure Set_Job (Model : in out Window_Model; Job : Files.Transfer_Jobs.Session);
+   procedure Set_Job (Model : in out Window_Model; Job : Files.Jobs.Transfer.Session);
 
    --  The current paste action has been handed to a helper: show its name.
    --
@@ -195,7 +195,7 @@ package Files.Model.Pasting is
 
    --  @param Model Window owning the active copy batch.
    --  @return Shared private hard-link journal, or an empty session.
-   function Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session;
+   function Execution_Copy_Context (Model : Window_Model) return Files.Jobs.Copy_Context.Session;
 
    --  Record a preserved original and its identity for the paste's Undo.
    --  The operations layer resolves the original destination and checks the

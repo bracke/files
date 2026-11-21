@@ -4,7 +4,7 @@ with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_Partial_Redo_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Undo_History.Undo_Create_Kind;
+      use type Files.Undo.History.Undo_Create_Kind;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source_A : constant String := Join (Root, "redo-source-a");
       Source_B : constant String := Join (Root, "redo-source-b");
@@ -14,7 +14,7 @@ separate (Files_Suite.History)
       Held_B : constant String := Join (Root, "held-b");
       Saved_A : constant String := Join (Root, "saved-redo-dest-a");
    begin
-      for Kind in Files.Undo_History.Create_Copy .. Files.Undo_History.Create_Hard_Link loop
+      for Kind in Files.Undo.History.Create_Copy .. Files.Undo.History.Create_Hard_Link loop
          for Missing_Source in Boolean loop
             Reset_Root;
             declare
@@ -26,10 +26,10 @@ separate (Files_Suite.History)
                begin
                   return
                     (case Kind is
-                        when Files.Undo_History.Create_Copy => Files.File_System.Copy_Tree (Source, Dest).Success,
-                        when Files.Undo_History.Create_Symbolic_Link =>
+                        when Files.Undo.History.Create_Copy => Files.File_System.Copy_Tree (Source, Dest).Success,
+                        when Files.Undo.History.Create_Symbolic_Link =>
                           Files.File_System.Create_Symbolic_Link (Source, Dest).Success,
-                        when Files.Undo_History.Create_Hard_Link =>
+                        when Files.Undo.History.Create_Hard_Link =>
                           Files.File_System.Create_Hard_Link (Source, Dest).Success);
                end Create;
             begin
@@ -41,8 +41,8 @@ separate (Files_Suite.History)
                Sources.Append (To_Unbounded_String (Source_A));
                Sources.Append (To_Unbounded_String (Source_B));
                Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-               Files.Undo_Recording.Record_Undo
-                 (Model, Files.Undo_History.Undo_Delete_Created,
+               Files.Undo.Recording.Record_Undo
+                 (Model, Files.Undo.History.Undo_Delete_Created,
                   Files_Suite.Support.Models.Undo_Items (Destinations, Forward => Sources),
                   Create_Kind => Kind);
                Step := Complete_Operation
@@ -95,7 +95,7 @@ separate (Files_Suite.History)
                Assert
                  (Hostkit.Fs.Move_No_Replace (Dest_A, Saved_A),
                   "move the completed output aside without following links");
-               if Kind = Files.Undo_History.Create_Symbolic_Link then
+               if Kind = Files.Undo.History.Create_Symbolic_Link then
                   Assert
                     (Hostkit.Fs.Is_Link (Saved_A),
                      "moving a completed symbolic link preserves the link");
@@ -117,7 +117,7 @@ separate (Files_Suite.History)
                Assert
                  (Hostkit.Fs.Move_No_Replace (Saved_A, Dest_A),
                   "restore the completed output without following links");
-               if Kind = Files.Undo_History.Create_Symbolic_Link then
+               if Kind = Files.Undo.History.Create_Symbolic_Link then
                   Assert
                     (Hostkit.Fs.Is_Link (Dest_A),
                      "restoring a completed symbolic link preserves the link");
@@ -147,7 +147,7 @@ separate (Files_Suite.History)
                  (Step.Status,
                   Files.Operation_Results.Operation_Success,
                   "unblocking B completes Redo despite A's now-missing source and returns it to Undo history: "
-                  & Files.Undo_History.Undo_Create_Kind'Image (Kind)
+                  & Files.Undo.History.Undo_Create_Kind'Image (Kind)
                   & " missing=" & Boolean'Image (Missing_Source)
                   & " status=" & Files.Operation_Results.Operation_Status'Image (Step.Status)
                   & " redo=" & Boolean'Image (Files.Model.History.Redo_Available (Model))
@@ -156,7 +156,7 @@ separate (Files_Suite.History)
                Assert
                  (not Files.Model.History.Redo_Available (Model),
                   "unblocking B completes Redo despite A's now-missing source and returns it to Undo history: "
-                  & Files.Undo_History.Undo_Create_Kind'Image (Kind)
+                  & Files.Undo.History.Undo_Create_Kind'Image (Kind)
                   & " missing=" & Boolean'Image (Missing_Source)
                   & " status=" & Files.Operation_Results.Operation_Status'Image (Step.Status)
                   & " redo=" & Boolean'Image (Files.Model.History.Redo_Available (Model))
@@ -165,7 +165,7 @@ separate (Files_Suite.History)
                Assert
                  (Files.Model.History.Undo_Available (Model),
                   "unblocking B completes Redo despite A's now-missing source and returns it to Undo history: "
-                  & Files.Undo_History.Undo_Create_Kind'Image (Kind)
+                  & Files.Undo.History.Undo_Create_Kind'Image (Kind)
                   & " missing=" & Boolean'Image (Missing_Source)
                   & " status=" & Files.Operation_Results.Operation_Status'Image (Step.Status)
                   & " redo=" & Boolean'Image (Files.Model.History.Redo_Available (Model))
@@ -174,7 +174,7 @@ separate (Files_Suite.History)
                Assert
                  (File_Has_Bytes (Dest_B, "original b"),
                   "unblocking B completes Redo despite A's now-missing source and returns it to Undo history: "
-                  & Files.Undo_History.Undo_Create_Kind'Image (Kind)
+                  & Files.Undo.History.Undo_Create_Kind'Image (Kind)
                   & " missing=" & Boolean'Image (Missing_Source)
                   & " status=" & Files.Operation_Results.Operation_Status'Image (Step.Status)
                   & " redo=" & Boolean'Image (Files.Model.History.Redo_Available (Model))

@@ -8,9 +8,9 @@ with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 
 with Files.Fs_Primitives;
-with Files.Undo_Payloads;
-with Files.Transfer_Jobs;
-with Files.Job_Context;
+with Files.Undo.Payloads;
+with Files.Jobs.Transfer;
+with Files.Jobs.Context;
 with Hostkit.Metadata;
 
 with Hostkit;
@@ -23,15 +23,15 @@ with Zlib;
 with Files.Operations.Support;
 with Files.Leaf_Names;
 with Ada.Containers;
-with Files.Refresh_Jobs;
+with Files.Jobs.Refresh;
 with Files.Diagnostics;
-with Files.Copy_Context;
+with Files.Jobs.Copy_Context;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 with Ada.Unchecked_Deallocation;
 with Files.File_Identities;
-with Files.History_Journal;
-with Files.Undo_Recording;
+with Files.Undo.Journal;
+with Files.Undo.Recording;
 with Files.Archive_Writing;
 with Files.Io_Errors;
 with Files.Model.Pasting;
@@ -39,7 +39,7 @@ with Files.Model.Folder_Sizes;
 with Files.Model.History;
 with Files.Model.Rename;
 with Files.Model.Selection;
-with Files.Undo_History;
+with Files.Undo.History;
 
 package body Files.Operations is
    use Ada.Strings.Unbounded;
@@ -48,30 +48,30 @@ package body Files.Operations is
    use type Files.File_System.Path_Status;
    use type Ada.Directories.File_Kind;
    use type Files.File_System.Drop_Import_Mode;
-   use type Files.Undo_History.Undo_Action_Kind;
+   use type Files.Undo.History.Undo_Action_Kind;
    use type Zlib.Status_Code;
 
    use Files.Operations.Support;
 
-   --  The undo history is recorded by Files.Undo_Recording; these name it
+   --  The undo history is recorded by Files.Undo.Recording; these name it
    --  here for the bodies that record.
    procedure Record_Undo
      (Model       : in out Files.Model.Window_Model;
-      Kind        : Files.Undo_History.Undo_Action_Kind;
-      Items       : Files.Undo_History.Recorded_Item_Vectors.Vector;
-      Create_Kind : Files.Undo_History.Undo_Create_Kind := Files.Undo_History.Create_None;
+      Kind        : Files.Undo.History.Undo_Action_Kind;
+      Items       : Files.Undo.History.Recorded_Item_Vectors.Vector;
+      Create_Kind : Files.Undo.History.Undo_Create_Kind := Files.Undo.History.Create_None;
       Redoable    : Boolean := True;
-      Replaced    : Files.Undo_History.Recorded_Original_Vectors.Vector :=
-        Files.Undo_History.Recorded_Original_Vectors.Empty_Vector;
-      Kept        : Files.Undo_History.Kept_Copy_Vectors.Vector := Files.Undo_History.Kept_Copy_Vectors.Empty_Vector)
-     renames Files.Undo_Recording.Record_Undo;
+      Replaced    : Files.Undo.History.Recorded_Original_Vectors.Vector :=
+        Files.Undo.History.Recorded_Original_Vectors.Empty_Vector;
+      Kept        : Files.Undo.History.Kept_Copy_Vectors.Vector := Files.Undo.History.Kept_Copy_Vectors.Empty_Vector)
+     renames Files.Undo.Recording.Record_Undo;
 
-   --  Items an action published (Files.Undo_Recording.Published).
+   --  Items an action published (Files.Undo.Recording.Published).
    function Published
-     (Items : Files.Undo_History.Undo_Item_Vectors.Vector) return Files.Undo_History.Recorded_Item_Vectors.Vector
-     renames Files.Undo_Recording.Published;
+     (Items : Files.Undo.History.Undo_Item_Vectors.Vector) return Files.Undo.History.Recorded_Item_Vectors.Vector
+     renames Files.Undo.Recording.Published;
 
-   procedure Settle_History (Model : in out Files.Model.Window_Model) renames Files.Undo_Recording.Settle_History;
+   procedure Settle_History (Model : in out Files.Model.Window_Model) renames Files.Undo.Recording.Settle_History;
 
    function Unsafe_Open_Action
      (Model : in out Files.Model.Window_Model;
@@ -442,7 +442,7 @@ package body Files.Operations is
      (User_Id, Group_Id : Files.Types.Account_Id; User_Name, Group_Name : String)
       return String
    is
-     (Files.Undo_Payloads.Ownership_Text
+     (Files.Undo.Payloads.Ownership_Text
         ((User_Id, Group_Id, To_Unbounded_String (User_Name), To_Unbounded_String (Group_Name))));
 
    --  Which file metadata an editable-selection check is about.
@@ -469,7 +469,7 @@ package body Files.Operations is
    function Finish_Attribute_Change
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Kind     : Files.Undo_History.Undo_Action_Kind;
+      Kind     : Files.Undo.History.Undo_Action_Kind;
       Path     : String;
       Identity : Files.Types.UString;
       Old_Text : String;
@@ -480,7 +480,7 @@ package body Files.Operations is
       Record_Undo
         (Model, Kind,
          Published
-           (Files.Undo_History.Undo_Item_Vectors.To_Vector
+           (Files.Undo.History.Undo_Item_Vectors.To_Vector
               ((From          => To_Unbounded_String (Path),
                 To            => To_Unbounded_String (Old_Text),
                 Forward       => To_Unbounded_String (New_Text),
@@ -531,7 +531,7 @@ package body Files.Operations is
       Files.Model.Set_Current_Is_Trash (Model, Is_Trash_Directory (Files.Model.Current_Path (Model)));
    end Settle_Current_Is_Trash;
 
-   use type Files.Undo_History.Undo_Create_Kind;
+   use type Files.Undo.History.Undo_Create_Kind;
 
    function Hard_Link_Snapshot (Source : String) return String is separate;
 
@@ -552,21 +552,21 @@ package body Files.Operations is
    end To_Set;
 
    procedure Remove_Completion
-     (Action : in out Files.Undo_History.Undo_Entry;
+     (Action : in out Files.Undo.History.Undo_Entry;
       Path : Files.Types.UString;
-      Side : Files.Undo_History.History_Side)
+      Side : Files.Undo.History.History_Side)
    is separate;
 
    function Move_Back
-     (Action : in out Files.Undo_History.Undo_Entry;
+     (Action : in out Files.Undo.History.Undo_Entry;
       Model : in out Files.Model.Window_Model;
-      Side : Files.Undo_History.History_Side) return Boolean
+      Side : Files.Undo.History.History_Side) return Boolean
    is separate;
 
    --  Apply Mode, or the access record Access_Text when there is one, to
    --  Action's entry Index, verified by its recorded identity.
    function Change_Recorded_Mode
-     (Action      : Files.Undo_History.Undo_Entry;
+     (Action      : Files.Undo.History.Undo_Entry;
       Index       : Positive;
       Mode        : Natural;
       Access_Text : String := "") return Boolean
@@ -574,7 +574,7 @@ package body Files.Operations is
 
    --  Apply Owner to Action's entry Index, verified by its recorded identity.
    function Change_Recorded_Ownership
-     (Action : Files.Undo_History.Undo_Entry; Index : Positive; Owner : Files.Undo_Payloads.Ownership) return Boolean
+     (Action : Files.Undo.History.Undo_Entry; Index : Positive; Owner : Files.Undo.Payloads.Ownership) return Boolean
    is separate;
 
    --  Which recorded value a permission or ownership replay applies: the
@@ -588,24 +588,24 @@ package body Files.Operations is
    --  Put back each entry of a permission or ownership change as Side
    --  recorded it, verified by its identity: the one replay undo and redo
    --  share. A malformed record fails its item, not the rest.
-   function Replay_Metadata (Action : Files.Undo_History.Undo_Entry; Side : Metadata_Side) return Replay_Outcome
+   function Replay_Metadata (Action : Files.Undo.History.Undo_Entry; Side : Metadata_Side) return Replay_Outcome
    is separate;
 
    --  Put Original back from the trash, verified by its identity.
-   function Restore_Recorded_Trash (Original : Files.Undo_History.Replaced_Original) return Boolean is separate;
+   function Restore_Recorded_Trash (Original : Files.Undo.History.Replaced_Original) return Boolean is separate;
 
    function Apply_Reverse
-     (Action : in out Files.Undo_History.Undo_Entry; Model : in out Files.Model.Window_Model)
+     (Action : in out Files.Undo.History.Undo_Entry; Model : in out Files.Model.Window_Model)
       return Boolean
    is separate;
 
    function Completed_Creation_Matches
-     (Action : Files.Undo_History.Undo_Entry; Index : Positive; Path : String)
+     (Action : Files.Undo.History.Undo_Entry; Index : Positive; Path : String)
       return Boolean
    is separate;
 
    function Apply_Forward
-     (Action : in out Files.Undo_History.Undo_Entry; Model : in out Files.Model.Window_Model)
+     (Action : in out Files.Undo.History.Undo_Entry; Model : in out Files.Model.Window_Model)
       return Boolean
    is separate;
 
@@ -723,7 +723,7 @@ package body Files.Operations is
       end loop;
       Files.Model.Pasting.Begin_Execution
         (Model, Actions, Mode, Clear_Clipboard,
-         Batch => (if Writes > 1 then Files.Copy_Context.Create else Files.Copy_Context.Empty_Session));
+         Batch => (if Writes > 1 then Files.Jobs.Copy_Context.Create else Files.Jobs.Copy_Context.Empty_Session));
    end Begin_Paste_Execution;
 
 end Files.Operations;

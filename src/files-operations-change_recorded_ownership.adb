@@ -1,6 +1,6 @@
 separate (Files.Operations)
 function Change_Recorded_Ownership
-  (Action : Files.Undo_History.Undo_Entry; Index : Positive; Owner : Files.Undo_Payloads.Ownership) return Boolean
+  (Action : Files.Undo.History.Undo_Entry; Index : Positive; Owner : Files.Undo.Payloads.Ownership) return Boolean
 is
    Previous_User, Previous_Group : Files.Types.Account_Id;
    Identity : Files.Types.UString;

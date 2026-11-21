@@ -2,7 +2,7 @@ with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Stage_Owner_Marker_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Transport_Job : Files.Process_Jobs.Session;
+      Transport_Job : Files.Jobs.Process.Session;
       Transport_Path : Files.Types.UString;
       function Transport return String is (To_String (Transport_Path));
       Saved     : constant String := Join (Root, "saved-stage");
@@ -11,26 +11,26 @@ separate (Files_Suite.Recovery)
       File      : Ada.Streams.Stream_IO.File_Type;
    begin
       Reset_Root;
-      Files.Process_Jobs.Reserve (Transport_Job);
-      Transport_Path := To_Unbounded_String (Files.Process_Jobs.Path (Transport_Job, ""));
-      Files.Job_Context.Initialize ("");
+      Files.Jobs.Process.Reserve (Transport_Job);
+      Transport_Path := To_Unbounded_String (Files.Jobs.Process.Path (Transport_Job, ""));
+      Files.Jobs.Context.Initialize ("");
       declare
          Rejected : Boolean := False;
       begin
          begin
-            Files.Job_Context.Initialize ("relative-job-context");
+            Files.Jobs.Context.Initialize ("relative-job-context");
          exception
             when Ada.Directories.Use_Error =>
                Rejected := True;
          end;
          Assert
-           (Rejected and then Files.Job_Context.Directory = "",
+           (Rejected and then Files.Jobs.Context.Directory = "",
             "job context rejects a relative helper directory without changing state");
          Rejected := False;
          begin
             declare
                Invalid : constant String :=
-                 Files.Job_Context.Create_Stage ("relative-stage-parent");
+                 Files.Jobs.Context.Create_Stage ("relative-stage-parent");
                pragma Unreferenced (Invalid);
             begin
                null;
@@ -43,8 +43,8 @@ separate (Files_Suite.Recovery)
            (Rejected and then not Ada.Directories.Exists ("relative-stage-parent"),
             "stage creation rejects a relative parent directory");
       end;
-      Files.Job_Context.Initialize (Transport);
-      Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));
+      Files.Jobs.Context.Initialize (Transport);
+      Stage := To_Unbounded_String (Files.Jobs.Context.Create_Stage (Root));
       Identity := To_Unbounded_String (Files.File_Identities.Token (To_String (Stage)));
       declare
          Owner : constant String := Join (To_String (Stage), Files.Protocol_Names.Stage_Owner_File);
@@ -53,7 +53,7 @@ separate (Files_Suite.Recovery)
            Hostkit.Fs.Create_Hard_Link (Owner, Owner_Alias);
       begin
          if Owner_Linked then
-            Files.Process_Jobs.Clean_Stages (Transport_Job);
+            Files.Jobs.Process.Clean_Stages (Transport_Job);
             Assert
               (Ada.Directories.Exists (To_String (Stage))
                and then Ada.Directories.Exists
@@ -70,7 +70,7 @@ separate (Files_Suite.Recovery)
          Owner_Data : constant String := Project_Tools.Files.Read_Raw_File (Owner);
       begin
          Write_Binary_File (Owner, Owner_Data & "trailing");
-         Files.Process_Jobs.Clean_Stages (Transport_Job);
+         Files.Jobs.Process.Clean_Stages (Transport_Job);
          Assert
            (Ada.Directories.Exists (To_String (Stage)),
             "stage cleanup rejects an owner marker with trailing data");
@@ -84,7 +84,7 @@ separate (Files_Suite.Recovery)
       String'Output (Ada.Streams.Stream_IO.Stream (File), Transport);
       String'Output (Ada.Streams.Stream_IO.Stream (File), To_String (Identity));
       Ada.Streams.Stream_IO.Close (File);
-      Files.Process_Jobs.Clean_Stages (Transport_Job);
+      Files.Jobs.Process.Clean_Stages (Transport_Job);
       Assert
         (Ada.Directories.Exists (To_String (Stage)),
          "cleanup preserves a replacement and retains its ownership record for retry: replacement stage kept");
@@ -98,17 +98,17 @@ separate (Files_Suite.Recovery)
       Ada.Directories.Delete_Directory (To_String (Stage));
       Ada.Directories.Rename (Saved, To_String (Stage));
       declare
-         Unheld : Files.Job_Transports.Lease;
+         Unheld : Files.Jobs.Transports.Lease;
       begin
-         Files.Job_Context.Clean_Stages (Transport, Unheld);
+         Files.Jobs.Context.Clean_Stages (Transport, Unheld);
          Assert (Ada.Directories.Exists (To_String (Stage)),
                  "an unclaimed stage cleanup cannot delete a live stage");
       end;
-      Files.Process_Jobs.Clean_Stages (Transport_Job);
+      Files.Jobs.Process.Clean_Stages (Transport_Job);
       Assert (not Ada.Directories.Exists (To_String (Stage))
               and then not Ada.Directories.Exists (Join (Transport, "stages")),
               "cleanup retries and removes the restored owned stage");
-      Files.Job_Context.Initialize ("");
+      Files.Jobs.Context.Initialize ("");
    exception
-      when others => Files.Job_Context.Initialize (""); raise;
+      when others => Files.Jobs.Context.Initialize (""); raise;
    end Test_Stage_Owner_Marker_Guards;

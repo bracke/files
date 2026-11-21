@@ -1,12 +1,12 @@
 separate (Files.Operations)
 function Move_Back
-  (Action : in out Files.Undo_History.Undo_Entry;
+  (Action : in out Files.Undo.History.Undo_Entry;
    Model : in out Files.Model.Window_Model;
-   Side : Files.Undo_History.History_Side) return Boolean
+   Side : Files.Undo.History.History_Side) return Boolean
 is
-   use type Files.Undo_History.History_Side;
+   use type Files.Undo.History.History_Side;
    --  Redoing re-does To -> From; undoing moves From back to To.
-   Forward : constant Boolean := Side = Files.Undo_History.Redo_Side;
+   Forward : constant Boolean := Side = Files.Undo.History.Redo_Side;
    Count : constant Natural := Natural (Action.Items.Length);
    Succeeded : Boolean := True;
    Done : Path_Sets.Set := To_Set (if Forward then Action.Forward_Completed else Action.Reverse_Completed);
@@ -22,13 +22,13 @@ is
          Action.Reverse_Completed.Append (Path);
       end if;
       --  A retry finds a finished move by its identity at the target.
-      Files.History_Journal.Checkpoint
+      Files.Undo.Journal.Checkpoint
         (Files.Model.History.State (Model), Action, Side,
-         Timing => (if Recognisable then Files.History_Journal.Within_Second else Files.History_Journal.Write_Now));
+         Timing => (if Recognisable then Files.Undo.Journal.Within_Second else Files.Undo.Journal.Write_Now));
    end Completed;
 begin
    for Step in 0 .. Count - 1 loop
-      if Files.Job_Context.Cancelled then
+      if Files.Jobs.Context.Cancelled then
          return False;
       end if;
       declare
@@ -52,7 +52,7 @@ begin
             if Marked then
                Remove_Completion (Action, Source_Path, Side);
                Done.Exclude (Source);
-               Files.History_Journal.Checkpoint (Files.Model.History.State (Model), Action, Side);
+               Files.Undo.Journal.Checkpoint (Files.Model.History.State (Model), Action, Side);
             end if;
             if Identity = "" then
                Succeeded := False;

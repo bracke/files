@@ -4,7 +4,7 @@ with Ada.Real_Time;
 with Ada.Strings.Unbounded;
 
 with Files.File_System;
-with Files.Process_Jobs;
+with Files.Jobs.Process;
 with Files.Types;
 
 --  Folder-size measurement in a cancellable helper process: one helper per
@@ -147,7 +147,7 @@ private
    Finished_Read_Retries : constant := 4;
 
    type Session is record
-      Job : Files.Process_Jobs.Session;
+      Job : Files.Jobs.Process.Session;
       --  The running helper's directories, in its order, and the index of
       --  the next result it will publish (result-<index>).
       Batch       : Target_Vectors.Vector;

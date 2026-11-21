@@ -45,7 +45,7 @@ separate (Files_Suite.Thumbnails)
         (Step.Status, Files.Operation_Results.Operation_Navigated, "opening the folder navigates into it");
       Assert (Files.Model.Current_Path (Model) = Photos and then not Photo_Has_Thumbnail,
               "opening the folder shows it at once, before its thumbnail exists");
-      Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
+      Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "and starts the background listing that makes it");
       Await_View (Model, Settings);
       Assert (Photo_Has_Thumbnail, "the background listing brings the thumbnail");

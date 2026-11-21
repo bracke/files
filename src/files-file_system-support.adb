@@ -9,7 +9,7 @@ with Ada.Exceptions;
 with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
-with Files.Job_Context;
+with Files.Jobs.Context;
 with Hostkit.Directory_Write_Access;
 with Files.File_Identities;
 with Files.Io_Errors;
@@ -24,14 +24,14 @@ package body Files.File_System.Support is
 
    --  @param Batch Batch journal to load.
    --  @return Verified source-to-destination records for this batch.
-   function Load_Links (Batch : Files.Copy_Context.Session) return Copied_File_Maps.Map;
+   function Load_Links (Batch : Files.Jobs.Copy_Context.Session) return Copied_File_Maps.Map;
 
    --  @param Batch Batch journal to update.
    --  @param Links Source identity records, including this newly published root.
    --  @param Stage Private payload prefix to replace after publication.
    --  @param Destination Published payload prefix.
    procedure Save_Links
-     (Batch : Files.Copy_Context.Session; Links : Copied_File_Maps.Map; Stage, Destination : String);
+     (Batch : Files.Jobs.Copy_Context.Session; Links : Copied_File_Maps.Map; Stage, Destination : String);
 
    --  As Tree_Revision, optionally for recovery that must finish after
    --  cancellation.
@@ -136,7 +136,7 @@ package body Files.File_System.Support is
       return Files.Types.To_Lower_Ascii (Files.Environment.Value (Name)) = Expected;
    end Environment_Equals;
 
-   function Create_Stage (Parent : String) return String renames Files.Job_Context.Create_Stage;
+   function Create_Stage (Parent : String) return String renames Files.Jobs.Context.Create_Stage;
 
    overriding function "=" (Left, Right : Source_Snapshot) return Boolean is
       use type Files.Types.String_Vectors.Vector;
@@ -586,19 +586,19 @@ package body Files.File_System.Support is
       end;
    end Check_Copy_Destination;
 
-   function Load_Links (Batch : Files.Copy_Context.Session) return Copied_File_Maps.Map is
-      Items : constant Files.Types.String_Vectors.Vector := Files.Copy_Context.Records (Batch);
+   function Load_Links (Batch : Files.Jobs.Copy_Context.Session) return Copied_File_Maps.Map is
+      Items : constant Files.Types.String_Vectors.Vector := Files.Jobs.Copy_Context.Records (Batch);
       Links : Copied_File_Maps.Map;
    begin
       --  Copy_Context is deliberately only a bounded transport.  Validate
       --  the hard-link schema here before a persisted pathname can be used
       --  for identity checks, digest reads, or link creation.
-      if not Files.Copy_Context.Valid (Items) then
+      if not Files.Jobs.Copy_Context.Valid (Items) then
          raise Ada.Directories.Use_Error;
       end if;
-      for Position in 1 .. Files.Copy_Context.Record_Count (Items) loop
+      for Position in 1 .. Files.Jobs.Copy_Context.Record_Count (Items) loop
          declare
-            Item : constant Files.Copy_Context.Copy_Record := Files.Copy_Context.Decode (Items, Position);
+            Item : constant Files.Jobs.Copy_Context.Copy_Record := Files.Jobs.Copy_Context.Decode (Items, Position);
          begin
             Links.Insert
               (To_String (Item.Source_Identity),
@@ -613,14 +613,14 @@ package body Files.File_System.Support is
    end Load_Links;
 
    procedure Save_Links
-     (Batch : Files.Copy_Context.Session; Links : Copied_File_Maps.Map; Stage, Destination : String) is
+     (Batch : Files.Jobs.Copy_Context.Session; Links : Copied_File_Maps.Map; Stage, Destination : String) is
       Items : Files.Types.String_Vectors.Vector;
    begin
       for Cursor in Links.Iterate loop
          declare
             Item : constant Copied_File := Copied_File_Maps.Element (Cursor);
          begin
-            Files.Copy_Context.Encode
+            Files.Jobs.Copy_Context.Encode
               ((Source_Identity      => To_Unbounded_String (Copied_File_Maps.Key (Cursor)),
                 Source_Revision      => Item.Source_Revision,
                 Content_Digest       => Item.Content_Digest,
@@ -631,7 +631,7 @@ package body Files.File_System.Support is
                Items);
          end;
       end loop;
-      Files.Copy_Context.Save (Batch, Items);
+      Files.Jobs.Copy_Context.Save (Batch, Items);
    end Save_Links;
 
    --  What one copy walk carries through every level of the tree: how it
@@ -677,7 +677,7 @@ package body Files.File_System.Support is
    procedure Copy_To_New_Path
      (Source_Path : String; Destination_Path : String; Cancel : Cancellation_Check := Job_Cancelled;
       Purpose : Copy_Purpose := For_Copy;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session) is
+      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session) is
       Identity : Files.Types.UString;
    begin
       Copy_To_New_Path (Source_Path, Destination_Path, Identity, Cancel,
@@ -690,7 +690,7 @@ package body Files.File_System.Support is
       Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Purpose : Copy_Purpose := For_Copy;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
    is
       Tree_Revision_Value : Files.Types.UString;
    begin
@@ -758,7 +758,7 @@ package body Files.File_System.Support is
       if Flush = Flush_Tree_And_Folder and then Files.Durability.Sync_Tree (Staged) = Hostkit.Durability.Failed then
          return False;
       end if;
-      Files.Job_Context.Intend_Created (Target, Source, Identity, Staged_Revision);
+      Files.Jobs.Context.Intend_Created (Target, Source, Identity, Staged_Revision);
       if not Move_No_Replace (Staged, Target) then
          return False;
       end if;
@@ -766,9 +766,9 @@ package body Files.File_System.Support is
       --  A helper stopped before the record below still has the entry found
       --  with the revision it has now, not the one its first intent named.
       if To_String (Revision) /= Staged_Revision then
-         Files.Job_Context.Intend_Created (Target, Source, Identity, To_String (Revision));
+         Files.Jobs.Context.Intend_Created (Target, Source, Identity, To_String (Revision));
       end if;
-      Files.Job_Context.Record_Created (Target, Source, Identity, To_String (Revision));
+      Files.Jobs.Context.Record_Created (Target, Source, Identity, To_String (Revision));
       --  The new name on the device. The entry is published and recorded
       --  whatever this answers, as Durable_Writes.Publish's callers take a
       --  Published_Not_Durable write: its contents are on the device, only
@@ -788,7 +788,7 @@ package body Files.File_System.Support is
       Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Purpose : Copy_Purpose := For_Copy;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
+      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session;
       Root_Digest : access Files.Types.UString := null)
    is
       Stage : UString;
@@ -797,7 +797,7 @@ package body Files.File_System.Support is
          Times                  => Times,
          Preserve_Ownership     => Purpose = For_Move,
          Copied_Files           => Load_Links (Batch),
-         Shared_Batch           => Files.Copy_Context.Directory (Batch) /= "",
+         Shared_Batch           => Files.Jobs.Copy_Context.Directory (Batch) /= "",
          Durable                => Purpose = For_Move,
          Want_Root_Digest       => True,
          Root_Digest            => Null_Unbounded_String);
@@ -852,7 +852,7 @@ package body Files.File_System.Support is
       end if;
       --  Publication is complete; leftover staging must not falsify its result.
       declare
-         Removed : constant Boolean := Files.Job_Context.Discard_Stage (To_String (Stage));
+         Removed : constant Boolean := Files.Jobs.Context.Discard_Stage (To_String (Stage));
          pragma Unreferenced (Removed);
       begin
          null;
@@ -865,7 +865,7 @@ package body Files.File_System.Support is
          begin
             if Length (Stage) > 0 then
                declare
-                  Removed : constant Boolean := Files.Job_Context.Discard_Stage (To_String (Stage));
+                  Removed : constant Boolean := Files.Jobs.Context.Discard_Stage (To_String (Stage));
                   pragma Unreferenced (Removed);
                begin
                   null;

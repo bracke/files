@@ -255,12 +255,14 @@ package body Files.Archive_Writing is
       --  A failed write leaves nothing behind for the caller to publish.
       procedure Remove_Partial_Output is
       begin
-         if Files.Fs_Primitives.Entry_Exists (Output_Path) then
+         --  Only an output that is gone for sure is skipped: one a refused
+         --  lookup cannot see is still tried, and a failed delete is noted.
+         if not Files.Fs_Primitives.Entry_Is_Absent (Output_Path) then
             Files.Fs_Primitives.Delete_File (Output_Path);
          end if;
       exception
-         when Ada.IO_Exceptions.Name_Error | Ada.IO_Exceptions.Use_Error =>
-            null;
+         when Failed : Ada.IO_Exceptions.Name_Error | Ada.IO_Exceptions.Use_Error =>
+            Files.Diagnostics.Note (Failed, "Files.Archive_Writing");
       end Remove_Partial_Output;
    begin
       Status := Zlib.Unsupported_Method;

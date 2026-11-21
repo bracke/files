@@ -17,14 +17,14 @@ separate (Files_Suite.Model)
             From : Files.Types.String_Vectors.Vector;
          begin
             From.Append (To_Unbounded_String (History_Path));
-            Files.Undo_Recording.Record_Undo
-              (Model, Files.Undo_History.Undo_Delete_Created,
+            Files.Undo.Recording.Record_Undo
+              (Model, Files.Undo.History.Undo_Delete_Created,
                Files_Suite.Support.Models.Undo_Items (From), Redoable => False);
          end;
       end loop;
       declare
          Count  : Natural := 0;
-         Action : Files.Undo_History.Undo_Entry;
+         Action : Files.Undo.History.Undo_Entry;
          Found  : Boolean;
       begin
          loop

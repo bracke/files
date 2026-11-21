@@ -7,23 +7,23 @@ separate (Files_Suite.Recovery)
    --  writes it again whole.
    procedure Test_A_Torn_Cancel_Marker_Is_Written_Again (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Job : Files.Process_Jobs.Session;
+      Job : Files.Jobs.Process.Session;
    begin
-      Files.Process_Jobs.Reserve (Job);
-      Write_Binary_File (Files.Process_Jobs.Path (Job, Files.Protocol_Names.Cancel_File), "ca");
-      Files.Job_Context.Initialize (Files.Process_Jobs.Path (Job, ""));
-      Assert (not Files.Job_Context.Cancelled, "a torn marker is no cancel");
+      Files.Jobs.Process.Reserve (Job);
+      Write_Binary_File (Files.Jobs.Process.Path (Job, Files.Protocol_Names.Cancel_File), "ca");
+      Files.Jobs.Context.Initialize (Files.Jobs.Process.Path (Job, ""));
+      Assert (not Files.Jobs.Context.Cancelled, "a torn marker is no cancel");
 
-      Files.Process_Jobs.Cancel (Job);
+      Files.Jobs.Process.Cancel (Job);
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         exit when Files.Job_Context.Cancelled;
+         exit when Files.Jobs.Context.Cancelled;
       end loop;
-      Assert (Files.Job_Context.Cancelled, "a cancel over a torn marker reaches the helper");
-      Files.Job_Context.Initialize ("");
-      Files.Process_Jobs.Reset (Job);
+      Assert (Files.Jobs.Context.Cancelled, "a cancel over a torn marker reaches the helper");
+      Files.Jobs.Context.Initialize ("");
+      Files.Jobs.Process.Reset (Job);
    exception
       when others =>
-         Files.Job_Context.Initialize ("");
-         Files.Process_Jobs.Reset (Job);
+         Files.Jobs.Context.Initialize ("");
+         Files.Jobs.Process.Reset (Job);
          raise;
    end Test_A_Torn_Cancel_Marker_Is_Written_Again;

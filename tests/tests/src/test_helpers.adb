@@ -8,18 +8,18 @@ with Ada.Text_IO;
 with Files.File_Identities;
 with Files.File_Identities.Testing;
 with Files.File_System;
-with Files.Helper_Modes;
-with Files.Job_Context;
-with Files.Job_Transports;
-with Files.Operation_Jobs;
-with Files.Operation_Jobs.Testing;
+with Files.Jobs.Helper_Modes;
+with Files.Jobs.Context;
+with Files.Jobs.Transports;
+with Files.Jobs.Operation;
+with Files.Jobs.Operation.Testing;
 with Files.Paste;
 with Files.Private_Directories;
-with Files.Process_Jobs;
-with Files.Process_Jobs.Testing;
-with Files.Refresh_Jobs.Testing;
-with Files.Transfer_Jobs;
-with Files.Transfer_Jobs.Testing;
+with Files.Jobs.Process;
+with Files.Jobs.Process.Testing;
+with Files.Jobs.Refresh.Testing;
+with Files.Jobs.Transfer;
+with Files.Jobs.Transfer.Testing;
 with Files_Suite.Support;
 with Hostkit.Fs;
 with Hostkit.Host;
@@ -31,7 +31,7 @@ with Files_Suite.Support.Timing;
 
 package body Test_Helpers is
 
-   package HM renames Files.Helper_Modes;
+   package HM renames Files.Jobs.Helper_Modes;
    use type Hostkit.Lease_Files.Open_Outcome;
 
    --  How long a helper held by a test waits for the test to let it go, or to
@@ -189,7 +189,7 @@ package body Test_Helpers is
                end if;
             end;
          end Seed_Nonce;
-         Owner : Files.Job_Transports.Lease;
+         Owner : Files.Jobs.Transports.Lease;
          Directory, Identity : Ada.Strings.Unbounded.Unbounded_String;
          Parent : constant String :=
            Hostkit.Fs.Create_Temporary_Directory ("files-no-btime-stage-");
@@ -246,7 +246,7 @@ package body Test_Helpers is
             Rejected : Boolean := False;
          begin
             begin
-               Files.Job_Transports.Create (Directory, Identity, Owner);
+               Files.Jobs.Transports.Create (Directory, Identity, Owner);
             exception
                when Ada.Directories.Use_Error => Rejected := True;
             end;
@@ -256,13 +256,13 @@ package body Test_Helpers is
                Hostkit.Process.End_Now (1);
             end if;
          end;
-         Files.Job_Context.Initialize ("");
+         Files.Jobs.Context.Initialize ("");
          declare
             Rejected : Boolean := False;
          begin
             begin
                declare
-                  Stage : constant String := Files.Job_Context.Create_Stage (Parent);
+                  Stage : constant String := Files.Jobs.Context.Create_Stage (Parent);
                   pragma Unreferenced (Stage);
                begin
                   null;
@@ -291,8 +291,8 @@ package body Test_Helpers is
                Hostkit.Process.End_Now (1);
             end if;
          end;
-         Files.Job_Context.Initialize ("");
-         Files.Job_Transports.Release (Owner);
+         Files.Jobs.Context.Initialize ("");
+         Files.Jobs.Transports.Release (Owner);
          Ada.Directories.Delete_File (Source);
          Ada.Directories.Delete_File (Hostkit.Fs.Join (Fake_Stage, ".files-stage-id"));
          Ada.Directories.Delete_Directory (Fake_Stage);
@@ -318,14 +318,14 @@ package body Test_Helpers is
       end if;
       declare
          use type Hostkit.Spawn.Spawn_Outcome;
-         Owner : Files.Job_Transports.Lease;
+         Owner : Files.Jobs.Transports.Lease;
          Directory : Ada.Strings.Unbounded.Unbounded_String;
          Identity : Ada.Strings.Unbounded.Unbounded_String;
          Child : Hostkit.Spawn.Process_Handle;
          Arguments : Hostkit.String_Vectors.Vector;
          File : Ada.Text_IO.File_Type;
       begin
-         Files.Job_Transports.Create (Directory, Identity, Owner);
+         Files.Jobs.Transports.Create (Directory, Identity, Owner);
          Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Ada.Command_Line.Argument (2));
          Ada.Text_IO.Put_Line (File, Ada.Strings.Unbounded.To_String (Directory));
          Ada.Text_IO.Close (File);
@@ -357,10 +357,10 @@ package body Test_Helpers is
          return;
       end if;
       declare
-         Owner : Files.Job_Transports.Lease;
+         Owner : Files.Jobs.Transports.Lease;
          File : Ada.Text_IO.File_Type;
       begin
-         if not Files.Job_Transports.Join_Helper
+         if not Files.Jobs.Transports.Join_Helper
            (Ada.Command_Line.Argument (2), Owner)
          then
             Hostkit.Process.End_Now (2);
@@ -384,12 +384,12 @@ package body Test_Helpers is
          return;
       end if;
       declare
-         Job  : Files.Process_Jobs.Session;
+         Job  : Files.Jobs.Process.Session;
          File : Ada.Text_IO.File_Type;
       begin
-         Files.Process_Jobs.Reserve (Job);
+         Files.Jobs.Process.Reserve (Job);
          Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Ada.Command_Line.Argument (2));
-         Ada.Text_IO.Put_Line (File, Files.Process_Jobs.Path (Job, ""));
+         Ada.Text_IO.Put_Line (File, Files.Jobs.Process.Path (Job, ""));
          Ada.Text_IO.Close (File);
          Hostkit.Process.End_Now (0);
       end;
@@ -402,14 +402,14 @@ package body Test_Helpers is
          return;
       end if;
       declare
-         Job : Files.Process_Jobs.Session;
+         Job : Files.Jobs.Process.Session;
          Directory : Ada.Strings.Unbounded.Unbounded_String;
          Stopped : Boolean;
       begin
-         Files.Process_Jobs.Reserve (Job);
+         Files.Jobs.Process.Reserve (Job);
          Directory := Ada.Strings.Unbounded.To_Unbounded_String
-           (Files.Process_Jobs.Path (Job, ""));
-         Files.Process_Jobs.Launch (Job, "--files-test-blocked");
+           (Files.Jobs.Process.Path (Job, ""));
+         Files.Jobs.Process.Launch (Job, "--files-test-blocked");
          for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Ada.Directories.Exists
               (Ada.Strings.Unbounded.To_String (Directory) & "/started");
@@ -419,8 +419,8 @@ package body Test_Helpers is
          then
             Hostkit.Process.End_Now (1);
          end if;
-         Files.Process_Jobs.Reset (Job);
-         Files.Process_Jobs.Shutdown (Stopped);
+         Files.Jobs.Process.Reset (Job);
+         Files.Jobs.Process.Shutdown (Stopped);
          Hostkit.Process.End_Now
            (if Stopped and then not Ada.Directories.Exists
              (Ada.Strings.Unbounded.To_String (Directory)) then 0 else 1);
@@ -438,22 +438,22 @@ package body Test_Helpers is
          return;
       end if;
       declare
-         Job       : Files.Process_Jobs.Session;
+         Job       : Files.Jobs.Process.Session;
          Directory : Ada.Strings.Unbounded.Unbounded_String;
          Launches  : Natural;
          Stopped   : Boolean;
          Removed   : Hostkit.Fs.Delete_Tree_Outcome;
          pragma Unreferenced (Removed);
       begin
-         Files.Process_Jobs.Reserve (Job);
-         Directory := Ada.Strings.Unbounded.To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
-         Ada.Directories.Create_Directory (Files.Process_Jobs.Path (Job, Files.Protocol_Names.Stages_Directory));
-         Launches := Files.Process_Jobs.Testing.Cleanup_Launches;
-         Files.Process_Jobs.Reset (Job);
-         Files.Process_Jobs.Shutdown (Stopped);
+         Files.Jobs.Process.Reserve (Job);
+         Directory := Ada.Strings.Unbounded.To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
+         Ada.Directories.Create_Directory (Files.Jobs.Process.Path (Job, Files.Protocol_Names.Stages_Directory));
+         Launches := Files.Jobs.Process.Testing.Cleanup_Launches;
+         Files.Jobs.Process.Reset (Job);
+         Files.Jobs.Process.Shutdown (Stopped);
          Removed := Hostkit.Fs.Delete_Tree_No_Follow (Ada.Strings.Unbounded.To_String (Directory));
          Hostkit.Process.End_Now
-           (if Stopped and then Files.Process_Jobs.Testing.Cleanup_Launches = Launches then 0 else 1);
+           (if Stopped and then Files.Jobs.Process.Testing.Cleanup_Launches = Launches then 0 else 1);
       end;
    end Shutdown_With_Stages_Check;
 
@@ -464,23 +464,23 @@ package body Test_Helpers is
          return;
       end if;
       declare
-         Job : Files.Process_Jobs.Session;
+         Job : Files.Jobs.Process.Session;
          File : Ada.Text_IO.File_Type;
          Directory : Ada.Strings.Unbounded.Unbounded_String;
          Stopped : Boolean;
       begin
-         Files.Process_Jobs.Reserve (Job);
+         Files.Jobs.Process.Reserve (Job);
          Directory := Ada.Strings.Unbounded.To_Unbounded_String
-           (Files.Process_Jobs.Path (Job, ""));
+           (Files.Jobs.Process.Path (Job, ""));
          Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Ada.Command_Line.Argument (2));
          Ada.Text_IO.Put_Line (File, Ada.Strings.Unbounded.To_String (Directory));
          Ada.Text_IO.Close (File);
-         Files.Process_Jobs.Shutdown (Stopped);
+         Files.Jobs.Process.Shutdown (Stopped);
          if Stopped then
             Hostkit.Process.End_Now (1);
          end if;
-         Files.Process_Jobs.Reset (Job);
-         Files.Process_Jobs.Shutdown (Stopped);
+         Files.Jobs.Process.Reset (Job);
+         Files.Jobs.Process.Shutdown (Stopped);
          Hostkit.Process.End_Now
            (if Stopped and then not Ada.Directories.Exists
              (Ada.Strings.Unbounded.To_String (Directory)) then 0 else 1);
@@ -587,7 +587,7 @@ package body Test_Helpers is
          --  helper whose test has died without doing either.
          for Attempt in Files_Suite.Support.Timing.Polling (Limit => Helper_Hold_Limit, Interval => 0.1) loop
             if Mode = Operation_Helper
-              and then Files.Process_Jobs.Cancellation_Requested
+              and then Files.Jobs.Process.Cancellation_Requested
                 (Ada.Command_Line.Argument (2))
             then
                --  Say it was let see the cancel, where its test asked: a
@@ -788,7 +788,7 @@ package body Test_Helpers is
         and then Ada.Environment_Variables.Value
           ("FILES_TEST_REFRESH_RESULT_INCONSISTENT", "") = "1"
       then
-         Files.Refresh_Jobs.Testing.Replace_Result_Flags
+         Files.Jobs.Refresh.Testing.Replace_Result_Flags
            (Ada.Command_Line.Argument (2) & "/result",
             Success => False,
             Reloaded => True);
@@ -797,15 +797,15 @@ package body Test_Helpers is
         and then Ada.Environment_Variables.Value
           ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "") = "1"
       then
-         Files.Operation_Jobs.Testing.Replace_Result_Kind
+         Files.Jobs.Operation.Testing.Replace_Result_Kind
            (Ada.Command_Line.Argument (2) & "/result",
-            Files.Operation_Jobs.Search_Names);
+            Files.Jobs.Operation.Search_Names);
       end if;
       if Mode = Operation_Helper
         and then Ada.Environment_Variables.Value
           ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "") = "1"
       then
-         Files.Operation_Jobs.Testing.Replace_Result_Recent
+         Files.Jobs.Operation.Testing.Replace_Result_Recent
            (Ada.Command_Line.Argument (2) & "/result", True);
       end if;
       if Mode = Transfer_Helper
@@ -815,18 +815,18 @@ package body Test_Helpers is
             Directory : constant String := Ada.Command_Line.Argument (2);
             Fault : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TRANSFER_RESULT_LOSS");
             File : Ada.Streams.Stream_IO.File_Type;
-            Checkpoint : constant Files.Transfer_Jobs.Job_Result := (others => <>);
+            Checkpoint : constant Files.Jobs.Transfer.Job_Result := (others => <>);
             Action : Files.Paste.Resolved_Action;
          begin
             Ada.Directories.Delete_File (Directory & "/result");
             if Fault = "checkpoint" then
-               Files.Transfer_Jobs.Testing.Write_Result
+               Files.Jobs.Transfer.Testing.Write_Result
                  (Directory & "/result", Checkpoint);
             elsif Fault in "journal" | "replacement" | "source-replacement" then
                Ada.Directories.Delete_File (Directory & "/completed");
             end if;
             if Fault in "replacement" | "source-replacement" then
-               Action := Files.Transfer_Jobs.Testing.Read_Request_Action
+               Action := Files.Jobs.Transfer.Testing.Read_Request_Action
                  (Directory & "/request");
                declare
                   Dest : constant String := Ada.Strings.Unbounded.To_String

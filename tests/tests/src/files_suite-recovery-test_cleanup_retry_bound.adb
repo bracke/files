@@ -5,7 +5,7 @@ separate (Files_Suite.Recovery)
       pragma Unreferenced (T);
       Variable  : constant String := "FILES_TEST_FAIL_CLEANUP_WORKER";
       Marker    : constant String := Join (Root, "cleanup-worker-failures");
-      Job       : Files.Process_Jobs.Session;
+      Job       : Files.Jobs.Process.Session;
       Transport : Files.Types.UString;
       --  Longer than the parent's 2 s delay before a cleanup relaunch, with
       --  room for the spawn.
@@ -50,10 +50,10 @@ separate (Files_Suite.Recovery)
       begin
          Files_Suite.Support.Guards.Save (Failing, Variable);
          Ada.Environment_Variables.Set (Variable, Marker);
-         Files.Process_Jobs.Reserve (Job);
-         Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+         Files.Jobs.Process.Reserve (Job);
+         Transport := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
          Ada.Directories.Create_Directory (Join (To_String (Transport), "stages"));
-         Files.Process_Jobs.Reset (Job);
+         Files.Jobs.Process.Reset (Job);
 
          for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Failure_Count >= 1;
@@ -69,7 +69,7 @@ separate (Files_Suite.Recovery)
             Files_Suite.Support.Assert_Equal (Failure_Count, 2, "the parent makes its one bounded cleanup relaunch");
             Relaunch := Seconds (Elapsed (First_Failure));
 
-            --  Nothing in the parent reports that it gave up (Process_Jobs keeps
+            --  Nothing in the parent reports that it gave up (Jobs.Process keeps
             --  its failure count and orphan queue in its body), so the proof is
             --  that no third worker appears within a window a relaunch would have
             --  used. A relaunch waits out the parent's 2 s retry delay, then a
@@ -101,15 +101,15 @@ separate (Files_Suite.Recovery)
          begin
             Files_Suite.Support.Guards.Save (Failing, Variable);
             Ada.Environment_Variables.Set (Variable, Marker);
-            Files.Process_Jobs.Reserve (Job);
-            Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
-            Files.Process_Jobs.Testing.Release_Owner (Job);
+            Files.Jobs.Process.Reserve (Job);
+            Transport := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
+            Files.Jobs.Process.Testing.Release_Owner (Job);
             Project_Tools.Files.Delete_Tree (To_String (Transport));
             Assert
               (Hostkit.Fs.Create_Link (Join (Root, "missing-transport-target"),
                                       To_String (Transport)),
                "replace a released transport with a dangling link");
-            Files.Process_Jobs.Reset (Job);
+            Files.Jobs.Process.Reset (Job);
             for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when Failure_Count >= 1;
             end loop;

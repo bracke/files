@@ -162,13 +162,13 @@ separate (Files_Suite.Refresh)
                Trash_Result := Files.Operation_Commands.Delete_Selected (Trash_Model, Settings);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
-                  and then not Files.Process_Jobs.Active
+                  and then not Files.Jobs.Process.Active
                     (Files.Model.Jobs.Background_Operation (Trash_Model)),
                   "direct delete cannot re-trash a trash payload or launch a helper");
                Trash_Result := Files.Operation_Commands.Duplicate_Selected (Trash_Model, Settings);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
-                  and then not Files.Process_Jobs.Active
+                  and then not Files.Jobs.Process.Active
                     (Files.Model.Jobs.Background_Operation (Trash_Model)),
                   "direct duplicate cannot create an orphaned trash payload");
                Trash_Result :=
@@ -176,13 +176,13 @@ separate (Files_Suite.Refresh)
                    (Trash_Model, Settings, Files.Operations.Zip_Archive);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
-                  and then not Files.Process_Jobs.Active
+                  and then not Files.Jobs.Process.Active
                     (Files.Model.Jobs.Background_Operation (Trash_Model)),
                   "direct compression cannot create an orphaned trash payload");
                Trash_Result := Files.Operation_Commands.Extract_Selected (Trash_Model, Settings);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
-                  and then not Files.Process_Jobs.Active
+                  and then not Files.Jobs.Process.Active
                     (Files.Model.Jobs.Background_Operation (Trash_Model)),
                   "direct extraction cannot create an orphaned trash payload");
                Trash_Result := Files.Operations.Create_Symlink_Selected (Trash_Model, Settings);

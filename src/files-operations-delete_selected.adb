@@ -14,7 +14,7 @@ is
    --  items, which stay in the trash, restorable from there; each record is
    --  committed durably.
    Progress   : Progressive_Undo :=
-     (Kind => Files.Undo_History.Undo_Restore_Trash, Redoable => False, Durable => True, others => <>);
+     (Kind => Files.Undo.History.Undo_Restore_Trash, Redoable => False, Durable => True, others => <>);
 begin
    declare
       Refusal : constant Operation_Result := Trash_Refusal (Model);
@@ -33,7 +33,7 @@ begin
    end if;
 
    for Item of Items loop
-      exit when Files.Job_Context.Cancelled;
+      exit when Files.Jobs.Context.Cancelled;
       declare
          Preflight : constant Files.File_System.Mutation_Result :=
            Files.File_System.Trash.Move_To_Trash_Preflight (To_String (Item.Full_Path));
@@ -50,7 +50,7 @@ begin
    end loop;
 
    for Item of Items loop
-      exit when Files.Job_Context.Cancelled;
+      exit when Files.Jobs.Context.Cancelled;
       --  refusal-safe: a refused lookup refuses the trash
       if not Files.Fs_Primitives.Entry_Exists (To_String (Item.Full_Path)) then
          Files.Model.Set_Error (Model, "error.trash.failed");
@@ -60,7 +60,7 @@ begin
    end loop;
 
    for Item of Items loop
-      exit when Files.Job_Context.Cancelled;
+      exit when Files.Jobs.Context.Cancelled;
       if Length (First_Path) = 0 then
          First_Path := Item.Full_Path;
       end if;
@@ -81,13 +81,13 @@ begin
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
          end if;
          Progress.Items.Append
-           (Files.Undo_History.Recorded_Item'
+           (Files.Undo.History.Recorded_Item'
               (Item       =>
                  (From     => Trashed,
                   To       => Item.Full_Path,
                   Identity => To_Unbounded_String (Files.File_Identities.Token (To_String (Trashed))),
                   others   => <>),
-               Provenance => Files.Undo_History.Published));
+               Provenance => Files.Undo.History.Published));
          --  Labels go into the trash with the item and come back with it,
          --  so a new file at the old path inherits none. A native trash
          --  that does not say where the item went keeps them in place.

@@ -2,7 +2,7 @@ separate (Files.Operations)
 --  Apply the reverse (undo) direction of Action, one journaled history
 --  entry. Returns True on full success.
 function Apply_Reverse
-  (Action : in out Files.Undo_History.Undo_Entry; Model : in out Files.Model.Window_Model)
+  (Action : in out Files.Undo.History.Undo_Entry; Model : in out Files.Model.Window_Model)
    return Boolean
 is
    Succeeded : Boolean := True;
@@ -10,13 +10,13 @@ is
 
    --  Whether the item restored to Original.Target is the trashed one
    --  itself (a rename keeps its identity), so a retry recognises it there.
-   function Restored_In_Place (Original : Files.Undo_History.Replaced_Original) return Boolean is
+   function Restored_In_Place (Original : Files.Undo.History.Replaced_Original) return Boolean is
      (Length (Original.Target) > 0
       and then Length (Original.Identity) > 0
       and then Files.File_Identities.Token (To_String (Original.Target)) = To_String (Original.Identity));
 
    --  A trashed main item as the original it restores.
-   function Trashed (Item : Files.Undo_History.Undo_Item) return Files.Undo_History.Replaced_Original is
+   function Trashed (Item : Files.Undo.History.Undo_Item) return Files.Undo.History.Replaced_Original is
      ((Trash => Item.From, Identity => Item.Identity, Target => Item.To));
    Restored  : Path_Sets.Set := To_Set (Action.Restores_Completed);
 
@@ -30,7 +30,7 @@ is
    --  retry never deletes what a restore has since put there.
    function Remove_Created
      (Path : Files.Types.UString; Identity, Tree_Revision : String;
-      Timing : Files.History_Journal.Checkpoint_Timing) return Boolean
+      Timing : Files.Undo.Journal.Checkpoint_Timing) return Boolean
    is
       Target : constant String := To_String (Path);
    begin
@@ -45,8 +45,8 @@ is
       end if;
       Action.Reverse_Completed.Append (Path);
       Reversed.Include (Target);
-      Files.History_Journal.Checkpoint
-        (Files.Model.History.State (Model), Action, Files.Undo_History.Undo_Side, Timing => Timing);
+      Files.Undo.Journal.Checkpoint
+        (Files.Model.History.State (Model), Action, Files.Undo.History.Undo_Side, Timing => Timing);
       return True;
    end Remove_Created;
 
@@ -58,11 +58,11 @@ is
       Outcome : Replay_Outcome := Replayed;
    begin
       for Copy of Action.Kept loop
-         if Files.Job_Context.Cancelled then
+         if Files.Jobs.Context.Cancelled then
             return Stopped;
          end if;
          if not Remove_Created (Copy.Path, To_String (Copy.Identity), To_String (Copy.Tree_Revision),
-                                Timing => Files.History_Journal.Write_Now)
+                                Timing => Files.Undo.Journal.Write_Now)
          then
             Outcome := Item_Failed;
          end if;
@@ -76,7 +76,7 @@ is
       Outcome : Replay_Outcome := Replayed;
    begin
       for Item of Action.Items loop
-         if Files.Job_Context.Cancelled then
+         if Files.Jobs.Context.Cancelled then
             return Stopped;
          end if;
          if Reversed.Contains (To_String (Item.From)) then
@@ -93,11 +93,11 @@ is
             --  A retry finds a finished restore by its identity at the
             --  original path (Restore_Recorded_Trash) -- unless it was a
             --  copy across devices, which has a new one: written now.
-            Files.History_Journal.Checkpoint
-              (Files.Model.History.State (Model), Action, Files.Undo_History.Undo_Side,
+            Files.Undo.Journal.Checkpoint
+              (Files.Model.History.State (Model), Action, Files.Undo.History.Undo_Side,
                Timing =>
-                 (if Restored_In_Place (Trashed (Item)) then Files.History_Journal.Within_Second
-                  else Files.History_Journal.Write_Now));
+                 (if Restored_In_Place (Trashed (Item)) then Files.Undo.Journal.Within_Second
+                  else Files.Undo.Journal.Write_Now));
          end if;
       end loop;
       return Outcome;
@@ -109,17 +109,17 @@ is
       Outcome : Replay_Outcome := Replayed;
    begin
       for Index in Action.Items.First_Index .. Action.Items.Last_Index loop
-         if Files.Job_Context.Cancelled then
+         if Files.Jobs.Context.Cancelled then
             return Stopped;
          end if;
          declare
-            Item : constant Files.Undo_History.Undo_Item := Action.Items (Index);
+            Item : constant Files.Undo.History.Undo_Item := Action.Items (Index);
          begin
             --  A retry treats a path already gone as removed, so its
             --  checkpoint can wait.
             if not Remove_Created
               (Item.From, To_String (Item.Identity), To_String (Item.Tree_Revision),
-               Timing => Files.History_Journal.Within_Second)
+               Timing => Files.Undo.Journal.Within_Second)
             then
                Outcome := Item_Failed;
             end if;
@@ -135,7 +135,7 @@ is
       Outcome : Replay_Outcome := Replayed;
    begin
       for Original of Action.Replaced loop
-         if Files.Job_Context.Cancelled then
+         if Files.Jobs.Context.Cancelled then
             return Stopped;
          end if;
          if Restored.Contains (To_String (Original.Trash)) then
@@ -147,11 +147,11 @@ is
             Files.Model.Note_Path_Move (Model, To_String (Original.Trash), To_String (Original.Target));
             Action.Restores_Completed.Append (Original.Trash);
             Restored.Include (To_String (Original.Trash));
-            Files.History_Journal.Checkpoint
-              (Files.Model.History.State (Model), Action, Files.Undo_History.Undo_Side,
+            Files.Undo.Journal.Checkpoint
+              (Files.Model.History.State (Model), Action, Files.Undo.History.Undo_Side,
                Timing =>
-                 (if Restored_In_Place (Original) then Files.History_Journal.Within_Second
-                  else Files.History_Journal.Write_Now));
+                 (if Restored_In_Place (Original) then Files.Undo.Journal.Within_Second
+                  else Files.Undo.Journal.Write_Now));
          end if;
       end loop;
       return Outcome;
@@ -161,16 +161,16 @@ is
    function Reverse_Main return Replay_Outcome is
    begin
       case Action.Kind is
-         when Files.Undo_History.Undo_Rename | Files.Undo_History.Undo_Move =>
-            return (if Move_Back (Action, Model, Files.Undo_History.Undo_Side) then Replayed else Item_Failed);
-         when Files.Undo_History.Undo_Restore_Trash =>
+         when Files.Undo.History.Undo_Rename | Files.Undo.History.Undo_Move =>
+            return (if Move_Back (Action, Model, Files.Undo.History.Undo_Side) then Replayed else Item_Failed);
+         when Files.Undo.History.Undo_Restore_Trash =>
             return Restore_Trashed_Items;
-         when Files.Undo_History.Undo_Delete_Created =>
+         when Files.Undo.History.Undo_Delete_Created =>
             return Remove_Created_Items;
-         when Files.Undo_History.Undo_Set_Permissions | Files.Undo_History.Undo_Set_Ownership =>
+         when Files.Undo.History.Undo_Set_Permissions | Files.Undo.History.Undo_Set_Ownership =>
             --  Put back the mode or owner the change replaced (To).
             return Replay_Metadata (Action, Before_Change);
-         when Files.Undo_History.Undo_None =>
+         when Files.Undo.History.Undo_None =>
             return Item_Failed;
       end case;
    end Reverse_Main;

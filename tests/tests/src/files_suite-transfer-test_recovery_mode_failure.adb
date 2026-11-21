@@ -1,6 +1,6 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
-with Files.Foreground_Jobs;
+with Files.Jobs.Foreground;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
 with Files.File_System.Testing;
@@ -129,7 +129,7 @@ separate (Files_Suite.Transfer)
               (To_Unbounded_String (Copy_Source), To_Unbounded_String (Source), False, True));
             Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
             Step := Complete_Operation
-              (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
+              (Model, Settings, Files.Jobs.Foreground.Advance (Model, Settings, 1));
             Await_View (Model, Settings);
             Assert (Step.Status = Files.Operation_Results.Operation_Failed
                     and then Files.Model.History.Undo_Available (Model),

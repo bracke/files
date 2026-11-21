@@ -12,7 +12,7 @@ is
    Created_Any   : Boolean := False;
    --  Created copies (From) and their sources (Forward).
    Progress      : Progressive_Undo :=
-     (Kind => Files.Undo_History.Undo_Delete_Created, Create_Kind => Files.Undo_History.Create_Copy, Redoable => True,
+     (Kind => Files.Undo.History.Undo_Delete_Created, Create_Kind => Files.Undo.History.Create_Copy, Redoable => True,
       others => <>);
 
    --  The " (copy)" / " (copy N)" marker: a fixed, unlocalized file name.
@@ -43,10 +43,10 @@ begin
    --  Created only now: the background path above hands the work to a
    --  helper, and the handler below must cover a failed reservation.
    declare
-      Copy_Batch : constant Files.Copy_Context.Session := Files.Copy_Context.Create;
+      Copy_Batch : constant Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Create;
    begin
       for Item of Items loop
-         exit when Files.Job_Context.Cancelled;
+         exit when Files.Jobs.Context.Cancelled;
          declare
             Source : constant String := To_String (Item.Full_Path);
             --  Recent and search results can select paths from several
@@ -74,14 +74,14 @@ begin
             end if;
 
             Progress.Items.Append
-              (Files.Undo_History.Recorded_Item'
+              (Files.Undo.History.Recorded_Item'
                  (Item       =>
                     (From          => To_Unbounded_String (Dest_Path),
                      Forward       => To_Unbounded_String (Source),
                      Identity      => Identity,
                      Tree_Revision => Revision,
                      others        => <>),
-                  Provenance => Files.Undo_History.Published));
+                  Provenance => Files.Undo.History.Published));
             Checkpoint_Undo (Model, Progress);
             if not Created_Any then
                First_Created := To_Unbounded_String (Dest_Name);

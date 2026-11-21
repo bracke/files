@@ -1,4 +1,4 @@
-with Files.Undo_Recording;
+with Files.Undo.Recording;
 with Files.File_System.Trash;
 with Project_Tools.Files;
 with Files_Suite.Support.Guards;
@@ -36,29 +36,29 @@ separate (Files_Suite.Model)
       --  The oldest entry references the payload; pushing past the depth cap
       --  through the model alone retires it.
       declare
-         From : constant Files.Undo_History.Undo_Item_Vectors.Vector :=
-           Files.Undo_History.Undo_Item_Vectors.To_Vector
+         From : constant Files.Undo.History.Undo_Item_Vectors.Vector :=
+           Files.Undo.History.Undo_Item_Vectors.To_Vector
              ((From => To_Unbounded_String (Entry_At), Identity => To_Unbounded_String ("1:entry"), others => <>), 1);
-         Payloads : Files.Undo_History.Replaced_Original_Vectors.Vector;
+         Payloads : Files.Undo.History.Replaced_Original_Vectors.Vector;
       begin
-         Payloads.Append (Files.Undo_History.Replaced_Original'(Trash => Backup, others => <>));
+         Payloads.Append (Files.Undo.History.Replaced_Original'(Trash => Backup, others => <>));
          Recorded := Files.Model.History.Commit_Undo_Record
            (Model,
-            (Kind => Files.Undo_History.Undo_Delete_Created, Items => From, Redoable => False,
+            (Kind => Files.Undo.History.Undo_Delete_Created, Items => From, Redoable => False,
              Replaced => Payloads, others => <>));
          Assert (Recorded, "the model records the payload-carrying entry");
          for Index in 1 .. 200 loop
             Recorded := Files.Model.History.Commit_Undo_Record
               (Model,
-               (Kind => Files.Undo_History.Undo_Delete_Created, Items => From, Redoable => False, others => <>));
+               (Kind => Files.Undo.History.Undo_Delete_Created, Items => From, Redoable => False, others => <>));
             Assert (Recorded, "the model records entry" & Index'Image);
          end loop;
          --  An entry that records nothing still carried a preserved original.
          Payloads.Clear;
-         Payloads.Append (Files.Undo_History.Replaced_Original'(Trash => Rejected, others => <>));
+         Payloads.Append (Files.Undo.History.Replaced_Original'(Trash => Rejected, others => <>));
          Recorded := Files.Model.History.Commit_Undo_Record
            (Model,
-            (Kind => Files.Undo_History.Undo_Delete_Created, Redoable => False,
+            (Kind => Files.Undo.History.Undo_Delete_Created, Redoable => False,
              Replaced => Payloads, others => <>));
          Assert (not Recorded, "an entry without paths is not recorded");
       end;
@@ -71,7 +71,7 @@ separate (Files_Suite.Model)
       --  The trimmed entry could still have been undone and the rejected one
       --  never could be: neither original is deleted, both go to the trash.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-      Files.Undo_Recording.Settle_History (Model);
+      Files.Undo.Recording.Settle_History (Model);
       Assert (not Ada.Directories.Exists (To_String (Backup)),
               "settling the history moves the payload its retired entry held");
       Assert (not Ada.Directories.Exists (To_String (Rejected)),

@@ -1,7 +1,7 @@
 with Files.Preference_Types;
 with Files.Controller.Testing;
 with Files.Operations;
-with Files.Undo_Recording;
+with Files.Undo.Recording;
 with Files.Items;
 with Files.Model.Testing;
 with Ada.Calendar;
@@ -41,7 +41,7 @@ with Files.Type_Ahead;
 with Guikit.Input;
 with Files.Types;
 with Files.UI_Types;
-with Files.Undo_History;
+with Files.Undo.History;
 with Files_Suite.Support;
 with Files_Suite.Support.Images;
 with Files_Suite.Support.Models;
@@ -57,7 +57,7 @@ package body Files_Suite.Model is
    use type Files.Commands.Command_Id;
    use type Files.File_System.Root_Kind;
    use type Files.Types.Sort_Field;
-   use type Files.Undo_History.Undo_Entry;
+   use type Files.Undo.History.Undo_Entry;
    use type Files.Types.Item_Kind;
    use type Files.Preference_Types.View_Mode;
    use Files_Suite.Support;

@@ -1,7 +1,7 @@
 with Ada.Finalization;
 
 with Files.Model;
-with Files.Process_Jobs;
+with Files.Jobs.Process;
 with Files.Types;
 
 --  Guards that put process-wide state back when a test leaves scope, on an
@@ -91,7 +91,7 @@ package Files_Suite.Support.Guards is
    --  at once, for a test that must restore before the rest of its work;
    --  doing it twice is harmless. A restore that fails is reported on
    --  standard error (a finalizer must not raise).
-   type Process_Jobs_Guard (Session : not null access Files.Process_Jobs.Session) is
+   type Process_Jobs_Guard (Session : not null access Files.Jobs.Process.Session) is
      new Ada.Finalization.Limited_Controlled with private;
 
    --  Have Guard delete Path, a transport fixture, when it restores.
@@ -129,7 +129,7 @@ private
       Saved : Files.Types.UString;
    end record;
 
-   type Process_Jobs_Guard (Session : not null access Files.Process_Jobs.Session) is
+   type Process_Jobs_Guard (Session : not null access Files.Jobs.Process.Session) is
      new Ada.Finalization.Limited_Controlled with record
       Fixtures : Files.Types.String_Vectors.Vector;
    end record;

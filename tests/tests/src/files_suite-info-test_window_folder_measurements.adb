@@ -15,7 +15,7 @@ separate (Files_Suite.Info)
       Marker : constant String := Join (Root, "size-started");
       Started : Unbounded_String;
       File : Ada.Text_IO.File_Type;
-      Empty : Files.Process_Jobs.Session;
+      Empty : Files.Jobs.Process.Session;
       Finished, Cancelled : Boolean;
       procedure Restore is
       begin
@@ -80,7 +80,7 @@ separate (Files_Suite.Info)
          "refresh remeasures descendant changes even when parent entries were unchanged");
       Files.Window_Polls.Cancel_Folder_Scan (Model);
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         Files.Process_Jobs.Poll (Empty, Finished, Cancelled);
+         Files.Jobs.Process.Poll (Empty, Finished, Cancelled);
          exit when not Ada.Directories.Exists (To_String (Started));
       end loop;
       Assert (not Ada.Directories.Exists (To_String (Started))
@@ -90,7 +90,7 @@ separate (Files_Suite.Info)
       Step := Files.Operations.Refresh (Other, Settings);
       Files.Window_Polls.Update_Folder_Size (Other);
       Files.Window_Polls.Poll_Folder_Sizes (Other);
-      Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Other))
+      Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Other))
               and then not Files.Model.Testing.Folder_Scan_Is_Active (Other),
               "size results cannot invalidate a pending listing request by changing its captured revision");
       Await_View (Other, Settings);

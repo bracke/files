@@ -22,18 +22,18 @@ is
    procedure Advance_Background_Paste
      (Model    : in out Files.Model.Window_Model;
       Finished : out Boolean;
-      Result   : out Files.Transfer_Jobs.Job_Result)
+      Result   : out Files.Jobs.Transfer.Job_Result)
    is
-      Job : Files.Transfer_Jobs.Session := Files.Model.Pasting.Job (Model);
+      Job : Files.Jobs.Transfer.Session := Files.Model.Pasting.Job (Model);
    begin
-      if not Files.Transfer_Jobs.Active (Job) then
+      if not Files.Jobs.Transfer.Active (Job) then
          if Files.Model.Pasting.Execution_Cancelled (Model) then
             Finished := True;
             Result := (Cancelled => True, others => <>);
             return;
          end if;
          begin
-            Files.Transfer_Jobs.Start
+            Files.Jobs.Transfer.Start
               (Job,
                Files.Model.Pasting.Execution_Action (Model, Files.Model.Pasting.Execution_Cursor (Model) + 1),
                Files.Model.Pasting.Execution_Mode (Model), Files.Model.Pasting.Execution_Copy_Context (Model));
@@ -53,9 +53,9 @@ is
          Files.Model.Pasting.Set_Job (Model, Job);
          Files.Model.Pasting.Note_Action_Started (Model);
       end if;
-      Files.Transfer_Jobs.Poll (Job, Finished, Result);
+      Files.Jobs.Transfer.Poll (Job, Finished, Result);
       if Finished then
-         Files.Transfer_Jobs.Reset (Job);
+         Files.Jobs.Transfer.Reset (Job);
          Files.Model.Pasting.Set_Job (Model, Job);
       end if;
    end Advance_Background_Paste;
@@ -81,7 +81,7 @@ begin
          elsif Files.Model.Background_Transfers (Model) then
             declare
                Finished : Boolean;
-               Result   : Files.Transfer_Jobs.Job_Result;
+               Result   : Files.Jobs.Transfer.Job_Result;
                Kept     : Kept_Copy := No_Kept_Copy;
             begin
                Advance_Background_Paste (Model, Finished, Result);

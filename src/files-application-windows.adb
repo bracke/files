@@ -4,7 +4,7 @@ with Files.Operation_Results;
 with Ada.Calendar;
 with Ada.Containers;
 with Files.Window_Polls;
-with Files.Foreground_Jobs;
+with Files.Jobs.Foreground;
 with Files.Preview_Decoder;
 with Files.Extra_Info_Reader;
 with Files.Controller;
@@ -22,7 +22,7 @@ with Glfw.Windows.Vulkan;
 
 with Hostkit.Host;
 with Files.Interaction;
-with Files.Job_Scavenger;
+with Files.Jobs.Scavenger;
 with Files.Operations;
 with Files.Model.Clipboard;
 with Files.Model.Tree_Panel;
@@ -423,7 +423,7 @@ package body Files.Application.Windows is
 
    procedure Release_Window_Jobs
      (Model : in out Files.Model.Window_Model;
-      Watch : in out Files.Refresh_Jobs.Watch_Session) is separate;
+      Watch : in out Files.Jobs.Refresh.Watch_Session) is separate;
 
    --  Poll every window's watched directory for changes.
    procedure Handle_All_File_Watch_Poll
@@ -881,7 +881,7 @@ package body Files.Application.Windows is
       --  every wake-up.
       if not State.Recovery_Reported and then Ada.Real_Time.Clock >= State.Next_Recovery_Check then
          State.Next_Recovery_Check := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (1);
-         if Files.Job_Scavenger.Has_Unrecoverable then
+         if Files.Jobs.Scavenger.Has_Unrecoverable then
             for Runtime of Runtime_Windows loop
                if Runtime.Handle /= null then
                   Files.Model.Set_Error

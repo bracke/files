@@ -16,7 +16,7 @@ with Files.Items;
 with Files.Model.Folder_Sizes;
 with Files.Model.Quick_Look;
 with Files.Model.Selection;
-with Files.Process_Jobs;
+with Files.Jobs.Process;
 with Files.Quick_Look;
 with Files.Types;
 
@@ -47,7 +47,7 @@ package body Files.Window_Polls is
    --  runs, measurements carry on but their results wait in the scan.
    function Folder_Sizes_Paused (Model : Files.Model.Window_Model) return Boolean is
      (Files.Model.Foreground_Job_Is_Active (Model)
-      or else Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)));
+      or else Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)));
 
    procedure Poll_Selected_Item_Extra
      (Model       : in out Files.Model.Window_Model;

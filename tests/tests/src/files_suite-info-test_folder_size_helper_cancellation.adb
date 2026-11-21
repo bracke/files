@@ -11,7 +11,7 @@ separate (Files_Suite.Info)
       Started, Previous, Path : Unbounded_String;
       Result : Files.File_System.Directory_Size_Result;
       Available, Finished, Cancelled : Boolean;
-      Empty : Files.Process_Jobs.Session;
+      Empty : Files.Jobs.Process.Session;
       Before : Instant;
       Targets : Files.Folder_Size.Path_Vectors.Vector;
 
@@ -56,7 +56,7 @@ separate (Files_Suite.Info)
       procedure Await_Reaped (Started : Unbounded_String) is
       begin
          for Attempt in Files_Suite.Support.Timing.Polling loop
-            Files.Process_Jobs.Poll (Empty, Finished, Cancelled);
+            Files.Jobs.Process.Poll (Empty, Finished, Cancelled);
             exit when not Ada.Directories.Exists (To_String (Started));
          end loop;
          Assert (not Ada.Directories.Exists (To_String (Started)),

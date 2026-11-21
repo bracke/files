@@ -27,7 +27,7 @@ separate (Files_Suite.Transfer)
 
       procedure Cleanup is
       begin
-         Files.Job_Context.Initialize ("");
+         Files.Jobs.Context.Initialize ("");
          Unlock (Locked);
          if Length (Trashed) > 0 then
             Unlock (Join (To_String (Trashed), "locked"));
@@ -109,10 +109,10 @@ separate (Files_Suite.Transfer)
       Write_Binary_File
         (Join (Join (Root, "cancelled-recovery"), "cancel"),
          "cancel" & ASCII.LF);
-      Files.Job_Context.Initialize (Join (Root, "cancelled-recovery"));
-      Assert (Files.Job_Context.Cancelled, "the restore retry runs after helper cancellation");
+      Files.Jobs.Context.Initialize (Join (Root, "cancelled-recovery"));
+      Assert (Files.Jobs.Context.Cancelled, "the restore retry runs after helper cancellation");
       Result := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
-      Files.Job_Context.Initialize ("");
+      Files.Jobs.Context.Initialize ("");
       Assert (Result.Success, "restoring can retry after a partial copy failure and cancellation: "
               & To_String (Result.Error_Key)
               & (if Result.Success then "" else Files_Suite.Support.Disk.Access_Report (To_String (Trashed),

@@ -829,7 +829,7 @@ procedure Check_All is
    --  and the tests after it fail for no reason of their own.
    procedure Check_Test_Hook_Disarms is separate;
 
-   --  A stage made with Files.Job_Context.Create_Stage is removed with
+   --  A stage made with Files.Jobs.Context.Create_Stage is removed with
    --  Discard_Stage, which drops its record with it: a test that deletes one
    --  with Delete_Permanently or Delete_Tree leaves a record behind for the
    --  sweep, and the tests after it, to trip over.

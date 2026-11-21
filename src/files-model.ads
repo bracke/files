@@ -4,7 +4,7 @@ with Files.Items;
 with Ada.Calendar;
 private with Ada.Real_Time;
 private with Files.Desktop_Applications;
-private with Files.Process_Jobs;
+private with Files.Jobs.Process;
 private with Files.Paste_States;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
@@ -20,8 +20,8 @@ with Guikit.Input;
 private with Guikit.Settings_Panel;
 with Files.Types;
 with Files.UI_Types;
-private with Files.Undo_History;
-private with Files.Transfer_Jobs;
+private with Files.Undo.History;
+private with Files.Jobs.Transfer;
 
 --  Directory state, selection, filtering, history, input state, and pane state.
 package Files.Model is
@@ -1035,7 +1035,7 @@ package Files.Model is
 
    --  The one modal job a window runs at a time: shown with its progress,
    --  owning the input, cancellable. A paste (Files.Model.Pasting's
-   --  execution) or an operation on a helper (Files.Operation_Jobs: trash,
+   --  execution) or an operation on a helper (Files.Jobs.Operation: trash,
    --  search, undo and the rest).
    type Foreground_Job_Kind is (No_Foreground_Job, Paste_Job, Operation_Job);
 
@@ -1048,7 +1048,7 @@ package Files.Model is
    function Foreground_Job_Is_Active (Model : Window_Model) return Boolean;
 
    --  End the modal job, whichever it is: its helper handles are released
-   --  (a helper still running is stopped and reaped by Files.Process_Jobs)
+   --  (a helper still running is stopped and reaped by Files.Jobs.Process)
    --  and its state forgotten.
    --
    --  @param Model Window to update.
@@ -1403,21 +1403,21 @@ private
       Last_Error_Path_Value : UString;
       Last_Error_Notice_Key : UString;
       Clipboard             : Clipboard_State;
-      History               : Files.Undo_History.Undo_History_State;
+      History               : Files.Undo.History.Undo_History_State;
       Folder_Sizes            : Folder_Size_Maps.Map;
       Folder_Scan             : Files.Folder_Size.Session;
       Context_Menu                  : Context_Menu_State;
       Paste_Conflict                : Files.Paste_States.Conflict_State;
       Background_Transfers_Value    : Boolean := False;
-      Paste_Exec_Job                 : Files.Transfer_Jobs.Session;
+      Paste_Exec_Job                 : Files.Jobs.Transfer.Session;
       Foreground_Kind               : Foreground_Job_Kind := No_Foreground_Job;
-      Operation_Job                 : Files.Process_Jobs.Session;
+      Operation_Job                 : Files.Jobs.Process.Session;
       --  Defer_Operation_Merge's wait for the job's journal.
       Operation_Merge_Deferred      : Boolean := False;
       Operation_Merge_Deadline      : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
       --  The folder the modal operation runs in, for its progress.
       Operation_Name                : UString;
-      Refresh_Job                   : Files.Process_Jobs.Session;
+      Refresh_Job                   : Files.Jobs.Process.Session;
       Operation_Label_Key           : UString;
       Paste_Exec                    : Files.Paste_States.Execution_State;
       --  Monotonic change counter bumped by every model mutator. The render

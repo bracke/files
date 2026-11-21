@@ -1,4 +1,4 @@
-with Files.Copy_Context;
+with Files.Jobs.Copy_Context;
 with Files.Extra_Info;
 with Ada.Calendar;
 with Ada.Containers.Vectors;
@@ -195,7 +195,7 @@ package Files.File_System is
 
    --  Load_Directory that also decodes each image lacking a cached thumbnail
    --  and writes its cache file. Slow on a folder of new photos, so it is for
-   --  the background listing (Files.Refresh_Jobs), not a read the UI waits on.
+   --  the background listing (Files.Jobs.Refresh), not a read the UI waits on.
    --
    --  @param Path Directory path to load.
    --  @param Settings Settings used for filetype and icon classification.
@@ -617,7 +617,7 @@ package Files.File_System is
    function Copy_Tree
      (Source_Path      : String;
       Destination_Path : String;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result;
 
    --  Copy while returning snapshots captured before atomic publication.
@@ -630,13 +630,13 @@ package Files.File_System is
    function Copy_Tree
      (Source_Path, Destination_Path : String;
       Identity, Tree_Revision_Value : out Files.Types.UString;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result;
 
    --  Put a staged file or folder at Target, never over an entry already
    --  there: its identity and tree revision taken first, the whole of it
    --  flushed to the device (a power cut leaves no recorded but empty or cut
-   --  short output), named as intended (Files.Job_Context.Intend_Created),
+   --  short output), named as intended (Files.Jobs.Context.Intend_Created),
    --  renamed into place, given the access its new folder hands down (as a
    --  published copy is, its revision read again where that changed it and
    --  named again with it), recorded as created, and its new name flushed --
@@ -714,7 +714,7 @@ package Files.File_System is
    function Delete_Staging_Entry
      (Path : String; Expected_Identity : String) return Mutation_Result;
 
-   --  Remove a helper transport (Files.Job_Transports) by the identity
+   --  Remove a helper transport (Files.Jobs.Transports) by the identity
    --  captured when it was created: no quarantine, recovery record or flush.
    --  A transport is an owner-only folder of protocol files under the user's
    --  temporary directory, holding no user data, and the removal never
@@ -809,10 +809,10 @@ package Files.File_System is
      (Error_Key in "" | Cancelled_Error_Key | Interrupted_Error_Key
       or else (Reading = Copy_Step and then Error_Key = "error.drop.failed"));
 
-   --  The job's own cancellation (Files.Job_Context.Cancelled): what a copy
+   --  The job's own cancellation (Files.Jobs.Context.Cancelled): what a copy
    --  or a check stops for unless it is handed another check, or null for
    --  none -- recovery, which must finish once the job is cancelled.
-   --  @return Files.Job_Context.Cancelled.
+   --  @return Files.Jobs.Context.Cancelled.
    function Job_Cancelled return Cancellation_Check;
 
    --  Import one paste action, preserving the destination it replaces first
@@ -853,7 +853,7 @@ package Files.File_System is
       Created_Tree_Revision : out Files.Types.UString;
       Preserved             : access procedure (Backup, Backup_Identity : String) := null;
       Cancel                : Cancellation_Check := Job_Cancelled;
-      Batch                 : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch                 : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result;
 
    --  Put an original that a failed replace preserved back at Destination:
@@ -1172,7 +1172,7 @@ private
      (Plans   : Drop_Import_Plan_Vectors.Vector;
       Created : out Created_Entry_Vectors.Vector;
       Cancel  : Cancellation_Check := Job_Cancelled;
-      Batch   : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch   : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result;
 
    --  Rolling checksums (directory signatures, thumbnail cache names) all

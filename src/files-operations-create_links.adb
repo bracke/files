@@ -18,8 +18,8 @@ is
    --  made, where it is, its source (what Redo links again), and its
    --  identity and revision as made. Undo deletes them, Redo links again.
    Progress      : Progressive_Undo :=
-     (Kind        => Files.Undo_History.Undo_Delete_Created,
-      Create_Kind => (if Hard then Files.Undo_History.Create_Hard_Link else Files.Undo_History.Create_Symbolic_Link),
+     (Kind        => Files.Undo.History.Undo_Delete_Created,
+      Create_Kind => (if Hard then Files.Undo.History.Create_Hard_Link else Files.Undo.History.Create_Symbolic_Link),
       Redoable    => True,
       others      => <>);
 
@@ -71,14 +71,14 @@ begin
          end if;
 
          Progress.Items.Append
-           (Files.Undo_History.Recorded_Item'
+           (Files.Undo.History.Recorded_Item'
               (Item       =>
                  (From          => To_Unbounded_String (Dest_Path),
                   Forward       => To_Unbounded_String (Source),
                   Identity      => To_Unbounded_String (Files.File_Identities.Token (Dest_Path)),
                   Tree_Revision => To_Unbounded_String (Files.File_System.Tree_Revision (Dest_Path)),
                   others        => <>),
-               Provenance => Files.Undo_History.Published));
+               Provenance => Files.Undo.History.Published));
          Checkpoint_Undo (Model, Progress);
          if not Created_Any then
             First_Created := To_Unbounded_String (Dest_Name);

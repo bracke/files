@@ -32,7 +32,7 @@ separate (Files_Suite.Transfer)
 
       --  A single-item paste finishes within the first advance and leaves no
       --  lingering execution state (so no progress overlay is ever shown).
-      Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
+      Step := Files.Jobs.Foreground.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,

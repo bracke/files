@@ -37,7 +37,7 @@ separate (Files_Suite.Operations)
          Files.Operation_Results.Operation_Success,
          "identity chown to the file's own owner succeeds");
       Assert
-        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Undo_History.Undo_Set_Ownership,
+        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Undo.History.Undo_Set_Ownership,
          "set-ownership records an ownership undo");
 
       declare

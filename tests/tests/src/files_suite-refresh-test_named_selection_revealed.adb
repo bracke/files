@@ -59,7 +59,7 @@ separate (Files_Suite.Refresh)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Clear_Reveal (Model);
       Write_Binary_File (Join (Root, "z new"), "new");
-      Step := Files.Refresh_Jobs.Start (Model, Settings, Force => True, Select_Name => "z new");
+      Step := Files.Jobs.Refresh.Start (Model, Settings, Force => True, Select_Name => "z new");
       Await_View (Model, Settings);
       Assert
         (To_String (Files.Model.Selection.Selected_Item (Model).Name) = "z new",

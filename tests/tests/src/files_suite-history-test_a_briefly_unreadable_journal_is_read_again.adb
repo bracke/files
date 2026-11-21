@@ -1,4 +1,4 @@
-with Files.History_Journal.Testing;
+with Files.Undo.Journal.Testing;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -25,9 +25,9 @@ separate (Files_Suite.History)
       Files.Model.Set_Background_Transfers (Model, True);
       Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
       --  The window's next two reads of the helper's journal are refused.
-      Files.History_Journal.Testing.Refuse_Reads (2);
+      Files.Undo.Journal.Testing.Refuse_Reads (2);
       Step := Complete_Operation (Model, Settings, Step);
-      Files.History_Journal.Testing.Refuse_Reads (0);
+      Files.Undo.Journal.Testing.Refuse_Reads (0);
       Await_View (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "the duplicate succeeds");
@@ -38,6 +38,6 @@ separate (Files_Suite.History)
       Reset_Root;
    exception
       when others =>
-         Files.History_Journal.Testing.Refuse_Reads (0);
+         Files.Undo.Journal.Testing.Refuse_Reads (0);
          raise;
    end Test_A_Briefly_Unreadable_Journal_Is_Read_Again;

@@ -1,14 +1,14 @@
-with Files.Copy_Context;
+with Files.Jobs.Copy_Context;
 with Ada.Containers.Ordered_Sets;
 with Files.Diagnostics;
 with Files.Path_Checks;
-with Files.Undo_Payloads;
+with Files.Undo.Payloads;
 with Files.Model.Support;
 
 package body Files.Model.History is
-   use type Files.Undo_History.History_Side;
-   use type Files.Undo_History.Undo_Action_Kind;
-   use type Files.Undo_History.Undo_Create_Kind;
+   use type Files.Undo.History.History_Side;
+   use type Files.Undo.History.Undo_Action_Kind;
+   use type Files.Undo.History.Undo_Create_Kind;
 
    use Files.Model.Support;
    use Ada.Strings.Unbounded;
@@ -24,10 +24,10 @@ package body Files.Model.History is
    --  newest, so the reachable history is unaffected.
    Max_Undo_Depth : constant := 200;
 
-   function Undo_Entries (Model : Window_Model) return Files.Undo_History.Undo_Entry_Vectors.Vector is
+   function Undo_Entries (Model : Window_Model) return Files.Undo.History.Undo_Entry_Vectors.Vector is
      (Model.History.Undo_Stack);
 
-   function Redo_Entries (Model : Window_Model) return Files.Undo_History.Undo_Entry_Vectors.Vector is
+   function Redo_Entries (Model : Window_Model) return Files.Undo.History.Undo_Entry_Vectors.Vector is
      (Model.History.Redo_Stack);
 
    function Nonempty_Values
@@ -108,7 +108,7 @@ package body Files.Model.History is
       Reverse_Allowed                       : Files.Types.String_Vectors.Vector;
    end record;
 
-   function Parts_Of (Action : Files.Undo_History.Undo_Entry) return Entry_Parts is
+   function Parts_Of (Action : Files.Undo.History.Undo_Entry) return Entry_Parts is
    begin
       return Parts : Entry_Parts do
          for Item of Action.Items loop
@@ -123,16 +123,16 @@ package body Files.Model.History is
             Parts.Restore_Identities.Append (Original.Identity);
             Parts.Restore_Targets.Append (Original.Target);
          end loop;
-         Parts.Restore_Trash := Files.Undo_History.Replaced_Trash (Action);
-         Parts.Reverse_Allowed := Files.Undo_History.From_Paths (Action);
+         Parts.Restore_Trash := Files.Undo.History.Replaced_Trash (Action);
+         Parts.Reverse_Allowed := Files.Undo.History.From_Paths (Action);
          Parts.Reverse_Allowed.Append_Vector (Parts.Kept_Paths);
       end return;
    end Parts_Of;
 
    --  No item carries a To, or a Forward.
-   function No_To (Action : Files.Undo_History.Undo_Entry) return Boolean is
+   function No_To (Action : Files.Undo.History.Undo_Entry) return Boolean is
      (for all Item of Action.Items => Length (Item.To) = 0);
-   function No_Forward (Action : Files.Undo_History.Undo_Entry) return Boolean is
+   function No_Forward (Action : Files.Undo.History.Undo_Entry) return Boolean is
      (for all Item of Action.Items => Length (Item.Forward) = 0);
 
    --  Every value is a permission (or, for Ownership, an owner) payload.
@@ -141,8 +141,8 @@ package body Files.Model.History is
       Ownership : Boolean) return Boolean is
    begin
       for Value of Values loop
-         if (if Ownership then not Files.Undo_Payloads.Is_Ownership_Text (To_String (Value))
-             else not Files.Undo_Payloads.Is_Mode_Text (To_String (Value)))
+         if (if Ownership then not Files.Undo.Payloads.Is_Ownership_Text (To_String (Value))
+             else not Files.Undo.Payloads.Is_Mode_Text (To_String (Value)))
          then
             return False;
          end if;
@@ -154,12 +154,12 @@ package body Files.Model.History is
    --  identity each, kept copies only on an undo-only move, and a redo only
    --  of what can be redone.
    function Shape_Valid
-     (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts; For_Redo : Boolean) return Boolean is
-     (Action.Kind /= Files.Undo_History.Undo_None
+     (Action : Files.Undo.History.Undo_Entry; Parts : Entry_Parts; For_Redo : Boolean) return Boolean is
+     (Action.Kind /= Files.Undo.History.Undo_None
       and then not Action.Items.Is_Empty
-      and then Unique_Absolute_Paths (Files.Undo_History.From_Paths (Action))
+      and then Unique_Absolute_Paths (Files.Undo.History.From_Paths (Action))
       and then (Action.Kept.Is_Empty
-        or else (Action.Kind = Files.Undo_History.Undo_Move
+        or else (Action.Kind = Files.Undo.History.Undo_Move
           and then not Action.Redoable
           and then Unique_Absolute_Paths (Parts.Kept_Paths)
           and then Nonempty_Values (Parts.Kept_Identities)
@@ -170,10 +170,10 @@ package body Files.Model.History is
    --  Replaced originals to restore: only on an undo-only move or
    --  delete-created, each with a unique trash path, identity and target,
    --  and completion markers naming their trash paths.
-   function Restores_Valid (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts) return Boolean is
+   function Restores_Valid (Action : Files.Undo.History.Undo_Entry; Parts : Entry_Parts) return Boolean is
      (if Action.Replaced.Is_Empty then Action.Restores_Completed.Is_Empty
       else not Action.Redoable
-        and then Action.Kind in Files.Undo_History.Undo_Move | Files.Undo_History.Undo_Delete_Created
+        and then Action.Kind in Files.Undo.History.Undo_Move | Files.Undo.History.Undo_Delete_Created
         and then Unique_Absolute_Paths (Parts.Restore_Trash)
         and then Nonempty_Values (Parts.Restore_Identities)
         and then Unique_Absolute_Paths (Parts.Restore_Targets)
@@ -181,37 +181,37 @@ package body Files.Model.History is
 
    --  A rename or move: unique absolute To paths, no Forward, no create;
    --  forward markers name a To path.
-   function Move_Valid (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts) return Boolean is
+   function Move_Valid (Action : Files.Undo.History.Undo_Entry; Parts : Entry_Parts) return Boolean is
      (Unique_Absolute_Paths (Parts.Tos)
       and then No_Forward (Action)
-      and then Action.Create_Kind = Files.Undo_History.Create_None
+      and then Action.Create_Kind = Files.Undo.History.Create_None
       and then Completion_Markers_Valid (Action.Forward_Completed, Parts.Tos));
 
    --  A restore from the trash: undo-only, like a move but with nothing
    --  replaced and no forward markers.
-   function Restore_Trash_Valid (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts) return Boolean is
+   function Restore_Trash_Valid (Action : Files.Undo.History.Undo_Entry; Parts : Entry_Parts) return Boolean is
      (not Action.Redoable
       and then Unique_Absolute_Paths (Parts.Tos)
       and then No_Forward (Action)
-      and then Action.Create_Kind = Files.Undo_History.Create_None
+      and then Action.Create_Kind = Files.Undo.History.Create_None
       and then Action.Replaced.Is_Empty
       and then Action.Forward_Completed.Is_Empty);
 
    --  A delete of what was created: no To; a redoable one says what it
    --  created and where (Forward); forward markers name a From path.
-   function Delete_Created_Valid (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts) return Boolean is
+   function Delete_Created_Valid (Action : Files.Undo.History.Undo_Entry; Parts : Entry_Parts) return Boolean is
      (No_To (Action)
       and then (if Action.Redoable
-                then Action.Create_Kind /= Files.Undo_History.Create_None and then Absolute_Paths (Parts.Forwards)
+                then Action.Create_Kind /= Files.Undo.History.Create_None and then Absolute_Paths (Parts.Forwards)
                 else No_Forward (Action))
-      and then Completion_Markers_Valid (Action.Forward_Completed, Files.Undo_History.From_Paths (Action)));
+      and then Completion_Markers_Valid (Action.Forward_Completed, Files.Undo.History.From_Paths (Action)));
 
    --  A permission or ownership change: payload images to go back to (and
    --  forward to, when redoable), no create, nothing replaced, no markers.
-   function Payload_Change_Valid (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts) return Boolean is
-      Ownership : constant Boolean := Action.Kind = Files.Undo_History.Undo_Set_Ownership;
+   function Payload_Change_Valid (Action : Files.Undo.History.Undo_Entry; Parts : Entry_Parts) return Boolean is
+      Ownership : constant Boolean := Action.Kind = Files.Undo.History.Undo_Set_Ownership;
    begin
-      return Action.Create_Kind = Files.Undo_History.Create_None
+      return Action.Create_Kind = Files.Undo.History.Create_None
         and then Action.Replaced.Is_Empty
         and then Payload_Images_Valid (Parts.Tos, Ownership)
         and then (if Action.Redoable then Payload_Images_Valid (Parts.Forwards, Ownership)
@@ -221,35 +221,35 @@ package body Files.Model.History is
    end Payload_Change_Valid;
 
    --  What the kind itself requires, forward completion markers included.
-   function Kind_Valid (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts) return Boolean is
+   function Kind_Valid (Action : Files.Undo.History.Undo_Entry; Parts : Entry_Parts) return Boolean is
      (case Action.Kind is
-         when Files.Undo_History.Undo_Rename | Files.Undo_History.Undo_Move => Move_Valid (Action, Parts),
-         when Files.Undo_History.Undo_Restore_Trash => Restore_Trash_Valid (Action, Parts),
-         when Files.Undo_History.Undo_Delete_Created => Delete_Created_Valid (Action, Parts),
-         when Files.Undo_History.Undo_Set_Permissions
-            | Files.Undo_History.Undo_Set_Ownership => Payload_Change_Valid (Action, Parts),
-         when Files.Undo_History.Undo_None => False);
+         when Files.Undo.History.Undo_Rename | Files.Undo.History.Undo_Move => Move_Valid (Action, Parts),
+         when Files.Undo.History.Undo_Restore_Trash => Restore_Trash_Valid (Action, Parts),
+         when Files.Undo.History.Undo_Delete_Created => Delete_Created_Valid (Action, Parts),
+         when Files.Undo.History.Undo_Set_Permissions
+            | Files.Undo.History.Undo_Set_Ownership => Payload_Change_Valid (Action, Parts),
+         when Files.Undo.History.Undo_None => False);
 
    --  Where a half-done step stands: reverse markers name a From path or a
    --  kept copy; a redo has no reverse or restore step done, an undo no
    --  forward step; copy records only on a redoable copy-create delete.
    function Progress_Valid
-     (Action : Files.Undo_History.Undo_Entry; Parts : Entry_Parts; For_Redo : Boolean) return Boolean is
+     (Action : Files.Undo.History.Undo_Entry; Parts : Entry_Parts; For_Redo : Boolean) return Boolean is
      (Completion_Markers_Valid (Action.Reverse_Completed, Parts.Reverse_Allowed)
       and then (not For_Redo or else
         (Action.Reverse_Completed.Is_Empty and then Action.Restores_Completed.Is_Empty))
       and then (For_Redo or else Action.Forward_Completed.Is_Empty)
       and then
         (Action.Copy_Records.Is_Empty
-         or else (Action.Kind = Files.Undo_History.Undo_Delete_Created
+         or else (Action.Kind = Files.Undo.History.Undo_Delete_Created
            and then Action.Redoable
-           and then Action.Create_Kind = Files.Undo_History.Create_Copy
-           and then Files.Copy_Context.Valid (Action.Copy_Records))));
+           and then Action.Create_Kind = Files.Undo.History.Create_Copy
+           and then Files.Jobs.Copy_Context.Valid (Action.Copy_Records))));
 
    function History_Entry_Usable
-     (Action : Files.Undo_History.Undo_Entry; Side : Files.Undo_History.History_Side) return Boolean
+     (Action : Files.Undo.History.Undo_Entry; Side : Files.Undo.History.History_Side) return Boolean
    is
-      For_Redo : constant Boolean := Side = Files.Undo_History.Redo_Side;
+      For_Redo : constant Boolean := Side = Files.Undo.History.Redo_Side;
       Parts    : constant Entry_Parts := Parts_Of (Action);
    begin
       return Shape_Valid (Action, Parts, For_Redo)
@@ -267,15 +267,15 @@ package body Files.Model.History is
    --  The usable entries of Undo and Redo, each with a Sequence: one an
    --  older journal did not carry is given the next of Next.
    procedure Sanitize_History
-     (Undo, Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
+     (Undo, Redo : Files.Undo.History.Undo_Entry_Vectors.Vector;
       Next : in out Positive;
-      Sanitized_Undo, Sanitized_Redo : out Files.Undo_History.Undo_Entry_Vectors.Vector)
+      Sanitized_Undo, Sanitized_Redo : out Files.Undo.History.Undo_Entry_Vectors.Vector)
    is
       procedure Keep
-        (Action : Files.Undo_History.Undo_Entry;
-         Side   : Files.Undo_History.History_Side;
-         Stack  : in out Files.Undo_History.Undo_Entry_Vectors.Vector) is
-         Kept : Files.Undo_History.Undo_Entry := Action;
+        (Action : Files.Undo.History.Undo_Entry;
+         Side   : Files.Undo.History.History_Side;
+         Stack  : in out Files.Undo.History.Undo_Entry_Vectors.Vector) is
+         Kept : Files.Undo.History.Undo_Entry := Action;
       begin
          if History_Entry_Usable (Action, Side) then
             if Kept.Sequence = 0 then
@@ -289,23 +289,23 @@ package body Files.Model.History is
       Sanitized_Undo.Clear;
       Sanitized_Redo.Clear;
       for Action of Undo loop
-         Keep (Action, Files.Undo_History.Undo_Side, Sanitized_Undo);
+         Keep (Action, Files.Undo.History.Undo_Side, Sanitized_Undo);
       end loop;
       for Action of Redo loop
-         Keep (Action, Files.Undo_History.Redo_Side, Sanitized_Redo);
+         Keep (Action, Files.Undo.History.Redo_Side, Sanitized_Redo);
       end loop;
    end Sanitize_History;
 
    procedure Restore
      (Model : in out Window_Model;
-      Undo, Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
-      State : Files.Undo_History.History_Journal_State := (others => <>))
+      Undo, Redo : Files.Undo.History.Undo_Entry_Vectors.Vector;
+      State : Files.Undo.History.History_Journal_State := (others => <>))
    is
       package Sequence_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Positive);
-      Sanitized_Undo, Sanitized_Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
+      Sanitized_Undo, Sanitized_Redo : Files.Undo.History.Undo_Entry_Vectors.Vector;
       Next : Positive := State.Next_Sequence;
       Held, Listed, Retiring : Sequence_Sets.Set;
-      Left_Out, Dropped : Files.Undo_History.Sequence_Vectors.Vector;
+      Left_Out, Dropped : Files.Undo.History.Sequence_Vectors.Vector;
    begin
       Sanitize_History (Undo, Redo, Next, Sanitized_Undo, Sanitized_Redo);
       for Action of Sanitized_Undo loop
@@ -342,26 +342,26 @@ package body Files.Model.History is
       Support.Touch (Model);
    end Restore;
 
-   function Journal_State (Model : Window_Model) return Files.Undo_History.History_Journal_State is
+   function Journal_State (Model : Window_Model) return Files.Undo.History.History_Journal_State is
      (Model.History.Journal);
 
-   function State (Model : Window_Model) return Files.Undo_History.Undo_History_State is (Model.History);
+   function State (Model : Window_Model) return Files.Undo.History.Undo_History_State is (Model.History);
 
    procedure Merge
      (Model : in out Window_Model;
-      Undo, Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
-      State : Files.Undo_History.History_Journal_State)
+      Undo, Redo : Files.Undo.History.Undo_Entry_Vectors.Vector;
+      State : Files.Undo.History.History_Journal_State)
    is
       package Sequence_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Positive);
 
       Next : Positive := Positive'Max (State.Next_Sequence, Model.History.Journal.Next_Sequence);
-      Journal_Undo, Journal_Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
-      Merged_Undo, Merged_Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
+      Journal_Undo, Journal_Redo : Files.Undo.History.Undo_Entry_Vectors.Vector;
+      Merged_Undo, Merged_Redo : Files.Undo.History.Undo_Entry_Vectors.Vector;
       Journaled, Unjournaled, Dropped : Sequence_Sets.Set;
 
       --  Whether the window's Action is still in the history although the
       --  journal does not hold it: the journal lists it as left out.
-      function Left_Out (Action : Files.Undo_History.Undo_Entry) return Boolean is
+      function Left_Out (Action : Files.Undo.History.Undo_Entry) return Boolean is
         (Action.Sequence > 0
          and then not Journaled.Contains (Action.Sequence)
          and then Unjournaled.Contains (Action.Sequence));
@@ -369,14 +369,14 @@ package body Files.Model.History is
       --  Whether the window's Action is still in the history although the
       --  journal neither holds nor lists it: the cap on the journal's list
       --  left it out, and no helper released what it preserved.
-      function Cap_Dropped (Action : Files.Undo_History.Undo_Entry) return Boolean is
+      function Cap_Dropped (Action : Files.Undo.History.Undo_Entry) return Boolean is
         (Action.Sequence > 0
          and then not Journaled.Contains (Action.Sequence)
          and then not Unjournaled.Contains (Action.Sequence)
          and then Dropped.Contains (Action.Sequence));
 
       --  The entry of Stack whose Sequence is Sequence, if any.
-      function Index_Of (Stack : Files.Undo_History.Undo_Entry_Vectors.Vector; Sequence : Natural) return Natural is
+      function Index_Of (Stack : Files.Undo.History.Undo_Entry_Vectors.Vector; Sequence : Natural) return Natural is
       begin
          for Index in Stack.First_Index .. Stack.Last_Index loop
             if Stack (Index).Sequence = Sequence then
@@ -394,9 +394,9 @@ package body Files.Model.History is
       --  stack did not hold (new records, or entries undone or redone onto
       --  this stack).
       procedure Merge_Stack
-        (Window, Journal : Files.Undo_History.Undo_Entry_Vectors.Vector;
+        (Window, Journal : Files.Undo.History.Undo_Entry_Vectors.Vector;
          Keep_Left_Out   : Boolean;
-         Merged          : out Files.Undo_History.Undo_Entry_Vectors.Vector) is
+         Merged          : out Files.Undo.History.Undo_Entry_Vectors.Vector) is
       begin
          Merged.Clear;
          for Action of Window loop
@@ -412,14 +412,14 @@ package body Files.Model.History is
                then
                   --  The helper's new record retired the redo stack, and this
                   --  entry, which it never held, with it.
-                  for Payload of Files.Undo_History.Replaced_Trash (Action) loop
+                  for Payload of Files.Undo.History.Replaced_Trash (Action) loop
                      Model.History.Retired_Discards.Append (Payload);
                   end loop;
                elsif Cap_Dropped (Action) then
                   --  Still undoable (or redoable) when the journal had to
                   --  forget it: as an entry past the depth cap, its
                   --  originals go to the system trash, not to deletion.
-                  for Payload of Files.Undo_History.Replaced_Trash (Action) loop
+                  for Payload of Files.Undo.History.Replaced_Trash (Action) loop
                      Model.History.Retired_Releases.Append (Payload);
                   end loop;
                end if;
@@ -456,7 +456,7 @@ package body Files.Model.History is
       while Natural (Merged_Undo.Length) > Max_Undo_Depth loop
          --  As Commit_Undo_Record: a dropped entry could still have been
          --  undone, so its originals go to the system trash.
-         for Payload of Files.Undo_History.Replaced_Trash (Merged_Undo.First_Element) loop
+         for Payload of Files.Undo.History.Replaced_Trash (Merged_Undo.First_Element) loop
             Model.History.Retired_Releases.Append (Payload);
          end loop;
          Merged_Undo.Delete_First;
@@ -466,23 +466,23 @@ package body Files.Model.History is
       Model.History.Redo_Stack := Merged_Redo;
       Model.History.Journal :=
         (Next_Sequence => Next,
-         Unjournaled   => Files.Undo_History.Sequence_Vectors.Empty_Vector,
+         Unjournaled   => Files.Undo.History.Sequence_Vectors.Empty_Vector,
          Redo_Retired  => Model.History.Journal.Redo_Retired or else State.Redo_Retired,
-         Dropped       => Files.Undo_History.Sequence_Vectors.Empty_Vector);
+         Dropped       => Files.Undo.History.Sequence_Vectors.Empty_Vector);
       Model.History.Journal_Dirty := True;
       Support.Touch (Model);
    end Merge;
 
    procedure Retire_Payloads
      (Pending : in out Files.Types.String_Vectors.Vector;
-      Entries : Files.Undo_History.Undo_Entry_Vectors.Vector);
+      Entries : Files.Undo.History.Undo_Entry_Vectors.Vector);
 
    procedure Retire_Payloads
      (Pending : in out Files.Types.String_Vectors.Vector;
-      Entries : Files.Undo_History.Undo_Entry_Vectors.Vector) is
+      Entries : Files.Undo.History.Undo_Entry_Vectors.Vector) is
    begin
       for Action of Entries loop
-         for Payload of Files.Undo_History.Replaced_Trash (Action) loop
+         for Payload of Files.Undo.History.Replaced_Trash (Action) loop
             Pending.Append (Payload);
          end loop;
       end loop;
@@ -490,16 +490,16 @@ package body Files.Model.History is
 
    procedure Begin_Undo_Record
      (Model : in out Window_Model;
-      Kind  : Files.Undo_History.Undo_Action_Kind;
-      Items : Files.Undo_History.Undo_Item_Vectors.Vector) is
+      Kind  : Files.Undo.History.Undo_Action_Kind;
+      Items : Files.Undo.History.Undo_Item_Vectors.Vector) is
    begin
       Touch (Model);
-      if Kind = Files.Undo_History.Undo_None or else Items.Is_Empty then
+      if Kind = Files.Undo.History.Undo_None or else Items.Is_Empty then
          return;
       end if;
       --  A rename or move is recorded once it is done, whether or not it can
       --  be undone: To holds the old path, From the new one.
-      if Kind in Files.Undo_History.Undo_Rename | Files.Undo_History.Undo_Move then
+      if Kind in Files.Undo.History.Undo_Rename | Files.Undo.History.Undo_Move then
          for Item of Items loop
             if Length (Item.To) > 0 then
                Note_Path_Move (Model, To_String (Item.To), To_String (Item.From));
@@ -510,8 +510,8 @@ package body Files.Model.History is
 
    function Commit_Undo_Record
      (Model  : in out Window_Model;
-      Action : Files.Undo_History.Undo_Entry) return Boolean is
-      Numbered : Files.Undo_History.Undo_Entry := Action;
+      Action : Files.Undo.History.Undo_Entry) return Boolean is
+      Numbered : Files.Undo.History.Undo_Entry := Action;
    begin
       --  Payloads are queued only once their entry has left both stacks; the
       --  operations layer deletes them when it drains Take_Retired.
@@ -525,7 +525,7 @@ package body Files.Model.History is
       if Action.Items.Is_Empty then
          --  Nothing to record, but originals a replace preserved must not stay
          --  in hidden stages with no way back: they go to the system trash.
-         for Payload of Files.Undo_History.Replaced_Trash (Action) loop
+         for Payload of Files.Undo.History.Replaced_Trash (Action) loop
             Model.History.Retired_Releases.Append (Payload);
          end loop;
          return False;
@@ -537,7 +537,7 @@ package body Files.Model.History is
       while Natural (Model.History.Undo_Stack.Length) > Max_Undo_Depth loop
          --  The dropped entry could still have been undone, so the originals it
          --  holds go to the system trash, as on window close, not to deletion.
-         for Payload of Files.Undo_History.Replaced_Trash (Model.History.Undo_Stack.First_Element) loop
+         for Payload of Files.Undo.History.Replaced_Trash (Model.History.Undo_Stack.First_Element) loop
             Model.History.Retired_Releases.Append (Payload);
          end loop;
          Model.History.Undo_Stack.Delete_First;
@@ -593,8 +593,8 @@ package body Files.Model.History is
    --  Pop the newest entry of Stack into Action (Found False and a default
    --  entry when it is empty), as Take_Undo and Take_Redo do.
    procedure Take_Newest
-     (Stack  : in out Files.Undo_History.Undo_Entry_Vectors.Vector;
-      Action : out Files.Undo_History.Undo_Entry;
+     (Stack  : in out Files.Undo.History.Undo_Entry_Vectors.Vector;
+      Action : out Files.Undo.History.Undo_Entry;
       Found  : out Boolean) is
    begin
       if Stack.Is_Empty then
@@ -610,7 +610,7 @@ package body Files.Model.History is
 
    procedure Take_Undo
      (Model  : in out Window_Model;
-      Action : out Files.Undo_History.Undo_Entry;
+      Action : out Files.Undo.History.Undo_Entry;
       Found  : out Boolean) is
    begin
       Touch (Model);
@@ -619,7 +619,7 @@ package body Files.Model.History is
 
    procedure Take_Redo
      (Model  : in out Window_Model;
-      Action : out Files.Undo_History.Undo_Entry;
+      Action : out Files.Undo.History.Undo_Entry;
       Found  : out Boolean) is
    begin
       Touch (Model);
@@ -651,7 +651,7 @@ package body Files.Model.History is
 
    procedure Push_Redo
      (Model  : in out Window_Model;
-      Action : Files.Undo_History.Undo_Entry) is
+      Action : Files.Undo.History.Undo_Entry) is
    begin
       Touch (Model);
       Model.History.Redo_Stack.Append (Action);
@@ -660,7 +660,7 @@ package body Files.Model.History is
 
    procedure Push_Undo
      (Model  : in out Window_Model;
-      Action : Files.Undo_History.Undo_Entry) is
+      Action : Files.Undo.History.Undo_Entry) is
    begin
       Touch (Model);
       Model.History.Undo_Stack.Append (Action);
@@ -675,7 +675,7 @@ package body Files.Model.History is
          return Files.Types.String_Vectors.Empty_Vector;
       end if;
 
-      return Files.Undo_History.From_Paths (Model.History.Undo_Stack.Last_Element);
+      return Files.Undo.History.From_Paths (Model.History.Undo_Stack.Last_Element);
    end Undo_From_Paths;
 
 end Files.Model.History;

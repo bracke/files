@@ -1,4 +1,4 @@
-with Files.Undo_History;
+with Files.Undo.History;
 
 --  The undo and redo history: recording, taking and merging entries, and
 --  the payloads retired entries leave for the operations layer.
@@ -6,11 +6,11 @@ package Files.Model.History is
 
    --  @param Model Window whose history to snapshot.
    --  @return Undo stack, oldest first.
-   function Undo_Entries (Model : Window_Model) return Files.Undo_History.Undo_Entry_Vectors.Vector;
+   function Undo_Entries (Model : Window_Model) return Files.Undo.History.Undo_Entry_Vectors.Vector;
 
    --  @param Model Window whose history to snapshot.
    --  @return Redo stack, oldest first.
-   function Redo_Entries (Model : Window_Model) return Files.Undo_History.Undo_Entry_Vectors.Vector;
+   function Redo_Entries (Model : Window_Model) return Files.Undo.History.Undo_Entry_Vectors.Vector;
 
    --  Restore checkpointed history after filtering structurally unusable
    --  actions and completion markers. Identity snapshots are retained without
@@ -23,17 +23,17 @@ package Files.Model.History is
    --  @param State The journal's state; Redo_Retired starts over as False.
    procedure Restore
      (Model : in out Window_Model;
-      Undo, Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
-      State : Files.Undo_History.History_Journal_State := (others => <>));
+      Undo, Redo : Files.Undo.History.Undo_Entry_Vectors.Vector;
+      State : Files.Undo.History.History_Journal_State := (others => <>));
 
    --  @param Model Window whose journal state to read.
    --  @return The journal state to write beside its stacks.
-   function Journal_State (Model : Window_Model) return Files.Undo_History.History_Journal_State;
+   function Journal_State (Model : Window_Model) return Files.Undo.History.History_Journal_State;
 
    --  @param Model Window whose history to read.
    --  @return Its whole history: the stacks and the journal state, for the
-   --    journal (Files.History_Journal) to write.
-   function State (Model : Window_Model) return Files.Undo_History.Undo_History_State;
+   --    journal (Files.Undo.Journal) to write.
+   function State (Model : Window_Model) return Files.Undo.History.Undo_History_State;
 
    --  Take back the history a background helper journaled, merging it into
    --  the window's own instead of replacing it: an entry the journal does
@@ -54,8 +54,8 @@ package Files.Model.History is
    --  @param State The journal's state.
    procedure Merge
      (Model : in out Window_Model;
-      Undo, Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
-      State : Files.Undo_History.History_Journal_State);
+      Undo, Redo : Files.Undo.History.Undo_Entry_Vectors.Vector;
+      State : Files.Undo.History.History_Journal_State);
 
    --  Start recording a performed action: advance the model revision and, for
    --  a completed rename or move, note each path move whether or not the
@@ -68,8 +68,8 @@ package Files.Model.History is
    --    rename or move its To the old one.
    procedure Begin_Undo_Record
      (Model : in out Window_Model;
-      Kind  : Files.Undo_History.Undo_Action_Kind;
-      Items : Files.Undo_History.Undo_Item_Vectors.Vector);
+      Kind  : Files.Undo.History.Undo_Action_Kind;
+      Items : Files.Undo.History.Undo_Item_Vectors.Vector);
 
    --  Finish recording an action whose members the operations layer has
    --  already verified against the filesystem: the redo stack is retired (a
@@ -85,7 +85,7 @@ package Files.Model.History is
    --  @return True when Action was pushed onto the undo stack.
    function Commit_Undo_Record
      (Model  : in out Window_Model;
-      Action : Files.Undo_History.Undo_Entry) return Boolean;
+      Action : Files.Undo.History.Undo_Entry) return Boolean;
 
    --  Hand over, and forget, what history mutations left for the operations
    --  layer: recovery payloads of retired entries to delete, payloads of an
@@ -140,7 +140,7 @@ package Files.Model.History is
    --  @param Found  True when an entry was popped.
    procedure Take_Undo
      (Model  : in out Window_Model;
-      Action : out Files.Undo_History.Undo_Entry;
+      Action : out Files.Undo.History.Undo_Entry;
       Found  : out Boolean);
 
    --  Pop the top entry off the redo stack.
@@ -150,7 +150,7 @@ package Files.Model.History is
    --  @param Found  True when an entry was popped.
    procedure Take_Redo
      (Model  : in out Window_Model;
-      Action : out Files.Undo_History.Undo_Entry;
+      Action : out Files.Undo.History.Undo_Entry;
       Found  : out Boolean);
 
    --  Forget the newest undo entry when it is the one numbered Sequence: a
@@ -176,7 +176,7 @@ package Files.Model.History is
    --  @param Action Action to push.
    procedure Push_Redo
      (Model  : in out Window_Model;
-      Action : Files.Undo_History.Undo_Entry);
+      Action : Files.Undo.History.Undo_Entry);
 
    --  Push an action back onto the undo stack (after a successful redo),
    --  leaving the redo stack untouched and queueing the journal save for
@@ -186,7 +186,7 @@ package Files.Model.History is
    --  @param Action Action to push.
    procedure Push_Undo
      (Model  : in out Window_Model;
-      Action : Files.Undo_History.Undo_Entry);
+      Action : Files.Undo.History.Undo_Entry);
 
    --  Return the top undo entry's "from" (current) paths.
    --

@@ -20,10 +20,10 @@ separate (Files_Suite.Recovery)
       Result.Execution :=
         (Attempted => True, Executable_Found => True, Exit_Status_Known => True, Exit_Status => 3);
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
-      Files.Job_Records.Write_Operation_Result (Ada.Streams.Stream_IO.Stream (File), Result);
+      Files.Jobs.Records.Write_Operation_Result (Ada.Streams.Stream_IO.Stream (File), Result);
       Ada.Streams.Stream_IO.Close (File);
       Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
-      Decoded := Files.Job_Records.Read_Operation_Result (Ada.Streams.Stream_IO.Stream (File));
+      Decoded := Files.Jobs.Records.Read_Operation_Result (Ada.Streams.Stream_IO.Stream (File));
       Ada.Streams.Stream_IO.Close (File);
       Files_Suite.Support.Assert_Equal (Decoded.Status, Result.Status, "a decoded result keeps its status");
       Files_Suite.Support.Assert_Equal (To_String (Decoded.Path), "file.txt", "a decoded result keeps its path");
@@ -48,7 +48,7 @@ separate (Files_Suite.Recovery)
       Rejected := False;
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
       begin
-         Files.Job_Records.Write_Operation_Result
+         Files.Jobs.Records.Write_Operation_Result
            (Ada.Streams.Stream_IO.Stream (File), Result);
       exception
          when Ada.Directories.Use_Error => Rejected := True;
@@ -61,17 +61,17 @@ separate (Files_Suite.Recovery)
       Files.Operation_Results.Operation_Status'Output
         (Ada.Streams.Stream_IO.Stream (File), Files.Operation_Results.Operation_Success);
       Files.Bounded_Streams.Output_String
-        (Ada.Streams.Stream_IO.Stream (File), "", Files.Job_Records.Max_Error_Length);
+        (Ada.Streams.Stream_IO.Stream (File), "", Files.Jobs.Records.Max_Error_Length);
       Files.Bounded_Streams.Output_String
-        (Ada.Streams.Stream_IO.Stream (File), "", Files.Job_Records.Max_Path_Length);
+        (Ada.Streams.Stream_IO.Stream (File), "", Files.Jobs.Records.Max_Path_Length);
       Files.Bounded_Streams.Output_String
-        (Ada.Streams.Stream_IO.Stream (File), "viewer", Files.Job_Records.Max_Path_Length);
+        (Ada.Streams.Stream_IO.Stream (File), "viewer", Files.Jobs.Records.Max_Path_Length);
       Natural'Output (Ada.Streams.Stream_IO.Stream (File), 257);
       Ada.Streams.Stream_IO.Close (File);
       Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
       Rejected := False;
       begin
-         Decoded := Files.Job_Records.Read_Operation_Result
+         Decoded := Files.Jobs.Records.Read_Operation_Result
            (Ada.Streams.Stream_IO.Stream (File));
       exception
          when Ada.IO_Exceptions.Data_Error => Rejected := True;

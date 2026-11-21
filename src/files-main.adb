@@ -1,8 +1,8 @@
 with Files.Application;
-with Files.Job_Helpers;
-with Files.Job_Context;
-with Files.Job_Scavenger;
-with Files.Process_Jobs;
+with Files.Jobs.Helpers;
+with Files.Jobs.Context;
+with Files.Jobs.Scavenger;
+with Files.Jobs.Process;
 with Files.Recovery_CLI;
 with Files.Diagnostics;
 with Guikit.Errors;
@@ -18,9 +18,9 @@ procedure Files.Main is
    --  say whether each finished in time.
    procedure Shut_Down_Workers is
    begin
-      Files.Job_Scavenger.Shutdown (Reaped);
-      Files.Job_Context.Shutdown;
-      Files.Process_Jobs.Shutdown (Stopped);
+      Files.Jobs.Scavenger.Shutdown (Reaped);
+      Files.Jobs.Context.Shutdown;
+      Files.Jobs.Process.Shutdown (Stopped);
    end Shut_Down_Workers;
 begin
    --  What guikit catches and carries on past is recorded with ours.
@@ -30,7 +30,7 @@ begin
       if not Reaped or else not Stopped then
          Hostkit.Process.End_Now (1);
       end if;
-   elsif Files.Job_Helpers.Run_If_Requested then
+   elsif Files.Jobs.Helpers.Run_If_Requested then
       Shut_Down_Workers;
       if not Reaped or else not Stopped then
          --  Ada task finalization could otherwise wait without a bound for
@@ -38,7 +38,7 @@ begin
          Hostkit.Process.End_Now (1);
       end if;
    else
-      Files.Job_Scavenger.Scavenge;
+      Files.Jobs.Scavenger.Scavenge;
       Status := Files.Application.Run;
       Shut_Down_Workers;
       if not Reaped or else not Stopped then

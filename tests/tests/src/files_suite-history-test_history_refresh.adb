@@ -38,14 +38,14 @@ separate (Files_Suite.History)
                      Applied : Boolean := False;
                   begin
                      if Background then
-                        Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
+                        Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
                                 "the history action schedules a background refresh");
                         Await_View (Model, Settings, Applied);
-                        Assert (Applied and then not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh
+                        Assert (Applied and then not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh
                           (Model)),
                                 "Undo or Redo's own refresh applies without a fallback poll or manual reload");
                      else
-                        Assert (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
+                        Assert (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
                                 "headless history actions still reload synchronously");
                      end if;
                      Files_Suite.Support.Assert_Equal
@@ -76,8 +76,8 @@ separate (Files_Suite.History)
                   Sources.Append (To_Unbounded_String (Source_B));
                   Destinations.Append (To_Unbounded_String (Dest_A));
                   Destinations.Append (To_Unbounded_String (Dest_B));
-                  Files.Undo_Recording.Record_Undo
-                    (Model, Files.Undo_History.Undo_Move,
+                  Files.Undo.Recording.Record_Undo
+                    (Model, Files.Undo.History.Undo_Move,
                      Files_Suite.Support.Models.Undo_Items (Destinations, To => Sources));
                   Files.Model.Set_Background_Transfers (Model, Background);
                   Step := Complete_Operation

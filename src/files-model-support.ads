@@ -275,7 +275,7 @@ private package Files.Model.Support is
    --  An idle process session, to release a held one by assignment.
    --
    --  @return A session holding no job.
-   function Released_Process return Files.Process_Jobs.Session;
+   function Released_Process return Files.Jobs.Process.Session;
 
    --  Clear the pending grid type-ahead prefix.
    --

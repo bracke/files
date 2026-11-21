@@ -9,24 +9,24 @@ separate (Files_Suite.History)
    procedure Test_Refused_Journal_Lookup_Still_Reads (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Directory : constant String := Join (Root, "history-refused");
-      Undo      : Files.Undo_History.Undo_Entry_Vectors.Vector;
-      Item      : Files.Undo_History.Undo_Entry;
+      Undo      : Files.Undo.History.Undo_Entry_Vectors.Vector;
+      Item      : Files.Undo.History.Undo_Entry;
       Model     : Files.Model.Window_Model;
    begin
       Reset_Root;
       Ada.Directories.Create_Directory (Directory);
-      Item.Kind := Files.Undo_History.Undo_Delete_Created;
+      Item.Kind := Files.Undo.History.Undo_Delete_Created;
       Item.Redoable := False;
       Item.Items.Append
-        (Files.Undo_History.Undo_Item'
+        (Files.Undo.History.Undo_Item'
            (From => To_Unbounded_String (Join (Root, "made")),
             Identity => To_Unbounded_String ("1:2"),
             Tree_Revision => To_Unbounded_String ("rev"),
             others => <>));
       Undo.Append (Item);
-      Files.History_Journal.Save_Stacks
-        (Directory, Undo, Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
-         Mode => Files.History_Journal.Must_Commit);
+      Files.Undo.Journal.Save_Stacks
+        (Directory, Undo, Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,
+         Mode => Files.Undo.Journal.Must_Commit);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
 
       Files.Fs_Primitives.Testing.Refuse_Lookups (Join (Directory, "history"));
@@ -38,11 +38,11 @@ separate (Files_Suite.History)
 
       if Files_Suite.Support.Disk.Create_Symlink (Directory, Join (Root, "history-link")) then
          declare
-            use type Files.History_Journal.Read_Outcome;
+            use type Files.Undo.Journal.Read_Outcome;
          begin
             Assert
               (Files.Model.Testing.Merge_Journal (Join (Root, "history-link"), Model)
-                 = Files.History_Journal.Unreadable,
+                 = Files.Undo.Journal.Unreadable,
                "a transport that is a link is a refusal, not a transport without a journal");
          end;
       end if;
@@ -50,10 +50,10 @@ separate (Files_Suite.History)
       Ada.Directories.Delete_File (Join (Directory, "history"));
       Assert (not Files.Model.Testing.Restore_Journal (Directory, Model), "a journal gone for sure is none");
       declare
-         use type Files.History_Journal.Read_Outcome;
+         use type Files.Undo.Journal.Read_Outcome;
       begin
          Assert
-           (Files.Model.Testing.Merge_Journal (Directory, Model) = Files.History_Journal.No_Journal,
+           (Files.Model.Testing.Merge_Journal (Directory, Model) = Files.Undo.Journal.No_Journal,
             "and reads as no journal");
       end;
       Reset_Root;

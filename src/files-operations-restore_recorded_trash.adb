@@ -1,5 +1,5 @@
 separate (Files.Operations)
-function Restore_Recorded_Trash (Original : Files.Undo_History.Replaced_Original) return Boolean is
+function Restore_Recorded_Trash (Original : Files.Undo.History.Replaced_Original) return Boolean is
    Path     : constant String := To_String (Original.Trash);
    Identity : constant String := To_String (Original.Identity);
    Target   : constant String := To_String (Original.Target);

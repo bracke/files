@@ -8,7 +8,7 @@ with Project_Tools.Files;
 
 with Files.Commands;
 with Files.Localization;
-with Files.Refresh_Jobs;
+with Files.Jobs.Refresh;
 
 package body Files_Suite.Support.Guards is
    use Ada.Strings.Unbounded;
@@ -58,7 +58,7 @@ package body Files_Suite.Support.Guards is
    procedure Release (Guard : in out Paste_Guard) is
    begin
       Files.Model.End_Foreground_Job (Guard.Model.all);
-      Files.Refresh_Jobs.Cancel (Guard.Model.all);
+      Files.Jobs.Refresh.Cancel (Guard.Model.all);
    end Release;
 
    overriding procedure Finalize (Guard : in out Paste_Guard) is
@@ -85,7 +85,7 @@ package body Files_Suite.Support.Guards is
 
    procedure Release (Guard : in out Process_Jobs_Guard) is
    begin
-      Files.Process_Jobs.Reset (Guard.Session.all);
+      Files.Jobs.Process.Reset (Guard.Session.all);
       for Path of Guard.Fixtures loop
          Remove_Transport_Fixture (Path);
       end loop;

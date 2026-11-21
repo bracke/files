@@ -1,6 +1,6 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
-with Files.Foreground_Jobs;
+with Files.Jobs.Foreground;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
@@ -59,7 +59,7 @@ separate (Files_Suite.Transfer)
                      Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS", "source-replacement");
                      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
                      Step := Complete_Operation
-                       (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
+                       (Model, Settings, Files.Jobs.Foreground.Advance (Model, Settings, 1));
                      Await_View (Model, Settings);
                   end;
                   declare

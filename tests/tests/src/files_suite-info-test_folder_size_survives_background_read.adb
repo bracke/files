@@ -56,7 +56,7 @@ separate (Files_Suite.Info)
 
          Write_Binary_File (Join (Root, "beta"), "beta");
          Step := Files.Operations.Refresh_If_Changed (Model, Settings);
-         Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)), "a background read runs");
+         Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)), "a background read runs");
          for Frame in 1 .. 5 loop
             Files.Window_Polls.Update_Folder_Size (Model);
             Files.Window_Polls.Poll_Folder_Sizes (Model);
@@ -65,8 +65,8 @@ separate (Files_Suite.Info)
                  "the background read leaves the measurement running");
 
          for Attempt in Files_Suite.Support.Timing.Polling loop
-            exit when Files.Refresh_Jobs.Advance (Model, Settings)
-              or else not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model));
+            exit when Files.Jobs.Refresh.Advance (Model, Settings)
+              or else not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model));
          end loop;
          Files.Window_Polls.Update_Folder_Size (Model);
          Assert (Files.Model.Testing.Folder_Scan_Is_Active (Model),

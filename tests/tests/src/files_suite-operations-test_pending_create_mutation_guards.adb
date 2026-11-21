@@ -55,7 +55,7 @@ separate (Files_Suite.Operations)
                  (Files.Model.Last_Error_Key (Model), "error.create.pending", Context & ": error key");
                Assert (Files.Model.Temporary_Item_Is_Active (Model), Context & ": the inline creation stays active");
                Assert (not Files.Model.History.Undo_Available (Model), Context & ": no Undo entry");
-               Assert (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Operation (Model)),
+               Assert (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Operation (Model)),
                        Context & ": no background operation");
                Assert (not Ada.Directories.Exists (Join (Root, "source (copy).zip")), Context & ": no duplicate");
                Assert (not Ada.Directories.Exists (Join (Root, "source (1).zip")), Context & ": no archive");

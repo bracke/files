@@ -1,7 +1,7 @@
-with Files.History_Journal;
+with Files.Undo.Journal;
 with Files.Items;
 with Files.Types;
-with Files.Undo_History;
+with Files.Undo.History;
 
 --  Test-only queries of Files.Model: state the suite inspects and the program
 --  never asks for, kept out of the program.
@@ -53,7 +53,7 @@ package Files.Model.Testing is
    --  @return Undo_None when the undo stack is empty.
    function Undo_Kind_Of
      (Model : Window_Model)
-      return Files.Undo_History.Undo_Action_Kind;
+      return Files.Undo.History.Undo_Action_Kind;
    --  Return the top undo entry's "to" (restore-target) paths.
    --
    --  @param Model Model to inspect.
@@ -114,7 +114,7 @@ package Files.Model.Testing is
    function Paste_Execution_Total (Model : Window_Model) return Natural;
 
    --  Read the journal in Directory and replace Model's history with it, as
-   --  a helper does (Files.History_Journal.Read, Files.Model.History.Restore).
+   --  a helper does (Files.Undo.Journal.Read, Files.Model.History.Restore).
    --
    --  @param Directory Helper transport directory.
    --  @param Model Model whose history to replace.
@@ -129,9 +129,9 @@ package Files.Model.Testing is
    --  @return What reading the journal came to; merged when Read_Whole.
    function Merge_Journal
      (Directory : String;
-      Model     : in out Window_Model) return Files.History_Journal.Read_Outcome;
+      Model     : in out Window_Model) return Files.Undo.Journal.Read_Outcome;
 
-   --  Files.History_Journal.Save_To of Model's history.
+   --  Files.Undo.Journal.Save_To of Model's history.
    --
    --  @param Directory Helper transport directory.
    --  @param Model Model whose history to save.
@@ -139,13 +139,13 @@ package Files.Model.Testing is
    procedure Save_Journal_To
      (Directory : String;
       Model     : Window_Model;
-      Mode      : Files.History_Journal.Save_Mode := Files.History_Journal.Best_Effort);
+      Mode      : Files.Undo.Journal.Save_Mode := Files.Undo.Journal.Best_Effort);
 
-   --  Files.History_Journal.Journals_Newest of Model's history.
+   --  Files.Undo.Journal.Journals_Newest of Model's history.
    --
    --  @param Model Model whose history to measure.
    --  @param Side Which stack.
    --  @return True when that stack is empty or its newest entry is journaled.
-   function Journals_Newest (Model : Window_Model; Side : Files.Undo_History.History_Side) return Boolean;
+   function Journals_Newest (Model : Window_Model; Side : Files.Undo.History.History_Side) return Boolean;
 
 end Files.Model.Testing;

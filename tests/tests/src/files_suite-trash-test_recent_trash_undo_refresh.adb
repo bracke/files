@@ -39,7 +39,7 @@ separate (Files_Suite.Trash)
          "Undo's refresh immediately relists the restored Recent item without manual refresh or watcher fallback"
          & ": applied");
       Assert
-        (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
+        (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
          "Undo's refresh immediately relists the restored Recent item without manual refresh or watcher fallback"
          & ": refresh finished");
       Assert

@@ -28,7 +28,7 @@ begin
    end if;
 
    for Item of Load.Items loop
-      exit when Files.Job_Context.Cancelled;
+      exit when Files.Jobs.Context.Cancelled;
       Total := Total + 1;
       declare
          --  Its labels went into the trash with it.
@@ -50,7 +50,7 @@ begin
 
    --  Info files left describing nothing (a crash mid-trash) go too: they
    --  are not listed, so the loop above never meets them.
-   if not Files.Job_Context.Cancelled then
+   if not Files.Jobs.Context.Cancelled then
       Files.File_System.Trash.Remove_Orphan_Info_Files;
    end if;
 

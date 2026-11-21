@@ -8,7 +8,7 @@ separate (Files_Suite.Recovery)
    --  cleaned up and released.
    procedure Test_Foreground_Forgets_Removed_Stage (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Previous  : constant String := Files.Job_Context.Directory;
+      Previous  : constant String := Files.Jobs.Context.Directory;
       First     : Files.Types.UString;
       Second    : Files.Types.UString;
       Transport : Files.Types.UString;
@@ -62,20 +62,20 @@ separate (Files_Suite.Recovery)
       Reset_Root;
       --  Foreground staging, from no stage of an earlier test: whatever one
       --  left goes to the reaper, as at the executable's shutdown.
-      Files.Job_Context.Shutdown;
-      Files.Job_Context.Initialize ("");
+      Files.Jobs.Context.Shutdown;
+      Files.Jobs.Context.Initialize ("");
 
-      First := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));
+      First := To_Unbounded_String (Files.Jobs.Context.Create_Stage (Root));
       Transport := To_Unbounded_String (Owner_Of (To_String (First)));
       --  Removed from outside: never discarded.
       Removed := Files.File_System.Delete_Permanently (To_String (First));
       Assert (Removed.Success, "the first stage is removed from outside");
 
-      Second := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));
+      Second := To_Unbounded_String (Files.Jobs.Context.Create_Stage (Root));
       Assert (Owner_Of (To_String (Second)) = To_String (Transport), "both stages share the foreground transport");
       Files_Suite.Support.Assert_Equal (Record_Count, 2, "each stage has its record");
 
-      Assert (Files.Job_Context.Discard_Stage (To_String (Second)), "the second stage is discarded");
+      Assert (Files.Jobs.Context.Discard_Stage (To_String (Second)), "the second stage is discarded");
       Assert (not Ada.Directories.Exists (To_String (Second)), "and is gone");
       Files_Suite.Support.Assert_Equal (Record_Count, 0, "the removed stage's record goes with the discarded one's");
       for Attempt in Files_Suite.Support.Timing.Polling loop
@@ -84,6 +84,6 @@ separate (Files_Suite.Recovery)
       Assert (not Ada.Directories.Exists (To_String (Transport)),
               "the foreground cleanup ran: the transport is released and removed");
 
-      Files.Job_Context.Initialize (Previous);
+      Files.Jobs.Context.Initialize (Previous);
       Reset_Root;
    end Test_Foreground_Forgets_Removed_Stage;

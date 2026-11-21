@@ -48,12 +48,12 @@ private package Files.File_System.Support is
    type Publish_Flush is (No_Flush, Flush_Tree_And_Folder);
 
    --  The one publication of a staged entry, in this order: its intent is
-   --  named (Files.Job_Context.Intend_Created), so a helper stopped after
+   --  named (Files.Jobs.Context.Intend_Created), so a helper stopped after
    --  the move still has it found for Undo; it is moved to Target without
    --  replacing anything; it is given the access its new folder hands down
    --  (Inherit_Destination_Access) and, when that changed its revision,
    --  named again with the new one; and it is recorded
-   --  (Files.Job_Context.Record_Created). With Flush_Tree_And_Folder the
+   --  (Files.Jobs.Context.Record_Created). With Flush_Tree_And_Folder the
    --  staged tree is synced first, and Target's folder last: a failure of
    --  that last sync is traced, not returned, as the entry is published and
    --  recorded whatever it answers.
@@ -152,7 +152,7 @@ private package Files.File_System.Support is
    procedure Copy_To_New_Path
      (Source_Path : String; Destination_Path : String; Cancel : Cancellation_Check := Job_Cancelled;
       Purpose : Copy_Purpose := For_Copy;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
+      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session);
 
    --  @param Source_Path Source file, directory, or symbolic link.
    --  @param Destination_Path New destination pathname.
@@ -167,7 +167,7 @@ private package Files.File_System.Support is
       Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Purpose : Copy_Purpose := For_Copy;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
+      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session);
 
    --  Copy and return identity plus a directory or regular-file revision.
    --  @param Source_Path Existing file, directory, or symbolic link.
@@ -186,7 +186,7 @@ private package Files.File_System.Support is
       Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Purpose : Copy_Purpose := For_Copy;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
+      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session;
       Root_Digest : access Files.Types.UString := null);
 
    --  Whether the change times of the filesystem holding Path cannot pin an

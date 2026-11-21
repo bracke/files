@@ -1,6 +1,6 @@
 separate (Files.Operations)
 function Completed_Creation_Matches
-  (Action : Files.Undo_History.Undo_Entry; Index : Positive; Path : String)
+  (Action : Files.Undo.History.Undo_Entry; Index : Positive; Path : String)
    return Boolean
 is
    Identity : constant String := To_String (Action.Items (Index).Identity);
@@ -10,7 +10,7 @@ begin
       return False;
    end if;
    return
-     (if Action.Create_Kind = Files.Undo_History.Create_Symbolic_Link
+     (if Action.Create_Kind = Files.Undo.History.Create_Symbolic_Link
       then Expected_Tree_Revision = ""
       else Expected_Tree_Revision /= ""
         and then Files.File_System.Tree_Revision (Path) = Expected_Tree_Revision);

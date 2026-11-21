@@ -14,7 +14,7 @@ begin
    end if;
 
    for Item of Items loop
-      exit when Files.Job_Context.Cancelled;
+      exit when Files.Jobs.Context.Cancelled;
       --  refusal-safe: a refused lookup refuses the delete
       if not Files.Fs_Primitives.Entry_Exists (To_String (Item.Full_Path)) then
          Files.Model.Set_Error (Model, "error.permanent_delete.failed");
@@ -25,7 +25,7 @@ begin
    end loop;
 
    for Item of Items loop
-      exit when Files.Job_Context.Cancelled;
+      exit when Files.Jobs.Context.Cancelled;
       if Length (First_Path) = 0 then
          First_Path := Item.Full_Path;
       end if;

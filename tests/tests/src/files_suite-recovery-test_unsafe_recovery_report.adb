@@ -1,11 +1,11 @@
-with Files.Helper_Modes;
+with Files.Jobs.Helper_Modes;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Unsafe_Recovery_Report (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Active          : aliased Files.Process_Jobs.Session;
+      Active          : aliased Files.Jobs.Process.Session;
       Young_Path : constant Files.Types.UString := To_Unbounded_String
         (Join (Hostkit.Fs.Temp_Directory, "files-job-22222222222222222222222222222222"));
       --  Resets Active and removes the fixture, on failure too.
@@ -15,14 +15,14 @@ separate (Files_Suite.Recovery)
       --  A scan or retry left by an earlier test would reclaim this test's
       --  fixtures before its own coordinator could.
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         exit when Files.Job_Scavenger.Idle;
+         exit when Files.Jobs.Scavenger.Idle;
       end loop;
       Assert
-        (Files.Job_Scavenger.Idle,
-         "no earlier recovery scan is still running: " & Files.Job_Scavenger.Testing.Busy_Reason);
+        (Files.Jobs.Scavenger.Idle,
+         "no earlier recovery scan is still running: " & Files.Jobs.Scavenger.Testing.Busy_Reason);
       Reset_Root;
       --  A live job keeps its transport present, as it is during startup recovery.
-      Files.Process_Jobs.Reserve (Active);
+      Files.Jobs.Process.Reserve (Active);
       --  Startup recovery has run by now in a session, and its first run
       --  creates the report directory a child reports unsafe recovery into.
       --  Run it once on an abandoned transport and wait for the reclaim.
@@ -30,7 +30,7 @@ separate (Files_Suite.Recovery)
          Abandoned : Files.Types.UString;
       begin
          Create_Abandoned_Transport (Join (Root, "report-setup-transport"), Abandoned);
-         Files.Job_Scavenger.Scavenge;
+         Files.Jobs.Scavenger.Scavenge;
          for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when not Ada.Directories.Exists (To_String (Abandoned));
          end loop;
@@ -47,7 +47,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File
         (Join (To_String (Young_Path), ".files-job-transport"), "invalid marker");
       Assert
-        (Files.Job_Scavenger.Run (Wait_For_Grace => False)
+        (Files.Jobs.Scavenger.Run (Wait_For_Grace => False)
          and then Ada.Directories.Exists (To_String (Young_Path)),
          "an invalid published marker remains safely unclaimed without retry churn");
       declare
@@ -55,7 +55,7 @@ separate (Files_Suite.Recovery)
          Errors : constant String := Join (Root, "unsafe-transport-errors");
          Result : Hostkit.Process.Process_Outcome;
       begin
-         Arguments.Append (To_Unbounded_String (Files.Helper_Modes.Flag (Files.Helper_Modes.Scavenge)));
+         Arguments.Append (To_Unbounded_String (Files.Jobs.Helper_Modes.Flag (Files.Jobs.Helper_Modes.Scavenge)));
          --  The in-process run above already reported; start the child from
          --  no report, so what is found after it is the child's.
          declare
@@ -66,7 +66,7 @@ separate (Files_Suite.Recovery)
                Ada.Directories.Delete_File (Signal);
             end if;
          end;
-         Assert (not Files.Job_Scavenger.Has_Unrecoverable, "no report is left before the child runs");
+         Assert (not Files.Jobs.Scavenger.Has_Unrecoverable, "no report is left before the child runs");
          Result := Hostkit.Process.Run_Captured
            (Hostkit.Fs.Own_Executable, Arguments,
             Stderr_Path => Errors, Timeout_Ms => 10_000);
@@ -80,7 +80,7 @@ separate (Files_Suite.Recovery)
            (Ada.Strings.Fixed.Index (Project_Tools.Files.Read_Raw_File (Errors), To_String (Young_Path)) > 0,
             "an invalid marker is preserved and reported with its pathname: pathname reported");
          Assert
-           (Files.Job_Scavenger.Has_Unrecoverable,
+           (Files.Jobs.Scavenger.Has_Unrecoverable,
             "the desktop can observe unsafe recovery reported by its child");
 
          declare
@@ -112,7 +112,7 @@ separate (Files_Suite.Recovery)
                   "unchanged",
                   "unsafe recovery never appends through a planted report hardlink");
                Assert
-                 (not Files.Job_Scavenger.Has_Unrecoverable,
+                 (not Files.Jobs.Scavenger.Has_Unrecoverable,
                   "an untrusted hardlink is not accepted as a recovery report marker");
                Ada.Directories.Delete_File (Signal);
                Result := Hostkit.Process.Run_Captured
@@ -127,7 +127,7 @@ separate (Files_Suite.Recovery)
                   0,
                   "recovery creates a validated report marker after a refused hardlink: exit status");
                Assert
-                 (Files.Job_Scavenger.Has_Unrecoverable,
+                 (Files.Jobs.Scavenger.Has_Unrecoverable,
                   "recovery creates a validated report marker after a refused hardlink: report marker created");
             else
                Files_Suite.Support.Disk.Link_Not_Made ("Test_Unsafe_Recovery_Report",

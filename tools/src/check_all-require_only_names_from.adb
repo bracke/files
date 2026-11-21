@@ -24,7 +24,7 @@ separate (Check_All)
          At_Name : Natural;
       begin
          --  In full, or by the short name a child of the parent may use
-         --  ("use Process_Jobs;", "package PJ renames Process_Jobs;").
+         --  ("use Jobs.Process;", "package PJ renames Jobs.Process;").
          if Ada.Strings.Fixed.Index (Code, "use " & Package_Name) > 0
            or else Ada.Strings.Fixed.Index (Code, "renames " & Package_Name) > 0
            or else (Short_Too and then

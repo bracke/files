@@ -1,7 +1,7 @@
 with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Operation_Commands;
-with Files.Foreground_Jobs;
+with Files.Jobs.Foreground;
 with Files.Interaction;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
@@ -94,7 +94,7 @@ separate (Files_Suite.History)
       Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
-      Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
+      Step := Files.Jobs.Foreground.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "the move-replace paste succeeds");
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");

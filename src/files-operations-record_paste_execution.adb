@@ -14,20 +14,20 @@ is
    Mode       : constant Files.File_System.Drop_Import_Mode :=
      Exec.Mode;
    --  Each write: destination (From) and source (To), with its provenance.
-   Written    : Files.Undo_History.Recorded_Item_Vectors.Vector renames Exec.Written;
+   Written    : Files.Undo.History.Recorded_Item_Vectors.Vector renames Exec.Written;
    --  Destinations a Replace overwrote; undo restores them, and a paste that
    --  replaced anything is undo-only (redo is not attempted).
-   Replaced   : Files.Undo_History.Recorded_Original_Vectors.Vector renames Exec.Replaced;
+   Replaced   : Files.Undo.History.Recorded_Original_Vectors.Vector renames Exec.Replaced;
    --  A copy a failed move kept beside its source joins the paste's one
    --  undo entry, which deletes it before anything moves back or any
    --  original returns to its path; so does a paste that kept one, being
    --  undo-only too (its redo would meet the source still in place).
    Has_Kept   : constant Boolean := Length (Kept.Dest_Path) > 0;
-   Kept_Copies : constant Files.Undo_History.Kept_Copy_Vectors.Vector :=
+   Kept_Copies : constant Files.Undo.History.Kept_Copy_Vectors.Vector :=
      (if Has_Kept
-      then Files.Undo_History.Kept_Copy_Vectors.To_Vector
+      then Files.Undo.History.Kept_Copy_Vectors.To_Vector
         ((Path => Kept.Dest_Path, Identity => Kept.Identity, Tree_Revision => Kept.Tree_Revision), 1)
-      else Files.Undo_History.Kept_Copy_Vectors.Empty_Vector);
+      else Files.Undo.History.Kept_Copy_Vectors.Empty_Vector);
    Redoable   : constant Boolean := Replaced.Is_Empty and then not Has_Kept;
 begin
    --  Each item a Replace overwrote went to its recovery stage before the
@@ -43,7 +43,7 @@ begin
          --  With no moved member, the kept copies alone are recorded (as the
          --  creations they are, by Try_Record_Undo) with the originals.
          Record_Undo
-           (Model, Files.Undo_History.Undo_Move, Written,
+           (Model, Files.Undo.History.Undo_Move, Written,
             Redoable => Redoable,
             Replaced => Replaced,
             Kept     => Kept_Copies);
@@ -51,15 +51,15 @@ begin
          --  A copy is reversed by deleting the created copies and redone by
          --  copying each source back to its destination.
          declare
-            Copies : Files.Undo_History.Recorded_Item_Vectors.Vector := Written;
+            Copies : Files.Undo.History.Recorded_Item_Vectors.Vector := Written;
          begin
             for Copy of Copies loop
                Copy.Item.Forward := Copy.Item.To;
                Copy.Item.To := Null_Unbounded_String;
             end loop;
             Record_Undo
-              (Model, Files.Undo_History.Undo_Delete_Created, Copies,
-               Create_Kind => Files.Undo_History.Create_Copy,
+              (Model, Files.Undo.History.Undo_Delete_Created, Copies,
+               Create_Kind => Files.Undo.History.Create_Copy,
                Redoable    => Redoable,
                Replaced    => Replaced);
          end;
@@ -81,11 +81,11 @@ begin
       --  Nothing was written but originals were preserved: they come back
       --  from the trash as a trash restoration does.
       declare
-         Trashed : Files.Undo_History.Recorded_Item_Vectors.Vector;
+         Trashed : Files.Undo.History.Recorded_Item_Vectors.Vector;
       begin
          for Given of Replaced loop
             Trashed.Append
-              (Files.Undo_History.Recorded_Item'
+              (Files.Undo.History.Recorded_Item'
                  (Item       =>
                     (From     => Given.Original.Trash,
                      To       => Given.Original.Target,
@@ -93,7 +93,7 @@ begin
                      others   => <>),
                   Provenance => Given.Provenance));
          end loop;
-         Record_Undo (Model, Files.Undo_History.Undo_Restore_Trash, Trashed, Redoable => False);
+         Record_Undo (Model, Files.Undo.History.Undo_Restore_Trash, Trashed, Redoable => False);
       end;
    end if;
 end Record_Paste_Execution;

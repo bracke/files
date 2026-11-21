@@ -3,7 +3,7 @@ with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Scavenger_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Active          : Files.Process_Jobs.Session;
+      Active          : Files.Jobs.Process.Session;
       Shutdown_Control : constant String := Join (Root, "shutdown-coordinator");
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
@@ -15,29 +15,29 @@ separate (Files_Suite.Recovery)
          then
             Write_Binary_File (Shutdown_Control & ".release", "release");
          end if;
-         Files.Process_Jobs.Reset (Active);
+         Files.Jobs.Process.Reset (Active);
       end Restore;
    begin
       Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_SCAVENGER");
       --  A scan or retry left by an earlier test would reclaim this test's
       --  fixtures before its own coordinator could.
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         exit when Files.Job_Scavenger.Idle;
+         exit when Files.Jobs.Scavenger.Idle;
       end loop;
       Assert
-        (Files.Job_Scavenger.Idle,
-         "no earlier recovery scan is still running: " & Files.Job_Scavenger.Testing.Busy_Reason);
+        (Files.Jobs.Scavenger.Idle,
+         "no earlier recovery scan is still running: " & Files.Jobs.Scavenger.Testing.Busy_Reason);
       Reset_Root;
       --  A live job keeps its transport present, as it is during startup recovery.
-      Files.Process_Jobs.Reserve (Active);
+      Files.Jobs.Process.Reserve (Active);
 
       Assert
-        (Files.Job_Scavenger.Run (Wait_For_Grace => False),
+        (Files.Jobs.Scavenger.Run (Wait_For_Grace => False),
          "scavenging reports completion when only a live claimed transport remains");
 
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_SCAVENGER", Shutdown_Control);
       for Attempt in Files_Suite.Support.Timing.Polling (Interval => 0.05) loop
-         Files.Job_Scavenger.Scavenge;
+         Files.Jobs.Scavenger.Scavenge;
          exit when Ada.Directories.Exists (Shutdown_Control & ".started");
       end loop;
       Assert (Ada.Directories.Exists (Shutdown_Control & ".started"),
@@ -50,7 +50,7 @@ separate (Files_Suite.Recovery)
          Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Shutdown_Control & ".started");
          Child_Id := Integer'Value (Ada.Text_IO.Get_Line (File));
          Ada.Text_IO.Close (File);
-         Files.Job_Scavenger.Shutdown (Reaped);
+         Files.Jobs.Scavenger.Shutdown (Reaped);
          Assert (Reaped, "shutdown reports a reaped coordinator");
          if Hostkit.Host.Current = Hostkit.Host.Linux
            and then Ada.Directories.Exists ("/proc/self")

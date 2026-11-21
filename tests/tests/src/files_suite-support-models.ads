@@ -8,7 +8,7 @@ with Files.Rendering;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
-with Files.Undo_History;
+with Files.Undo.History;
 
 --  Drivers for the window model: sample items and models, running a command,
 --  finishing a paste or the folder-size walks as the frame loop would, a
@@ -105,7 +105,7 @@ package Files_Suite.Support.Models is
       Count    : Positive);
 
    --  An action's items from its path lists, for a fixture recorded through
-   --  Files.Undo_Recording: item Index has From (Index) and the Index-th of
+   --  Files.Undo.Recording: item Index has From (Index) and the Index-th of
    --  each other list, or "" past its end.
    --
    --  @param From Current locations.
@@ -122,8 +122,8 @@ package Files_Suite.Support.Models is
       Forward        : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
       Identities     : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
       Tree_Revisions : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
-      Provenance     : Files.Undo_History.Item_Provenance := Files.Undo_History.Captured)
-      return Files.Undo_History.Recorded_Item_Vectors.Vector;
+      Provenance     : Files.Undo.History.Item_Provenance := Files.Undo.History.Captured)
+      return Files.Undo.History.Recorded_Item_Vectors.Vector;
 
    --  Originals a replace preserved at Trash, their identities and targets
    --  to be captured.
@@ -131,6 +131,6 @@ package Files_Suite.Support.Models is
    --  @param Trash Where each is preserved.
    --  @return The originals, in order.
    function Replaced_Originals
-     (Trash : Files.Types.String_Vectors.Vector) return Files.Undo_History.Recorded_Original_Vectors.Vector;
+     (Trash : Files.Types.String_Vectors.Vector) return Files.Undo.History.Recorded_Original_Vectors.Vector;
 
 end Files_Suite.Support.Models;

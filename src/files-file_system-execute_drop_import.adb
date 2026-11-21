@@ -3,10 +3,10 @@ function Execute_Drop_Import
   (Plans   : Drop_Import_Plan_Vectors.Vector;
    Created : out Created_Entry_Vectors.Vector;
    Cancel  : Cancellation_Check := Job_Cancelled;
-   Batch   : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+   Batch   : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
    return Mutation_Result
 is
-   Context : Files.Copy_Context.Session := Batch;
+   Context : Files.Jobs.Copy_Context.Session := Batch;
 
    --  The stopped-by-cancel reading of a failed copy: a failure with no
    --  cause of its own (not a full disk, say) is reported as cancelled
@@ -19,7 +19,7 @@ is
 
    --  Move one planned entry to its new, different path: named in the
    --  journal before it moves, so a helper stopped right after still has it
-   --  found (Files.Job_Context.Read_Moved), and recorded as moved after.
+   --  found (Files.Jobs.Context.Read_Moved), and recorded as moved after.
    --  @param Source_Path Entry to move.
    --  @param Destination_Path Its new path.
    --  @param Published_Identity The identity of what is at Destination_Path.
@@ -39,7 +39,7 @@ is
       if Identity = "" then
          return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.drop.failed"));
       end if;
-      Files.Job_Context.Intend_Moved (Destination_Path, Source_Path, Identity);
+      Files.Jobs.Context.Intend_Moved (Destination_Path, Source_Path, Identity);
       declare
          Route : Recovery.Move_Route;
          Copied_Identity, Copied_Tree_Revision : UString;
@@ -58,10 +58,10 @@ is
             --  The move is committed. A rename needs no content snapshot:
             --  move recovery and Undo use the entry identity.
             Published_Identity := To_Unbounded_String (Identity);
-            Files.Job_Context.Record_Moved (Destination_Path, Source_Path, Identity);
+            Files.Jobs.Context.Record_Moved (Destination_Path, Source_Path, Identity);
             return Moved;
          elsif Moved.Success then
-            Files.Job_Context.Record_Moved (Destination_Path, Source_Path, To_String (Copied_Identity));
+            Files.Jobs.Context.Record_Moved (Destination_Path, Source_Path, To_String (Copied_Identity));
             Published_Identity := Copied_Identity;
             Published_Tree_Revision := Copied_Tree_Revision;
             return Moved;
@@ -77,7 +77,7 @@ is
          --  Copy_To_New_Path recorded it as created; a vacated source makes
          --  it a move. A kept copy is reported with its own cause.
          if Files.Fs_Primitives.Entry_Is_Absent (Source_Path) then
-            Files.Job_Context.Record_Moved (Destination_Path, Source_Path, To_String (Copied_Identity));
+            Files.Jobs.Context.Record_Moved (Destination_Path, Source_Path, To_String (Copied_Identity));
          end if;
          Created.Append (Created_Entry'(Identity => Copied_Identity, Tree_Revision => Copied_Tree_Revision));
          return Moved;
@@ -85,8 +85,8 @@ is
    end Move_Entry;
 begin
    Created.Clear;
-   if Natural (Plans.Length) > 1 and then Files.Copy_Context.Directory (Context) = "" then
-      Context := Files.Copy_Context.Create;
+   if Natural (Plans.Length) > 1 and then Files.Jobs.Copy_Context.Directory (Context) = "" then
+      Context := Files.Jobs.Copy_Context.Create;
    end if;
    for Plan of Plans loop
       if not Plan.Valid then

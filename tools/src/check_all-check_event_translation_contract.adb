@@ -13,6 +13,9 @@ separate (Check_All)
          --  The value types the actions carry (command ids, item and focus
          --  values), read only: the checks below forbid executing a command.
          To_Unbounded_String ("Files.Commands"),
+         --  Which commands an overlay's own controls run: a constant table.
+         To_Unbounded_String ("Files.Commands.Overlay_Buttons"),
+         To_Unbounded_String ("Files.Preference_Types"),
          To_Unbounded_String ("Files.Types"),
          To_Unbounded_String ("Files.UI_Types")];
 
@@ -120,8 +123,8 @@ separate (Check_All)
       --  polling, cancelling and stepping them is Files.Operations' work. So
       --  model code names only the handle type and the queries below.
       for Job_Package of String_List'
-        [To_Unbounded_String ("Files.Transfer_Jobs"),
-         To_Unbounded_String ("Files.Process_Jobs"),
+        [To_Unbounded_String ("Files.Jobs.Transfer"),
+         To_Unbounded_String ("Files.Jobs.Process"),
          To_Unbounded_String ("Files.Folder_Size")]
       loop
          Require_Only_Names_From
@@ -191,7 +194,7 @@ separate (Check_All)
       --  Copy_Context, which makes a transport): every files-model* unit
       --  may import only these. A new import is a decision made here.
       Require_Only_Names_From
-        ("files-model", "Files.Copy_Context",
+        ("files-model", "Files.Jobs.Copy_Context",
          [To_Unbounded_String ("Session"), To_Unbounded_String ("Empty_Session"), To_Unbounded_String ("Valid")],
          "the model makes no transport; Operations.Begin_Paste_Execution does");
       declare
@@ -199,7 +202,6 @@ separate (Check_All)
            [To_Unbounded_String ("Files.Command_Palette"),
             --  The command a palette row names: the registry's ids, read.
             To_Unbounded_String ("Files.Commands"),
-            To_Unbounded_String ("Files.Copy_Context"),
             To_Unbounded_String ("Files.Desktop_Applications"),
             --  A handler's trace of what it carried on past, not model I/O.
             To_Unbounded_String ("Files.Diagnostics"),
@@ -215,6 +217,9 @@ separate (Check_All)
             --  Items built from a name and sorted, reading no disk.
             To_Unbounded_String ("Files.Item_Lists"),
             To_Unbounded_String ("Files.Items"),
+            To_Unbounded_String ("Files.Jobs.Copy_Context"),
+            To_Unbounded_String ("Files.Jobs.Process"),
+            To_Unbounded_String ("Files.Jobs.Transfer"),
             To_Unbounded_String ("Files.Model.Support"),
             To_Unbounded_String ("Files.Paste"),
             --  The paste prompt's and run's state as values (no I/O).
@@ -222,17 +227,15 @@ separate (Check_All)
             To_Unbounded_String ("Files.Path_Checks"),
             --  The view preferences' value types.
             To_Unbounded_String ("Files.Preference_Types"),
-            To_Unbounded_String ("Files.Process_Jobs"),
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Settings"),
             To_Unbounded_String ("Files.Settings.Path_References"),
-            To_Unbounded_String ("Files.Transfer_Jobs"),
             To_Unbounded_String ("Files.Type_Ahead"),
             To_Unbounded_String ("Files.Types"),
             To_Unbounded_String ("Files.UI_Types"),
             --  The undo history's values (no I/O): the model holds a history.
-            To_Unbounded_String ("Files.Undo_History"),
-            To_Unbounded_String ("Files.Undo_Payloads")];
+            To_Unbounded_String ("Files.Undo.History"),
+            To_Unbounded_String ("Files.Undo.Payloads")];
       begin
          for Item of Project_Tools.Files.List_Tree (Root & "/src", "files-model*.ad?", Generated_Directories) loop
             Require_Only_Allowed_With_Clauses (To_String (Item), "Files.", Allowed);

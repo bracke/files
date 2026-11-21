@@ -13,7 +13,7 @@ is
    Extracted_Any : Boolean := False;
    --  The extracted folders (From).
    Progress      : Progressive_Undo :=
-     (Kind => Files.Undo_History.Undo_Delete_Created, Redoable => False, others => <>);
+     (Kind => Files.Undo.History.Undo_Delete_Created, Redoable => False, others => <>);
 
    --  An earlier archive in the same batch may already have committed.
    --  Keep that output visible as well as undoable, while preserving the
@@ -83,7 +83,7 @@ is
          Dest_Name : constant String := Unique_Name;
          Dest_Dir  : constant String := Hostkit.Fs.Join (Destination, Dest_Name);
          Status    : Zlib.Status_Code;
-         Stage     : constant String := Files.Job_Context.Create_Stage (Destination);
+         Stage     : constant String := Files.Jobs.Context.Create_Stage (Destination);
          Payload   : constant String := Hostkit.Fs.Join (Stage, "payload");
          --  What identifies the published folder, for its Undo.
          Made_Identity, Made_Revision : Unbounded_String;
@@ -142,14 +142,14 @@ is
          --  The job's cancel is asked between members and while one streams,
          --  so a cancel stops a long extraction rather than waiting it out.
          Zlib.Extract_Archive_File_To_Directory
-           (Full_Path, Payload, "", Cancel => Files.Job_Context.Cancelled'Access, Status => Status);
+           (Full_Path, Payload, "", Cancel => Files.Jobs.Context.Cancelled'Access, Status => Status);
 
          if Status /= Zlib.Ok then
             Discard_Stage (Stage);
             Stop := True;
             Result := Failed (Full_Path, Status);
             return;
-         elsif Files.Job_Context.Cancelled
+         elsif Files.Jobs.Context.Cancelled
            or else not Publish_Staged (Payload, Dest_Dir, Made_Identity, Made_Revision)
          then
             Discard_Stage (Stage);
@@ -159,13 +159,13 @@ is
          end if;
          Discard_Stage (Stage);
          Progress.Items.Append
-           (Files.Undo_History.Recorded_Item'
+           (Files.Undo.History.Recorded_Item'
               (Item       =>
                  (From          => To_Unbounded_String (Dest_Dir),
                   Identity      => Made_Identity,
                   Tree_Revision => Made_Revision,
                   others        => <>),
-               Provenance => Files.Undo_History.Published));
+               Provenance => Files.Undo.History.Published));
          Checkpoint_Undo (Model, Progress);
          if not Extracted_Any then
             First_Created := To_Unbounded_String (Dest_Name);
@@ -190,7 +190,7 @@ begin
    end if;
 
    for Item of Items loop
-      exit when Files.Job_Context.Cancelled;
+      exit when Files.Jobs.Context.Cancelled;
       declare
          Stop   : Boolean;
          Result : Operation_Result;

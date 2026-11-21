@@ -12,9 +12,9 @@ separate (Files_Suite.Transfer)
       Dest     : constant String := Join (Dest_Dir, "worker-source");
       Action   : Files.Paste.Resolved_Action;
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
-      Job      : Files.Transfer_Jobs.Session;
+      Job      : Files.Jobs.Transfer.Session;
       Finished : Boolean := False;
-      Outcome  : Files.Transfer_Jobs.Job_Result;
+      Outcome  : Files.Jobs.Transfer.Job_Result;
       Model    : aliased Files.Model.Window_Model;
       Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
@@ -25,13 +25,13 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Create_Path (Dest_Dir);
       Write_Binary_File (Source, [1 .. 262_144 => 'w']);
       Action := (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, False);
-      Files.Transfer_Jobs.Start (Job, Action, Files.File_System.Drop_Copy);
+      Files.Jobs.Transfer.Start (Job, Action, Files.File_System.Drop_Copy);
       declare
-         Other_Owner : constant Files.Transfer_Jobs.Session := Job;
+         Other_Owner : constant Files.Jobs.Transfer.Session := Job;
       begin
-         Files.Transfer_Jobs.Reset (Job);
+         Files.Jobs.Transfer.Reset (Job);
          for Attempt in Files_Suite.Support.Timing.Polling loop
-            Files.Transfer_Jobs.Poll (Other_Owner, Finished, Outcome);
+            Files.Jobs.Transfer.Poll (Other_Owner, Finished, Outcome);
             exit when Finished;
          end loop;
          Assert (Finished and then Outcome.Mutation.Success, "a copied session keeps its worker alive");
@@ -59,8 +59,8 @@ separate (Files_Suite.Transfer)
       Assert (not Ada.Directories.Exists (Dest), "undo removes a background copy");
 
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-      Files.Foreground_Jobs.Cancel (Model);
-      Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
+      Files.Jobs.Foreground.Cancel (Model);
+      Step := Files.Jobs.Foreground.Advance (Model, Settings, 1);
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "cancellation before launch finalizes immediately");
       Assert (not Ada.Directories.Exists (Dest), "a cancelled background action writes nothing");
 
@@ -76,10 +76,10 @@ separate (Files_Suite.Transfer)
          end loop;
          Ada.Streams.Stream_IO.Close (File);
       end;
-      Files.Transfer_Jobs.Start (Job, Action, Files.File_System.Drop_Copy);
-      Files.Transfer_Jobs.Cancel (Job);
+      Files.Jobs.Transfer.Start (Job, Action, Files.File_System.Drop_Copy);
+      Files.Jobs.Transfer.Cancel (Job);
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         Files.Transfer_Jobs.Poll (Job, Finished, Outcome);
+         Files.Jobs.Transfer.Poll (Job, Finished, Outcome);
          exit when Finished;
       end loop;
       Assert (Finished, "an already-started worker responds to cancellation");
@@ -90,5 +90,5 @@ separate (Files_Suite.Transfer)
          Assert (Outcome.Cancelled, "an interrupted worker reports cancellation");
          Assert (not Ada.Directories.Exists (Dest), "an interrupted worker removes its incomplete output");
       end if;
-      Files.Transfer_Jobs.Reset (Job);
+      Files.Jobs.Transfer.Reset (Job);
    end Test_Background_Transfers;

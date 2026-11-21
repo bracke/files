@@ -91,7 +91,7 @@ separate (Files_Suite.Names)
          "error.directory.load",
          "recent-view name search is rejected before a background helper starts: error key");
       Assert
-        (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Operation (Model)),
+        (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Operation (Model)),
          "recent-view name search is rejected before a background helper starts: no helper");
       Result := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents);
       Files_Suite.Support.Assert_Equal
@@ -103,6 +103,6 @@ separate (Files_Suite.Names)
          "error.directory.load",
          "recent-view content search is rejected before a background helper starts: error key");
       Assert
-        (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Operation (Model)),
+        (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Operation (Model)),
          "recent-view content search is rejected before a background helper starts: no helper");
    end Test_Commit_Create_File;

@@ -1,8 +1,8 @@
-with Files.Undo_Payloads;
+with Files.Undo.Payloads;
 separate (Files_Suite.Model)
    procedure Test_Undo_Payloads_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use Files.Undo_Payloads;
+      use Files.Undo.Payloads;
       Written : constant Ownership :=
         (User_Id => 4_294_967_294, Group_Id => 0,
          User_Name => To_Unbounded_String ("nobody"), Group_Name => To_Unbounded_String ("root"));

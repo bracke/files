@@ -644,8 +644,8 @@ package body Files.Model.Support is
       end if;
    end Close_Settings_Pane;
 
-   function Released_Process return Files.Process_Jobs.Session is
-      Idle : Files.Process_Jobs.Session;
+   function Released_Process return Files.Jobs.Process.Session is
+      Idle : Files.Jobs.Process.Session;
    begin
       return Idle;
    end Released_Process;

@@ -76,11 +76,11 @@ separate (Check_All)
            Name_Sets.Union
              --  Reaper is set and read by Ensure_Reaper and Shutdown only, on
              --  the thread that starts jobs; the reaper task touches neither.
-             (Name_Sets.To_Set ("files-process_jobs.adb"),
+             (Name_Sets.To_Set ("files-jobs-process.adb"),
               --  The monitor task reads the report label from a protected
               --  object and the report folder from the environment; the
               --  package's report variables are Scavenge's and Clean_Report's.
-              Name_Sets.To_Set ("files-job_scavenger.adb"));
+              Name_Sets.To_Set ("files-jobs-scavenger.adb"));
       begin
          for Item of Project_Tools.Files.List_Tree (Root & "/src", "*.adb", Generated_Directories) loop
             declare

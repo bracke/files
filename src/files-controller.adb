@@ -1,6 +1,6 @@
 with Files.Settings_Form;
 with Files.Fs_Primitives;
-with Files.Foreground_Jobs;
+with Files.Jobs.Foreground;
 with Files.Items;
 with Files.Commands.Status;
 with Ada.Strings.Unbounded;
@@ -703,9 +703,9 @@ package body Files.Controller is
       if not Files.Model.Foreground_Job_Is_Active (Model) then
          return Make_Result (Controller_Ignored);
       end if;
-      Files.Foreground_Jobs.Cancel (Model);
+      Files.Jobs.Foreground.Cancel (Model);
       return Make_Result
-        (Controller_Command_Executed, Operation => Files.Foreground_Jobs.Advance (Model, Settings, 1));
+        (Controller_Command_Executed, Operation => Files.Jobs.Foreground.Advance (Model, Settings, 1));
    end Handle_Foreground_Job_Cancel;
 
    --  Reveal the single selected item by navigating to its parent directory and

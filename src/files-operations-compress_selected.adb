@@ -52,7 +52,7 @@ is
       begin
          if Collection_Failed then
             Stop := True;
-         elsif Files.Job_Context.Cancelled then
+         elsif Files.Jobs.Context.Cancelled then
             --  A cancel fails the collection: nothing collected is compressed.
             Collection_Failed := True;
             Stop := True;
@@ -61,7 +61,7 @@ is
          end if;
       end Visit;
    begin
-      if Files.Job_Context.Cancelled then
+      if Files.Jobs.Context.Cancelled then
          Collection_Failed := True;
          return;
       elsif Depth > Max_Archive_Depth
@@ -208,7 +208,7 @@ is
          --  Why zlib refused, for a report: the message stays general.
          Files.Diagnostics.Trace ("Files.Operations", "compress_status=" & Status'Image & ",archive=" & Output_Path);
       end if;
-      if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
+      if Status /= Zlib.Ok or else Files.Jobs.Context.Cancelled
         or else not Publish_Staged (Staged, Output_Path, Identity, Tree_Revision)
       then
          Discard_Stage (Stage);
@@ -216,9 +216,9 @@ is
       end if;
       Discard_Stage (Stage);
       Record_Undo
-        (Model, Files.Undo_History.Undo_Delete_Created,
+        (Model, Files.Undo.History.Undo_Delete_Created,
          Published
-           (Files.Undo_History.Undo_Item_Vectors.To_Vector
+           (Files.Undo.History.Undo_Item_Vectors.To_Vector
               ((From          => To_Unbounded_String (Output_Path),
                 Identity      => Identity,
                 Tree_Revision => Tree_Revision,
@@ -276,7 +276,7 @@ begin
 
       Archive_Name : constant String := Unique_Name;
       Output_Path  : constant String := Hostkit.Fs.Join (Directory, Archive_Name);
-      Stage        : constant String := Files.Job_Context.Create_Stage (Directory);
+      Stage        : constant String := Files.Jobs.Context.Create_Stage (Directory);
       Staged       : constant String := Hostkit.Fs.Join (Stage, Archive_Name);
    begin
       return Publish_Archive (Stage, Staged, Output_Path, Archive_Name, Write_Staged (Staged));

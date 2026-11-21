@@ -12,7 +12,7 @@ separate (Files_Suite.Recovery)
       Held : constant String := Join
         (Hostkit.Fs.Temp_Directory, "files-job-99999999999999999999999999999999");
       Control : constant String := Join (Root, "held-transport-creator");
-      Job : Files.Process_Jobs.Session;
+      Job : Files.Jobs.Process.Session;
       Child : Hostkit.Spawn.Process_Handle := Hostkit.Spawn.Invalid_Process;
       Arguments : Hostkit.String_Vectors.Vector;
       Exit_Status : Integer;
@@ -48,28 +48,28 @@ separate (Files_Suite.Recovery)
       Remove (Before);
       Remove (After);
       Remove (Held);
-      Files.Process_Jobs.Reserve (Job);
+      Files.Jobs.Process.Reserve (Job);
       begin
-         Files.Process_Jobs.Launch (Job, "--files-test-blocked");
-         Files.Process_Jobs.Launch (Job, "--files-test-blocked");
+         Files.Jobs.Process.Launch (Job, "--files-test-blocked");
+         Files.Jobs.Process.Launch (Job, "--files-test-blocked");
       exception
          when Ada.Directories.Use_Error => Rejected := True;
       end;
       Assert (Rejected, "a second launch cannot replace the tracked helper handle");
-      Ada.Directories.Create_Directory (Files.Process_Jobs.Path (Job, "cancel"));
+      Ada.Directories.Create_Directory (Files.Jobs.Process.Path (Job, "cancel"));
       Rejected := False;
       begin
-         Files.Process_Jobs.Cancel (Job);
+         Files.Jobs.Process.Cancel (Job);
       exception
          when Ada.Directories.Use_Error => Rejected := True;
       end;
-      Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+      Files.Jobs.Process.Poll (Job, Finished, Cancelled);
       Assert (Rejected and then not Cancelled,
               "a failed cancellation file creation leaves the request retryable");
-      Ada.Directories.Delete_Directory (Files.Process_Jobs.Path (Job, "cancel"));
+      Ada.Directories.Delete_Directory (Files.Jobs.Process.Path (Job, "cancel"));
       declare
          Victim : constant String := Join (Root, "cancel-marker-victim");
-         Marker : constant String := Files.Process_Jobs.Path (Job, "cancel");
+         Marker : constant String := Files.Jobs.Process.Path (Job, "cancel");
          Linked : Boolean := False;
       begin
          Write_Binary_File (Victim, "unchanged");
@@ -77,15 +77,15 @@ separate (Files_Suite.Recovery)
          if Linked then
             Rejected := False;
             begin
-               Files.Process_Jobs.Cancel (Job);
+               Files.Jobs.Process.Cancel (Job);
             exception
                when Ada.Directories.Use_Error => Rejected := True;
             end;
-            Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+            Files.Jobs.Process.Poll (Job, Finished, Cancelled);
             Assert (Rejected, "a planted hardlink is not accepted as a cancellation marker: rejected");
             Assert (not Cancelled, "a planted hardlink is not accepted as a cancellation marker: not cancelled");
             Assert
-              (not Files.Process_Jobs.Cancellation_Requested (Files.Process_Jobs.Path (Job, "")),
+              (not Files.Jobs.Process.Cancellation_Requested (Files.Jobs.Process.Path (Job, "")),
                "a planted hardlink is not accepted as a cancellation marker: no cancellation requested");
             Files_Suite.Support.Assert_Equal
               (Project_Tools.Files.Read_Raw_File (Victim),
@@ -106,14 +106,14 @@ separate (Files_Suite.Recovery)
             end if;
             raise;
       end;
-      Files.Process_Jobs.Cancel (Job);
-      Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+      Files.Jobs.Process.Cancel (Job);
+      Files.Jobs.Process.Poll (Job, Finished, Cancelled);
       Assert
         (Cancelled
-         and then Files.Process_Jobs.Cancellation_Requested
-           (Files.Process_Jobs.Path (Job, "")),
+         and then Files.Jobs.Process.Cancellation_Requested
+           (Files.Jobs.Process.Path (Job, "")),
               "retry publishes the cancellation file before marking the session cancelled");
-      Files.Process_Jobs.Reset (Job);
+      Files.Jobs.Process.Reset (Job);
 
       Arguments.Append (To_Unbounded_String ("--files-test-crash-before-marker"));
       Arguments.Append (To_Unbounded_String (Before));
@@ -130,12 +130,12 @@ separate (Files_Suite.Recovery)
       begin
          declare
             Unavailable_Identity : Files.Types.UString;
-            Unavailable_Claim    : Files.Job_Transports.Lease;
+            Unavailable_Claim    : Files.Jobs.Transports.Lease;
          begin
             Assert
-              (Files.Job_Transports.Claim_Incomplete
+              (Files.Jobs.Transports.Claim_Incomplete
                  (Before, Unavailable_Identity, Unavailable_Claim,
-                  Minimum_Age => 0.0) = Files.Job_Transports.Claim_Unrecoverable
+                  Minimum_Age => 0.0) = Files.Jobs.Transports.Claim_Unrecoverable
                and then Ada.Directories.Exists (Before),
                "incomplete transport cleanup refuses an identity-free deletion");
          end;
@@ -145,7 +145,7 @@ separate (Files_Suite.Recovery)
             Files.File_Identities.Testing.Set_Unavailable (False);
             raise;
       end;
-      Found := Files.Job_Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
+      Found := Files.Jobs.Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
       Assert (not Ada.Directories.Exists (Before) and then not Ada.Directories.Exists (After),
               "recovery removes both witnessed markerless crash states");
 
@@ -162,10 +162,10 @@ separate (Files_Suite.Recovery)
       Assert (Ada.Directories.Exists (Control & ".started"), "the creator holds its witness");
       declare
          Identity : Files.Types.UString;
-         Claim : Files.Job_Transports.Lease;
+         Claim : Files.Jobs.Transports.Lease;
       begin
-         Assert (Files.Job_Transports.Claim_Incomplete
-           (Held, Identity, Claim, Minimum_Age => 0.0) = Files.Job_Transports.Claim_Deferred,
+         Assert (Files.Jobs.Transports.Claim_Incomplete
+           (Held, Identity, Claim, Minimum_Age => 0.0) = Files.Jobs.Transports.Claim_Deferred,
            "recovery cannot claim a creator still between directory and marker publication");
       end;
       Signal_Release;
@@ -178,19 +178,19 @@ separate (Files_Suite.Recovery)
       Assert (Status.State = Hostkit.Spawn.Wait_Exited, "the paused creator exits after release: exited");
       Files_Suite.Support.Assert_Equal (Status.Exit_Code, 0, "the paused creator exits after release: exit code");
       Hostkit.Spawn.Release (Child);
-      Found := Files.Job_Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
+      Found := Files.Jobs.Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
       Assert (not Ada.Directories.Exists (Held), "recovery reclaims the creator after its lock closes");
 
       --  Simulate a failed witness unlink after a successful publication,
       --  followed by loss of the marker while the transport owner is live.
       --  A published witness must never be mistaken for pre-marker proof.
       declare
-         Owner : Files.Job_Transports.Lease;
+         Owner : Files.Jobs.Transports.Lease;
          Directory, Identity : Files.Types.UString;
-         Claim : Files.Job_Transports.Lease;
+         Claim : Files.Jobs.Transports.Lease;
          Incomplete_Identity : Files.Types.UString;
       begin
-         Files.Job_Transports.Create (Directory, Identity, Owner);
+         Files.Jobs.Transports.Create (Directory, Identity, Owner);
          declare
             Path : constant String := To_String (Directory);
             Simple : constant String := Ada.Directories.Simple_Name (Path);
@@ -218,19 +218,19 @@ separate (Files_Suite.Recovery)
             end if;
             Ada.Directories.Delete_File (Join (Path, ".files-job-transport"));
             Assert
-              (Files.Job_Transports.Claim_Incomplete
+              (Files.Jobs.Transports.Claim_Incomplete
                  (Path, Incomplete_Identity, Claim, Minimum_Age => 0.0) =
-                   Files.Job_Transports.Claim_Unrecoverable,
+                   Files.Jobs.Transports.Claim_Unrecoverable,
                "a published witness cannot authorize markerless cleanup");
-            Found := Files.Job_Scavenger.Run
+            Found := Files.Jobs.Scavenger.Run
               (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
             Assert (Ada.Directories.Exists (Path),
                     "scavenging preserves a live transport with a published witness");
-            Files.Job_Transports.Release (Owner);
+            Files.Jobs.Transports.Release (Owner);
             Remove (Path);
          exception
             when others =>
-               Files.Job_Transports.Release (Owner);
+               Files.Jobs.Transports.Release (Owner);
                Remove (Path);
                raise;
          end;
@@ -251,7 +251,7 @@ separate (Files_Suite.Recovery)
          if Ada.Text_IO.Is_Open (File) then
             Ada.Text_IO.Close (File);
          end if;
-         Files.Process_Jobs.Reset (Job);
+         Files.Jobs.Process.Reset (Job);
          Signal_Release;
          raise;
    end Test_Transport_Protocol_Gaps;

@@ -227,7 +227,7 @@ package Files.File_System.Testing is
    function Execute_Drop_Import
      (Plans  : Drop_Import_Plan_Vectors.Vector;
       Cancel : Cancellation_Check := Job_Cancelled;
-      Batch  : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch  : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result;
 
    --  Whether Child is Parent or lies inside it, as the program decides it

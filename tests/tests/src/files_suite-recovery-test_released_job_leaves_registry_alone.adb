@@ -15,7 +15,7 @@ separate (Files_Suite.Recovery)
       Environment : Files_Suite.Support.Guards.Environment_Guard;
       Registry    : constant String := Join (Join (Join (Test_Temp, "data"), "files"), "recovery-index");
       Held        : Hostkit.Locks.Lock;
-      Job         : Files.Process_Jobs.Session;
+      Job         : Files.Jobs.Process.Session;
       Transport   : Unbounded_String;
    begin
       if not Ada.Environment_Variables.Exists ("FILES_TEST_TEMP") then
@@ -30,10 +30,10 @@ separate (Files_Suite.Recovery)
             Hostkit.Locks.Lock_Exclusive, Wait => False, Item => Held) = Hostkit.Locks.Lock_Ok,
          "the test holds the registry lock");
 
-      Files.Process_Jobs.Reserve (Job);
-      Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
-      Write_Binary_File (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Result_File), "result");
-      Files.Process_Jobs.Reset (Job);
+      Files.Jobs.Process.Reserve (Job);
+      Transport := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
+      Write_Binary_File (Files.Jobs.Process.Path (Job, Files.Jobs.Process.Result_File), "result");
+      Files.Jobs.Process.Reset (Job);
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when not Ada.Directories.Exists (To_String (Transport));
       end loop;
@@ -43,6 +43,6 @@ separate (Files_Suite.Recovery)
    exception
       when others =>
          Hostkit.Locks.Release (Held);
-         Files.Process_Jobs.Reset (Job);
+         Files.Jobs.Process.Reset (Job);
          raise;
    end Test_Released_Job_Leaves_Registry_Alone;

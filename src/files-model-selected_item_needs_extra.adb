@@ -7,7 +7,7 @@ is
 begin
    if not Model.Info_Pane_Open
      or else Model.Foreground_Kind /= No_Foreground_Job
-     or else Files.Process_Jobs.Active (Model.Refresh_Job)
+     or else Files.Jobs.Process.Active (Model.Refresh_Job)
      or else Idx = 0
      or else Idx > Natural (Model.Items.Length)
    then

@@ -39,7 +39,7 @@ separate (Files_Suite.Transfer)
            (To_Unbounded_String (Source), To_Unbounded_String (Destination), False, False));
          Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
          Step := Complete_Operation
-           (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
+           (Model, Settings, Files.Jobs.Foreground.Advance (Model, Settings, 1));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,

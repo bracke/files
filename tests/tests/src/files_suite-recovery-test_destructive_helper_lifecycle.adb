@@ -9,13 +9,13 @@ separate (Files_Suite.Recovery)
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : Files.Model.Window_Model;
-      Watch : Files.Refresh_Jobs.Watch_Session;
+      Watch : Files.Jobs.Refresh.Watch_Session;
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operation_Results.Operation_Result;
       Before : Instant;
       Started : Unbounded_String;
       Paths, Sources : Files.Types.String_Vectors.Vector;
-      Action : Files.Undo_History.Undo_Entry;
+      Action : Files.Undo.History.Undo_Entry;
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
       --  The stalled helper never finishes, so a command that waited for it
@@ -41,22 +41,22 @@ separate (Files_Suite.Recovery)
          Sources.Clear;
          Paths.Append (To_Unbounded_String (Join (Root, "victim.txt")));
          if Job_Kind = Undo_Job then
-            Files.Undo_Recording.Record_Undo
-              (Model, Files.Undo_History.Undo_Delete_Created,
+            Files.Undo.Recording.Record_Undo
+              (Model, Files.Undo.History.Undo_Delete_Created,
                Files_Suite.Support.Models.Undo_Items (Paths, To => Sources), Redoable => False);
          elsif Job_Kind = Redo_Job then
             Sources := Paths;
             Paths.Clear;
             Paths.Append (To_Unbounded_String (Join (Root, "new-copy.txt")));
             Action :=
-              (Kind => Files.Undo_History.Undo_Delete_Created, Create_Kind => Files.Undo_History.Create_Copy,
+              (Kind => Files.Undo.History.Undo_Delete_Created, Create_Kind => Files.Undo.History.Create_Copy,
                others => <>);
             for Index in Paths.First_Index .. Paths.Last_Index loop
                Action.Items.Append
-                 (Files.Undo_History.Undo_Item'(From => Paths (Index), Forward => Sources (Index), others => <>));
+                 (Files.Undo.History.Undo_Item'(From => Paths (Index), Forward => Sources (Index), others => <>));
             end loop;
             Files.Model.History.Push_Redo (Model, Action);
-            Files.Undo_Recording.Settle_History (Model);
+            Files.Undo.Recording.Settle_History (Model);
          end if;
          Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
          Before := Now;
@@ -84,16 +84,16 @@ separate (Files_Suite.Recovery)
                     Kind'Image (Job_Kind) & " command left no background job running");
          end;
          declare
-            Job : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Operation (Model);
+            Job : constant Files.Jobs.Process.Session := Files.Model.Jobs.Background_Operation (Model);
          begin
-            Started := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
+            Started := To_Unbounded_String (Files.Jobs.Process.Path (Job, "started"));
          end;
          for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Ada.Directories.Exists (To_String (Started));
          end loop;
          Assert (Ada.Directories.Exists (To_String (Started)), "the destructive helper reaches stalled work");
          if Job_Kind = Undo_Job then
-            Files.Foreground_Jobs.Cancel (Model);
+            Files.Jobs.Foreground.Cancel (Model);
             Step := Complete_Operation (Model, Settings, Step);
             Await_View (Model, Settings);
          else
@@ -190,13 +190,13 @@ separate (Files_Suite.Recovery)
       Sources.Clear;
       Paths.Append (To_Unbounded_String (Join (Root, "checkpoint-target")));
 
-      Files.Undo_Recording.Record_Undo
-        (Model, Files.Undo_History.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Paths, To => Sources),
+      Files.Undo.Recording.Record_Undo
+        (Model, Files.Undo.History.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Paths, To => Sources),
          Redoable => False);
       Write_Binary_File (Join (Root, "blocked-transport"), "a file cannot hold a checkpoint");
-      Files.Job_Context.Initialize (Join (Root, "blocked-transport"));
+      Files.Jobs.Context.Initialize (Join (Root, "blocked-transport"));
       Step := Files.Operation_Commands.Undo_Last (Model, Settings);
-      Files.Job_Context.Initialize ("");
+      Files.Jobs.Context.Initialize ("");
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Failed,
@@ -213,5 +213,5 @@ separate (Files_Suite.Recovery)
               "Undo retries successfully once checkpoint transport is available");
       Release_Jobs;
    exception
-      when others => Files.Job_Context.Initialize (""); Release_Jobs; raise;
+      when others => Files.Jobs.Context.Initialize (""); Release_Jobs; raise;
    end Test_Destructive_Helper_Lifecycle;

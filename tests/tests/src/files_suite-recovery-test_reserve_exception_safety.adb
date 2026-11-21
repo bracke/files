@@ -3,7 +3,7 @@ separate (Files_Suite.Recovery)
    procedure Test_Reserve_Exception_Safety (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Invalid_Temp : constant String := Join (Root, "not-a-temp-directory");
-      Job          : Files.Process_Jobs.Session;
+      Job          : Files.Jobs.Process.Session;
       Failed       : Boolean := False;
       type Name_Access is access constant String;
       Tmpdir : aliased constant String := "TMPDIR";
@@ -25,24 +25,24 @@ separate (Files_Suite.Recovery)
             Ada.Environment_Variables.Set (Name.all, Invalid_Temp);
          end loop;
          begin
-            Files.Process_Jobs.Reserve (Job);
+            Files.Jobs.Process.Reserve (Job);
          exception
             when others => Failed := True;
          end;
          Assert (Failed, "a transport creation failure frees the preallocated session state: reservation fails");
          Assert
-           (not Files.Process_Jobs.Active (Job),
+           (not Files.Jobs.Process.Active (Job),
             "a transport creation failure frees the preallocated session state: session inactive");
       end;
 
-      Files.Process_Jobs.Reserve (Job);
+      Files.Jobs.Process.Reserve (Job);
       Assert
-        (Files.Process_Jobs.Active (Job)
-         and then Ada.Directories.Exists (Files.Process_Jobs.Path (Job, "")),
+        (Files.Jobs.Process.Active (Job)
+         and then Ada.Directories.Exists (Files.Jobs.Process.Path (Job, "")),
          "the same session remains reusable after reservation rollback");
-      Files.Process_Jobs.Reset (Job);
+      Files.Jobs.Process.Reset (Job);
    exception
       when others =>
-         Files.Process_Jobs.Reset (Job);
+         Files.Jobs.Process.Reset (Job);
          raise;
    end Test_Reserve_Exception_Safety;

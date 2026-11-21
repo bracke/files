@@ -1,7 +1,7 @@
 with Files.Preference_Types;
 with Glfw.Windows.Drop.Paths;
 with Files.Model;
-with Files.Refresh_Jobs;
+with Files.Jobs.Refresh;
 with Files.Window_Policy;
 with Guikit.Layout;
 with Guikit.Vulkan;
@@ -53,7 +53,7 @@ package Files.Application.Windows is
    --  @param Watch Closing window's native notification session to release.
    procedure Release_Window_Jobs
      (Model : in out Files.Model.Window_Model;
-      Watch : in out Files.Refresh_Jobs.Watch_Session);
+      Watch : in out Files.Jobs.Refresh.Watch_Session);
 
    --  Return whether a live desktop display appears available.
    --
@@ -382,9 +382,9 @@ private
       Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
         Guikit.Vulkan.Vulkan_Not_Initialized;
       Last_Watch_Poll : Ada.Real_Time.Time := Never;
-      Watch : Files.Refresh_Jobs.Watch_Session;
+      Watch : Files.Jobs.Refresh.Watch_Session;
       --  How often the watch and the timed re-read may reload the folder.
-      Watch_Pacing : Files.Refresh_Jobs.Watch_Pacer;
+      Watch_Pacing : Files.Jobs.Refresh.Watch_Pacer;
    end record;
 
    --  The setting's text size in this window's framebuffer pixels.

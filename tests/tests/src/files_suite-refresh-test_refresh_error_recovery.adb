@@ -105,7 +105,7 @@ separate (Files_Suite.Refresh)
          "an old successful recovery cannot erase a newer operation error");
       Files.Model.Set_Error (Model, "error.directory.load");
       Start_Refresh (True);
-      Files.Refresh_Jobs.Cancel (Model);
+      Files.Jobs.Refresh.Cancel (Model);
       Await_Refresh (False);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -131,5 +131,5 @@ separate (Files_Suite.Refresh)
             "successful Recent refresh clears load errors while retaining operation errors: error key");
       end loop;
    exception
-      when others => Files.Refresh_Jobs.Cancel (Model); raise;
+      when others => Files.Jobs.Refresh.Cancel (Model); raise;
    end Test_Refresh_Error_Recovery;

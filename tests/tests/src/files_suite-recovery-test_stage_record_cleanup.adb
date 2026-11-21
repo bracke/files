@@ -1,11 +1,11 @@
 with Files.File_System.Permissions;
-with Files.Job_Helpers.Testing;
+with Files.Jobs.Helpers.Testing;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Transport_Job : Files.Process_Jobs.Session;
+      Transport_Job : Files.Jobs.Process.Session;
       Transport_Path : Files.Types.UString;
       function Transport return String is (To_String (Transport_Path));
       Unrelated : constant String := Join (Root, "unrelated");
@@ -59,15 +59,15 @@ separate (Files_Suite.Recovery)
       end Add_Stage_Record;
    begin
       Reset_Root;
-      Files.Process_Jobs.Reserve (Transport_Job);
-      Transport_Path := To_Unbounded_String (Files.Process_Jobs.Path (Transport_Job, ""));
+      Files.Jobs.Process.Reserve (Transport_Job);
+      Transport_Path := To_Unbounded_String (Files.Jobs.Process.Path (Transport_Job, ""));
       Transport_Identity := To_Unbounded_String (Files.File_Identities.Token (Transport));
       Ada.Directories.Create_Directory (Unrelated);
       Ada.Directories.Create_Directory (Unowned);
       Write_Binary_File (Join (Unrelated, "keep"), "unrelated");
-      Files.Job_Context.Initialize (Transport);
+      Files.Jobs.Context.Initialize (Transport);
 
-      Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));
+      Stage := To_Unbounded_String (Files.Jobs.Context.Create_Stage (Root));
       Write_Binary_File (Join (To_String (Stage), "partial"), "partial");
       --  Simulate termination after the owner marker was published but before
       --  the write-ahead record was finalized with its identity.
@@ -83,7 +83,7 @@ separate (Files_Suite.Recovery)
          Join (Join (Join (Transport, "stages"), "stage-1"), "data"));
       String'Output (Ada.Streams.Stream_IO.Stream (File), "trailing");
       Ada.Streams.Stream_IO.Close (File);
-      Files.Process_Jobs.Clean_Stages (Transport_Job);
+      Files.Jobs.Process.Clean_Stages (Transport_Job);
       Assert
         (Ada.Directories.Exists (To_String (Stage))
          and then not Ada.Directories.Exists
@@ -113,7 +113,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File
         (Join (Join (Join (Transport, "stages"), "stage-truncated"), "data"),
          "truncated");
-      Files.Process_Jobs.Clean_Stages (Transport_Job);
+      Files.Jobs.Process.Clean_Stages (Transport_Job);
       Assert (not Ada.Directories.Exists (To_String (Stage)), "cleanup removes its own partial staging directory");
       Files_Suite.Support.Assert_Equal
         (Project_Tools.Files.Read_Raw_File (Join (Unrelated, "keep")),
@@ -148,12 +148,12 @@ separate (Files_Suite.Recovery)
       Assert (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-absent")),
               "a write-ahead reservation with no created pathname is discarded safely");
       Assert
-        (not Files.Job_Helpers.Testing.Run_Cleanup
+        (not Files.Jobs.Helpers.Testing.Run_Cleanup
            (Transport, To_String (Transport_Identity), Attempt_Limit => 1,
             Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0)
          and then Ada.Directories.Exists (Join (Transport, "stages")),
          "bounded cleanup cannot consume stage records while the creator is live");
-      Files.Process_Jobs.Testing.Release_Owner (Transport_Job);
+      Files.Jobs.Process.Testing.Release_Owner (Transport_Job);
       if Hostkit.Host.Current = Hostkit.Host.Linux
         and then not Hostkit.Host.Is_Elevated
       then
@@ -161,18 +161,18 @@ separate (Files_Suite.Recovery)
             Data : constant String :=
               Join (Join (Join (Transport, "stages"), "stage-unreadable"), "data");
             Result : Files.File_System.Mutation_Result;
-            Outcome : Files.Job_Cleanup.Cleanup_Outcome;
-            use type Files.Job_Cleanup.Cleanup_Outcome;
+            Outcome : Files.Jobs.Cleanup.Cleanup_Outcome;
+            use type Files.Jobs.Cleanup.Cleanup_Outcome;
          begin
             Add_Stage_Record
               ("stage-unreadable", Join (Root, Files.Protocol_Names.Work_Stage_Prefix & "missing"), "");
             Result := Files.File_System.Permissions.Set_Permissions (Data, 0);
             Assert (Result.Success, "make a stage record temporarily unreadable");
-            Outcome := Files.Job_Cleanup.Run
+            Outcome := Files.Jobs.Cleanup.Run
               (Transport, To_String (Transport_Identity),
-               Attempt_Limit => 1, Unreadable => Files.Job_Cleanup.Keep_Unreadable);
+               Attempt_Limit => 1, Unreadable => Files.Jobs.Cleanup.Keep_Unreadable);
             Assert
-              (Outcome = Files.Job_Cleanup.Cleanup_Failed
+              (Outcome = Files.Jobs.Cleanup.Cleanup_Failed
                and then Ada.Directories.Exists
                  (Join (Join (Transport, "stages"), "stage-unreadable")),
                "one fallback pass keeps an unreadable stage record for later retry");
@@ -182,7 +182,7 @@ separate (Files_Suite.Recovery)
       end if;
       Before := Now;
       declare
-         Cleaned : constant Boolean := Files.Job_Helpers.Testing.Run_Cleanup
+         Cleaned : constant Boolean := Files.Jobs.Helpers.Testing.Run_Cleanup
            (Transport, To_String (Transport_Identity), Attempt_Limit => 2,
             Initial_Retry_Delay => 0.001, Maximum_Retry_Delay => 0.001);
       begin
@@ -197,13 +197,13 @@ separate (Files_Suite.Recovery)
            (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-truncated")),
             "bounded cleanup does not retry permanently malformed stage records: truncated record gone");
       end;
-      Files.Job_Context.Initialize ("");
-      Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));
+      Files.Jobs.Context.Initialize ("");
+      Stage := To_Unbounded_String (Files.Jobs.Context.Create_Stage (Root));
       Write_Binary_File (Join (To_String (Stage), "partial"), "foreground partial");
-      Assert (Files.Job_Context.Discard_Stage (To_String (Stage))
+      Assert (Files.Jobs.Context.Discard_Stage (To_String (Stage))
               and then not Ada.Directories.Exists (To_String (Stage)),
               "foreground staging records its identity and cleans through the same guarded path");
-      Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));
+      Stage := To_Unbounded_String (Files.Jobs.Context.Create_Stage (Root));
       Identity := To_Unbounded_String (Files.File_Identities.Token (To_String (Stage)));
       if Ada.Directories.Exists ("/proc/thread-self/children") then
          Children_Before := To_Unbounded_String
@@ -228,7 +228,7 @@ separate (Files_Suite.Recovery)
          String'Output (Ada.Streams.Stream_IO.Stream (File), To_String (Owner_Directory));
          String'Output (Ada.Streams.Stream_IO.Stream (File), To_String (Identity));
          Ada.Streams.Stream_IO.Close (File);
-         Assert (not Files.Job_Context.Discard_Stage (To_String (Stage))
+         Assert (not Files.Jobs.Context.Discard_Stage (To_String (Stage))
                  and then Ada.Directories.Exists (To_String (Stage)),
                  "foreground cleanup refuses a replacement and schedules its owned stage for retry");
          Ada.Directories.Delete_File (Join (To_String (Stage), Files.Protocol_Names.Stage_Owner_File));
@@ -265,7 +265,7 @@ separate (Files_Suite.Recovery)
       begin
          null;
       end;
-      Files.Process_Jobs.Reset (Transport_Job);
+      Files.Jobs.Process.Reset (Transport_Job);
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when not Ada.Directories.Exists (Transport);
       end loop;
@@ -273,5 +273,5 @@ separate (Files_Suite.Recovery)
         (not Ada.Directories.Exists (Transport),
          "the released transport is cleaned up once its planted records are gone");
    exception
-      when others => Files.Job_Context.Initialize (""); raise;
+      when others => Files.Jobs.Context.Initialize (""); raise;
    end Test_Stage_Record_Cleanup;

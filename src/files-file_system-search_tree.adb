@@ -32,7 +32,7 @@ is
 
    procedure Visit (Directory_Path : String; Depth : Natural) is
    begin
-      if Files.Job_Context.Cancelled or else Stopped then
+      if Files.Jobs.Context.Cancelled or else Stopped then
          return;
       end if;
       --  Too deep: this folder goes unsearched, its siblings do not.
@@ -62,7 +62,7 @@ is
             return;
          end if;
          for Item of Load.Items loop
-            exit when Files.Job_Context.Cancelled;
+            exit when Files.Jobs.Context.Cancelled;
             case Judge (Item) is
                when Found =>
                   --  The answer is cut short only by a match the cap turns
@@ -83,7 +83,7 @@ is
          end loop;
          --  Real folders only: a linked folder arrives as a link item.
          for Item of Load.Items loop
-            exit when Files.Job_Context.Cancelled or else Stopped;
+            exit when Files.Jobs.Context.Cancelled or else Stopped;
             if Item.Kind = Files.Types.Directory_Item then
                Visit (To_String (Item.Full_Path), Depth + 1);
             end if;

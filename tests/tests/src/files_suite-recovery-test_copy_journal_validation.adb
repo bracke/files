@@ -4,8 +4,8 @@ separate (Files_Suite.Recovery)
      (T : in out AUnit.Test_Cases.Test_Case'Class)
    is
       pragma Unreferenced (T);
-      Batch    : constant Files.Copy_Context.Session :=
-        Files.Copy_Context.Borrow (Root);
+      Batch    : constant Files.Jobs.Copy_Context.Session :=
+        Files.Jobs.Copy_Context.Borrow (Root);
       Expected : Files.Types.String_Vectors.Vector;
       Actual   : Files.Types.String_Vectors.Vector;
       File     : Ada.Streams.Stream_IO.File_Type;
@@ -18,8 +18,8 @@ separate (Files_Suite.Recovery)
       Reset_Root;
       begin
          declare
-            Invalid : constant Files.Copy_Context.Session :=
-              Files.Copy_Context.Borrow ("relative-copy-batch");
+            Invalid : constant Files.Jobs.Copy_Context.Session :=
+              Files.Jobs.Copy_Context.Borrow ("relative-copy-batch");
             pragma Unreferenced (Invalid);
          begin
             null;
@@ -31,8 +31,8 @@ separate (Files_Suite.Recovery)
       Rejected := False;
       begin
          declare
-            Invalid : constant Files.Copy_Context.Session :=
-              Files.Copy_Context.Borrow
+            Invalid : constant Files.Jobs.Copy_Context.Session :=
+              Files.Jobs.Copy_Context.Borrow
                 (Root & Character'Val (0) & "copy-batch");
             pragma Unreferenced (Invalid);
          begin
@@ -46,8 +46,8 @@ separate (Files_Suite.Recovery)
 
       Expected.Append (To_Unbounded_String ("source-token"));
       Expected.Append (To_Unbounded_String ("destination-token"));
-      Files.Copy_Context.Save (Batch, Expected);
-      Actual := Files.Copy_Context.Records (Batch);
+      Files.Jobs.Copy_Context.Save (Batch, Expected);
+      Actual := Files.Jobs.Copy_Context.Records (Batch);
       Assert (Actual = Expected, "a complete copy journal round-trips");
 
       Ada.Streams.Stream_IO.Open
@@ -55,7 +55,7 @@ separate (Files_Suite.Recovery)
       Boolean'Output (Ada.Streams.Stream_IO.Stream (File), True);
       Ada.Streams.Stream_IO.Close (File);
       begin
-         Actual := Files.Copy_Context.Records (Batch);
+         Actual := Files.Jobs.Copy_Context.Records (Batch);
       exception
          when Ada.IO_Exceptions.Data_Error => Rejected := True;
       end;
@@ -66,7 +66,7 @@ separate (Files_Suite.Recovery)
       if Hostkit.Fs.Create_Hard_Link (Victim, Join (Root, "links")) then
          Rejected := False;
          begin
-            Actual := Files.Copy_Context.Records (Batch);
+            Actual := Files.Jobs.Copy_Context.Records (Batch);
          exception
             when Ada.IO_Exceptions.Data_Error => Rejected := True;
          end;
@@ -86,7 +86,7 @@ separate (Files_Suite.Recovery)
       Expected.Append (To_Unbounded_String ("relative-destination"));
       Expected.Append (To_Unbounded_String ("destination-token"));
       Expected.Append (To_Unbounded_String ("destination-revision"));
-      Files.Copy_Context.Save (Batch, Expected);
+      Files.Jobs.Copy_Context.Save (Batch, Expected);
       Write_Binary_File (Source, "copy me");
       Result := Files.File_System.Copy_Tree (Source, Target, Batch);
       Assert
@@ -95,11 +95,11 @@ separate (Files_Suite.Recovery)
 
       if Hostkit.Fs.Create_Link (Victim, Join (Root, "links.tmp")) then
          Write_Binary_File (Victim, "preserve me");
-         Files.Copy_Context.Save (Batch, Expected);
+         Files.Jobs.Copy_Context.Save (Batch, Expected);
          Assert
            (File_Is (Victim, "preserve me")
             and then Hostkit.Fs.Is_Link (Join (Root, "links.tmp"))
-            and then Files.Copy_Context.Records (Batch) = Expected,
+            and then Files.Jobs.Copy_Context.Records (Batch) = Expected,
             "copy journals pass over a temporary symlink without truncating its target");
          declare
             Removed : constant Boolean :=

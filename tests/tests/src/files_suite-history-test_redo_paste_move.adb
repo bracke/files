@@ -30,7 +30,7 @@ separate (Files_Suite.History)
       Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
-      Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
+      Step := Files.Jobs.Foreground.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                         "the move paste succeeds");
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the move paste finalizes");
@@ -38,7 +38,7 @@ separate (Files_Suite.History)
         (Ada.Directories.Exists (Dest) and then not Ada.Directories.Exists (Source),
          "the move relocates the file to the destination");
       Assert
-        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Undo_History.Undo_Move,
+        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Undo.History.Undo_Move,
          "a move paste records an Undo_Move entry");
 
       Step := Complete_Operation

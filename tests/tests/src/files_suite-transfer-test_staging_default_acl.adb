@@ -1,6 +1,6 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
-with Files.Foreground_Jobs;
+with Files.Jobs.Foreground;
 with Files.Fs_Primitives;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
@@ -36,7 +36,7 @@ separate (Files_Suite.Transfer)
          Tmp    : aliased constant String := "TMP";
          Temp   : aliased constant String := "TEMP";
          Temp_Variables : constant array (1 .. 3) of Name_Access := [Tmpdir'Access, Tmp'Access, Temp'Access];
-         Job         : Files.Process_Jobs.Session;
+         Job         : Files.Jobs.Process.Session;
          Transport   : Files.Types.UString;
          Stage       : Unbounded_String;
          --  The variables come back when this ends, on failure too.
@@ -49,35 +49,35 @@ separate (Files_Suite.Transfer)
             Files_Suite.Support.Guards.Save (Environment, Name.all);
             Ada.Environment_Variables.Set (Name.all, Parent);
          end loop;
-         Files.Process_Jobs.Reserve (Job);
-         Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+         Files.Jobs.Process.Reserve (Job);
+         Transport := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
          Assert
            (Hostkit.Metadata.Same_File (Files.Fs_Primitives.Parent_Directory (To_String (Transport)), Parent),
             "the job transport is made in the temporary directory the environment names");
          Assert (Is_Owner_Only (To_String (Transport)), "the job transport is owner-only from creation");
-         Write_Binary_File (Files.Process_Jobs.Path (Job, "request"), "private request");
+         Write_Binary_File (Files.Jobs.Process.Path (Job, "request"), "private request");
          Assert
-           (File_Has_Bytes (Files.Process_Jobs.Path (Job, "request"), "private request"),
+           (File_Has_Bytes (Files.Jobs.Process.Path (Job, "request"), "private request"),
             "the private transport's payload is usable");
          --  The orphan reaper removes a released transport.
-         Files.Process_Jobs.Reset (Job);
+         Files.Jobs.Process.Reset (Job);
          for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when not Ada.Directories.Exists (To_String (Transport));
          end loop;
          Assert (not Ada.Directories.Exists (To_String (Transport)), "the private transport is cleaned up");
-         Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Parent));
+         Stage := To_Unbounded_String (Files.Jobs.Context.Create_Stage (Parent));
          Assert (Is_Owner_Only (To_String (Stage)), "private staging is owner-only");
-         --  Through Job_Context, which then lets its foreground job go: a
+         --  Through Jobs.Context, which then lets its foreground job go: a
          --  stage deleted behind its back leaves that job's lease held open in
          --  the folder TMP names, and Windows cannot delete an open file.
-         Assert (Files.Job_Context.Discard_Stage (To_String (Stage)), "remove the private staging probe");
+         Assert (Files.Jobs.Context.Discard_Stage (To_String (Stage)), "remove the private staging probe");
          Mutation := Files.File_System.Copy_Tree (Source, Dest);
          Assert
            (Mutation.Success and then File_Has_Bytes (Dest, "copied bytes") and then File_Is (Source, "copied bytes"),
             "copying into the temporary directory succeeds and keeps its source");
       exception
          when others =>
-            Files.Process_Jobs.Reset (Job);
+            Files.Jobs.Process.Reset (Job);
             raise;
       end Check_Private_Temp;
 
@@ -169,7 +169,7 @@ separate (Files_Suite.Transfer)
                Assert (Set_Default_ACL (Name'Address, Interfaces.C.int (Owner * 4)) = 1,
                        "prepare owner-none or owner-read-only default ACL on a writable destination");
                declare
-                  Job       : Files.Process_Jobs.Session;
+                  Job       : Files.Jobs.Process.Session;
                   Transport : Files.Types.UString;
                   --  TMPDIR comes back when this block ends, on failure too.
                   Environment : Files_Suite.Support.Guards.Environment_Guard;
@@ -177,18 +177,18 @@ separate (Files_Suite.Transfer)
                   Files_Suite.Support.Guards.Save (Environment, "TMPDIR");
                   Ada.Environment_Variables.Set ("TMPDIR", Parent);
                   begin
-                     Files.Process_Jobs.Reserve (Job);
-                     Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+                     Files.Jobs.Process.Reserve (Job);
+                     Transport := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
                      Files_Suite.Support.Assert_Equal
                        (Mode_Of (To_String (Transport), With_Special_Bits => True),
                         8#700#,
                         "job transport is owner-only from creation despite the inherited default ACL");
-                     Write_Binary_File (Files.Process_Jobs.Path (Job, "request"), "private request");
+                     Write_Binary_File (Files.Jobs.Process.Path (Job, "request"), "private request");
                      Assert
-                       (File_Has_Bytes (Files.Process_Jobs.Path (Job, "request"), "private request"),
+                       (File_Has_Bytes (Files.Jobs.Process.Path (Job, "request"), "private request"),
                         "private transport payload remains usable after removing the inherited ACL");
                      --  The orphan reaper removes a released transport.
-                     Files.Process_Jobs.Reset (Job);
+                     Files.Jobs.Process.Reset (Job);
                      for Attempt in Files_Suite.Support.Timing.Polling loop
                         exit when not Ada.Directories.Exists (To_String (Transport));
                      end loop;
@@ -197,16 +197,16 @@ separate (Files_Suite.Transfer)
                         "private transport remains eligible for guarded cleanup");
                   exception
                      when others =>
-                        Files.Process_Jobs.Reset (Job);
+                        Files.Jobs.Process.Reset (Job);
                         raise;
                   end;
                end;
-               Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Parent));
+               Stage := To_Unbounded_String (Files.Jobs.Context.Create_Stage (Parent));
                Files_Suite.Support.Assert_Equal
                  (Mode_Of (To_String (Stage), With_Special_Bits => True),
                   8#700#,
                   "private staging restores owner access without granting peer access");
-               Assert (Files.Job_Context.Discard_Stage (To_String (Stage)), "remove the private staging probe");
+               Assert (Files.Jobs.Context.Discard_Stage (To_String (Stage)), "remove the private staging probe");
             end;
             if Background then
                Load := Files.File_System.Load_Directory (Parent, Settings);
@@ -218,7 +218,7 @@ separate (Files_Suite.Transfer)
                  (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, False));
                Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy, False);
                Step := Complete_Operation
-                 (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
+                 (Model, Settings, Files.Jobs.Foreground.Advance (Model, Settings, 1));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,

@@ -37,7 +37,7 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Create_Directory (Stage);
       Write_Binary_File (Join (Stage, "unrelated"), "untouched");
       declare
-         New_Stage : constant String := Files.Job_Context.Create_Stage (Parent);
+         New_Stage : constant String := Files.Jobs.Context.Create_Stage (Parent);
       begin
          Assert
            (New_Stage /= Stage,
@@ -48,7 +48,7 @@ separate (Files_Suite.Transfer)
          Assert
            (File_Has_Bytes (Join (Stage, "unrelated"), "untouched"),
             "exclusive private staging does not change existing directories: existing stage untouched");
-         Assert (Files.Job_Context.Discard_Stage (New_Stage) and then not Ada.Directories.Exists (New_Stage),
+         Assert (Files.Jobs.Context.Discard_Stage (New_Stage) and then not Ada.Directories.Exists (New_Stage),
                  "discard the new empty stage");
       end;
       Mutation := Files.File_System.Delete_Permanently (Stage);

@@ -39,7 +39,7 @@ separate (Files_Suite.Transfer)
                   when others => "replacement"));
                Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, False);
                Step := Complete_Operation
-                 (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
+                 (Model, Settings, Files.Jobs.Foreground.Advance (Model, Settings, 1));
                Await_View (Model, Settings);
                Assert
                  (Step.Status = Files.Operation_Results.Operation_Failed

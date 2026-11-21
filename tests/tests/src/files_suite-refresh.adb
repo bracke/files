@@ -1,12 +1,12 @@
 with Files.Preference_Types;
 with Files.Controller.Testing;
 with Files.Operation_Results;
-with Files.Foreground_Jobs;
+with Files.Jobs.Foreground;
 with Files.Items;
 with Files.Model.Testing;
-with Files.Process_Jobs;
-with Files.Refresh_Jobs;
-with Files.Refresh_Jobs.Testing;
+with Files.Jobs.Process;
+with Files.Jobs.Refresh;
+with Files.Jobs.Refresh.Testing;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;

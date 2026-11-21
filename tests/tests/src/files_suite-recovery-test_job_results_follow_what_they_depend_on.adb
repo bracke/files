@@ -47,7 +47,7 @@ separate (Files_Suite.Recovery)
       Changed := Settings;
       Changed.Show_Hidden_Files := True;
       --  What Adopt_Shared_Settings asks for: a read under the new policy.
-      Step := Files.Refresh_Jobs.Start (Model, Changed, Force => False);
+      Step := Files.Jobs.Refresh.Start (Model, Changed, Force => False);
       Assert (Files.Model.Refresh_Is_Owed (Model),
               "a read declined while the job runs is owed, not dropped");
       Step := Files_Suite.Support.Models.Finish_Paste (Model, Changed);

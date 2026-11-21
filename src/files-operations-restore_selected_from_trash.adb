@@ -14,7 +14,7 @@ begin
    end if;
 
    for Item of Items loop
-      exit when Files.Job_Context.Cancelled;
+      exit when Files.Jobs.Context.Cancelled;
       if Length (First_Path) = 0 then
          First_Path := Item.Full_Path;
       end if;

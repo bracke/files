@@ -1,5 +1,5 @@
 --  Private replacement backups for trash backends without programmatic restore.
-with Files.Copy_Context;
+with Files.Jobs.Copy_Context;
 private package Files.File_System.Recovery is
    --  @param Path Original destination to preserve.
    --  @param Backup Recoverable payload path. On failure it is empty -- the
@@ -120,7 +120,7 @@ private package Files.File_System.Recovery is
       Identity, Revision  : out Files.Types.UString;
       Copy_Kept           : out Boolean;
       Cancel              : Cancellation_Check := Job_Cancelled;
-      Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
+      Batch               : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session;
       If_Source_Stays     : Unremoved_Source_Rule := Take_Copy_Back;
       After_Copy          : Copy_Hook := null;
       Expected_Identity   : String := "")
@@ -144,7 +144,14 @@ private package Files.File_System.Recovery is
    --  @param Identity The copy's identity when Route is Copied; else empty.
    --  @param Revision The copy's tree revision when Route is Copied; else empty.
    --  @param Copy_Kept Move_By_Copy's Copy_Kept when Route is Copied; else False.
-   --  The remaining parameters are Move_By_Copy's, passed on when it runs.
+   --  @param Cancel What stops the copy: the job's cancellation unless given another,
+   --    null for none (Move_By_Copy's).
+   --  @param Batch Shared hard-link journal of a multi-item job (Move_By_Copy's).
+   --  @param If_Source_Stays What becomes of the copy when Source cannot be removed
+   --    (Move_By_Copy's).
+   --  @param After_Copy Called with Source once the copy is published (Move_By_Copy's).
+   --  @param Expected_Identity The identity Source must have when it is
+   --    snapshotted for the copy, or "" for no check (Move_By_Copy's).
    --  @return Success when Destination holds the item and Source is gone.
    function Move_Or_Copy
      (Source, Destination : String;
@@ -153,7 +160,7 @@ private package Files.File_System.Recovery is
       Identity, Revision  : out Files.Types.UString;
       Copy_Kept           : out Boolean;
       Cancel              : Cancellation_Check := Job_Cancelled;
-      Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
+      Batch               : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session;
       If_Source_Stays     : Unremoved_Source_Rule := Take_Copy_Back;
       After_Copy          : Copy_Hook := null;
       Expected_Identity   : String := "")

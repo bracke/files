@@ -23,7 +23,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Replacement_Backup, "preserved destination");
       Write_Replacement_Record (Replacement_Record);
       Assert
-        (Files.Transfer_Jobs.Testing.Replacement_Checkpoint_Is_Valid
+        (Files.Jobs.Transfer.Testing.Replacement_Checkpoint_Is_Valid
            (Replacement_Record),
          "a complete replacement checkpoint with a live identity is accepted");
       Ada.Streams.Stream_IO.Open
@@ -31,7 +31,7 @@ separate (Files_Suite.Recovery)
       Boolean'Output (Ada.Streams.Stream_IO.Stream (File), True);
       Ada.Streams.Stream_IO.Close (File);
       Assert
-        (not Files.Transfer_Jobs.Testing.Replacement_Checkpoint_Is_Valid
+        (not Files.Jobs.Transfer.Testing.Replacement_Checkpoint_Is_Valid
            (Replacement_Record),
          "a replacement checkpoint rejects trailing fields");
 
@@ -39,7 +39,7 @@ separate (Files_Suite.Recovery)
       Ada.Directories.Delete_File (Replacement_Record);
       if Hostkit.Fs.Create_Link (Replacement_Target, Replacement_Record) then
          Assert
-           (not Files.Transfer_Jobs.Testing.Replacement_Checkpoint_Is_Valid
+           (not Files.Jobs.Transfer.Testing.Replacement_Checkpoint_Is_Valid
               (Replacement_Record),
             "replacement recovery refuses a symlink checkpoint");
          declare
@@ -58,7 +58,7 @@ separate (Files_Suite.Recovery)
         (Replacement_Target, Replacement_Record)
       then
          Assert
-           (not Files.Transfer_Jobs.Testing.Replacement_Checkpoint_Is_Valid
+           (not Files.Jobs.Transfer.Testing.Replacement_Checkpoint_Is_Valid
               (Replacement_Record),
             "replacement recovery refuses a multiply-linked checkpoint");
          Ada.Directories.Delete_File (Replacement_Record);

@@ -3,7 +3,7 @@ with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Scavenger_Coordinator_Failures (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Active          : aliased Files.Process_Jobs.Session;
+      Active          : aliased Files.Jobs.Process.Session;
       Active_Path     : Files.Types.UString;
       Fallback_Path   : Files.Types.UString;
       Retry_Path      : Files.Types.UString;
@@ -22,8 +22,8 @@ separate (Files_Suite.Recovery)
       Files_Suite.Support.Guards.Save (Once_Environment, "FILES_TEST_FAIL_SCAVENGER_ONCE");
       Files_Suite.Support.Guards.Save (Until_Environment, "FILES_TEST_FAIL_SCAVENGER_UNTIL");
       Reset_Root;
-      Files.Process_Jobs.Reserve (Active);
-      Active_Path := To_Unbounded_String (Files.Process_Jobs.Path (Active, ""));
+      Files.Jobs.Process.Reserve (Active);
+      Active_Path := To_Unbounded_String (Files.Jobs.Process.Path (Active, ""));
 
       Create_Abandoned_Transport (Fallback_Report, Fallback_Path);
       Files_Suite.Support.Guards.Track (Jobs, Fallback_Path);
@@ -39,7 +39,7 @@ separate (Files_Suite.Recovery)
             Assert (Result.Success, "make the fallback scan wait for marker access");
          end if;
          Before := Now;
-         Files.Job_Scavenger.Scavenge (Join (Root, "missing-scavenge-coordinator"));
+         Files.Jobs.Scavenger.Scavenge (Join (Root, "missing-scavenge-coordinator"));
          Assert_Within (Before, Prompt_Limit, "startup returns promptly even when the coordinator cannot launch");
          if Restricted then
             Result := Files.File_System.Permissions.Set_Permissions (Marker, 8#600#);
@@ -65,7 +65,7 @@ separate (Files_Suite.Recovery)
       Create_Abandoned_Transport (Retry_Report, Retry_Path);
       Files_Suite.Support.Guards.Track (Jobs, Retry_Path);
       Ada.Environment_Variables.Set ("FILES_TEST_FAIL_SCAVENGER_ONCE", Retry_Control);
-      Files.Job_Scavenger.Scavenge;
+      Files.Jobs.Scavenger.Scavenge;
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (Retry_Control)
            and then not Ada.Directories.Exists (To_String (Retry_Path));
@@ -81,7 +81,7 @@ separate (Files_Suite.Recovery)
       Create_Abandoned_Transport (Delayed_Report, Delayed_Path);
       Files_Suite.Support.Guards.Track (Jobs, Delayed_Path);
       Ada.Environment_Variables.Set ("FILES_TEST_FAIL_SCAVENGER_UNTIL", Delayed_Control);
-      Files.Job_Scavenger.Scavenge;
+      Files.Jobs.Scavenger.Scavenge;
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (Delayed_Control & ".attempts")
            and then Ada.Strings.Fixed.Count
@@ -107,11 +107,11 @@ separate (Files_Suite.Recovery)
         (not Ada.Directories.Exists (To_String (Delayed_Path)),
          "the idle coordinator retries autonomously after access returns");
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         exit when Files.Job_Scavenger.Idle;
+         exit when Files.Jobs.Scavenger.Idle;
       end loop;
       Assert
-        (Files.Job_Scavenger.Idle,
-         "recovery is quiet again once its retries succeed: " & Files.Job_Scavenger.Testing.Busy_Reason);
+        (Files.Jobs.Scavenger.Idle,
+         "recovery is quiet again once its retries succeed: " & Files.Jobs.Scavenger.Testing.Busy_Reason);
       Files_Suite.Support.Guards.Finalize (Until_Environment);
       Files_Suite.Support.Guards.Release (Jobs);
    end Test_Scavenger_Coordinator_Failures;

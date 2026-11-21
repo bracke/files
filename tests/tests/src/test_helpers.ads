@@ -1,6 +1,6 @@
 --  The helper processes the test executable runs as, besides the suite: the
 --  test-only fixtures a --files-test-* flag names, and the application's own
---  helpers (Files.Helper_Modes) whose work a test arms, through the
+--  helpers (Files.Jobs.Helper_Modes) whose work a test arms, through the
 --  environment, to stall, fail or damage what it publishes.
 package Test_Helpers is
 

@@ -13,8 +13,8 @@ package body Files.Model is
    --  model only holds the job handles; Files.Operations drives them.
    --
    --  @return A session holding no job.
-   function Released_Transfer return Files.Transfer_Jobs.Session is
-      Idle : Files.Transfer_Jobs.Session;
+   function Released_Transfer return Files.Jobs.Transfer.Session is
+      Idle : Files.Jobs.Transfer.Session;
    begin
       return Idle;
    end Released_Transfer;
@@ -34,7 +34,7 @@ package body Files.Model is
    procedure End_Foreground_Job (Model : in out Window_Model) is
    begin
       --  Released, not driven: a helper still running is stopped and reaped
-      --  by its last handle going (Files.Process_Jobs).
+      --  by its last handle going (Files.Jobs.Process).
       Model.Paste_Exec_Job := Released_Transfer;
       Model.Operation_Job := Support.Released_Process;
       Model.Operation_Merge_Deferred := False;

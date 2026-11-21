@@ -2,7 +2,7 @@ separate (Files.File_System)
 function Copy_Tree
   (Source_Path, Destination_Path : String;
    Identity, Tree_Revision_Value : out Files.Types.UString;
-   Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+   Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
    return Mutation_Result is
 begin
    Files.Io_Errors.Reset;

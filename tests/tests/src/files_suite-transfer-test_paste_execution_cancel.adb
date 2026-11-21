@@ -19,7 +19,7 @@ separate (Files_Suite.Transfer)
    begin
       Arm_Numbered_Paste (Model, Settings, Src_Dir, Dest_Dir, Count);
 
-      Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
+      Step := Files.Jobs.Foreground.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,
@@ -29,8 +29,8 @@ separate (Files_Suite.Transfer)
          2,
          "two writes complete before cancelling");
 
-      Files.Foreground_Jobs.Cancel (Model);
-      Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
+      Files.Jobs.Foreground.Cancel (Model);
+      Step := Files.Jobs.Foreground.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,

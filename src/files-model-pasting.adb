@@ -1,5 +1,5 @@
 with Files.Model.Support;
-with Files.Undo_History;
+with Files.Undo.History;
 
 package body Files.Model.Pasting is
 
@@ -103,7 +103,7 @@ package body Files.Model.Pasting is
       Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
       Mode            : Files.File_System_Types.Drop_Import_Mode;
       Clear_Clipboard : Boolean := True;
-      Batch           : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch           : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
    is
       Writes : Natural := 0;
    begin
@@ -131,9 +131,9 @@ package body Files.Model.Pasting is
 
    function Execution_Of (Model : Window_Model) return Files.Paste_States.Execution_State is (Model.Paste_Exec);
 
-   function Job (Model : Window_Model) return Files.Transfer_Jobs.Session is (Model.Paste_Exec_Job);
+   function Job (Model : Window_Model) return Files.Jobs.Transfer.Session is (Model.Paste_Exec_Job);
 
-   procedure Set_Job (Model : in out Window_Model; Job : Files.Transfer_Jobs.Session) is
+   procedure Set_Job (Model : in out Window_Model; Job : Files.Jobs.Transfer.Session) is
    begin
       Model.Paste_Exec_Job := Job;
    end Set_Job;
@@ -178,7 +178,7 @@ package body Files.Model.Pasting is
       return Files.Paste.Resolved_Action is
      (Model.Paste_Exec.Actions.Element (Index));
 
-   function Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session is
+   function Execution_Copy_Context (Model : Window_Model) return Files.Jobs.Copy_Context.Session is
      (Model.Paste_Exec.Copy_Context);
 
    procedure Record_Replaced_Trash
@@ -190,12 +190,12 @@ package body Files.Model.Pasting is
    begin
       Touch (Model);
       Model.Paste_Exec.Replaced.Append
-        (Files.Undo_History.Recorded_Original'
+        (Files.Undo.History.Recorded_Original'
            (Original   =>
               (Trash    => Trash_Path,
                Identity => To_Unbounded_String (Identity),
                Target   => To_Unbounded_String (Original_Path)),
-            Provenance => (if Verified then Files.Undo_History.Verified else Files.Undo_History.Published)));
+            Provenance => (if Verified then Files.Undo.History.Verified else Files.Undo.History.Published)));
    end Record_Replaced_Trash;
 
    procedure Skip_Action
@@ -222,14 +222,14 @@ package body Files.Model.Pasting is
          Model.Paste_Exec.First_Dest := Dest_Path;
       end if;
       Model.Paste_Exec.Written.Append
-        (Files.Undo_History.Recorded_Item'
+        (Files.Undo.History.Recorded_Item'
            (Item       =>
               (From          => Dest_Path,
                To            => Source_Path,
                Identity      => To_Unbounded_String (Identity),
                Tree_Revision => To_Unbounded_String (Tree_Revision),
                others        => <>),
-            Provenance => (if Verified then Files.Undo_History.Verified else Files.Undo_History.Published)));
+            Provenance => (if Verified then Files.Undo.History.Verified else Files.Undo.History.Published)));
    end Record_Write;
 
    procedure Set_Cancelled

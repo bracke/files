@@ -1,6 +1,6 @@
 with Files.Operation_Results;
-with Files.Foreground_Jobs;
-with Files.Process_Jobs.Testing;
+with Files.Jobs.Foreground;
+with Files.Jobs.Process.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    --  A background paste whose helper cannot start (a process limit, a full
@@ -28,9 +28,9 @@ separate (Files_Suite.Transfer)
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-      Files.Process_Jobs.Testing.Refuse_Next_Launch;
-      Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
-      Files.Process_Jobs.Testing.Clear_Refusal;
+      Files.Jobs.Process.Testing.Refuse_Next_Launch;
+      Step := Files.Jobs.Foreground.Advance (Model, Settings, 1);
+      Files.Jobs.Process.Testing.Clear_Refusal;
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the paste ends instead of staying armed");
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Failed, "and reports the failure");
@@ -39,6 +39,6 @@ separate (Files_Suite.Transfer)
       Assert (not Ada.Directories.Exists (Join (Dest_Dir, "refused-source")), "nothing was written");
    exception
       when others =>
-         Files.Process_Jobs.Testing.Clear_Refusal;
+         Files.Jobs.Process.Testing.Clear_Refusal;
          raise;
    end Test_Paste_Helper_Refused;

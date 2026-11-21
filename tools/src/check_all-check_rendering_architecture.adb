@@ -77,6 +77,7 @@ separate (Check_All)
           To_Unbounded_String ("Files.File_Types"),
           To_Unbounded_String ("Files.Icon_Themes"),
           To_Unbounded_String ("Files.Model"),
+          To_Unbounded_String ("Files.Preference_Types"),
           To_Unbounded_String ("Files.Quick_Look"),
           To_Unbounded_String ("Files.Settings"),
           To_Unbounded_String ("Files.Types"),
@@ -100,13 +101,16 @@ separate (Check_All)
       Require_Only_Allowed_With_Clauses
         (Hit_Body,
          "Files.",
-         [To_Unbounded_String ("Files.Rendering.Geometry")]);
+         --  The view mode and detail columns it tests against: value types.
+         [To_Unbounded_String ("Files.Preference_Types"),
+          To_Unbounded_String ("Files.Rendering.Geometry")]);
       --  The layouts and the text read no model and no files: snapshots in,
       --  geometry or glyphs out.
       Require_Only_Allowed_With_Clauses
         (Layouts_Spec,
          "Files.",
          [To_Unbounded_String ("Files.Commands"),
+          To_Unbounded_String ("Files.Preference_Types"),
           To_Unbounded_String ("Files.Types"),
           To_Unbounded_String ("Files.UI_Types")]);
       Require_Only_Allowed_With_Clauses
@@ -132,6 +136,9 @@ separate (Check_All)
             To_Unbounded_String ("Files.Extra_Info"),
             To_Unbounded_String ("Files.File_System"),
             To_Unbounded_String ("Files.File_System.Permissions"),
+            --  The filesystem layer's value types alone (volume space, the
+            --  account kind), no I/O.
+            To_Unbounded_String ("Files.File_System_Types"),
             To_Unbounded_String ("Files.File_Types"),
             To_Unbounded_String ("Files.Folder_Tree"),
             To_Unbounded_String ("Files.Icon_Themes"),
@@ -143,6 +150,8 @@ separate (Check_All)
             To_Unbounded_String ("Files.Model.Clipboard"),
             To_Unbounded_String ("Files.Model.Context_Menu"),
             To_Unbounded_String ("Files.Model.Folder_Sizes"),
+            --  The foreground progress the info pane and dialog show, read.
+            To_Unbounded_String ("Files.Model.Jobs"),
             To_Unbounded_String ("Files.Model.Label_Picker"),
             To_Unbounded_String ("Files.Model.Pasting"),
             To_Unbounded_String ("Files.Model.Quick_Look"),
@@ -152,6 +161,7 @@ separate (Check_All)
             To_Unbounded_String ("Files.Model.Sort_Menu"),
             To_Unbounded_String ("Files.Model.Status_Samples"),
             To_Unbounded_String ("Files.Model.Tree_Panel"),
+            To_Unbounded_String ("Files.Preference_Types"),
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Rendering.Geometry"),
             To_Unbounded_String ("Files.Rendering.Labels"),

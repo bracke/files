@@ -1,14 +1,14 @@
-with Files.Job_Context;
+with Files.Jobs.Context;
 with Ada.Directories;
-with Files.Undo_Recording;
+with Files.Undo.Recording;
 with Files.Window_Polls;
 with Files.Diagnostics;
 with Hostkit.Process;
 
 with Files.File_System;
-with Files.History_Journal;
+with Files.Undo.Journal;
 with Files.Timing;
-with Files.Refresh_Jobs;
+with Files.Jobs.Refresh;
 with Files.Fs_Primitives;
 with Files.Leaf_Names;
 with Hostkit.Fs;
@@ -94,7 +94,7 @@ package body Files.Operations.Support is
    is
    begin
       if Files.Model.Background_Transfers (Model) then
-         return Files.Refresh_Jobs.Start (Model, Settings, Force => True, Select_Name => Select_Name);
+         return Files.Jobs.Refresh.Start (Model, Settings, Force => True, Select_Name => Select_Name);
       end if;
       Reload_In_Place :
       declare
@@ -202,7 +202,7 @@ package body Files.Operations.Support is
    begin
       if Files.File_System.Thumbnails_Missing (Items) then
          declare
-            Started : constant Operation_Result := Files.Refresh_Jobs.Start (Model, Settings, Force => True);
+            Started : constant Operation_Result := Files.Jobs.Refresh.Start (Model, Settings, Force => True);
             pragma Unreferenced (Started);
          begin
             null;
@@ -227,7 +227,7 @@ package body Files.Operations.Support is
       Progress : in out Progressive_Undo;
       Now      : Ada.Real_Time.Time)
    is
-      Previous : Files.Undo_History.Undo_Entry;
+      Previous : Files.Undo.History.Undo_Entry;
       Found    : Boolean;
    begin
       if Progress.Recorded then
@@ -241,7 +241,7 @@ package body Files.Operations.Support is
       Progress.Attempted := True;
       Progress.Attempted_Count := Natural (Progress.Items.Length);
       Progress.Last_Checkpoint := Now;
-      Progress.Recorded := Files.Undo_Recording.Try_Record_Undo
+      Progress.Recorded := Files.Undo.Recording.Try_Record_Undo
         (Model, Progress.Kind, Progress.Items,
          Create_Kind => Progress.Create_Kind,
          Redoable    => Progress.Redoable);
@@ -251,11 +251,11 @@ package body Files.Operations.Support is
         and then Natural (Files.Model.History.Undo_From_Paths (Model).Length) = Natural (Progress.Items.Length)
       then
          for Item of Progress.Items loop
-            Item.Provenance := Files.Undo_History.Verified;
+            Item.Provenance := Files.Undo.History.Verified;
          end loop;
       end if;
       if Progress.Durable then
-         Files.History_Journal.Save (Files.Model.History.State (Model), Mode => Files.History_Journal.Must_Commit);
+         Files.Undo.Journal.Save (Files.Model.History.State (Model), Mode => Files.Undo.Journal.Must_Commit);
       end if;
    end Record_Progress;
 
@@ -319,7 +319,7 @@ package body Files.Operations.Support is
 
    procedure Discard_Stage (Stage : String) is
    begin
-      if not Files.Job_Context.Discard_Stage (Stage) then
+      if not Files.Jobs.Context.Discard_Stage (Stage) then
          Files.Diagnostics.Trace ("Files.Operations", "stage_discard_failed=" & Stage);
       end if;
    end Discard_Stage;

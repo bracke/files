@@ -21,7 +21,7 @@ separate (Files_Suite.Recovery)
          Ada.Streams.Stream_IO.Close (File);
          Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
          begin
-            Decoded := Files.Job_Records.Read_Path_Moves (Ada.Streams.Stream_IO.Stream (File));
+            Decoded := Files.Jobs.Records.Read_Path_Moves (Ada.Streams.Stream_IO.Stream (File));
          exception
             when Ada.IO_Exceptions.Data_Error => Refused := True;
          end;
@@ -34,8 +34,8 @@ separate (Files_Suite.Recovery)
       begin
          Natural'Output (Stream, 1);
          Natural'Output (Stream, Files.Types.Path_Move_Kind'Pos (Files.Types.Removed));
-         Files.Bounded_Streams.Output_String (Stream, "/a", Files.Job_Records.Max_Path_Length);
-         Files.Bounded_Streams.Output_String (Stream, "/b", Files.Job_Records.Max_Path_Length);
+         Files.Bounded_Streams.Output_String (Stream, "/a", Files.Jobs.Records.Max_Path_Length);
+         Files.Bounded_Streams.Output_String (Stream, "/b", Files.Jobs.Records.Max_Path_Length);
       end Write_Removal_With_Target;
 
       --  A kind past the last one there is.
@@ -43,14 +43,14 @@ separate (Files_Suite.Recovery)
       begin
          Natural'Output (Stream, 1);
          Natural'Output (Stream, Files.Types.Path_Move_Kind'Pos (Files.Types.Path_Move_Kind'Last) + 1);
-         Files.Bounded_Streams.Output_String (Stream, "/a", Files.Job_Records.Max_Path_Length);
-         Files.Bounded_Streams.Output_String (Stream, "/b", Files.Job_Records.Max_Path_Length);
+         Files.Bounded_Streams.Output_String (Stream, "/a", Files.Jobs.Records.Max_Path_Length);
+         Files.Bounded_Streams.Output_String (Stream, "/b", Files.Jobs.Records.Max_Path_Length);
       end Write_Unknown_Kind;
 
       --  More moves than one record may carry.
       procedure Write_Too_Many (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
       begin
-         Natural'Output (Stream, Files.Job_Records.Max_Path_Moves + 1);
+         Natural'Output (Stream, Files.Jobs.Records.Max_Path_Moves + 1);
       end Write_Too_Many;
    begin
       Reset_Root;
@@ -64,10 +64,10 @@ separate (Files_Suite.Recovery)
         (Files.Types.Path_Move'
            (From => To_Unbounded_String ("/old/b.txt"), To => Null_Unbounded_String, Kind => Files.Types.Removed));
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
-      Files.Job_Records.Write_Path_Moves (Ada.Streams.Stream_IO.Stream (File), Moves);
+      Files.Jobs.Records.Write_Path_Moves (Ada.Streams.Stream_IO.Stream (File), Moves);
       Ada.Streams.Stream_IO.Close (File);
       Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
-      Decoded := Files.Job_Records.Read_Path_Moves (Ada.Streams.Stream_IO.Stream (File));
+      Decoded := Files.Jobs.Records.Read_Path_Moves (Ada.Streams.Stream_IO.Stream (File));
       Ada.Streams.Stream_IO.Close (File);
       Files_Suite.Support.Assert_Equal (Natural (Decoded.Length), 2, "both path moves read back");
       Assert (Decoded (1).Kind = Files.Types.Moved, "the first path move reads back as a move");
@@ -84,7 +84,7 @@ separate (Files_Suite.Recovery)
            (From => To_Unbounded_String ("/old/c.txt"), To => Null_Unbounded_String, Kind => Files.Types.Moved));
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
       begin
-         Files.Job_Records.Write_Path_Moves (Ada.Streams.Stream_IO.Stream (File), Moves);
+         Files.Jobs.Records.Write_Path_Moves (Ada.Streams.Stream_IO.Stream (File), Moves);
       exception
          when Ada.Directories.Use_Error => Rejected := True;
       end;

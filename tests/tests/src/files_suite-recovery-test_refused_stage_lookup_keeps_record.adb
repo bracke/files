@@ -7,7 +7,7 @@ separate (Files_Suite.Recovery)
    --  that for "gone" and forget the record, stranding the copy.
    procedure Test_Refused_Stage_Lookup_Keeps_Record (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Job       : Files.Process_Jobs.Session;
+      Job       : Files.Jobs.Process.Session;
       Transport : Files.Types.UString;
       Stage     : Files.Types.UString;
 
@@ -33,10 +33,10 @@ separate (Files_Suite.Recovery)
       end Records;
    begin
       Reset_Root;
-      Files.Process_Jobs.Reserve (Job);
-      Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
-      Files.Job_Context.Initialize (To_String (Transport));
-      Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));
+      Files.Jobs.Process.Reserve (Job);
+      Transport := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
+      Files.Jobs.Context.Initialize (To_String (Transport));
+      Stage := To_Unbounded_String (Files.Jobs.Context.Create_Stage (Root));
       Write_Binary_File (Join (To_String (Stage), "partial"), "partial");
       Files_Suite.Support.Assert_Equal (Records, 1, "the stage has its record");
 
@@ -44,24 +44,24 @@ separate (Files_Suite.Recovery)
       --  still remove it (the refusal may have passed by then), but the
       --  record goes only with it: never a record forgotten, copy left.
       Files.Fs_Primitives.Testing.Refuse_Lookups (To_String (Stage));
-      Files.Process_Jobs.Clean_Stages (Job);
+      Files.Jobs.Process.Clean_Stages (Job);
       Files.Fs_Primitives.Testing.Stop_Refusing_Lookups;
       Assert
         (Records = 1 or else not Ada.Directories.Exists (To_String (Stage)),
          "a refused lookup never forgets the record of a staged copy still there");
 
       --  Once the host answers, the stage goes with its record.
-      Files.Process_Jobs.Clean_Stages (Job);
+      Files.Jobs.Process.Clean_Stages (Job);
       Assert (not Ada.Directories.Exists (To_String (Stage)), "a later pass removes the staged copy");
       Files_Suite.Support.Assert_Equal (Records, 0, "and then its record");
-      Files.Job_Context.Initialize ("");
-      Files.Process_Jobs.Reset (Job);
+      Files.Jobs.Context.Initialize ("");
+      Files.Jobs.Process.Reset (Job);
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when not Ada.Directories.Exists (To_String (Transport));
       end loop;
    exception
       when others =>
          Files.Fs_Primitives.Testing.Stop_Refusing_Lookups;
-         Files.Job_Context.Initialize ("");
+         Files.Jobs.Context.Initialize ("");
          raise;
    end Test_Refused_Stage_Lookup_Keeps_Record;

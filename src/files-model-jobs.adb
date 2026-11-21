@@ -21,7 +21,7 @@ package body Files.Model.Jobs is
             Label_Key => Model.Operation_Label_Key));
 
    procedure Begin_Operation_Job
-     (Model : in out Window_Model; Job : Files.Process_Jobs.Session; Label_Key : String) is
+     (Model : in out Window_Model; Job : Files.Jobs.Process.Session; Label_Key : String) is
    begin
       End_Foreground_Job (Model);
       Support.Claim_Overlay_Input (Model);
@@ -32,7 +32,7 @@ package body Files.Model.Jobs is
       Support.Touch (Model);
    end Begin_Operation_Job;
 
-   function Background_Operation (Model : Window_Model) return Files.Process_Jobs.Session is (Model.Operation_Job);
+   function Background_Operation (Model : Window_Model) return Files.Jobs.Process.Session is (Model.Operation_Job);
 
    procedure Defer_Operation_Merge (Model : in out Window_Model; Deadline : Ada.Real_Time.Time) is
    begin
@@ -45,11 +45,11 @@ package body Files.Model.Jobs is
    function Operation_Merge_Deadline (Model : Window_Model) return Ada.Real_Time.Time is
      (Model.Operation_Merge_Deadline);
 
-   procedure Set_Background_Refresh (Model : in out Window_Model; Job : Files.Process_Jobs.Session) is
+   procedure Set_Background_Refresh (Model : in out Window_Model; Job : Files.Jobs.Process.Session) is
    begin
       Model.Refresh_Job := Job;
    end Set_Background_Refresh;
 
-   function Background_Refresh (Model : Window_Model) return Files.Process_Jobs.Session is (Model.Refresh_Job);
+   function Background_Refresh (Model : Window_Model) return Files.Jobs.Process.Session is (Model.Refresh_Job);
 
 end Files.Model.Jobs;

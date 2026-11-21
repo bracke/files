@@ -1,7 +1,7 @@
 with Files.Preference_Types;
 with Files.Events;
 with Files.Operations;
-with Files.Foreground_Jobs;
+with Files.Jobs.Foreground;
 with Files.Window_Polls;
 with Files.File_System;
 with Files.Model.Testing;
@@ -90,7 +90,7 @@ package body Files_Suite.Support.Models is
       Result : Files.Operation_Results.Operation_Result;
    begin
       for Attempt in Polling loop
-         Result := Files.Foreground_Jobs.Advance (Model, Settings, 1);
+         Result := Files.Jobs.Foreground.Advance (Model, Settings, 1);
          exit when not Files.Model.Foreground_Job_Is_Active (Model);
       end loop;
       AUnit.Assertions.Assert
@@ -164,16 +164,16 @@ package body Files_Suite.Support.Models is
       Forward        : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
       Identities     : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
       Tree_Revisions : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
-      Provenance     : Files.Undo_History.Item_Provenance := Files.Undo_History.Captured)
-      return Files.Undo_History.Recorded_Item_Vectors.Vector
+      Provenance     : Files.Undo.History.Item_Provenance := Files.Undo.History.Captured)
+      return Files.Undo.History.Recorded_Item_Vectors.Vector
    is
       function At_Index (Values : Files.Types.String_Vectors.Vector; Index : Positive) return Unbounded_String is
         (if Index <= Values.Last_Index then Values (Index) else Null_Unbounded_String);
    begin
-      return Items : Files.Undo_History.Recorded_Item_Vectors.Vector do
+      return Items : Files.Undo.History.Recorded_Item_Vectors.Vector do
          for Index in From.First_Index .. From.Last_Index loop
             Items.Append
-              (Files.Undo_History.Recorded_Item'
+              (Files.Undo.History.Recorded_Item'
                  (Item       =>
                     (From          => From (Index),
                      To            => At_Index (To, Index),
@@ -186,12 +186,12 @@ package body Files_Suite.Support.Models is
    end Undo_Items;
 
    function Replaced_Originals
-     (Trash : Files.Types.String_Vectors.Vector) return Files.Undo_History.Recorded_Original_Vectors.Vector is
+     (Trash : Files.Types.String_Vectors.Vector) return Files.Undo.History.Recorded_Original_Vectors.Vector is
    begin
-      return Originals : Files.Undo_History.Recorded_Original_Vectors.Vector do
+      return Originals : Files.Undo.History.Recorded_Original_Vectors.Vector do
          for Path of Trash loop
             Originals.Append
-              (Files.Undo_History.Recorded_Original'(Original => (Trash => Path, others => <>), others => <>));
+              (Files.Undo.History.Recorded_Original'(Original => (Trash => Path, others => <>), others => <>));
          end loop;
       end return;
    end Replaced_Originals;

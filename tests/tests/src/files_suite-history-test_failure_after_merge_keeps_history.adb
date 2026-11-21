@@ -1,7 +1,7 @@
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
-with Files.Operation_Jobs.Testing;
+with Files.Jobs.Operation.Testing;
 separate (Files_Suite.History)
    --  A finished operation whose view work fails after its journal was
    --  merged must not merge again: a second merge would drop what was
@@ -27,11 +27,11 @@ separate (Files_Suite.History)
       Files.Operations.Clear_Undo (Model);
       Files.Model.Set_Filter (Model, "a.txt");
       Files.Model.Selection.Select_All_Visible (Model);
-      --  A helper job, so the operation finishes through Operation_Jobs.Advance.
+      --  A helper job, so the operation finishes through Jobs.Operation.Advance.
       Files.Model.Set_Background_Transfers (Model, True);
-      Files.Operation_Jobs.Testing.Fail_After_Merge (Recording => Extra);
+      Files.Jobs.Operation.Testing.Fail_After_Merge (Recording => Extra);
       Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Duplicate_Selected (Model, Settings));
-      Files.Operation_Jobs.Testing.Stop_Failing_After_Merge;
+      Files.Jobs.Operation.Testing.Stop_Failing_After_Merge;
       pragma Unreferenced (Step);
       for Action of Files.Model.History.Undo_Entries (Model) loop
          Recorded := Recorded + 1;
@@ -43,6 +43,6 @@ separate (Files_Suite.History)
       Files_Suite.Support.Assert_Equal (Recorded, 2, "and so is the duplicate the job made");
    exception
       when others =>
-         Files.Operation_Jobs.Testing.Stop_Failing_After_Merge;
+         Files.Jobs.Operation.Testing.Stop_Failing_After_Merge;
          raise;
    end Test_Failure_After_Merge_Keeps_History;

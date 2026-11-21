@@ -1,8 +1,8 @@
-with Files.Copy_Context;
+with Files.Jobs.Copy_Context;
 with Files.File_System_Types;
 with Files.Paste;
 with Files.Types;
-with Files.Undo_History;
+with Files.Undo.History;
 
 --  A window's paste in progress: the replace-or-skip prompt and the paste
 --  being carried out. Held by the window model (Files.Model) and read and
@@ -30,7 +30,7 @@ package Files.Paste_States is
    --  fresh aggregate rather than clearing each field by hand.
    type Execution_State is record
       Active                  : Boolean := False;
-      Copy_Context            : Files.Copy_Context.Session;
+      Copy_Context            : Files.Jobs.Copy_Context.Session;
       Actions                 : Files.Paste.Resolved_Action_Vectors.Vector;
       Cursor                  : Natural := 0;
       Done                    : Natural := 0;
@@ -43,9 +43,9 @@ package Files.Paste_States is
       --  Each write: the destination (From), its source (To), and the
       --  identity and tree revision it was published with, Verified when
       --  the published entry was checked.
-      Written                 : Files.Undo_History.Recorded_Item_Vectors.Vector;
+      Written                 : Files.Undo.History.Recorded_Item_Vectors.Vector;
       --  Destinations a Replace overwrote during this paste, preserved so the
       --  undo entry can restore each to its own recorded original path.
-      Replaced                : Files.Undo_History.Recorded_Original_Vectors.Vector;
+      Replaced                : Files.Undo.History.Recorded_Original_Vectors.Vector;
    end record;
 end Files.Paste_States;

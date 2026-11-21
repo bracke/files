@@ -1,13 +1,13 @@
 with Files.Diagnostics;
-with Files.Helper_Modes;
+with Files.Jobs.Helper_Modes;
 with Ada.Directories;
 with Ada.Containers.Hashed_Maps;
 with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded.Hash;
 with Files.Bounded_Streams;
-with Files.Job_Context;
-with Files.Job_Records;
+with Files.Jobs.Context;
+with Files.Jobs.Records;
 with Files.Lease_Streams;
 with Files.Fs_Primitives;
 with Hostkit.Fs;
@@ -155,13 +155,13 @@ package body Files.Folder_Size is
       if Scan.Batch.Is_Empty then
          return;
       end if;
-      Files.Process_Jobs.Reserve (Scan.Job);
-      Files.Process_Jobs.Launch_With_Request (Scan.Job, Files.Helper_Modes.Folder_Size, Write'Access);
+      Files.Jobs.Process.Reserve (Scan.Job);
+      Files.Jobs.Process.Launch_With_Request (Scan.Job, Files.Jobs.Helper_Modes.Folder_Size, Write'Access);
       Test_Helper_Starts := (if Test_Helper_Starts = Natural'Last then 0 else Test_Helper_Starts + 1);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Folder_Size");
-         Files.Process_Jobs.Reset (Scan.Job);
+         Files.Jobs.Process.Reset (Scan.Job);
          --  Every directory of the batch is answered, unmeasured.
          for Index in 1 .. Natural (Scan.Batch.Length) loop
             Scan.Done_Queue.Append (Answer (Scan, Index, (others => <>)));
@@ -188,7 +188,7 @@ package body Files.Folder_Size is
       --  The running helper is kept while it has directories left to report
       --  and every one of them is still wanted, as listed when it was asked
       --  for; those are not asked again.
-      Keep := Files.Process_Jobs.Active (Scan.Job)
+      Keep := Files.Jobs.Process.Active (Scan.Job)
         and then Scan.Next_Result <= Natural (Scan.Batch.Length)
         and then (for all Index in Scan.Next_Result .. Natural (Scan.Batch.Length) =>
                     Requested.Contains (Scan.Batch (Index).Path)
@@ -209,7 +209,7 @@ package body Files.Folder_Size is
          end if;
       end loop;
       if not Keep then
-         Files.Process_Jobs.Reset (Scan.Job);
+         Files.Jobs.Process.Reset (Scan.Job);
          Start_Next (Scan);
       end if;
    end Set_Targets;
@@ -243,7 +243,7 @@ package body Files.Folder_Size is
    begin
       Scan.Set_For_Rows := Natural'Last;
       Scan.Set_For_Selection := Natural'Last;
-      Files.Process_Jobs.Reset (Scan.Job);
+      Files.Jobs.Process.Reset (Scan.Job);
       Scan.Targets.Clear;
       Scan.Batch.Clear;
       Scan.Next_Result := 1;
@@ -265,7 +265,7 @@ package body Files.Folder_Size is
       while Scan.Next_Result <= Natural (Scan.Batch.Length) loop
          declare
             Name : constant String :=
-              Files.Process_Jobs.Path (Scan.Job, Result_Name (Scan.Next_Result));
+              Files.Jobs.Process.Path (Scan.Job, Result_Name (Scan.Next_Result));
             Result : Files.File_System.Directory_Size_Result;
             Read   : Boolean := False;
          begin
@@ -307,7 +307,7 @@ package body Files.Folder_Size is
       --  Poll's cancelled state, which a scan has no use for (below).
       Discarded_Cancelled : Boolean;
    begin
-      if not Files.Process_Jobs.Active (Scan.Job) then
+      if not Files.Jobs.Process.Active (Scan.Job) then
          --  A batch whose helper could not start was answered unmeasured;
          --  the directories after it still wait for one. A launch that keeps
          --  failing answers a batch per step, so they all get an answer.
@@ -316,10 +316,10 @@ package body Files.Folder_Size is
          end if;
          return;
       end if;
-      --  A scan is stopped by Reset (Cancel), never by Process_Jobs.Cancel, so
+      --  A scan is stopped by Reset (Cancel), never by Jobs.Process.Cancel, so
       --  the cancelled state carries nothing here: a finished helper is
       --  collected and the next batch started either way.
-      Files.Process_Jobs.Poll (Scan.Job, Finished, Discarded_Cancelled);
+      Files.Jobs.Process.Poll (Scan.Job, Finished, Discarded_Cancelled);
       Collect (Scan, Finished, Waiting);
       if not Finished or else Waiting then
          return;
@@ -329,7 +329,7 @@ package body Files.Folder_Size is
       for Index in Scan.Next_Result .. Natural (Scan.Batch.Length) loop
          Scan.Done_Queue.Append (Answer (Scan, Index, (others => <>)));
       end loop;
-      Files.Process_Jobs.Reset (Scan.Job);
+      Files.Jobs.Process.Reset (Scan.Job);
       Start_Next (Scan);
    end Step;
 
@@ -344,7 +344,7 @@ package body Files.Folder_Size is
       Taken : out Measurement_Vectors.Vector)
    is
       use type Ada.Real_Time.Time;
-      Working : constant Boolean := Files.Process_Jobs.Active (Scan.Job) or else not Scan.Targets.Is_Empty;
+      Working : constant Boolean := Files.Jobs.Process.Active (Scan.Job) or else not Scan.Targets.Is_Empty;
    begin
       Taken.Clear;
       if Scan.Done_Queue.Is_Empty
@@ -367,7 +367,7 @@ package body Files.Folder_Size is
 
    function Is_Active (Scan : Session) return Boolean is
    begin
-      return Files.Process_Jobs.Active (Scan.Job);
+      return Files.Jobs.Process.Active (Scan.Job);
    end Is_Active;
 
    procedure Request (Scan : in out Session; Path : String) is
@@ -379,10 +379,10 @@ package body Files.Folder_Size is
 
    procedure Run_Helper (Directory : String) is
       Paths : constant Path_Vectors.Vector :=
-        Read_Request (Hostkit.Fs.Join (Directory, Files.Process_Jobs.Request_File));
+        Read_Request (Hostkit.Fs.Join (Directory, Files.Jobs.Process.Request_File));
    begin
       for Index in 1 .. Natural (Paths.Length) loop
-         exit when Files.Job_Context.Cancelled;
+         exit when Files.Jobs.Context.Cancelled;
          declare
             procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
             begin
@@ -391,7 +391,7 @@ package body Files.Folder_Size is
          begin
             --  Published whole: the window reads a result only once it has
             --  this name.
-            Files.Job_Records.Publish_Result (Directory, Write'Access, Name => Result_Name (Index));
+            Files.Jobs.Records.Publish_Result (Directory, Write'Access, Name => Result_Name (Index));
          end;
       end loop;
    end Run_Helper;

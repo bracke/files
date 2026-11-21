@@ -10,8 +10,8 @@ separate (Files_Suite.Recovery)
       Closing_Paste : Files_Suite.Support.Guards.Paste_Guard (Closing'Access);
       Remaining_Paste : Files_Suite.Support.Guards.Paste_Guard (Remaining'Access);
       pragma Unreferenced (Closing_Paste, Remaining_Paste);
-      Closing_Watch, Remaining_Watch : Files.Refresh_Jobs.Watch_Session;
-      Empty : Files.Process_Jobs.Session;
+      Closing_Watch, Remaining_Watch : Files.Jobs.Refresh.Watch_Session;
+      Empty : Files.Jobs.Process.Session;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Started, Other_Started : Unbounded_String;
       Before : Instant;
@@ -36,14 +36,14 @@ separate (Files_Suite.Recovery)
       end Await_Started;
 
       procedure Attach_Operation (Model : in out Files.Model.Window_Model; Marker : out Unbounded_String) is
-         Job : Files.Process_Jobs.Session;
+         Job : Files.Jobs.Process.Session;
       begin
-         Files.Process_Jobs.Reserve (Job);
-         Marker := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
-         Files.Process_Jobs.Launch (Job, "--files-test-blocked");
+         Files.Jobs.Process.Reserve (Job);
+         Marker := To_Unbounded_String (Files.Jobs.Process.Path (Job, "started"));
+         Files.Jobs.Process.Launch (Job, "--files-test-blocked");
          Await_Started (To_String (Marker));
          Files.Model.Jobs.Begin_Operation_Job (Model, Job, "command.file.duplicate");
-         Files.Process_Jobs.Reset (Job); --  The window is now its helper's only owner.
+         Files.Jobs.Process.Reset (Job); --  The window is now its helper's only owner.
       end Attach_Operation;
    begin
       Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_READS");
@@ -66,7 +66,7 @@ separate (Files_Suite.Recovery)
             when Operation_Job => Attach_Operation (Closing, Started);
             when Transfer_Job =>
                Files.Operations.Begin_Paste_Execution (Closing, Actions, Files.File_System.Drop_Copy);
-               Step := Files.Foreground_Jobs.Advance (Closing, Settings, 1);
+               Step := Files.Jobs.Foreground.Advance (Closing, Settings, 1);
                Assert (Step.Status = Files.Operation_Results.Operation_Success
                        and then Files.Model.Foreground_Job_Is_Active (Closing), "start the stalled transfer");
                Await_Started (Join (Root, "transfer-started"));
@@ -81,13 +81,13 @@ separate (Files_Suite.Recovery)
             when Refresh_Job =>
                Step := Files.Operations.Refresh (Closing, Settings);
                declare
-                  Job : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Refresh (Closing);
+                  Job : constant Files.Jobs.Process.Session := Files.Model.Jobs.Background_Refresh (Closing);
                begin
-                  Started := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
+                  Started := To_Unbounded_String (Files.Jobs.Process.Path (Job, "started"));
                   Await_Started (To_String (Started));
                end;
          end case;
-         Files.Refresh_Jobs.Watch_Path (Closing_Watch, Root);
+         Files.Jobs.Refresh.Watch_Path (Closing_Watch, Root);
          Before := Now;
          Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);
          Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);
@@ -96,15 +96,15 @@ separate (Files_Suite.Recovery)
            (not Files.Model.Foreground_Job_Is_Active (Closing),
             "repeated window closure releases all of the window's jobs: paste released");
          Assert
-           (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Operation (Closing)),
+           (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Operation (Closing)),
             "repeated window closure releases all of the window's jobs: operation job released");
          Assert
-           (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Closing)),
+           (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Closing)),
             "repeated window closure releases all of the window's jobs: refresh job released");
          declare
-            Other : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Operation (Remaining);
+            Other : constant Files.Jobs.Process.Session := Files.Model.Jobs.Background_Operation (Remaining);
          begin
-            Files.Process_Jobs.Poll (Other, Finished, Cancelled);
+            Files.Jobs.Process.Poll (Other, Finished, Cancelled);
             Assert (not Finished, "closing one window leaves the surviving window and its helper active: not finished");
             Assert
               (not Cancelled,
@@ -117,7 +117,7 @@ separate (Files_Suite.Recovery)
                "closing one window leaves the surviving window and its helper active: surviving helper still running");
          end;
          for Attempt in Files_Suite.Support.Timing.Polling loop
-            Files.Process_Jobs.Poll (Empty, Finished, Cancelled);
+            Files.Jobs.Process.Poll (Empty, Finished, Cancelled);
             exit when not Ada.Directories.Exists (To_String (Started));
          end loop;
          Assert (not Ada.Directories.Exists (To_String (Started)),
@@ -127,7 +127,7 @@ separate (Files_Suite.Recovery)
                  "a stopped stalled transfer never writes after its window closes");
          Files.Application.Windows.Release_Window_Jobs (Remaining, Remaining_Watch);
          for Attempt in Files_Suite.Support.Timing.Polling loop
-            Files.Process_Jobs.Poll (Empty, Finished, Cancelled);
+            Files.Jobs.Process.Poll (Empty, Finished, Cancelled);
             exit when not Ada.Directories.Exists (To_String (Other_Started));
          end loop;
          Assert (not Ada.Directories.Exists (To_String (Other_Started)),

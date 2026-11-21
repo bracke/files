@@ -9,7 +9,7 @@ function Import_Replacing
    Created_Tree_Revision : out Files.Types.UString;
    Preserved             : access procedure (Backup, Backup_Identity : String) := null;
    Cancel                : Cancellation_Check := Job_Cancelled;
-   Batch                 : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+   Batch                 : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
    return Mutation_Result
 is
    Plans   : Drop_Import_Plan_Vectors.Vector;

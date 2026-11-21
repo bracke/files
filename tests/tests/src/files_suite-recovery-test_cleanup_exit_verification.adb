@@ -7,7 +7,7 @@ separate (Files_Suite.Recovery)
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
       Marker    : constant String := Join (Root, "cleanup-worker-skipped");
-      Job       : Files.Process_Jobs.Session;
+      Job       : Files.Jobs.Process.Session;
       Transport : Files.Types.UString;
 
       procedure Clean_Up is
@@ -23,10 +23,10 @@ separate (Files_Suite.Recovery)
       Files_Suite.Support.Guards.Save (Environment, Variable);
       Reset_Root;
       Ada.Environment_Variables.Set (Variable, Marker);
-      Files.Process_Jobs.Reserve (Job);
-      Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+      Files.Jobs.Process.Reserve (Job);
+      Transport := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
       Ada.Directories.Create_Directory (Join (To_String (Transport), "stages"));
-      Files.Process_Jobs.Reset (Job);
+      Files.Jobs.Process.Reset (Job);
 
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (Marker);

@@ -10,29 +10,29 @@ separate (Files_Suite.History)
       pragma Unreferenced (T);
       Directory : constant String := Join (Root, "history-pruned");
       Window, Helper : Files.Model.Window_Model;
-      Empty : Files.Undo_History.Undo_Entry_Vectors.Vector renames Files.Undo_History.Undo_Entry_Vectors.Empty_Vector;
-      State : Files.Undo_History.History_Journal_State;
+      Empty : Files.Undo.History.Undo_Entry_Vectors.Vector renames Files.Undo.History.Undo_Entry_Vectors.Empty_Vector;
+      State : Files.Undo.History.History_Journal_State;
       Restored : constant array (1 .. 6) of Positive := [7, 4, 4, 10, 99, 3];
 
       --  The window's history: one entry, numbered Sequence.
-      function Held_Entry (Sequence : Positive) return Files.Undo_History.Undo_Entry_Vectors.Vector is
-         Result : Files.Undo_History.Undo_Entry;
+      function Held_Entry (Sequence : Positive) return Files.Undo.History.Undo_Entry_Vectors.Vector is
+         Result : Files.Undo.History.Undo_Entry;
       begin
-         Result.Kind := Files.Undo_History.Undo_Delete_Created;
+         Result.Kind := Files.Undo.History.Undo_Delete_Created;
          --  Undo-only: a redoable entry would need its forward paths too.
          Result.Redoable := False;
          Result.Items.Append
-           (Files.Undo_History.Undo_Item'
+           (Files.Undo.History.Undo_Item'
               (From => To_Unbounded_String (Join (Root, "held")),
                Identity => To_Unbounded_String ("1:held"),
                Tree_Revision => To_Unbounded_String ("rev"),
                others => <>));
          Result.Sequence := Sequence;
-         return Files.Undo_History.Undo_Entry_Vectors.To_Vector (Result, 1);
+         return Files.Undo.History.Undo_Entry_Vectors.To_Vector (Result, 1);
       end Held_Entry;
 
       --  A list's Sequences, "4,7".
-      function Image (List : Files.Undo_History.Sequence_Vectors.Vector) return String is
+      function Image (List : Files.Undo.History.Sequence_Vectors.Vector) return String is
          Result : Unbounded_String;
       begin
          for Sequence of List loop
@@ -70,7 +70,7 @@ separate (Files_Suite.History)
       Assert (Natural (Files.Model.History.Journal_State (Window).Unjournaled.Length) = 900,
               "nothing in range is pruned on restore");
       begin
-         Files.Model.Testing.Save_Journal_To (Directory, Window, Mode => Files.History_Journal.Must_Commit);
+         Files.Model.Testing.Save_Journal_To (Directory, Window, Mode => Files.Undo.Journal.Must_Commit);
       exception
          when Ada.Directories.Use_Error =>
             Assert (False, "a list past its cap does not fail a required save");
@@ -78,7 +78,7 @@ separate (Files_Suite.History)
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.Model.Testing.Restore_Journal (Directory, Helper), "the truncated journal reads back");
       declare
-         Kept : constant Files.Undo_History.Sequence_Vectors.Vector :=
+         Kept : constant Files.Undo.History.Sequence_Vectors.Vector :=
            Files.Model.History.Journal_State (Helper).Unjournaled;
       begin
          Assert (Natural (Kept.Length) = 800, "the list is truncated to its cap:" & Kept.Length'Image);

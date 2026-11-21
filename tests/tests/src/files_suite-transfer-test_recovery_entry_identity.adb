@@ -17,7 +17,7 @@ separate (Files_Suite.Transfer)
       Load : Files.File_System.Directory_Load_Result;
       Finished, Cancelled : Boolean;
       Mutation : Files.File_System.Mutation_Result;
-      Entries : Files.Job_Context.Journal_Entry_Vectors.Vector;
+      Entries : Files.Jobs.Context.Journal_Entry_Vectors.Vector;
       File : Ada.Streams.Stream_IO.File_Type;
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
@@ -46,17 +46,17 @@ separate (Files_Suite.Transfer)
          Step := (if Redo_Recovery then Files.Operation_Commands.Redo_Last (Model, Settings)
                   else Files.Operation_Commands.Duplicate_Selected (Model, Settings));
          declare
-            Job : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Operation (Model);
+            Job : constant Files.Jobs.Process.Session := Files.Model.Jobs.Background_Operation (Model);
          begin
             for Attempt in Files_Suite.Support.Timing.Polling loop
-               Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+               Files.Jobs.Process.Poll (Job, Finished, Cancelled);
                exit when Finished;
             end loop;
             Assert (Finished and then Ada.Directories.Exists (Dest), "the helper published before metadata failure");
-            if Ada.Directories.Exists (Files.Process_Jobs.Path (Job, "history")) then
-               Ada.Directories.Delete_File (Files.Process_Jobs.Path (Job, "history"));
+            if Ada.Directories.Exists (Files.Jobs.Process.Path (Job, "history")) then
+               Ada.Directories.Delete_File (Files.Jobs.Process.Path (Job, "history"));
             end if;
-            Ada.Directories.Create_Directory (Files.Process_Jobs.Path (Job, "history"));
+            Ada.Directories.Create_Directory (Files.Jobs.Process.Path (Job, "history"));
             Assert (Hostkit.Fs.Move_No_Replace (Dest, Saved), "retain the published entry");
             Write_Binary_File (Dest, "unrelated replacement");
             --  The fault is over: put the variable back now, not at scope exit.
@@ -131,10 +131,10 @@ separate (Files_Suite.Transfer)
          Ada.Directories.Create_Directory (Journal_Directory);
          Write_Binary_File (Victim, "protected recovery journal");
          if Hostkit.Fs.Create_Hard_Link (Victim, Journal) then
-            Files.Job_Context.Initialize (Journal_Directory);
-            Files.Job_Context.Record_Created (Source);
-            Files.Job_Context.Initialize ("");
-            Entries := Files.Job_Context.Read_Created (Journal_Directory);
+            Files.Jobs.Context.Initialize (Journal_Directory);
+            Files.Jobs.Context.Record_Created (Source);
+            Files.Jobs.Context.Initialize ("");
+            Entries := Files.Jobs.Context.Read_Created (Journal_Directory);
             Files_Suite.Support.Assert_Equal
               (Project_Tools.Files.Read_Raw_File (Victim),
                "protected recovery journal",
@@ -145,14 +145,14 @@ separate (Files_Suite.Transfer)
          end if;
       end;
       Ada.Directories.Create_Directory (Join (Root, "journal"));
-      Files.Job_Context.Initialize (Join (Root, "journal"));
-      Files.Job_Context.Record_Created (Source);
-      Files.Job_Context.Initialize ("");
+      Files.Jobs.Context.Initialize (Join (Root, "journal"));
+      Files.Jobs.Context.Record_Created (Source);
+      Files.Jobs.Context.Initialize ("");
       Ada.Streams.Stream_IO.Open
         (File, Ada.Streams.Stream_IO.Append_File, Join (Join (Root, "journal"), "created"));
       String'Output (Ada.Streams.Stream_IO.Stream (File), "truncated destination");
       Ada.Streams.Stream_IO.Close (File);
-      Entries := Files.Job_Context.Read_Created (Join (Root, "journal"));
+      Entries := Files.Jobs.Context.Read_Created (Join (Root, "journal"));
       Assert (Natural (Entries.Length) = 1 and then Length (Entries.First_Element.Identity) > 0,
               "a truncated journal ignores incomplete records without losing earlier snapshots");
       --  Leases are created hidden on Windows, and Windows refuses to create
@@ -164,7 +164,7 @@ separate (Files_Suite.Transfer)
         (File, Ada.Streams.Stream_IO.Count (64 * 1024 * 1024 + 1));
       Character'Write (Ada.Streams.Stream_IO.Stream (File), 'x');
       Ada.Streams.Stream_IO.Close (File);
-      Entries := Files.Job_Context.Read_Created (Join (Root, "journal"));
+      Entries := Files.Jobs.Context.Read_Created (Join (Root, "journal"));
       Assert
         (Entries.Is_Empty,
          "an oversized recovery journal is rejected before allocating records");
@@ -178,7 +178,7 @@ separate (Files_Suite.Transfer)
       String'Output (Ada.Streams.Stream_IO.Stream (File), "identity");
       String'Output (Ada.Streams.Stream_IO.Stream (File), "revision");
       Ada.Streams.Stream_IO.Close (File);
-      Entries := Files.Job_Context.Read_Created (Join (Root, "journal"));
+      Entries := Files.Jobs.Context.Read_Created (Join (Root, "journal"));
       Assert (Entries.Is_Empty, "created recovery records reject relative destination paths");
       Ada.Streams.Stream_IO.Create
         (File, Ada.Streams.Stream_IO.Out_File,
@@ -188,9 +188,9 @@ separate (Files_Suite.Transfer)
       String'Output (Ada.Streams.Stream_IO.Stream (File), "relative-source");
       String'Output (Ada.Streams.Stream_IO.Stream (File), "identity");
       Ada.Streams.Stream_IO.Close (File);
-      Entries := Files.Job_Context.Read_Moved (Join (Root, "journal"));
+      Entries := Files.Jobs.Context.Read_Moved (Join (Root, "journal"));
       Assert (Entries.Is_Empty, "moved recovery records reject relative source paths");
-      Entries := Files.Job_Context.Read_Created ("relative-recovery-journal");
+      Entries := Files.Jobs.Context.Read_Created ("relative-recovery-journal");
       Assert (Entries.Is_Empty, "recovery journal readers reject relative transport directories");
       Ada.Directories.Delete_File (Join (Join (Root, "journal"), "created"));
       Ada.Streams.Stream_IO.Create
@@ -198,11 +198,11 @@ separate (Files_Suite.Transfer)
       String'Output (Ada.Streams.Stream_IO.Stream (File), Source);
       String'Output (Ada.Streams.Stream_IO.Stream (File), "old source");
       Ada.Streams.Stream_IO.Close (File);
-      Entries := Files.Job_Context.Read_Created (Join (Root, "journal"));
+      Entries := Files.Jobs.Context.Read_Created (Join (Root, "journal"));
       Assert (Entries.Is_Empty, "identity-free legacy journals fail closed");
    exception
       when others =>
-         Files.Job_Context.Initialize ("");
+         Files.Jobs.Context.Initialize ("");
          Files_Suite.Support.Guards.Release (Paste);
          if Ada.Streams.Stream_IO.Is_Open (File) then
             Ada.Streams.Stream_IO.Close (File);

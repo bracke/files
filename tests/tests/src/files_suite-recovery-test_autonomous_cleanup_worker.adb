@@ -6,7 +6,7 @@ separate (Files_Suite.Recovery)
       pragma Unreferenced (T);
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
-      Job       : Files.Process_Jobs.Session;
+      Job       : Files.Jobs.Process.Session;
       Transport : Files.Types.UString;
       Before    : Instant;
 
@@ -40,12 +40,12 @@ separate (Files_Suite.Recovery)
    begin
       Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_STALL_CLEANUP_WORKER");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_CLEANUP_WORKER", "1");
-      Files.Process_Jobs.Reserve (Job);
-      Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+      Files.Jobs.Process.Reserve (Job);
+      Transport := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
       Ada.Directories.Create_Directory (Item ("stages"));
 
       Before := Now;
-      Files.Process_Jobs.Reset (Job);
+      Files.Jobs.Process.Reset (Job);
       Assert_Within (Before, Prompt_Limit, "session disposal returns without waiting for the cleanup worker");
       --  The worker is held until the release file appears, so a disposal that
       --  had waited for it -- or cleaned up in its place -- would find the
@@ -77,10 +77,10 @@ separate (Files_Suite.Recovery)
             Id_File : Ada.Text_IO.File_Type;
          begin
             Ada.Environment_Variables.Set ("FILES_TEST_STALL_CLEANUP_WORKER", "stop");
-            Files.Process_Jobs.Reserve (Job);
-            Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+            Files.Jobs.Process.Reserve (Job);
+            Transport := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
             Ada.Directories.Create_Directory (Item ("stages"));
-            Files.Process_Jobs.Reset (Job);
+            Files.Jobs.Process.Reset (Job);
             for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when Ada.Directories.Exists (Item ("cleanup-worker-started"));
             end loop;

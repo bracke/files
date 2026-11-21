@@ -2,7 +2,7 @@ with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Helper_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Job       : Files.Process_Jobs.Session;
+      Job       : Files.Jobs.Process.Session;
       Started   : Files.Types.UString;
       Before    : Instant;
       Finished  : Boolean;
@@ -54,61 +54,61 @@ separate (Files_Suite.Recovery)
            (not Ada.Directories.Exists (To_String (Directory)),
             "the reaper drains a session released after shutdown was requested");
       end;
-      Files.Process_Jobs.Reserve (Job);
-      Started := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
-      Files.Process_Jobs.Launch (Job, "--files-test-blocked");
+      Files.Jobs.Process.Reserve (Job);
+      Started := To_Unbounded_String (Files.Jobs.Process.Path (Job, "started"));
+      Files.Jobs.Process.Launch (Job, "--files-test-blocked");
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (To_String (Started));
       end loop;
       Assert (Ada.Directories.Exists (To_String (Started)), "the shutdown fixture enters blocked helper work");
       declare
-         Keeper : Files.Process_Jobs.Session := Job;
+         Keeper : Files.Jobs.Process.Session := Job;
       begin
-         Files.Process_Jobs.Reset (Job);
-         Files.Process_Jobs.Poll (Keeper, Finished, Cancelled);
+         Files.Jobs.Process.Reset (Job);
+         Files.Jobs.Process.Poll (Keeper, Finished, Cancelled);
          Assert (not Finished, "a copied session keeps its helper alive");
          Before := Now;
-         Files.Process_Jobs.Reset (Keeper);
+         Files.Jobs.Process.Reset (Keeper);
          Assert_Within (Before, Prompt_Limit, "closing the last session never waits for blocked helper work");
       end;
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+         Files.Jobs.Process.Poll (Job, Finished, Cancelled);
          exit when not Ada.Directories.Exists (To_String (Started));
       end loop;
       Assert (not Ada.Directories.Exists (To_String (Started)),
               "terminated helpers are reaped and their transport is cleaned");
-      Files.Process_Jobs.Reserve (Job);
-      Started := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
-      Files.Process_Jobs.Launch (Job, "--files-test-blocked");
+      Files.Jobs.Process.Reserve (Job);
+      Started := To_Unbounded_String (Files.Jobs.Process.Path (Job, "started"));
+      Files.Jobs.Process.Launch (Job, "--files-test-blocked");
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (To_String (Started));
       end loop;
       Assert (Ada.Directories.Exists (To_String (Started)), "the cancellation fixture enters blocked helper work");
       Before := Now;
-      Files.Process_Jobs.Cancel (Job);
+      Files.Jobs.Process.Cancel (Job);
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+         Files.Jobs.Process.Poll (Job, Finished, Cancelled);
          exit when Finished;
       end loop;
       Assert (Finished and then Cancelled, "cancellation detaches a stalled helper");
       Assert_Within (Before, Detach_Limit, "cancellation detaches stalled helpers after its bounded grace period");
-      Files.Process_Jobs.Reset (Job);
+      Files.Jobs.Process.Reset (Job);
 
-      Files.Process_Jobs.Reserve (Job);
-      Started := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
-      Files.Process_Jobs.Launch (Job, "--files-test-blocked");
+      Files.Jobs.Process.Reserve (Job);
+      Started := To_Unbounded_String (Files.Jobs.Process.Path (Job, "started"));
+      Files.Jobs.Process.Launch (Job, "--files-test-blocked");
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (To_String (Started));
       end loop;
       Assert (Ada.Directories.Exists (To_String (Started)),
               "the failed-stop fixture enters blocked helper work");
-      Files.Process_Jobs.Testing.Simulate_Failed_Stop (Job);
+      Files.Jobs.Process.Testing.Simulate_Failed_Stop (Job);
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+         Files.Jobs.Process.Poll (Job, Finished, Cancelled);
          exit when Finished;
       end loop;
       Assert
         (Finished and then not Cancelled,
          "polling retries a failed initial stop request and reaps the helper");
-      Files.Process_Jobs.Reset (Job);
+      Files.Jobs.Process.Reset (Job);
    end Test_Helper_Shutdown;

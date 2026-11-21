@@ -43,7 +43,7 @@ separate (Files_Suite.Refresh)
         (Step.Status,
          Files.Operation_Results.Operation_Success,
          "watch polling schedules a read while retaining the displayed items: status");
-      Assert (Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
+      Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "watch polling schedules a read while retaining the displayed items: read scheduled");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),
@@ -142,6 +142,6 @@ separate (Files_Suite.Refresh)
               "explicit Recent refresh also loads its items in a helper");
    exception
       when others =>
-         Files.Refresh_Jobs.Cancel (Model);
+         Files.Jobs.Refresh.Cancel (Model);
          raise;
    end Test_Background_Refresh;

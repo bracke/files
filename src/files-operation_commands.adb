@@ -1,7 +1,7 @@
-with Files.History_Journal;
+with Files.Undo.Journal;
 with Files.Model.History;
-with Files.Operation_Jobs;
-with Files.Undo_History;
+with Files.Jobs.Operation;
+with Files.Undo.History;
 
 package body Files.Operation_Commands is
    use type Files.Operation_Results.Operation_Status;
@@ -13,12 +13,12 @@ package body Files.Operation_Commands is
    function Start_Unless_Refused
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Kind     : Files.Operation_Jobs.Operation_Kind;
+      Kind     : Files.Jobs.Operation.Operation_Kind;
       Refusal  : Operation_Result)
       return Operation_Result is
      (if Refusal.Status /= Files.Operation_Results.Operation_Success
       then Refusal
-      else Files.Operation_Jobs.Start (Model, Settings, Kind));
+      else Files.Jobs.Operation.Start (Model, Settings, Kind));
 
    --  What a command without refusal checks starts from.
    No_Refusal : constant Operation_Result := (Status => Files.Operation_Results.Operation_Success, others => <>);
@@ -32,7 +32,7 @@ package body Files.Operation_Commands is
          declare
             Refusal : constant Operation_Result := Files.Operations.Trash_Refusal (Model);
          begin
-            return Start_Unless_Refused (Model, Settings, Files.Operation_Jobs.Trash, Refusal);
+            return Start_Unless_Refused (Model, Settings, Files.Jobs.Operation.Trash, Refusal);
          end;
       end if;
       return Files.Operations.Delete_Selected (Model, Settings);
@@ -44,7 +44,7 @@ package body Files.Operation_Commands is
       return Operation_Result is
    begin
       if Files.Model.Background_Transfers (Model) then
-         return Start_Unless_Refused (Model, Settings, Files.Operation_Jobs.Delete_Permanently, No_Refusal);
+         return Start_Unless_Refused (Model, Settings, Files.Jobs.Operation.Delete_Permanently, No_Refusal);
       end if;
       return Files.Operations.Delete_Selected_Permanently (Model, Settings);
    end Delete_Selected_Permanently;
@@ -55,7 +55,7 @@ package body Files.Operation_Commands is
       return Operation_Result is
    begin
       if Files.Model.Background_Transfers (Model) then
-         return Start_Unless_Refused (Model, Settings, Files.Operation_Jobs.Restore, No_Refusal);
+         return Start_Unless_Refused (Model, Settings, Files.Jobs.Operation.Restore, No_Refusal);
       end if;
       return Files.Operations.Restore_Selected_From_Trash (Model, Settings);
    end Restore_Selected_From_Trash;
@@ -66,7 +66,7 @@ package body Files.Operation_Commands is
       return Operation_Result is
    begin
       if Files.Model.Background_Transfers (Model) then
-         return Start_Unless_Refused (Model, Settings, Files.Operation_Jobs.Empty_Trash, No_Refusal);
+         return Start_Unless_Refused (Model, Settings, Files.Jobs.Operation.Empty_Trash, No_Refusal);
       end if;
       return Files.Operations.Empty_Trash (Model, Settings);
    end Empty_Trash;
@@ -81,7 +81,7 @@ package body Files.Operation_Commands is
             Refusal : constant Operation_Result :=
               Files.Operations.Creation_Refusal (Model, "error.duplicate.failed");
          begin
-            return Start_Unless_Refused (Model, Settings, Files.Operation_Jobs.Duplicate, Refusal);
+            return Start_Unless_Refused (Model, Settings, Files.Jobs.Operation.Duplicate, Refusal);
          end;
       end if;
       return Files.Operations.Duplicate_Selected (Model, Settings);
@@ -102,8 +102,8 @@ package body Files.Operation_Commands is
          begin
             return Start_Unless_Refused
               (Model, Settings,
-               (if Format = Files.Operations.Zip_Archive then Files.Operation_Jobs.Compress_Zip
-                else Files.Operation_Jobs.Compress_Seven_Zip),
+               (if Format = Files.Operations.Zip_Archive then Files.Jobs.Operation.Compress_Zip
+                else Files.Jobs.Operation.Compress_Seven_Zip),
                Refusal);
          end;
       end if;
@@ -120,7 +120,7 @@ package body Files.Operation_Commands is
             Refusal : constant Operation_Result :=
               Files.Operations.Creation_Refusal (Model, "error.extract.failed");
          begin
-            return Start_Unless_Refused (Model, Settings, Files.Operation_Jobs.Extract, Refusal);
+            return Start_Unless_Refused (Model, Settings, Files.Jobs.Operation.Extract, Refusal);
          end;
       end if;
       return Files.Operations.Extract_Selected (Model, Settings);
@@ -138,8 +138,8 @@ package body Files.Operation_Commands is
          begin
             return Start_Unless_Refused
               (Model, Settings,
-               (if Scope = Files.UI_Types.Search_Contents then Files.Operation_Jobs.Search_Contents
-                else Files.Operation_Jobs.Search_Names),
+               (if Scope = Files.UI_Types.Search_Contents then Files.Jobs.Operation.Search_Contents
+                else Files.Jobs.Operation.Search_Names),
                Refusal);
          end;
       end if;
@@ -152,9 +152,9 @@ package body Files.Operation_Commands is
       return Operation_Result is
    begin
       if Files.Model.Background_Transfers (Model)
-        and then Files.History_Journal.Journals_Newest (Files.Model.History.State (Model), Files.Undo_History.Undo_Side)
+        and then Files.Undo.Journal.Journals_Newest (Files.Model.History.State (Model), Files.Undo.History.Undo_Side)
       then
-         return Start_Unless_Refused (Model, Settings, Files.Operation_Jobs.Undo, No_Refusal);
+         return Start_Unless_Refused (Model, Settings, Files.Jobs.Operation.Undo, No_Refusal);
       end if;
       return Files.Operations.Undo_Last (Model, Settings);
    end Undo_Last;
@@ -165,9 +165,9 @@ package body Files.Operation_Commands is
       return Operation_Result is
    begin
       if Files.Model.Background_Transfers (Model)
-        and then Files.History_Journal.Journals_Newest (Files.Model.History.State (Model), Files.Undo_History.Redo_Side)
+        and then Files.Undo.Journal.Journals_Newest (Files.Model.History.State (Model), Files.Undo.History.Redo_Side)
       then
-         return Start_Unless_Refused (Model, Settings, Files.Operation_Jobs.Redo, No_Refusal);
+         return Start_Unless_Refused (Model, Settings, Files.Jobs.Operation.Redo, No_Refusal);
       end if;
       return Files.Operations.Redo_Last (Model, Settings);
    end Redo_Last;

@@ -25,10 +25,10 @@ separate (Files_Suite.Refresh)
          (Kind => Files.Input_Actions.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command),
          Guikit.Input.No_Modifiers, Routed);
       Await_View (Model, Settings, Applied);
-      Assert (not Files.Process_Jobs.Active (Files.Model.Jobs.Background_Refresh (Model)),
+      Assert (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "the refresh finishes instead of being requested again");
       Assert (Applied, "its result applies");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the new file is listed");
    exception
-      when others => Files.Refresh_Jobs.Cancel (Model); raise;
+      when others => Files.Jobs.Refresh.Cancel (Model); raise;
    end Test_Refresh_Applies_With_Refused_Settings;

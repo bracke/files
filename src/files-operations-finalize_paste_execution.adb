@@ -14,7 +14,7 @@ is
    --  Read once: everything recorded below is what the paste gathered.
    Exec       : constant Files.Paste_States.Execution_State := Files.Model.Pasting.Execution_Of (Model);
    --  Destinations a Replace overwrote.
-   Replaced   : Files.Undo_History.Recorded_Original_Vectors.Vector renames Exec.Replaced;
+   Replaced   : Files.Undo.History.Recorded_Original_Vectors.Vector renames Exec.Replaced;
    Has_Kept   : constant Boolean := Length (Kept.Dest_Path) > 0;
    First_Dest : constant String := To_String (Exec.First_Dest);
    --  A kept copy no longer verifiable on a path an original goes back to

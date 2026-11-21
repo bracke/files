@@ -4,14 +4,14 @@ separate (Files_Suite.Model)
    is
       pragma Unreferenced (T);
       Model : Files.Model.Window_Model;
-      Undo, Redo : Files.Undo_History.Undo_Entry_Vectors.Vector;
+      Undo, Redo : Files.Undo.History.Undo_Entry_Vectors.Vector;
 
-      function Rename_Action return Files.Undo_History.Undo_Entry is
-         Result : Files.Undo_History.Undo_Entry;
+      function Rename_Action return Files.Undo.History.Undo_Entry is
+         Result : Files.Undo.History.Undo_Entry;
       begin
-         Result.Kind := Files.Undo_History.Undo_Rename;
+         Result.Kind := Files.Undo.History.Undo_Rename;
          Result.Items.Append
-           (Files.Undo_History.Undo_Item'
+           (Files.Undo.History.Undo_Item'
               (From          => To_Unbounded_String ("/missing/new-name"),
                To            => To_Unbounded_String ("/missing/old-name"),
                Identity      => To_Unbounded_String ("persisted-identity"),
@@ -20,26 +20,26 @@ separate (Files_Suite.Model)
       end Rename_Action;
 
       --  Admission gives each entry its Sequence; everything else is kept.
-      function Same_Action (Admitted, Given : Files.Undo_History.Undo_Entry) return Boolean is
-         Expected : Files.Undo_History.Undo_Entry := Given;
+      function Same_Action (Admitted, Given : Files.Undo.History.Undo_Entry) return Boolean is
+         Expected : Files.Undo.History.Undo_Entry := Given;
       begin
          Expected.Sequence := Admitted.Sequence;
          return Admitted = Expected and then Admitted.Sequence > 0;
       end Same_Action;
 
-      Good_Undo : Files.Undo_History.Undo_Entry := Rename_Action;
-      Good_Redo : constant Files.Undo_History.Undo_Entry := Rename_Action;
-      Short_Targets : Files.Undo_History.Undo_Entry := Rename_Action;
-      Foreign_Marker : Files.Undo_History.Undo_Entry := Rename_Action;
-      Bad_Metadata : Files.Undo_History.Undo_Entry := Rename_Action;
-      Bad_Restore : Files.Undo_History.Undo_Entry := Rename_Action;
-      Bad_Copy_Records : Files.Undo_History.Undo_Entry := Rename_Action;
-      Relative_From : Files.Undo_History.Undo_Entry := Rename_Action;
-      Nul_Target : Files.Undo_History.Undo_Entry := Rename_Action;
-      Relative_Forward : Files.Undo_History.Undo_Entry := Rename_Action;
-      Relative_Restore : Files.Undo_History.Undo_Entry := Rename_Action;
-      Relative_Copy_Record : Files.Undo_History.Undo_Entry := Rename_Action;
-      Undo_Only_Redo : Files.Undo_History.Undo_Entry := Rename_Action;
+      Good_Undo : Files.Undo.History.Undo_Entry := Rename_Action;
+      Good_Redo : constant Files.Undo.History.Undo_Entry := Rename_Action;
+      Short_Targets : Files.Undo.History.Undo_Entry := Rename_Action;
+      Foreign_Marker : Files.Undo.History.Undo_Entry := Rename_Action;
+      Bad_Metadata : Files.Undo.History.Undo_Entry := Rename_Action;
+      Bad_Restore : Files.Undo.History.Undo_Entry := Rename_Action;
+      Bad_Copy_Records : Files.Undo.History.Undo_Entry := Rename_Action;
+      Relative_From : Files.Undo.History.Undo_Entry := Rename_Action;
+      Nul_Target : Files.Undo.History.Undo_Entry := Rename_Action;
+      Relative_Forward : Files.Undo.History.Undo_Entry := Rename_Action;
+      Relative_Restore : Files.Undo.History.Undo_Entry := Rename_Action;
+      Relative_Copy_Record : Files.Undo.History.Undo_Entry := Rename_Action;
+      Undo_Only_Redo : Files.Undo.History.Undo_Entry := Rename_Action;
    begin
       Good_Undo.Reverse_Completed.Append (Good_Undo.Items.First_Element.From);
 
@@ -48,41 +48,41 @@ separate (Files_Suite.Model)
       Foreign_Marker.Reverse_Completed.Append
         (To_Unbounded_String ("/missing/not-in-action"));
 
-      Bad_Metadata.Kind := Files.Undo_History.Undo_Set_Permissions;
+      Bad_Metadata.Kind := Files.Undo.History.Undo_Set_Permissions;
       Bad_Metadata.Items (1).To := To_Unbounded_String ("not-a-mode");
       Bad_Metadata.Items (1).Forward := To_Unbounded_String ("420");
 
       Bad_Restore.Redoable := False;
       Bad_Restore.Replaced.Append
-        (Files.Undo_History.Replaced_Original'(Trash => To_Unbounded_String ("/missing/trash-entry"), others => <>));
+        (Files.Undo.History.Replaced_Original'(Trash => To_Unbounded_String ("/missing/trash-entry"), others => <>));
 
-      Bad_Copy_Records.Kind := Files.Undo_History.Undo_Delete_Created;
+      Bad_Copy_Records.Kind := Files.Undo.History.Undo_Delete_Created;
       Bad_Copy_Records.Items (1).To := Null_Unbounded_String;
       Bad_Copy_Records.Items (1).Forward := To_Unbounded_String ("/missing/source");
-      Bad_Copy_Records.Create_Kind := Files.Undo_History.Create_Copy;
+      Bad_Copy_Records.Create_Kind := Files.Undo.History.Create_Copy;
       Bad_Copy_Records.Copy_Records.Append (To_Unbounded_String ("incomplete-group"));
 
       Relative_From.Items (1).From := To_Unbounded_String ("relative-new-name");
 
       Nul_Target.Items (1).To := To_Unbounded_String ("/missing/old" & Character'Val (0) & "name");
 
-      Relative_Forward.Kind := Files.Undo_History.Undo_Delete_Created;
+      Relative_Forward.Kind := Files.Undo.History.Undo_Delete_Created;
       Relative_Forward.Items (1).To := Null_Unbounded_String;
       Relative_Forward.Items (1).Forward := To_Unbounded_String ("relative-source");
-      Relative_Forward.Create_Kind := Files.Undo_History.Create_Symbolic_Link;
+      Relative_Forward.Create_Kind := Files.Undo.History.Create_Symbolic_Link;
 
       Relative_Restore.Redoable := False;
-      Relative_Restore.Kind := Files.Undo_History.Undo_Move;
+      Relative_Restore.Kind := Files.Undo.History.Undo_Move;
       Relative_Restore.Replaced.Append
-        (Files.Undo_History.Replaced_Original'
+        (Files.Undo.History.Replaced_Original'
            (Trash    => To_Unbounded_String ("/missing/trash-entry"),
             Identity => To_Unbounded_String ("persisted-trash-identity"),
             Target   => To_Unbounded_String ("relative-restore-target")));
 
-      Relative_Copy_Record.Kind := Files.Undo_History.Undo_Delete_Created;
+      Relative_Copy_Record.Kind := Files.Undo.History.Undo_Delete_Created;
       Relative_Copy_Record.Items (1).To := Null_Unbounded_String;
       Relative_Copy_Record.Items (1).Forward := To_Unbounded_String ("/missing/source");
-      Relative_Copy_Record.Create_Kind := Files.Undo_History.Create_Copy;
+      Relative_Copy_Record.Create_Kind := Files.Undo.History.Create_Copy;
       Relative_Copy_Record.Copy_Records.Append
         (To_Unbounded_String ("source-identity"));
       Relative_Copy_Record.Copy_Records.Append

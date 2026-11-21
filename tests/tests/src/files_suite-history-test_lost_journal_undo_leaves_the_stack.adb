@@ -1,4 +1,4 @@
-with Files.History_Journal.Testing;
+with Files.Undo.Journal.Testing;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -43,9 +43,9 @@ separate (Files_Suite.History)
       Assert (Ada.Directories.Exists (Copy), "the older duplicate is still there");
 
       Step := Files.Operation_Commands.Undo_Last (Model, Settings);
-      Files.History_Journal.Testing.Refuse_Reads (10_000);
+      Files.Undo.Journal.Testing.Refuse_Reads (10_000);
       Step := Complete_Operation (Model, Settings, Step);
-      Files.History_Journal.Testing.Refuse_Reads (0);
+      Files.Undo.Journal.Testing.Refuse_Reads (0);
       Await_View (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "the Undo succeeds");
@@ -61,6 +61,6 @@ separate (Files_Suite.History)
       Reset_Root;
    exception
       when others =>
-         Files.History_Journal.Testing.Refuse_Reads (0);
+         Files.Undo.Journal.Testing.Refuse_Reads (0);
          raise;
    end Test_Lost_Journal_Undo_Leaves_The_Stack;

@@ -107,9 +107,9 @@ separate (Files_Suite.Recovery)
          Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
          Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
          declare
-            Job : constant Files.Process_Jobs.Session :=
+            Job : constant Files.Jobs.Process.Session :=
               Files.Model.Jobs.Background_Operation (Model);
-            Marker : constant String := Files.Process_Jobs.Path (Job, "started");
+            Marker : constant String := Files.Jobs.Process.Path (Job, "started");
          begin
             for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when Ada.Directories.Exists (Marker);
@@ -118,7 +118,7 @@ separate (Files_Suite.Recovery)
                     "the duplicate helper reaches the pre-work cancellation point");
          end;
       end;
-      Files.Foreground_Jobs.Cancel (Model);
+      Files.Jobs.Foreground.Cancel (Model);
       Finish;
       Assert (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
               "cancellation before work publishes no duplicate");

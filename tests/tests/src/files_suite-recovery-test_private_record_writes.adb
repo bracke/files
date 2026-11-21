@@ -1,6 +1,6 @@
 with Ada.Streams;
 with Files.Durable_Writes;
-with Files.History_Journal;
+with Files.Undo.Journal;
 separate (Files_Suite.Recovery)
    --  Durable_Writes.Write_Private_File, under the history journal, the job
    --  records and the copy links: the file is owner-only where the host has
@@ -63,9 +63,9 @@ separate (Files_Suite.Recovery)
       Assert (Raised and then not Ada.Directories.Exists (Temporary), "a writer that fails leaves nothing behind");
 
       --  The history journal itself.
-      Files.History_Journal.Save_Stacks
-        (Root, Files.Undo_History.Undo_Entry_Vectors.Empty_Vector, Files.Undo_History.Undo_Entry_Vectors.Empty_Vector,
-         Mode => Files.History_Journal.Must_Commit);
+      Files.Undo.Journal.Save_Stacks
+        (Root, Files.Undo.History.Undo_Entry_Vectors.Empty_Vector, Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,
+         Mode => Files.Undo.Journal.Must_Commit);
       Assert (Ada.Directories.Exists (Join (Root, "history")), "the history journal is written");
       Assert (Owner_Only (Join (Root, "history")), "owner-only");
    end Test_Private_Record_Writes;

@@ -37,12 +37,12 @@ separate (Check_All)
          Pair ("file_system", "watch_ownership_changes", "stop_watching_ownership_changes"),
          Pair ("folder_size", "fail_result_reads", "fail_result_reads", Off => "0"),
          Pair ("fs_primitives", "refuse_lookups", "stop_refusing_lookups"),
-         Pair ("history_journal", "refuse_reads", "refuse_reads", Off => "0"),
-         Pair ("operation_jobs", "fail_after_merge", "stop_failing_after_merge"),
+         Pair ("journal", "refuse_reads", "refuse_reads", Off => "0"),
+         Pair ("operation", "fail_after_merge", "stop_failing_after_merge"),
          Pair ("operations", "fake_checkpoint_clock", "fake_checkpoint_clock", Off => "false"),
          Pair ("path_references", "simulate_folding_host", "simulate_folding_host", Off => "false"),
-         Pair ("process_jobs", "refuse_next_launch", "clear_refusal"),
-         Pair ("undo_recording", "count_undo_records", "count_undo_records", Off => "false")];
+         Pair ("process", "refuse_next_launch", "clear_refusal"),
+         Pair ("recording", "count_undo_records", "count_undo_records", Off => "false")];
 
       --  How a Testing procedure that arms something is named: one of these
       --  starts its name.
@@ -60,7 +60,7 @@ separate (Check_All)
       --  Arming procedures that arm one object rather than the process (unit
       --  and name): nothing is left armed for the next test once the object
       --  is gone.
-      Per_Object : constant String_List := [1 => To_Unbounded_String ("process_jobs.simulate_failed_stop")];
+      Per_Object : constant String_List := [1 => To_Unbounded_String ("process.simulate_failed_stop")];
 
       package Name_Sets is new Ada.Containers.Indefinite_Hashed_Sets
         (Element_Type => String, Hash => Ada.Strings.Hash, Equivalent_Elements => "=");
@@ -604,9 +604,9 @@ separate (Check_All)
                Flagged => False),
          Make ("procedure Test is" & LF
                & "   procedure Cleanup is" & LF & "   begin" & LF
-               & "      Files.Undo_Recording.Testing.Count_Undo_Records (False);" & LF & "   end Cleanup;" & LF
+               & "      Files.Undo.Recording.Testing.Count_Undo_Records (False);" & LF & "   end Cleanup;" & LF
                & "   procedure Prepare is" & LF & "   begin" & LF
-               & "      Files.Undo_Recording.Testing.Count_Undo_Records (True);" & LF & "   end Prepare;" & LF
+               & "      Files.Undo.Recording.Testing.Count_Undo_Records (True);" & LF & "   end Prepare;" & LF
                & "begin" & LF & "   Prepare;" & LF & "   if Ready then" & LF & "      Check;" & LF & "   end if;" & LF
                & "   Cleanup;" & LF
                & "exception" & LF & "   when others =>" & LF & "      Cleanup;" & LF & "      raise;" & LF
@@ -615,13 +615,13 @@ separate (Check_All)
          Make ("procedure Test is" & LF & "begin" & LF
                & "   Files.Folder_Size.Testing.Fail_Result_Reads (3);" & LF & "   Check;" & LF
                & "exception" & LF & "   when others =>" & LF
-               & "      Files.Process_Jobs.Testing.Clear_Refusal;" & LF & "      raise;" & LF & "end Test;",
+               & "      Files.Jobs.Process.Testing.Clear_Refusal;" & LF & "      raise;" & LF & "end Test;",
                Flagged => True),
          Make ("type Launch_Guard is new Ada.Finalization.Limited_Controlled with null record;" & LF
                & "overriding procedure Finalize (Guard : in out Launch_Guard) is" & LF & "begin" & LF
-               & "   Files.Process_Jobs.Testing.Clear_Refusal;" & LF & "end Finalize;" & LF
+               & "   Files.Jobs.Process.Testing.Clear_Refusal;" & LF & "end Finalize;" & LF
                & "procedure Test is" & LF & "   Guard : Launch_Guard;" & LF & "begin" & LF
-               & "   Files.Process_Jobs.Testing.Refuse_Next_Launch;" & LF & "   Check;" & LF & "end Test;",
+               & "   Files.Jobs.Process.Testing.Refuse_Next_Launch;" & LF & "   Check;" & LF & "end Test;",
                Flagged => False),
          Make ("procedure Test is" & LF & "begin" & LF
                & "   Files.File_System.Testing.Refuse_Native_Trash (False);" & LF & "end Test;",

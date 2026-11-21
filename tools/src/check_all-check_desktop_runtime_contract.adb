@@ -5,7 +5,7 @@ separate (Check_All)
       Tests        : constant String := Combined_Suite;
       Wait_Body    : constant String := Root & "/src/files-application-windows-event_loop_wait.adb";
       Share_Body   : constant String := Root & "/src/files-application-windows-share_settings_from.adb";
-      Jobs_Body    : constant String := Root & "/src/files-operation_jobs.adb";
+      Jobs_Body    : constant String := Root & "/src/files-jobs-operation.adb";
 
       --  Report Message: check_all fails once every check has run.
       procedure Fail (Message : String) is
@@ -141,6 +141,9 @@ separate (Check_All)
       --  The merge Advance asks for, read again while the journal is briefly
       --  unreadable.
       Journal_Merge : constant String := Subprogram_Code (Jobs_Body, "Merge_Journal");
+      --  Advance's own step that merges (or defers) the helper's journal, which
+      --  both of its paths call.
+      Journal_Settle : constant String := Subprogram_Code (Jobs_Body, "Settle_Journal");
 
       --  A window imports its queued drops through Files.Interaction.Import_Drops,
       --  which goes to Files.Controller.Import_Pending_Drops; that leaves them
@@ -149,22 +152,24 @@ separate (Check_All)
       Drop_Input  : constant String := Subprogram_Code (Windows_Body, "Handle_Drop_Input");
       Drop_Import : constant String := Subprogram_Code (Root & "/src/files-interaction.adb", "Import_Drops");
    begin
-      if Count_Names (Job_Finish, "Merge_Journal") < 2 then
+      --  Settle_Journal is nested in Advance: its body and "end" name it
+      --  twice, so two calls more mean both paths reach the merge.
+      if not Names (Journal_Settle, "Merge_Journal") or else Count_Names (Job_Finish, "Settle_Journal") < 4 then
          Fail (Jobs_Body & ": a background job's finish must merge the helper's history "
-               & "(Merge_Journal) on its success and its failure path");
+               & "(Merge_Journal, through Settle_Journal) on its success and its failure path");
       end if;
-      if not Names (Journal_Merge, "Files.History_Journal.Read")
+      if not Names (Journal_Merge, "Files.Undo.Journal.Read")
         or else not Names (Journal_Merge, "Files.Model.History.Merge")
       then
-         Fail (Jobs_Body & ": Merge_Journal must read through Files.History_Journal.Read and merge "
+         Fail (Jobs_Body & ": Merge_Journal must read through Files.Undo.Journal.Read and merge "
                & "through Files.Model.History.Merge");
       end if;
-      if Count_Names (Job_Finish, "Files.Undo_Recording.Settle_History") < 2 then
+      if Count_Names (Job_Finish, "Files.Undo.Recording.Settle_History") < 2 then
          Fail (Jobs_Body & ": a background job's finish must settle the merged history "
-               & "(Files.Undo_Recording.Settle_History) on its success and its failure path");
+               & "(Files.Undo.Recording.Settle_History) on its success and its failure path");
       end if;
       if Ada.Strings.Fixed.Index (Job_Finish, "Merge_Journal")
-        > Ada.Strings.Fixed.Index (Job_Finish, "Files.Undo_Recording.Settle_History")
+        > Ada.Strings.Fixed.Index (Job_Finish, "Files.Undo.Recording.Settle_History")
       then
          Fail (Jobs_Body & ": a background job's finish must settle the history after merging it, not before");
       end if;
@@ -215,7 +220,7 @@ separate (Check_All)
       Require_Contains
         (Windows_Body, "Guikit.Vulkan.Wait_For_Events", "the event loop must wait for events, not spin");
       Require_Contains (Windows_Body, "Watch.Poll", "the event loop must poll the folder watch");
-      Require_Contains (Watch_Body, "Files.Refresh_Jobs.Poll_Watch", "the watch poll must ask the folder watch");
+      Require_Contains (Watch_Body, "Files.Jobs.Refresh.Poll_Watch", "the watch poll must ask the folder watch");
       --  The event loop's wait and the cross-window settings sync are decided
       --  by the folds the suite tests (Files.Event_Wait.Fold, and
       --  Files.Settings_Sharing.Share_From with Adopt_Window as its Adopt):

@@ -34,7 +34,7 @@ package body Files.Localization is
    --  Text is asked per listed item and from every label of every snapshot
    --  rebuild (hover included), so it memoizes the two costly steps. Like the
    --  rest of this package's state the memos are main-thread only: a task
-   --  must not call Text (see Files.Job_Scavenger).
+   --  must not call Text (see Files.Jobs.Scavenger).
    --
    --  System_Locale, worked out once: the process never changes its locale
    --  variables, so reading three of them (and allocating each) on every

@@ -455,7 +455,7 @@ package body Files.File_System.Testing is
    function Execute_Drop_Import
      (Plans  : Drop_Import_Plan_Vectors.Vector;
       Cancel : Cancellation_Check := Job_Cancelled;
-      Batch  : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch  : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result
    is
       Created : Created_Entry_Vectors.Vector;

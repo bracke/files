@@ -1,4 +1,4 @@
-with Files.History_Journal.Testing;
+with Files.Undo.Journal.Testing;
 with Files.Operation_Results;
 with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
@@ -37,19 +37,19 @@ separate (Files_Suite.History)
          Assert (Files.Model.Selection.Select_By_Name (Model, "a.txt"), "the file is listed");
          Files.Model.Set_Background_Transfers (Model, True);
          Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
-         Files.History_Journal.Testing.Refuse_Reads (Refused);
+         Files.Undo.Journal.Testing.Refuse_Reads (Refused);
          Started := Files_Suite.Support.Timing.Now;
          for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when not Files.Model.Foreground_Job_Is_Active (Model);
-            Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
+            Step := Files.Jobs.Foreground.Advance (Model, Settings, 1);
             Polls := Polls + 1;
          end loop;
          Taken := Files_Suite.Support.Timing.Seconds (Files_Suite.Support.Timing.Elapsed (Started));
          Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the job finishes");
          Assert
-           (Refused - Files.History_Journal.Testing.Refusals_Left <= Polls,
+           (Refused - Files.Undo.Journal.Testing.Refusals_Left <= Polls,
             "each poll reads the journal at most once, without waiting between reads");
-         Files.History_Journal.Testing.Refuse_Reads (0);
+         Files.Undo.Journal.Testing.Refuse_Reads (0);
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "the duplicate succeeds");
@@ -76,6 +76,6 @@ separate (Files_Suite.History)
       Reset_Root;
    exception
       when others =>
-         Files.History_Journal.Testing.Refuse_Reads (0);
+         Files.Undo.Journal.Testing.Refuse_Reads (0);
          raise;
    end Test_An_Unreadable_Journal_Waits_Then_Reports;

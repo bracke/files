@@ -1,0 +1,257 @@
+with Files.Diagnostics;
+with Ada.Containers;
+with Ada.Containers.Ordered_Sets;
+with Ada.Directories;
+with Ada.IO_Exceptions;
+with Ada.Strings.Unbounded;
+with Ada.Streams;
+with GNAT.OS_Lib;
+with Files.Bounded_Streams;
+with Files.Durable_Writes;
+with Files.Lease_Streams;
+with Files.Fs_Primitives;
+with Files.Path_Checks;
+with Files.Jobs.Process;
+with Ada.Unchecked_Deallocation;
+with Hostkit.Fs;
+with Hostkit.Lease_Files;
+
+package body Files.Jobs.Copy_Context is
+   use Ada.Strings.Unbounded;
+   use type Ada.Containers.Count_Type;
+   use type Ada.Directories.File_Kind;
+   use type Hostkit.Lease_Files.Open_Outcome;
+
+   Links_Header : constant String := "files-copy-links-1";
+   Max_Links_File_Bytes : constant := 64 * 1024 * 1024;
+   Max_Link_Fields : constant := 1_000_000;
+   Max_Link_Field_Length : constant := 32 * 1024;
+
+   function Valid_Batch_Directory (Path : String) return Boolean is
+   begin
+      if Path = "" or else Path'Length > Max_Link_Field_Length then
+         return False;
+      end if;
+      for Item of Path loop
+         if Item = ASCII.NUL then
+            return False;
+         end if;
+      end loop;
+      return GNAT.OS_Lib.Is_Absolute_Path (Path);
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Jobs.Copy_Context");
+         return False;
+   end Valid_Batch_Directory;
+
+   function Valid (Item : Copy_Record) return Boolean is
+      function Present (Value : Files.Types.UString) return Boolean is
+        (Length (Value) > 0 and then Files.Path_Checks.Nul_Free (To_String (Value)));
+   begin
+      return Present (Item.Source_Identity)
+        and then Present (Item.Source_Revision)
+        and then Present (Item.Content_Digest)
+        and then Files.Path_Checks.Valid_Absolute_Path (To_String (Item.Destination_Path))
+        and then Present (Item.Destination_Identity)
+        and then Present (Item.Destination_Revision);
+   end Valid;
+
+   function Valid (Items : Files.Types.String_Vectors.Vector) return Boolean is
+      package Identity_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Files.Types.UString);
+      Sources : Identity_Sets.Set;
+   begin
+      if Natural (Items.Length) mod Fields_Per_Record /= 0 then
+         return False;
+      end if;
+      for Position in 1 .. Record_Count (Items) loop
+         declare
+            Item : constant Copy_Record := Decode (Items, Position);
+         begin
+            if not Valid (Item) or else Sources.Contains (Item.Source_Identity) then
+               return False;
+            end if;
+            Sources.Insert (Item.Source_Identity);
+         end;
+      end loop;
+      return True;
+   end Valid;
+
+   procedure Encode (Item : Copy_Record; Into : in out Files.Types.String_Vectors.Vector) is
+   begin
+      Into.Append (Item.Source_Identity);
+      Into.Append (Item.Source_Revision);
+      Into.Append (Item.Content_Digest);
+      Into.Append (Item.Destination_Path);
+      Into.Append (Item.Destination_Identity);
+      Into.Append (Item.Destination_Revision);
+   end Encode;
+
+   function Decode (Items : Files.Types.String_Vectors.Vector; Position : Positive) return Copy_Record is
+      First : constant Positive := (Position - 1) * Fields_Per_Record + 1;
+   begin
+      return
+        (Source_Identity      => Items (First),
+         Source_Revision      => Items (First + 1),
+         Content_Digest       => Items (First + 2),
+         Destination_Path     => Items (First + 3),
+         Destination_Identity => Items (First + 4),
+         Destination_Revision => Items (First + 5));
+   end Decode;
+
+   type Batch_State is record
+      References : Positive := 1;
+      Job        : Files.Jobs.Process.Session;
+   end record;
+
+   procedure Free is new Ada.Unchecked_Deallocation (Batch_State, Batch_Access);
+
+   overriding procedure Adjust (Batch : in out Session) is
+   begin
+      if Batch.Shared /= null then
+         Batch.Shared.References := Batch.Shared.References + 1;
+      end if;
+   end Adjust;
+
+   overriding procedure Finalize (Batch : in out Session) is
+   begin
+      if Batch.Shared /= null then
+         if Batch.Shared.References > 1 then
+            Batch.Shared.References := Batch.Shared.References - 1;
+            Batch.Shared := null;
+         else
+            --  Freeing finalizes the job session, which releases the job.
+            Free (Batch.Shared);
+         end if;
+      end if;
+   end Finalize;
+
+   function Empty_Session return Session is
+     (Ada.Finalization.Controlled with Shared => null, Borrowed => Null_Unbounded_String);
+
+   function Create return Session is
+   begin
+      return Result : constant Session :=
+        (Ada.Finalization.Controlled with Shared => new Batch_State, Borrowed => Null_Unbounded_String)
+      do
+         Files.Jobs.Process.Reserve (Result.Shared.Job);
+      end return;
+   end Create;
+
+   function Directory (Batch : Session) return String is
+     (if Length (Batch.Borrowed) > 0 then To_String (Batch.Borrowed)
+      elsif Batch.Shared = null then ""
+      else Files.Jobs.Process.Path (Batch.Shared.Job, ""));
+
+   function Borrow (Path : String) return Session is
+   begin
+      if not Valid_Batch_Directory (Path) then
+         raise Ada.Directories.Use_Error;
+      end if;
+      return (Ada.Finalization.Controlled with Shared => null, Borrowed => To_Unbounded_String (Path));
+   end Borrow;
+
+   function Records (Batch : Session) return Files.Types.String_Vectors.Vector is
+      Result : Files.Types.String_Vectors.Vector;
+      Input : aliased Files.Lease_Streams.Input_Stream;
+      Batch_Directory : constant String := Directory (Batch);
+      Path : constant String :=
+        (if Batch_Directory = "" then ""
+         else Hostkit.Fs.Join (Batch_Directory, "links"));
+   begin
+      --  No links file is no hard links recorded; one that cannot be
+      --  looked at is read below, and refused there as unreadable.
+      if Path = "" or else Files.Fs_Primitives.Entry_Is_Absent (Path) then
+         return Result;
+      end if;
+      --  refusal-safe: a batch folder not seen raises Data_Error.
+      if Hostkit.Fs.Is_Link (Batch_Directory)
+        --  refusal-safe: as above.
+        or else not Files.Fs_Primitives.Exists (Batch_Directory)
+        or else Files.Fs_Primitives.Kind (Batch_Directory) /= Ada.Directories.Directory
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      if Files.Lease_Streams.Open (Path, Input) /=
+        Hostkit.Lease_Files.Opened
+        or else Files.Lease_Streams.Size (Input) >
+          Long_Long_Integer (Max_Links_File_Bytes)
+        or else Files.Bounded_Streams.Input_String
+          (Input'Access, Links_Header'Length) /= Links_Header
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      declare
+         Count : constant Natural :=
+           Natural'Input (Input'Access);
+      begin
+         if Count > Max_Link_Fields then
+            raise Ada.IO_Exceptions.Data_Error;
+         end if;
+         for Index in 1 .. Count loop
+            Result.Append
+              (To_Unbounded_String
+                 (Files.Bounded_Streams.Input_String
+                    (Input'Access, Max_Link_Field_Length)));
+         end loop;
+      end;
+      if not Files.Lease_Streams.End_Of_Stream (Input) then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Files.Lease_Streams.Release (Input);
+      return Result;
+   exception
+      when others =>
+         Files.Lease_Streams.Release (Input);
+         raise;
+   end Records;
+
+   procedure Save (Batch : Session; Items : Files.Types.String_Vectors.Vector) is
+      Batch_Directory : constant String := Directory (Batch);
+      Path : constant String :=
+        (if Batch_Directory = "" then ""
+         else Hostkit.Fs.Join (Batch_Directory, "links"));
+      --  Attribute encodings have a small implementation-defined overhead.
+      --  Charge a conservative 16 bytes per string and enough for the header
+      --  and vector count so the writer cannot create a journal its reader
+      --  must reject for exceeding Max_Links_File_Bytes.
+      Total : Natural := Links_Header'Length + 32;
+
+      procedure Write_Links (Output : not null access Ada.Streams.Root_Stream_Type'Class) is
+      begin
+         String'Output (Output, Links_Header);
+         Natural'Output (Output, Natural (Items.Length));
+         for Item of Items loop
+            String'Output (Output, To_String (Item));
+         end loop;
+      end Write_Links;
+   begin
+      if Path = "" then
+         return;
+      end if;
+      --  refusal-safe: a batch folder not seen refuses the write; a links
+      --  file that is a link, not a file, or not seen refuses it in
+      --  Write_And_Publish, whose temporary is created exclusively and alone
+      --  replaces the file.
+      if Hostkit.Fs.Is_Link (Batch_Directory)
+        --  refusal-safe: as above.
+        or else not Files.Fs_Primitives.Exists (Batch_Directory)
+        or else Files.Fs_Primitives.Kind (Batch_Directory) /= Ada.Directories.Directory
+      then
+         raise Ada.Directories.Use_Error;
+      end if;
+      if Items.Length > Ada.Containers.Count_Type (Max_Link_Fields) then
+         raise Ada.Directories.Use_Error;
+      end if;
+      for Item of Items loop
+         if Length (Item) > Max_Link_Field_Length
+           or else Length (Item) + 16 > Max_Links_File_Bytes - Total
+         then
+            raise Ada.Directories.Use_Error;
+         end if;
+         Total := Total + Length (Item) + 16;
+      end loop;
+      if not Files.Durable_Writes.Published (Files.Durable_Writes.Write_And_Publish (Path, Write_Links'Access)) then
+         raise Ada.Directories.Use_Error;
+      end if;
+   end Save;
+end Files.Jobs.Copy_Context;

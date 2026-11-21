@@ -3,7 +3,7 @@ with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Startup_Transport_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Active          : aliased Files.Process_Jobs.Session;
+      Active          : aliased Files.Jobs.Process.Session;
       Active_Path     : Files.Types.UString;
       Abandoned_Path  : Files.Types.UString;
       Pre_Lease_Path  : Files.Types.UString;
@@ -29,14 +29,14 @@ separate (Files_Suite.Recovery)
       --  A scan or retry left by an earlier test would reclaim this test's
       --  fixtures before its own coordinator could.
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         exit when Files.Job_Scavenger.Idle;
+         exit when Files.Jobs.Scavenger.Idle;
       end loop;
       Assert
-        (Files.Job_Scavenger.Idle,
-         "no earlier recovery scan is still running: " & Files.Job_Scavenger.Testing.Busy_Reason);
+        (Files.Jobs.Scavenger.Idle,
+         "no earlier recovery scan is still running: " & Files.Jobs.Scavenger.Testing.Busy_Reason);
       Reset_Root;
-      Files.Process_Jobs.Reserve (Active);
-      Active_Path := To_Unbounded_String (Files.Process_Jobs.Path (Active, ""));
+      Files.Jobs.Process.Reserve (Active);
+      Active_Path := To_Unbounded_String (Files.Jobs.Process.Path (Active, ""));
 
       Create_Abandoned_Transport (Report_Path, Abandoned_Path);
       Files_Suite.Support.Guards.Track (Jobs, Abandoned_Path);
@@ -75,15 +75,15 @@ separate (Files_Suite.Recovery)
          Marker_Data (Header_At + Marker_Header'Length - 1) := '3';
          Write_Binary_File (Marker_Path, Marker_Data);
          declare
-            Identity : constant String := Files.Job_Transports.Recorded_Identity
+            Identity : constant String := Files.Jobs.Transports.Recorded_Identity
               (To_String (Pre_Lease_Path));
-            Claim : Files.Job_Transports.Lease;
+            Claim : Files.Jobs.Transports.Lease;
          begin
             Assert
               (Identity /= ""
-               and then Files.Job_Transports.Claim_Abandoned
+               and then Files.Jobs.Transports.Claim_Abandoned
                  (To_String (Pre_Lease_Path), Identity, Claim) =
-                   Files.Job_Transports.Claim_Unrecoverable,
+                   Files.Jobs.Transports.Claim_Unrecoverable,
                "truncated-ID markers cannot claim a transport lease");
          end;
          Ada.Streams.Stream_IO.Create
@@ -100,37 +100,37 @@ separate (Files_Suite.Recovery)
          Ada.Streams.Stream_IO.Close (Marker_File);
       end;
       declare
-         Identity : constant String := Files.Job_Transports.Recorded_Identity
+         Identity : constant String := Files.Jobs.Transports.Recorded_Identity
            (To_String (Pre_Lease_Path));
-         Claim : Files.Job_Transports.Lease;
+         Claim : Files.Jobs.Transports.Lease;
       begin
          Assert
            (Identity /= ""
-            and then Files.Job_Transports.Claim_Abandoned
+            and then Files.Jobs.Transports.Claim_Abandoned
               (To_String (Pre_Lease_Path), Identity, Claim) =
-                Files.Job_Transports.Claim_Unrecoverable,
+                Files.Jobs.Transports.Claim_Unrecoverable,
             "development-format markers never create an independent lease");
       end;
       declare
          Identity : constant String :=
-           Files.Job_Transports.Recorded_Identity (To_String (Abandoned_Path));
-         First, Second : Files.Job_Transports.Lease;
+           Files.Jobs.Transports.Recorded_Identity (To_String (Abandoned_Path));
+         First, Second : Files.Jobs.Transports.Lease;
       begin
          Assert
-           (Files.Job_Transports.Claim_Abandoned (To_String (Abandoned_Path), Identity, First) =
-              Files.Job_Transports.Claim_Acquired,
+           (Files.Jobs.Transports.Claim_Abandoned (To_String (Abandoned_Path), Identity, First) =
+              Files.Jobs.Transports.Claim_Acquired,
             "an abandoned transport has one acquired claim and reports later claims as busy: first claim acquired");
          Assert
-           (Files.Job_Transports.Holds (First, To_String (Abandoned_Path)),
+           (Files.Jobs.Transports.Holds (First, To_String (Abandoned_Path)),
             "an abandoned transport has one acquired claim and reports later claims as busy: first claim holds");
          Assert
-           (Files.Job_Transports.Claim_Abandoned (To_String (Abandoned_Path), Identity, Second) =
-              Files.Job_Transports.Claim_Busy,
+           (Files.Jobs.Transports.Claim_Abandoned (To_String (Abandoned_Path), Identity, Second) =
+              Files.Jobs.Transports.Claim_Busy,
             "an abandoned transport has one acquired claim and reports later claims as busy: second claim busy");
       end;
 
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_SCAVENGER", Scavenge_Control);
-      Files.Job_Scavenger.Scavenge;
+      Files.Jobs.Scavenger.Scavenge;
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (Scavenge_Control & ".started");
       end loop;
@@ -154,7 +154,7 @@ separate (Files_Suite.Recovery)
          task Second_Scan;
          task body Second_Scan is
          begin
-            Files.Job_Scavenger.Scavenge;
+            Files.Jobs.Scavenger.Scavenge;
             Write_Binary_File (Scavenge_Control & ".second-returned", "returned");
          end Second_Scan;
       begin
@@ -199,10 +199,10 @@ separate (Files_Suite.Recovery)
       --  The repeated scan runs once the first coordinator ends; it is this
       --  test's to wait out, not the next one's.
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         exit when Files.Job_Scavenger.Idle;
+         exit when Files.Jobs.Scavenger.Idle;
       end loop;
       Assert
-        (Files.Job_Scavenger.Idle, "the repeated scan has finished: " & Files.Job_Scavenger.Testing.Busy_Reason);
+        (Files.Jobs.Scavenger.Idle, "the repeated scan has finished: " & Files.Jobs.Scavenger.Testing.Busy_Reason);
    exception
       when others =>
          Restore;

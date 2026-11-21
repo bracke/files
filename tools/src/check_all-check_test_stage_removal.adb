@@ -26,16 +26,18 @@ separate (Check_All)
       package Name_Sets is new Ada.Containers.Indefinite_Hashed_Sets
         (Element_Type => String, Hash => Ada.Strings.Hash, Equivalent_Elements => "=");
 
-      --  The names a source holds a Files.Job_Context.Create_Stage result in:
+      --  The names a source holds a Files.Jobs.Context.Create_Stage result in:
       --  "Stage : constant String := ...Create_Stage (...)", or
       --  "Stage := To_Unbounded_String (...Create_Stage (...))".
       function Stage_Names (Toks : Token_List) return Name_Sets.Set is
          Result : Name_Sets.Set;
       begin
-         for Call in Toks.First_Index + 2 .. Toks.Last_Index loop
+         for Call in Toks.First_Index + 4 .. Toks.Last_Index loop
             if Is_Word (Toks (Call), "create_stage")
               and then Is_Symbol (Toks (Call - 1), ".")
-              and then Is_Word (Toks (Call - 2), "job_context")
+              and then Is_Word (Toks (Call - 2), "context")
+              and then Is_Symbol (Toks (Call - 3), ".")
+              and then Is_Word (Toks (Call - 4), "jobs")
             then
                declare
                   Colon  : Natural := 0;
@@ -146,8 +148,8 @@ separate (Check_All)
          end loop;
          Find_Removal (Toks, Stage_Names (Toks), To_String (Exempt), Removed, Line, Excused);
          if Removed /= Null_Unbounded_String then
-            return "line" & Line'Image & ": a stage made by Files.Job_Context.Create_Stage ("
-              & To_String (Removed) & ") is deleted directly; remove it with Files.Job_Context.Discard_Stage,"
+            return "line" & Line'Image & ": a stage made by Files.Jobs.Context.Create_Stage ("
+              & To_String (Removed) & ") is deleted directly; remove it with Files.Jobs.Context.Discard_Stage,"
               & " which drops its record too";
          elsif Exempt /= Null_Unbounded_String and then not Excused then
             return "is exempt from check_all's Check_Test_Stage_Removal for removing the stage "
@@ -169,16 +171,16 @@ separate (Check_All)
       LF : constant Character := ASCII.LF;
 
       Samples : constant Sample_List :=
-        [Make ("Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));" & LF
+        [Make ("Stage := To_Unbounded_String (Files.Jobs.Context.Create_Stage (Root));" & LF
                & "Removed := Files.File_System.Delete_Permanently (To_String (Stage));",
                Flagged => True),
-         Make ("declare" & LF & "   Stage : constant String := Files.Job_Context.Create_Stage (Parent);" & LF
+         Make ("declare" & LF & "   Stage : constant String := Files.Jobs.Context.Create_Stage (Parent);" & LF
                & "begin" & LF & "   Project_Tools.Files.Delete_Tree (Stage);" & LF & "end;",
                Flagged => True),
-         Make ("Ada.Directories.Delete_Tree (Files.Job_Context.Create_Stage (Root));",
+         Make ("Ada.Directories.Delete_Tree (Files.Jobs.Context.Create_Stage (Root));",
                Flagged => True),
-         Make ("Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));" & LF
-               & "Assert (Files.Job_Context.Discard_Stage (To_String (Stage)), ""discarded"");" & LF
+         Make ("Stage := To_Unbounded_String (Files.Jobs.Context.Create_Stage (Root));" & LF
+               & "Assert (Files.Jobs.Context.Discard_Stage (To_String (Stage)), ""discarded"");" & LF
                & "Removed := Files.File_System.Delete_Permanently (Join (To_String (Stage), ""child""));" & LF
                & "Removed := Files.File_System.Delete_Permanently (Other);",
                Flagged => False)];

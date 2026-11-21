@@ -231,7 +231,7 @@ package Files.Controller is
       return Controller_Result;
 
    --  Cancel the running foreground job (a paste or an operation,
-   --  Files.Foreground_Jobs) and finish over what is done (copies kept).
+   --  Files.Jobs.Foreground) and finish over what is done (copies kept).
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used by the job.

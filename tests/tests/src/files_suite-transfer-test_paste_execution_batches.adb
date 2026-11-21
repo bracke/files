@@ -29,7 +29,7 @@ separate (Files_Suite.Transfer)
          "nothing is done before the first advance");
 
       --  Max_Items = 2 over 5 actions => completes after ceil(5 / 2) = 3 calls.
-      Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
+      Step := Files.Jobs.Foreground.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,
@@ -40,7 +40,7 @@ separate (Files_Suite.Transfer)
          2,
          "the first batch completes two writes");
 
-      Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
+      Step := Files.Jobs.Foreground.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,
@@ -51,7 +51,7 @@ separate (Files_Suite.Transfer)
          4,
          "progress advances to four writes");
 
-      Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
+      Step := Files.Jobs.Foreground.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,
@@ -65,7 +65,7 @@ separate (Files_Suite.Transfer)
 
       Assert (Files.Model.History.Undo_Available (Model), "the completed paste records an undo");
       Assert
-        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Undo_History.Undo_Delete_Created,
+        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Undo.History.Undo_Delete_Created,
          "a copy paste is undone by deleting the created copies");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_From_Paths (Model).Length),

@@ -28,12 +28,12 @@ separate (Files_Suite.Transfer)
          Files.Model.Set_Background_Transfers (Model, True);
          Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
          declare
-            Job : constant Files.Process_Jobs.Session := Files.Model.Jobs.Background_Operation (Model);
+            Job : constant Files.Jobs.Process.Session := Files.Model.Jobs.Background_Operation (Model);
             Revision : constant Natural := Files.Model.Revision (Model);
          begin
             if Ready then
                for Attempt in Files_Suite.Support.Timing.Polling loop
-                  Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+                  Files.Jobs.Process.Poll (Job, Finished, Cancelled);
                   exit when Finished;
                end loop;
                Assert (Finished and then not Cancelled, "the first job committed before a drop arrives");
@@ -52,8 +52,8 @@ separate (Files_Suite.Transfer)
                  (Step.Status, Files.Operation_Results.Operation_Disabled, Context & ": direct paste disabled");
                Files_Suite.Support.Assert_Equal (Files.Model.Revision (Model), Revision, Context & ": revision");
                Files_Suite.Support.Assert_Equal
-                 (Files.Process_Jobs.Path (Files.Model.Jobs.Background_Operation (Model), ""),
-                  Files.Process_Jobs.Path (Job, ""),
+                 (Files.Jobs.Process.Path (Files.Model.Jobs.Background_Operation (Model), ""),
+                  Files.Jobs.Process.Path (Job, ""),
                   Context & ": active job");
             end;
          end;

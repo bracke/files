@@ -75,10 +75,10 @@ package body Files.Model.Testing is
 
    function Undo_Kind_Of
      (Model : Window_Model)
-      return Files.Undo_History.Undo_Action_Kind is
+      return Files.Undo.History.Undo_Action_Kind is
    begin
       if Model.History.Undo_Stack.Is_Empty then
-         return Files.Undo_History.Undo_None;
+         return Files.Undo.History.Undo_None;
       end if;
 
       return Model.History.Undo_Stack.Last_Element.Kind;
@@ -130,10 +130,10 @@ package body Files.Model.Testing is
    function Paste_Execution_Total (Model : Window_Model) return Natural is (Model.Paste_Exec.Total);
 
    function Restore_Journal (Directory : String; Model : in out Window_Model) return Boolean is
-      use type Files.History_Journal.Read_Outcome;
-      Journal : Files.History_Journal.Journal_Contents;
+      use type Files.Undo.Journal.Read_Outcome;
+      Journal : Files.Undo.Journal.Journal_Contents;
    begin
-      if Files.History_Journal.Read (Directory, Journal) /= Files.History_Journal.Read_Whole then
+      if Files.Undo.Journal.Read (Directory, Journal) /= Files.Undo.Journal.Read_Whole then
          return False;
       end if;
       Files.Model.History.Restore (Model, Journal.Undo, Journal.Redo, Journal.State);
@@ -142,13 +142,13 @@ package body Files.Model.Testing is
 
    function Merge_Journal
      (Directory : String;
-      Model     : in out Window_Model) return Files.History_Journal.Read_Outcome
+      Model     : in out Window_Model) return Files.Undo.Journal.Read_Outcome
    is
-      use type Files.History_Journal.Read_Outcome;
-      Journal : Files.History_Journal.Journal_Contents;
-      Outcome : constant Files.History_Journal.Read_Outcome := Files.History_Journal.Read (Directory, Journal);
+      use type Files.Undo.Journal.Read_Outcome;
+      Journal : Files.Undo.Journal.Journal_Contents;
+      Outcome : constant Files.Undo.Journal.Read_Outcome := Files.Undo.Journal.Read (Directory, Journal);
    begin
-      if Outcome = Files.History_Journal.Read_Whole then
+      if Outcome = Files.Undo.Journal.Read_Whole then
          Files.Model.History.Merge (Model, Journal.Undo, Journal.Redo, Journal.State);
       end if;
       return Outcome;
@@ -157,12 +157,12 @@ package body Files.Model.Testing is
    procedure Save_Journal_To
      (Directory : String;
       Model     : Window_Model;
-      Mode      : Files.History_Journal.Save_Mode := Files.History_Journal.Best_Effort) is
+      Mode      : Files.Undo.Journal.Save_Mode := Files.Undo.Journal.Best_Effort) is
    begin
-      Files.History_Journal.Save_To (Directory, Files.Model.History.State (Model), Mode);
+      Files.Undo.Journal.Save_To (Directory, Files.Model.History.State (Model), Mode);
    end Save_Journal_To;
 
-   function Journals_Newest (Model : Window_Model; Side : Files.Undo_History.History_Side) return Boolean is
-     (Files.History_Journal.Journals_Newest (Files.Model.History.State (Model), Side));
+   function Journals_Newest (Model : Window_Model; Side : Files.Undo.History.History_Side) return Boolean is
+     (Files.Undo.Journal.Journals_Newest (Files.Model.History.State (Model), Side));
 
 end Files.Model.Testing;

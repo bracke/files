@@ -20,11 +20,11 @@ separate (Files_Suite.Recovery)
       Item.Group_Id := Mapped;
       Items.Append (Item);
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
-      Files.Job_Records.Write_Items (Ada.Streams.Stream_IO.Stream (File), Items);
+      Files.Jobs.Records.Write_Items (Ada.Streams.Stream_IO.Stream (File), Items);
       Ada.Streams.Stream_IO.Close (File);
 
       Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
-      Items := Files.Job_Records.Read_Items (Ada.Streams.Stream_IO.Stream (File));
+      Items := Files.Jobs.Records.Read_Items (Ada.Streams.Stream_IO.Stream (File));
       Ada.Streams.Stream_IO.Close (File);
       Files_Suite.Support.Assert_Equal (Natural (Items.Length), 1, "the record holds the one item");
       Assert (Items.First_Element.Ownership_Available, "the item keeps its ownership");
