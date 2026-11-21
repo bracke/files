@@ -18,20 +18,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
    --  The account this process runs as, by the host's own records: the
    --  name a volumes folder (/media/<user>) is made for. Not $USER, which
    --  any parent can set and Windows does not set at all.
-   function Account_Name return String is
-      Id : Hostkit.Metadata.Account_Id;
-   begin
-      if Hostkit.Process.Current_User_Account (Id) then
-         declare
-            Name : constant String := Hostkit.Metadata.User_Name_For_Id (Id);
-         begin
-            if Name /= "" then
-               return Name;
-            end if;
-         end;
-      end if;
-      return Hostkit.Host.Login_Name;
-   end Account_Name;
+   function Account_Name return String is separate;
    User_Name : constant String := Account_Name;
 
    function Place_Of (Kind : Hostkit.Fs.User_Place_Kind) return String is
@@ -57,16 +44,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
    function Root_Kind_For_Mount
      (Mount_Point     : String;
       Filesystem_Type : String)
-      return Root_Kind is
-   begin
-      if Hostkit.Mounts.Is_Network (Filesystem_Type, Mount_Point)
-        or else (Desktop_Mounts /= "" and then Starts_With (Mount_Point, Mounts_Prefix))
-      then
-         return Root_Network_Mount;
-      end if;
-
-      return Root_Mount;
-   end Root_Kind_For_Mount;
+      return Root_Kind is separate;
 
    function Is_User_Visible_Mount_Point (Mount_Point : String) return Boolean is
      (Files.File_System.Is_User_Visible_Mount_Point
@@ -75,143 +53,27 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
    function Is_Displayable_Root_Mount
      (Mount_Point     : String;
       Filesystem_Type : String)
-      return Boolean is
-   begin
-      return Is_User_Visible_Mount_Point (Mount_Point)
-        and then not Is_Pseudo_Mount_Type (Filesystem_Type);
-   end Is_Displayable_Root_Mount;
+      return Boolean is separate;
 
    --  The host's mount table, read once for the whole discovery.
    Mounts : constant Hostkit.Mounts.Mount_Vectors.Vector := Hostkit.Mounts.Table;
 
-   function Filesystem_Type_For (Path : String) return String is
-      Found : Boolean;
-      Mount : constant Hostkit.Mounts.Mount := Hostkit.Mounts.Find (Mounts, Path, Found);
-   begin
-      return (if Found then To_String (Mount.Filesystem_Type) else "");
-   end Filesystem_Type_For;
+   function Filesystem_Type_For (Path : String) return String is separate;
 
-   function Contains_Root (Path : String) return Boolean is
-   begin
-      for Root of Roots loop
-         if To_String (Root.Path) = Path then
-            return True;
-         end if;
-      end loop;
-
-      return False;
-   end Contains_Root;
+   function Contains_Root (Path : String) return Boolean is separate;
 
    procedure Append_If_Directory
      (Path : String;
       Kind : Root_Kind)
-   is
-      Full : Unbounded_String;
-      Name : Unbounded_String;
-      Label : Unbounded_String;
-      Detail : Unbounded_String;
-      Effective_Kind : Root_Kind := Kind;
-   begin
-      if Natural (Roots.Length) >= Max_Discovered_Roots then
-         return;
-      end if;
-      if Files.IO.Fs_Primitives.Directory_Exists (Path)
-      then
-         Full := To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Path));
-         Name := To_Unbounded_String (Files.Name_Parts.Leaf_Of (To_String (Full)));
-         if Length (Name) = 0 then
-            Name := Full;
-         end if;
-         if Kind in Root_Mount | Root_User_Mount | Root_Network_Mount | Root_Filesystem then
-            declare
-               Filesystem_Type : constant String := Filesystem_Type_For (To_String (Full));
-            begin
-               if Kind in Root_Mount | Root_User_Mount
-                 and then Is_Network_Filesystem_Type (Filesystem_Type)
-               then
-                  Effective_Kind := Root_Network_Mount;
-               end if;
-
-               Label := To_Unbounded_String (Root_Label (To_String (Full), Effective_Kind));
-               if Effective_Kind /= Root_Filesystem then
-                  Detail := To_Unbounded_String (Filesystem_Type);
-               end if;
-            end;
-         else
-            Label := To_Unbounded_String (Root_Label (To_String (Full), Effective_Kind));
-         end if;
-         if not Contains_Root (To_String (Full)) then
-            Roots.Append
-              (Root_Entry'
-                 (Path  => Full,
-                  Label => Label,
-                  Name  => To_Unbounded_String (Root_Name (To_String (Full), Effective_Kind)),
-                  Detail => Detail,
-                  Kind  => Effective_Kind,
-                  Volume_Name => Name,
-                  Removable => Effective_Kind = Root_Mount or else Effective_Kind = Root_User_Mount));
-         end if;
-      end if;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System");
-   end Append_If_Directory;
+   is separate;
 
    procedure Append_Children
      (Parent   : String;
       Kind     : Root_Kind;
       Per_User : Boolean := False)
-   is
-      procedure Visit (Name : String; Stop : in out Boolean) is
-         Full : constant String := Hostkit.Fs.Join (Parent, Name);
-      begin
-         if Root_Entries_Scanned >= Max_Root_Entries_Scanned
-           or else Natural (Roots.Length) >= Max_Discovered_Roots
-         then
-            Stop := True;
-            return;
-         end if;
-         --  Folders only, a link to one included.
-         if not Files.IO.Fs_Primitives.Directory_Exists (Full) then
-            return;
-         end if;
-         Root_Entries_Scanned := Root_Entries_Scanned + 1;
-         --  A volumes folder may hold one folder of mounts per user
-         --  (/media/<user>, /run/media/<user>): this user's is opened;
-         --  in a folder of nothing else, another user's is passed by.
-         if User_Name /= "" and then Name = User_Name then
-            Append_Children (Full, Kind);
-         elsif not Per_User then
-            Append_If_Directory (Full, Kind);
-         end if;
-      end Visit;
-   begin
-      if Root_Entries_Scanned >= Max_Root_Entries_Scanned
-        or else Natural (Roots.Length) >= Max_Discovered_Roots
-        or else not Files.IO.Fs_Primitives.Directory_Exists (Parent)
-      then
-         return;
-      end if;
+   is separate;
 
-      Files.IO.Fs_Primitives.For_Each_Name (Parent, Visit'Access);
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System");
-   end Append_Children;
-
-   procedure Append_Mounts is
-   begin
-      for Mount of Mounts loop
-         declare
-            Mount_Point     : constant String := To_String (Mount.Mount_Point);
-            Filesystem_Type : constant String := To_String (Mount.Filesystem_Type);
-         begin
-            if Is_Displayable_Root_Mount (Mount_Point, Filesystem_Type) then
-               Append_If_Directory (Mount_Point, Root_Kind_For_Mount (Mount_Point, Filesystem_Type));
-            end if;
-         end;
-      end loop;
-   end Append_Mounts;
+   procedure Append_Mounts is separate;
 begin
    --  The filesystem root where the host has one (Hostkit.Mounts says why
    --  Windows has none); there the drive loop below enumerates the roots.

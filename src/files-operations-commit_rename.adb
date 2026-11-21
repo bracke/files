@@ -32,14 +32,7 @@ is
    function First_Error_Argument return String is
      (if First_Error_Reason = Stranded then To_String (First_Error_Path) else "");
 
-   procedure Record_First_Error (Key : String; Path : String; Reason : Error_Reason := Other_Error) is
-   begin
-      if First_Error_Key = Null_Unbounded_String then
-         First_Error_Key := To_Unbounded_String (Key);
-         First_Error_Path := To_Unbounded_String (Path);
-         First_Error_Reason := Reason;
-      end if;
-   end Record_First_Error;
+   procedure Record_First_Error (Key : String; Path : String; Reason : Error_Reason := Other_Error) is separate;
 
    --  How renaming one target ended.
    type Target_Outcome is record
@@ -63,101 +56,13 @@ is
    --  Rename one target within its own folder. An unchanged name stays as it
    --  is, whatever it holds, and succeeds while the entry exists; a new one
    --  is a name the user typed, refused when the folder cannot hold it.
-   function Rename_Target (Target : Files.Model.Rename.Rename_Target) return Target_Outcome is
-      Old_Full : constant String := To_String (Target.Old_Full_Path);
-      Old_Name : constant String := To_String (Target.Old_Name);
-      New_Name : constant String := To_String (Target.New_Name);
-      --  A rename keeps each item in its own folder: a search or Recent
-      --  lists items from other folders, and the listing a search left
-      --  behind can outlive its flag until the reload lands.
-      Parent   : constant String := Files.IO.Fs_Primitives.Parent_Directory (Old_Full);
-      Outcome  : Target_Outcome;
-
-      procedure Fail (Key : String; Path : String; Reason : Error_Reason := Other_Error) is
-      begin
-         Outcome.Error_Key := To_Unbounded_String (Key);
-         Outcome.Error_Path := To_Unbounded_String (Path);
-         Outcome.Reason := Reason;
-      end Fail;
-   begin
-      if New_Name /= Old_Name and then not Files.File_System.Valid_Leaf_Name_At (New_Name, Parent) then
-         Fail ("error.name.invalid", Old_Full, Invalid_Name);
-      elsif New_Name = Old_Name then
-         --  refusal-safe: a refused lookup counts the unchanged name as a failure
-         if Files.IO.Fs_Primitives.Entry_Exists (Old_Full) then
-            Outcome.Succeeded := True;
-            Outcome.Focus_Path := To_Unbounded_String (Hostkit.Fs.Join (Parent, New_Name));
-         else
-            Outcome.Reload := True;
-            Fail ("error.rename.source_missing", Old_Full);
-         end if;
-      else
-         declare
-            New_Path : constant String := Hostkit.Fs.Join (Parent, New_Name);
-            Left_At  : Unbounded_String;
-            Why      : Files.File_System.Rename_Failure;
-            Mutation : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Rename_Item (Old_Full, New_Path, Left_At, Why);
-         begin
-            if Mutation.Success then
-               Outcome.Succeeded := True;
-               Outcome.Reload := True;
-               Outcome.Focus_Path := To_Unbounded_String (New_Path);
-               Outcome.Has_Undo := True;
-               Outcome.Undo :=
-                 (From     => To_Unbounded_String (New_Path),
-                  To       => Target.Old_Full_Path,
-                  Identity => To_Unbounded_String (Files.File_Identities.Token (New_Path)),
-                  others   => <>);
-            else
-               case Why is
-                  when Files.File_System.Rename_Source_Missing =>
-                     --  What is missing is the entry renamed, by its old name.
-                     Outcome.Reload := True;
-                     Fail (To_String (Mutation.Error_Key), Old_Full);
-                  when Files.File_System.Rename_Stranded =>
-                     --  The entry is at a name the listing does not show yet.
-                     Outcome.Reload := True;
-                     Fail (To_String (Mutation.Error_Key), To_String (Left_At), Stranded);
-                  when Files.File_System.Rename_Name_Invalid =>
-                     Fail (To_String (Mutation.Error_Key), New_Path, Invalid_Name);
-                  when Files.File_System.Rename_Refused =>
-                     Fail (To_String (Mutation.Error_Key), New_Path);
-               end case;
-            end if;
-         end;
-      end if;
-      return Outcome;
-   end Rename_Target;
+   function Rename_Target (Target : Files.Model.Rename.Rename_Target) return Target_Outcome is separate;
 
    --  Every rename failed. Keep the inline editors active (so the user can
    --  correct them) unless a vanished or stranded entry forces a reload; a
    --  stranded entry is told over any other error, as the user has to go and
    --  find it.
-   function All_Failed return Operation_Result is
-   begin
-      if Stranded_Path /= Null_Unbounded_String then
-         First_Error_Key := To_Unbounded_String (Files.File_System.Rename_Stranded_Key);
-         First_Error_Path := Stranded_Path;
-         First_Error_Reason := Stranded;
-      end if;
-      declare
-         Failed_Status : constant Operation_Status :=
-           (if First_Error_Reason = Invalid_Name
-            then Operation_Invalid_Name
-            else Operation_Failed);
-      begin
-         Files.Model.Set_Error (Model, To_String (First_Error_Key), First_Error_Argument);
-         if Need_Reload then
-            Reload_With_Error (Model, Settings, To_String (First_Error_Key), First_Error_Argument);
-         end if;
-         return
-           Make_Result
-             (Failed_Status,
-              To_String (First_Error_Key),
-              To_String (First_Error_Path));
-      end;
-   end All_Failed;
+   function All_Failed return Operation_Result is separate;
 begin
    if not Files.Model.Rename.Is_Active (Model) or else Targets.Is_Empty then
       return Disabled (Model, "error.rename.disabled");

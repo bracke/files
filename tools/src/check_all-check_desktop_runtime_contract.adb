@@ -138,6 +138,9 @@ separate (Check_All)
       --  payloads of retired entries behind. Restore stays in Run_Helper,
       --  the helper's side, where the journal is the whole history.
       Job_Finish : constant String := Subprogram_Code (Jobs_Body, "Advance");
+      --  Advance's failure path, a subunit of it, which settles what the
+      --  success path had not yet settled.
+      Job_Failure : constant String := Subprogram_Code (Jobs_Body, "Finish_Failed");
       --  The merge Advance asks for, read again while the journal is briefly
       --  unreadable.
       Journal_Merge : constant String := Subprogram_Code (Jobs_Body, "Merge_Journal");
@@ -152,9 +155,9 @@ separate (Check_All)
       Drop_Input  : constant String := Subprogram_Code (Windows_Body, "Handle_Drop_Input");
       Drop_Import : constant String := Subprogram_Code (Root & "/src/files-interaction.adb", "Import_Drops");
    begin
-      --  Settle_Journal is nested in Advance: its body and "end" name it
-      --  twice, so two calls more mean both paths reach the merge.
-      if not Names (Journal_Settle, "Merge_Journal") or else Count_Names (Job_Finish, "Settle_Journal") < 4 then
+      --  Settle_Journal is a subunit of Advance: its stub names it once, so
+      --  two calls more mean both paths reach the merge.
+      if not Names (Journal_Settle, "Merge_Journal") or else Count_Names (Job_Finish, "Settle_Journal") < 3 then
          Fail (Jobs_Body & ": a background job's finish must merge the helper's history "
                & "(Merge_Journal, through Settle_Journal) on its success and its failure path");
       end if;
@@ -164,12 +167,15 @@ separate (Check_All)
          Fail (Jobs_Body & ": Merge_Journal must read through Files.Undo.Journal.Read and merge "
                & "through Files.Model.History.Merge");
       end if;
-      if Count_Names (Job_Finish, "Files.Operations.Undo_Recording.Settle_History") < 2 then
+      if not Names (Job_Finish, "Files.Operations.Undo_Recording.Settle_History")
+        or else not Names (Job_Failure, "Files.Operations.Undo_Recording.Settle_History")
+      then
          Fail (Jobs_Body & ": a background job's finish must settle the merged history "
                & "(Files.Operations.Undo_Recording.Settle_History) on its success and its failure path");
       end if;
-      if Ada.Strings.Fixed.Index (Job_Finish, "Merge_Journal")
-        > Ada.Strings.Fixed.Index (Job_Finish, "Files.Operations.Undo_Recording.Settle_History")
+      if Ada.Strings.Fixed.Index (Job_Finish, "Settle_Journal (Missing_Journal)") = 0
+        or else Ada.Strings.Fixed.Index (Job_Finish, "Settle_Journal (Missing_Journal)")
+          > Ada.Strings.Fixed.Index (Job_Finish, "Files.Operations.Undo_Recording.Settle_History")
       then
          Fail (Jobs_Body & ": a background job's finish must settle the history after merging it, not before");
       end if;
