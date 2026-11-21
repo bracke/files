@@ -87,14 +87,6 @@ is
          Payload   : constant String := Hostkit.Fs.Join (Stage, "payload");
          --  What identifies the published folder, for its Undo.
          Made_Identity, Made_Revision : Unbounded_String;
-
-         --  Remove the stage; a removal that fails is traced with its path.
-         procedure Discard_Stage is
-         begin
-            if not Files.Job_Context.Discard_Stage (Stage) then
-               Files.Diagnostics.Trace ("Files.Operations", "stage_discard_failed=" & Stage);
-            end if;
-         end Discard_Stage;
       begin
          declare
             Catalog_Status : Zlib.Status_Code;
@@ -112,7 +104,7 @@ is
                     Files.Archive_Writing.First_Unextractable_At (Entries, Destination);
                begin
                   if Refused /= "" then
-                     Discard_Stage;
+                     Discard_Stage (Stage);
                      Finish_Failed_Undo (Model, Progress);
                      --  Archives extracted before this one are shown.
                      if Progress.Items.Is_Empty then
@@ -127,7 +119,7 @@ is
                end;
             end if;
             if Catalog_Status /= Zlib.Ok then
-               Discard_Stage;
+               Discard_Stage (Stage);
                Stop := True;
                Result := Failed (Full_Path, Catalog_Status);
                return;
@@ -140,7 +132,7 @@ is
                  Destination       => Destination)
             then
                --  The stage was made before the archive was read.
-               Discard_Stage;
+               Discard_Stage (Stage);
                Stop := True;
                Result := Failed;
                return;
@@ -153,19 +145,19 @@ is
            (Full_Path, Payload, "", Cancel => Files.Job_Context.Cancelled'Access, Status => Status);
 
          if Status /= Zlib.Ok then
-            Discard_Stage;
+            Discard_Stage (Stage);
             Stop := True;
             Result := Failed (Full_Path, Status);
             return;
          elsif Files.Job_Context.Cancelled
            or else not Publish_Staged (Payload, Dest_Dir, Made_Identity, Made_Revision)
          then
-            Discard_Stage;
+            Discard_Stage (Stage);
             Stop := True;
             Result := Failed;
             return;
          end if;
-         Discard_Stage;
+         Discard_Stage (Stage);
          Progress.Items.Append
            (Files.Undo_History.Recorded_Item'
               (Item       =>
@@ -181,7 +173,7 @@ is
          end if;
       exception
          when others =>
-            Discard_Stage;
+            Discard_Stage (Stage);
             raise;
       end;
    end Extract_One;

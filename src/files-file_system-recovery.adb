@@ -156,6 +156,52 @@ package body Files.File_System.Recovery is
    function Read_Path_Record_File is new Files.Lease_Streams.Read_Record
      (Item => Path_Record, Read_Body => Read_Path_Record_Body, Is_Consistent => Records_Absolute_Path);
 
+   --  A stage's legacy "original" record: one path, no header. Its size
+   --  bound is Original_Record_Bytes.
+   Original_Record_Bytes : constant := Max_Path_Length + 16;
+
+   procedure Read_Original_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Value  : out UString) is
+   begin
+      Value := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
+   end Read_Original_Body;
+
+   --  Any path read whole is consistent; whether it is absolute is the
+   --  caller's to judge.
+   function Any_Original (Value : UString) return Boolean is
+      pragma Unreferenced (Value);
+   begin
+      return True;
+   end Any_Original;
+
+   function Read_Original_File is new Files.Lease_Streams.Read_Record
+     (Item => UString, Read_Body => Read_Original_Body, Is_Consistent => Any_Original);
+
+   --  A payload's "mode" record: the mode bits Preserve recorded, and the
+   --  identity of the payload they belong to. Its size bound is
+   --  Mode_Record_Bytes.
+   type Mode_Record is record
+      Mode     : Natural;
+      Identity : UString;
+   end record;
+
+   Mode_Record_Bytes : constant := Max_Identity_Length + 32;
+
+   procedure Read_Mode_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Value  : out Mode_Record) is
+   begin
+      Value.Mode := Natural'Input (Stream);
+      Value.Identity := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Identity_Length));
+   end Read_Mode_Body;
+
+   function Mode_Is_Recorded (Value : Mode_Record) return Boolean is
+     (Value.Mode <= 8#7777# and then Length (Value.Identity) > 0);
+
+   function Read_Mode_File is new Files.Lease_Streams.Read_Record
+     (Item => Mode_Record, Read_Body => Read_Mode_Body, Is_Consistent => Mode_Is_Recorded);
+
    --  Read a record file -- its magic, a path and an identity token -- held
    --  as a lease while it is read: a plain file no larger than
    --  Max_Record_Bytes, with nothing after the identity. Raises when it
@@ -602,6 +648,20 @@ package body Files.File_System.Recovery is
    function Move_By_Copy
      (Source, Destination : String;
       Fallback_Key        : String;
+      Identity, Revision  : out Files.Types.UString;
+      Copy_Kept           : out Boolean;
+      Cancel              : Cancellation_Check := Job_Cancelled;
+      Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
+      If_Source_Stays     : Unremoved_Source_Rule := Take_Copy_Back;
+      After_Copy          : Copy_Hook := null;
+      Expected_Identity   : String := "")
+      return Mutation_Result
+   is separate;
+
+   function Move_Or_Copy
+     (Source, Destination : String;
+      Fallback_Key        : String;
+      Route               : out Move_Route;
       Identity, Revision  : out Files.Types.UString;
       Copy_Kept           : out Boolean;
       Cancel              : Cancellation_Check := Job_Cancelled;

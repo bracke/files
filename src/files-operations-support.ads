@@ -246,4 +246,10 @@ private package Files.Operations.Support is
       Revision : out Ada.Strings.Unbounded.Unbounded_String)
       return Boolean;
 
+   --  Remove an operation's private stage (Files.Job_Context.Discard_Stage);
+   --  a removal that fails is traced with its path, and leaves the stage
+   --  for the job scavenger.
+   --  @param Stage The stage directory.
+   procedure Discard_Stage (Stage : String);
+
 end Files.Operations.Support;

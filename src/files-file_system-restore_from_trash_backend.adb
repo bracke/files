@@ -106,51 +106,35 @@ begin
       then
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
       end if;
+      --  A rename refused for a reason a copy would meet too (the name was
+      --  taken meanwhile, no permission) is no copy. When the trash is on
+      --  another device it is the move by copy every move uses (copied into
+      --  a private stage on the destination's filesystem, journaled,
+      --  published without replacing), so a failed copy leaves Original
+      --  absent. Cancellation stops new work, but must not interrupt a
+      --  restore, which is recovery. Once the copy is on the device the
+      --  restore is done. Only the item that was copied then leaves the
+      --  trash, checked by identity and content as it is removed: one that
+      --  is not it, or cannot be synced or removed, stays with its info file
+      --  (Keep_Both), so it is still listed in the trash rather than hidden
+      --  there for good, or someone else's lost.
       declare
-         use type Hostkit.Fs.Move_Outcome;
-         Outcome : Hostkit.Fs.Move_Outcome := Hostkit.Fs.Move_Refused;
+         Route : Recovery.Move_Route;
+         Identity, Revision : UString;
+         Copy_Kept : Boolean;
+         Moved     : constant Mutation_Result :=
+           Recovery.Move_Or_Copy
+             (Trashed_Path, To_String (Original), "error.trash.restore_failed",
+              Route, Identity, Revision, Copy_Kept,
+              Cancel            => null,
+              If_Source_Stays   => Recovery.Keep_Both,
+              After_Copy        => After_Restore_Copy,
+              Expected_Identity => Expected_Identity);
       begin
-         begin
-            Outcome := Support.Move_No_Replace_Outcome (Trashed_Path, To_String (Original));
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.File_System");
-               Outcome := Hostkit.Fs.Move_Refused;
-         end;
-         if Outcome /= Hostkit.Fs.Moved and then not Support.Copy_May_Replace_Move (Outcome) then
-            --  Refused for a reason a copy would meet too (the name was
-            --  taken meanwhile, no permission): no copy.
-            return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
-         elsif Outcome /= Hostkit.Fs.Moved then
-            --  The trash is on another device: the move by copy every move
-            --  uses (copied into a private stage on the destination's
-            --  filesystem, journaled, published without replacing), so a
-            --  failed copy leaves Original absent. Cancellation stops new
-            --  work, but must not interrupt a restore, which is recovery.
-            --  Once the copy is on the device the restore is done. Only the
-            --  item that was copied then leaves the trash, checked by
-            --  identity and content as it is removed: one that is not it, or
-            --  cannot be synced or removed, stays with its info file
-            --  (Keep_Both), so it is still listed in the trash rather than
-            --  hidden there for good, or someone else's lost.
-            declare
-               Identity, Revision : UString;
-               Copy_Kept : Boolean;
-               Moved     : constant Mutation_Result :=
-                 Recovery.Move_By_Copy
-                   (Trashed_Path, To_String (Original), "error.trash.restore_failed",
-                    Identity, Revision, Copy_Kept,
-                    Cancel          => null,
-                    If_Source_Stays   => Recovery.Keep_Both,
-                    After_Copy        => After_Restore_Copy,
-                    Expected_Identity => Expected_Identity);
-            begin
-               if Copy_Kept then
-                  return (Success => True, Error_Key => Null_Unbounded_String);
-               elsif not Moved.Success then
-                  return Moved;
-               end if;
-            end;
+         if Copy_Kept then
+            return (Success => True, Error_Key => Null_Unbounded_String);
+         elsif not Moved.Success then
+            return Moved;
          end if;
       end;
 

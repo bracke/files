@@ -28,44 +28,21 @@ separate (Files.File_System.Recovery)
       if Hostkit.Metadata.Mode_Bits_Are_Native and then Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Parent, "mode"))
       then
          declare
-            Input : aliased Files.Lease_Streams.Input_Stream;
             Record_Path : constant String := Hostkit.Fs.Join (Parent, "mode");
-            Mode, Previous : Natural;
-            Expected, Identity : UString;
+            Recorded : Mode_Record;
+            Previous : Natural;
+            Identity : UString;
             Result : Mutation_Result;
          begin
-            if not Record_Is_Regular
-              (Record_Path, Max_Identity_Length + 32)
-            then
+            if not Record_Is_Regular (Record_Path, Mode_Record_Bytes) then
                raise Ada.Directories.Use_Error;
             end if;
-            if Files.Lease_Streams.Open (Record_Path, Input) /=
-                Hostkit.Lease_Files.Opened
-              or else Files.Lease_Streams.Size (Input) >
-                Max_Identity_Length + 32
-            then
-               raise Ada.Directories.Use_Error;
-            end if;
-            Mode := Natural'Input (Input'Access);
-            Expected := To_Unbounded_String
-              (Files.Bounded_Streams.Input_String
-                 (Input'Access, Max_Identity_Length));
-            if Mode > 8#7777#
-              or else not Files.Lease_Streams.End_Of_Stream (Input)
-            then
-               raise Ada.Directories.Use_Error;
-            end if;
-            Files.Lease_Streams.Release (Input);
-            if Length (Expected) = 0 then
-               raise Ada.Directories.Use_Error;
-            end if;
+            Recorded := Read_Mode_File (Record_Path, Header => "", Max_Bytes => Mode_Record_Bytes);
             Result := Change_Mode
-              (Path, To_String (Expected), Mode, Previous, Identity);
+              (Path, To_String (Recorded.Identity), Recorded.Mode, Previous, Identity);
             if not Result.Success then
                raise Ada.Directories.Use_Error;
             end if;
-         exception
-            when others => Files.Lease_Streams.Release (Input); raise;
          end;
       end if;
       --  Durable, and held, before the payload leaves, so a sweep finishing

@@ -205,6 +205,8 @@ package body Files.Operation_Jobs.Testing is
         (Files.Undo_History.Undo_Item'(From => Recorded_Path, others => <>));
       Files.Undo_Recording.Record_Undo
         (Model, Files.Undo_History.Undo_Delete_Created, Files.Undo_Recording.Captured (Items), Redoable => False);
+      --  As if Advance's view work had failed.
+      raise Program_Error;
    end Record_Then_Fail;
 
    procedure Fail_After_Merge (Recording : String) is

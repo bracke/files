@@ -1,3 +1,4 @@
+with Files.Trash_Info_Codec;
 with Files.Durable_Writes;
 with Files.Durability;
 with Hostkit.Durability;
@@ -49,38 +50,8 @@ is
       return Free;
    end Unique_Trash_Name;
 
-   function Trash_Info_Path_Value (Path_Value : String) return String is
-      Hex    : constant String := "0123456789ABCDEF";
-      Result : Unbounded_String;
-
-      function Is_Unreserved (Value : Character) return Boolean is
-      begin
-         return (Value >= 'A' and then Value <= 'Z')
-           or else (Value >= 'a' and then Value <= 'z')
-           or else (Value >= '0' and then Value <= '9')
-           or else Value = '-'
-           or else Value = '.'
-           or else Value = '_'
-           or else Value = '~'
-           or else Value = '/';
-      end Is_Unreserved;
-   begin
-      for Value of Path_Value loop
-         if Is_Unreserved (Value) then
-            Append (Result, Value);
-         else
-            declare
-               Code : constant Natural := Character'Pos (Value);
-            begin
-               Append (Result, '%');
-               Append (Result, Hex (Code / 16 + 1));
-               Append (Result, Hex (Code mod 16 + 1));
-            end;
-         end if;
-      end loop;
-
-      return To_String (Result);
-   end Trash_Info_Path_Value;
+   function Trash_Info_Path_Value (Path_Value : String) return String
+     renames Files.Trash_Info_Codec.Encode;
 
    Backend    : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
    Macos_Home : constant Boolean := Backend = Trash_Macos_Home;

@@ -65,6 +65,7 @@ package body Files_Suite.Trash is
    procedure Test_Trash_Source_Verification (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Empty_Trash_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Trash_Deletion_Date (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Trash_Info_Codec_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Trash_Backend_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Native_Trash_Adapters (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recycle_Bin_Trash_View (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -111,6 +112,8 @@ package body Files_Suite.Trash is
          "the trash view lists each payload under the name it had");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Trash_Deletion_Date'Access, "trash deletion dates format whole seconds without rounding up");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Trash_Info_Codec_Round_Trip'Access, "trash info Path= values round-trip through percent encoding");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Trash_Backend_Selection'Access,
          "the trash backend, availability and preflight follow the environment and path identity");
@@ -192,6 +195,7 @@ package body Files_Suite.Trash is
    end Register_Tests;
 
    procedure Test_Trash_Deletion_Date (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Trash_Info_Codec_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Trash_Backend_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

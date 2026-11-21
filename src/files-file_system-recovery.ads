@@ -125,4 +125,37 @@ private package Files.File_System.Recovery is
       After_Copy          : Copy_Hook := null;
       Expected_Identity   : String := "")
       return Mutation_Result;
+
+   --  How Move_Or_Copy moved an entry, or why it did not.
+   --  Renamed: one no-replace rename moved it. Copied: the rename could not
+   --  cross a device boundary (or the filesystem has no no-replace rename),
+   --  so Move_By_Copy ran and its result is returned. Refused: the rename
+   --  was refused for a reason a copy would meet too (permission, a busy or
+   --  vanished source, an occupied target), so nothing was copied.
+   type Move_Route is (Renamed, Copied, Refused);
+
+   --  The move every mover makes: a no-replace rename, and only where the
+   --  rename cannot go (Copy_May_Replace_Move), the copy and delete of
+   --  Move_By_Copy. A rename that raises counts as refused.
+   --  @param Source Entry to move.
+   --  @param Destination New pathname; never replaced.
+   --  @param Fallback_Key Error key for a failure with no more specific cause.
+   --  @param Route Which way it went (see Move_Route).
+   --  @param Identity The copy's identity when Route is Copied; else empty.
+   --  @param Revision The copy's tree revision when Route is Copied; else empty.
+   --  @param Copy_Kept Move_By_Copy's Copy_Kept when Route is Copied; else False.
+   --  The remaining parameters are Move_By_Copy's, passed on when it runs.
+   --  @return Success when Destination holds the item and Source is gone.
+   function Move_Or_Copy
+     (Source, Destination : String;
+      Fallback_Key        : String;
+      Route               : out Move_Route;
+      Identity, Revision  : out Files.Types.UString;
+      Copy_Kept           : out Boolean;
+      Cancel              : Cancellation_Check := Job_Cancelled;
+      Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
+      If_Source_Stays     : Unremoved_Source_Rule := Take_Copy_Back;
+      After_Copy          : Copy_Hook := null;
+      Expected_Identity   : String := "")
+      return Mutation_Result;
 end Files.File_System.Recovery;

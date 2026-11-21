@@ -559,6 +559,82 @@ package body Files.Operation_Jobs is
          Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
          return Done.Result;
       end Report_In_View;
+
+      --  Merge the helper's journal into the window's history (Merge_Journal),
+      --  once: Merged is set when it is done with. A journal that cannot be
+      --  read yet is left to a later poll (Defer_Merge) until Merge_Grace has
+      --  passed; then its history is given up (History_Lost).
+      --  @param Missing Set when there is no journal at all.
+      --  @return False when it is left to a later poll: return Still_Finishing.
+      function Settle_Journal (Missing : out Boolean) return Boolean is
+      begin
+         Missing := False;
+         case Merge_Journal (Transport, Model) is
+            when Files.History_Journal.Read_Whole =>
+               null;
+            when Files.History_Journal.Unreadable =>
+               if Defer_Merge (Model, Transport) then
+                  return False;
+               end if;
+               History_Lost := True;
+            when Files.History_Journal.No_Journal =>
+               Missing := True;
+         end case;
+         Merged := True;
+         return True;
+      end Settle_Journal;
+
+      --  The view the job started from, if still shown, says Key (nothing,
+      --  when cancelled) and is read again; a history given up is said in
+      --  any view, for an operation whose kind is known. Another view now
+      --  shown is left be.
+      procedure Conclude_In_Origin (Key : String; Kind_Known : Boolean) is
+      begin
+         if Same_View then
+            Files.Model.Set_Error (Model, (if Cancelled then "" else Key));
+         end if;
+         if Kind_Known then
+            Note_History_Lost (Work.Kind);
+         end if;
+         if Same_View then
+            Reload_Current_View;
+         end if;
+      end Conclude_In_Origin;
+
+      --  After a failure: what did not run yet runs once, and the operation
+      --  fails with Failed_Key (or reports nothing, when cancelled).
+      function Finish_Failed return Files.Operation_Results.Operation_Result is
+      begin
+         --  Outcome decoding can fail before the request was read. Recover its
+         --  identity independently so a same-view mutation is still reloaded,
+         --  while an old job cannot disturb a newer view.
+         begin
+            Work := Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
+            Known_Kind := True;
+            Same_View := Matches_Current_View (Work);
+         exception
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
+               Same_View := False;
+         end;
+         Files.Model.End_Foreground_Job (Model);
+         if not Settled then
+            Files.Undo_Recording.Settle_History (Model);
+         end if;
+         if not Recovered then
+            Recover_Undo (Model, Job);
+         end if;
+         --  Even an interrupted destructive operation may have changed its
+         --  original view, but it must not refresh a different current view.
+         Conclude_In_Origin (Failed_Key, Known_Kind);
+         if Cancelled then
+            return (Status => Files.Operation_Results.Operation_Success, others => <>);
+         end if;
+         return (Status => Files.Operation_Results.Operation_Failed,
+                 Error_Key => To_Unbounded_String (Failed_Key), others => <>);
+      end Finish_Failed;
+
+      Missing_Journal : Boolean;
    begin
       Files.Process_Jobs.Poll (Job, Finished, Cancelled);
       if not Finished then
@@ -574,19 +650,11 @@ package body Files.Operation_Jobs is
       --  cannot be read yet is asked for again on later polls, nothing else
       --  done meanwhile; only once Merge_Grace has passed is its history
       --  given up. None at all fails the operation, without reading again.
-      case Merge_Journal (Transport, Model) is
-         when Files.History_Journal.Read_Whole =>
-            null;
-         when Files.History_Journal.Unreadable =>
-            if Defer_Merge (Model, Transport) then
-               return Still_Finishing;
-            end if;
-            History_Lost := True;
-         when Files.History_Journal.No_Journal =>
-            Merged := True;
-            raise Ada.IO_Exceptions.Data_Error;
-      end case;
-      Merged := True;
+      if not Settle_Journal (Missing_Journal) then
+         return Still_Finishing;
+      elsif Missing_Journal then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
       --  What the helper renamed, moved or removed did happen, whatever the
       --  window shows now: labels and favorites follow it.
       for Move of Done.Moves loop
@@ -617,25 +685,18 @@ package body Files.Operation_Jobs is
             Recovered := True;
          end if;
          if After_Merge /= null then
+            --  Test seam: it raises, as if the view work had failed.
             After_Merge (Model);
-            --  As if the view work had failed (test seam).
-            raise Program_Error;
          end if;
          case Choice is
             when Discard =>
                return (Status => Files.Operation_Results.Operation_Success, others => <>);
             when Reload_View =>
-               if Same_View then
-                  --  Finalize error/history before the refresh captures this
-                  --  revision. A result from an older view must not refresh or
-                  --  alter the diagnostic of the view now displayed, but an
-                  --  edit within the same view must not cost it the reload.
-                  Files.Model.Set_Error (Model, (if Cancelled then "" else To_String (Done.Visible_Error)));
-                  Note_History_Lost (Done.Kind);
-                  Reload_Current_View;
-               else
-                  Note_History_Lost (Done.Kind);
-               end if;
+               --  Finalize error/history before the refresh captures this
+               --  revision. A result from an older view must not refresh or
+               --  alter the diagnostic of the view now displayed, but an
+               --  edit within the same view must not cost it the reload.
+               Conclude_In_Origin (To_String (Done.Visible_Error), Kind_Known => True);
                return Reported;
             when Leave_View =>
                --  The filesystem work and restored history remain valid, but
@@ -667,52 +728,9 @@ package body Files.Operation_Jobs is
          --  was recorded since. A journal that cannot be read yet keeps the
          --  job for a later poll, as on success: nothing else is done until
          --  it is read or given up.
-         if not Merged then
-            case Merge_Journal (Transport, Model) is
-               when Files.History_Journal.Unreadable =>
-                  if Defer_Merge (Model, Transport) then
-                     return Still_Finishing;
-                  end if;
-                  History_Lost := True;
-               when Files.History_Journal.Read_Whole | Files.History_Journal.No_Journal =>
-                  null;
-            end case;
+         if not Merged and then not Settle_Journal (Missing_Journal) then
+            return Still_Finishing;
          end if;
-         --  Outcome decoding can fail before the request was read. Recover its
-         --  identity independently so a same-view mutation is still reloaded,
-         --  while an old job cannot disturb a newer view.
-         begin
-            Work := Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
-            Known_Kind := True;
-            Same_View := Matches_Current_View (Work);
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
-               Same_View := False;
-         end;
-         Files.Model.End_Foreground_Job (Model);
-         if not Settled then
-            Files.Undo_Recording.Settle_History (Model);
-         end if;
-         if not Recovered then
-            Recover_Undo (Model, Job);
-         end if;
-         --  Even an interrupted destructive operation may have changed its
-         --  original view, but it must not refresh a different current view.
-         if Same_View then
-            Files.Model.Set_Error
-              (Model, (if Cancelled then "" else Failed_Key));
-         end if;
-         if Known_Kind then
-            Note_History_Lost (Work.Kind);
-         end if;
-         if Same_View then
-            Reload_Current_View;
-         end if;
-         if Cancelled then
-            return (Status => Files.Operation_Results.Operation_Success, others => <>);
-         end if;
-         return (Status => Files.Operation_Results.Operation_Failed,
-                 Error_Key => To_Unbounded_String (Failed_Key), others => <>);
+         return Finish_Failed;
    end Advance;
 end Files.Operation_Jobs;

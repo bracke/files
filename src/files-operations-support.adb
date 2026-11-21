@@ -1,3 +1,4 @@
+with Files.Job_Context;
 with Ada.Directories;
 with Files.Undo_Recording;
 with Files.Window_Polls;
@@ -315,5 +316,12 @@ package body Files.Operations.Support is
       Identity : out Ada.Strings.Unbounded.Unbounded_String;
       Revision : out Ada.Strings.Unbounded.Unbounded_String)
       return Boolean renames Files.File_System.Publish_Staged;
+
+   procedure Discard_Stage (Stage : String) is
+   begin
+      if not Files.Job_Context.Discard_Stage (Stage) then
+         Files.Diagnostics.Trace ("Files.Operations", "stage_discard_failed=" & Stage);
+      end if;
+   end Discard_Stage;
 
 end Files.Operations.Support;

@@ -193,14 +193,6 @@ is
          raise;
    end Write_Staged;
 
-   --  Remove Stage; a removal that fails is traced with its path.
-   procedure Discard_Stage (Stage : String) is
-   begin
-      if not Files.Job_Context.Discard_Stage (Stage) then
-         Files.Diagnostics.Trace ("Files.Operations", "stage_discard_failed=" & Stage);
-      end if;
-   end Discard_Stage;
-
    --  Publish the archive written at Staged (with Status) as Output_Path,
    --  discard Stage, record the Undo that deletes it, and reload with it
    --  selected. A failed write, a cancel or a refused publish fails the

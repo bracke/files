@@ -30,8 +30,8 @@ package Files.Operation_Jobs is
 
 private
    --  A test seam (Files.Operation_Jobs.Testing): when set, Advance calls it
-   --  once the journal is merged and the undo recovered, then fails as if
-   --  its view work had raised.
+   --  once the journal is merged and the undo recovered. It raises, so
+   --  Advance fails as if its view work had: the failure is the test's own.
    type Merge_Hook is access procedure (Model : in out Files.Model.Window_Model);
    After_Merge : Merge_Hook := null;
 

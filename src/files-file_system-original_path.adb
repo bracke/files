@@ -1,47 +1,6 @@
+with Files.Trash_Info_Codec;
 separate (Files.File_System)
 function Original_Path (Trashed_Path : String) return String is
-   --  Reverse of Move_To_Trash's Trash_Info_Path_Value percent-encoder.
-   function Url_Decode (Value : String) return String is
-      Result : Unbounded_String;
-      Index  : Natural := Value'First;
-
-      function Hex_Value (Item : Character) return Integer is
-      begin
-         case Item is
-            when '0' .. '9' =>
-               return Character'Pos (Item) - Character'Pos ('0');
-            when 'A' .. 'F' =>
-               return Character'Pos (Item) - Character'Pos ('A') + 10;
-            when 'a' .. 'f' =>
-               return Character'Pos (Item) - Character'Pos ('a') + 10;
-            when others =>
-               return -1;
-         end case;
-      end Hex_Value;
-   begin
-      while Index <= Value'Last loop
-         if Value (Index) = '%' and then Index + 2 <= Value'Last then
-            declare
-               High : constant Integer := Hex_Value (Value (Index + 1));
-               Low  : constant Integer := Hex_Value (Value (Index + 2));
-            begin
-               if High >= 0 and then Low >= 0 then
-                  Append (Result, Character'Val (High * 16 + Low));
-                  Index := Index + 3;
-               else
-                  Append (Result, Value (Index));
-                  Index := Index + 1;
-               end if;
-            end;
-         else
-            Append (Result, Value (Index));
-            Index := Index + 1;
-         end if;
-      end loop;
-
-      return To_String (Result);
-   end Url_Decode;
-
    --  Read and URL-decode the Path= value from a trashinfo sidecar.
    function Read_Original_Path (Info_File_Path : String) return String is
       Result : Unbounded_String;
@@ -89,7 +48,7 @@ function Original_Path (Trashed_Path : String) return String is
                then
                   declare
                      Decoded : constant String :=
-                       Url_Decode (Line (Line'First + 5 .. Line'Last));
+                       Files.Trash_Info_Codec.Decode (Line (Line'First + 5 .. Line'Last));
                   begin
                      --  Relative is resolved, and checked, by the caller.
                      if Decoded = "" or else (for some Item of Decoded => Item = ASCII.NUL) then

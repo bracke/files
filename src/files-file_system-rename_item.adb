@@ -300,32 +300,20 @@ begin
       return Rename_Case_Only;
    end if;
 
+   --  A refusal a copy would meet too (permission, busy, vanished source,
+   --  occupied target) is no copy and delete. A rename cannot move across
+   --  filesystems (EXDEV): that one falls back to copy + delete, as
+   --  Execute_Drop_Import and Move_To_Trash do, so a cross-device move --
+   --  and, crucially, the undo of one (Move_Back routes through here) --
+   --  still succeeds instead of failing and stranding the file at the
+   --  destination.
    declare
-      use type Hostkit.Fs.Move_Outcome;
-      Outcome : constant Hostkit.Fs.Move_Outcome := Support.Move_No_Replace_Outcome (From_Path, To_Path);
+      Route : Recovery.Move_Route;
+      Copied_Identity, Copied_Tree_Revision : UString;
+      Copy_Kept : Boolean;
    begin
-      if Outcome = Hostkit.Fs.Moved then
-         return (Success => True, Error_Key => Null_Unbounded_String);
-      elsif not Support.Copy_May_Replace_Move (Outcome) then
-         --  Refused for a reason a copy would meet too (permission, busy,
-         --  vanished source, occupied target): no copy and delete.
-         return
-           (Success   => False,
-            Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
-      end if;
-
-      --  A rename cannot move across filesystems (EXDEV). Fall
-      --  back to copy + delete, exactly as Execute_Drop_Import and
-      --  Move_To_Trash do, so a cross-device move -- and, crucially, the undo
-      --  of one (Move_Back routes through here) -- still succeeds instead of
-      --  failing and stranding the file at the destination.
-      declare
-         Copied_Identity, Copied_Tree_Revision : UString;
-         Copy_Kept : Boolean;
-      begin
-         return Recovery.Move_By_Copy
-           (From_Path, To_Path, "error.rename.failed", Copied_Identity, Copied_Tree_Revision, Copy_Kept);
-      end;
+      return Recovery.Move_Or_Copy
+        (From_Path, To_Path, "error.rename.failed", Route, Copied_Identity, Copied_Tree_Revision, Copy_Kept);
    end;
 exception
    when Swallowed : others =>
