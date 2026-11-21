@@ -4,6 +4,7 @@ with Files.Model;
 with Files.Refresh;
 with Files.Application.Window_Policy;
 with Guikit.Layout;
+with Guikit.Item_Grid;
 with Guikit.Vulkan;
 with Glfw;
 with Glfw.Input.Mouse;
@@ -262,6 +263,12 @@ private
       Moved    : Boolean := False;
       Additive : Boolean := False;
       Base     : Files.Types.String_Vectors.Vector;
+      --  Base's visible rows, worked out at the first additive move and kept
+      --  while the model's Visible_Rows_Key is Base_Rows_Key: a drag over a
+      --  large folder does not walk every row on each move.
+      Base_Rows       : Guikit.Item_Grid.Visible_Index_Vectors.Vector;
+      Base_Rows_Known : Boolean := False;
+      Base_Rows_Key   : Natural := 0;
       Rect_X   : Natural := 0;
       Rect_Y   : Natural := 0;
       Rect_W   : Natural := 0;
@@ -354,6 +361,8 @@ private
       Settings_Overlay           : Overlay_Commands;
       Settings_Overlay_From      : Overlay_Inputs;
       Settings_Overlay_Built     : Boolean := False;
+      --  The settings panel's fields, kept across pointer moves over it.
+      Settings_Fields            : Files.Overlays.Settings_Fields_Cache;
       --  Frames still owed a present after the last visible change (grace window,
       --  see Present_Grace_Frames). Nonzero keeps us presenting every frame so
       --  interaction stays paced to the display; it decays to zero when idle and

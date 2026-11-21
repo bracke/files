@@ -63,6 +63,8 @@ package body Files.Application.Windows.Gestures is
             Runtime.Marquee.Origin_Y := Action.Origin_Y;
             Runtime.Marquee.Additive := Action.Additive;
             Runtime.Marquee.Base := Files.Interaction.Marquee_Base (Runtime.Model);
+            Runtime.Marquee.Base_Rows_Known := False;
+            Runtime.Marquee.Base_Rows.Clear;
             Runtime.Marquee.Rect_X := 0;
             Runtime.Marquee.Rect_Y := 0;
             Runtime.Marquee.Rect_W := 0;
@@ -184,6 +186,8 @@ package body Files.Application.Windows.Gestures is
       Runtime.Marquee.Active := False;
       Runtime.Marquee.Moved := False;
       Runtime.Marquee.Base.Clear;
+      Runtime.Marquee.Base_Rows_Known := False;
+      Runtime.Marquee.Base_Rows.Clear;
       Runtime.Marquee.Rect_X := 0;
       Runtime.Marquee.Rect_Y := 0;
       Runtime.Marquee.Rect_W := 0;

@@ -1367,6 +1367,9 @@ private
       --  visible row is, and each item's row (0: hidden), so a visible-index
       --  lookup does not walk the items.
       Visible_Cache_Valid : Boolean := False;
+      --  Moved each time the map is built again, so a caller holding rows
+      --  worked out from it can tell they still stand.
+      Visible_Generation  : Natural := 0;
       Visible_Items       : Natural_Vectors.Vector;
       Item_Visible_Rows   : Natural_Vectors.Vector;
       --  Hidden items among all loaded ones, counted with the map.

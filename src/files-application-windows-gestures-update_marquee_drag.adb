@@ -1,3 +1,4 @@
+with Files.Model.Selection;
 with Files.Rendering.Layouts;
 separate (Files.Application.Windows.Gestures)
    procedure Update_Marquee_Drag
@@ -160,17 +161,30 @@ separate (Files.Application.Windows.Gestures)
                --  Hit-tested in unscrolled content coordinates: a row the
                --  auto-scroll moved off screen has no area on screen but is
                --  still inside the band. Only the band's rows are laid out.
-               Items : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
-                 Files.Rendering.Layouts.Calculate_Item_Layout
+               Items : constant Files.Rendering.Layouts.Placed_Item_Layout :=
+                 Files.Rendering.Layouts.Place_Item_Layout
                    (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height,
                     Whole_Content => True, Window_Top => Band_Y, Window_Height => Natural'Max (Band_H, 1));
             begin
+               --  The base's rows, again only when the rows may have moved.
+               if Runtime.Marquee.Additive then
+                  declare
+                     Key : constant Natural := Files.Model.Selection.Visible_Rows_Key (Runtime.Model);
+                  begin
+                     if not Runtime.Marquee.Base_Rows_Known or else Runtime.Marquee.Base_Rows_Key /= Key then
+                        Runtime.Marquee.Base_Rows :=
+                          Files.Interaction.Marquee_Base_Rows (Runtime.Model, Runtime.Marquee.Base);
+                        Runtime.Marquee.Base_Rows_Key := Key;
+                        Runtime.Marquee.Base_Rows_Known := True;
+                     end if;
+                  end;
+               end if;
                Files.Interaction.Apply_Marquee_Selection
-                 (Model    => Runtime.Model,
-                  Hits     =>
+                 (Model     => Runtime.Model,
+                  Hits      =>
                     Files.Rendering.Hit.Items_In_Rect (Items, Band_X, Band_Y, Band_W, Band_H),
-                  Additive => Runtime.Marquee.Additive,
-                  Base     => Runtime.Marquee.Base);
+                  Additive  => Runtime.Marquee.Additive,
+                  Base_Rows => Runtime.Marquee.Base_Rows);
             end;
             Runtime.Marquee.Rect_X := Rect_X;
             Runtime.Marquee.Rect_Y := Rect_Y;

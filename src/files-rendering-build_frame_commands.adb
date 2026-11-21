@@ -54,8 +54,10 @@ separate (Files.Rendering)
       Bottom_Content_H     : Natural renames Frame.Bottom_Content_H;
 
       --  The per-row layouts: items, root-selector rows, breadcrumbs and tree rows.
-      Items         : constant Item_Layout_Vectors.Vector :=
-        Calculate_Item_Layout (Snapshot, Layout, Line_Height);
+      --  The item cells on screen only: a frame over a large folder neither
+      --  lays out nor walks the items scrolled out of view.
+      Items         : constant Placed_Item_Layout :=
+        Place_Item_Layout (Snapshot, Layout, Line_Height);
       Root_Rows     : constant Root_Path_Layout_Vectors.Vector :=
         Calculate_Root_Path_Layout (Snapshot, Root_Selector);
       Breadcrumb_Rows : constant Breadcrumb_Segment_Layout_Vectors.Vector :=

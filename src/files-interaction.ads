@@ -275,6 +275,31 @@ package Files.Interaction is
       Additive : Boolean;
       Base     : Files.Types.String_Vectors.Vector);
 
+   --  The visible rows of a marquee's base selection (Marquee_Base): worked
+   --  out once and kept while Files.Model.Selection.Visible_Rows_Key holds,
+   --  so a drag does not walk every row on each move.
+   --
+   --  @param Model Model whose rows to read.
+   --  @param Base Selection captured at the marquee's press (Marquee_Base).
+   --  @return The base's visible rows.
+   function Marquee_Base_Rows
+     (Model : Files.Model.Window_Model;
+      Base  : Files.Types.String_Vectors.Vector)
+      return Files.Model.Selection.Visible_Index_List;
+
+   --  Apply_Marquee_Selection with the base's rows already worked out
+   --  (Marquee_Base_Rows).
+   --
+   --  @param Model Model whose selection to set.
+   --  @param Hits Visible indices the marquee rectangle currently covers.
+   --  @param Additive True to union the base's rows with Hits.
+   --  @param Base_Rows The base selection's visible rows.
+   procedure Apply_Marquee_Selection
+     (Model     : in out Files.Model.Window_Model;
+      Hits      : Files.Model.Selection.Visible_Index_List;
+      Additive  : Boolean;
+      Base_Rows : Files.Model.Selection.Visible_Index_List);
+
 private
 
    --  Apply a chosen context-menu row command: close the menu, then execute the

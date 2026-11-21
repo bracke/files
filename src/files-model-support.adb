@@ -31,6 +31,7 @@ package body Files.Model.Support is
       if Model.Visible_Cache_Valid then
          return;
       end if;
+      Cache.Visible_Generation := (if Model.Visible_Generation = Natural'Last then 0 else Model.Visible_Generation + 1);
       Cache.Visible_Items.Clear;
       Cache.Item_Visible_Rows.Clear;
       Cache.Item_Visible_Rows.Reserve_Capacity (Model.Items.Length);

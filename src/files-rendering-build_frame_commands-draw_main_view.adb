@@ -11,11 +11,11 @@ separate (Files.Rendering.Build_Frame_Commands)
          Draw_Details_Header;
       end if;
 
-      for Index in 1 .. Natural (Items.Length) loop
+      for Index in Items.First .. Guikit.Item_Grid.Last (Items) loop
          Draw_Item (Index);
       end loop;
 
-      if Snapshot.View_Mode = Files.Preference_Types.Details and then not Items.Is_Empty then
+      if Snapshot.View_Mode = Files.Preference_Types.Details and then not Snapshot.Items.Is_Empty then
          Draw_Column_Separators;
       end if;
 

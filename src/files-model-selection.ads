@@ -58,6 +58,16 @@ package Files.Model.Selection is
      (Model   : in out Window_Model;
       Indexes : Visible_Index_List);
 
+   --  What the visible rows are now: it changes whenever the rows may have
+   --  moved (a new listing, filter or search, the create row shown or
+   --  removed), so rows worked out from the model can be kept while it holds.
+   --
+   --  @param Model Model to read.
+   --  @return A key for the current visible rows.
+   function Visible_Rows_Key
+     (Model : Window_Model)
+      return Natural;
+
    --  Toggle a visible item in the deterministic multi-selection set; it
    --  becomes the Range_Anchor, selected or not, as in other file managers.
    --

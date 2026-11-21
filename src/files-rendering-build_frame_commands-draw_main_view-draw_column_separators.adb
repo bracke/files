@@ -15,7 +15,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
       function Last_Visible_Bottom return Natural is
          Result : Natural := Content_Y;
       begin
-         for Row of Items loop
+         for Row of Items.Cells loop
             declare
                Row_Bottom : constant Natural := Guikit.Layout.Saturating_Add (Row.Y, Row.Height);
             begin

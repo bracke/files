@@ -1,3 +1,4 @@
+with Ada.Containers.Hashed_Sets;
 with Files.Type_Ahead;
 with Guikit.Utf8.Editing;
 with Files.Model.Support;
@@ -118,7 +119,6 @@ package body Files.Model.Selection is
    is
       Combined : constant String := To_String (Model.Type_Ahead_Buffer_Value) & Text;
       Current  : constant Natural := Selected_Index (Model);
-      Visible  : Files.Types.String_Vectors.Vector;
       Prefix   : Unbounded_String;
       Start    : Natural;
       Target   : Natural;
@@ -129,20 +129,6 @@ package body Files.Model.Selection is
       if not Is_Printable_Run (Text) then
          return;
       end if;
-
-      --  Snapshot the visible projection in display order so the pure matcher's
-      --  returned index maps straight back to a visible index. Temporary
-      --  create-file items are never type-ahead targets.
-      declare
-         procedure Add (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean) is
-            pragma Unreferenced (Selected);
-         begin
-            Visible.Append (if Item_Index /= Temporary_Item_Index then Item.Name else Null_Unbounded_String);
-         end Add;
-      begin
-         Visible.Reserve_Capacity (Ada.Containers."+" (Model.Items.Length, 1));
-         For_Each_Visible_Row (Model, Add'Access);
-      end;
 
       --  Repeatedly typing one letter cycles through the items beginning with
       --  it: collapse the prefix to that single codepoint and scan from just
@@ -158,7 +144,22 @@ package body Files.Model.Selection is
 
       Model.Type_Ahead_Buffer_Value := Prefix;
 
-      Target := Files.Type_Ahead.Type_Ahead_Target (Visible, To_String (Prefix), Start);
+      --  The visible rows in display order, read in place from the cached
+      --  map, so the matcher's index is a visible index. The create row
+      --  (last, when shown) is never a type-ahead target.
+      Support.Ensure_Visible_Map (Model);
+      declare
+         Map_Count : constant Natural := Natural (Model.Visible_Items.Length);
+
+         function Name_At (Position : Positive) return Unbounded_String is
+           (if Position <= Map_Count then Model.Items (Model.Visible_Items (Position)).Name
+            else Null_Unbounded_String);
+      begin
+         Target :=
+           Files.Type_Ahead.Type_Ahead_Target
+             (Map_Count + (if Temporary_Is_Visible (Model) then 1 else 0),
+              Name_At'Access, To_String (Prefix), Start);
+      end;
       if Target > 0 then
          Select_Visible_Internal (Model, Target);
          Matched := True;
@@ -629,45 +630,36 @@ package body Files.Model.Selection is
      (Model   : in out Window_Model;
       Indexes : Visible_Index_List)
    is
-      package Flag_Vectors is new Ada.Containers.Vectors (Positive, Boolean);
-      --  Each visible index's item, worked out once (on the heap: a folder
-      --  can be too big for the stack).
-      Visible_Items : Visible_Index_Lists.Vector;
-      Visible_Count : Natural := 0;
-      Taken         : Flag_Vectors.Vector := Flag_Vectors.To_Vector (False, Model.Items.Length);
-      Temporary_Taken : Boolean := False;
-      Chosen        : Natural_Vectors.Vector;
-      Primary       : Natural := 0;
+      function Hash (Item : Natural) return Ada.Containers.Hash_Type is (Ada.Containers.Hash_Type (Item));
+      package Item_Sets is new Ada.Containers.Hashed_Sets
+        (Element_Type => Natural, Hash => Hash, Equivalent_Elements => "=");
+      --  The items already chosen: as many as the list names, not one flag
+      --  per loaded item, as a marquee drag selects on every move.
+      Taken       : Item_Sets.Set;
+      Chosen      : Natural_Vectors.Vector;
+      Primary     : Natural := 0;
+      Map_Count   : Natural;
+      Temporary_Row : Natural := 0;
    begin
-      --  From the cached visible-row map: a marquee drag selects on every
-      --  move, and testing each item against the filter again was most of it.
+      --  Read through the cached visible-row map in place: a marquee drag
+      --  selects on every move, and testing each item against the filter
+      --  again (or copying the map) was most of it.
       Support.Ensure_Visible_Map (Model);
-      for Index of Model.Visible_Items loop
-         Visible_Count := Visible_Count + 1;
-         Visible_Items.Append (Index);
-      end loop;
+      Map_Count := Natural (Model.Visible_Items.Length);
       if Temporary_Is_Visible (Model) then
-         Visible_Count := Visible_Count + 1;
-         Visible_Items.Append (Temporary_Item_Index);
+         Temporary_Row := Map_Count + 1;
       end if;
       for Visible of Indexes loop
-         if Visible <= Visible_Count then
+         if Visible <= Map_Count or else Visible = Temporary_Row then
             declare
-               Item : constant Natural := Visible_Items (Visible);
+               Item : constant Natural :=
+                 (if Visible <= Map_Count then Model.Visible_Items (Visible) else Temporary_Item_Index);
             begin
-               if Item = Temporary_Item_Index then
-                  if not Temporary_Taken then
-                     Temporary_Taken := True;
-                     Chosen.Append (Item);
-                  end if;
-                  Primary := Item;
-               elsif Item in 1 .. Natural (Taken.Length) then
-                  if not Taken (Item) then
-                     Taken (Item) := True;
-                     Chosen.Append (Item);
-                  end if;
-                  Primary := Item;
+               if not Taken.Contains (Item) then
+                  Taken.Insert (Item);
+                  Chosen.Append (Item);
                end if;
+               Primary := Item;
             end;
          end if;
       end loop;
@@ -681,6 +673,15 @@ package body Files.Model.Selection is
       Model.Selected_Item_Index := Primary;
       Reconcile_Rename_With_Selection (Model);
    end Select_Visible_Set;
+
+   function Visible_Rows_Key
+     (Model : Window_Model)
+      return Natural
+   is
+   begin
+      Support.Ensure_Visible_Map (Model);
+      return (Model.Visible_Generation mod (Natural'Last / 2)) * 2 + (if Temporary_Is_Visible (Model) then 1 else 0);
+   end Visible_Rows_Key;
 
    function Range_Anchor
      (Model : Window_Model)

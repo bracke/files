@@ -48,15 +48,15 @@ package body Files.Rendering.Layouts is
      (Snapshot : View_Snapshot; Width : Natural; Height : Natural; Line_Height : Positive) return Frame_Layout
    is separate;
 
+   function Place_Item_Layout
+     (Snapshot   : View_Snapshot; Layout : Layout_Metrics; Line_Height : Positive; Whole_Content : Boolean := False;
+      Window_Top : Natural := 0; Window_Height : Natural := 0) return Placed_Item_Layout
+   is separate;
+
    function Calculate_Item_Layout
-     (Snapshot      : View_Snapshot;
-      Layout        : Layout_Metrics;
-      Line_Height   : Positive;
-      Whole_Content : Boolean := False;
-      Window_Top    : Natural := 0;
-      Window_Height : Natural := 0)
-      return Item_Layout_Vectors.Vector
- is separate;
+     (Snapshot   : View_Snapshot; Layout : Layout_Metrics; Line_Height : Positive; Whole_Content : Boolean := False;
+      Window_Top : Natural := 0; Window_Height : Natural := 0) return Item_Layout_Vectors.Vector
+   is separate;
 
    function Calculate_Main_View_Layout
      (Snapshot    : View_Snapshot;

@@ -42,8 +42,8 @@ begin
 
    --  The item rectangles, only once the header has not taken the press.
    declare
-      Item_Layout : constant Files.Rendering.Layouts.Item_Layout_Vectors.Vector :=
-        Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
+      Item_Layout : constant Files.Rendering.Layouts.Placed_Item_Layout :=
+        Files.Rendering.Layouts.Place_Item_Layout (Snapshot, Layout, Line_Height);
       Item_Index  : constant Natural := Files.Rendering.Hit.Item_At (Item_Layout, X, Y);
    begin
       if Item_Index /= 0 then
@@ -52,12 +52,12 @@ begin
          Row := Files.Rendering.Layouts.Row_Position_Of (Snapshot, Item_Index);
          if Snapshot.Rename_Active
            and then Row /= 0
-           and then Row <= Natural (Item_Layout.Length)
+           and then Row <= Natural (Snapshot.Items.Length)
            and then Snapshot.Items.Element (Positive (Row)).Renaming
          then
             declare
                Item_Rect : constant Files.Rendering.Layouts.Item_Layout :=
-                 Item_Layout.Element (Positive (Row));
+                 Files.Rendering.Layouts.Cell_At (Item_Layout, Positive (Row));
                Snapshot_Item : constant Files.Rendering.Item_Snapshot :=
                  Snapshot.Items.Element (Positive (Row));
                Field_X : Natural;

@@ -35,6 +35,6 @@ separate (Files.Events)
          Target_Item =>
            (if In_Main
             then Files.Rendering.Hit.Item_At
-                   (Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line_Height), X, Y)
+                   (Files.Rendering.Layouts.Place_Item_Layout (Snapshot, Layout, Line_Height), X, Y)
             else 0));
    end Translate_Right_Click;

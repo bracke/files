@@ -86,6 +86,7 @@ separate (Files.Application.Windows.Render_Window)
             Focused       => Inputs.Focused,
             Hover_X       => Inputs.Hover_X,
             Hover_Y       => Inputs.Hover_Y,
+            Fields        => Runtime.Settings_Fields,
             Rectangles    => Into.Rectangles,
             Text          => Into.Text,
             Accessibility => Into.Accessibility);

@@ -75,6 +75,22 @@ package Files.Rendering.Layouts is
    --  clients name it by these short names.
    subtype Item_Layout is Guikit.Item_Grid.Item_Layout;
    package Item_Layout_Vectors renames Guikit.Item_Grid.Item_Layout_Vectors;
+   --  The item cells on screen only (Guikit.Item_Grid.Placed_Layout): what
+   --  a frame draws and a pointer hits, without an entry per item.
+   subtype Placed_Item_Layout is Guikit.Item_Grid.Placed_Layout;
+   --  A placed layout's cell for a position: all-zero off screen.
+   --
+   --  @param Items Placed item cells.
+   --  @param Position One-based row position.
+   --  @return The position's cell.
+   function Cell_At (Items : Placed_Item_Layout; Position : Positive) return Item_Layout
+     renames Guikit.Item_Grid.Cell_At;
+
+   --  The position of a placed layout's last cell.
+   --
+   --  @param Items Placed item cells.
+   --  @return Its last position; Items.First - 1 when none is placed.
+   function Last (Items : Placed_Item_Layout) return Natural renames Guikit.Item_Grid.Last;
 
    type Main_View_Layout is record
       Columns           : Positive := 1;
@@ -369,6 +385,25 @@ package Files.Rendering.Layouts is
       Window_Top    : Natural := 0;
       Window_Height : Natural := 0)
       return Item_Layout_Vectors.Vector;
+
+   --  The cells Calculate_Item_Layout gives an area, and only those: the
+   --  layout a frame draws and a click or a marquee hits. Same parameters.
+   --
+   --  @param Snapshot Immutable view snapshot.
+   --  @param Layout Window layout metrics.
+   --  @param Line_Height Text line height in pixels.
+   --  @param Whole_Content As for Calculate_Item_Layout.
+   --  @param Window_Top As for Calculate_Item_Layout.
+   --  @param Window_Height As for Calculate_Item_Layout.
+   --  @return The placed cells, in visible-item order.
+   function Place_Item_Layout
+     (Snapshot      : View_Snapshot;
+      Layout        : Layout_Metrics;
+      Line_Height   : Positive;
+      Whole_Content : Boolean := False;
+      Window_Top    : Natural := 0;
+      Window_Height : Natural := 0)
+      return Placed_Item_Layout;
 
    --  Calculate main-view scroll metrics for the current view snapshot.
    --

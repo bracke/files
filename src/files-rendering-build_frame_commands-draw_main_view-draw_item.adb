@@ -3,7 +3,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
    --  One item of the grid or list: nothing for an item the layout put off
    --  screen, a caption for a group header, otherwise the whole cell.
    procedure Draw_Item (Index : Positive) is
-      Item_Rect : constant Item_Layout := Items.Element (Index);
+      Item_Rect : constant Item_Layout := Guikit.Item_Grid.Cell_At (Items, Index);
       Item      : Item_Snapshot renames Snapshot.Items (Index);
       Details   : constant Boolean := Snapshot.View_Mode = Files.Preference_Types.Details;
 

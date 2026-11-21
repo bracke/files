@@ -575,13 +575,11 @@ package body Files.Interaction is
       return Files.Types.String_Vectors.Vector is
      (Files.Model.Selection.Selected_Paths (Model));
 
-   procedure Apply_Marquee_Selection
-     (Model    : in out Files.Model.Window_Model;
-      Hits     : Files.Model.Selection.Visible_Index_List;
-      Additive : Boolean;
-      Base     : Files.Types.String_Vectors.Vector)
+   function Marquee_Base_Rows
+     (Model : Files.Model.Window_Model;
+      Base  : Files.Types.String_Vectors.Vector)
+      return Files.Model.Selection.Visible_Index_List
    is
-      use type Files.Model.Selection.Visible_Index_List;
       Base_Paths : Files.Settings.Path_References.Path_Sets.Set;
       Base_Rows  : Files.Model.Selection.Visible_Index_List;
       Position   : Natural := 0;
@@ -595,16 +593,46 @@ package body Files.Interaction is
          end if;
       end Note;
    begin
-      if Additive and then not Base.Is_Empty then
+      if not Base.Is_Empty then
          for Path of Base loop
             Base_Paths.Include (To_String (Path));
          end loop;
          --  Where the base's items are now: one pass over the rows.
          Files.Model.For_Each_Visible_Row (Model, Note'Access);
       end if;
+      return Base_Rows;
+   end Marquee_Base_Rows;
+
+   procedure Apply_Marquee_Selection
+     (Model     : in out Files.Model.Window_Model;
+      Hits      : Files.Model.Selection.Visible_Index_List;
+      Additive  : Boolean;
+      Base_Rows : Files.Model.Selection.Visible_Index_List)
+   is
+      use type Files.Model.Selection.Visible_Index_List;
+   begin
       --  The base's rows (when additive), then the hits; the model drops
       --  repeats.
-      Files.Model.Selection.Select_Visible_Set (Model, Base_Rows & Hits);
+      if Additive then
+         Files.Model.Selection.Select_Visible_Set (Model, Base_Rows & Hits);
+      else
+         Files.Model.Selection.Select_Visible_Set (Model, Hits);
+      end if;
+   end Apply_Marquee_Selection;
+
+   procedure Apply_Marquee_Selection
+     (Model    : in out Files.Model.Window_Model;
+      Hits     : Files.Model.Selection.Visible_Index_List;
+      Additive : Boolean;
+      Base     : Files.Types.String_Vectors.Vector) is
+   begin
+      Apply_Marquee_Selection
+        (Model,
+         Hits,
+         Additive,
+         Base_Rows =>
+           (if Additive then Marquee_Base_Rows (Model, Base)
+            else Files.Model.Selection.Visible_Index_Lists.Empty_Vector));
    end Apply_Marquee_Selection;
 
 end Files.Interaction;

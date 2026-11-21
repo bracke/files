@@ -98,6 +98,18 @@ package Files.Rendering.Hit is
       Y     : Natural)
       return Natural;
 
+   --  Item_At over the placed cells (Place_Item_Layout).
+   --
+   --  @param Items Placed item cells.
+   --  @param X Horizontal window coordinate.
+   --  @param Y Vertical window coordinate.
+   --  @return Visible item index, or zero when no item is hit.
+   function Item_At
+     (Items : Placed_Item_Layout;
+      X     : Natural;
+      Y     : Natural)
+      return Natural;
+
    --  Return, in ascending order, the one-based visible indices of every item
    --  whose layout rectangle intersects the given (already normalized) marquee
    --  rectangle. Any overlap counts as a hit; a zero-area rectangle (Width or
@@ -111,6 +123,22 @@ package Files.Rendering.Hit is
    --  @return Ascending visible indices the rectangle intersects.
    function Items_In_Rect
      (Items  : Item_Layout_Vectors.Vector;
+      X      : Natural;
+      Y      : Natural;
+      Width  : Natural;
+      Height : Natural)
+      return Visible_Index_Vectors.Vector;
+
+   --  Items_In_Rect over the placed cells (Place_Item_Layout).
+   --
+   --  @param Items Placed item cells in visible-item order.
+   --  @param X Marquee left edge in framebuffer pixels.
+   --  @param Y Marquee top edge in framebuffer pixels.
+   --  @param Width Marquee width in framebuffer pixels.
+   --  @param Height Marquee height in framebuffer pixels.
+   --  @return Ascending visible indices the rectangle intersects.
+   function Items_In_Rect
+     (Items  : Placed_Item_Layout;
       X      : Natural;
       Y      : Natural;
       Width  : Natural;

@@ -95,8 +95,24 @@ package body Files.Rendering.Hit is
       return Natural
       renames Guikit.Item_Grid.Item_At;
 
+   function Item_At
+     (Items : Placed_Item_Layout;
+      X     : Natural;
+      Y     : Natural)
+      return Natural
+      renames Guikit.Item_Grid.Item_At;
+
    function Items_In_Rect
      (Items  : Item_Layout_Vectors.Vector;
+      X      : Natural;
+      Y      : Natural;
+      Width  : Natural;
+      Height : Natural)
+      return Visible_Index_Vectors.Vector
+      renames Guikit.Item_Grid.Items_In_Rect;
+
+   function Items_In_Rect
+     (Items  : Placed_Item_Layout;
       X      : Natural;
       Y      : Natural;
       Width  : Natural;

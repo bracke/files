@@ -1,8 +1,6 @@
 with Files.Settings_Form;
-with Ada.Strings.Unbounded;
 
 with Guikit.Command_Palette;
-with Guikit.Settings_Panel;
 
 with Files.Command_Palette;
 with Files.Localization;
@@ -65,12 +63,14 @@ package body Files.Overlays is
          Draw        => Draw'Access);
    end Build_Palette_Frame;
 
-   procedure Build_Settings_Frame
+   --  The settings frame drawn from Fields.
+   procedure Draw_Settings_Frame
      (Model         : in out Files.Model.Window_Model;
       Region        : Overlay_Region;
       Focused       : Boolean;
-      Hover_X       : Integer := -1;
-      Hover_Y       : Integer := -1;
+      Hover_X       : Integer;
+      Hover_Y       : Integer;
+      Fields        : Guikit.Settings_Panel.Field_Vectors.Vector;
       Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
       Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector)
@@ -114,7 +114,54 @@ package body Files.Overlays is
          Config.Status_Is_Error := True;
       end if;
       Files.Model.Settings_Pane.With_Panel
-        (Model, Config, Files.Settings_Form.Fields (Draft), Draw'Access);
+        (Model, Config, Fields, Draw'Access);
+   end Draw_Settings_Frame;
+
+   procedure Build_Settings_Frame
+     (Model         : in out Files.Model.Window_Model;
+      Region        : Overlay_Region;
+      Focused       : Boolean;
+      Hover_X       : Integer := -1;
+      Hover_Y       : Integer := -1;
+      Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
+      Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector) is
+   begin
+      Draw_Settings_Frame
+        (Model, Region, Focused, Hover_X, Hover_Y,
+         Files.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model)),
+         Rectangles, Text, Accessibility);
+   end Build_Settings_Frame;
+
+   procedure Build_Settings_Frame
+     (Model         : in out Files.Model.Window_Model;
+      Region        : Overlay_Region;
+      Focused       : Boolean;
+      Hover_X       : Integer;
+      Hover_Y       : Integer;
+      Fields        : in out Settings_Fields_Cache;
+      Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
+      Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector)
+   is
+      Model_Revision    : constant Natural := Files.Model.Revision (Model);
+      Settings_Revision : constant Natural := Files.Model.Settings_Revision (Model);
+      Locale            : constant String := Files.Localization.System_Locale;
+   begin
+      if not Fields.Known
+        or else Fields.Model_Revision /= Model_Revision
+        or else Fields.Settings_Revision /= Settings_Revision
+        or else To_String (Fields.Locale) /= Locale
+      then
+         Fields.Fields := Files.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model));
+         Fields.Model_Revision := Model_Revision;
+         Fields.Settings_Revision := Settings_Revision;
+         Fields.Locale := To_Unbounded_String (Locale);
+         Fields.Known := True;
+         Fields.Build_Count := Fields.Build_Count + 1;
+      end if;
+      Draw_Settings_Frame
+        (Model, Region, Focused, Hover_X, Hover_Y, Fields.Fields, Rectangles, Text, Accessibility);
    end Build_Settings_Frame;
 
 end Files.Overlays;

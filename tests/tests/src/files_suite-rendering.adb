@@ -194,6 +194,7 @@ package body Files_Suite.Rendering is
    procedure Test_Quick_Look_Image_High_Res (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Localized_Text_Follows_Locale_Change (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Row_Texts_Kept_Across_Pointer_Frames (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Large_Folder_Work_Stays_On_Screen (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -408,6 +409,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Row_Texts_Kept_Across_Pointer_Frames'Access,
          "a pointer frame over the same snapshot build reads the Details rows' texts back");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Large_Folder_Work_Stays_On_Screen'Access,
+         "in a large folder, pointer, hover, marquee and type-ahead work is bounded by the screen");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Details_Description_Follows_Columns'Access,
          "a details row's accessibility description announces the shown columns in order and no hidden one");
@@ -886,6 +890,10 @@ package body Files_Suite.Rendering is
    procedure Test_Localized_Text_Follows_Locale_Change (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Row_Texts_Kept_Across_Pointer_Frames
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is separate;
+
+   procedure Test_Large_Folder_Work_Stays_On_Screen
      (T : in out AUnit.Test_Cases.Test_Case'Class)
    is separate;
 

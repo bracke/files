@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with Files.Types;
 
 --  Pure type-to-select (type-ahead) matching over a visible item projection.
@@ -17,6 +18,23 @@ package Files.Type_Ahead is
    --    match or Prefix is empty.
    function Type_Ahead_Target
      (Names       : Files.Types.String_Vectors.Vector;
+      Prefix      : String;
+      Start_Index : Natural)
+      return Natural;
+
+   --  Type_Ahead_Target over names read in place: no list of the names is
+   --  built, and a plain-ASCII name is compared without folding a copy of it.
+   --
+   --  @param Count Number of visible items.
+   --  @param Name_At The name of the item at a one-based visible index; an
+   --    empty name never matches.
+   --  @param Prefix UTF-8 encoded prefix typed by the user.
+   --  @param Start_Index One-based visible index to begin scanning from.
+   --  @return One-based visible index of the first match, or zero when none
+   --    match or Prefix is empty.
+   function Type_Ahead_Target
+     (Count       : Natural;
+      Name_At     : not null access function (Position : Positive) return Ada.Strings.Unbounded.Unbounded_String;
       Prefix      : String;
       Start_Index : Natural)
       return Natural;
