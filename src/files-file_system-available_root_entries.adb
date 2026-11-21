@@ -149,7 +149,6 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
                   Detail => Detail,
                   Kind  => Effective_Kind,
                   Volume_Name => Name,
-                  Ready => Root_Ready,
                   Removable => Effective_Kind = Root_Mount or else Effective_Kind = Root_User_Mount));
          end if;
       end if;
@@ -200,7 +199,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
    end Append_Children;
 
-   procedure Append_Proc_Mounts is
+   procedure Append_Mounts is
    begin
       for Mount of Mounts loop
          declare
@@ -212,7 +211,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
             end if;
          end;
       end loop;
-   end Append_Proc_Mounts;
+   end Append_Mounts;
 begin
    --  "/" is the filesystem root only where it names one. On Windows it is
    --  drive-relative -- it resolves to the root of whatever drive the process
@@ -222,7 +221,7 @@ begin
    if Hostkit.Host.Current /= Hostkit.Host.Windows then
       Append_If_Directory ("/", Root_Filesystem);
    end if;
-   Append_Proc_Mounts;
+   Append_Mounts;
    --  The home first, so it keeps its own kind should another place name it.
    for Place of Places loop
       if Hostkit.Fs."=" (Place.Kind, Hostkit.Fs.Home_Place) then
@@ -273,7 +272,6 @@ begin
                Detail => Null_Unbounded_String,
                Kind  => Root_Current,
                Volume_Name => To_Unbounded_String (Files.Types.Leaf_Of (Full)),
-               Ready => Root_Ready,
                Removable => False));
       end;
    end if;

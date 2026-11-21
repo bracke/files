@@ -406,7 +406,8 @@ package body Files.Process_Jobs is
          if Delay_Retry then
             Item.Cleanup_Retry_At := Ada.Real_Time.Clock + Cleanup_Retry_Delay;
          end if;
-         Ensure_Reaper;
+         --  Dispose runs only in the reaper task, so the reaper is alive:
+         --  its globals (Reaper, Reaper_Stopped) belong to the main task.
          Submit_Or_Abandon (Item);
       end Retain_For_Cleanup;
 

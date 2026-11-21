@@ -140,7 +140,8 @@ package body Files.Job_Context is
 
    function Nul_Free (Value : String) return Boolean renames Files.Path_Checks.Nul_Free;
 
-   function Valid_Absolute_Path (Path : String) return Boolean is
+   --  Whether Path is absolute and short enough to be read back from a record.
+   function Valid_Record_Path (Path : String) return Boolean is
      (Files.Path_Checks.Valid_Absolute_Path (Path, Max_Record_Path_Length));
 
    procedure Sync_Journal (Path : String);
@@ -257,7 +258,7 @@ package body Files.Job_Context is
 
    procedure Initialize (Directory : String) is
    begin
-      if Directory /= "" and then not Valid_Absolute_Path (Directory) then
+      if Directory /= "" and then not Valid_Record_Path (Directory) then
          raise Ada.Directories.Use_Error;
       end if;
       Current := To_Unbounded_String (Directory);
@@ -312,8 +313,8 @@ package body Files.Job_Context is
          String'Output (Stream, Identity);
       end Write;
    begin
-      if not Valid_Absolute_Path (Record_Directory)
-        or else not Valid_Absolute_Path (Path)
+      if not Valid_Record_Path (Record_Directory)
+        or else not Valid_Record_Path (Path)
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -360,7 +361,7 @@ package body Files.Job_Context is
 
    function Create_Stage (Parent : String) return String is
    begin
-      if not Valid_Absolute_Path (Parent) then
+      if not Valid_Record_Path (Parent) then
          raise Ada.Directories.Use_Error;
       end if;
       for N in 1 .. 9_999 loop
@@ -431,7 +432,21 @@ package body Files.Job_Context is
          raise;
    end Create_Stage;
 
-   procedure Append_Record (Name, Header, Destination, Source, Identity : String);
+   --  The shape of a journal's records: a destination, a source and an
+   --  identity, and for a creation a tree revision too.
+   type Record_Shape is (Move_Record, Creation_Record);
+
+   --  Append one record of Shape to the journal Name under Header. A record
+   --  with a field too long for a reader to accept is not written, and the
+   --  drop is traced: recovery then finds that job's change only as an
+   --  unrecorded one. Raises what Append_Journal_Record raises.
+   procedure Append_Record
+     (Name, Header  : String;
+      Shape         : Record_Shape;
+      Destination   : String;
+      Source        : String;
+      Identity      : String;
+      Tree_Revision : String := "");
 
    function Creation_Snapshot_Matches
      (Path, Identity, Tree_Revision : String;
@@ -448,34 +463,13 @@ package body Files.Job_Context is
       Record_Created (Destination, Source, Identity, Files.File_System.Tree_Revision (Destination));
    end Record_Created;
 
-   --  Append one creation record (a destination, a source, an identity and
-   --  a tree revision) to the journal Name under Header.
-   procedure Append_Creation (Name, Header, Destination, Source, Identity, Tree_Revision : String) is
-      procedure Write
-        (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
-      begin
-         String'Output (Stream, Destination);
-         String'Output (Stream, Source);
-         String'Output (Stream, Identity);
-         String'Output (Stream, Tree_Revision);
-      end Write;
-   begin
-      if Destination'Length > Max_Record_Path_Length
-        or else Source'Length > Max_Record_Path_Length
-        or else Identity'Length > Max_Record_Token_Length
-        or else Tree_Revision'Length > Max_Record_Token_Length
-      then
-         return;
-      end if;
-      Append_Journal_Record (Name, Header, Write'Access);
-   end Append_Creation;
-
    procedure Intend_Created (Destination, Source, Identity, Tree_Revision : String) is
    begin
       if Length (Current) = 0 or else Identity = "" then
          return;
       end if;
-      Append_Creation ("created-intent", Created_Intent_Header, Destination, Source, Identity, Tree_Revision);
+      Append_Record
+        ("created-intent", Created_Intent_Header, Creation_Record, Destination, Source, Identity, Tree_Revision);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
@@ -491,7 +485,7 @@ package body Files.Job_Context is
       then
          return;
       end if;
-      Append_Creation ("created", Created_Record_Header, Destination, Source, Identity, Tree_Revision);
+      Append_Record ("created", Created_Record_Header, Creation_Record, Destination, Source, Identity, Tree_Revision);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
@@ -502,47 +496,63 @@ package body Files.Job_Context is
 
    procedure Record_Moved (Destination, Source, Identity : String) is
    begin
-      Append_Record ("moved", Moved_Record_Header, Destination, Source, Identity);
+      if Length (Current) = 0 then
+         return;
+      end if;
+      Append_Record ("moved", Moved_Record_Header, Move_Record, Destination, Source, Identity);
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
+         --  Called after the move: a journal failure must not turn a
+         --  completed move into a failed filesystem operation.
+         null;
    end Record_Moved;
 
    procedure Intend_Moved (Destination, Source, Identity : String) is
    begin
-      if Identity /= "" then
-         Append_Record ("moved-intent", Moved_Intent_Header, Destination, Source, Identity);
+      if Length (Current) = 0 or else Identity = "" then
+         return;
       end if;
+      Append_Record ("moved-intent", Moved_Intent_Header, Move_Record, Destination, Source, Identity);
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
+         --  Called before the move: recovery then finds this move only once
+         --  it is recorded, as before intents were kept; the move goes ahead.
+         null;
    end Intend_Moved;
 
-   procedure Append_Record (Name, Header, Destination, Source, Identity : String) is
+   procedure Append_Record
+     (Name, Header  : String;
+      Shape         : Record_Shape;
+      Destination   : String;
+      Source        : String;
+      Identity      : String;
+      Tree_Revision : String := "")
+   is
       procedure Write
         (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
       begin
          String'Output (Stream, Destination);
          String'Output (Stream, Source);
          String'Output (Stream, Identity);
+         if Shape = Creation_Record then
+            String'Output (Stream, Tree_Revision);
+         end if;
       end Write;
    begin
-      if Length (Current) = 0 then
-         return;
-      end if;
       if Header'Length > Max_Record_Header_Length
         or else Destination'Length > Max_Record_Path_Length
         or else Source'Length > Max_Record_Path_Length
         or else Identity'Length > Max_Record_Token_Length
+        or else (Shape = Creation_Record and then Tree_Revision'Length > Max_Record_Token_Length)
       then
+         Files.Diagnostics.Trace
+           ("Files.Job_Context", "a " & Name & " record with a field too long to read back was not journaled");
          return;
       end if;
       Append_Journal_Record (Name, Header, Write'Access);
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
-         --  Called after publication: a journal failure must not turn a
-         --  completed creation or move into a failed filesystem operation.
-         null;
    end Append_Record;
-
-   --  The shape of a journal's records: a destination, a source and an
-   --  identity, and for a creation a tree revision too.
-   type Record_Shape is (Move_Record, Creation_Record);
 
    --  One journal: Name in Directory, under Header, of records of Shape. A
    --  source may be empty only in a Creation_Record (an archive or an
@@ -565,13 +575,13 @@ package body Files.Job_Context is
       Size : Long_Long_Integer;
    begin
       Entries.Clear;
-      if Valid_Absolute_Path (Directory)
+      if Valid_Record_Path (Directory)
         and then not Hostkit.Fs.Is_Link (Directory)
         and then Files.Fs_Primitives.Entry_Is_Absent (Path)
       then
          return;
       end if;
-      if not Valid_Absolute_Path (Directory)
+      if not Valid_Record_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
         or else not Files.Fs_Primitives.Directory_Exists (Directory)
         or else Files.Lease_Streams.Open (Path, Input) /=
@@ -608,8 +618,8 @@ package body Files.Job_Context is
                then Files.Bounded_Streams.Input_String (Input'Access, Max_Record_Token_Length)
                else "");
          begin
-            if not Valid_Absolute_Path (Destination)
-              or else (not (Shape = Creation_Record and then Source = "") and then not Valid_Absolute_Path (Source))
+            if not Valid_Record_Path (Destination)
+              or else (not (Shape = Creation_Record and then Source = "") and then not Valid_Record_Path (Source))
               or else Identity = ""
               or else not Nul_Free (Identity)
               or else not Nul_Free (Revision)
@@ -711,9 +721,9 @@ package body Files.Job_Context is
       end Write;
    begin
       if Identity = ""
-        or else not Valid_Absolute_Path (Path)
-        or else not Valid_Absolute_Path (Record_Directory)
-        or else not Valid_Absolute_Path (Owner_Directory)
+        or else not Valid_Record_Path (Path)
+        or else not Valid_Record_Path (Record_Directory)
+        or else not Valid_Record_Path (Owner_Directory)
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -736,7 +746,7 @@ package body Files.Job_Context is
 
    function Owner_Is_Valid (Value : Owner_Record) return Boolean is
      (Length (Value.Identity) > 0
-      and then Valid_Absolute_Path (To_String (Value.Directory))
+      and then Valid_Record_Path (To_String (Value.Directory))
       and then Nul_Free (To_String (Value.Identity)));
 
    function Read_Owner_Record is new Files.Lease_Streams.Read_Record
@@ -1014,7 +1024,7 @@ package body Files.Job_Context is
             when Record_Read =>
                null;
          end case;
-         if not Valid_Absolute_Path (To_String (Path))
+         if not Valid_Record_Path (To_String (Path))
            or else not Nul_Free (To_String (Expected))
            or else Files.Fs_Primitives.Entry_Is_Absent (To_String (Path))
          then

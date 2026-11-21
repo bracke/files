@@ -37,7 +37,8 @@ begin
                   exit;
                end if;
             end loop;
-            Result := Make_Result (Controller_Selection_Moved);
+            Result :=
+              Changed_Result (Current, Files.Model.Context_Menu.Highlight (Model), Controller_Selection_Moved);
          end;
       when Guikit.Input.Key_Return =>
          if Current in 1 .. Rows.Count

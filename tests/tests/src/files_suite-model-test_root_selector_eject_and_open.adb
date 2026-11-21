@@ -24,7 +24,6 @@ separate (Files_Suite.Model)
             Detail => To_Unbounded_String ("ext4"),
             Kind  => Files.File_System.Root_Mount,
             Volume_Name => To_Unbounded_String ("example-mount"),
-            Ready => Files.File_System.Root_Ready,
             Removable => True));
       Files.Model.Root_Selector.Open (Model, Entries);
       Assert
@@ -57,7 +56,6 @@ separate (Files_Suite.Model)
             Detail => Null_Unbounded_String,
             Kind  => Files.File_System.Root_Mount,
             Volume_Name => To_Unbounded_String ("selected-root"),
-            Ready => Files.File_System.Root_Ready,
             Removable => False));
       Files.Model.Root_Selector.Open (Model, Entries);
       Assert

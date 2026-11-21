@@ -1,8 +1,18 @@
 with Files.Model.Sort_Menu;
 separate (Files.Controller.Handle_Key)
 --  The sort menu on top owns the keyboard: Up and Down move its highlight,
---  Enter sorts by the highlighted field, and every other key is consumed.
+--  Home and End jump to its first and last row, Enter sorts by the
+--  highlighted field, and every other key is consumed.
 procedure Sort_Menu_Key (Handled : out Boolean; Result : out Controller_Result) is
+   Old : constant Natural := Files.Model.Sort_Menu.Highlight (Model);
+
+   --  Move the highlight by Step rows (clamped at the ends) and report
+   --  whether it moved.
+   function Moved (Step : Integer) return Controller_Result is
+   begin
+      Files.Model.Sort_Menu.Move_Highlight (Model, Step);
+      return Changed_Result (Old, Files.Model.Sort_Menu.Highlight (Model), Controller_Selection_Moved);
+   end Moved;
 begin
    Handled := True;
    Result := Make_Result (Controller_Ignored);
@@ -11,11 +21,13 @@ begin
    end if;
    case Key is
       when Guikit.Input.Key_Up =>
-         Files.Model.Sort_Menu.Move_Highlight (Model, -1);
-         Result := Make_Result (Controller_Selection_Moved);
+         Result := Moved (-1);
       when Guikit.Input.Key_Down =>
-         Files.Model.Sort_Menu.Move_Highlight (Model, 1);
-         Result := Make_Result (Controller_Selection_Moved);
+         Result := Moved (1);
+      when Guikit.Input.Key_Home =>
+         Result := Moved (-Files.Types.Sort_Menu_Rows);
+      when Guikit.Input.Key_End =>
+         Result := Moved (Files.Types.Sort_Menu_Rows);
       when Guikit.Input.Key_Return =>
          declare
             Command : constant Files.Commands.Command_Id :=

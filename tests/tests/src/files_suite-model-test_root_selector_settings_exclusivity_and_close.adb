@@ -29,7 +29,6 @@ separate (Files_Suite.Model)
             Detail => Null_Unbounded_String,
             Kind  => Files.File_System.Root_Mount,
             Volume_Name => To_Unbounded_String ("selected-root"),
-            Ready => Files.File_System.Root_Ready,
             Removable => False));
       Files.Model.Root_Selector.Open (Model, Entries);
       Result := Files.Controller.Execute_Non_Settings_Command

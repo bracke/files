@@ -143,14 +143,6 @@ package Files.File_System is
       Error_Key : UString;
    end record;
 
-   subtype Root_Readiness is Files.File_System_Types.Root_Readiness;
-   --  @return The literal Root_Ready of Root_Readiness, as Files.File_System_Types names it.
-   function Root_Ready return Root_Readiness renames Files.File_System_Types.Root_Ready;
-   --  @return The literal Root_Missing of Root_Readiness, as Files.File_System_Types names it.
-   function Root_Missing return Root_Readiness renames Files.File_System_Types.Root_Missing;
-   --  @return The literal Root_Inaccessible of Root_Readiness, as Files.File_System_Types names it.
-   function Root_Inaccessible return Root_Readiness renames Files.File_System_Types.Root_Inaccessible;
-
    subtype Root_Kind is Files.File_System_Types.Root_Kind;
    --  @return The literal Root_Filesystem of Root_Kind, as Files.File_System_Types names it.
    function Root_Filesystem return Root_Kind renames Files.File_System_Types.Root_Filesystem;

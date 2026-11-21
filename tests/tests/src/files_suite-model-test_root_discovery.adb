@@ -49,10 +49,6 @@ separate (Files_Suite.Model)
         (Root_Status.Root_Count,
          Natural (Entries.Length),
          "root diagnostics count discovered roots");
-      Files_Suite.Support.Assert_Equal
-        (Root_Status.Ready_Count,
-         Natural (Entries.Length),
-         "root diagnostics count ready roots");
       --  A mount container is listed only through what is mounted under it,
       --  never as a row of its own (check_all holds the exclusion's shape for
       --  hosts where no container is itself a mount point).
@@ -78,7 +74,6 @@ separate (Files_Suite.Model)
             "root metadata path matches path projection");
          Assert (To_String (Entries.Element (Index).Label) /= "", "root metadata label is non-empty");
          Assert (To_String (Entries.Element (Index).Volume_Name) /= "", "root metadata volume name is non-empty");
-         Assert (Entries.Element (Index).Ready = Files.File_System.Root_Ready, "root metadata marks roots ready");
          case Entries.Element (Index).Kind is
             when Files.File_System.Root_Filesystem
                | Files.File_System.Root_Home

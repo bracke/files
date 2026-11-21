@@ -22,7 +22,6 @@ package body Files.Model.Root_Selector is
                Name | Detail => <>,
                Kind  => Files.File_System_Types.Root_Filesystem,
                Volume_Name => Root,
-               Ready => Files.File_System_Types.Root_Ready,
                Removable => False));
       end loop;
 

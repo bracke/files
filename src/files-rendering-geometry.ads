@@ -77,6 +77,22 @@ private package Files.Rendering.Geometry is
    --  glyphs read as centred and the fields agree.
    Glyph_Optical_Bias : constant Natural := 2;
 
+   --  A toolbar button's padding around its icon, in pixels at the reference
+   --  line height (scaled with the text), each capped at a fraction of the
+   --  button: a slim vertical inset so the icon can fill most of the height,
+   --  an inner pad between buttons, and a wider pad on either side of the
+   --  boundary between the navigation and file-action groups.
+   Toolbar_Button_Inset_V          : constant := 2;
+   Toolbar_Button_Inset_V_Fraction : constant := 8;
+   Toolbar_Button_Inner_Pad          : constant := 3;
+   Toolbar_Button_Inner_Pad_Fraction : constant := 6;
+   Toolbar_Group_Pad          : constant := 8;
+   Toolbar_Group_Pad_Fraction : constant := 4;
+   --  A button narrowed by no more than this slack still counts as full
+   --  width, and its icon then keeps this margin inside the button's width.
+   Toolbar_Full_Button_Slack : constant := 4;
+   Toolbar_Icon_Margin       : constant := 8;
+
    --  Return a text offset lifted by the optical bias, stopping at zero.
    --
    --  @param Offset Geometric text offset (an inset or a centred Y).

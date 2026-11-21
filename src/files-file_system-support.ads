@@ -42,19 +42,6 @@ private package Files.File_System.Support is
      (Source, Destination : String;
       Scope               : Sync_Scope := Files_And_Folders) return Boolean;
 
-   --  Give an entry just published from its private stage (a copy, or what
-   --  Compress or Extract made) the access its new folder hands down, and
-   --  its revision afresh where that changed it. The entry is already
-   --  published, so nothing here raises: a caller must still record it.
-   --  Cancellation is no longer heeded (the work is done), and a failure
-   --  keeps the revision it was published with.
-   --  @param Path The published entry.
-   --  @param Revision Its revision at publication; read again for a folder
-   --    on Windows, where inheriting wrote the change times it reads.
-   procedure Inherit_Destination_Access
-     (Path     : String;
-      Revision : in out Files.Types.UString);
-
    --  How Publish_From_Stage puts the entry on the device: not itself (a
    --  copy whose caller syncs it, Sync_Copy, or needs no flush), or the
    --  staged tree before it is published and its new folder after.

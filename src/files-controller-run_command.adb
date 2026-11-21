@@ -12,7 +12,17 @@ separate (Files.Controller)
       Modifiers : Guikit.Input.Modifier_Set)
       return Controller_Result
    is
+      --  Every branch that carries out the command itself says so (Success).
+      --  An operation it hands the command to may instead decline without a
+      --  reason -- a job is already running, so nothing new starts -- and
+      --  that is reported as done too: there is no failure to show.
       Operation : Files.Operation_Results.Operation_Result := Empty_Operation;
+
+      function Settled
+        (Result : Files.Operation_Results.Operation_Result) return Files.Operation_Results.Operation_Result is
+        (if Result.Status = Files.Operation_Results.Operation_Disabled and then Length (Result.Error_Key) = 0
+         then (Result with delta Status => Files.Operation_Results.Operation_Success)
+         else Result);
 
       function Selected_Paths return Files.Types.String_Vectors.Vector is
         (Files.Model.Selection.Selected_Paths (Model));
@@ -114,8 +124,10 @@ separate (Files.Controller)
             Operation := Files.Operations.Eject_Selected_Root (Model);
          when Files.Commands.Create_File_Command =>
             Files.Operations.Begin_Create_Item (Model, Folder => False);
+            Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.New_Folder_Command =>
             Files.Operations.Begin_Create_Item (Model, Folder => True);
+            Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Select_Drive_Command =>
             if Files.Model.Root_Selector.Is_Open (Model) then
                Files.Model.Root_Selector.Close (Model);
@@ -123,6 +135,7 @@ separate (Files.Controller)
                Files.Model.Root_Selector.Open (Model, Files.Operations.Root_Entries_With_Favorites (Settings));
             end if;
             Files.Model.Set_Error (Model, "");
+            Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Toggle_Folder_Tree_Command =>
             if Files.Model.Tree_Panel.Pick_Is_Active (Model) then
                --  The picker's Cancel: leave the tree as it was before.
@@ -134,6 +147,7 @@ separate (Files.Controller)
                Files.Model.Tree_Panel.Open (Model);
             end if;
             Files.Model.Set_Error (Model, "");
+            Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Copy_To_Command | Files.Commands.Move_To_Command =>
             --  Capture the current selection, then open the folder tree as a
             --  destination picker seeded with the same roots the toggle uses.
@@ -170,11 +184,13 @@ separate (Files.Controller)
             else
                Files.Settings_Form.Begin_Edit (Model, Settings);
             end if;
+            Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Pure_Command_Id =>
             declare
                Had_Results : constant Boolean := Files.Model.Search_Results_Are_Active (Model);
             begin
                Files.Commands.Execution.Execute (Id, Model);
+               Operation.Status := Files.Operation_Results.Operation_Success;
                --  Clearing the filter ends a search: the folder's own listing
                --  replaces the results, as when the scope chip goes back.
                if Id = Files.Commands.Clear_Filter_Command and then Had_Results then
@@ -183,11 +199,5 @@ separate (Files.Controller)
             end;
       end case;
 
-      if Operation.Status = Files.Operation_Results.Operation_Disabled
-        and then Length (Operation.Error_Key) = 0
-      then
-         Operation.Status := Files.Operation_Results.Operation_Success;
-      end if;
-
-      return Make_Result (Controller_Command_Executed, Id, Operation);
+      return Make_Result (Controller_Command_Executed, Id, Settled (Operation));
    end Run_Command;

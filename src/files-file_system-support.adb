@@ -700,6 +700,15 @@ package body Files.File_System.Support is
          Purpose, Batch);
    end Copy_To_New_Path;
 
+   --  Give an entry just published from its private stage (a copy, or what
+   --  Compress or Extract made) the access its new folder hands down, and
+   --  its revision afresh where that changed it. The entry is already
+   --  published, so nothing here raises: a caller must still record it.
+   --  Cancellation is no longer heeded (the work is done), and a failure
+   --  keeps the revision it was published with.
+   --  @param Path The published entry.
+   --  @param Revision Its revision at publication; read again for a folder
+   --    on Windows, where inheriting wrote the change times it reads.
    procedure Inherit_Destination_Access
      (Path     : String;
       Revision : in out Files.Types.UString)

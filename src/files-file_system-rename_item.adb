@@ -248,9 +248,6 @@ is
                  Error_Key => (if Committed then Null_Unbounded_String else Failed.Error_Key));
    end Rename_Recorded;
 
-   --  Set once the rename was refused only by a device boundary or a
-   --  filesystem without no-replace rename; nothing else may fall back.
-   May_Copy : Boolean := False;
 begin
    Left_At := Null_Unbounded_String;
    Failure := Rename_Refused;
@@ -316,17 +313,7 @@ begin
            (Success   => False,
             Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
       end if;
-      May_Copy := True;
-      raise Ada.Directories.Use_Error;
-   end;
-exception
-   when Swallowed : others =>
-      Files.Diagnostics.Note (Swallowed, "Files.File_System");
-      if not May_Copy then
-         return
-           (Success   => False,
-            Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
-      end if;
+
       --  A rename cannot move across filesystems (EXDEV). Fall
       --  back to copy + delete, exactly as Execute_Drop_Import and
       --  Move_To_Trash do, so a cross-device move -- and, crucially, the undo
@@ -339,4 +326,11 @@ exception
          return Recovery.Move_By_Copy
            (From_Path, To_Path, "error.rename.failed", Copied_Identity, Copied_Tree_Revision, Copy_Kept);
       end;
+   end;
+exception
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
+      return
+        (Success   => False,
+         Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
 end Rename_Item;

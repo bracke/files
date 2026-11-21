@@ -86,19 +86,6 @@ package Files.Controller is
       Settings_Path : String)
       return Controller_Result;
 
-   --  Favorites are folder tree roots: a tree already seeded is seeded again
-   --  when the favorites list differs between Before and Settings. Every
-   --  settings commit does this; a caller that replaces the settings another
-   --  way (adopting another window's) calls it.
-   --
-   --  @param Model Window whose folder tree follows.
-   --  @param Before The settings before the change.
-   --  @param Settings The settings now live.
-   procedure Follow_Favorites
-     (Model    : in out Files.Model.Window_Model;
-      Before   : Files.Settings.Settings_Model;
-      Settings : Files.Settings.Settings_Model);
-
    --  After a change to settings the open settings pane edits (a command
    --  from a click, a shortcut or the palette, another window's or another
    --  process's change): the pane shows the new values, its next save

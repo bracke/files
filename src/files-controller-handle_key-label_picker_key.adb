@@ -6,6 +6,14 @@ separate (Files.Controller.Handle_Key)
 --  path), and every other key is consumed so it does not leak through to
 --  move the selection on the grid behind.
 procedure Label_Picker_Key (Handled : out Boolean; Result : out Controller_Result) is
+   Old : constant Natural := Files.Model.Label_Picker.Highlight (Model);
+
+   --  Move the highlight by Step swatches and report whether it moved.
+   function Moved (Step : Integer) return Controller_Result is
+   begin
+      Files.Model.Label_Picker.Move_Highlight (Model, Step);
+      return Changed_Result (Old, Files.Model.Label_Picker.Highlight (Model), Controller_Selection_Moved);
+   end Moved;
 begin
    Handled := True;
    Result := Make_Result (Controller_Ignored);
@@ -14,11 +22,9 @@ begin
    end if;
    case Key is
       when Guikit.Input.Key_Left | Guikit.Input.Key_Up =>
-         Files.Model.Label_Picker.Move_Highlight (Model, -1);
-         Result := Make_Result (Controller_Selection_Moved);
+         Result := Moved (-1);
       when Guikit.Input.Key_Right | Guikit.Input.Key_Down =>
-         Files.Model.Label_Picker.Move_Highlight (Model, 1);
-         Result := Make_Result (Controller_Selection_Moved);
+         Result := Moved (1);
       when Guikit.Input.Key_Return =>
          Result :=
            (Make_Result (Controller_Activation_Requested) with delta

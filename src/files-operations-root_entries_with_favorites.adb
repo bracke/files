@@ -19,7 +19,6 @@ begin
             Detail      => Null_Unbounded_String,
             Kind        => Files.File_System.Root_Favorite,
             Volume_Name => Null_Unbounded_String,
-            Ready       => Files.File_System.Root_Ready,
             Removable   => False));
    end loop;
    return Roots;

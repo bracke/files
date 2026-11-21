@@ -225,7 +225,34 @@ separate (Files.Commands.Status)
                return Enabled;
             end if;
             return All_Of (Single_Real_Selection, Not_Trash_View);
-         when others =>
+         when Select_Small_Icons_Command
+            | Select_Large_Icons_Command
+            | Select_Details_Command
+            | Toggle_Hidden_Files_Command
+            | Toggle_Show_Extensions_Command
+            | Toggle_Free_Space_Display_Command
+            | Toggle_Settings_Pane_Command
+            | Toggle_Sort_Menu_Command
+            | Sort_By_Name_Command
+            | Sort_By_Size_Command
+            | Sort_By_Type_Command
+            | Sort_By_Created_Command
+            | Sort_By_Changed_Command
+            | Focus_Path_Input_Command
+            | Navigate_Home_Command
+            | Focus_Filter_Input_Command
+            | Open_Command_Palette_Command
+            | Select_Drive_Command
+            | Refresh_Directory_Command
+            | Toggle_Column_Modified_Command
+            | Toggle_Column_Size_Command
+            | Toggle_Column_Type_Command
+            | Toggle_Column_Created_Command
+            | Toggle_Column_Permissions_Command
+            | Cycle_Group_By_Command
+            | Toggle_Folder_Tree_Command =>
+            --  View, sort, focus and window commands: always available. A new
+            --  command must be placed here or given its own condition.
             return Enabled;
       end case;
    end Status_Of;

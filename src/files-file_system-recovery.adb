@@ -91,8 +91,8 @@ package body Files.File_System.Recovery is
          return False;
    end Record_Is_Regular;
 
-   function Valid_Absolute_Path (Path : String) return Boolean is
-     (Files.Path_Checks.Valid_Absolute_Path (Path));
+   function Valid_Absolute_Path (Path : String; Max_Length : Natural := Natural'Last) return Boolean
+     renames Files.Path_Checks.Valid_Absolute_Path;
 
    procedure Write_Bounded
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;

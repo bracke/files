@@ -55,7 +55,6 @@ package body Files_Suite.Model is
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
    use type Files.File_System.Root_Kind;
-   use type Files.File_System.Root_Readiness;
    use type Files.Types.Sort_Field;
    use type Files.Undo_History.Undo_Entry;
    use type Files.Types.Item_Kind;

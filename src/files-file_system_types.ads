@@ -66,12 +66,6 @@ package Files.File_System_Types is
       Capped      : Boolean := False;
    end record;
 
-   --  Whether a root entry can be opened now.
-   type Root_Readiness is
-     (Root_Ready,
-      Root_Missing,
-      Root_Inaccessible);
-
    --  What a root entry stands for, which decides its label and icon.
    type Root_Kind is
      (Root_Filesystem,
@@ -95,7 +89,6 @@ package Files.File_System_Types is
       Detail : UString;
       Kind  : Root_Kind := Root_Filesystem;
       Volume_Name : UString;
-      Ready       : Root_Readiness := Root_Ready;
       Removable   : Boolean := False;
    end record;
 

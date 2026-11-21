@@ -42,16 +42,19 @@ separate (Files.Rendering.Build_Frame_Commands)
            (if Button_Y >= Layout.Toolbar_Height
             then 0
             else Natural'Min (Toolbar_Input_H, Layout.Toolbar_Height - Button_Y));
-         --  Per-button visual padding so the icons get breathing room and
-         --  groups read separately. Inner padding for normal spacing; the
+         --  Per-button visual padding (Geometry's Toolbar_* constants): the
          --  end-of-group cell on either side of the navigation/file-action
-         --  boundary gets a wider pad so the gap is visible.
-         --  Slim vertical inset so the icon can occupy more of the button
-         --  height (a modestly larger glyph) while staying inside the rect.
+         --  boundary gets the wider group pad so the gap is visible.
          Pad_V        : constant Natural :=
-           Natural'Min (Guikit.Layout.Scaled (2, Line_Height), Button_H / 8);
-         Inner_Pad    : constant Natural := Natural'Min (Guikit.Layout.Scaled (3, Line_Height), Button_W / 6);
-         Group_Pad    : constant Natural := Natural'Min (Guikit.Layout.Scaled (8, Line_Height), Button_W / 4);
+           Natural'Min
+             (Guikit.Layout.Scaled (Toolbar_Button_Inset_V, Line_Height), Button_H / Toolbar_Button_Inset_V_Fraction);
+         Inner_Pad    : constant Natural :=
+           Natural'Min
+             (Guikit.Layout.Scaled (Toolbar_Button_Inner_Pad, Line_Height),
+              Button_W / Toolbar_Button_Inner_Pad_Fraction);
+         Group_Pad    : constant Natural :=
+           Natural'Min
+             (Guikit.Layout.Scaled (Toolbar_Group_Pad, Line_Height), Button_W / Toolbar_Group_Pad_Fraction);
          Button_Pad_L : constant Natural :=
            (if Button_Index = First_File_Action_Button then Group_Pad else Inner_Pad);
          Button_Pad_R : constant Natural :=
@@ -68,8 +71,8 @@ separate (Files.Rendering.Build_Frame_Commands)
             else 0);
          --  The icon's margins inside a full-width button scale with it.
          Icon_Size : constant Natural :=
-           (if Visible_W >= Toolbar.Button_Width - Guikit.Layout.Scaled (4, Line_Height)
-            then Natural'Min (Visible_H, Toolbar.Button_Width - Guikit.Layout.Scaled (8, Line_Height))
+           (if Visible_W >= Toolbar.Button_Width - Guikit.Layout.Scaled (Toolbar_Full_Button_Slack, Line_Height)
+            then Natural'Min (Visible_H, Toolbar.Button_Width - Guikit.Layout.Scaled (Toolbar_Icon_Margin, Line_Height))
             else Natural'Min (Visible_W, Visible_H));
          Icon_X   : constant Natural :=
            (if Visible_W > Icon_Size then Visible_X + (Visible_W - Icon_Size) / 2 else Visible_X);

@@ -137,7 +137,6 @@ package Files.File_System.Testing is
 
    type Root_Discovery_Diagnostics is record
       Root_Count              : Natural := 0;
-      Ready_Count             : Natural := 0;
       Removable_Count         : Natural := 0;
       Windows_Drive_Count     : Natural := 0;
       Mount_Count             : Natural := 0;

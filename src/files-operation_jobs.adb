@@ -66,8 +66,8 @@ package body Files.Operation_Jobs is
          when Undo                               => "error.undo.failed",
          when Redo                               => "error.redo.failed");
 
-   function Valid_Absolute_Path (Path : String) return Boolean is
-     (Files.Path_Checks.Valid_Absolute_Path (Path));
+   function Valid_Absolute_Path (Path : String; Max_Length : Natural := Natural'Last) return Boolean
+     renames Files.Path_Checks.Valid_Absolute_Path;
 
    function Request_Path_Is_Consistent
      (Root   : String;
@@ -204,13 +204,11 @@ package body Files.Operation_Jobs is
         and then (Work.Selected.Is_Empty or else Files.Model.Selection.Includes_Temporary (Model))
       then
          declare
+            --  Removing or restoring nothing is a selection problem; any other
+            --  kind fails the way it fails without a reason of its own.
             Key : constant String :=
-              (case Kind is
-                  when Duplicate => "error.duplicate.failed",
-                  when Compress_Zip | Compress_Seven_Zip => "error.compress.failed",
-                  when Extract => "error.extract.failed",
-                  when Trash | Delete_Permanently | Restore => "error.selection.empty",
-                  when others => "error.search.failed");
+              (if Kind in Trash | Delete_Permanently | Restore then "error.selection.empty"
+               else Failure_Key (Kind));
          begin
             Files.Model.Set_Error (Model, Key);
             return (Status    => Files.Operation_Results.Operation_Failed,
@@ -255,9 +253,9 @@ package body Files.Operation_Jobs is
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
          Files.Process_Jobs.Reset (Job);
-         Files.Model.Set_Error (Model, "error.drop.failed");
+         Files.Model.Set_Error (Model, Failure_Key (Kind));
          return (Status => Files.Operation_Results.Operation_Failed,
-                 Error_Key => To_Unbounded_String ("error.drop.failed"), others => <>);
+                 Error_Key => To_Unbounded_String (Failure_Key (Kind)), others => <>);
    end Start;
 
    --  A redo the helper did not finish: each entry it published joins the

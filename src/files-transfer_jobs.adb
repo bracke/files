@@ -22,8 +22,8 @@ package body Files.Transfer_Jobs is
    Request_Header : constant String := "files-transfer-request-1";
    Result_Header : constant String := "files-transfer-result-1";
 
-   function Valid_Absolute_Path (Path : String) return Boolean is
-     (Files.Path_Checks.Valid_Absolute_Path (Path));
+   function Valid_Absolute_Path (Path : String; Max_Length : Natural := Natural'Last) return Boolean
+     renames Files.Path_Checks.Valid_Absolute_Path;
 
    function Request_Is_Consistent
      (Action : Files.Paste.Resolved_Action;

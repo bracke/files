@@ -38,26 +38,17 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
                Text_W,
                1,
                Selection_Color);
-            declare
-               --  Where the drawn text has the caret: right-to-left runs
-               --  and a mirrored window included.
-               Caret_X : constant Natural :=
-                 Guikit.Layout.Saturating_Add
-                   (Text_X,
-                    Guikit.Text_Fields.Caret_X
-                      (To_String (Value), Snapshot.Text_Cursor_Position, Text_W, Line_Height, Caret_Width => 2));
-            begin
-               --  A 2 px stroke, inset from the row by a
-               --  scaled margin above and below.
-               Add_Rect
-                 (Caret_X,
-                  Guikit.Layout.Saturating_Add (Natural (Cell_Y), Guikit.Layout.Scaled (2, Line_Height)),
-                  2,
-                  (if Line_Height > Guikit.Layout.Scaled (4, Line_Height)
-                   then Line_Height - Guikit.Layout.Scaled (4, Line_Height)
-                   else Line_Height),
-                  Text_Color);
-            end;
+            --  The caret the toolbar fields draw, over this value's row:
+            --  where the drawn text has it, right-to-left runs and a
+            --  mirrored window included.
+            Add_Caret
+              (Region  => (X => Text_X, Width => Text_W, Field_X => Text_X, Field_Width => Text_W),
+               Y       => Natural (Cell_Y),
+               Field_H => Line_Height,
+               Caret_X =>
+                 Guikit.Text_Fields.Caret_X
+                   (To_String (Value), Snapshot.Text_Cursor_Position, Text_W, Line_Height,
+                    Caret_Width => Files.Rendering.Layouts.Field_Caret_Width));
          end if;
       end if;
       Current_Row := Guikit.Layout.Saturating_Add (Current_Row, Guikit.Layout.Saturating_Add (Value_Rows, 1));

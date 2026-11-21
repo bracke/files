@@ -383,11 +383,9 @@ package body Files.File_System.Testing is
    end Trash_Capabilities_Of_Current_Environment;
 
    function Root_Discovery_Status return Root_Discovery_Diagnostics is
-      use type Files.File_System_Types.Root_Readiness;
       Entries : constant Root_Entry_Vectors.Vector := Available_Root_Entries;
       Result  : Root_Discovery_Diagnostics :=
         (Root_Count              => Natural (Entries.Length),
-         Ready_Count             => 0,
          Removable_Count         => 0,
          Windows_Drive_Count     => 0,
          Mount_Count             => 0,
@@ -395,10 +393,6 @@ package body Files.File_System.Testing is
          Network_Mount_Count     => 0);
    begin
       for Root of Entries loop
-         if Root.Ready = Root_Ready then
-            Result.Ready_Count := Result.Ready_Count + 1;
-         end if;
-
          if Root.Removable then
             Result.Removable_Count := Result.Removable_Count + 1;
          end if;

@@ -47,6 +47,10 @@ package body Files.Controller is
          others    => <>);
    end Empty_Operation;
 
+   --  Favorites are folder tree roots: a tree already seeded is seeded again
+   --  when the favorites list differs between Before and Settings. Every
+   --  settings commit does this; a caller that replaces the settings another
+   --  way (adopting another window's) calls it.
    procedure Follow_Favorites
      (Model    : in out Files.Model.Window_Model;
       Before   : Files.Settings.Settings_Model;

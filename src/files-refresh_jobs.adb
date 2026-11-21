@@ -53,8 +53,8 @@ package body Files.Refresh_Jobs is
       Error_Key : Files.Types.UString;
    end record;
 
-   function Valid_Absolute_Path (Path : String) return Boolean is
-     (Files.Path_Checks.Valid_Absolute_Path (Path));
+   function Valid_Absolute_Path (Path : String; Max_Length : Natural := Natural'Last) return Boolean
+     renames Files.Path_Checks.Valid_Absolute_Path;
 
    function Request_Paths_Are_Consistent
      (Root, Previous_Path : String;
