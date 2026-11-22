@@ -128,22 +128,39 @@ package Files.Application.Window_Policy is
       Height : Glfw.Size)
       return Boolean;
 
-   --  How far, in window pixels, the pointer travels with the button down
+   --  How far, in drawn pixels (the frame's pixels divided by the display's
+   --  scale, Display_Scale), the pointer travels with the button down
    --  before a press becomes a drag: a file drag, a column reorder or a
-   --  marquee alike. Below it the press is a click.
+   --  marquee alike. Below it the press is a click. Counted in drawn
+   --  pixels, it is as far for the hand as the interface is large: the same
+   --  on a 2x Retina display, a Windows or X11 display at 150% and a 1x one.
    Drag_Distance : constant := 5;
 
    --  Whether the pointer has travelled far enough from its press for a drag.
    --
-   --  @param Delta_X Horizontal travel, in pixels.
-   --  @param Delta_Y Vertical travel, in pixels.
-   --  @param Pixel_Ratio Pixels the travel is counted in per window pixel:
-   --    1.0 for window coordinates, Pixel_Ratio for framebuffer ones, so a
-   --    drag is as far for the hand on a 2x display as on 1x.
-   --  @return True once either travel reaches Drag_Distance window pixels.
-   function Is_Drag (Delta_X, Delta_Y : Long_Float; Pixel_Ratio : Float) return Boolean is
-     (abs Delta_X >= Long_Float (Drag_Distance) * Long_Float (Pixel_Ratio)
-      or else abs Delta_Y >= Long_Float (Drag_Distance) * Long_Float (Pixel_Ratio));
+   --  @param Delta_X Horizontal travel, in the pointer's pixels.
+   --  @param Delta_Y Vertical travel, in the pointer's pixels.
+   --  @param Scale The pointer's pixels per drawn pixel: the display's
+   --    scale (Display_Scale) for framebuffer coordinates, Window_Drag_Scale
+   --    for window coordinates.
+   --  @return True once either travel reaches Drag_Distance drawn pixels.
+   function Is_Drag (Delta_X, Delta_Y : Long_Float; Scale : Float) return Boolean is
+     (abs Delta_X >= Long_Float (Drag_Distance) * Long_Float (Scale)
+      or else abs Delta_Y >= Long_Float (Drag_Distance) * Long_Float (Scale));
+
+   --  Window pixels per drawn pixel, for Is_Drag over window coordinates:
+   --  the display's scale less what the framebuffer already has over the
+   --  window (1.0 on a Retina display, whose window pixels are drawn
+   --  pixels; 1.5 on a display at 150%, whose window pixels are the
+   --  framebuffer's).
+   --
+   --  @param Frame_Width The framebuffer's width.
+   --  @param Window_Width The window's width.
+   --  @param Scale The display's scale (Display_Scale).
+   --  @return The scale; Scale itself while either width is unknown (0).
+   function Window_Drag_Scale (Frame_Width, Window_Width : Natural; Scale : Float) return Float is
+     (if Frame_Width = 0 or else Window_Width = 0 then Scale
+      else Scale * Float (Window_Width) / Float (Frame_Width));
 
    --  Whether a held key repeats: only keys that move, delete or zoom do; a
    --  held Enter opens once, a held Space previews once.

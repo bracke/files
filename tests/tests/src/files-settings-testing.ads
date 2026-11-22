@@ -7,6 +7,10 @@ package Files.Settings.Testing is
    --  @return The key written before " = " in the [settings] section.
    function Scalar_Key (Setting : Scalar_Setting) return String;
 
+   --  @return The most bytes a settings text may hold (what Parse and the
+   --    file reads refuse beyond).
+   function Max_Text_Bytes return Natural;
+
    --  Whether the settings pane edits Setting, so that it has a draft slot.
    --
    --  @param Setting Scalar setting to test.

@@ -66,12 +66,7 @@ package body Files.Icon_Assets is
          Root : constant String := Icons_Root;
          Sub  : constant String :=
            (if Theme_Name = "" then "" else Files.Icon_Themes.Subdirectory (Files.Icon_Themes.Value (Theme_Name)));
-         --  Subdirectory spells its folder "/high-contrast"; joined the
-         --  host's way, without that slash.
-         Folder : constant String :=
-           (if Sub = "" then Root
-            elsif Sub (Sub'First) = '/' then Hostkit.Fs.Join (Root, Sub (Sub'First + 1 .. Sub'Last))
-            else Hostkit.Fs.Join (Root, Sub));
+         Folder : constant String := (if Sub = "" then Root else Hostkit.Fs.Join (Root, Sub));
          Path : constant String := Hostkit.Fs.Join (Folder, Icon_Id & ".icon");
       begin
          if Root = "" then

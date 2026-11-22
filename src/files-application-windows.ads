@@ -123,6 +123,10 @@ private
       Drag_Start_Y : Glfw.Input.Mouse.Coordinate := 0.0;
       Left_Mouse_Down : Boolean := False;
       Drag_Moved : Boolean := False;
+      --  Window pixels per drawn pixel (Window_Policy.Window_Drag_Scale),
+      --  as the last pass read the window: what the pointer's travel in
+      --  window coordinates is measured against.
+      Drag_Scale : Float := 1.0;
       --  Time of the last accepted left-button press, for bounce rejection: a
       --  failing mouse switch (or an un-debounced compositor) can emit a spurious
       --  second press within a few ms of the real one, which double-fires the

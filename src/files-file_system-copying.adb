@@ -140,6 +140,12 @@ package body Files.File_System.Copying is
       --  Whether to digest the root file's bytes, and the digest.
       Want_Root_Digest       : Boolean := False;
       Root_Digest            : Files.Types.UString;
+      --  The destination refused a hard link and held nothing where it was
+      --  refused: it takes none (FAT, exFAT, many network mounts). Every
+      --  further name of a linked inode is then copied straight away,
+      --  without reading the source and the first copy to check a link
+      --  that would be refused again.
+      Links_Refused          : Boolean := False;
    end record;
 
    procedure Copy_Node
@@ -290,7 +296,8 @@ package body Files.File_System.Copying is
          Shared_Batch           => Files.Jobs.Copy_Context.Directory (Batch) /= "",
          Durable                => Purpose = For_Move,
          Want_Root_Digest       => True,
-         Root_Digest            => Null_Unbounded_String);
+         Root_Digest            => Null_Unbounded_String,
+         Links_Refused          => False);
       Copied_Digest : Files.Types.UString renames Walk.Root_Digest;
    begin
       if Root_Digest /= null then
@@ -412,6 +419,7 @@ package body Files.File_System.Copying is
          end if;
       end Add;
    begin
+      Digest_Reads := Digest_Reads + 1;
       CryptoLib.Hashes.Initialize_SHA256 (Context);
       if Hostkit.Fs.Is_Link (Path) then
          declare
@@ -462,6 +470,15 @@ package body Files.File_System.Copying is
          end if;
          State.Track_Hard_Link := Links > 1 or else Copied_Files.Contains (To_String (Source_Identity));
       end if;
+      if Length (Source_Identity) > 0
+        and then Copied_Files.Contains (To_String (Source_Identity))
+        and then Walk.Links_Refused
+      then
+         --  No link can be made here: this name is a copy of its own, and
+         --  as no later name will link to it, it is not recorded either.
+         State.Track_Hard_Link := False;
+         return False;
+      end if;
       if Length (Source_Identity) > 0 and then Copied_Files.Contains (To_String (Source_Identity)) then
          declare
             First : constant Copied_File := Copied_Files.Element (To_String (Source_Identity));
@@ -493,6 +510,7 @@ package body Files.File_System.Copying is
             then
                if Files.IO.Fs_Primitives.Entry_Is_Absent (Destination_Path) then
                   State.Track_Hard_Link := True;
+                  Walk.Links_Refused := True;
                   return False;
                end if;
                raise Ada.Directories.Use_Error;

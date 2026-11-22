@@ -47,6 +47,42 @@ separate (Files_Suite.Transfer)
       Assert (Files.File_Identities.Token (Join (Root, "unlinked/first"))
                 /= Files.File_Identities.Token (Join (Root, "unlinked/sub/second")),
               "a refused link leaves two independent copies");
+      --  Once the destination refused a link, further names of the inode
+      --  are copied without reading the source and the first copy again:
+      --  four names cost what two do.
+      declare
+         Two   : constant String := Join (Root, "two-names");
+         Four  : constant String := Join (Root, "four-names");
+         Reads : Natural;
+         Two_Reads : Natural;
+      begin
+         Ada.Directories.Create_Path (Two);
+         Ada.Directories.Create_Path (Four);
+         Write_Binary_File (Join (Two, "a"), "linked bytes");
+         Write_Binary_File (Join (Four, "a"), "linked bytes");
+         Assert (Hostkit.Fs.Create_Hard_Link (Join (Two, "a"), Join (Two, "b"))
+                 and then Hostkit.Fs.Create_Hard_Link (Join (Four, "a"), Join (Four, "b"))
+                 and then Hostkit.Fs.Create_Hard_Link (Join (Four, "a"), Join (Four, "c"))
+                 and then Hostkit.Fs.Create_Hard_Link (Join (Four, "a"), Join (Four, "d")),
+                 "prepare two hard-link sets");
+         Files.File_System.Testing.Refuse_Hard_Links (True);
+         Reads := Files.File_System.Testing.Copy_Digest_Reads;
+         Mutation := Files.File_System.Transfer.Copy_Tree (Two, Join (Root, "two-copied"));
+         Assert (Mutation.Success, "copy two names where links are refused");
+         Two_Reads := Files.File_System.Testing.Copy_Digest_Reads - Reads;
+         Reads := Files.File_System.Testing.Copy_Digest_Reads;
+         Mutation := Files.File_System.Transfer.Copy_Tree (Four, Join (Root, "four-copied"));
+         Files.File_System.Testing.Refuse_Hard_Links (False);
+         Assert (Mutation.Success, "copy four names where links are refused");
+         Assert (Two_Reads > 0, "checking the first refused link reads the files");
+         Files_Suite.Support.Assert_Equal
+           (Files.File_System.Testing.Copy_Digest_Reads - Reads, Two_Reads,
+            "names after a refused link are copied without reading the files again");
+         for Name in Character range 'a' .. 'd' loop
+            Assert (File_Has_Bytes (Join (Join (Root, "four-copied"), [Name]), "linked bytes"),
+                    "every name of a refused link holds the source's bytes: " & Name);
+         end loop;
+      end;
       Remote.Create ("files-test-hard-link-move-");
       if Remote.Path = "" then
          Files_Suite.Support.Skip ("Test_Copy_Hard_Link_Trees", Files_Suite.Volumes.No_Other_Volume);

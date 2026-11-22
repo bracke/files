@@ -3,6 +3,8 @@ package body Files.Settings.Testing is
    function Scalar_Key (Setting : Scalar_Setting) return String
      renames Files.Settings.Scalar_Key;
 
+   function Max_Text_Bytes return Natural is (Files.Settings.Max_Settings_Text_Bytes);
+
    function Is_Pane_Setting (Setting : Scalar_Setting) return Boolean
      renames Files.Settings.Is_Pane_Setting;
 

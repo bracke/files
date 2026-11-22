@@ -40,6 +40,9 @@ separate (Files.Application.Windows.Render_Window)
             Runtime.Frame_Cache_Valid := False;
          end if;
       end;
+      Runtime.Handle.Drag_Scale :=
+        Files.Application.Window_Policy.Window_Drag_Scale
+          (Natural (Width), Natural (Window_W), Runtime.Pixel_Ratio);
       Glfw.Windows.Get_Cursor_Pos (As_Window (Runtime.Handle), Cursor_X, Cursor_Y);
       Mouse_Down :=
         Glfw.Windows.Mouse_Button_State (As_Window (Runtime.Handle), Glfw.Input.Mouse.Left_Button) =

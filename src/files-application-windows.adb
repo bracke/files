@@ -272,7 +272,7 @@ package body Files.Application.Windows is
    --  A settings change a held key's repeats made is in force but not yet
    --  written (Files.Model.Settings_Pane.Defer_Save): saved here, as Save
    --  would, once the key is let go, or with Force at once (the window
-   --  closing, another input arriving).
+   --  closing, another key pressed, a mouse button pressed or released).
    procedure Save_Held_Settings (Runtime : in out Runtime_Window; Force : Boolean) is separate;
 
    --  Run the window's key presses and typed text in the order they arrived.

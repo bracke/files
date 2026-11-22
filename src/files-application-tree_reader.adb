@@ -5,6 +5,7 @@ with Files.IO.Errors;
 package body Files.Application.Tree_Reader is
    use Ada.Strings.Unbounded;
    use type Files.Types.Listing_Options;
+   use type Files.Types.Sort_Field;
 
    --  What a read depends on besides the path.
    type Read_Policy is record
@@ -12,8 +13,13 @@ package body Files.Application.Tree_Reader is
       Options : Files.Types.Listing_Options;
    end record;
 
+   --  The maps are compared only for a sort by type, the one read they
+   --  change (Load_Subdirectories classifies folders for nothing else):
+   --  this runs inside the slots' protected object on every poll.
    function Same (Left, Right : Read_Policy) return Boolean is
-     (Files.File_Types."=" (Left.Classes, Right.Classes) and then Left.Options = Right.Options);
+     (Left.Options = Right.Options
+      and then (Left.Options.Sort_Field /= Files.Types.Sort_Type
+                or else Files.File_Types."=" (Left.Classes, Right.Classes)));
 
    function Read (Path : String; Policy : Read_Policy) return Files.File_System.Directory_Load_Result is
      (Files.File_System.Load_Subdirectories (Path, Policy.Classes, Policy.Options));

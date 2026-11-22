@@ -84,8 +84,12 @@ package body Files.Application.Accessibility is
    --  keeps a tree to be found by, a little behind. Once one listens, what
    --  waits is published on the next pass (Service) and every change after
    --  that at once.
+   --  Each window keeps its own interval: one window whose nodes change
+   --  every frame (paste progress) must not keep another's tree waiting.
    Waiting      : Window_Inputs.Map;
-   Last_Publish : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+   package Publish_Times is new Ada.Containers.Ordered_Maps
+     (Key_Type => Window_Key, Element_Type => Ada.Real_Time.Time, "=" => Ada.Real_Time."=");
+   Last_Publish : Publish_Times.Map;
    Focused     : Window_Key := 0;
    Last_Key    : Window_Key := 0;
 
@@ -121,6 +125,7 @@ package body Files.Application.Accessibility is
       Trees.Clear;
       Inputs.Clear;
       Waiting.Clear;
+      Last_Publish.Clear;
       Ranges.Clear;
       Handles.Clear;
       Focused := 0;
@@ -206,14 +211,16 @@ package body Files.Application.Accessibility is
            Listening    => A11ykit.Provider.Listening,
            Quiet_Passed =>
              Files.Timing.Elapsed
-               (Ada.Real_Time.Clock, Last_Publish,
+               (Ada.Real_Time.Clock,
+                (if Last_Publish.Contains (Window) then Last_Publish.Element (Window)
+                 else Ada.Real_Time.Time_First),
                 Ada.Real_Time.To_Time_Span (Files.Application.Window_Policy.Quiet_Publish_Interval)))
       then
          Waiting.Include (Window, Nodes);
          return;
       end if;
       Waiting.Exclude (Window);
-      Last_Publish := Ada.Real_Time.Clock;
+      Last_Publish.Include (Window, Ada.Real_Time.Clock);
       Inputs.Include (Window, Nodes);
       declare
          Tree : constant A11ykit.Tree.Accessibility_Tree := Tree_Of_Nodes (Nodes);
@@ -261,9 +268,12 @@ package body Files.Application.Accessibility is
 
    function Published_Windows return Natural is (Natural (Trees.Length));
 
+   function Waiting_Windows return Natural is (Natural (Waiting.Length));
+
    procedure Forget (Window : Window_Key) is
    begin
       Handles.Exclude (Window);
+      Last_Publish.Exclude (Window);
       if Trees.Contains (Window) then
          Trees.Delete (Window);
          Inputs.Exclude (Window);

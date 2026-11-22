@@ -30,10 +30,11 @@ is
    --  Where the theme's .icon files sit under the bundled icons folder.
    --
    --  @param Theme An icon theme.
-   --  @return "" for the base set, or a subfolder starting with "/".
+   --  @return "" for the base set, or the subfolder's name (joined to the
+   --    icons folder the host's way, Hostkit.Fs.Join).
    function Subdirectory (Theme : Icon_Theme) return String is
      (case Theme is
          when Basic         => "",
-         when High_Contrast => "/high-contrast");
+         when High_Contrast => "high-contrast");
 
 end Files.Icon_Themes;

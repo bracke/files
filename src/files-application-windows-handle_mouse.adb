@@ -160,6 +160,9 @@ separate (Files.Application.Windows)
       if Runtime.Handle = null or else Runtime.Handle.Pending_Mouse.Is_Empty then
          return;
       end if;
+      --  A click comes after what a held key changed is saved: closing the
+      --  pane or picking another field must not overtake it.
+      Save_Held_Settings (Runtime, Force => True);
 
       Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
       Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);

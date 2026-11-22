@@ -41,20 +41,32 @@ separate (Files.Controller)
       Final := Applied.Settings;
       Files.Commands.Keymap_Settings.Store_Shortcut_Overrides (Final);
       --  A held arrow stepping a number (or cycling a choice): each step is
-      --  in force for the session, the file written and the folder read
-      --  again once, when the key is let go (the window layer saves then).
-      --  A durable write and a reload per repeat held the window.
+      --  in force for the session (Take_In_Settings, which reads the folder
+      --  again only for a step that changes what it lists: the hidden filter
+      --  or the type maps), and the file is written once, when the key is
+      --  let go (the window layer saves then). A durable write per repeat
+      --  held the window. A step the file could not hold is refused as
+      --  Commit refuses one: said in the error line, the draft kept.
       if Files.Model.Settings_Pane.Key_Repeat (Model) then
-         if Files.Settings.Storage.Decide_Commit (Settings, Final) = Files.Settings.Storage.Commit_Accepted then
-            declare
-               Before : constant Files.Settings.Settings_Model := Settings;
-            begin
-               Settings := Final;
-               Files.Model.Note_Settings_Changed (Model);
-               Take_In_Settings (Model, Before, Settings);
-            end;
-            Files.Model.Settings_Pane.Defer_Save (Model);
-         end if;
+         case Files.Settings.Storage.Decide_Commit (Settings, Final) is
+            when Files.Settings.Storage.Commit_Refused =>
+               Saved := Settings_Full (Model, Settings_Path);
+               Operation.Status := Files.Operation_Results.Operation_Failed;
+               Operation.Error_Key := Saved.Error_Key;
+               Operation.Path := To_Unbounded_String (Settings_Path);
+               return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
+            when Files.Settings.Storage.Commit_Accepted =>
+               declare
+                  Before : constant Files.Settings.Settings_Model := Settings;
+               begin
+                  Settings := Final;
+                  Files.Model.Note_Settings_Changed (Model);
+                  Take_In_Settings (Model, Before, Settings);
+               end;
+               Files.Model.Settings_Pane.Defer_Save (Model);
+            when Files.Settings.Storage.Commit_Unchanged =>
+               null;
+         end case;
          Files.Overlays.Settings_Form.Set_Draft
            (Model, Files.Settings.Drafts.Draft_After_Save (Files.Model.Settings_Pane.Draft_Of (Model), Settings));
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);

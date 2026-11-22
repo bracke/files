@@ -6,6 +6,13 @@ package Files.Application.Accessibility.Testing is
    --  @return The number of windows published and not forgotten since Stop.
    function Published_Windows return Natural;
 
+   --  How many windows have changed nodes waiting for their quiet interval
+   --  (published at most once per interval each while no assistive
+   --  technology listens).
+   --
+   --  @return The number of windows whose newest nodes are not published yet.
+   function Waiting_Windows return Natural;
+
    --  Map the frame's flat accessibility nodes into a hierarchical A11ykit tree
    --  -- the toolkit-neutral form a screen-reader provider consumes -- inferring
    --  the parent/child structure from the nodes' geometry.

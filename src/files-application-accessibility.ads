@@ -86,5 +86,9 @@ private
    --
    --  @return The number of windows published and not forgotten since Stop.
    function Published_Windows return Natural;
+   --  How many windows have changed nodes waiting for their quiet interval.
+   --
+   --  @return The number of windows whose newest nodes are not published yet.
+   function Waiting_Windows return Natural;
 
 end Files.Application.Accessibility;

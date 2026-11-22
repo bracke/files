@@ -104,4 +104,17 @@ separate (Files_Suite.Startup)
       Assert (not Files.Application.Window_Policy.Is_Drag (9.0, 0.0, 2.0),
                                                            "framebuffer pixels count at the pixel ratio");
       Assert (Files.Application.Window_Policy.Is_Drag (10.0, 0.0, 2.0), "the scaled distance makes a drag");
+      --  Window coordinates: a Retina window's pixels are drawn pixels; a
+      --  window at 150% has the framebuffer's, so the distance grows.
+      Assert (Files.Application.Window_Policy.Window_Drag_Scale (1600, 800, 2.0) = 1.0,
+              "a Retina window's pixels are drawn pixels");
+      Assert (Files.Application.Window_Policy.Window_Drag_Scale (800, 800, 1.5) = 1.5,
+              "a window at 150% counts its pixels at the content scale");
+      Assert (Files.Application.Window_Policy.Window_Drag_Scale (0, 800, 1.5) = 1.5,
+              "an unknown size keeps the display's scale");
+      Assert (not Files.Application.Window_Policy.Is_Drag
+                (7.0, 0.0, Files.Application.Window_Policy.Window_Drag_Scale (800, 800, 1.5))
+              and then Files.Application.Window_Policy.Is_Drag
+                (7.5, 0.0, Files.Application.Window_Policy.Window_Drag_Scale (800, 800, 1.5)),
+              "at 150% an item drag needs as far as a marquee over the framebuffer");
    end Test_Desktop_Input_Mapping;

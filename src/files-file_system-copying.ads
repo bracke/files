@@ -53,6 +53,15 @@ private package Files.File_System.Copying is
    Refuse_Hard_Links : Boolean := False
      with Atomic;
 
+   --  How many times a copy has read an entry whole to digest it, outside
+   --  the copy itself (which digests what it writes as it goes). Read only
+   --  by the test suite (Files.File_System.Testing), to see that a
+   --  destination refusing hard links is not read again for every name.
+   --  It wraps, so a long-running application never overflows it.
+   type Read_Count is mod 2 ** 32;
+   Digest_Reads : Read_Count := 0
+     with Atomic;
+
    type Copied_File is record
       Path, Identity, Source_Revision, Destination_Revision, Content_Digest : Files.Types.UString;
    end record;

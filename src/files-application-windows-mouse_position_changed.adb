@@ -10,10 +10,10 @@ separate (Files.Application.Windows)
 
       --  Worked out inside the handler: what an initial value raises would
       --  escape it into GLFW.
-      --  Window coordinates: the drag distance counts window pixels as is.
+      --  Window coordinates: the drag distance is scaled to them.
       if Object.Left_Mouse_Down
         and then Files.Application.Window_Policy.Is_Drag
-                   (Long_Float (X - Object.Drag_Start_X), Long_Float (Y - Object.Drag_Start_Y), Pixel_Ratio => 1.0)
+                   (Long_Float (X - Object.Drag_Start_X), Long_Float (Y - Object.Drag_Start_Y), Object.Drag_Scale)
       then
          Object.Drag_Moved := True;
       end if;

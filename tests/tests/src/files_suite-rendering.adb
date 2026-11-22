@@ -123,6 +123,7 @@ package body Files_Suite.Rendering is
    procedure Test_Far_Future_Modified_Time (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_A11y_Stop_Is_Final (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_A11y_Quiet_Publish_Per_Window (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Item_Icons_Drawn_Once (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Icon_Atlas_Shared_Across_Frames (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Pool_Evicts_Least_Recent (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -318,6 +319,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_A11y_Stop_Is_Final'Access,
          "Screen reader: Stop is final until Start");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_A11y_Quiet_Publish_Per_Window'Access,
+         "Screen reader: unheard, each window's tree waits out its own quiet interval");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Item_Icons_Drawn_Once'Access,
          "Item icons are drawn once, as vectors");
@@ -784,6 +788,7 @@ package body Files_Suite.Rendering is
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_A11y_Stop_Is_Final (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_A11y_Quiet_Publish_Per_Window (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Item_Icons_Drawn_Once (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

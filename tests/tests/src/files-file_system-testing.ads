@@ -60,6 +60,10 @@ package Files.File_System.Testing is
    --  @param Refuse Whether every hard link is refused.
    procedure Refuse_Hard_Links (Refuse : Boolean);
 
+   --  @return How many entries copies have read whole to digest them so
+   --    far, outside the copy itself; it wraps, so compare differences.
+   function Copy_Digest_Reads return Natural;
+
    --  From now on, hold every recovery-registry sweep just before it works
    --  on a payload (after it has let the registry lock go), as a slow trash
    --  move would, until Resume_Sweep_Work; at most 120 seconds each, far

@@ -17,7 +17,8 @@ package Files.Application.Tree_Reader is
    --
    --  @param Owner The window asking.
    --  @param Path The folder whose children are read.
-   --  @param Classes How subfolders are classified (for a sort by type).
+   --  @param Classes How subfolders are classified; read, and compared by
+   --    Take, only when Options sort by type (empty maps will do otherwise).
    --  @param Options Hidden-entry and sort policy.
    procedure Request
      (Owner   : Requester;
@@ -25,8 +26,8 @@ package Files.Application.Tree_Reader is
       Classes : Files.File_Types.Classification;
       Options : Files.Types.Listing_Options);
 
-   --  Owner's read of Path, once done with exactly these Classes and
-   --  Options.
+   --  Owner's read of Path, once done with exactly these Options (and,
+   --  for a sort by type, these Classes).
    --
    --  @param Owner The window asking.
    --  @param Path The folder it asked about.

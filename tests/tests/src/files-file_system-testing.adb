@@ -164,6 +164,12 @@ package body Files.File_System.Testing is
       Files.File_System.Copying.Refuse_Hard_Links := Refuse;
    end Refuse_Hard_Links;
 
+   function Copy_Digest_Reads return Natural is
+      use type Files.File_System.Copying.Read_Count;
+   begin
+      return Natural (Files.File_System.Copying.Digest_Reads mod 2 ** 30);
+   end Copy_Digest_Reads;
+
    --  Where Pause_Sweep_Work holds a sweep.
    protected Sweep_Gate is
       procedure Close;

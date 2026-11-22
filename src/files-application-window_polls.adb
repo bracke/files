@@ -72,8 +72,13 @@ package body Files.Application.Window_Polls is
       end if;
       declare
          Path    : constant String := Files.Model.Tree_Panel.Node_Path (Model, Node);
-         Classes : constant Files.File_Types.Classification := Files.Settings.Classification_Of (Settings);
          Options : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Settings);
+         --  Folders are classified only for a sort by type: otherwise the
+         --  maps are not copied on every poll while a read is in flight.
+         Classes : constant Files.File_Types.Classification :=
+           (if Files.Types."=" (Options.Sort_Field, Files.Types.Sort_Type)
+            then Files.Settings.Classification_Of (Settings)
+            else (others => <>));
          Load    : Files.File_System.Directory_Load_Result;
          Ready   : Boolean;
          Asked   : Boolean;
