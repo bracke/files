@@ -372,7 +372,12 @@ package body Files.Job_Payloads is
             Size : constant Natural := Guikit.Shared_Bytes.Length (Item.Thumbnail_Pixels);
          begin
             if Size > Max_Thumbnail_Transport_Bytes - Carried then
+               --  Dropped as a whole: an unavailable thumbnail has no size
+               --  either (Thumbnail_Is_Valid), or the record refuses the item
+               --  and the listing is never published.
                Item.Thumbnail_Available := False;
+               Item.Thumbnail_Width := 0;
+               Item.Thumbnail_Height := 0;
                Item.Thumbnail_Pixels := Guikit.Shared_Bytes.Empty;
             else
                Carried := Carried + Size;

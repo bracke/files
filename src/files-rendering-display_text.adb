@@ -79,14 +79,23 @@ package body Files.Rendering.Display_Text is
       return (if With_Date then Iso (Iso'First .. Iso'First + 9) & " " & Iso (Iso'First + 11 .. Iso'Last) else Iso);
    end Formatted_Time_Text;
 
+   --  A time the calendar cannot split at its local offset (a timestamp at
+   --  the edge of Ada.Calendar's range, 1901 or 2399, moved past it by the
+   --  zone) has no text; drawing a tooltip must not fail on it.
    function Clock_Time_Text (Value : Ada.Calendar.Time) return String is
    begin
       return Formatted_Time_Text (Value, With_Date => False);
+   exception
+      when Ada.Calendar.Time_Error | Constraint_Error =>
+         return "";
    end Clock_Time_Text;
 
    function Full_Time_Text (Value : Ada.Calendar.Time) return String is
    begin
       return Formatted_Time_Text (Value, With_Date => True);
+   exception
+      when Ada.Calendar.Time_Error | Constraint_Error =>
+         return "";
    end Full_Time_Text;
 
    function Weekday_Key (Value : Ada.Calendar.Time) return String is

@@ -112,6 +112,20 @@ package body Files.Model.Selection is
       return String is
      (To_String (Model.Type_Ahead_Buffer_Value));
 
+   --  Make the item at Visible_Index the Range_Anchor (none past the end).
+   procedure Note_Range_Anchor
+     (Model         : in out Window_Model;
+      Visible_Index : Positive) is
+      In_View : constant Boolean := Natural (Visible_Index) <= Visible_Count (Model);
+      Item    : constant Natural := (if In_View then Selection_Index_Of_Visible (Model, Visible_Index) else 0);
+   begin
+      Model.Range_Anchor_Path :=
+        (if In_View
+         then Visible_Item (Model, Visible_Index).Full_Path
+         else Null_Unbounded_String);
+      Model.Range_Anchor_Item := (if Item = Temporary_Item_Index then 0 else Item);
+   end Note_Range_Anchor;
+
    procedure Type_Ahead_Input
      (Model   : in out Window_Model;
       Text    : String;
@@ -162,23 +176,11 @@ package body Files.Model.Selection is
       end;
       if Target > 0 then
          Select_Visible_Internal (Model, Target);
+         --  A jump by typing is a cursor move: Shift+arrow ranges from here.
+         Note_Range_Anchor (Model, Target);
          Matched := True;
       end if;
    end Type_Ahead_Input;
-
-   --  Make the item at Visible_Index the Range_Anchor (none past the end).
-   procedure Note_Range_Anchor
-     (Model         : in out Window_Model;
-      Visible_Index : Positive) is
-      In_View : constant Boolean := Natural (Visible_Index) <= Visible_Count (Model);
-      Item    : constant Natural := (if In_View then Selection_Index_Of_Visible (Model, Visible_Index) else 0);
-   begin
-      Model.Range_Anchor_Path :=
-        (if In_View
-         then Visible_Item (Model, Visible_Index).Full_Path
-         else Null_Unbounded_String);
-      Model.Range_Anchor_Item := (if Item = Temporary_Item_Index then 0 else Item);
-   end Note_Range_Anchor;
 
    procedure Select_Visible
      (Model         : in out Window_Model;

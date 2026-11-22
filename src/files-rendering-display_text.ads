@@ -12,7 +12,8 @@ package Files.Rendering.Display_Text is
    function Clock_Time_Text (Value : Ada.Calendar.Time) return String;
 
    --  @param Value The time.
-   --  @return Its full date and time.
+   --  @return Its full date and time; "" for a time the calendar cannot
+   --    split at its local offset (the edge of Ada.Calendar's range).
    function Full_Time_Text (Value : Ada.Calendar.Time) return String;
 
    --  @param Value The time.

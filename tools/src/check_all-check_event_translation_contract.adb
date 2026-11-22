@@ -160,12 +160,15 @@ separate (Check_All)
          "the model reads no disk (settings are loaded and saved elsewhere)",
          --  Settings is also what the model's parameters are called.
          Short_Too => False);
-      --  The labels it groups by, read; changing them is the settings' own.
+      --  The labels it groups by, and the recent list whose order the Recent
+      --  view returns to when a grouping ends, read; changing them is the
+      --  settings' own.
       Require_Only_Names_From
         ("files-model", "Files.Settings.Path_References",
          [To_Unbounded_String ("Path_Labels"),
-          To_Unbounded_String ("Same_Labels")],
-         "the model only reads the stored labels");
+          To_Unbounded_String ("Same_Labels"),
+          To_Unbounded_String ("Recent_Paths")],
+         "the model only reads the stored labels and recent list");
       Require_Only_Names_From
         ("files-model", "Files.Desktop_Applications",
          [To_Unbounded_String ("Application_Vectors")],

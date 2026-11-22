@@ -1,4 +1,5 @@
 with Ada.Calendar;
+with Ada.Calendar.Formatting;
 with Files.Rendering.Display_Text;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Rendering)
@@ -31,5 +32,23 @@ separate (Files_Suite.Rendering)
          Assert
            (Ada.Strings.Fixed.Index (Full, "Nov 22, 2026") > 0 and then Ada.Strings.Fixed.Index (Full, "2:05:09") > 0,
             "English month name first, 12-hour clock: " & Full);
+      end;
+
+      --  Timestamps at the ends of Ada.Calendar's range: the local offset can
+      --  move them past it (west of UTC at the start, east at the end). The
+      --  tooltip that draws them must get text or "", never an exception.
+      declare
+         Earliest : constant Ada.Calendar.Time :=
+           Ada.Calendar.Formatting.Time_Of (1901, 1, 1, 0, 0, 0, Time_Zone => 0);
+         Latest   : constant Ada.Calendar.Time :=
+           Ada.Calendar.Formatting.Time_Of (2399, 12, 31, 23, 59, 59, Time_Zone => 0);
+         Texts    : constant String :=
+           Files.Rendering.Display_Text.Full_Time_Text (Earliest)
+           & Files.Rendering.Display_Text.Clock_Time_Text (Earliest)
+           & Files.Rendering.Display_Text.Full_Time_Text (Latest)
+           & Files.Rendering.Display_Text.Clock_Time_Text (Latest);
+         pragma Unreferenced (Texts);
+      begin
+         null;
       end;
    end Test_Full_Times_Use_The_Locale_Form;

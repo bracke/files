@@ -828,7 +828,6 @@ package body Files.File_System.Support is
       then
          raise Ada.Directories.Use_Error;
       end if;
-      Save_Links (Batch, Walk.Copied_Files, Hostkit.Fs.Join (To_String (Stage), Payload_Name), Destination_Path);
       --  The walk flushed what a move needs (Durable); a move's caller
       --  syncs the published copy (Sync_Copy) before it removes the source.
       if not Publish_From_Stage
@@ -837,6 +836,17 @@ package body Files.File_System.Support is
       then
          raise Ada.Directories.Use_Error;
       end if;
+      --  Only a published copy is a link target for the rest of the batch: a
+      --  journal naming a destination the publish refused would make a later
+      --  hard link to the same file fail its identity check instead of being
+      --  copied. A crash between the two, or a journal the disk refuses now,
+      --  only costs a later copy instead of a link: the published copy stands.
+      begin
+         Save_Links (Batch, Walk.Copied_Files, Hostkit.Fs.Join (To_String (Stage), Payload_Name), Destination_Path);
+      exception
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
+      end;
       --  Publication is complete; leftover staging must not falsify its result.
       declare
          Removed : constant Boolean := Files.Jobs.Context.Discard_Stage (To_String (Stage));

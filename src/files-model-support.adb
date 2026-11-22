@@ -398,7 +398,46 @@ package body Files.Model.Support is
       end;
    end Group_Items;
 
-   procedure Resort_Items (Model : in out Window_Model; Field_Sort : Boolean := True) is
+   procedure Restore_Recency
+     (Model   : in out Window_Model;
+      Recency : Files.Types.String_Vectors.Vector)
+   is
+      package Position_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+        (Key_Type        => String,
+         Element_Type    => Positive,
+         Hash            => Ada.Strings.Hash,
+         Equivalent_Keys => "=");
+      Position : Position_Maps.Map;
+      Taken    : array (Model.Items.First_Index .. Model.Items.Last_Index) of Boolean := [others => False];
+      Ordered  : Files.Items.Item_Vectors.Vector;
+   begin
+      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+         Position.Include (To_String (Model.Items (Index).Full_Path), Index);
+      end loop;
+      Ordered.Reserve_Capacity (Model.Items.Length);
+      for Path of Recency loop
+         declare
+            Found : constant Position_Maps.Cursor := Position.Find (To_String (Path));
+         begin
+            if Position_Maps.Has_Element (Found) and then not Taken (Position_Maps.Element (Found)) then
+               Taken (Position_Maps.Element (Found)) := True;
+               Ordered.Append (Model.Items (Position_Maps.Element (Found)));
+            end if;
+         end;
+      end loop;
+      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+         if not Taken (Index) then
+            Ordered.Append (Model.Items (Index));
+         end if;
+      end loop;
+      Invalidate_Visible (Model);
+      Model.Items.Move (Ordered);
+   end Restore_Recency;
+
+   procedure Resort_Items
+     (Model      : in out Window_Model;
+      Field_Sort : Boolean := True;
+      Recency    : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector) is
       --  The selected items' paths: only the path finds an item again after
       --  the sort, so the items themselves are not copied.
       Previous_Selection : Files.Types.String_Vectors.Vector;
@@ -433,7 +472,7 @@ package body Files.Model.Support is
          return Natural (Index_Maps.Element (Found));
       end Index_Of;
    begin
-      if not Field_Sort and then Items_In_Group_Order (Model) then
+      if not Field_Sort and then Recency.Is_Empty and then Items_In_Group_Order (Model) then
          return;
       end if;
       Touch (Model);
@@ -459,6 +498,8 @@ package body Files.Model.Support is
             Model.Sort_Field_Value,
             Model.Sort_Ascending);
          Invalidate_Visible (Model);
+      elsif not Recency.Is_Empty then
+         Restore_Recency (Model, Recency);
       end if;
       Group_Items (Model);
       Sorted_Index.Reserve_Capacity (Model.Items.Length);

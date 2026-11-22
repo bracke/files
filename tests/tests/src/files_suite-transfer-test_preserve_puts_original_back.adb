@@ -1,3 +1,5 @@
+with Files.File_System.Transfer;
+with Files_Suite.Support.Disk;
 with Files.File_System.Recovery_Registry;
 with Files.IO.Durability.Testing;
 with Files_Suite.Support.Guards;
@@ -41,6 +43,44 @@ separate (Files_Suite.Transfer)
          "the original",
          "the original is back at its own path");
       Files_Suite.Support.Assert_Equal (Stages_Left, 0, "no hidden recovery folder is left behind");
+
+      --  Replacing an entry with itself, spelled through a linked folder, is
+      --  not a replace: the source is never moved aside to make room for it.
+      declare
+         Real    : constant String := Join (Root, "replace-self-real");
+         Alias   : constant String := Join (Root, "replace-self-alias");
+         Source  : constant String := Join (Real, "self.txt");
+         Held    : Natural := 0;
+         Replaced, Replaced_Identity, Created_Identity, Created_Revision : Files.Types.UString;
+
+         procedure Note_Held (Backup, Backup_Identity : String) is
+            pragma Unreferenced (Backup, Backup_Identity);
+         begin
+            Held := Held + 1;
+         end Note_Held;
+      begin
+         Ada.Directories.Create_Directory (Real);
+         Write_Binary_File (Source, "itself");
+         if Files_Suite.Support.Disk.Create_Symlink (Real, Alias) then
+            Result := Files.File_System.Transfer.Import_Replacing
+              (Source, Join (Alias, "self.txt"), Files.File_System.Drop_Copy, Replace => True,
+               Replaced => Replaced, Replaced_Identity => Replaced_Identity,
+               Created_Identity => Created_Identity, Created_Tree_Revision => Created_Revision,
+               Preserved => Note_Held'Access);
+            Assert (not Result.Success, "copying an entry onto itself is refused");
+            Files_Suite.Support.Assert_Equal (Held, 0, "the entry is never moved aside for itself");
+            Files_Suite.Support.Assert_Equal (Project_Tools.Files.Read_Raw_File (Source), "itself", "and stays");
+            declare
+               Removed : constant Boolean := Hostkit.Fs.Delete_Link (Alias);
+               pragma Unreferenced (Removed);
+            begin
+               null;
+            end;
+         else
+            Files_Suite.Support.Disk.Link_Not_Made
+              ("Test_Preserve_Puts_Original_Back", Files_Suite.Support.Disk.Symbolic_Link);
+         end if;
+      end;
    exception
       when others =>
          Files.IO.Durability.Testing.Clear;

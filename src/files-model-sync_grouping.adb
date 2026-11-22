@@ -66,6 +66,11 @@ begin
      and then not Model.Recent_View_Active
    then
       Resort_Items (Model);
+   elsif Inputs_Changed and then Was_Grouped and then Model.Recent_View_Active then
+      --  The old grouping partitioned the recency order: restore it from the
+      --  recent list before the new grouping (or none) partitions it again.
+      Resort_Items
+        (Model, Field_Sort => False, Recency => Files.Settings.Path_References.Recent_Paths (Settings));
    else
       --  Returns at once when the items are already in band order.
       Resort_Items (Model, Field_Sort => False);

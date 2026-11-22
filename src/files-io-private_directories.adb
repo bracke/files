@@ -34,13 +34,23 @@ package body Files.IO.Private_Directories is
             if Prepare /= null then
                Prepare (Candidate);
             end if;
-            if Try_Create (Candidate) = Created
-              or else (Reclaim /= null
-                       and then Reclaim (Candidate)
-                       and then Try_Create (Candidate) = Created)
-            then
-               return Candidate;
-            end if;
+            begin
+               if Try_Create (Candidate) = Created
+                 or else (Reclaim /= null
+                          and then Reclaim (Candidate)
+                          and then Try_Create (Candidate) = Created)
+               then
+                  return Candidate;
+               end if;
+            exception
+               when others =>
+                  --  A refused create (not a collision) ends the search:
+                  --  what Prepare published for this candidate goes first.
+                  if Abandon /= null then
+                     Abandon (Candidate);
+                  end if;
+                  raise;
+            end;
             if Abandon /= null then
                Abandon (Candidate);
             end if;

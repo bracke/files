@@ -62,4 +62,41 @@ separate (Files_Suite.Recovery)
            (not Unexpected_Success,
             "private directory setup failures are not misreported as collisions");
       end;
+      --  A candidate the host refuses (not a collision) is abandoned before
+      --  the failure propagates: what Prepare published for it is withdrawn.
+      declare
+         Prepared  : Natural := 0;
+         Abandoned : Natural := 0;
+         Raised    : Boolean := False;
+
+         procedure Prepare (Path : String) is
+            pragma Unreferenced (Path);
+         begin
+            Prepared := Prepared + 1;
+         end Prepare;
+
+         procedure Abandon (Path : String) is
+            pragma Unreferenced (Path);
+         begin
+            Abandoned := Abandoned + 1;
+         end Abandon;
+      begin
+         begin
+            declare
+               Made : constant String :=
+                 Files.IO.Private_Directories.Create_Numbered
+                   (Join (Root, "missing-parent"), "stage-",
+                    Prepare => Prepare'Access, Abandon => Abandon'Access);
+               pragma Unreferenced (Made);
+            begin
+               null;
+            end;
+         exception
+            when Ada.Directories.Use_Error =>
+               Raised := True;
+         end;
+         Assert (Raised, "a refused numbered directory raises");
+         Files_Suite.Support.Assert_Equal (Prepared, 1, "the refused candidate was prepared once");
+         Files_Suite.Support.Assert_Equal (Abandoned, 1, "and abandoned before the failure propagated");
+      end;
    end Test_Private_Directory_Hardening;

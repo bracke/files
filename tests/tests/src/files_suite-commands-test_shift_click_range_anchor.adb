@@ -53,4 +53,16 @@ separate (Files_Suite.Commands)
             (Index in 3 .. 9),
             "exactly items 3..9 are selected after the range extension");
       end loop;
+
+      --  A type-ahead jump moves the cursor, so it moves the anchor too: the
+      --  next Shift+arrow ranges from the item typed to.
+      declare
+         Matched : Boolean;
+      begin
+         Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 2);
+         Files.Model.Selection.Type_Ahead_Input (Model, "05", Matched);
+         Assert (Matched, "typing 05 finds 05.txt");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selection.Range_Anchor (Model), 5, "the range anchor follows the type-ahead jump");
+      end;
    end Test_Shift_Click_Range_Anchor;

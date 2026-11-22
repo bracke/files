@@ -110,6 +110,11 @@ package body Files.Model.Pasting is
    begin
       --  The previous helpers' handles are released (End_Foreground_Job).
       End_Foreground_Job (Model);
+      --  A read in flight is released, not dropped: as in Files.Refresh, the
+      --  paste's own reload may not cover it, so it is owed until then.
+      if Files.Jobs.Process.Active (Model.Refresh_Job) then
+         Note_Owed_Refresh (Model, Force => False, Select_Name => "");
+      end if;
       Model.Refresh_Job := Released_Process;
       Model.Foreground_Kind := Paste_Job;
       Touch (Model);

@@ -1,3 +1,5 @@
+with Files.Items;
+with Files.Name_Parts;
 with Files.Preference_Types;
 with Files.Settings.Path_References;
 separate (Files_Suite.Model)
@@ -93,6 +95,43 @@ separate (Files_Suite.Model)
                Assert (not Snapshot.Items (Index).Is_Group_Header, "no band headers without grouping");
                Assert (Snapshot.Items (Index).Name = Expected.Items (Index).Name,
                        "ungrouping restores the plain sort order");
+            end loop;
+         end;
+      end;
+
+      --  The Recent view is only partitioned by a grouping, never sorted: on
+      --  leaving the grouping it shows its recency order again, not the old
+      --  bands' order.
+      Files.Settings.Path_References.Note_Recent (Settings, Join (Root, "Alpha.txt"));
+      Files.Settings.Path_References.Note_Recent (Settings, Join (Root, "Gamma.md"));
+      Files.Settings.Path_References.Note_Recent (Settings, Join (Root, "Beta.txt"));
+      declare
+         Recency : constant Files.Settings.String_Vectors.Vector :=
+           Files.Settings.Path_References.Recent_Paths (Settings);
+         Recent  : Files.Items.Item_Vectors.Vector;
+      begin
+         for Path of Recency loop
+            for Item of Files_Suite.Support.Models.Sample_Items loop
+               if Item.Full_Path = Path then
+                  Recent.Append (Item);
+               end if;
+            end loop;
+         end loop;
+         Files.Model.Navigate_Recent (Model, Recent);
+         Settings.Group_By := Files.Preference_Types.Group_By_Label;
+         Files.Model.Sync_Grouping (Model, Settings);
+         Settings.Group_By := Files.Preference_Types.No_Grouping;
+         Files.Model.Sync_Grouping (Model, Settings);
+         declare
+            Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
+         begin
+            Files_Suite.Support.Assert_Equal
+              (Natural (Snapshot.Items.Length), Natural (Recency.Length), "the Recent view keeps every item");
+            for Index in Snapshot.Items.First_Index .. Snapshot.Items.Last_Index loop
+               Assert
+                 (To_String (Snapshot.Items (Index).Name)
+                    = Files.Name_Parts.Leaf_Of (To_String (Recency (Index - Snapshot.Items.First_Index + 1))),
+                  "leaving a grouping restores the Recent view's recency order");
             end loop;
          end;
       end;

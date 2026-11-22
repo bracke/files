@@ -381,14 +381,17 @@ package body Files.Refresh is
       if not Files.Jobs.Process.Active (Job) then
          return False;
       end if;
-      if Files.Model.Foreground_Job_Is_Active (Model) then
-         Cancel (Model);
-         return False;
-      end if;
       --  Read only the request header from local transport. A navigation or edit
       --  must discard even a helper still blocked on the previous directory.
       Requested := Read_Request_Identity (Files.Jobs.Process.Path (Job, Files.Jobs.Process.Request_File));
       if Requested.Root /= Files.Model.Current_Path (Model) then
+         Cancel (Model);
+         return False;
+      elsif Files.Model.Foreground_Job_Is_Active (Model) then
+         --  As in Start: the modal job's own result may not cover this read
+         --  (a show-hidden change shared from another window), so the read
+         --  is owed and Resume_Owed starts it again once the job is done.
+         Owe_Reload (Model, Job);
          Cancel (Model);
          return False;
       elsif Requested.Context_Revision /= Files.Model.Listing_Revision (Model) then

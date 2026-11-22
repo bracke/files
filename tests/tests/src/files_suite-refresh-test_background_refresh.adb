@@ -127,6 +127,28 @@ separate (Files_Suite.Refresh)
          "error.trash.restore_exists",
          "a successful refresh preserves a mutation recovery error");
 
+      --  Clearing an error that is already clear (Ctrl+F, Copy Path) or
+      --  setting the one already shown is not a new listing context: a read
+      --  in flight survives it.
+      Files.Model.Set_Error (Model, "");
+      declare
+         Listing : constant Natural := Files.Model.Listing_Revision (Model);
+      begin
+         Files.Model.Set_Error (Model, "");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Listing_Revision (Model), Listing, "clearing a clear error keeps the listing revision");
+         Files.Model.Set_Error (Model, "error.trash.restore_exists");
+         Assert (Files.Model.Listing_Revision (Model) /= Listing, "a new error moves the listing revision");
+      end;
+      declare
+         Listing : constant Natural := Files.Model.Listing_Revision (Model);
+      begin
+         Files.Model.Set_Error (Model, "error.trash.restore_exists");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Listing_Revision (Model), Listing, "setting the error already shown keeps it");
+      end;
+      Files.Model.Set_Error (Model, "");
+
       Ada.Directories.Create_Directory (Join (Root, "other"));
       Step := Files.Operations.Refresh (Model, Settings);
       Await_Ready;

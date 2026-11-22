@@ -21,7 +21,8 @@ package Files.IO.Private_Directories is
    --  @param Prepare Called with each candidate before its create is tried
    --    (a caller that publishes the name it is about to make); null: none.
    --  @param Abandon Called with a candidate that turned out taken, after
-   --    Prepare, before the next is tried (to withdraw what Prepare
+   --    Prepare, before the next is tried, and with one the host refused
+   --    before that failure propagates (to withdraw what Prepare
    --    published); null: none.
    --  @return The created directory, or "" when every name is taken.
    function Create_Numbered

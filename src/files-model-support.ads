@@ -186,7 +186,14 @@ private package Files.Model.Support is
    --  @param Model Model whose items are re-sorted in place.
    --  @param Field_Sort False to keep the current order and only regroup it,
    --    which does nothing while the items are still in band order.
-   procedure Resort_Items (Model : in out Window_Model; Field_Sort : Boolean := True);
+   --  @param Recency When not empty (with Field_Sort False), the items are
+   --    first put back in this path order (the Recent view's recency, which
+   --    an earlier grouping partitioned), items it does not name after them
+   --    in their current order, and then regrouped.
+   procedure Resort_Items
+     (Model      : in out Window_Model;
+      Field_Sort : Boolean := True;
+      Recency    : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector);
 
    --  Cancel every overlay and edit sub-mode (rename, palette, panes, pickers)
    --  before starting a new edit, so only one is ever active at a time.

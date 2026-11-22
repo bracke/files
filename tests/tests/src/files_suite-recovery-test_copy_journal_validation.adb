@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 with Files.File_System.Transfer;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
@@ -113,8 +114,36 @@ separate (Files_Suite.Recovery)
          Files_Suite.Support.Disk.Link_Not_Made ("Test_Copy_Journal_Validation",
                                                  Files_Suite.Support.Disk.Symbolic_Link);
       end if;
+
+      --  A hard-linked file whose copy the destination then refuses (an entry
+      --  appeared there while it was staged) is not journalled: a later link
+      --  to the same file in the batch must be copied, not checked against a
+      --  destination that holds something else.
+      declare
+         Linked  : constant String := Join (Root, "journal-linked");
+         Twin    : constant String := Join (Root, "journal-linked-twin");
+         Refused : constant String := Join (Root, "journal-refused-copy");
+      begin
+         if Ada.Directories.Exists (Join (Root, "links")) then
+            Ada.Directories.Delete_File (Join (Root, "links"));
+         end if;
+         Write_Binary_File (Linked, "linked bytes");
+         if Hostkit.Fs.Create_Hard_Link (Linked, Twin) then
+            Files.File_System.Testing.Change_Source_After_Copy
+              (Root, Refused, Files.File_System.Testing.Edit_Source);
+            Result := Files.File_System.Transfer.Copy_Tree (Linked, Refused, Batch);
+            Files.File_System.Testing.Stop_Changing_Source;
+            Assert (not Result.Success, "a copy whose destination appeared meanwhile is refused");
+            Assert
+              (Files.Jobs.Copy_Context.Records (Batch).Is_Empty,
+               "and its hard link is not journalled for the rest of the batch");
+         else
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Copy_Journal_Validation", Files_Suite.Support.Disk.Hard_Link);
+         end if;
+      end;
    exception
       when others =>
+         Files.File_System.Testing.Stop_Changing_Source;
          if Ada.Streams.Stream_IO.Is_Open (File) then
             Ada.Streams.Stream_IO.Close (File);
          end if;

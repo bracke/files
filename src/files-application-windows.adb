@@ -178,6 +178,10 @@ package body Files.Application.Windows is
    --  @param Runtime Window whose current snapshot is brought up to date.
    procedure Refresh_Snapshot (Runtime : in out Runtime_Window) is
    begin
+      --  A step that replaced the items (a navigation, a reload) and then
+      --  reveals or lays out in that same step must see them in group order:
+      --  For_Each_Window only regroups before each step. A no-op when banded.
+      Files.Model.Sync_Grouping (Runtime.Model, Runtime.Settings);
       Files.Application.Snapshot_Slots.Refresh
         (Runtime.View, Runtime.Model, Runtime.Settings, Ada.Real_Time.Clock, Ada.Calendar.Clock);
    end Refresh_Snapshot;
@@ -286,6 +290,9 @@ package body Files.Application.Windows is
       Runtime.Handle.Drop_Next_Character := False;
 
       for Event of Events loop
+         --  A key that navigated (or reloaded) replaced the items; the next
+         --  one queued in this batch walks them in the drawn group order.
+         Files.Model.Sync_Grouping (Runtime.Model, Runtime.Settings);
          case Event.Kind is
             when Key_Press_Event =>
                --  With the traces below a presented frame, CI follows a key
