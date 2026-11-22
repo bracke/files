@@ -1,3 +1,4 @@
+with Files.Operations.Opening.Testing;
 with Files.Item_Lists;
 with Files.Operations.Opening;
 with Files.Model.Creation;
@@ -23,7 +24,7 @@ separate (Files_Suite.Open_Actions)
       Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
       Files.Model.Set_Error (Model, "error.directory.load");
 
-      Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings);
+      Result := Files.Operations.Opening.Testing.Prepare_Open_Selected_Action (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Disabled,

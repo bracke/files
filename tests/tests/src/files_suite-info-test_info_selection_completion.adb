@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -31,7 +32,7 @@ separate (Files_Suite.Info)
               "keyboard selection populates details for the new selection: details loaded");
       Assert (Files_Suite.Support.Models.Describe (Files.Model.Selection.Selected_Item (Model).Filetype_Extra) /= "",
               "keyboard selection populates details for the new selection: details present");
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Step := Files.Operations.Refresh (Model, Settings);
       Await_View (Model, Settings);
       Await_Item_Details (Model);

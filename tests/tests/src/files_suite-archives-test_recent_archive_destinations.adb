@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.History;
 with Files.Operations.Navigation;
 with Files.Model.Recent;
@@ -38,7 +39,7 @@ separate (Files_Suite.Archives)
          Files.Settings.Path_References.Note_Recent (Settings, Join (Two, "note.txt"));
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.History.Clear_Undo (Model);
-         Files.Model.Set_Background_Transfers (Model, Background);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Step := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
          Files.Model.Selection.Select_All_Visible (Model);
          Ada.Directories.Set_Directory (Cwd);

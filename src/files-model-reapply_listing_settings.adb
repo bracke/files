@@ -27,7 +27,7 @@ begin
    --  are worked out (Item_Is_Visible), so a setting that hides them and then
    --  shows them again gives the same results back.
    Touch (Model);
-   Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+   Support.Touch_Listing (Model);
    if Reclassify then
       for Item of Model.Items loop
          declare

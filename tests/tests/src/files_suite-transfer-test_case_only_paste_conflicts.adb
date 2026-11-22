@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Paste;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -76,7 +77,7 @@ separate (Files_Suite.Transfer)
             end Expect;
          begin
             for Attempt in 1 .. 100 loop
-               exit when not Files.Model.Foreground_Job_Is_Active (Model);
+               exit when not Files.Model.Jobs.Foreground_Job_Is_Active (Model);
                Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
             end loop;
             Expect ("SRC", Script & " replace");

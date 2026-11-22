@@ -1,3 +1,4 @@
+with Files.File_System.Transfer.Testing;
 with Files.Controller.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -29,7 +30,7 @@ separate (Files_Suite.Transfer)
       Plans := Files.File_System.Transfer.Plan_Drop_Import (Sources, Drop_Target);
       Assert (Plans.Success, "drop import planning accepts valid dropped paths");
       Files_Suite.Support.Assert_Equal (Natural (Plans.Plans.Length), 2, "drop import plans every source path");
-      Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
+      Mutation := Files.File_System.Transfer.Testing.Execute_Drop_Import (Plans.Plans);
       Assert (Mutation.Success, "drop import copy executes");
       Assert (Ada.Directories.Exists (Join (Drop_Target, "drop-source.txt")), "drop import copies files");
       Assert
@@ -104,7 +105,7 @@ separate (Files_Suite.Transfer)
       Write_File (Join (Root, "move-source.txt"), "move");
       Sources.Append (To_Unbounded_String (Join (Root, "move-source.txt")));
       Plans := Files.File_System.Transfer.Plan_Drop_Import (Sources, Drop_Target, Files.File_System_Types.Drop_Move);
-      Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
+      Mutation := Files.File_System.Transfer.Testing.Execute_Drop_Import (Plans.Plans);
       Assert (Mutation.Success, "drop import move executes");
       Assert (Ada.Directories.Exists (Join (Drop_Target, "move-source.txt")), "drop move creates destination");
       Assert (not Ada.Directories.Exists (Join (Root, "move-source.txt")), "drop move removes source");

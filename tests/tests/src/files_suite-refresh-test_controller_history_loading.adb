@@ -1,8 +1,8 @@
+with Files.File_System.Roots.Testing;
 with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Controller.Testing;
-with Files.File_System.Testing;
 with Files.Model.Root_Selector;
 separate (Files_Suite.Refresh)
    procedure Test_Controller_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -31,7 +31,7 @@ separate (Files_Suite.Refresh)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
 
       Load := Files_Suite.Listings.Load_Directory (Second, Settings);
-      Files.Model.Root_Selector.Open (Model, Files.File_System.Testing.Available_Roots);
+      Files.Model.Root_Selector.Open (Model, Files.File_System.Roots.Testing.Available_Roots);
       Files.Model.Navigate_To (Model, Second, Load.Items);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Root_Selector.Count (Model),

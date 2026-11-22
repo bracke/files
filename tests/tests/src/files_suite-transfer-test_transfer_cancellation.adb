@@ -1,3 +1,4 @@
+with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Testing;
 separate (Files_Suite.Transfer)
@@ -29,14 +30,14 @@ separate (Files_Suite.Transfer)
             Mode             => Files.File_System_Types.Drop_Copy,
             Valid            => True,
             Error_Key        => Null_Unbounded_String));
-      Result := Files.File_System.Testing.Execute_Drop_Import (Plans, Cancelled'Unrestricted_Access);
+      Result := Files.File_System.Transfer.Testing.Execute_Drop_Import (Plans, Cancelled'Unrestricted_Access);
       Assert (not Result.Success and then Checks >= 4, "cancellation interrupts a file after copying begins");
       Assert (not Ada.Directories.Exists (Dest), "cancellation removes the incomplete destination");
       Assert (Ada.Directories.Size (Source) = 262_144, "the complete source survives cancellation");
 
       --  A destination created after planning is someone else's data.
       Write_Binary_File (Dest, "keep");
-      Result := Files.File_System.Testing.Execute_Drop_Import (Plans);
+      Result := Files.File_System.Transfer.Testing.Execute_Drop_Import (Plans);
       Assert (not Result.Success, "a late destination collision fails");
       Files_Suite.Support.Assert_Equal
         (Project_Tools.Files.Read_Raw_File (Dest),
@@ -50,7 +51,7 @@ separate (Files_Suite.Transfer)
             Mode             => Files.File_System_Types.Drop_Copy,
             Valid            => True,
             Error_Key        => Null_Unbounded_String));
-      Result := Files.File_System.Testing.Execute_Drop_Import (Plans);
+      Result := Files.File_System.Transfer.Testing.Execute_Drop_Import (Plans);
       Assert (not Result.Success, "copying onto the source is refused");
       Assert (Ada.Directories.Size (Source) = 262_144, "a self-copy never truncates or deletes its source");
 
@@ -65,7 +66,7 @@ separate (Files_Suite.Transfer)
             Error_Key        => Null_Unbounded_String));
       Files.File_Identities.Testing.Set_Unavailable (True);
       begin
-         Result := Files.File_System.Testing.Execute_Drop_Import (Plans);
+         Result := Files.File_System.Transfer.Testing.Execute_Drop_Import (Plans);
       exception
          when others =>
             Files.File_Identities.Testing.Set_Unavailable (False);

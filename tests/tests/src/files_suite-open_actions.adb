@@ -18,7 +18,7 @@ with Files.Model;
 with Files.Model.Selection;
 with Files.Model.Rename;
 with Files.Operations;
-with Files.Operations.Testing;
+with Files.Operations.Opening.Testing;
 with Hostkit.Fs;
 with Hostkit.Metadata;
 with Files.Settings;
@@ -37,7 +37,7 @@ package body Files_Suite.Open_Actions is
    use AUnit.Assertions;
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
-   use type Files.Operations.Testing.Open_Action_Lifecycle_State;
+   use type Files.Operations.Opening.Testing.Open_Action_Lifecycle_State;
    use type Files.Operation_Results.Operation_Status;
    use type Files.UI_Types.Focus_Target;
    use type Files.Types.Item_Kind;

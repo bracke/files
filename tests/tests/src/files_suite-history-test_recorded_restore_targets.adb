@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
@@ -37,7 +38,7 @@ separate (Files_Suite.History)
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Operations.History.Clear_Undo (Model);
-               Files.Model.Set_Background_Transfers (Model, Background);
+               Files.Model.Jobs.Set_Background_Transfers (Model, Background);
                if Scenario = 1 then
                   Selected := Files.Model.Selection.Select_By_Name (Model, "entry");
                   Assert (Selected, "select the trash restore fixture");

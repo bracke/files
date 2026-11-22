@@ -1,11 +1,8 @@
 with Ada.Containers.Hashed_Sets;
 with Ada.Strings.Unbounded.Hash;
 with Ada.Unchecked_Deallocation;
-with Files.Preference_Types;
 with Files.Item_Lists;
 with Files.UI_Types;
-with Ada.Containers.Indefinite_Hashed_Maps;
-with Ada.Strings.Hash;
 
 with Files.Grouping;
 with Files.Text_Case;
@@ -68,7 +65,7 @@ package body Files.Model.Support is
       if Model.Visible_Cache_Valid then
          return;
       end if;
-      Cache.Visible_Generation := (if Model.Visible_Generation = Natural'Last then 0 else Model.Visible_Generation + 1);
+      Cache.Visible_Generation := Bumped (Model.Visible_Generation);
       Cache.Visible_Items.Clear;
       Cache.Item_Visible_Rows.Clear;
       Cache.Item_Visible_Rows.Reserve_Capacity (Model.Items.Length);
@@ -94,45 +91,52 @@ package body Files.Model.Support is
 
    procedure Touch (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
-      Model.Rows_Revision_Value := Model.Rows_Revision_Value + 1;
+      Model.Revision_Value := Bumped (Model.Revision_Value);
+      Model.Rows_Revision_Value := Bumped (Model.Rows_Revision_Value);
    end Touch;
 
    procedure Touch_Rename (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
-      Model.Rename_Revision_Value := Model.Rename_Revision_Value + 1;
+      Model.Revision_Value := Bumped (Model.Revision_Value);
+      Model.Rename_Revision_Value := Bumped (Model.Rename_Revision_Value);
    end Touch_Rename;
 
    procedure Touch_Selection (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
-      Model.Selection_Revision_Value := Model.Selection_Revision_Value + 1;
+      Model.Revision_Value := Bumped (Model.Revision_Value);
+      Model.Selection_Revision_Value := Bumped (Model.Selection_Revision_Value);
    end Touch_Selection;
 
    procedure Touch_Header (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Revision_Value := Bumped (Model.Revision_Value);
    end Touch_Header;
 
    procedure Touch_Info (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
-      Model.Info_Revision_Value :=
-        (if Model.Info_Revision_Value = Natural'Last then 0 else Model.Info_Revision_Value + 1);
+      Model.Revision_Value := Bumped (Model.Revision_Value);
+      Model.Info_Revision_Value := Bumped (Model.Info_Revision_Value);
    end Touch_Info;
+
+   procedure Touch_Listing (Model : in out Window_Model) is
+   begin
+      Model.Listing_Revision_Value := Bumped (Model.Listing_Revision_Value);
+   end Touch_Listing;
+
+   procedure Touch_Scroll (Model : in out Window_Model) is
+   begin
+      Model.Scroll_Revision_Value := Bumped (Model.Scroll_Revision_Value);
+   end Touch_Scroll;
 
    procedure Touch_Overlay (Model : in out Window_Model) is
    begin
-      Model.Overlay_Revision_Value :=
-        (if Model.Overlay_Revision_Value = Natural'Last then 0 else Model.Overlay_Revision_Value + 1);
+      Model.Overlay_Revision_Value := Bumped (Model.Overlay_Revision_Value);
    end Touch_Overlay;
 
    procedure Note_Folder_Sizes (Model : in out Window_Model) is
    begin
       Touch_Header (Model);
-      Model.Folder_Sizes_Revision :=
-        (if Model.Folder_Sizes_Revision = Natural'Last then 0 else Model.Folder_Sizes_Revision + 1);
+      Model.Folder_Sizes_Revision := Bumped (Model.Folder_Sizes_Revision);
    end Note_Folder_Sizes;
 
    procedure Reset_Quick_Look
@@ -157,7 +161,7 @@ package body Files.Model.Support is
      (Model : in out Window_Model) is
    begin
       Touch (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      Touch_Listing (Model);
       Model.Rename.Active := False;
       Model.Rename.Fields.Clear;
       --  A rename that has ended has no field to type into.
@@ -374,13 +378,6 @@ package body Files.Model.Support is
       end if;
    end Reconcile_Rename_With_Selection;
 
-   package Label_Maps is new Ada.Containers.Indefinite_Hashed_Maps
-     (Key_Type        => String,
-      Element_Type    => Files.Preference_Types.Color_Label,
-      Hash            => Ada.Strings.Hash,
-      Equivalent_Keys => "=",
-      "="             => Files.Preference_Types."=");
-
    function Group_Labels_Map (Model : Window_Model) return Label_Maps.Map is
       Result : Label_Maps.Map;
    begin
@@ -413,225 +410,6 @@ package body Files.Model.Support is
          Model.Grouping.Day);
    end Group_Band;
 
-   function Temporary_Band (Model : Window_Model) return Natural is
-   begin
-      if not Model.Temporary.Active or else Model.Grouping.Mode = Files.Preference_Types.No_Grouping then
-         return 0;
-      end if;
-      return Group_Band (Model, Group_Labels_Map (Model), Temporary_Item (Model));
-   end Temporary_Band;
-
-   function Items_In_Group_Order (Model : Window_Model) return Boolean is
-      Labels   : Label_Maps.Map;
-      Previous : Positive := 1;
-   begin
-      if Model.Grouping.Mode = Files.Preference_Types.No_Grouping then
-         return True;
-      end if;
-      Labels := Group_Labels_Map (Model);
-      for Item of Model.Items loop
-         declare
-            Band : constant Positive := Group_Band (Model, Labels, Item);
-         begin
-            if Band < Previous then
-               return False;
-            end if;
-            Previous := Band;
-         end;
-      end loop;
-      return True;
-   end Items_In_Group_Order;
-
-   --  Stable partition of the items into their bands, keeping the sort order
-   --  within each band.
-   procedure Group_Items (Model : in out Window_Model) is
-      Labels : Label_Maps.Map;
-   begin
-      if Model.Grouping.Mode = Files.Preference_Types.No_Grouping then
-         return;
-      end if;
-      Labels := Group_Labels_Map (Model);
-      declare
-         Count : constant Positive := Files.Grouping.Band_Count (Model.Grouping.Mode);
-         type Band_Array is array (1 .. Count) of Files.Items.Item_Vectors.Vector;
-         Bands : Band_Array;
-      begin
-         for Item of Model.Items loop
-            Bands (Group_Band (Model, Labels, Item)).Append (Item);
-         end loop;
-         Invalidate_Visible (Model);
-         Model.Items.Clear;
-         for Band of Bands loop
-            Model.Items.Append (Band);
-         end loop;
-      end;
-   end Group_Items;
-
-   procedure Restore_Recency
-     (Model   : in out Window_Model;
-      Recency : Files.Types.String_Vectors.Vector)
-   is
-      package Position_Maps is new Ada.Containers.Indefinite_Hashed_Maps
-        (Key_Type        => String,
-         Element_Type    => Positive,
-         Hash            => Ada.Strings.Hash,
-         Equivalent_Keys => "=");
-      Position : Position_Maps.Map;
-      Taken    : array (Model.Items.First_Index .. Model.Items.Last_Index) of Boolean := [others => False];
-      Ordered  : Files.Items.Item_Vectors.Vector;
-   begin
-      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         Position.Include (To_String (Model.Items (Index).Full_Path), Index);
-      end loop;
-      Ordered.Reserve_Capacity (Model.Items.Length);
-      for Path of Recency loop
-         declare
-            Found : constant Position_Maps.Cursor := Position.Find (To_String (Path));
-         begin
-            if Position_Maps.Has_Element (Found) and then not Taken (Position_Maps.Element (Found)) then
-               Taken (Position_Maps.Element (Found)) := True;
-               Ordered.Append (Model.Items (Position_Maps.Element (Found)));
-            end if;
-         end;
-      end loop;
-      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         if not Taken (Index) then
-            Ordered.Append (Model.Items (Index));
-         end if;
-      end loop;
-      Invalidate_Visible (Model);
-      Model.Items.Move (Ordered);
-   end Restore_Recency;
-
-   procedure Resort_Items
-     (Model      : in out Window_Model;
-      Field_Sort : Boolean := True;
-      Recency    : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector) is
-      --  The selected items' paths: only the path finds an item again after
-      --  the sort, so the items themselves are not copied.
-      Previous_Selection : Files.Types.String_Vectors.Vector;
-      Primary_Sentinel   : constant Boolean := Model.Selected_Item_Index = Temporary_Item_Index;
-      Primary_Path       : Unbounded_String := Null_Unbounded_String;
-      Rename_Old_Paths   : Files.Types.String_Vectors.Vector;
-
-      function Path_At (Item_Index : Natural) return Unbounded_String is
-      begin
-         if Item_Index in 1 .. Natural (Model.Items.Last_Index) then
-            return Model.Items.Element (Positive (Item_Index)).Full_Path;
-         else
-            return Null_Unbounded_String;
-         end if;
-      end Path_At;
-
-      --  New index of each path after the sort, built once: a per-item scan
-      --  made re-sorting a Select All quadratic.
-      package Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
-        (Key_Type        => String,
-         Element_Type    => Positive,
-         Hash            => Ada.Strings.Hash,
-         Equivalent_Keys => "=");
-      Sorted_Index : Index_Maps.Map;
-
-      function Index_Of (Path : Unbounded_String) return Natural is
-         Found : constant Index_Maps.Cursor := Sorted_Index.Find (To_String (Path));
-      begin
-         if Path = Null_Unbounded_String or else not Index_Maps.Has_Element (Found) then
-            return 0;
-         end if;
-         return Natural (Index_Maps.Element (Found));
-      end Index_Of;
-   begin
-      if not Field_Sort and then Recency.Is_Empty and then Items_In_Group_Order (Model) then
-         return;
-      end if;
-      Touch (Model);
-      for Item_Index of Model.Selected_Item_Indexes loop
-         if Item_Index in 1 .. Natural (Model.Items.Last_Index) then
-            Previous_Selection.Append (Model.Items (Positive (Item_Index)).Full_Path);
-         end if;
-      end loop;
-      if not Primary_Sentinel then
-         Primary_Path := Path_At (Model.Selected_Item_Index);
-      end if;
-
-      --  Capture each rename field's item identity before the reorder. The
-      --  temporary field (Temporary_Item_Index) records a null path so it
-      --  can be preserved rather than remapped by identity.
-      for Field of Model.Rename.Fields loop
-         Rename_Old_Paths.Append (Path_At (Field.Item_Index));
-      end loop;
-
-      if Field_Sort then
-         Files.Item_Lists.Sort_Items
-           (Model.Items,
-            Model.Sort_Field_Value,
-            Model.Sort_Ascending);
-         Invalidate_Visible (Model);
-      elsif not Recency.Is_Empty then
-         Restore_Recency (Model, Recency);
-      end if;
-      Group_Items (Model);
-      Sorted_Index.Reserve_Capacity (Model.Items.Length);
-      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         Sorted_Index.Include (To_String (Model.Items (Index).Full_Path), Index);
-      end loop;
-      Model.Range_Anchor_Item := Index_Of (Model.Range_Anchor_Path);
-
-      declare
-         --  The pending create row is selected through a marker, not an item
-         --  index; keep it, or the row being named loses its highlight.
-         Temporary_Selected : constant Boolean :=
-           Model.Selected_Item_Indexes.Contains (Temporary_Item_Index);
-      begin
-         Model.Selected_Item_Indexes.Clear;
-         for Path of Previous_Selection loop
-            declare
-               New_Index : constant Natural := Index_Of (Path);
-            begin
-               if New_Index /= 0 then
-                  Model.Selected_Item_Indexes.Append (New_Index);
-               end if;
-            end;
-         end loop;
-         if Temporary_Selected then
-            Model.Selected_Item_Indexes.Append (Temporary_Item_Index);
-         end if;
-      end;
-
-      if not Primary_Sentinel then
-         Model.Selected_Item_Index := Index_Of (Primary_Path);
-      end if;
-
-      --  Remap each rename field to its item's new index, preserving the
-      --  temporary field and dropping fields whose item vanished.
-      declare
-         Rebuilt : Rename_Field_Vectors.Vector;
-         Cursor  : Positive := Rename_Old_Paths.First_Index;
-      begin
-         for Field of Model.Rename.Fields loop
-            declare
-               Old_Path  : constant Unbounded_String := Rename_Old_Paths.Element (Cursor);
-               New_Field : Rename_Field := Field;
-            begin
-               if Field.Item_Index = Temporary_Item_Index then
-                  Rebuilt.Append (Field);
-               else
-                  declare
-                     New_Index : constant Natural := Index_Of (Old_Path);
-                  begin
-                     if New_Index /= 0 then
-                        New_Field.Item_Index := New_Index;
-                        Rebuilt.Append (New_Field);
-                     end if;
-                  end;
-               end if;
-            end;
-            Cursor := Cursor + 1;
-         end loop;
-         Model.Rename.Fields := Rebuilt;
-      end;
-   end Resort_Items;
-
    procedure Clear_Overlay_State_For_Edit
      (Model : in out Window_Model) is
    begin
@@ -639,28 +417,6 @@ package body Files.Model.Support is
       Clear_Root_Selector_State (Model);
       Hide_Command_Palette (Model);
    end Clear_Overlay_State_For_Edit;
-
-   procedure Begin_Create_Temporary
-      (Model        : in out Window_Model;
-       Name         : String;
-       Is_Directory : Boolean) is
-   begin
-      Touch (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-      Clear_Overlay_State_For_Edit (Model);
-      Model.Temporary := (Active => True, Is_Directory => Is_Directory, Name => To_Unbounded_String (Name));
-      Model.Rename.Fields.Clear;
-      Model.Rename.Fields.Append
-        (Rename_Field'
-           (Item_Index => Temporary_Item_Index,
-            Edit       => (Text => To_Unbounded_String (Name), Cursor => Name'Length)));
-      Model.Rename.Active := True;
-      Model.Main_View_Scroll := 0;
-      Model.Selected_Item_Index := Temporary_Item_Index;
-      Model.Selected_Item_Indexes.Clear;
-      Add_Selected_Index (Model, Temporary_Item_Index);
-      Model.Focus_Value := Files.UI_Types.Focus_Rename_Input;
-   end Begin_Create_Temporary;
 
    procedure Claim_Overlay_Input
      (Model : in out Window_Model) is
@@ -1005,8 +761,34 @@ package body Files.Model.Support is
          return;
       end if;
 
-      Model.Scroll_Revision_Value := Model.Scroll_Revision_Value + 1;
+      Model.Scroll_Revision_Value := Bumped (Model.Scroll_Revision_Value);
       Model.Info_Pane_Scroll := Lines;
    end Set_Info_Pane_Scroll_Lines;
+
+   --  An idle transfer session, to release a held one by assignment: the
+   --  model only holds the job handles; Files.Operations drives them.
+   --
+   --  @return A session holding no job.
+   function Released_Transfer return Files.Jobs.Process.Session is
+      Idle : Files.Jobs.Process.Session;
+   begin
+      return Idle;
+   end Released_Transfer;
+
+   procedure End_Foreground_Job (Model : in out Window_Model) is
+   begin
+      --  Released, not driven: a helper still running is stopped and reaped
+      --  by its last handle going (Files.Jobs.Process).
+      Model.Paste_Exec_Job := Released_Transfer;
+      Model.Operation_Job := Released_Process;
+      Model.Operation_Merge_Deferred := False;
+      Model.Operation_Label_Key := Null_Unbounded_String;
+      Model.Operation_Name := Null_Unbounded_String;
+      Model.Paste_Exec := (others => <>);
+      Model.Foreground_Kind := No_Foreground_Job;
+      --  Only the progress dialog goes; the reload that follows a job moves
+      --  the rows itself.
+      Touch_Header (Model);
+   end End_Foreground_Job;
 
 end Files.Model.Support;

@@ -13,7 +13,7 @@ begin
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.trash.failed"));
    end if;
-   if Trash.Trash_Backend_Of_Current_Environment in Trash_Xdg_Data_Home | Trash_Home_Data then
+   if Trash.Trash_Backend_Of_Current_Environment in Trash.Trash_Xdg_Data_Home | Trash.Trash_Home_Data then
       Result := Trash.Move_To_Trash (Path, Recovery_Path);
    else
       Result := Recovery.Preserve (Path, Recovery_Path);

@@ -31,7 +31,6 @@ with Files.Model;
 with Files.Model.Selection;
 with Files.Model.Rename;
 with Files.Model.History;
-with Files.Operations.Testing;
 with Files.Paste;
 with Hostkit.Fs;
 with Files.Settings;

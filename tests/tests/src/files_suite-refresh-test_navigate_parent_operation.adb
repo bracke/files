@@ -164,7 +164,7 @@ separate (Files_Suite.Refresh)
                Assert
                  (not Files.Commands.Status.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Trash_Model),
                   "commands that would desynchronize trash metadata are disabled: rename disabled");
-               Files.Model.Set_Background_Transfers (Trash_Model, True);
+               Files.Model.Jobs.Set_Background_Transfers (Trash_Model, True);
                Trash_Result := Operation_Commands.Delete_Selected (Trash_Model, Settings);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled

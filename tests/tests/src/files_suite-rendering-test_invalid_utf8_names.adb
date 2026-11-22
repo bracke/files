@@ -1,7 +1,7 @@
+with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
-with Files.File_System.Testing;
 with Ada.Text_IO;
 with Hostkit.Fs;
 with Files_Suite.Support.Disk;
@@ -98,7 +98,7 @@ separate (Files_Suite.Rendering)
          begin
             Assert (Plan.Plans.First_Element.Valid, "a non-UTF-8 name can be copied: "
                     & Ada.Strings.Unbounded.To_String (Plan.Error_Key));
-            Assert (Files.File_System.Testing.Execute_Drop_Import (Plan.Plans).Success, "the copy runs");
+            Assert (Files.File_System.Transfer.Testing.Execute_Drop_Import (Plan.Plans).Success, "the copy runs");
             Assert (Exists (Into & "/" & Bad), "the copy keeps the name's bytes");
          end;
          Assert (Files.File_System.Delete_Permanently (Into & "/" & Bad).Success, "the copy deletes");

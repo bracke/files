@@ -47,7 +47,7 @@ package body Files.Application.Windows.Watch is
          return;
       end if;
 
-      if Files.Model.Foreground_Job_Is_Active (Runtime.Model) then
+      if Files.Model.Jobs.Foreground_Job_Is_Active (Runtime.Model) then
          Files.Refresh.Cancel (Runtime.Model);
          return;
       end if;

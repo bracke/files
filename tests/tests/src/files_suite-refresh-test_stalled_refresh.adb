@@ -93,7 +93,7 @@ separate (Files_Suite.Refresh)
       Write_Binary_File (Join (Root, "source"), "source");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_READS", "1");
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
       Files.Refresh.Watch_Path (Watch, Root);
@@ -120,7 +120,7 @@ separate (Files_Suite.Refresh)
       Files.Job_Drivers.Foreground.Cancel (Model);
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
       Assert_Within (Before, Prompt_Limit, "paste cancellation finalizes without waiting for a directory reload");
-      Assert (not Files.Model.Foreground_Job_Is_Active (Model)
+      Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model)
               and then not Ada.Directories.Exists (Join (Root, "dest")),
               "paste cancellation finalizes without copying");
       Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),

@@ -17,7 +17,7 @@ separate (Files_Suite.Trash)
          Mutation := Files.File_System.Trash.Move_To_Trash (Join (Root, "mac-trash.txt"));
          Assert (Mutation.Success, "macOS-style home trash fallback moves files");
          Assert
-           (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Home,
+           (Files.File_System.Trash.Trash_Backend_Of_Current_Environment = Files.File_System.Trash.Trash_Macos_Home,
             "trash backend reports macOS-style home trash when present");
          Assert
            (Ada.Directories.Exists (Join (Join (Mac_Home, ".Trash"), "mac-trash.txt")),

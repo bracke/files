@@ -87,7 +87,7 @@ separate (Files_Suite.Info)
       Assert (not Ada.Directories.Exists (To_String (Started))
               and then Files.Model.Folder_Sizes.Value (Other, Folder).Total_Bytes = 15,
               "closing the stalled window terminates only its measurement and preserves the other's cache");
-      Files.Model.Set_Background_Transfers (Other, True);
+      Files.Model.Jobs.Set_Background_Transfers (Other, True);
       Step := Files.Operations.Refresh (Other, Settings);
       Files.Application.Window_Polls.Update_Folder_Size (Other);
       Files.Application.Window_Polls.Poll_Folder_Sizes (Other);

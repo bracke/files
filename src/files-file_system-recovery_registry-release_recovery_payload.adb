@@ -51,7 +51,8 @@ function Release_Recovery_Payload (Path : String) return Mutation_Result is
       Ignored : Files.Types.UString;
    begin
       if Original /= ""
-        and then Trash.Trash_Backend_Of_Current_Environment in Trash_Windows_Recycle_Bin | Trash_Macos_Native
+        and then Trash.Trash_Backend_Of_Current_Environment
+                   in Trash.Trash_Windows_Recycle_Bin | Trash.Trash_Macos_Native
       then
          return Natively (Entry_Path, Original);
       end if;

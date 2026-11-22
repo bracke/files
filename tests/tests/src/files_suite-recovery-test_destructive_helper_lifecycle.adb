@@ -36,7 +36,7 @@ separate (Files_Suite.Recovery)
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.History.Clear_Undo (Model);
-         Files.Model.Set_Background_Transfers (Model, True);
+         Files.Model.Jobs.Set_Background_Transfers (Model, True);
          Select_Name (Model, "victim.txt");
          Paths.Clear;
          Sources.Clear;
@@ -81,7 +81,7 @@ separate (Files_Suite.Recovery)
                & Files.Operation_Results.Operation_Status'Image (Step.Status)
                & " " & To_String (Step.Error_Key));
             Assert_Within (Taken, Prompt_Limit, Kind'Image (Job_Kind) & " command returns before its helper finishes");
-            Assert (Files.Model.Foreground_Job_Is_Active (Model),
+            Assert (Files.Model.Jobs.Foreground_Job_Is_Active (Model),
                     Kind'Image (Job_Kind) & " command left no background job running");
          end;
          declare
@@ -122,7 +122,7 @@ separate (Files_Suite.Recovery)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Operations.History.Clear_Undo (Model);
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Select_Name (Model, "victim.txt");
       Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
       Await_View (Model, Settings);
@@ -184,7 +184,7 @@ separate (Files_Suite.Recovery)
       Assert (Step.Status = Files.Operation_Results.Operation_Success
               and then not Ada.Directories.Exists (To_String (Paths.First_Element)),
               "background empty trash purges only the private test trash backend");
-      Files.Model.Set_Background_Transfers (Model, False);
+      Files.Model.Jobs.Set_Background_Transfers (Model, False);
       Files.Operations.History.Clear_Undo (Model);
       Write_Binary_File (Join (Root, "checkpoint-target"), "preserve original bytes");
       Paths.Clear;

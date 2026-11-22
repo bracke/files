@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.History;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
@@ -30,7 +31,7 @@ separate (Files_Suite.History)
       Files.Model.Filtering.Set_Filter (Model, "a.txt");
       Files.Model.Selection.Select_All_Visible (Model);
       --  A helper job, so the operation finishes through Jobs.Operation.Advance.
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Files.Job_Drivers.Operation.Testing.Fail_After_Merge (Recording => Extra);
       Step := Complete_Operation (Model, Settings, Operation_Commands.Duplicate_Selected (Model, Settings));
       Files.Job_Drivers.Operation.Testing.Stop_Failing_After_Merge;

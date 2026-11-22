@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.File_System.Trash;
 with Files.Model.Recent;
 with Files.Command_Reasons;
@@ -98,7 +99,7 @@ package body Files.Operations.Support is
       return Operation_Result
    is
    begin
-      if Files.Model.Background_Transfers (Model) then
+      if Files.Model.Jobs.Background_Transfers (Model) then
          return Files.Refresh.Start (Model, Settings, Force => True, Select_Name => Select_Name);
       end if;
       Reload_In_Place :
@@ -197,7 +198,7 @@ package body Files.Operations.Support is
       --  again after one done here, which clears the error it finds.
       Files.Model.Set_Error (Model, Error_Key, Path);
       Reload := Reload_Current_Directory (Model, Settings);
-      if not Files.Model.Background_Transfers (Model) then
+      if not Files.Model.Jobs.Background_Transfers (Model) then
          Files.Model.Set_Error (Model, Error_Key, Path);
       end if;
    end Reload_With_Error;

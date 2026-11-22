@@ -3,10 +3,35 @@ with Files.Jobs.Process;
 
 --  The window's helper jobs: the modal operation (Files.Job_Drivers.Operation) with
 --  its progress and deferred journal merge, and the nonmodal directory read
---  (Files.Refresh). A child of its own so Files.Model's spec need not
---  name the helper sessions; Files.Model.End_Foreground_Job ends either
---  modal job.
+--  (Files.Refresh), whether helpers run at all, and which modal job a
+--  window runs. A child of its own so Files.Model's spec need not name the
+--  helper sessions; End_Foreground_Job ends either modal job.
 package Files.Model.Jobs is
+
+   --  Select helper execution for a live window; headless callers can step synchronously.
+   --  @param Model Window model to configure before starting a paste.
+   --  @param Enabled Whether filesystem actions run on helper processes.
+   procedure Set_Background_Transfers (Model : in out Window_Model; Enabled : Boolean);
+
+   --  Return whether filesystem actions use helpers.
+   --  @param Model Window model to inspect.
+   --  @return True when background transfers are enabled.
+   function Background_Transfers (Model : Window_Model) return Boolean;
+
+   --  @param Model Window to inspect.
+   --  @return The modal job it runs, if any.
+   function Foreground_Job (Model : Window_Model) return Foreground_Job_Kind;
+
+   --  @param Model Window to inspect.
+   --  @return True while a paste or an operation runs modally.
+   function Foreground_Job_Is_Active (Model : Window_Model) return Boolean;
+
+   --  End the modal job, whichever it is: its helper handles are released
+   --  (a helper still running is stopped and reaped by Files.Jobs.Process)
+   --  and its state forgotten.
+   --
+   --  @param Model Window to update.
+   procedure End_Foreground_Job (Model : in out Window_Model);
 
    --  What the progress overlay shows of the modal job.
    type Foreground_Progress is record

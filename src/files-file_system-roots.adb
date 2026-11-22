@@ -20,4 +20,7 @@ package body Files.File_System.Roots is
    function Root_Name (Path : String; Kind : Root_Kind) return String
      is separate;
 
+   function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean
+     is separate;
+
 end Files.File_System.Roots;

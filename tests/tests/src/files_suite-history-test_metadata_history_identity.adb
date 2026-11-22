@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Metadata.Testing;
 with Files.Operations.History;
 with Files.Operations.Metadata;
@@ -67,11 +68,12 @@ separate (Files_Suite.History)
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Operations.History.Clear_Undo (Model);
-               Files.Model.Set_Background_Transfers (Model, Background);
+               Files.Model.Jobs.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "metadata-source");
                if Kind < 3 then
                   Step :=
-                    Files.Operations.Testing.Set_Permissions_For (Model, (if Kind = 1 then 0 else 8#600#), Settings);
+                    Files.Operations.Metadata.Testing.Set_Permissions_For
+                      (Model, (if Kind = 1 then 0 else 8#600#), Settings);
                else
                   Hostkit.Metadata.File_Ownership (Source, Uid, Gid, Available);
                   Assert (Available, "read the current owner");

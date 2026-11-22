@@ -1,3 +1,4 @@
+with Files.Operations.Opening.Testing;
 with Files.Operations.Opening;
 with Files.Operation_Results;
 separate (Files_Suite.Open_Actions)
@@ -11,7 +12,7 @@ separate (Files_Suite.Open_Actions)
       --  opting out of the host opener fallback that would otherwise resolve.
       Settings.Use_System_Default_Opener := False;
       Files.Model.Selection.Select_Visible (Model, 3);
-      Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings);
+      Result := Files.Operations.Opening.Testing.Prepare_Open_Selected_Action (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Missing_Open_Action,

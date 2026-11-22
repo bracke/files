@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Item_Lists;
 with Files.Operations.Paste.Testing;
 with Files.File_System_Types;
@@ -97,10 +98,10 @@ package body Files_Suite.Support.Models is
    begin
       for Attempt in Polling loop
          Result := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
-         exit when not Files.Model.Foreground_Job_Is_Active (Model);
+         exit when not Files.Model.Jobs.Foreground_Job_Is_Active (Model);
       end loop;
       AUnit.Assertions.Assert
-        (not Files.Model.Foreground_Job_Is_Active (Model), "the paste execution finishes");
+        (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the paste execution finishes");
       return Result;
    end Finish_Paste;
 

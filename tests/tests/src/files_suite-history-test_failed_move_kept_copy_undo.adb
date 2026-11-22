@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
@@ -61,7 +62,7 @@ separate (Files_Suite.History)
             end if;
             Files.Model.Initialize (Model, Remote.Path, Files.Items.Item_Vectors.Empty_Vector, Root);
             Files.Operations.History.Clear_Undo (Model);
-            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             --  Every recovery stage holding its payload fails its flush: the
             --  source cannot be set aside for removal and is put back, and the
             --  copy cannot be set aside for deletion either, so it stays.

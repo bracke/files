@@ -10,6 +10,18 @@ package body Files.Model.Rename is
    use Ada.Strings.Unbounded;
    use type Files.UI_Types.Focus_Target;
    use type Guikit.Input.Navigation_Direction;
+   use type Files.Preference_Types.Group_Mode;
+
+   --  The group band the pending create row falls in under the model's
+   --  grouping (its name decides its label), or 0 when nothing is grouped
+   --  or no create row is pending.
+   function Temporary_Band (Model : Window_Model) return Natural is
+   begin
+      if not Model.Temporary.Active or else Model.Grouping.Mode = Files.Preference_Types.No_Grouping then
+         return 0;
+      end if;
+      return Group_Band (Model, Group_Labels_Map (Model), Temporary_Item (Model));
+   end Temporary_Band;
 
    --  The 1-based index into the rename fields for the field shown at
    --  Visible_Index, or zero when that row has no active rename field.
@@ -115,7 +127,7 @@ package body Files.Model.Rename is
       Before   : constant Natural := (if Creating then Temporary_Band (Model) else 0);
    begin
       if Creating then
-         Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+         Support.Touch_Listing (Model);
          Model.Temporary.Name := Field.Edit.Text;
       end if;
       --  The pending create row's name decides its group band (its label)
@@ -142,7 +154,7 @@ package body Files.Model.Rename is
      (Model : in out Window_Model) is
    begin
       Touch (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      Support.Touch_Listing (Model);
       if Model.Rename.Active then
          if Is_Temporary_Rename (Model) then
             --  Which also takes the focus from the rename field.
@@ -192,7 +204,7 @@ package body Files.Model.Rename is
       Text  : String) is
    begin
       Touch_Rename (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      Support.Touch_Listing (Model);
       if Model.Rename.Active and then not Model.Rename.Fields.Is_Empty then
          declare
             Field : Rename_Field := Model.Rename.Fields.First_Element;
@@ -233,7 +245,7 @@ package body Files.Model.Rename is
       --  Nothing typed, or no field to type into, changes nothing to redraw.
       if Changed then
          Touch_Rename (Model);
-         Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+         Support.Touch_Listing (Model);
       end if;
       return Changed;
    end Insert_At_Carets;
@@ -267,7 +279,7 @@ package body Files.Model.Rename is
       --  A key that deleted nothing changes nothing to redraw.
       if Changed then
          Touch_Rename (Model);
-         Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+         Support.Touch_Listing (Model);
       end if;
       return Changed;
    end Delete;
@@ -429,7 +441,7 @@ package body Files.Model.Rename is
       Text  : String) is
    begin
       Touch (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      Support.Touch_Listing (Model);
       if not Is_Enabled (Model) then
          return;
       end if;

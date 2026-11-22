@@ -39,13 +39,13 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Join (Root, "victim.txt"), "victim bytes");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Select_Name (Model, "victim.txt");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
       Ada.Environment_Variables.Set ("FILES_TEST_CANCEL_SEEN", Seen);
       Step := Operation_Commands.Delete_Selected_Permanently (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success
-              and then Files.Model.Foreground_Job_Is_Active (Model), "the delete runs in a helper");
+              and then Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the delete runs in a helper");
       Started := To_Unbounded_String (Files.Jobs.Process.Path (Files.Model.Jobs.Background_Operation (Model),
         "started"));
       for Attempt in Files_Suite.Support.Timing.Polling loop
@@ -69,7 +69,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Join (Root, "new-two.txt"), "two");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, False);
+      Files.Model.Jobs.Set_Background_Transfers (Model, False);
       Files.Operations.History.Clear_Undo (Model);
       Actions.Append (Files.Paste.Resolved_Action'
                         (To_Unbounded_String (Join (Root, "new-one.txt")),
@@ -80,11 +80,11 @@ separate (Files_Suite.Recovery)
       Files.Operations.Paste.Testing.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
       Assert (Step.Status = Files.Operation_Results.Operation_Success
-              and then Files.Model.Foreground_Job_Is_Active (Model)
+              and then Files.Model.Jobs.Foreground_Job_Is_Active (Model)
               and then File_Has_Bytes (Join (Root, "one.txt"), "new"),
               "the paste has replaced its first item and is still running");
       Files.Application.Windows.Release_Window_Jobs (Model, Watch);
-      Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the closing window lets the paste go");
+      Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the closing window lets the paste go");
       Assert (Files.Model.History.Undo_Available (Model),
               "with what it did recorded, the replaced original among it, for the history to settle");
    end Test_A_Closing_Window_Cancels_Its_Job;

@@ -18,7 +18,6 @@ with Files.Model;
 with Files.Model.Selection;
 with Files.Model.Rename;
 with Files.Operations;
-with Files.Operations.Testing;
 with Hostkit.Fs;
 with Files.Settings;
 with Files_Suite.Support;

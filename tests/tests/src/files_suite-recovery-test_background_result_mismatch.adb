@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Recent;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
@@ -20,7 +21,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Join (Join (Root, "nested"), "needle-name.txt"), "needle");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Step := Files.Operations.Refresh (Model, Settings);
       Files.Model.Filtering.Clear_Search_Results (Model);
       Select_Name (Model, "a.txt");
@@ -36,7 +37,7 @@ separate (Files_Suite.Recovery)
          Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
       end;
       Assert
-        (not Files.Model.Foreground_Job_Is_Active (Model),
+        (not Files.Model.Jobs.Foreground_Job_Is_Active (Model),
          "a helper result whose operation kind differs from its request is rejected: the execution ends");
       Files_Suite.Support.Assert_Equal
         (Step.Status,
@@ -72,7 +73,7 @@ separate (Files_Suite.Recovery)
          Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
       end;
       Assert
-        (not Files.Model.Foreground_Job_Is_Active (Model),
+        (not Files.Model.Jobs.Foreground_Job_Is_Active (Model),
          "a helper result whose Recent-view flag differs from its request is rejected: the execution ends");
       Files_Suite.Support.Assert_Equal
         (Step.Status,

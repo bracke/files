@@ -29,7 +29,7 @@ separate (Files_Suite.Trash)
          0,
          "trashing the Recent item removes it from the view: item count");
       Assert (not Ada.Directories.Exists (Path), "trashing the Recent item removes it from the view: path trashed");
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Step := Complete_Operation
                        (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Assert (Step.Status = Files.Operation_Results.Operation_Success and then File_Is (Path, "original recent bytes"),

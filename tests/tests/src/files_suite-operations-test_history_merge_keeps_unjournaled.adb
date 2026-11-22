@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -172,12 +173,12 @@ separate (Files_Suite.Operations)
       begin
          Files.Model.Initialize (Job_Window, Root, Load.Items, Root);
          Files.Model.History.Restore (Job_Window, Stack (Item ("a", Large => True), Item ("b")), Empty);
-         Files.Model.Set_Background_Transfers (Job_Window, True);
+         Files.Model.Jobs.Set_Background_Transfers (Job_Window, True);
          Files.Model.Selection.Select_All_Visible (Job_Window);
          Step := Operation_Commands.Duplicate_Selected (Job_Window, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "the background duplicate starts");
-         Assert (Files.Model.Foreground_Job_Is_Active (Job_Window), "the duplicate runs as a background job");
+         Assert (Files.Model.Jobs.Foreground_Job_Is_Active (Job_Window), "the duplicate runs as a background job");
          Step := Files_Suite.Support.Models.Finish_Paste (Job_Window, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "the background duplicate completes");

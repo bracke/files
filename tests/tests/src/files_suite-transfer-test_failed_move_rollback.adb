@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.History;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -42,7 +43,7 @@ separate (Files_Suite.Transfer)
             Load := Files_Suite.Listings.Load_Directory (Destination, Settings);
             Files.Model.Initialize (Model, Destination, Load.Items, Root);
             Files.Operations.History.Clear_Undo (Model);
-            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Sources.Clear;
             Sources.Append (To_Unbounded_String (Join (Source_Parent, "item.txt")));
             Mutation := Files.File_System.Permissions.Set_Permissions (Source_Parent, 8#555#);

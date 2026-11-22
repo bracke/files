@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Controller.Testing;
 with Files.Overlays.Settings_Form;
 with Files.Model.Testing;
@@ -51,7 +52,7 @@ separate (Files_Suite.Drags)
             Name & " leaves the model unchanged");
          Assert
            (not Files.Model.Pasting.Conflict_Is_Active (Model)
-            and then not Files.Model.Foreground_Job_Is_Active (Model),
+            and then not Files.Model.Jobs.Foreground_Job_Is_Active (Model),
             Name & " cannot start a hidden paste operation");
       end Assert_Contained;
    begin

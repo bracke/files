@@ -10,44 +10,6 @@ package body Files.Model is
 
    use Ada.Strings.Unbounded;
 
-   --  An idle transfer session, to release a held one by assignment: the
-   --  model only holds the job handles; Files.Operations drives them.
-   --
-   --  @return A session holding no job.
-   function Released_Transfer return Files.Jobs.Process.Session is
-      Idle : Files.Jobs.Process.Session;
-   begin
-      return Idle;
-   end Released_Transfer;
-
-   procedure Set_Background_Transfers (Model : in out Window_Model; Enabled : Boolean) is
-   begin
-      Model.Background_Transfers_Value := Enabled;
-   end Set_Background_Transfers;
-
-   function Background_Transfers (Model : Window_Model) return Boolean is (Model.Background_Transfers_Value);
-
-   function Foreground_Job (Model : Window_Model) return Foreground_Job_Kind is (Model.Foreground_Kind);
-
-   function Foreground_Job_Is_Active (Model : Window_Model) return Boolean is
-     (Model.Foreground_Kind /= No_Foreground_Job);
-
-   procedure End_Foreground_Job (Model : in out Window_Model) is
-   begin
-      --  Released, not driven: a helper still running is stopped and reaped
-      --  by its last handle going (Files.Jobs.Process).
-      Model.Paste_Exec_Job := Released_Transfer;
-      Model.Operation_Job := Support.Released_Process;
-      Model.Operation_Merge_Deferred := False;
-      Model.Operation_Label_Key := Null_Unbounded_String;
-      Model.Operation_Name := Null_Unbounded_String;
-      Model.Paste_Exec := (others => <>);
-      Model.Foreground_Kind := No_Foreground_Job;
-      --  Only the progress dialog goes; the reload that follows a job moves
-      --  the rows itself.
-      Support.Touch_Header (Model);
-   end End_Foreground_Job;
-
    use type Ada.Calendar.Time;
    use type Files.File_System_Types.Path_Status;
    use type Files.UI_Types.Focus_Target;
@@ -55,6 +17,29 @@ package body Files.Model is
    use type Files.UI_Types.Search_Scope;
 
    use Files.Model.Support;
+
+   --  Reorder the stored items to match the model's current sort field and
+   --  direction. Keyboard navigation walks the stored item order, so it must be
+   --  identical to the displayed order the renderer sorts with -- otherwise a
+   --  descending sort makes Up/Down move against the visible order. Selection
+   --  and rename targets are index-based, so they are re-established by item
+   --  identity (full path) after the reorder.
+   --
+   --  Under a grouping (Sync_Grouping) the sorted items are then stably
+   --  partitioned into bands, matching the drawn order.
+   --
+   --  @param Model Model whose items are re-sorted in place.
+   --  @param Field_Sort False to keep the current order and only regroup it,
+   --    which does nothing while the items are still in band order.
+   --  @param Recency When not empty (with Field_Sort False), the items are
+   --    first put back in this path order (the Recent view's recency, which
+   --    an earlier grouping partitioned), items it does not name after them
+   --    in their current order, and then regrouped.
+   procedure Resort_Items
+     (Model      : in out Window_Model;
+      Field_Sort : Boolean := True;
+      Recency    : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector)
+     is separate;
 
    function Scroll_Revision (Model : Window_Model) return Natural is (Model.Scroll_Revision_Value);
 
@@ -85,8 +70,7 @@ package body Files.Model is
    procedure Note_Settings_Changed
      (Model : in out Window_Model) is
    begin
-      Model.Settings_Revision_Value :=
-        (if Model.Settings_Revision_Value = Natural'Last then 0 else Model.Settings_Revision_Value + 1);
+      Model.Settings_Revision_Value := Bumped (Model.Settings_Revision_Value);
    end Note_Settings_Changed;
 
    function Listing_Revision
@@ -277,7 +261,7 @@ package body Files.Model is
       Path  : UString) is
    begin
       Model.Current_Path_Value := Path;
-      Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
+      Model.View_Incarnation_Value := Bumped (Model.View_Incarnation_Value);
       Model.Current_Is_Trash_Value := False;
    end Set_Current_Path;
 
@@ -300,7 +284,7 @@ package body Files.Model is
    begin
       Clear_Folder_Size (Model);
       Support.Touch (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      Support.Touch_Listing (Model);
       Set_Current_Path (Model, To_Unbounded_String (Directory_Path));
       Model.Refresh_Job := Released_Process;
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
@@ -538,7 +522,7 @@ package body Files.Model is
    procedure Leave_View (Model : in out Window_Model; New_Path : UString) is
    begin
       Clear_Folder_Size (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      Support.Touch_Listing (Model);
       Model.Search_Scope_Value := Files.UI_Types.Filter_Here;
       Model.Search_Results_Active := False;
       Model.Results_Hide_Hidden := False;
@@ -905,7 +889,7 @@ package body Files.Model is
          end loop;
       end if;
       Support.Touch (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      Support.Touch_Listing (Model);
       if Model.Temporary.Active then
          Cancel_Create_File (Model);
       elsif Model.Rename.Active then

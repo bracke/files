@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files.Name_Parts;
@@ -71,7 +72,7 @@ begin
 
    while Processed < Max_Items
      and then (not Files.Model.Pasting.Execution_Cancelled (Model)
-               or else Files.Model.Background_Transfers (Model))
+               or else Files.Model.Jobs.Background_Transfers (Model))
      and then Files.Model.Pasting.Execution_Cursor (Model)
               < Files.Model.Pasting.Execution_Action_Count (Model)
    loop
@@ -82,7 +83,7 @@ begin
       begin
          if Action.Skip then
             Files.Model.Pasting.Skip_Action (Model);
-         elsif Files.Model.Background_Transfers (Model) then
+         elsif Files.Model.Jobs.Background_Transfers (Model) then
             declare
                Finished : Boolean;
                Result   : Files.Transfer_Jobs.Job_Result;

@@ -26,7 +26,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Join (Join (Root, "nested"), "needle-name.txt"), "needle");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Step := Files.Operations.Refresh (Model, Settings);
       Await_View (Model, Settings);
       Select_Name (Model, "a.txt");

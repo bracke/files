@@ -1,3 +1,5 @@
+with Files.File_System.Transfer.Testing;
+with Files.File_System.Trash;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -79,7 +81,7 @@ separate (Files_Suite.Trash)
             Planned := Files.File_System.Transfer.Plan_Drop_Import (Sources, Output);
             Assert (Planned.Success and then Planned.Plans.First_Element.Valid,
                     "drop planning accepts a dangling source link");
-            Result := Files.File_System.Testing.Execute_Drop_Import (Planned.Plans);
+            Result := Files.File_System.Transfer.Testing.Execute_Drop_Import (Planned.Plans);
             Assert (Result.Success and then Hostkit.Fs.Is_Link (Join (Output, "trash-link")),
                     "a dropped dangling link is copied as a link");
             declare

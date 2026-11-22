@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -127,7 +128,7 @@ separate (Files_Suite.Transfer)
               ("FILES_TEST_DIRECTORY_RESTORE_FAULT", Join (Root, ".files-recovery-1/payload"));
             Ada.Environment_Variables.Set ("FILES_TEST_DIRECTORY_RESTORE_BLOCK", Source);
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Actions.Append (Files.Paste.Resolved_Action'
               (To_Unbounded_String (Copy_Source), To_Unbounded_String (Source), False, True));
             Files.Operations.Paste.Testing.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);

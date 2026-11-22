@@ -2,7 +2,7 @@ with Files.Operation_Results;
 with Files.Model;
 with Files.Settings;
 
---  Driving the window's modal job, whichever it is (Files.Model.Foreground_Job):
+--  Driving the window's modal job, whichever it is (Files.Model.Jobs.Foreground_Job):
 --  a paste, advanced by Files.Operations, or an operation, by
 --  Files.Job_Drivers.Operation. The one place that tells them apart, so neither
 --  drives the other.

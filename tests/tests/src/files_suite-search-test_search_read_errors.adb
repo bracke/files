@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
@@ -28,7 +29,7 @@ separate (Files_Suite.Search)
                Write_Binary_File (Join (Join (Root, "sub"), "needle.txt"), "needle bytes");
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Model.Set_Background_Transfers (Model, Background);
+               Files.Model.Jobs.Set_Background_Transfers (Model, Background);
                Files.Model.Filtering.Set_Filter (Model, "needle");
                Denied := To_Unbounded_String
                  ((case Case_Id is when 1 => Root, when 2 => Join (Root, "sub"),

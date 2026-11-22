@@ -146,7 +146,7 @@ package Files.Model.Pasting is
    --  Whether a resumable paste execution is currently in flight.
    --
    --  @param Model Model to inspect.
-   --  @return True between Begin_Execution and Files.Model.End_Foreground_Job.
+   --  @return True between Begin_Execution and Files.Model.Jobs.End_Foreground_Job.
    function Execution_Is_Active
      (Model : Window_Model)
       return Boolean;

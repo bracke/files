@@ -47,7 +47,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       return Root_Kind is separate;
 
    function Is_User_Visible_Mount_Point (Mount_Point : String) return Boolean is
-     (Files.File_System.Is_User_Visible_Mount_Point
+     (Is_User_Visible_Mount_Point
         (Mount_Point, Desktop_Mounts));
 
    function Is_Displayable_Root_Mount

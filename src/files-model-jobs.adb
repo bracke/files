@@ -4,6 +4,20 @@ with Files.Model.Support;
 package body Files.Model.Jobs is
    use Ada.Strings.Unbounded;
 
+   procedure Set_Background_Transfers (Model : in out Window_Model; Enabled : Boolean) is
+   begin
+      Model.Background_Transfers_Value := Enabled;
+   end Set_Background_Transfers;
+
+   function Background_Transfers (Model : Window_Model) return Boolean is (Model.Background_Transfers_Value);
+
+   function Foreground_Job (Model : Window_Model) return Foreground_Job_Kind is (Model.Foreground_Kind);
+
+   function Foreground_Job_Is_Active (Model : Window_Model) return Boolean is
+     (Model.Foreground_Kind /= No_Foreground_Job);
+
+   procedure End_Foreground_Job (Model : in out Window_Model) renames Support.End_Foreground_Job;
+
    function Foreground_Progress_Of (Model : Window_Model) return Foreground_Progress is
      (case Model.Foreground_Kind is
          when No_Foreground_Job => (others => <>),

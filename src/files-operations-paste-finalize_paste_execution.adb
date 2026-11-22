@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Paste_States;
 separate (Files.Operations.Paste)
 --  Finalize an armed paste execution: record one undo covering what it did
@@ -44,9 +45,9 @@ is
    end Report;
 begin
    Record_Paste_Execution (Model, Kept);
-   Files.Model.End_Foreground_Job (Model);
+   Files.Model.Jobs.End_Foreground_Job (Model);
 
-   if Files.Model.Background_Transfers (Model) then
+   if Files.Model.Jobs.Background_Transfers (Model) then
       --  Preserve mutation errors while a nonmodal helper refreshes the view.
       Report;
       declare

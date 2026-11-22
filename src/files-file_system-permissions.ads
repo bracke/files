@@ -116,4 +116,17 @@ package Files.File_System.Permissions is
    --  @return The group name, or the empty string when it cannot be resolved.
    function Group_Name_For_Id (Id : Files.Types.Account_Id) return String;
 
+private
+
+   --  What an ownership change calls with the path and the ids it asks
+   --  for, before it asks the host.
+   type Ownership_Hook is access procedure (Path : String; User_Id, Group_Id : Files.Types.Account_Id);
+
+   --  Set only by the test suite (Files.File_System.Permissions.Testing.Watch_Ownership_Changes):
+   --  it counts the ownership changes asked for and keeps the last one's
+   --  ids, so the suite can show which ones are asked for, and that none
+   --  is for an edit that changes nothing. The application never sets it.
+   Before_Ownership_Change : Ownership_Hook := null
+     with Atomic;
+
 end Files.File_System.Permissions;

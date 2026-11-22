@@ -95,7 +95,7 @@ package body Files.Model.Tree_Panel is
       --  collapse can temporarily reduce the row count; the next scroll should
       --  normalize that stale offset rather than letting it resurface later.
       if Model.Tree_Panel.Scroll /= Wanted then
-         Model.Scroll_Revision_Value := Model.Scroll_Revision_Value + 1;
+         Support.Touch_Scroll (Model);
          Model.Tree_Panel.Scroll := Wanted;
       end if;
    end Scroll;
@@ -125,7 +125,7 @@ package body Files.Model.Tree_Panel is
          return;
       end if;
 
-      Model.Scroll_Revision_Value := Model.Scroll_Revision_Value + 1;
+      Support.Touch_Scroll (Model);
       Model.Tree_Panel.Scroll := Value;
    end Set_Scroll_Rows;
 

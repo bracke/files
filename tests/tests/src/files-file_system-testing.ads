@@ -1,32 +1,8 @@
-with Ada.Calendar;
-with Files.Jobs.Copy_Context;
-with Files.File_System.Transfer;
---  Test-only entry points into the trash backends (the application moves
---  items with Files.File_System.Move_To_Trash, which picks the backend itself)
---  and summaries of what the program reports, which only the suite reads.
+--  Test-only hooks into Files.File_System's private part (copies, restores,
+--  deletes, sweeps) and the helpers the suite drives them with. The
+--  children's own hooks are in their Testing children (Trash.Testing,
+--  Transfer.Testing, Permissions.Testing, Roots.Testing).
 package Files.File_System.Testing is
-
-   --  Build the native trash request that would be needed for Path.
-   --
-   --  @param Path Filesystem path requested for native trash handling.
-   --  @return Native trash request metadata.
-   function Native_Trash_Request_For
-     (Path : String)
-      return Native_Trash_Request;
-
-   --  Make the desktop's own trash refuse every item from now on (Refuse
-   --  True), as an unreachable Recycle Bin would, or take items again
-   --  (False). Nothing is attempted while it refuses.
-   --
-   --  @param Refuse Whether the native trash refuses.
-   procedure Refuse_Native_Trash (Refuse : Boolean);
-
-   --  Make the trash take items but report no place for them (Withhold
-   --  True), as a Finder that does not say where it put an item does, or
-   --  report the place again (False).
-   --
-   --  @param Withhold Whether the trash withholds the trashed path.
-   procedure Trash_Says_Nowhere (Withhold : Boolean);
 
    --  How Change_Source_After_Copy changes a source once it is copied:
    --  Edit_Source writes "new edits" over the source file; Replace_Source
@@ -47,16 +23,6 @@ package Files.File_System.Testing is
 
    --  Change no source any more.
    procedure Stop_Changing_Source;
-
-   --  From now on, once a restore from a trash on another device has copied
-   --  the item back, put another file (of "another item") in its place under
-   --  the same name before the trash copy is removed, as emptying the trash
-   --  and trashing something else would. It fires once; arming it again
-   --  rearms it.
-   procedure Change_Trashed_After_Copy;
-
-   --  Put nothing in a restored item's place any more.
-   procedure Stop_Changing_Trashed;
 
    --  From now on, refuse to give a read-only folder back its mode after a
    --  rename that leaves it at Trigger, as a failing chmod would. With a
@@ -106,22 +72,6 @@ package Files.File_System.Testing is
    --  Let held sweeps go on, and hold none any more.
    procedure Resume_Sweep_Work;
 
-   --  From now on, count every ownership change asked of Change_Ownership
-   --  (from zero), and keep the ids the last one asked for.
-   procedure Watch_Ownership_Changes;
-
-   --  Count ownership changes no more.
-   procedure Stop_Watching_Ownership_Changes;
-
-   --  @return The ownership changes asked for since Watch_Ownership_Changes.
-   function Ownership_Changes return Natural;
-
-   --  @return The user id the last ownership change asked for.
-   function Last_Ownership_User return Files.Types.Account_Id;
-
-   --  @return The group id the last ownership change asked for.
-   function Last_Ownership_Group return Files.Types.Account_Id;
-
    --  Delete a folder of ours (a recovery stage, a transport) the way the
    --  program does.
    --
@@ -134,35 +84,6 @@ package Files.File_System.Testing is
    --  Change_Source_After_Copy; FILES_TEST_DIRECTORY_RESTORE_FAULT and
    --  FILES_TEST_DIRECTORY_RESTORE_BLOCK as Fail_Directory_Restore.
    procedure Install_From_Environment;
-
-   type Root_Discovery_Diagnostics is record
-      Root_Count              : Natural := 0;
-      Removable_Count         : Natural := 0;
-      Windows_Drive_Count     : Natural := 0;
-      Mount_Count             : Natural := 0;
-      User_Mount_Count        : Natural := 0;
-      Network_Mount_Count     : Natural := 0;
-   end record;
-
-   --  Return available filesystem root locations in deterministic order.
-   --
-   --  @return Root paths available on the host platform.
-   function Available_Roots return Files.Types.String_Vectors.Vector;
-
-   --  Return diagnostics for root discovery without changing the root list.
-   --
-   --  @return Root discovery counts and policy flags.
-   function Root_Discovery_Status return Root_Discovery_Diagnostics;
-
-   --  Whether a mount point is one a user put there (a stick, a share), as
-   --  the root list shows them: "/" and anything under /mnt, /media,
-   --  /run/media, /Volumes, /System/Volumes or the session's gvfs directory,
-   --  but not those containers themselves.
-   --
-   --  @param Mount_Point Absolute mount point.
-   --  @param Runtime_Gvfs The session's gvfs directory, or "" when none.
-   --  @return True when the mount is listed as a root.
-   function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean;
 
    --  Whether Name, the name of a file that already exists, can be stored in
    --  Directory: only what that filesystem cannot hold is refused -- empty,
@@ -179,40 +100,6 @@ package Files.File_System.Testing is
      (Name      : String;
       Directory : String)
       return Boolean;
-
-   --  Return the trash backend selected for the current environment.
-   --
-   --  @return Backend that Move_To_Trash will use, or Trash_Unavailable.
-   function Trash_Backend_Of_Current_Environment return Trash_Backend;
-
-   --  Evaluate native trash support for Request without deleting anything.
-   --
-   --  @param Request Native trash request metadata.
-   --  @return Native trash support result.
-   function Evaluate_Native_Trash
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result;
-
-   --  Format a timestamp for freedesktop trashinfo DeletionDate metadata.
-   --
-   --  @param Value Time value to format.
-   --  @return Local timestamp in YYYY-MM-DDTHH:MM:SS form.
-   function Trash_Deletion_Date
-     (Value : Ada.Calendar.Time)
-      return String;
-
-   --  Execute validated drag-and-drop import plans; production imports one
-   --  plan at a time through Import_Replacing, the suite drives several.
-   --
-   --  @param Plans Plans produced by Plan_Drop_Import.
-   --  @param Cancel Checked before source deletion: the job's cancellation unless given another, null for none.
-   --  @param Batch Shared hard-link journal, created automatically for multiple plans.
-   --  @return Mutation result with a localized error key on failure.
-   function Execute_Drop_Import
-     (Plans  : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
-      Cancel : Cancellation_Check := Files.File_System.Job_Cancelled;
-      Batch  : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
-      return Mutation_Result;
 
    --  Whether Child is Parent or lies inside it, as the program decides it
    --  (Path_Is_Within), with Folds standing in for the volumes: whether the

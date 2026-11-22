@@ -1,8 +1,8 @@
-with Files.File_System.Trash_Info_Codec;
+with Files.File_System.Trash.Info_Codec;
 separate (Files_Suite.Trash)
    procedure Test_Trash_Info_Codec_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use Files.File_System.Trash_Info_Codec;
+      use Files.File_System.Trash.Info_Codec;
 
       --  Every byte value, so no byte is lost or changed on the way.
       function All_Bytes return String is

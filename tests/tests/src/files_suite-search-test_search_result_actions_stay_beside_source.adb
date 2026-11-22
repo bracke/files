@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Editing;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
@@ -33,7 +34,7 @@ separate (Files_Suite.Search)
       begin
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Set_Background_Transfers (Model, False);
+         Files.Model.Jobs.Set_Background_Transfers (Model, False);
          Files.Model.Filtering.Set_Filter (Model, Query);
          Result := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
          Assert (Files.Model.Filtering.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 1,
@@ -76,7 +77,7 @@ separate (Files_Suite.Search)
       --  The window runs these through a helper process, which rebuilds the
       --  model from its request: the results still count as results there.
       Search ("summary.txt");
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Result := Operation_Commands.Duplicate_Selected (Model, Settings);
       Result := Complete_Operation (Model, Settings, Result);
       Assert (Entries (Deep) = 4 and then Entries (Root) = 1,
@@ -84,12 +85,12 @@ separate (Files_Suite.Search)
 
       Load := Files_Suite.Listings.Load_Directory (Deep, Settings);
       Files.Model.Initialize (Model, Deep, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, False);
+      Files.Model.Jobs.Set_Background_Transfers (Model, False);
       Assert (Files.Model.Selection.Select_By_Name (Model, "summary.txt"), "the file to archive is listed");
       Result := Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Archives.Zip_Archive);
       Assert (Path_Exists (Join (Deep, "summary.zip")), "an archive is made beside the file");
       Search ("summary.zip");
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Result := Operation_Commands.Extract_Selected (Model, Settings);
       Result := Complete_Operation (Model, Settings, Result);
       Assert (Path_Exists (Join (Join (Deep, "summary"), "summary.txt"))

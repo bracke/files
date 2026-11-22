@@ -44,7 +44,6 @@ with Files.Model.Rename;
 with Files.Model.History;
 with Files.Icon_Assets;
 with Files.Operations;
-with Files.Operations.Testing;
 with Hostkit.Fs;
 with Hostkit.Metadata;
 with Guikit.Draw;

@@ -1,3 +1,5 @@
+with Files.Model.Jobs;
+with Files.File_System.Transfer.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -44,7 +46,7 @@ separate (Files_Suite.Transfer)
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.History.Clear_Undo (Model);
-         Files.Model.Set_Background_Transfers (Model, Background);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Paths.Clear;
          Paths.Append (To_Unbounded_String (Source));
          Step := Complete_Operation
@@ -84,7 +86,7 @@ separate (Files_Suite.Transfer)
               (To_String (Plans.Plans.First_Element.Destination_Path),
                Stay,
                "a move through an alias to the same directory is planned as a no-op: destination");
-            Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
+            Mutation := Files.File_System.Transfer.Testing.Execute_Drop_Import (Plans.Plans);
             Assert
               (Mutation.Success, "the aliased same-directory move keeps the original name and bytes: succeeds");
             Assert

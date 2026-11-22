@@ -1,4 +1,7 @@
+with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Finalization;
+with Ada.Strings.Hash;
+with Files.Preference_Types;
 with Files.Items;
 private package Files.Model.Support is
 
@@ -64,13 +67,34 @@ private package Files.Model.Support is
    --  @return The item the row shows.
    function Temporary_Item (Model : Window_Model) return Files.Items.Directory_Item;
 
-   --  The group band the pending create row falls in under the model's
-   --  grouping (its name decides its label), or 0 when nothing is grouped
-   --  or no create row is pending.
+   --  A path's colour label, by path, for banding by label.
+   package Label_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Files.Preference_Types.Color_Label,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=",
+      "="             => Files.Preference_Types."=");
+
+   --  The labels the model's grouping bands by: each labelled path's label
+   --  when grouping by label, else nothing.
    --
    --  @param Model Model to inspect.
-   --  @return The create row's band, or 0.
-   function Temporary_Band (Model : Window_Model) return Natural;
+   --  @return The labels by path.
+   function Group_Labels_Map (Model : Window_Model) return Label_Maps.Map;
+
+   --  The band Item falls in under the model's grouping (Files.Model's
+   --  Resort_Items orders the items by it; Files.Model.Rename asks it of the
+   --  pending create row).
+   --
+   --  @param Model Model whose grouping to apply.
+   --  @param Labels Group_Labels_Map (Model), built once per pass.
+   --  @param Item The item to place.
+   --  @return Its band.
+   function Group_Band
+     (Model  : Window_Model;
+      Labels : Label_Maps.Map;
+      Item   : Files.Items.Directory_Item)
+      return Positive;
 
    --  Map a 1-based visible-row index to its item-list index (accounting for
    --  the filter and the temporary row); zero when the row has no backing item.
@@ -173,11 +197,25 @@ private package Files.Model.Support is
    --  @param Model Model that changed.
    procedure Touch_Info (Model : in out Window_Model);
 
-   --  Note a change only a model-drawn overlay shows (Overlay_Revision):
-   --  Revision, and with it the snapshot, stays.
+   --  Note a change only an overlay drawn from the model shows -- the
+   --  command palette or the settings pane (Overlay_Revision): Revision,
+   --  and with it the snapshot, stays.
    --
    --  @param Model Model that changed.
    procedure Touch_Overlay (Model : in out Window_Model);
+
+   --  Note a change of the listing context a background read was asked
+   --  under (Listing_Revision): a read started before it is stale. Moves
+   --  nothing else; the change that calls it touches what it shows.
+   --
+   --  @param Model Model that changed.
+   procedure Touch_Listing (Model : in out Window_Model);
+
+   --  Note a scroll alone (Scroll_Revision): a view patches the scroll
+   --  offsets instead of rebuilding.
+   --
+   --  @param Model Model that scrolled.
+   procedure Touch_Scroll (Model : in out Window_Model);
 
    --  Note a change to the folder sizes measured: Folder_Sizes_Revision and
    --  Revision move.
@@ -214,45 +252,12 @@ private package Files.Model.Support is
    --  @param Model Model to reconcile in place.
    procedure Reconcile_Rename_With_Selection (Model : in out Window_Model);
 
-   --  Reorder the stored items to match the model's current sort field and
-   --  direction. Keyboard navigation walks the stored item order, so it must be
-   --  identical to the displayed order the renderer sorts with -- otherwise a
-   --  descending sort makes Up/Down move against the visible order. Selection
-   --  and rename targets are index-based, so they are re-established by item
-   --  identity (full path) after the reorder.
-   --
-   --  Under a grouping (Sync_Grouping) the sorted items are then stably
-   --  partitioned into bands, matching the drawn order.
-   --
-   --  @param Model Model whose items are re-sorted in place.
-   --  @param Field_Sort False to keep the current order and only regroup it,
-   --    which does nothing while the items are still in band order.
-   --  @param Recency When not empty (with Field_Sort False), the items are
-   --    first put back in this path order (the Recent view's recency, which
-   --    an earlier grouping partitioned), items it does not name after them
-   --    in their current order, and then regrouped.
-   procedure Resort_Items
-     (Model      : in out Window_Model;
-      Field_Sort : Boolean := True;
-      Recency    : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector);
-
    --  Cancel every overlay and edit sub-mode (rename, palette, panes, pickers)
    --  before starting a new edit, so only one is ever active at a time.
    --
    --  @param Model Model whose overlay/edit state is cleared.
    procedure Clear_Overlay_State_For_Edit
      (Model : in out Window_Model);
-
-   --  Begin an inline create-file/create-folder edit: clear other overlays, add
-   --  the temporary row, and open a rename field pre-filled with Name.
-   --
-   --  @param Model Model to update.
-   --  @param Name Initial name for the new item.
-   --  @param Is_Directory True to create a folder, False for a file.
-   procedure Begin_Create_Temporary
-      (Model        : in out Window_Model;
-       Name         : String;
-       Is_Directory : Boolean);
 
    --  Opening an overlay ends the grid's current type-to-select session.  Every
    --  caller already advances the model revision, so clear the private buffer
@@ -330,6 +335,12 @@ private package Files.Model.Support is
    --
    --  @return A session holding no job.
    function Released_Process return Files.Jobs.Process.Session;
+
+   --  End the modal job, whichever it is (Files.Model.Jobs.End_Foreground_Job,
+   --  which renames this; Files.Model.Pasting ends one before it starts).
+   --
+   --  @param Model Window to update.
+   procedure End_Foreground_Job (Model : in out Window_Model);
 
    --  Clear the pending grid type-ahead prefix.
    --

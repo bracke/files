@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Commands.Keymap_Settings;
 with Files.Operations.Navigation;
 with Files.Operations.Opening;
@@ -667,7 +668,7 @@ package body Files.Controller is
       Settings : Files.Settings.Settings_Model)
       return Controller_Result is
    begin
-      if not Files.Model.Foreground_Job_Is_Active (Model) then
+      if not Files.Model.Jobs.Foreground_Job_Is_Active (Model) then
          return Make_Result (Controller_Ignored);
       end if;
       Files.Job_Drivers.Foreground.Cancel (Model);

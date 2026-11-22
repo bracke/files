@@ -1,3 +1,4 @@
+with Files.Operations.Opening.Testing;
 with Files.Operations.Opening;
 with Files.Operation_Results;
 with Files.Settings.Testing;
@@ -34,7 +35,7 @@ separate (Files_Suite.Open_Actions)
          Files.Model.Selection.Select_Visible (Preflight_Model, 1);
          Files.Model.Selection.Toggle_Visible_Selection (Preflight_Model, 3);
          Preflight_Result :=
-           Files.Operations.Testing.Prepare_Open_Selected_Action (Preflight_Model, Preflight_Settings);
+           Files.Operations.Opening.Testing.Prepare_Open_Selected_Action (Preflight_Model, Preflight_Settings);
          Files_Suite.Support.Assert_Equal
            (Preflight_Result.Status,
             Files.Operation_Results.Operation_Missing_Open_Action,

@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -30,12 +31,12 @@ separate (Files_Suite.Transfer)
            (To_Unbounded_String (Source), To_Unbounded_String (Join (Dest_Dir, "refused-source")), False, False));
       Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Files.Operations.Paste.Testing.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
       Files.Jobs.Process.Testing.Refuse_Next_Launch;
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
       Files.Jobs.Process.Testing.Clear_Refusal;
-      Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the paste ends instead of staying armed");
+      Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the paste ends instead of staying armed");
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Failed, "and reports the failure");
       Files_Suite.Support.Assert_Equal

@@ -52,7 +52,7 @@ package body Files_Suite.Trash is
    use AUnit.Assertions;
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
-   use type Files.File_System.Trash_Backend;
+   use type Files.File_System.Trash.Trash_Backend;
    use type Files.Operation_Results.Operation_Status;
    use type Files.Types.Item_Kind;
    use Files_Suite.Support;

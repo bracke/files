@@ -1,3 +1,4 @@
+with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Testing;
 with Files.File_System.Permissions;
@@ -35,7 +36,7 @@ separate (Files_Suite.Transfer)
       Paths.Append (Files.File_System.Transfer.Drop_Import_Plan'
         (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "shared-project")),
          Files.File_System_Types.Drop_Move, True, Null_Unbounded_String));
-      Mutation := Files.File_System.Testing.Execute_Drop_Import (Paths);
+      Mutation := Files.File_System.Transfer.Testing.Execute_Drop_Import (Paths);
       Assert (Mutation.Success, "the folder moves to the other volume");
       Mode := Files.File_System.Permissions.Permission_Bits_Of (Join (Remote.Path, "shared-project"), Available);
       Assert (Available, "the moved folder's mode is readable");

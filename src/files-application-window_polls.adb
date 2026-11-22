@@ -33,7 +33,7 @@ package body Files.Application.Window_Polls is
    --  flight (or a paste) must see the revision it was started at. While one
    --  runs, measurements carry on but their results wait in the scan.
    function Folder_Sizes_Paused (Model : Files.Model.Window_Model) return Boolean is
-     (Files.Model.Foreground_Job_Is_Active (Model)
+     (Files.Model.Jobs.Foreground_Job_Is_Active (Model)
       or else Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)));
 
    procedure Poll_Selected_Item_Extra

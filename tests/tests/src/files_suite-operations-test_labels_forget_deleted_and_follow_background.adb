@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Editing;
 with Files_Suite.Listings;
 with Files.Preference_Types;
@@ -25,7 +26,7 @@ separate (Files_Suite.Operations)
       begin
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Set_Background_Transfers (Model, Background);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
       end Show_Root;
    begin
       for Background in Boolean loop
@@ -90,7 +91,7 @@ separate (Files_Suite.Operations)
            (Files.Settings.Path_References.Label_Of (Settings, Renamed),
             Files.Preference_Types.Green,
             "the label follows the rename");
-         Files.Model.Set_Background_Transfers (Model, Background);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "undoing the rename succeeds" & Mode (Background));

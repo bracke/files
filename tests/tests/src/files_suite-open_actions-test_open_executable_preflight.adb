@@ -1,3 +1,4 @@
+with Files.Operations.Opening.Testing;
 with Files.Operations.Opening;
 with Files.Operation_Results;
 with Files.Settings.Testing;
@@ -37,11 +38,11 @@ separate (Files_Suite.Open_Actions)
       --  on to fail. Nothing waits for it now, so there is no status at all.
       Assert (not Result.Execution.Exit_Status_Known, "a detached process reports no exit status");
       Assert
-        (Files.Operations.Testing.Open_Action_Lifecycle_Of (Result).State =
-         Files.Operations.Testing.Open_Action_Spawned,
+        (Files.Operations.Opening.Testing.Open_Action_Lifecycle_Of (Result).State =
+         Files.Operations.Opening.Testing.Open_Action_Spawned,
          "detached process lifecycle records it as spawned, not completed");
       Assert
-        (not Files.Operations.Testing.Open_Action_Lifecycle_Of (Result).Exit_Status_Known,
+        (not Files.Operations.Opening.Testing.Open_Action_Lifecycle_Of (Result).Exit_Status_Known,
          "detached process lifecycle exposes no exit status");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -60,8 +61,8 @@ separate (Files_Suite.Open_Actions)
       Assert (not Result.Execution.Attempted, "missing executable result does not attempt execution");
       Assert (not Result.Execution.Executable_Found, "missing executable result records failed lookup");
       Assert
-        (Files.Operations.Testing.Open_Action_Lifecycle_Of (Result).State =
-         Files.Operations.Testing.Open_Action_Preflight_Failed,
+        (Files.Operations.Opening.Testing.Open_Action_Lifecycle_Of (Result).State =
+         Files.Operations.Opening.Testing.Open_Action_Preflight_Failed,
          "missing executable lifecycle records preflight failure");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),

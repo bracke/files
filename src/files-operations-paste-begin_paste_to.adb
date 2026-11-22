@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.File_System_Types;
 with Files.Model.Creation;
 with Files.File_System.Transfer;
@@ -43,7 +44,7 @@ is
       return Result;
    end Probed_Destinations;
 begin
-   if Files.Model.Foreground_Job_Is_Active (Model) or else Files.Model.Pasting.Conflict_Is_Active (Model) then
+   if Files.Model.Jobs.Foreground_Job_Is_Active (Model) or else Files.Model.Pasting.Conflict_Is_Active (Model) then
       return Make_Result (Operation_Disabled, Path => Directory);
    end if;
    if Source_Paths.Is_Empty then

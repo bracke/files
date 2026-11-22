@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
@@ -27,7 +28,7 @@ separate (Files_Suite.Trash)
             Mutation := Files.File_System.Trash.Move_To_Trash (Join (Root, "visible"), Visible);
             Assert (Mutation.Success, "trash visible payload");
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Settings.Show_Hidden_Files := Show_Hidden;
             Step := Complete_Operation (Model, Settings, Operation_Commands.Empty_Trash (Model, Settings));
             Await_View (Model, Settings);

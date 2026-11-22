@@ -1,3 +1,4 @@
+with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
@@ -97,7 +98,7 @@ separate (Files_Suite.Operations)
          Assert (Plan.Success and then Natural (Plan.Plans.Length) = 1 and then Plan.Plans.First_Element.Valid,
                  "an import into the deep folder is planned");
          Assert
-           (Files.File_System.Testing.Execute_Drop_Import (Plan.Plans).Success,
+           (Files.File_System.Transfer.Testing.Execute_Drop_Import (Plan.Plans).Success,
             "the import into the deep folder runs");
       end Import;
 

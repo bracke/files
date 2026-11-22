@@ -1,3 +1,4 @@
+with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
@@ -83,7 +84,7 @@ separate (Files_Suite.Transfer)
             Paths.Append (To_Unbounded_String (Source));
             Plans :=
               Files.File_System.Transfer.Plan_Drop_Import (Paths, Remote.Path, Files.File_System_Types.Drop_Move);
-            Moved := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
+            Moved := Files.File_System.Transfer.Testing.Execute_Drop_Import (Plans.Plans);
             Assert (Moved.Success and then not Ada.Directories.Exists (Source),
                     "a 1000-level tree moves across devices");
          end;

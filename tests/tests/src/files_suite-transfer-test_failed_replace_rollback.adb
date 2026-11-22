@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
@@ -51,11 +52,11 @@ separate (Files_Suite.Transfer)
          Assert (Result.Success, "the fixture permits copying but refuses atomic source removal");
          Files.Model.Initialize (Model, Remote.Path, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.History.Clear_Undo (Model);
-         Files.Model.Set_Background_Transfers (Model, Background);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Files.Operations.Paste.Testing.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Move);
          Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
          Result := Files.File_System.Permissions.Set_Permissions (Root, 8#755#);
-         Assert (not Files.Model.Foreground_Job_Is_Active (Model)
+         Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model)
                  and then Step.Status = Files.Operation_Results.Operation_Failed,
                  "refused source removal completes as a failed replacement");
          Assert (not Files.Model.History.Undo_Available (Model),

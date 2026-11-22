@@ -1,3 +1,4 @@
+with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files.File_System.Testing;
@@ -40,7 +41,7 @@ separate (Files_Suite.Operations)
                Mode             => Mode,
                Valid            => True,
                Error_Key        => Null_Unbounded_String));
-         Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans);
+         Mutation := Files.File_System.Transfer.Testing.Execute_Drop_Import (Plans);
          Assert_Equal
            (To_String (Mutation.Error_Key), "error.io.denied",
             Files.File_System_Types.Drop_Import_Mode'Image (Mode)

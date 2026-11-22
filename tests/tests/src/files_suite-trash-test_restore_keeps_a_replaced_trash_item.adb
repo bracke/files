@@ -1,3 +1,4 @@
+with Files.File_System.Trash.Testing;
 with Files.File_System.Trash;
 with Files.File_System.Testing;
 with Files_Suite.Volumes;
@@ -34,9 +35,9 @@ separate (Files_Suite.Trash)
            Join (Join (Join (Join (Remote.Path, "data"), "Trash"), "info"),
                  Ada.Directories.Simple_Name (To_String (Trashed)) & ".trashinfo");
       begin
-         Files.File_System.Testing.Change_Trashed_After_Copy;
+         Files.File_System.Trash.Testing.Change_Trashed_After_Copy;
          Result := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
-         Files.File_System.Testing.Stop_Changing_Trashed;
+         Files.File_System.Trash.Testing.Stop_Changing_Trashed;
          Assert (Result.Success, "the restore itself succeeds");
          Assert (File_Has_Bytes (Original, "restored"), "the item is back where it was");
          Assert (File_Has_Bytes (To_String (Trashed), "another item"),
@@ -45,6 +46,6 @@ separate (Files_Suite.Trash)
       end;
    exception
       when others =>
-         Files.File_System.Testing.Stop_Changing_Trashed;
+         Files.File_System.Trash.Testing.Stop_Changing_Trashed;
          raise;
    end Test_Restore_Keeps_A_Replaced_Trash_Item;

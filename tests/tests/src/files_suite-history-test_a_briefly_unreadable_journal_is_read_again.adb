@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Undo.Journal.Testing;
@@ -23,7 +24,7 @@ separate (Files_Suite.History)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Operations.History.Clear_Undo (Model);
       Assert (Files.Model.Selection.Select_By_Name (Model, "a.txt"), "the file is listed");
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Step := Operation_Commands.Duplicate_Selected (Model, Settings);
       --  The window's next two reads of the helper's journal are refused.
       Files.Undo.Journal.Testing.Refuse_Reads (2);

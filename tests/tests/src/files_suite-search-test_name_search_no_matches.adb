@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
@@ -23,7 +24,7 @@ separate (Files_Suite.Search)
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Filtering.Set_Filter (Model, "absent");
-         Files.Model.Set_Background_Transfers (Model, Background);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Step := Complete_Operation
            (Model, Settings, Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
          Assert (Step.Status = Files.Operation_Results.Operation_Success

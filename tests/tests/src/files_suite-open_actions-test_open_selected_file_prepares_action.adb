@@ -1,3 +1,4 @@
+with Files.Operations.Opening.Testing;
 with Files.Operations.Opening;
 with Files.Operation_Results;
 with Files.Settings.Testing;
@@ -26,7 +27,7 @@ separate (Files_Suite.Open_Actions)
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Set_Error (Model, "error.open_action.missing");
 
-      Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
+      Result := Files.Operations.Opening.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,
@@ -101,13 +102,13 @@ separate (Files_Suite.Open_Actions)
          Root,
          "opening a non-directory does not navigate");
       declare
-         Lifecycle : constant Files.Operations.Testing.Open_Action_Lifecycle :=
-           Files.Operations.Testing.Open_Action_Lifecycle_Of (Result);
+         Lifecycle : constant Files.Operations.Opening.Testing.Open_Action_Lifecycle :=
+           Files.Operations.Opening.Testing.Open_Action_Lifecycle_Of (Result);
       begin
          --  Open_Selected launches detached, so the action is spawned and let go.
          --  "Completed" would claim we watched it finish, and we did not.
          Assert
-           (Lifecycle.State = Files.Operations.Testing.Open_Action_Spawned,
+           (Lifecycle.State = Files.Operations.Opening.Testing.Open_Action_Spawned,
             "open-action lifecycle records a spawned action");
          Files_Suite.Support.Assert_Equal
            (To_String (Lifecycle.Executable),
@@ -141,7 +142,7 @@ separate (Files_Suite.Open_Actions)
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
       Files.Model.Set_Error (Model, "error.open_action.execution");
-      Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
+      Result := Files.Operations.Opening.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,
@@ -183,8 +184,8 @@ separate (Files_Suite.Open_Actions)
          Join (Root, "Alpha.txt"),
          "multi-file open exposes first expanded action path");
       Assert
-        (Files.Operations.Testing.Open_Action_Lifecycle_Of (Result).State =
-         Files.Operations.Testing.Open_Action_Spawned,
+        (Files.Operations.Opening.Testing.Open_Action_Lifecycle_Of (Result).State =
+         Files.Operations.Opening.Testing.Open_Action_Spawned,
          "multi-file open lifecycle records a spawned action");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),

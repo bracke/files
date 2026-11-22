@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Exceptions;
@@ -58,7 +59,7 @@ package body Files_Suite.Support.Guards is
 
    procedure Release (Guard : in out Paste_Guard) is
    begin
-      Files.Model.End_Foreground_Job (Guard.Model.all);
+      Files.Model.Jobs.End_Foreground_Job (Guard.Model.all);
       Files.Refresh.Cancel (Guard.Model.all);
    end Release;
 

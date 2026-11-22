@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Testing;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -17,7 +18,7 @@ separate (Files_Suite.Transfer)
       function Dest (N : Positive) return String is (Numbered_File (Dest_Dir, N));
    begin
       Arm_Numbered_Paste (Model, Settings, Src_Dir, Dest_Dir, Count);
-      Assert (Files.Model.Foreground_Job_Is_Active (Model), "arming a paste execution activates it");
+      Assert (Files.Model.Jobs.Foreground_Job_Is_Active (Model), "arming a paste execution activates it");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Testing.Paste_Execution_Total (Model),
          Count,
@@ -33,7 +34,7 @@ separate (Files_Suite.Transfer)
         (Step.Status,
          Files.Operation_Results.Operation_Success,
          "the first batch reports success");
-      Assert (Files.Model.Foreground_Job_Is_Active (Model), "the execution is still in progress after one batch");
+      Assert (Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the execution is still in progress after one batch");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Testing.Paste_Execution_Done (Model),
          2,
@@ -44,7 +45,8 @@ separate (Files_Suite.Transfer)
         (Step.Status,
          Files.Operation_Results.Operation_Success,
          "the second batch reports success");
-      Assert (Files.Model.Foreground_Job_Is_Active (Model), "the execution is still in progress after two batches");
+      Assert (Files.Model.Jobs.Foreground_Job_Is_Active (Model),
+              "the execution is still in progress after two batches");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Testing.Paste_Execution_Done (Model),
          4,
@@ -55,7 +57,7 @@ separate (Files_Suite.Transfer)
         (Step.Status,
          Files.Operation_Results.Operation_Success,
          "the third batch reports success");
-      Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the third batch finalizes the execution");
+      Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the third batch finalizes the execution");
 
       for N in 1 .. Count loop
          Assert (Ada.Directories.Exists (Dest (N)), "every source is copied to the destination");

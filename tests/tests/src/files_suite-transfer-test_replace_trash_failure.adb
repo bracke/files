@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -39,10 +40,10 @@ separate (Files_Suite.Transfer)
          for Background in Boolean loop
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Files.Operations.Paste.Testing.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
             Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
-            Assert (not Files.Model.Foreground_Job_Is_Active (Model), "a failed Replace finishes its execution");
+            Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "a failed Replace finishes its execution");
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Failed,

@@ -19,7 +19,7 @@ separate (Files_Suite.Trash)
          Write_File (Join (Root, "stray-trash.txt"));
          if Hostkit.Host.Current = Hostkit.Host.Linux then
             Assert
-              (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Home_Data,
+              (Files.File_System.Trash.Trash_Backend_Of_Current_Environment = Files.File_System.Trash.Trash_Home_Data,
                "on Linux a ~/.Trash folder does not switch the freedesktop trash to the macOS layout");
             Mutation := Files.File_System.Trash.Move_To_Trash (Join (Root, "stray-trash.txt"));
             Assert (Mutation.Success, "trashing beside a stray ~/.Trash succeeds");
@@ -33,7 +33,7 @@ separate (Files_Suite.Trash)
                "nothing is put into the stray ~/.Trash");
          else
             Assert
-              (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Home,
+              (Files.File_System.Trash.Trash_Backend_Of_Current_Environment = Files.File_System.Trash.Trash_Macos_Home,
                "on macOS an existing ~/.Trash is the home trash");
             Mutation := Files.File_System.Trash.Move_To_Trash (Join (Root, "stray-trash.txt"));
             Assert (Mutation.Success, "trashing into the macOS home trash succeeds");

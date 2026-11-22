@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -79,7 +80,7 @@ separate (Files_Suite.Transfer)
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", To_String (Backend));
          for Background in Boolean loop
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Files.Operations.Paste.Testing.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
             Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
             Files_Suite.Support.Assert_Equal

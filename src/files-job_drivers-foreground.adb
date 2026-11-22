@@ -14,7 +14,7 @@ package body Files.Job_Drivers.Foreground is
       Max_Items : Positive)
       return Files.Operation_Results.Operation_Result is
    begin
-      case Files.Model.Foreground_Job (Model) is
+      case Files.Model.Jobs.Foreground_Job (Model) is
          when Files.Model.Paste_Job =>
             return Files.Operations.Paste.Advance_Paste_Execution (Model, Settings, Max_Items);
          when Files.Model.Operation_Job =>
@@ -28,7 +28,7 @@ package body Files.Job_Drivers.Foreground is
 
    procedure Cancel (Model : in out Files.Model.Window_Model) is
    begin
-      case Files.Model.Foreground_Job (Model) is
+      case Files.Model.Jobs.Foreground_Job (Model) is
          when Files.Model.Paste_Job =>
             Files.Operations.Paste.Cancel_Paste_Execution (Model);
          when Files.Model.Operation_Job =>

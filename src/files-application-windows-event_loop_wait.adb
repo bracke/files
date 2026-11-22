@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Application.Event_Wait;
 separate (Files.Application.Windows)
    function Event_Loop_Wait (Runtime_Windows : Runtime_Window_Vectors.Vector) return Duration is
@@ -11,8 +12,8 @@ separate (Files.Application.Windows)
             Open := Open + 1;
             Pending (Open) :=
               (Background_Paste =>
-                 Files.Model.Foreground_Job_Is_Active (Runtime.Model)
-                 and then Files.Model.Background_Transfers (Runtime.Model),
+                 Files.Model.Jobs.Foreground_Job_Is_Active (Runtime.Model)
+                 and then Files.Model.Jobs.Background_Transfers (Runtime.Model),
                Mouse_Ready      => Guikit.Input.Mouse_Buttons.Ready_At (Runtime.Handle.Pending_Mouse));
          end if;
       end loop;

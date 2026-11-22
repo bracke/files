@@ -91,7 +91,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
          Progress : constant Files.Model.Jobs.Foreground_Progress := Files.Model.Jobs.Foreground_Progress_Of (Model);
       begin
          Snapshot.Paste_Progress :=
-           (Open            => Files.Model.Foreground_Job_Is_Active (Model),
+           (Open            => Files.Model.Jobs.Foreground_Job_Is_Active (Model),
             Done            => Progress.Done,
             Total           => Progress.Total,
             Name            => Progress.Name,

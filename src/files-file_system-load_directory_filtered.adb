@@ -24,7 +24,7 @@ is
    --  so the view lists the records' items under their original names
    --  instead of the folder's own entries (which are still what is signed).
    Recycle_Bin : constant Boolean :=
-     Trash.Trash_Backend_Of_Current_Environment = Trash_Windows_Recycle_Bin
+     Trash."=" (Trash.Trash_Backend_Of_Current_Environment, Trash.Trash_Windows_Recycle_Bin)
      and then Trash.Is_Trash_Files_Directory (Path);
 
    --  A freedesktop trash's files/ (the home trash's, with every volume's

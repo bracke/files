@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.History;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
@@ -38,7 +39,7 @@ separate (Files_Suite.History)
          Files.Operations.History.Clear_Undo (Model);
          Files.Model.Filtering.Set_Filter (Model, (if Extracting then ".zip" else ".txt"));
          Files.Model.Selection.Select_All_Visible (Model);
-         Files.Model.Set_Background_Transfers (Model, False);
+         Files.Model.Jobs.Set_Background_Transfers (Model, False);
          Step := Complete_Operation
            (Model, Settings, (if Extracting then Operation_Commands.Extract_Selected (Model, Settings)
                               else Operation_Commands.Duplicate_Selected (Model, Settings)));

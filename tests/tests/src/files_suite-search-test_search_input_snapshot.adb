@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
@@ -22,7 +23,7 @@ separate (Files_Suite.Search)
             Write_Binary_File (Join (Root, "beta.txt"), "beta bytes");
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Model.Set_Background_Transfers (Model, True);
+            Files.Model.Jobs.Set_Background_Transfers (Model, True);
             Files.Model.Filtering.Set_Filter (Model, "alpha");
             Files.Model.Focus_Filter_Input (Model);
             Step := (if Contents then Operation_Commands.Run_Search (Model, Settings,

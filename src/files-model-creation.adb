@@ -5,6 +5,34 @@ package body Files.Model.Creation is
    use Files.Model.Support;
    use Ada.Strings.Unbounded;
 
+   --  Begin an inline create-file/create-folder edit: clear other overlays, add
+   --  the temporary row, and open a rename field pre-filled with Name.
+   --
+   --  @param Model Model to update.
+   --  @param Name Initial name for the new item.
+   --  @param Is_Directory True to create a folder, False for a file.
+   procedure Begin_Create_Temporary
+      (Model        : in out Window_Model;
+       Name         : String;
+       Is_Directory : Boolean) is
+   begin
+      Touch (Model);
+      Support.Touch_Listing (Model);
+      Clear_Overlay_State_For_Edit (Model);
+      Model.Temporary := (Active => True, Is_Directory => Is_Directory, Name => To_Unbounded_String (Name));
+      Model.Rename.Fields.Clear;
+      Model.Rename.Fields.Append
+        (Rename_Field'
+           (Item_Index => Temporary_Item_Index,
+            Edit       => (Text => To_Unbounded_String (Name), Cursor => Name'Length)));
+      Model.Rename.Active := True;
+      Model.Main_View_Scroll := 0;
+      Model.Selected_Item_Index := Temporary_Item_Index;
+      Model.Selected_Item_Indexes.Clear;
+      Add_Selected_Index (Model, Temporary_Item_Index);
+      Model.Focus_Value := Files.UI_Types.Focus_Rename_Input;
+   end Begin_Create_Temporary;
+
    procedure Begin_Create_File
       (Model : in out Window_Model;
        Name  : String) is

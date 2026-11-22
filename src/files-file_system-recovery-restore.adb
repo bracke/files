@@ -33,14 +33,16 @@ separate (Files.File_System.Recovery)
             Recorded : Mode_Record;
             Previous : Natural;
             Identity : UString;
+            Unused_Previous_Access, Unused_Applied_Access : UString;
             Result : Mutation_Result;
          begin
             if not Record_Is_Regular (Record_Path, Mode_Record_Bytes) then
                raise Ada.Directories.Use_Error;
             end if;
             Recorded := Read_Mode_File (Record_Path, Header => "", Max_Bytes => Mode_Record_Bytes);
-            Result := Change_Mode
-              (Path, To_String (Recorded.Identity), Recorded.Mode, Previous, Identity);
+            Result := Permissions.Change_Access
+              (Path, To_String (Recorded.Identity), Recorded.Mode, "", Previous,
+               Unused_Previous_Access, Unused_Applied_Access, Identity);
             if not Result.Success then
                raise Ada.Directories.Use_Error;
             end if;

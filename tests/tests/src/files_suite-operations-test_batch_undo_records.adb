@@ -33,7 +33,7 @@ separate (Files_Suite.Operations)
       --  the test made; never raises, so it can run on the failure path.
       procedure Cleanup is
       begin
-         Files.Operations.Testing.Fake_Checkpoint_Clock (False);
+         Files.Operations.Undo_Recording.Testing.Fake_Checkpoint_Clock (False);
          Files.Operations.Undo_Recording.Testing.Count_Undo_Records (False);
          Files.File_System.Testing.Refuse_Creation_Matches (False);
          Project_Tools.Files.Delete_Tree (Trash_Home);
@@ -49,7 +49,7 @@ separate (Files_Suite.Operations)
       procedure Assert_Clock_Read (What : String) is
       begin
          Files_Suite.Support.Assert_Equal
-           (Files.Operations.Testing.Checkpoint_Clock_Readings, Count + 1,
+           (Files.Operations.Undo_Recording.Testing.Checkpoint_Clock_Readings, Count + 1,
             What & " reads the throttle's clock once per item and once at its end");
       end Assert_Clock_Read;
 
@@ -68,7 +68,7 @@ separate (Files_Suite.Operations)
          Files.Operations.History.Clear_Undo (Model);
          Files.Model.Selection.Select_All_Visible (Model);
          Files.Operations.Undo_Recording.Testing.Count_Undo_Records (True);
-         Files.Operations.Testing.Fake_Checkpoint_Clock (True, Advance_At);
+         Files.Operations.Undo_Recording.Testing.Fake_Checkpoint_Clock (True, Advance_At);
       end Prepare;
 
       function Copies_Present return Natural is

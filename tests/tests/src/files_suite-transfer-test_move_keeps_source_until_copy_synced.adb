@@ -1,3 +1,4 @@
+with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Testing;
 with Files.IO.Durability.Testing;
@@ -33,7 +34,7 @@ separate (Files_Suite.Transfer)
          --  A file is flushed as it is written, while still staged under the
          --  name "payload"; a folder's file keeps its own name there.
          Files.IO.Durability.Testing.Fail_Syncs_Ending_With (if Folder then "/durable-child" else "/payload");
-         Mutation := Files.File_System.Testing.Execute_Drop_Import (Paths);
+         Mutation := Files.File_System.Transfer.Testing.Execute_Drop_Import (Paths);
          Files.IO.Durability.Testing.Clear;
          Assert (not Mutation.Success, "a copy that cannot be synced fails the move, folder " & Folder'Image);
          Assert (File_Has_Bytes ((if Folder then Join (Source, "durable-child") else Source), "the bytes"),
@@ -45,7 +46,7 @@ separate (Files_Suite.Transfer)
       --  Without the fault the same move goes through.
       Reset_Root;
       Write_Binary_File (Source, "the bytes");
-      Mutation := Files.File_System.Testing.Execute_Drop_Import (Paths);
+      Mutation := Files.File_System.Transfer.Testing.Execute_Drop_Import (Paths);
       Assert (Mutation.Success, "a synced copy completes the move");
       Assert (not Ada.Directories.Exists (Source), "and removes the source");
       Assert (File_Has_Bytes (Join (Remote.Path, "durable-destination"), "the bytes"), "the copy holds the bytes");

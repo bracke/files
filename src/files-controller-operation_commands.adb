@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Editing;
 with Files.Operations.History;
 with Files.Operations.Navigation;
@@ -32,7 +33,7 @@ package body Files.Controller.Operation_Commands is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result is
    begin
-      if Files.Model.Background_Transfers (Model) then
+      if Files.Model.Jobs.Background_Transfers (Model) then
          declare
             Refusal : constant Operation_Result := Files.Operations.Trash_Refusal (Model);
          begin
@@ -47,7 +48,7 @@ package body Files.Controller.Operation_Commands is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result is
    begin
-      if Files.Model.Background_Transfers (Model) then
+      if Files.Model.Jobs.Background_Transfers (Model) then
          return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Delete_Permanently, No_Refusal);
       end if;
       return Files.Operations.Trash.Delete_Selected_Permanently (Model, Settings);
@@ -58,7 +59,7 @@ package body Files.Controller.Operation_Commands is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result is
    begin
-      if Files.Model.Background_Transfers (Model) then
+      if Files.Model.Jobs.Background_Transfers (Model) then
          return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Restore, No_Refusal);
       end if;
       return Files.Operations.Trash.Restore_Selected_From_Trash (Model, Settings);
@@ -69,7 +70,7 @@ package body Files.Controller.Operation_Commands is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result is
    begin
-      if Files.Model.Background_Transfers (Model) then
+      if Files.Model.Jobs.Background_Transfers (Model) then
          return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Empty_Trash, No_Refusal);
       end if;
       return Files.Operations.Trash.Empty_Trash (Model, Settings);
@@ -80,7 +81,7 @@ package body Files.Controller.Operation_Commands is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result is
    begin
-      if Files.Model.Background_Transfers (Model) then
+      if Files.Model.Jobs.Background_Transfers (Model) then
          declare
             Refusal : constant Operation_Result :=
               Files.Operations.Creation_Refusal (Model, "error.duplicate.failed");
@@ -99,7 +100,7 @@ package body Files.Controller.Operation_Commands is
    is
       use type Files.Operations.Archives.Archive_Format;
    begin
-      if Files.Model.Background_Transfers (Model) then
+      if Files.Model.Jobs.Background_Transfers (Model) then
          declare
             Refusal : constant Operation_Result :=
               Files.Operations.Creation_Refusal (Model, "error.compress.failed");
@@ -119,7 +120,7 @@ package body Files.Controller.Operation_Commands is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result is
    begin
-      if Files.Model.Background_Transfers (Model) then
+      if Files.Model.Jobs.Background_Transfers (Model) then
          declare
             Refusal : constant Operation_Result :=
               Files.Operations.Creation_Refusal (Model, "error.extract.failed");
@@ -136,7 +137,7 @@ package body Files.Controller.Operation_Commands is
       Scope    : Files.UI_Types.Tree_Search_Scope)
       return Operation_Result is
    begin
-      if Files.Model.Background_Transfers (Model) then
+      if Files.Model.Jobs.Background_Transfers (Model) then
          declare
             Refusal : constant Operation_Result := Files.Operations.Search_Refusal (Model);
          begin
@@ -155,7 +156,7 @@ package body Files.Controller.Operation_Commands is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result is
    begin
-      if Files.Model.Background_Transfers (Model)
+      if Files.Model.Jobs.Background_Transfers (Model)
         and then Files.Undo.Journal.Journals_Newest (Files.Model.History.State (Model), Files.Undo.History.Undo_Side)
       then
          return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Undo, No_Refusal);
@@ -168,7 +169,7 @@ package body Files.Controller.Operation_Commands is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result is
    begin
-      if Files.Model.Background_Transfers (Model)
+      if Files.Model.Jobs.Background_Transfers (Model)
         and then Files.Undo.Journal.Journals_Newest (Files.Model.History.State (Model), Files.Undo.History.Redo_Side)
       then
          return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Redo, No_Refusal);

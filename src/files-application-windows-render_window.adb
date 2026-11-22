@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operation_Results;
 separate (Files.Application.Windows)
    procedure Render_Window
@@ -54,7 +55,7 @@ separate (Files.Application.Windows)
       --  Drive a long copy/move a few actions at a time so the UI stays
       --  responsive and the progress overlay animates. Small pastes have already
       --  finished (in Begin_Paste / Resolve_Paste_Conflict) and never get here.
-      if Files.Model.Foreground_Job_Is_Active (Runtime.Model) then
+      if Files.Model.Jobs.Foreground_Job_Is_Active (Runtime.Model) then
          declare
             Progress : constant Files.Operation_Results.Operation_Result :=
               Files.Job_Drivers.Foreground.Advance (Runtime.Model, Runtime.Settings, 8);

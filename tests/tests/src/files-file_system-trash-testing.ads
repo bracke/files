@@ -2,7 +2,8 @@ with Ada.Calendar;
 
 --  Test-only access to Files.File_System.Trash's private part: the native
 --  backends' adapters, the info file's date, and the hooks that make a
---  native trash refuse or keep where it put an item to itself.
+--  native trash refuse, keep where it put an item to itself, or find
+--  another item in a restored one's place.
 package Files.File_System.Trash.Testing is
 
    --  Whether the current environment's native trash supports Request.
@@ -20,6 +21,24 @@ package Files.File_System.Trash.Testing is
    function Trash_Deletion_Date
      (Value : Ada.Calendar.Time)
       return String;
+
+   --  Build the native trash request that would be needed for Path.
+   --
+   --  @param Path Filesystem path requested for native trash handling.
+   --  @return Native trash request metadata.
+   function Native_Trash_Request_For
+     (Path : String)
+      return Native_Trash_Request;
+
+   --  From now on, once a restore from a trash on another device has copied
+   --  the item back, put another file (of "another item") in its place under
+   --  the same name before the trash copy is removed, as emptying the trash
+   --  and trashing something else would. It fires once; arming it again
+   --  rearms it.
+   procedure Change_Trashed_After_Copy;
+
+   --  Put nothing in a restored item's place any more.
+   procedure Stop_Changing_Trashed;
 
    --  Make the native trash refuse every item (True) or behave again.
    --

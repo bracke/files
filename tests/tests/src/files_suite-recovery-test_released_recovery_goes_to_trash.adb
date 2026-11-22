@@ -1,3 +1,4 @@
+with Files.File_System.Trash.Testing;
 with Files.File_System.Recovery_Registry;
 with Files.File_System.Trash;
 with Files.File_System.Testing;
@@ -17,7 +18,7 @@ separate (Files_Suite.Recovery)
       Files_Suite.Support.Guards.Save (Environment, "XDG_DATA_HOME");
       --  Where the Recycle Bin is reachable (Windows) it is made to refuse,
       --  as an unreachable one would; elsewhere it is unreachable anyway.
-      Files.File_System.Testing.Refuse_Native_Trash (True);
+      Files.File_System.Trash.Testing.Refuse_Native_Trash (True);
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Write_Binary_File (Dest, "original");
@@ -46,7 +47,7 @@ separate (Files_Suite.Recovery)
       Assert (not Ada.Directories.Exists (Join (Root, "replaced 2.txt")),
               "no numbered copy of the original is left beside it");
       Ada.Directories.Delete_File (Dest);
-      Files.File_System.Testing.Refuse_Native_Trash (False);
+      Files.File_System.Trash.Testing.Refuse_Native_Trash (False);
 
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
@@ -67,6 +68,6 @@ separate (Files_Suite.Recovery)
    exception
       when others =>
          --  The next test gets a trash that takes items.
-         Files.File_System.Testing.Refuse_Native_Trash (False);
+         Files.File_System.Trash.Testing.Refuse_Native_Trash (False);
          raise;
    end Test_Released_Recovery_Goes_To_Trash;

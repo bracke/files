@@ -1,3 +1,4 @@
+with Files.Operations.Metadata.Testing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Disk;
@@ -64,7 +65,7 @@ separate (Files_Suite.History)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Select_Name (Model, "access-mode.txt");
 
-         Result := Files.Operations.Testing.Set_Permissions_For (Model, Edited, Settings);
+         Result := Files.Operations.Metadata.Testing.Set_Permissions_For (Model, Edited, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Status,
             Files.Operation_Results.Operation_Success,

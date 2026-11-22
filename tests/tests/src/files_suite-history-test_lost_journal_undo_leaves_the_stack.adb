@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Undo.Journal.Testing;
@@ -26,7 +27,7 @@ separate (Files_Suite.History)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Operations.History.Clear_Undo (Model);
       Assert (Files.Model.Selection.Select_By_Name (Model, "a.txt"), "the file is listed");
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Step := Complete_Operation (Model, Settings, Operation_Commands.Duplicate_Selected (Model, Settings));
       Await_View (Model, Settings);
       Assert (Ada.Directories.Exists (Copy), "the duplicate is made");

@@ -28,7 +28,7 @@ separate (Files_Suite.Transfer)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.History.Clear_Undo (Model);
          Select_Name (Model, "original.txt");
-         Files.Model.Set_Background_Transfers (Model, True);
+         Files.Model.Jobs.Set_Background_Transfers (Model, True);
          Step := Operation_Commands.Duplicate_Selected (Model, Settings);
          declare
             Job : constant Files.Jobs.Process.Session := Files.Model.Jobs.Background_Operation (Model);

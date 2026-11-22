@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Archives;
 with Files.Operations.History;
 with Files_Suite.Listings;
@@ -83,7 +84,7 @@ separate (Files_Suite.Names)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Operations.History.Clear_Undo (Model);
-      Files.Model.Set_Background_Transfers (Model, False);
+      Files.Model.Jobs.Set_Background_Transfers (Model, False);
       Select_Name (Model, "v1.2");
       Step := Operation_Commands.Duplicate_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal

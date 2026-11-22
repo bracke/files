@@ -24,4 +24,17 @@ package Files.File_System.Roots is
    --  @param Kind Root classification.
    --  @return The name, which may hold any character a file name can.
    function Root_Name (Path : String; Kind : Root_Kind) return String;
+
+private
+
+   --  Whether a mount point is one a user put there (a stick, a share), as
+   --  the root list shows them: "/" and anything under /mnt, /media,
+   --  /run/media, /Volumes, /System/Volumes or the session's gvfs directory,
+   --  but not those containers themselves.
+   --
+   --  @param Mount_Point Absolute mount point.
+   --  @param Runtime_Gvfs The session's gvfs directory, or "" when none.
+   --  @return True when the mount is listed as a root.
+   function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean;
+
 end Files.File_System.Roots;

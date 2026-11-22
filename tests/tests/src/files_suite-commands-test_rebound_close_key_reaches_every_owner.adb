@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files_Suite.Listings;
 with Files.Folder_Tree;
 with Files.Model.Clipboard;
@@ -62,11 +63,11 @@ separate (Files_Suite.Commands)
          pragma Unreferenced (Paste);
       begin
          Files_Suite.Support.Models.Arm_Numbered_Paste (Model, Settings, Src_Dir, Dest_Dir, 3);
-         Assert (Files.Model.Foreground_Job_Is_Active (Model), "a paste is running");
+         Assert (Files.Model.Jobs.Foreground_Job_Is_Active (Model), "a paste is running");
          Press (Model, Guikit.Input.Key_Escape);
-         Assert (Files.Model.Foreground_Job_Is_Active (Model), "Escape, unbound, does not cancel it");
+         Assert (Files.Model.Jobs.Foreground_Job_Is_Active (Model), "Escape, unbound, does not cancel it");
          Press (Model, Guikit.Input.Key_W, Control);
-         Assert (not Files.Model.Foreground_Job_Is_Active (Model), "Ctrl+W cancels the paste");
+         Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "Ctrl+W cancels the paste");
       end;
 
       --  The paste conflict dialog.

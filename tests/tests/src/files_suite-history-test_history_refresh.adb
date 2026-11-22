@@ -81,7 +81,7 @@ separate (Files_Suite.History)
                   Files.Operations.Undo_Recording.Record_Undo
                     (Model, Files.Undo.History.Undo_Move,
                      Files_Suite.Support.Models.Undo_Items (Destinations, To => Sources));
-                  Files.Model.Set_Background_Transfers (Model, Background);
+                  Files.Model.Jobs.Set_Background_Transfers (Model, Background);
                   Step := Complete_Operation
                        (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                   if Blocked then

@@ -189,7 +189,7 @@ package body Files.Job_Drivers.Operation is
             then Files.Model.History.Undo_Entries (Model).Last_Element.Sequence
             else 0));
    begin
-      if Files.Model.Foreground_Job_Is_Active (Model) or else Files.Model.Pasting.Conflict_Is_Active (Model) then
+      if Files.Model.Jobs.Foreground_Job_Is_Active (Model) or else Files.Model.Pasting.Conflict_Is_Active (Model) then
          return (Status => Files.Operation_Results.Operation_Disabled, others => <>);
       end if;
       if Kind in Search_Names | Search_Contents and then Length (Work.Query) = 0 then

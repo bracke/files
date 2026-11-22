@@ -218,7 +218,7 @@ package body Files.Refresh is
    begin
       if not Force and then (Work.Recent or else Files.Model.Filtering.Search_Results_Are_Active (Model)) then
          return (Status => Files.Operation_Results.Operation_Success, others => <>);
-      elsif Files.Model.Foreground_Job_Is_Active (Model) then
+      elsif Files.Model.Jobs.Foreground_Job_Is_Active (Model) then
          --  The modal job's own result may not cover this read (a show-hidden
          --  change shared from another window while it ran): the reload is
          --  owed, and Resume_Owed starts it once the job is done.
@@ -266,7 +266,7 @@ package body Files.Refresh is
    begin
       if not Files.Model.Refresh_Is_Owed (Model)
         or else Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model))
-        or else Files.Model.Foreground_Job_Is_Active (Model)
+        or else Files.Model.Jobs.Foreground_Job_Is_Active (Model)
       then
          return;
       end if;
@@ -385,7 +385,7 @@ package body Files.Refresh is
       if Requested.Root /= Files.Model.Current_Path (Model) then
          Cancel (Model);
          return False;
-      elsif Files.Model.Foreground_Job_Is_Active (Model) then
+      elsif Files.Model.Jobs.Foreground_Job_Is_Active (Model) then
          --  As in Start: the modal job's own result may not cover this read
          --  (a show-hidden change shared from another window), so the read
          --  is owed and Resume_Owed starts it again once the job is done.
@@ -814,7 +814,7 @@ package body Files.Refresh is
      (Model       : in out Files.Model.Window_Model;
       Show_Hidden : Boolean) is
    begin
-      if not Files.Model.Background_Transfers (Model)
+      if not Files.Model.Jobs.Background_Transfers (Model)
         and then Files.Model.Info_Pane.Selected_Item_Needs_Extra (Model)
       then
          declare

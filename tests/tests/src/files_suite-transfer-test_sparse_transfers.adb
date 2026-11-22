@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.History;
 with Files.Operations.Paste;
 with Files_Suite.Listings;
@@ -55,7 +56,7 @@ separate (Files_Suite.Transfer)
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.History.Clear_Undo (Model);
-            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Paths.Clear;
             Paths.Append (To_Unbounded_String (Source));
             Step := Complete_Operation

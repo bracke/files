@@ -26,7 +26,6 @@ with Files.File_System.Support;
 with Files.File_System.Thumbnails;
 with Files.File_System.Recovery;
 with Files.File_System.Trash;
-with Files.File_System.Permissions;
 with Files.File_Identities;
 with Files.IO.Errors;
 with Hostkit.Trash;
@@ -341,8 +340,6 @@ package body Files.File_System is
    function Path_Is_Within (Child, Parent : String) return Boolean is
      (Path_Is_Within_By (Child, Parent, Hostkit.Fs.Folds_Name_Case'Access));
 
-   function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean is separate;
-
    function Expand_User_Path (Path : String) return String is separate;
 
    function Normalize_Path
@@ -461,16 +458,6 @@ package body Files.File_System is
      (Source_Path : String;
       Link_Path   : String)
       return Mutation_Result is (Create_Link_Of_Kind (Source_Path, Link_Path, Hard => True));
-
-   function Change_Mode
-     (Path, Expected_Identity : String; Mode : Natural;
-      Previous : out Natural; Identity : out Files.Types.UString) return Mutation_Result
-   is
-      Unused_Previous_Access, Unused_Applied_Access : Files.Types.UString;
-   begin
-      return Files.File_System.Permissions.Change_Access
-        (Path, Expected_Identity, Mode, "", Previous, Unused_Previous_Access, Unused_Applied_Access, Identity);
-   end Change_Mode;
 
    function Delete_Permanently
      (Path : String)

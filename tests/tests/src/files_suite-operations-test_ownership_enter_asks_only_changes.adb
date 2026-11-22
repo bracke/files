@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.Model.Ownership_Input;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -49,7 +50,7 @@ separate (Files_Suite.Operations)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "enter_own.txt");
-      Files.File_System.Testing.Watch_Ownership_Changes;
+      Files.File_System.Permissions.Testing.Watch_Ownership_Changes;
 
       --  Enter on the ids the file has, typed or as seeded.
       Commit (Group => False, Text => Files.Types.Account_Image (Uid));
@@ -61,26 +62,26 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model), Files.UI_Types.Focus_None, "and the field is closed");
       Files_Suite.Support.Assert_Equal
-        (Files.File_System.Testing.Ownership_Changes, 0, "no ownership change is asked of the host");
+        (Files.File_System.Permissions.Testing.Ownership_Changes, 0, "no ownership change is asked of the host");
       Assert (not Files.Model.History.Undo_Available (Model), "and no Undo is recorded");
 
       --  An edit of the user leaves the group to the file, and the other way.
       Commit (Group => False, Text => Files.Types.Account_Image (Other (Uid)));
       Files_Suite.Support.Assert_Equal
-        (Files.File_System.Testing.Ownership_Changes, 1, "an edited owner is asked for");
-      Assert (Files.File_System.Testing.Last_Ownership_User = Other (Uid), "with the user typed");
-      Assert (Files.File_System.Testing.Last_Ownership_Group = Hostkit.Metadata.Keep_Id,
+        (Files.File_System.Permissions.Testing.Ownership_Changes, 1, "an edited owner is asked for");
+      Assert (Files.File_System.Permissions.Testing.Last_Ownership_User = Other (Uid), "with the user typed");
+      Assert (Files.File_System.Permissions.Testing.Last_Ownership_Group = Hostkit.Metadata.Keep_Id,
               "and the group kept as the file has it");
       Commit (Group => True, Text => Files.Types.Account_Image (Other (Gid)));
       Files_Suite.Support.Assert_Equal
-        (Files.File_System.Testing.Ownership_Changes, 2, "an edited group is asked for");
-      Assert (Files.File_System.Testing.Last_Ownership_Group = Other (Gid), "with the group typed");
-      Assert (Files.File_System.Testing.Last_Ownership_User = Hostkit.Metadata.Keep_Id,
+        (Files.File_System.Permissions.Testing.Ownership_Changes, 2, "an edited group is asked for");
+      Assert (Files.File_System.Permissions.Testing.Last_Ownership_Group = Other (Gid), "with the group typed");
+      Assert (Files.File_System.Permissions.Testing.Last_Ownership_User = Hostkit.Metadata.Keep_Id,
               "and the user kept as the file has it");
-      Files.File_System.Testing.Stop_Watching_Ownership_Changes;
+      Files.File_System.Permissions.Testing.Stop_Watching_Ownership_Changes;
       Reset_Root;
    exception
       when others =>
-         Files.File_System.Testing.Stop_Watching_Ownership_Changes;
+         Files.File_System.Permissions.Testing.Stop_Watching_Ownership_Changes;
          raise;
    end Test_Ownership_Enter_Asks_Only_Changes;

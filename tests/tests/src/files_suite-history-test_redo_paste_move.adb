@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -36,7 +37,7 @@ separate (Files_Suite.History)
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                         "the move paste succeeds");
-      Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the move paste finalizes");
+      Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the move paste finalizes");
       Assert
         (Ada.Directories.Exists (Dest) and then not Ada.Directories.Exists (Source),
          "the move relocates the file to the destination");

@@ -27,22 +27,20 @@ separate (Check_All)
         [Pair ("durability", "fail_syncs_ending_with", "clear"),
          Pair ("durability", "fail_stage_sync", "clear"),
          Pair ("file_identities", "set_unavailable", "set_unavailable", Off => "false"),
-         Pair ("file_system", "refuse_native_trash", "refuse_native_trash", Off => "false"),
          Pair ("file_system", "change_source_after_copy", "stop_changing_source"),
-         Pair ("file_system", "change_trashed_after_copy", "stop_changing_trashed"),
          Pair ("file_system", "fail_directory_restore", "stop_failing_directory_restore"),
          Pair ("file_system", "fail_owned_delete", "stop_failing_owned_delete"),
          Pair ("file_system", "refuse_creation_matches", "refuse_creation_matches", Off => "false"),
          Pair ("file_system", "refuse_hard_links", "refuse_hard_links", Off => "false"),
          Pair ("file_system", "pause_sweep_work", "resume_sweep_work"),
-         Pair ("file_system", "watch_ownership_changes", "stop_watching_ownership_changes"),
          Pair ("folder_size", "fail_result_reads", "fail_result_reads", Off => "0"),
          Pair ("fs_primitives", "refuse_lookups", "stop_refusing_lookups"),
          Pair ("journal", "refuse_reads", "refuse_reads", Off => "0"),
          Pair ("operation", "fail_after_merge", "stop_failing_after_merge"),
-         Pair ("operations", "fake_checkpoint_clock", "fake_checkpoint_clock", Off => "false"),
          Pair ("path_references", "simulate_folding_host", "simulate_folding_host", Off => "false"),
+         Pair ("permissions", "watch_ownership_changes", "stop_watching_ownership_changes"),
          Pair ("process", "refuse_next_launch", "clear_refusal"),
+         Pair ("trash", "change_trashed_after_copy", "stop_changing_trashed"),
          Pair ("trash", "refuse_native_trash", "refuse_native_trash", Off => "false"),
          Pair ("undo_recording", "count_undo_records", "count_undo_records", Off => "false"),
          Pair ("undo_recording", "fake_checkpoint_clock", "fake_checkpoint_clock", Off => "false")];
@@ -629,13 +627,13 @@ separate (Check_All)
                & "   Files.Jobs.Process.Testing.Refuse_Next_Launch;" & LF & "   Check;" & LF & "end Test;",
                Flagged => False),
          Make ("procedure Test is" & LF & "begin" & LF
-               & "   Files.File_System.Testing.Refuse_Native_Trash (False);" & LF & "end Test;",
+               & "   Files.File_System.Trash.Testing.Refuse_Native_Trash (False);" & LF & "end Test;",
                Flagged => False),
          Make ("procedure Test is" & LF & "begin" & LF
-               & "   Files.File_System.Testing.Refuse_Native_Trash (Refuse);" & LF
+               & "   Files.File_System.Trash.Testing.Refuse_Native_Trash (Refuse);" & LF
                & "   for Item of Items loop" & LF & "      Check (Item);" & LF & "   end loop;" & LF
                & "exception" & LF & "   when others =>" & LF
-               & "      Files.File_System.Testing.Refuse_Native_Trash (True);" & LF & "      raise;" & LF
+               & "      Files.File_System.Trash.Testing.Refuse_Native_Trash (True);" & LF & "      raise;" & LF
                & "end Test;",
                Flagged => True),
          Make ("procedure Test is" & LF & "   use Files.IO.Durability.Testing;" & LF & "begin" & LF

@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Operation_Results;
@@ -24,7 +25,7 @@ separate (Files_Suite.Trash)
       begin
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Set_Background_Transfers (Model, Background);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Select_Name (Model, "photo.txt");
          Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
          Files_Suite.Support.Assert_Equal

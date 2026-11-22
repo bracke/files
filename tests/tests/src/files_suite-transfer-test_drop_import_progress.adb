@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Controller.Testing;
 with Files_Suite.Listings;
 with Files.Model.Testing;
@@ -38,7 +39,7 @@ separate (Files_Suite.Transfer)
         (Routed.Operation.Status,
          Files.Operation_Results.Operation_Success,
          "large drop import reports success");
-      Assert (Files.Model.Foreground_Job_Is_Active (Model), "a large drop keeps the progress executor active");
+      Assert (Files.Model.Jobs.Foreground_Job_Is_Active (Model), "a large drop keeps the progress executor active");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Testing.Paste_Execution_Total (Model),
          Count,
@@ -51,7 +52,8 @@ separate (Files_Suite.Transfer)
         (Step.Status,
          Files.Operation_Results.Operation_Success,
          "advancing the drop executor reports success");
-      Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the drop executor finalizes after the last batch");
+      Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model),
+              "the drop executor finalizes after the last batch");
 
       for N in 1 .. Count loop
          Assert (Ada.Directories.Exists (Dest (N)), "every dropped source is imported to the destination");

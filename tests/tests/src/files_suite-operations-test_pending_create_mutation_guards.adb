@@ -31,7 +31,7 @@ separate (Files_Suite.Operations)
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.History.Clear_Undo (Model);
-            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
             Files.Model.Selection.Toggle_Visible_Selection (Model, 1);
             Assert
@@ -115,7 +115,7 @@ separate (Files_Suite.Operations)
               (To_String (Step.Error_Key), "error.create.pending", Context & ": error key");
             Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model),
                     Context & ": the inline creation stays active");
-            Assert (not Files.Model.Foreground_Job_Is_Active (Model), Context & ": no paste execution");
+            Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), Context & ": no paste execution");
             Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), Context & ": no paste conflict");
             Assert (not Ada.Directories.Exists (Join (Join (Root, "view"), "incoming.txt")),
                     Context & ": nothing written");

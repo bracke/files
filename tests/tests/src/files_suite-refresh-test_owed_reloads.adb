@@ -26,7 +26,7 @@ separate (Files_Suite.Refresh)
       Write_Binary_File (Join (Root, "a.txt"), "a");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
 
       --  An operation that finishes after an edit in the same view (here a new
       --  diagnostic) cannot apply its old snapshot, but must still relist.
@@ -75,7 +75,7 @@ separate (Files_Suite.Refresh)
       Applied := Files.Refresh.Advance (Model, Settings);
       Assert (not Applied and then Files.Model.Refresh_Is_Owed (Model),
               "a read cancelled by a modal job is owed");
-      Files.Model.End_Foreground_Job (Model);
+      Files.Model.Jobs.End_Foreground_Job (Model);
       Files.Refresh.Resume_Owed (Model, Settings);
       Await_View (Model, Settings);
       Assert (not Files.Model.Refresh_Is_Owed (Model), "the owed read runs once the job is done");

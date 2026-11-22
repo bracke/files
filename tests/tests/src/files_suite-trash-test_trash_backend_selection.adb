@@ -17,11 +17,11 @@ separate (Files_Suite.Trash)
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Assert (not Files.File_System.Trash.Trash_Is_Available, "trash availability detects missing trash base");
          Assert
-           (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Unavailable,
+           (Files.File_System.Trash.Trash_Backend_Of_Current_Environment = Files.File_System.Trash.Trash_Unavailable,
             "trash backend reports unavailable when no trash base exists");
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", "relative-trash-data");
          Assert
-           (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Unavailable
+           (Files.File_System.Trash.Trash_Backend_Of_Current_Environment = Files.File_System.Trash.Trash_Unavailable
             and then not Files.File_System.Trash.Trash_Is_Available,
             "a relative XDG data home cannot redirect trash into the process directory");
          Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
@@ -31,14 +31,14 @@ separate (Files_Suite.Trash)
          Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
          if Hostkit.Host.Current = Hostkit.Host.Windows then
             Assert
-              (Files.File_System.Testing.Trash_Backend_Of_Current_Environment
-                 = Files.File_System.Trash_Windows_Recycle_Bin,
+              (Files.File_System.Trash.Trash_Backend_Of_Current_Environment
+                 = Files.File_System.Trash.Trash_Windows_Recycle_Bin,
                "Windows falls back to the Recycle Bin, which needs no trash base");
             Assert (Files.File_System.Trash.Trash_Is_Available,
                     "the Recycle Bin is always available");
          else
             Assert
-              (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Unavailable,
+              (Files.File_System.Trash.Trash_Backend_Of_Current_Environment = Files.File_System.Trash.Trash_Unavailable,
                "elsewhere, no trash base means no trash");
          end if;
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
@@ -73,7 +73,7 @@ separate (Files_Suite.Trash)
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Assert (Files.File_System.Trash.Trash_Is_Available, "trash availability detects XDG trash base");
          Assert
-           (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Xdg_Data_Home,
+           (Files.File_System.Trash.Trash_Backend_Of_Current_Environment = Files.File_System.Trash.Trash_Xdg_Data_Home,
             "trash backend reports XDG data home when configured");
          --  "/" is not a root on Windows; the drive is.
          Mutation := Files.File_System.Trash.Move_To_Trash_Preflight (Filesystem_Root);

@@ -3,7 +3,7 @@ with Files.File_System_Types;
 with Files.Operation_Results;
 with Files.Items;
 with Files.Model.Pasting;
-with Files.Operations.Testing;
+with Files.Operations.Paste.Testing;
 separate (Files_Suite.History)
    --  A failed move kept its copy on the path of an original it replaced,
    --  and the copy can no longer be verified, so the paste has no Undo. The
@@ -33,7 +33,7 @@ separate (Files_Suite.History)
          Files.Model.Pasting.Record_Replaced_Trash
            (Model, To_Unbounded_String (Join (Root, "trashed-original")), "0:none", Dest, Verified => False);
          --  The copy's recorded identity no longer matches what is at Dest.
-         Result := Files.Operations.Testing.Finalize_Paste_With_Kept_Copy
+         Result := Files.Operations.Paste.Testing.Finalize_Paste_With_Kept_Copy
            (Model, Settings, (if Cancelled then "" else "error.drop.failed"), Dest, Source, "0:changed", "rev");
          Assert (Result.Status = Files.Operation_Results.Operation_Failed, "the paste fails, cancelled "
                  & Cancelled'Image);

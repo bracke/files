@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.History;
 with Files.Operations.Navigation;
 with Files_Suite.Listings;
@@ -23,7 +24,7 @@ separate (Files_Suite.Archives)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.History.Clear_Undo (Model);
          Files.Model.Selection.Select_All_Visible (Model);
-         Files.Model.Set_Background_Transfers (Model, Background);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Ada.Directories.Delete_File (Join (Root, "b.txt"));
          Step := Complete_Operation
            (Model, Settings,
@@ -54,7 +55,7 @@ separate (Files_Suite.Archives)
          Files.Settings.Path_References.Note_Recent (Settings, Join (Join (Root, "two"), "same.txt"));
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.History.Clear_Undo (Model);
-         Files.Model.Set_Background_Transfers (Model, Background);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Step := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
          Files.Model.Selection.Select_All_Visible (Model);
          Step := Complete_Operation
@@ -100,7 +101,7 @@ separate (Files_Suite.Archives)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.History.Clear_Undo (Model);
          Select_Name (Model, "bag");
-         Files.Model.Set_Background_Transfers (Model, Background);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Step := Complete_Operation
            (Model, Settings,
             Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Archives.Zip_Archive));
@@ -126,7 +127,7 @@ separate (Files_Suite.Archives)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.History.Clear_Undo (Model);
          Select_Name (Model, "bag");
-         Files.Model.Set_Background_Transfers (Model, False);
+         Files.Model.Jobs.Set_Background_Transfers (Model, False);
          Step := Complete_Operation
            (Model, Settings,
             Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Archives.Zip_Archive));
@@ -151,7 +152,7 @@ separate (Files_Suite.Archives)
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Operations.History.Clear_Undo (Model);
-               Files.Model.Set_Background_Transfers (Model, Background);
+               Files.Model.Jobs.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "bag");
                Step := Complete_Operation
                  (Model, Settings, Operation_Commands.Compress_Selected (Model, Settings, Format));

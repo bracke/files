@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Undo.Journal.Testing;
@@ -36,17 +37,17 @@ separate (Files_Suite.History)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.History.Clear_Undo (Model);
          Assert (Files.Model.Selection.Select_By_Name (Model, "a.txt"), "the file is listed");
-         Files.Model.Set_Background_Transfers (Model, True);
+         Files.Model.Jobs.Set_Background_Transfers (Model, True);
          Step := Operation_Commands.Duplicate_Selected (Model, Settings);
          Files.Undo.Journal.Testing.Refuse_Reads (Refused);
          Started := Files_Suite.Support.Timing.Now;
          for Attempt in Files_Suite.Support.Timing.Polling loop
-            exit when not Files.Model.Foreground_Job_Is_Active (Model);
+            exit when not Files.Model.Jobs.Foreground_Job_Is_Active (Model);
             Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
             Polls := Polls + 1;
          end loop;
          Taken := Files_Suite.Support.Timing.Seconds (Files_Suite.Support.Timing.Elapsed (Started));
-         Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the job finishes");
+         Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the job finishes");
          Assert
            (Refused - Files.Undo.Journal.Testing.Refusals_Left <= Polls,
             "each poll reads the journal at most once, without waiting between reads");

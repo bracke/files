@@ -1,3 +1,4 @@
+with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Testing;
 with Files_Suite.Support.Disk;
@@ -41,7 +42,7 @@ separate (Files_Suite.Transfer)
             Plans.Append (Files.File_System.Transfer.Drop_Import_Plan'
                             (To_Unbounded_String (Source), To_Unbounded_String (Dest), Mode, True,
                              Null_Unbounded_String));
-            Result := Files.File_System.Testing.Execute_Drop_Import (Plans, Race'Unrestricted_Access);
+            Result := Files.File_System.Transfer.Testing.Execute_Drop_Import (Plans, Race'Unrestricted_Access);
             if Created then
                Assert (not Result.Success, "a collision after validation fails without overwriting");
                case Kind is

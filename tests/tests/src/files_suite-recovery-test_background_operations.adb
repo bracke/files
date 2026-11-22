@@ -27,11 +27,11 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Join (Join (Root, "nested"), "needle-name.txt"), "needle");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Select_Name (Model, "a.txt");
       Step := Operation_Commands.Duplicate_Selected (Model, Settings);
       --  An operation is the window's modal job in its own right, not a paste.
-      Assert (Files.Model."=" (Files.Model.Foreground_Job (Model), Files.Model.Operation_Job)
+      Assert (Files.Model."=" (Files.Model.Jobs.Foreground_Job (Model), Files.Model.Operation_Job)
               and then not Files.Model.Pasting.Execution_Is_Active (Model),
               "a background operation runs as the modal operation job, not as a paste");
       Files_Suite.Support.Assert_Equal

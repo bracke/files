@@ -29,7 +29,7 @@ separate (Files_Suite.Transfer)
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.History.Clear_Undo (Model);
-         Files.Model.Set_Background_Transfers (Model, False);
+         Files.Model.Jobs.Set_Background_Transfers (Model, False);
          Select_Name (Model, "original");
          if Redo_Recovery then
             Step := Operation_Commands.Duplicate_Selected (Model, Settings);
@@ -41,7 +41,7 @@ separate (Files_Suite.Transfer)
             Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                               "prepare Redo recovery");
          end if;
-         Files.Model.Set_Background_Transfers (Model, True);
+         Files.Model.Jobs.Set_Background_Transfers (Model, True);
          Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_LOST_CREATION_METADATA");
          Ada.Environment_Variables.Set ("FILES_TEST_LOST_CREATION_METADATA", "1");
          Step := (if Redo_Recovery then Operation_Commands.Redo_Last (Model, Settings)

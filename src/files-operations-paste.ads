@@ -117,7 +117,7 @@ package Files.Operations.Paste is
    --  Record what an armed paste has done so far as its one Undo entry --
    --  the items written and the originals a Replace preserved -- and consume
    --  a cut's clipboard, leaving the paste armed for
-   --  Files.Model.End_Foreground_Job. A window closing mid-paste calls this
+   --  Files.Model.Jobs.End_Foreground_Job. A window closing mid-paste calls this
    --  before it lets the paste go, so the originals preserved so far reach
    --  its history, which sends them to the system trash as it ends, instead
    --  of being dropped with the paste in hidden stages.

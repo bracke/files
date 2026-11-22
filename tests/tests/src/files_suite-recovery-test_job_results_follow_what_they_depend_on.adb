@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
@@ -24,12 +25,12 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Join (Root, ".needle-hidden"), "x");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
 
       --  Another window zooms and opens a file while the search runs.
       Files.Model.Filtering.Set_Filter (Model, "needle");
       Step := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
-      Assert (Files.Model.Foreground_Job_Is_Active (Model), "the search runs as the window's job");
+      Assert (Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the search runs as the window's job");
       Changed.Font_Pixel_Size := Settings.Font_Pixel_Size + 4;
       Files.Settings.Path_References.Note_Recent (Changed, Join (Root, "a.txt"));
       Step := Files_Suite.Support.Models.Finish_Paste (Model, Changed);
@@ -44,7 +45,7 @@ separate (Files_Suite.Recovery)
       Files.Model.Replace_Items (Model, Load.Items);
       Select_Name (Model, "a.txt");
       Step := Operation_Commands.Duplicate_Selected (Model, Settings);
-      Assert (Files.Model.Foreground_Job_Is_Active (Model), "the duplicate runs as the window's job");
+      Assert (Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the duplicate runs as the window's job");
       Changed := Settings;
       Changed.Show_Hidden_Files := True;
       --  What Adopt_Shared_Settings asks for: a read under the new policy.

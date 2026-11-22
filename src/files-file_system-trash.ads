@@ -4,6 +4,32 @@ with Ada.Calendar;
 --  them back. Clients with this, not the whole of Files.File_System.
 package Files.File_System.Trash is
 
+   type Trash_Backend is
+     (Trash_Unavailable,
+      Trash_Windows_Recycle_Bin,
+      Trash_Macos_Native,
+      Trash_Xdg_Data_Home,
+      Trash_Home_Data,
+      Trash_Macos_Home);
+
+   type Native_Trash_Request is record
+      Backend                 : Trash_Backend := Trash_Unavailable;
+      Path                    : UString;
+      Requires_Native_Api     : Boolean := False;
+      Can_Use_Current_Process : Boolean := False;
+   end record;
+
+   --  What became of a request for the trash. Supported: this host has that
+   --  trash here. Attempted: the move was tried (False when unsupported, so a
+   --  refusal is told apart from an absent trash). Error_Key: why it did not
+   --  complete.
+   type Native_Trash_Result is record
+      Supported : Boolean := False;
+      Attempted : Boolean := False;
+      Completed : Boolean := False;
+      Error_Key : UString;
+   end record;
+
    --  Return whether a platform trash backend is available in the current environment.
    --
    --  @return True when Move_To_Trash can use a configured trash location.
@@ -139,18 +165,26 @@ private
      (Value : Ada.Calendar.Time)
       return String;
 
-   --  Set only by the test suite (Files.File_System.Testing.Refuse_Native_Trash):
+   --  Set only by the test suite (Files.File_System.Trash.Testing.Refuse_Native_Trash):
    --  the desktop's own trash then refuses every item, as an unreachable
    --  Recycle Bin would, so the refusal paths can be exercised where the
    --  trash is reachable. The application never sets it.
    Native_Trash_Refused : Boolean := False
      with Atomic;
 
-   --  Set only by the test suite (Files.File_System.Testing.Trash_Says_Nowhere):
+   --  Set only by the test suite (Files.File_System.Trash.Testing.Withhold_Trash_Location):
    --  a trash that takes an item then reports no place for it, as the
    --  Finder may, so the Undo that cannot follow it is exercised on every
    --  host. The application never sets it.
    Trash_Location_Withheld : Boolean := False
+     with Atomic;
+
+   --  Set only by the test suite (Files.File_System.Trash.Testing.Replace_Trashed_After_Copy):
+   --  called with the trashed item a restore from a trash on another device
+   --  has just copied back, before it removes that item, so the suite can put
+   --  another item under its name as emptying the trash and trashing again
+   --  would. The application never sets it.
+   After_Restore_Copy : Copy_Hook := null
      with Atomic;
 
 end Files.File_System.Trash;

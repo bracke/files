@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.File_System_Types;
 with Files.Model.Recent;
 with Files_Suite.Listings;
@@ -38,7 +39,7 @@ separate (Files_Suite.Refresh)
             Write_Binary_File (Join (View, "alpha"), "alpha");
             Load := Files_Suite.Listings.Load_Directory (View, Settings);
             Files.Model.Initialize (Model, View, Load.Items, Root);
-            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Signature := Files.File_System.Directory_State (View);
             Files.Model.Set_Directory_Signature (Model, Signature);
             Select_Name (Model, "alpha");
@@ -87,7 +88,7 @@ separate (Files_Suite.Refresh)
                "successful manual and automatic refreshes clear obsolete errors and preserve selection: selection");
          end loop;
       end loop;
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       for Manual in Boolean loop
          Files.Model.Set_Error (Model, "error.trash.restore_exists");
          Start_Refresh (Manual);

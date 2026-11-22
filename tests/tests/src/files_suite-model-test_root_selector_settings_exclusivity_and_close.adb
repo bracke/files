@@ -1,8 +1,8 @@
+with Files.File_System.Roots.Testing;
 with Files.File_System_Types;
 with Files.Overlays.Settings_Form;
 with Files.Operation_Results;
 with Files.Controller.Testing;
-with Files.File_System.Testing;
 with Files.Model.Command_Palette;
 with Files.Model.Root_Selector;
 with Files.Model.Settings_Pane;
@@ -19,7 +19,7 @@ separate (Files_Suite.Model)
       Reset_Root;
       Ada.Directories.Create_Path (Target);
       Write_File (Join (Target, "inside.txt"));
-      Roots_A := Files.File_System.Testing.Available_Roots;
+      Roots_A := Files.File_System.Roots.Testing.Available_Roots;
       --  Open the selected root and come back to Root, so the selector starts
       --  closed over a navigated window.
       Entries.Append

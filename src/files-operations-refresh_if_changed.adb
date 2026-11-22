@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 separate (Files.Operations)
 function Refresh_If_Changed
   (Model    : in out Files.Model.Window_Model;
@@ -5,7 +6,7 @@ function Refresh_If_Changed
    return Operation_Result
 is
 begin
-   if Files.Model.Background_Transfers (Model) then
+   if Files.Model.Jobs.Background_Transfers (Model) then
       return Files.Refresh.Start (Model, Settings);
    end if;
    declare

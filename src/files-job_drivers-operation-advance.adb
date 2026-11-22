@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Recent;
 separate (Files.Job_Drivers.Operation)
 function Advance
@@ -131,7 +132,7 @@ begin
    declare
       Choice : constant Disposition := Choose;
    begin
-      Files.Model.End_Foreground_Job (Model);
+      Files.Model.Jobs.End_Foreground_Job (Model);
       Recover_If_Owed (Choice);
       if After_Merge /= null then
          --  Test seam: it raises, as if the view work had failed.

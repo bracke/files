@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Recent;
 separate (Files.Operations)
 function Refresh
@@ -12,7 +13,7 @@ begin
    if Measure_Again then
       Files.Model.Folder_Sizes.Clear (Model);
    end if;
-   if Files.Model.Background_Transfers (Model) then
+   if Files.Model.Jobs.Background_Transfers (Model) then
       return Files.Refresh.Start (Model, Settings, Force => True);
    end if;
    --  The virtual recent view has no backing directory to reload; rebuild its

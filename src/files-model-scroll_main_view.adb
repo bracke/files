@@ -19,7 +19,7 @@ begin
    end if;
 
    if Wanted /= Current then
-      Model.Scroll_Revision_Value := Model.Scroll_Revision_Value + 1;
+      Support.Touch_Scroll (Model);
       Model.Main_View_Scroll := Wanted;
    end if;
 end Scroll_Main_View;

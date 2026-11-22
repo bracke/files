@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -67,7 +68,7 @@ separate (Files_Suite.Transfer)
                         Files.Operation_Results.Operation_Success,
                         "paste completion reports the committed mutation accurately: status");
                      Assert
-                       (not Files.Model.Foreground_Job_Is_Active (Model),
+                       (not Files.Model.Jobs.Foreground_Job_Is_Active (Model),
                         "paste completion reports the committed mutation accurately: paste finished");
                      Files_Suite.Support.Assert_Equal
                        (Files.Model.Last_Error_Key (Model),

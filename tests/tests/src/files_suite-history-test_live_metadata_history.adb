@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Metadata.Testing;
 with Files.Operations.History;
 with Files.Operations.Metadata;
@@ -34,12 +35,12 @@ separate (Files_Suite.History)
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.History.Clear_Undo (Model);
-            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Select_Name (Model, "live-source");
             Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#600#);
             Assert (Mutation.Success, "simulate a permission change after the directory listing");
             Step := (if Toggle then Files.Operations.Metadata.Toggle_Permission_Bit (Model, 8, Settings)
-                     else Files.Operations.Testing.Set_Permissions_For (Model, 8#750#, Settings));
+                     else Files.Operations.Metadata.Testing.Set_Permissions_For (Model, 8#750#, Settings));
             Assert (Step.Status = Files.Operation_Results.Operation_Success
                     and then Mode_Of (Source, With_Special_Bits => True) =
                       (if Hostkit.Metadata.Mode_Bits_Are_Native
@@ -68,7 +69,7 @@ separate (Files_Suite.History)
             end;
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.History.Clear_Undo (Model);
-            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Select_Name (Model, "live-source");
             Step := Files.Operations.Metadata.Testing.Set_Ownership_For (Model, Uid, Gid, Settings);
             Files_Suite.Support.Assert_Equal

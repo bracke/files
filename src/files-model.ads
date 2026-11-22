@@ -43,6 +43,27 @@ package Files.Model is
       Home_Path         : String;
       Default_View_Mode : Files.Preference_Types.View_Mode := Files.Preference_Types.Small_Icons);
 
+   --  The revision counters. A view keeps what it built and asks these
+   --  which parts are stale; every counter wraps at Natural'Last and is only
+   --  ever compared for equality. Mutators move them through one helper
+   --  each in Files.Model.Support, never by hand:
+   --
+   --    Helper (Support)   Moves                         Read by
+   --    Touch              Revision, Rows_Revision       snapshot: full rebuild
+   --    Touch_Rename       Revision, Rename_Revision     snapshot: patch rename rows
+   --    Touch_Selection    Revision, Selection_Revision  snapshot: patch selected flags
+   --    Touch_Header       Revision                      snapshot: header-only build
+   --    Touch_Info         Revision, Info_Revision       snapshot: info-pane rows
+   --    Note_Folder_Sizes  Revision, Folder_Sizes.Revision  selection total, info pane
+   --    Touch_Overlay      Overlay_Revision              window: model-drawn overlays
+   --    Touch_Scroll       Scroll_Revision               snapshot: scroll patch
+   --    Touch_Listing      Listing_Revision              Refresh: stale background reads
+   --    (navigation)       View_Incarnation              Refresh: view still on screen
+   --    Note_Settings_Changed  Settings_Revision         window: settings sharing
+   --
+   --  A mutator calls the narrowest helper that covers what it changed;
+   --  a change no narrower helper covers calls Touch.
+
    --  Return the model's change revision -- a counter bumped by every mutator.
    --  The render layer compares this against the revision it last built a
    --  snapshot at to decide whether the cached snapshot is still current.
@@ -784,36 +805,11 @@ package Files.Model is
 
    type Clipboard_Mode is (Clipboard_None, Clipboard_Copy, Clipboard_Cut);
 
-   --  Select helper execution for a live window; headless callers can step synchronously.
-   --  @param Model Window model to configure before starting a paste.
-   --  @param Enabled Whether filesystem actions run on helper processes.
-   procedure Set_Background_Transfers (Model : in out Window_Model; Enabled : Boolean);
-
-   --  Return whether filesystem actions use helpers.
-   --  @param Model Window model to inspect.
-   --  @return True when background transfers are enabled.
-   function Background_Transfers (Model : Window_Model) return Boolean;
-
    --  The one modal job a window runs at a time: shown with its progress,
    --  owning the input, cancellable. A paste (Files.Model.Pasting's
    --  execution) or an operation on a helper (Files.Job_Drivers.Operation: trash,
-   --  search, undo and the rest).
+   --  search, undo and the rest). Files.Model.Jobs asks and ends it.
    type Foreground_Job_Kind is (No_Foreground_Job, Paste_Job, Operation_Job);
-
-   --  @param Model Window to inspect.
-   --  @return The modal job it runs, if any.
-   function Foreground_Job (Model : Window_Model) return Foreground_Job_Kind;
-
-   --  @param Model Window to inspect.
-   --  @return True while a paste or an operation runs modally.
-   function Foreground_Job_Is_Active (Model : Window_Model) return Boolean;
-
-   --  End the modal job, whichever it is: its helper handles are released
-   --  (a helper still running is stopped and reaped by Files.Jobs.Process)
-   --  and its state forgotten.
-   --
-   --  @param Model Window to update.
-   procedure End_Foreground_Job (Model : in out Window_Model);
 
    --  Record a recoverable error key, and the path its message names.
    --
@@ -858,6 +854,14 @@ package Files.Model is
       return String;
 
 private
+
+   --  The next value of a revision counter: every counter below wraps from
+   --  Natural'Last to 0, as its readers compare values only for equality.
+   --
+   --  @param Value The counter's current value.
+   --  @return Its next value.
+   function Bumped (Value : Natural) return Natural is
+     (if Value = Natural'Last then 0 else Value + 1);
 
    --  Clear the destination-picker sub-mode and its captured sources.
    --

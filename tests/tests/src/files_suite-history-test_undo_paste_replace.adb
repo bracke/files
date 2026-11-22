@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -54,7 +55,7 @@ separate (Files_Suite.History)
          Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "the copy-replace paste succeeds");
-         Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the copy-replace paste finalizes");
+         Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the copy-replace paste finalizes");
          Files_Suite.Support.Assert_Equal
            (Files.File_System.Read_Preview_Text (Dest, 3),
             "new",
@@ -104,7 +105,7 @@ separate (Files_Suite.History)
          Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "the move-replace paste succeeds");
-         Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the move-replace paste finalizes");
+         Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the move-replace paste finalizes");
          Assert
            (Files.File_System.Read_Preview_Text (Dest, 3) = "new"
               and then not Ada.Directories.Exists (Source),

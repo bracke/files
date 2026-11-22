@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -23,7 +24,7 @@ separate (Files_Suite.History)
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.History.Clear_Undo (Model);
-         Files.Model.Set_Background_Transfers (Model, Background);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Select_Name (Model, "original");
          Step := Complete_Operation (Model, Settings, Operation_Commands.Duplicate_Selected (Model, Settings));
          Await_View (Model, Settings);
@@ -72,7 +73,7 @@ separate (Files_Suite.History)
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.History.Clear_Undo (Model);
-         Files.Model.Set_Background_Transfers (Model, Background);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Select_Name (Model, "original");
          Step := Complete_Operation (Model, Settings, Operation_Commands.Duplicate_Selected (Model, Settings));
          Await_View (Model, Settings);

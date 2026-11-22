@@ -1,3 +1,4 @@
+with Files.File_System.Trash.Testing;
 with Files.File_System.Trash;
 with Files.File_System.Testing;
 
@@ -13,14 +14,14 @@ separate (Files_Suite.Trash)
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
          Assert
-           (Files.File_System.Testing.Trash_Backend_Of_Current_Environment
-              = Files.File_System.Trash_Windows_Recycle_Bin,
+           (Files.File_System.Trash.Trash_Backend_Of_Current_Environment
+              = Files.File_System.Trash.Trash_Windows_Recycle_Bin,
             "trash backend can represent native Windows recycle-bin intent");
          declare
-            Request : constant Files.File_System.Native_Trash_Request :=
-              Files.File_System.Testing.Native_Trash_Request_For (Join (Root, "missing-for-native-trash.txt"));
-            Native_Result : constant Files.File_System.Native_Trash_Result :=
-              Files.File_System.Testing.Evaluate_Native_Trash (Request);
+            Request : constant Files.File_System.Trash.Native_Trash_Request :=
+              Files.File_System.Trash.Testing.Native_Trash_Request_For (Join (Root, "missing-for-native-trash.txt"));
+            Native_Result : constant Files.File_System.Trash.Native_Trash_Result :=
+              Files.File_System.Trash.Testing.Evaluate_Native_Trash (Request);
             Refused_Victim : constant String := Join (Root, "refused-by-native-trash.txt");
             Refused : Files.File_System.Mutation_Result;
          begin
@@ -65,15 +66,15 @@ separate (Files_Suite.Trash)
             --  Elsewhere the adapter is absent and says so. Either way the item
             --  stays where it was.
             Write_File (Refused_Victim, "keep me");
-            Files.File_System.Testing.Refuse_Native_Trash (True);
+            Files.File_System.Trash.Testing.Refuse_Native_Trash (True);
             begin
                Refused := Files.File_System.Trash.Move_To_Trash (Refused_Victim);
             exception
                when others =>
-                  Files.File_System.Testing.Refuse_Native_Trash (False);
+                  Files.File_System.Trash.Testing.Refuse_Native_Trash (False);
                   raise;
             end;
-            Files.File_System.Testing.Refuse_Native_Trash (False);
+            Files.File_System.Trash.Testing.Refuse_Native_Trash (False);
             Assert (not Refused.Success, "a refusing native trash does not report success");
             Files_Suite.Support.Assert_Equal
               (To_String (Refused.Error_Key),
@@ -144,7 +145,7 @@ separate (Files_Suite.Trash)
          end if;
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "macos");
          Assert
-           (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Native,
+           (Files.File_System.Trash.Trash_Backend_Of_Current_Environment = Files.File_System.Trash.Trash_Macos_Native,
             "trash backend can represent native macOS trash intent");
       end Check;
    begin

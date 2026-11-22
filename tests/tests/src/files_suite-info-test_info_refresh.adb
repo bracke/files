@@ -18,7 +18,7 @@ separate (Files_Suite.Info)
          Write_Binary_File (Join (Root, "selected.txt"), "text data");
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Set_Background_Transfers (Model, True);
+         Files.Model.Jobs.Set_Background_Transfers (Model, True);
          Select_Name (Model, (if Unsupported then "selected.bin" else "selected.txt"));
          Files.Model.Info_Pane.Toggle_Info_Pane (Model);
          Write_Binary_File (Join (Root, "new.txt"), "new");

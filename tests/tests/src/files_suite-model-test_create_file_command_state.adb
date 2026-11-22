@@ -1,7 +1,7 @@
+with Files.File_System.Roots.Testing;
 with Files.Model.Filtering;
 with Files.Model.Creation;
 with Files.Operation_Results;
-with Files.File_System.Testing;
 with Files.Items;
 with Files.Commands.Status;
 with Files.Model.Command_Palette;
@@ -18,7 +18,7 @@ separate (Files_Suite.Model)
       Write_File (Join (Root, "untitled.txt"));
       Write_File (Join (Root, "untitled 2.txt"));
       Files.Model.Initialize (Model, Root, Items, Root);
-      Files.Model.Root_Selector.Open (Model, Files.File_System.Testing.Available_Roots);
+      Files.Model.Root_Selector.Open (Model, Files.File_System.Roots.Testing.Available_Roots);
       Files.Model.Command_Palette.Open (Model);
       Files.Model.Creation.Begin_Create_File (Model, "draft.txt");
       Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "direct create adds temporary item");

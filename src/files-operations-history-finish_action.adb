@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 separate (Files.Operations.History)
 function Finish_Action
   (Model : in out Files.Model.Window_Model;
@@ -16,7 +17,7 @@ begin
    begin
       null;
    end;
-   if not Files.Model.Background_Transfers (Model) then
+   if not Files.Model.Jobs.Background_Transfers (Model) then
       --  Synchronous reloads can clear or replace the error; retain the
       --  history action's final status for headless callers as before.
       Files.Model.Set_Error (Model, Error_Key);

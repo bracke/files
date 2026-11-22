@@ -109,7 +109,7 @@ package body Files.Model.Pasting is
       Writes : Natural := 0;
    begin
       --  The previous helpers' handles are released (End_Foreground_Job).
-      End_Foreground_Job (Model);
+      Support.End_Foreground_Job (Model);
       --  A read in flight is released, not dropped: as in Files.Refresh, the
       --  paste's own reload may not cover it, so it is owed until then.
       if Files.Jobs.Process.Active (Model.Refresh_Job) then

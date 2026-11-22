@@ -1,3 +1,4 @@
+with Files.Operations.Metadata.Testing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.History)
@@ -24,7 +25,7 @@ separate (Files_Suite.History)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "vanishing.txt");
 
-      Result := Files.Operations.Testing.Set_Permissions_For (Model, 8#600#, Settings);
+      Result := Files.Operations.Metadata.Testing.Set_Permissions_For (Model, 8#600#, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,

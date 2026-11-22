@@ -1,3 +1,4 @@
+with Files.Operations.Opening.Testing;
 with Files.Operation_Results;
 with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
@@ -15,8 +16,8 @@ separate (Files_Suite.Open_Actions)
               (Attempted => False, Executable_Found => False, Exit_Status_Known => False, Exit_Status => 0));
       begin
          Assert
-           (Files.Operations.Testing.Open_Action_Lifecycle_Of (Generic_Failure).State =
-            Files.Operations.Testing.Open_Action_Not_Started,
+           (Files.Operations.Opening.Testing.Open_Action_Lifecycle_Of (Generic_Failure).State =
+            Files.Operations.Opening.Testing.Open_Action_Not_Started,
             "generic failed operations are not classified as open-action preflight failures");
       end;
    end Test_Open_Action_Policy;

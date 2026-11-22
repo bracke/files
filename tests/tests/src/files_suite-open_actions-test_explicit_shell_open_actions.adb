@@ -37,7 +37,7 @@ separate (Files_Suite.Open_Actions)
         (Settings,
          "text/plain",
          Files.Settings.Open_Actions.Make_Action (No_Op_Executable, Shell_Arguments, True));
-      Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings);
+      Result := Files.Operations.Opening.Testing.Prepare_Open_Selected_Action (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,

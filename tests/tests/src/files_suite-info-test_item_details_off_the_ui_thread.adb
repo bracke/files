@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Application.Window_Polls;
@@ -20,7 +21,7 @@ separate (Files_Suite.Info)
       Assert (Files.Model.Selection.Select_By_Name (Model, "notes.txt"), "the text file is listed");
 
       --  In a window the details are not read on the UI thread...
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Files.Refresh.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Assert (Files.Model.Info_Pane.Selected_Item_Needs_Extra (Model),
               "a window does not read the details while it waits");
@@ -41,7 +42,7 @@ separate (Files_Suite.Info)
       --  Without a window (a helper, a test) they are read at once.
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, False);
+      Files.Model.Jobs.Set_Background_Transfers (Model, False);
       Files.Model.Info_Pane.Toggle_Info_Pane (Model);
       Assert (Files.Model.Selection.Select_By_Name (Model, "notes.txt"), "the text file is listed again");
       Files.Refresh.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);

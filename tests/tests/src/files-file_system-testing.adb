@@ -1,6 +1,3 @@
-with Files.File_System.Roots;
-with Files.File_System.Trash.Testing;
-with Files.File_System.Transfer.Testing;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Streams.Stream_IO;
@@ -85,23 +82,6 @@ package body Files.File_System.Testing is
          Files.Diagnostics.Note (Failure, "Files.File_System.Testing");
    end Change_After_Metadata;
 
-   --  Whether Change_Trashed_After_Copy has fired.
-   Trashed_Changed : Boolean := False;
-
-   --  The After_Restore_Copy hook Change_Trashed_After_Copy installs.
-   procedure Change_Trashed (Trashed_Path : String) is
-   begin
-      if Trashed_Changed then
-         return;
-      end if;
-      Trashed_Changed := True;
-      Ada.Directories.Delete_File (Trashed_Path);
-      Write (Trashed_Path, "another item");
-   exception
-      when Failure : others =>
-         Files.Diagnostics.Note (Failure, "Files.File_System.Testing");
-   end Change_Trashed;
-
    --  The Refuse_Directory_Restore hook Fail_Directory_Restore installs.
    function Refuse_Restore (Directory : String) return Boolean is
       Block : constant String := To_String (Restore_Block);
@@ -137,17 +117,6 @@ package body Files.File_System.Testing is
       Change_Source := Null_Unbounded_String;
    end Stop_Changing_Source;
 
-   procedure Change_Trashed_After_Copy is
-   begin
-      Trashed_Changed := False;
-      After_Restore_Copy := Change_Trashed'Access;
-   end Change_Trashed_After_Copy;
-
-   procedure Stop_Changing_Trashed is
-   begin
-      After_Restore_Copy := null;
-   end Stop_Changing_Trashed;
-
    procedure Fail_Directory_Restore (Trigger : String; Block : String := "") is
    begin
       Restore_Trigger := To_Unbounded_String (Trigger);
@@ -177,38 +146,6 @@ package body Files.File_System.Testing is
       Refuse_Owned_Delete := null;
       Delete_Trigger := Null_Unbounded_String;
    end Stop_Failing_Owned_Delete;
-
-   --  What Watch_Ownership_Changes has seen.
-   Ownership_Change_Count : Natural := 0;
-   Last_User, Last_Group  : Files.Types.Account_Id := 0;
-
-   --  The Before_Ownership_Change hook Watch_Ownership_Changes installs.
-   procedure Note_Ownership_Change (Path : String; User_Id, Group_Id : Files.Types.Account_Id) is
-      pragma Unreferenced (Path);
-   begin
-      Ownership_Change_Count := Ownership_Change_Count + 1;
-      Last_User := User_Id;
-      Last_Group := Group_Id;
-   end Note_Ownership_Change;
-
-   procedure Watch_Ownership_Changes is
-   begin
-      Ownership_Change_Count := 0;
-      Last_User := 0;
-      Last_Group := 0;
-      Before_Ownership_Change := Note_Ownership_Change'Access;
-   end Watch_Ownership_Changes;
-
-   procedure Stop_Watching_Ownership_Changes is
-   begin
-      Before_Ownership_Change := null;
-   end Stop_Watching_Ownership_Changes;
-
-   function Ownership_Changes return Natural is (Ownership_Change_Count);
-
-   function Last_Ownership_User return Files.Types.Account_Id is (Last_User);
-
-   function Last_Ownership_Group return Files.Types.Account_Id is (Last_Group);
 
    --  The Refuse_Creation_Match hook Refuse_Creation_Matches installs.
    function Refuse_Every_Creation (Path : String) return Boolean is
@@ -319,100 +256,11 @@ package body Files.File_System.Testing is
       end if;
    end Install_From_Environment;
 
-   function Native_Trash_Request_For
-     (Path : String)
-      return Native_Trash_Request
-   is
-      Backend : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
-   begin
-      return
-        (Backend                 => Backend,
-         Path                    => To_Unbounded_String (Path),
-         Requires_Native_Api     => Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native,
-         Can_Use_Current_Process => Backend not in Trash_Windows_Recycle_Bin | Trash_Macos_Native);
-   end Native_Trash_Request_For;
-
-   procedure Refuse_Native_Trash (Refuse : Boolean) is
-   begin
-      Files.File_System.Trash.Testing.Refuse_Native_Trash (Refuse);
-   end Refuse_Native_Trash;
-
-   procedure Trash_Says_Nowhere (Withhold : Boolean) is
-   begin
-      Files.File_System.Trash.Testing.Withhold_Trash_Location (Withhold);
-   end Trash_Says_Nowhere;
-
-   function Root_Discovery_Status return Root_Discovery_Diagnostics is
-      Entries : constant Root_Entry_Vectors.Vector := Files.File_System.Roots.Available_Root_Entries;
-      Result  : Root_Discovery_Diagnostics :=
-        (Root_Count              => Natural (Entries.Length),
-         Removable_Count         => 0,
-         Windows_Drive_Count     => 0,
-         Mount_Count             => 0,
-         User_Mount_Count        => 0,
-         Network_Mount_Count     => 0);
-   begin
-      for Root of Entries loop
-         if Root.Removable then
-            Result.Removable_Count := Result.Removable_Count + 1;
-         end if;
-
-         case Root.Kind is
-            when Root_Windows_Drive =>
-               Result.Windows_Drive_Count := Result.Windows_Drive_Count + 1;
-            when Root_Mount =>
-               Result.Mount_Count := Result.Mount_Count + 1;
-            when Root_User_Mount =>
-               Result.User_Mount_Count := Result.User_Mount_Count + 1;
-            when Root_Network_Mount =>
-               Result.Network_Mount_Count := Result.Network_Mount_Count + 1;
-            when others =>
-               null;
-         end case;
-      end loop;
-
-      return Result;
-   end Root_Discovery_Status;
-
-   function Available_Roots return Files.Types.String_Vectors.Vector is
-      Entries : constant Root_Entry_Vectors.Vector := Files.File_System.Roots.Available_Root_Entries;
-      Roots   : Files.Types.String_Vectors.Vector;
-   begin
-      for Root of Entries loop
-         Roots.Append (Root.Path);
-      end loop;
-
-      return Roots;
-   end Available_Roots;
-
-   function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean
-     renames Files.File_System.Is_User_Visible_Mount_Point;
-
    function Storable_Leaf_Name_At
      (Name      : String;
       Directory : String)
       return Boolean
      renames Files.File_System.Storable_Leaf_Name_At;
-
-   function Trash_Backend_Of_Current_Environment return Trash_Backend
-     renames Files.File_System.Trash.Trash_Backend_Of_Current_Environment;
-
-   function Evaluate_Native_Trash
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result
-     renames Files.File_System.Trash.Testing.Evaluate_Native_Trash;
-
-   function Trash_Deletion_Date
-     (Value : Ada.Calendar.Time)
-      return String
-     renames Files.File_System.Trash.Testing.Trash_Deletion_Date;
-
-   function Execute_Drop_Import
-     (Plans  : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
-      Cancel : Cancellation_Check := Files.File_System.Job_Cancelled;
-      Batch  : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
-      return Mutation_Result
-   renames Files.File_System.Transfer.Testing.Execute_Drop_Import;
 
    function Path_Is_Within
      (Child, Parent : String;

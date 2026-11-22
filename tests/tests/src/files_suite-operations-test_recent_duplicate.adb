@@ -108,7 +108,7 @@ separate (Files_Suite.Operations)
               (Files.Model.Selection.Selected_Count (Model),
                3,
                "select files from two folders and one directory");
-            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Ada.Directories.Set_Directory (Cwd);
             Step := Operation_Commands.Duplicate_Selected (Model, Settings);
             Files_Suite.Support.Assert_Equal
@@ -123,7 +123,7 @@ separate (Files_Suite.Operations)
                Files.Operation_Results.Operation_Success,
                "Recent Duplicate reports success and records all created paths for Undo: status");
             Assert
-              (not Files.Model.Foreground_Job_Is_Active (Model),
+              (not Files.Model.Jobs.Foreground_Job_Is_Active (Model),
                "Recent Duplicate reports success and records all created paths for Undo: paste finished");
             Files_Suite.Support.Assert_Equal
               (Files.Model.Last_Error_Key (Model),

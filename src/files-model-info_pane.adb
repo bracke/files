@@ -80,7 +80,7 @@ package body Files.Model.Info_Pane is
       end if;
 
       if Wanted /= Current then
-         Model.Scroll_Revision_Value := Model.Scroll_Revision_Value + 1;
+         Support.Touch_Scroll (Model);
          Model.Info_Pane_Scroll := Wanted;
       end if;
    end Scroll_Info_Pane;

@@ -75,7 +75,7 @@ package body Files.Model.Filtering is
 
    begin
       Touch (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      Support.Touch_Listing (Model);
       Model.Filter.Text := To_Unbounded_String (Text);
       Model.Folded_Filter := To_Unbounded_String (Files.Text_Case.Fold_Case (Text));
       Invalidate_Visible (Model);
@@ -110,7 +110,7 @@ package body Files.Model.Filtering is
       Scope : Files.UI_Types.Search_Scope) is
    begin
       Touch (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      Support.Touch_Listing (Model);
       Model.Search_Scope_Value := Scope;
    end Set_Search_Scope;
 
@@ -124,7 +124,7 @@ package body Files.Model.Filtering is
       Scope : Files.UI_Types.Search_Scope) is
    begin
       Touch (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      Support.Touch_Listing (Model);
       Model.Search_Scope_Value := Scope;
       Model.Search_Results_Active := Scope /= Files.UI_Types.Filter_Here;
       Model.Results_Hide_Hidden := False;
@@ -135,7 +135,7 @@ package body Files.Model.Filtering is
      (Model : in out Window_Model) is
    begin
       Touch (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      Support.Touch_Listing (Model);
       Model.Search_Scope_Value := Files.UI_Types.Filter_Here;
       Model.Search_Results_Active := False;
       Model.Results_Hide_Hidden := False;

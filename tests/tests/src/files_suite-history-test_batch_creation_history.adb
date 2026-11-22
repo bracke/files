@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.History;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
@@ -41,7 +42,7 @@ separate (Files_Suite.History)
                   Redoable => False);
                Files.Model.Filtering.Set_Filter (Model, (if Extracting then ".zip" else ".txt"));
                Files.Model.Selection.Select_All_Visible (Model);
-               Files.Model.Set_Background_Transfers (Model, Background);
+               Files.Model.Jobs.Set_Background_Transfers (Model, Background);
                if Partial then
                   if Extracting then
                      Write_Binary_File (Join (Root, "b.zip"), "invalid archive");

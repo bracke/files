@@ -84,7 +84,7 @@ separate (Files_Suite.Names)
          "direct paste rejects the virtual recent view's empty destination");
 
       Files.Model.Filtering.Set_Filter (Model, "created");
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Result := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

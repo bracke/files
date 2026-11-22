@@ -1,3 +1,4 @@
+with Files.Operations.Opening.Testing;
 with Files.Operation_Results;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
@@ -25,7 +26,7 @@ separate (Files_Suite.Open_Actions)
         (Settings,
          "text/plain+control",
          Files.Settings.Open_Actions.Make_Action (No_Op_Executable, Arguments));
-      Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
+      Result := Files.Operations.Opening.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,

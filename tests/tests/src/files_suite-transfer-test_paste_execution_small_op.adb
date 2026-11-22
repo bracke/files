@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -41,6 +42,6 @@ separate (Files_Suite.Transfer)
         (Step.Status,
          Files.Operation_Results.Operation_Success,
          "the one-item paste reports success");
-      Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the one-item paste clears its execution state");
+      Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "the one-item paste clears its execution state");
       Assert (Ada.Directories.Exists (Dest), "the one item is copied to the destination");
    end Test_Paste_Execution_Small_Op;

@@ -1,3 +1,4 @@
+with Files.File_System.Trash.Testing;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -27,15 +28,15 @@ separate (Files_Suite.Trash)
          --  The Finder may take an item without saying where it put it:
          --  the batch still succeeds, with no Undo entry naming an empty
          --  path (which failed the whole Undo), and the user is told.
-         Files.File_System.Testing.Trash_Says_Nowhere (True);
+         Files.File_System.Trash.Testing.Withhold_Trash_Location (True);
          begin
             Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          exception
             when others =>
-               Files.File_System.Testing.Trash_Says_Nowhere (False);
+               Files.File_System.Trash.Testing.Withhold_Trash_Location (False);
                raise;
          end;
-         Files.File_System.Testing.Trash_Says_Nowhere (False);
+         Files.File_System.Trash.Testing.Withhold_Trash_Location (False);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
             Files.Operation_Results.Operation_Success,

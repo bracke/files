@@ -59,32 +59,6 @@ package Files.File_System is
       Error_Key : UString;
    end record;
 
-   type Trash_Backend is
-     (Trash_Unavailable,
-      Trash_Windows_Recycle_Bin,
-      Trash_Macos_Native,
-      Trash_Xdg_Data_Home,
-      Trash_Home_Data,
-      Trash_Macos_Home);
-
-   type Native_Trash_Request is record
-      Backend                 : Trash_Backend := Trash_Unavailable;
-      Path                    : UString;
-      Requires_Native_Api     : Boolean := False;
-      Can_Use_Current_Process : Boolean := False;
-   end record;
-
-   --  What became of a request for the trash. Supported: this host has that
-   --  trash here. Attempted: the move was tried (False when unsupported, so a
-   --  refusal is told apart from an absent trash). Error_Key: why it did not
-   --  complete.
-   type Native_Trash_Result is record
-      Supported : Boolean := False;
-      Attempted : Boolean := False;
-      Completed : Boolean := False;
-      Error_Key : UString;
-   end record;
-
    --  Normalize an existing filesystem path to a directory path.
    --
    --  @param Path Path supplied by a user or command line.
@@ -637,31 +611,6 @@ private
      (Natural
         ((Long_Long_Integer (Sum) * Long_Long_Integer (Step) + Value mod Checksum_Modulus) mod Checksum_Modulus));
 
-   --  Change the permission bits of one verified entry through a handle that
-   --  pins it, capturing the bits it had. In the private part: only
-   --  recovery, replaying a journalled change, sets bare bits; an edit goes
-   --  through Change_Access.
-   --
-   --  @param Path Existing entry; symbolic links must be resolved by the caller.
-   --  @param Expected_Identity History identity to verify, or empty for a new live change.
-   --  @param Mode New permission bits, 0 .. 8#7777#.
-   --  @param Previous Live previous permission bits captured before mutation.
-   --  @param Identity Identity of the entry actually changed.
-   --  @return Result of applying the mode to the verified entry.
-   function Change_Mode
-     (Path, Expected_Identity : String; Mode : Natural;
-      Previous : out Natural; Identity : out Files.Types.UString) return Mutation_Result;
-
-   --  Whether a mount point is one a user put there (a stick, a share), as
-   --  the root list shows them: "/" and anything under /mnt, /media,
-   --  /run/media, /Volumes, /System/Volumes or the session's gvfs directory,
-   --  but not those containers themselves.
-   --
-   --  @param Mount_Point Absolute mount point.
-   --  @param Runtime_Gvfs The session's gvfs directory, or "" when none.
-   --  @return True when the mount is listed as a root.
-   function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean;
-
    --  Whether Name, the name of a file that already exists, can be stored in
    --  Directory: only what that filesystem cannot hold is refused -- empty,
    --  "." / "..", a separator or NUL on POSIX; Windows rules on a FAT, exFAT or
@@ -718,17 +667,6 @@ private
    Refuse_Creation_Match : Restore_Hook := null
      with Atomic;
 
-   --  What an ownership change calls with the path and the ids it asks
-   --  for, before it asks the host.
-   type Ownership_Hook is access procedure (Path : String; User_Id, Group_Id : Files.Types.Account_Id);
-
-   --  Set only by the test suite (Files.File_System.Testing.Watch_Ownership_Changes):
-   --  it counts the ownership changes asked for and keeps the last one's
-   --  ids, so the suite can show which ones are asked for, and that none
-   --  is for an edit that changes nothing. The application never sets it.
-   Before_Ownership_Change : Ownership_Hook := null
-     with Atomic;
-
    --  What a recovery-registry sweep calls with each registered payload just
    --  before it works on it, after it has let the registry lock go.
    type Sweep_Hook is access procedure (Payload : String);
@@ -738,14 +676,6 @@ private
    --  show the registry stays open to Register meanwhile. The application
    --  never sets it.
    During_Sweep_Work : Sweep_Hook := null
-     with Atomic;
-
-   --  Set only by the test suite (Files.File_System.Testing.Replace_Trashed_After_Copy):
-   --  called with the trashed item a restore from a trash on another device
-   --  has just copied back, before it removes that item, so the suite can put
-   --  another item under its name as emptying the trash and trashing again
-   --  would. The application never sets it.
-   After_Restore_Copy : Copy_Hook := null
      with Atomic;
 
 end Files.File_System;

@@ -19,7 +19,7 @@ separate (Files_Suite.Refresh)
       Write_Binary_File (Join (Root, "first.txt"), "first");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Write_Binary_File (Join (Root, "second.txt"), "second");
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",

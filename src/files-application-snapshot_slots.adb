@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Info_Pane;
 with Files.Snapshot_Policy;
 with Files.Timing;
@@ -28,7 +29,7 @@ package body Files.Application.Snapshot_Slots is
            Same_Minute   => View.Cached_Minute = Minute,
            Same_Rows     => View.Cached_Rows_Revision = Files.Model.Rows_Revision (Model),
            Same_Row_Settings => Settings_Keys.Same_Row_Settings (Settings, View.Cached_Settings_Key),
-           Pasting       => Files.Model.Foreground_Job_Is_Active (Model),
+           Pasting       => Files.Model.Jobs.Foreground_Job_Is_Active (Model),
            Paste_Interval_Elapsed =>
              Files.Timing.Elapsed (Now, View.Snapshot_Built_At, Paste_Progress_Interval));
       use type Files.Snapshot_Policy.Snapshot_Action;

@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Recent;
 separate (Files.Operations.Trash)
 function Empty_Trash
@@ -6,7 +7,7 @@ function Empty_Trash
    return Operation_Result
 is
    Trash_Dir   : constant String :=
-     (if Files.Model.Background_Transfers (Model) then "" else Files.File_System.Trash.Trash_Files_Directory);
+     (if Files.Model.Jobs.Background_Transfers (Model) then "" else Files.File_System.Trash.Trash_Files_Directory);
    Load        : Files.File_System.Directory_Load_Result;
    Total       : Natural := 0;
    Failed      : Natural := 0;

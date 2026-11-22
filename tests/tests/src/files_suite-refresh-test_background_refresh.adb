@@ -37,7 +37,7 @@ separate (Files_Suite.Refresh)
       Write_Binary_File (Join (Root, "alpha"), "alpha");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Files.Model.Set_Directory_Signature (Model, Files.File_System.Directory_State (Root));
       Select_Name (Model, "alpha");
       Write_Binary_File (Join (Root, "beta"), "beta");

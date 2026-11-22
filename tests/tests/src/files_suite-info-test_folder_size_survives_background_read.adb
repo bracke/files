@@ -29,7 +29,7 @@ separate (Files_Suite.Info)
       Write_Binary_File (Join (Folder, "data"), "one");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Set_Background_Transfers (Model, True);
+      Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Files.Model.Set_Directory_Signature (Model, Files.File_System.Directory_State (Root));
 
       Revision := Files.Model.Revision (Model);

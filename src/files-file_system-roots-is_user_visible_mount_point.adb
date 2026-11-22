@@ -1,5 +1,5 @@
 with Hostkit.Mounts;
-separate (Files.File_System)
+separate (Files.File_System.Roots)
 --  Whether a mount is a volume a person put there: one inside a folder the
 --  host mounts volumes in (Hostkit.Mounts.Volume_Places) or the session's
 --  gvfs folder, but not that folder itself.

@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Events;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -412,7 +413,7 @@ package body Files.Application.Windows is
             --  The details wait out a foreground job (a paste, a delete),
             --  as the folder watch does: what the job changes is read once
             --  it is done.
-            if not Files.Model.Foreground_Job_Is_Active (Runtime.Model) then
+            if not Files.Model.Jobs.Foreground_Job_Is_Active (Runtime.Model) then
                Files.Application.Window_Polls.Poll_Selected_Item_Extra
                  (Runtime.Model, Files.Application.Extra_Info_Reader.Requester (Runtime.A11y_Key),
                   Runtime.Settings.Show_Hidden_Files);
@@ -646,7 +647,7 @@ package body Files.Application.Windows is
             Shown           => True,
             others          => <>));
       Appended := True;
-      Files.Model.Set_Background_Transfers
+      Files.Model.Jobs.Set_Background_Transfers
         (Runtime_Windows.Reference (Runtime_Windows.Last_Index).Model, True);
       --  The screen reader looks at the window itself; answer it there.
       Files.Application.Accessibility.Attach_Window

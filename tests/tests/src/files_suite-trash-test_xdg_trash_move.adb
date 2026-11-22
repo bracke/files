@@ -1,3 +1,4 @@
+with Files.File_System.Trash.Testing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Trash;
@@ -29,8 +30,8 @@ separate (Files_Suite.Trash)
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Write_File (Join (Root, "native-execute.txt"));
          declare
-            Request : constant Files.File_System.Native_Trash_Request :=
-              Files.File_System.Testing.Native_Trash_Request_For (Join (Root, "native-execute.txt"));
+            Request : constant Files.File_System.Trash.Native_Trash_Request :=
+              Files.File_System.Trash.Testing.Native_Trash_Request_For (Join (Root, "native-execute.txt"));
          begin
             Assert (Request.Can_Use_Current_Process, "XDG trash request can execute in current process");
             Mutation := Files.File_System.Trash.Move_To_Trash (Join (Root, "native-execute.txt"));

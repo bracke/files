@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 with Files.Model.Testing;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -34,7 +35,7 @@ separate (Files_Suite.Transfer)
         (Step.Status,
          Files.Operation_Results.Operation_Success,
          "a cancelled paste finalizes without an error");
-      Assert (not Files.Model.Foreground_Job_Is_Active (Model), "a cancelled paste finalizes on the next advance");
+      Assert (not Files.Model.Jobs.Foreground_Job_Is_Active (Model), "a cancelled paste finalizes on the next advance");
 
       Assert (Ada.Directories.Exists (Dest (1)), "the first completed copy is kept");
       Assert (Ada.Directories.Exists (Dest (2)), "the second completed copy is kept");

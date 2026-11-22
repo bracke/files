@@ -1,3 +1,4 @@
+with Files.Model.Jobs;
 separate (Files.Job_Drivers.Operation.Advance)
 function Finish_Failed return Files.Operation_Results.Operation_Result is
 begin
@@ -13,7 +14,7 @@ begin
          Files.Diagnostics.Note (Swallowed, "Files.Job_Drivers.Operation");
          Same_View := False;
    end;
-   Files.Model.End_Foreground_Job (Model);
+   Files.Model.Jobs.End_Foreground_Job (Model);
    if not Settled then
       Files.Operations.Undo_Recording.Settle_History (Model);
    end if;
