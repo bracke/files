@@ -1,3 +1,4 @@
+with Files.Controller.Clipboard_Text;
 with Hostkit.Host;
 with Files.Items;
 with Files.Commands.Status;
@@ -6,6 +7,7 @@ with Files_Suite.Support.Models;
 separate (Files_Suite.Commands)
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      function Line_Break return String renames Files.Controller.Clipboard_Text.Line_Break;
       Settings   : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model      : Files.Model.Window_Model := Sample_Model;
       Empty      : Files.Items.Item_Vectors.Vector;
@@ -21,16 +23,16 @@ separate (Files_Suite.Commands)
 
       --  Pure, filesystem-free join seam.
       Files_Suite.Support.Assert_Equal
-        (Files.Commands.Joined_Full_Paths (Empty),
+        (Files.Controller.Clipboard_Text.Joined_Full_Paths (Empty),
          "",
          "an empty selection joins to empty text");
       Pair.Append (Files.File_System.Make_Item (Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
       Pair.Append (Files.File_System.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
       Files_Suite.Support.Assert_Equal
-        (Files.Commands.Joined_Full_Paths (Pair),
-         Alpha_Path & Files.Commands.Line_Break & Beta_Path,
+        (Files.Controller.Clipboard_Text.Joined_Full_Paths (Pair),
+         Alpha_Path & Line_Break & Beta_Path,
          "full paths join one per line in item order");
-      Assert (Files.Commands.Line_Break
+      Assert (Line_Break
               = (if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows) then ASCII.CR & ASCII.LF
                  else [1 => ASCII.LF]),
               "paths are joined by the host's line break");
@@ -42,11 +44,12 @@ separate (Files_Suite.Commands)
       begin
          Odd.Append (Files.File_System.Make_Item (Root, Two_Lines, Files.Types.Regular_File_Item, "text/plain"));
          Files_Suite.Support.Assert_Equal
-           (Files.Commands.Joined_Full_Paths (Odd), Join (Root, Two_Lines), "one path is copied exactly");
+           (Files.Controller.Clipboard_Text.Joined_Full_Paths (Odd), Join (Root, Two_Lines),
+            "one path is copied exactly");
          Odd.Append (Files.File_System.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
          Files_Suite.Support.Assert_Equal
-           (Files.Commands.Joined_Full_Paths (Odd),
-            """" & Join (Root, "a" & ASCII.LF & "b """"q"""".txt") & """" & Files.Commands.Line_Break & Beta_Path,
+           (Files.Controller.Clipboard_Text.Joined_Full_Paths (Odd),
+            """" & Join (Root, "a" & ASCII.LF & "b """"q"""".txt") & """" & Line_Break & Beta_Path,
             "a path holding a line break is quoted among several, its quotes doubled");
       end;
 
@@ -69,7 +72,7 @@ separate (Files_Suite.Commands)
          "copy-path records a pending system-clipboard request");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Clipboard.System_Request_Text (Model),
-         Alpha_Path & Files.Commands.Line_Break & Beta_Path & Files.Commands.Line_Break & Gamma_Path,
+         Alpha_Path & Line_Break & Beta_Path & Line_Break & Gamma_Path,
          "copy-path stores the selection paths, one to a line as the host breaks lines");
       Files.Model.Clipboard.Clear_System_Request (Model);
       Assert

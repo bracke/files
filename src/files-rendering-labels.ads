@@ -8,8 +8,9 @@ with Files.Types;
 with Guikit.Draw;
 
 --  What the frame shows as text or colour, apart from where: the symbol
---  glyphs, times, sizes and permissions as words, the free-space label, the
+--  glyphs, command names, permissions as words, the free-space label, the
 --  info pane's fields and their values, the colour a label is drawn in.
+--  Times, sizes and numbers as text are Files.Rendering.Display_Text's.
 --  Files.Rendering.Layouts places them and Files.Rendering.Geometry holds
 --  the metrics and wrapping they are measured with. Private to
 --  Files.Rendering's own units.
@@ -37,40 +38,6 @@ private package Files.Rendering.Labels is
    --  Folder-tree expander glyphs: a plus/minus affordance, not translatable text.
    Tree_Expander_Collapsed_Text : constant String := "+";
    Tree_Expander_Expanded_Text  : constant String := "-";
-
-   --  @param Value A time.
-   --  @return Its clock time in the locale's hour cycle.
-   function Clock_Time_Text (Value : Ada.Calendar.Time) return String renames Display_Text.Clock_Time_Text;
-
-   --  @param Value A time.
-   --  @return Its full date and clock time.
-   function Full_Time_Text (Value : Ada.Calendar.Time) return String renames Display_Text.Full_Time_Text;
-
-   --  @param Value A time.
-   --  @return The localization key of its weekday's name.
-   function Weekday_Key (Value : Ada.Calendar.Time) return String renames Display_Text.Weekday_Key;
-
-   --  @param Value The time to show.
-   --  @param Now The time it is shown at (the snapshot's).
-   --  @return Value as a listing shows it, relative to Now.
-   function Humanized_Time_Text
-     (Value : Ada.Calendar.Time;
-      Now   : Ada.Calendar.Time)
-      return String renames Display_Text.Humanized_Time_Text;
-
-   --  @param Value A number.
-   --  @return It with the locale's digit grouping.
-   function Grouped_Integer_Text (Value : Long_Long_Integer) return String
-     renames Display_Text.Grouped_Integer_Text;
-
-   --  @param Value A measure, such as an image's width.
-   --  @return It in the locale's digits, ungrouped.
-   function Digits_Text (Value : Natural) return String
-     renames Display_Text.Digits_Text;
-
-   --  @param Value A byte count.
-   --  @return It as a size ("1.2 MB").
-   function Size_Text (Value : Long_Long_Integer) return String renames Display_Text.Size_Text;
 
    --  @param Id A command.
    --  @return Its localized name.
@@ -135,7 +102,7 @@ private package Files.Rendering.Labels is
    --  @param Item A row.
    --  @return The details view's size cell: the size, or "" when unknown.
    function Detail_Size_Text (Item : Item_Snapshot) return UString is
-     (if Item.Size_Available then To_Unbounded_String (Size_Text (Item.Size)) else Null_Unbounded_String);
+     (if Item.Size_Available then To_Unbounded_String (Display_Text.Size_Text (Item.Size)) else Null_Unbounded_String);
 
    --  The localized details column names, looked up once a frame, not once
    --  a row.
@@ -330,7 +297,7 @@ private
    --  @return It with the locale's digit grouping (12.345, not 12345), as
    --    sizes and paste-progress counts are shown.
    function Grouped_Natural_Text (Value : Natural) return String is
-     (Grouped_Integer_Text (Long_Long_Integer (Value)));
+     (Display_Text.Grouped_Integer_Text (Long_Long_Integer (Value)));
 
    --  @param Mode A view mode.
    --  @return Its localized name.

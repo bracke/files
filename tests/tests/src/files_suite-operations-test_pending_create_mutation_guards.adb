@@ -1,3 +1,6 @@
+with Files.Operations.Editing;
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files.Model.Creation;
 with Files_Suite.Listings;
@@ -26,7 +29,7 @@ separate (Files_Suite.Operations)
             Write_Binary_File (Join (Root, "source.zip"), "not an archive");
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Operations.Clear_Undo (Model);
+            Files.Operations.History.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
             Files.Model.Selection.Toggle_Visible_Selection (Model, 1);
@@ -41,13 +44,13 @@ separate (Files_Suite.Operations)
                     Operation_Commands.Duplicate_Selected (Model, Settings),
                   when Compress_Item =>
                     Operation_Commands.Compress_Selected
-                      (Model, Settings, Files.Operations.Zip_Archive),
+                      (Model, Settings, Files.Operations.Archives.Zip_Archive),
                   when Extract_Item =>
                     Operation_Commands.Extract_Selected (Model, Settings),
                   when Create_Symbolic_Link =>
-                    Files.Operations.Create_Symlink_Selected (Model, Settings),
+                    Files.Operations.Editing.Create_Symlink_Selected (Model, Settings),
                   when Create_Hard_Link =>
-                    Files.Operations.Create_Hardlink_Selected (Model, Settings));
+                    Files.Operations.Editing.Create_Hardlink_Selected (Model, Settings));
             declare
                Context : constant String := "direct selection mutations preserve a pending inline creation";
             begin
@@ -101,7 +104,7 @@ separate (Files_Suite.Operations)
       begin
          Sources.Append
            (To_Unbounded_String (Join (Join (Root, "inbox"), "incoming.txt")));
-         Step := Files.Operations.Begin_Paste (Model, Settings, Sources);
+         Step := Files.Operations.Paste.Begin_Paste (Model, Settings, Sources);
          declare
             Context : constant String := "clipboard paste cannot write beneath a pending inline creation";
          begin
@@ -132,7 +135,7 @@ separate (Files_Suite.Operations)
          Assert
            (not Ada.Directories.Exists (Join (Join (Root, "view"), "incoming.txt")),
             "external drops share the pending-create paste guard: nothing written");
-         Step := Files.Operations.Begin_Paste_To
+         Step := Files.Operations.Paste.Begin_Paste_To
            (Model, Settings, Sources, Join (Root, "view"),
             Files.File_System_Types.Drop_Move, From_Clipboard => False);
          Files_Suite.Support.Assert_Equal

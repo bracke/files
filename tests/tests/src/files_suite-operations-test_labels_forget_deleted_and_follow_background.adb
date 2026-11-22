@@ -1,3 +1,4 @@
+with Files.Operations.Editing;
 with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Operation_Results;
@@ -80,7 +81,7 @@ separate (Files_Suite.Operations)
          Select_Name (Model, "kept.txt");
          Files.Model.Rename.Toggle (Model);
          Files.Model.Rename.Set_Text (Model, "renamed.txt");
-         Step := Files.Operations.Commit_Rename (Model, Settings);
+         Step := Files.Operations.Editing.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                            "the rename succeeds");
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");

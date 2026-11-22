@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -29,7 +31,7 @@ separate (Files_Suite.Transfer)
                end if;
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Operations.Clear_Undo (Model);
+               Files.Operations.History.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, True);
                Actions.Clear;
                Actions.Append (Files.Paste.Resolved_Action'
@@ -38,7 +40,7 @@ separate (Files_Suite.Transfer)
                Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS",
                  (case Fault is when 1 => "missing", when 2 => "checkpoint", when 3 => "journal",
                   when others => "replacement"));
-               Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, False);
+               Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Mode, False);
                Step := Complete_Operation
                  (Model, Settings, Files.Job_Drivers.Foreground.Advance (Model, Settings, 1));
                Await_View (Model, Settings);

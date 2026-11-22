@@ -1,3 +1,4 @@
+with Files.Operations.Metadata;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Permissions;
@@ -31,7 +32,7 @@ separate (Files_Suite.Operations)
 
       --  Setting ownership to the file's OWN uid/gid is permitted even for a
       --  non-root process, so this exercises the primitive and undo plumbing.
-      Result := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
+      Result := Files.Operations.Metadata.Set_Ownership_For (Model, Uid, Gid, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,

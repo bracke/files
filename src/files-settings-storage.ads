@@ -1,5 +1,6 @@
---  Writing the settings file, and the policy every settings change is saved
---  by, below the window layer: the live keymap is written with the
+--  Reading and writing the settings file (Load_File, Save_Text,
+--  Merge_From_File, Ensure_Default_File), and the policy every settings
+--  change is saved by, below the window layer: the live keymap is written with the
 --  settings (Files.Commands.Keymap_Settings), what another process wrote
 --  since is taken in first (Merge_From_File), and settings that would not
 --  load again are never written. Files.Controller applies the outcome to a
@@ -73,5 +74,72 @@ package Files.Settings.Storage is
      (Current : Settings_Model;
       Updated : Settings_Model)
       return Commit_Decision;
+
+   --  Load settings from a filesystem path.
+   --
+   --  Missing files return default settings successfully. Existing invalid files
+   --  return a failed parse result with a diagnostic key.
+   --
+   --  @param Path Settings file path.
+   --  @return Loaded settings or a deterministic diagnostic key.
+   function Load_File
+     (Path : String)
+      return Settings_Parse_Result;
+
+   --  Write default settings to Path when it does not already exist.
+   --
+   --  Parent directories are created as needed. Existing regular files are left
+   --  unchanged. Existing non-regular paths are reported as not-file errors.
+   --
+   --  @param Path Settings file path to ensure.
+   --  @return Write result with path and deterministic diagnostic key.
+   function Ensure_Default_File
+     (Path : String)
+      return Settings_Write_Result;
+
+   --  Restate what the settings file at Path, as this process last read or
+   --  wrote it, says: Settings, when this process holds them in another form
+   --  than the file spells them (shortcut overrides held as a save writes
+   --  them), so Merge_From_File does not take that form for a change of its
+   --  own. Nothing happens for another path.
+   --
+   --  @param Path Settings file path.
+   --  @param Settings What the file as last seen says.
+   procedure Note_Seen_Settings (Path : String; Settings : Settings_Model);
+
+   --  Take into Settings what another process (another files, an editor)
+   --  wrote to the settings file at Path since this one last read or wrote
+   --  it (Load_File, Save_Text), so a save does not throw that away. Each
+   --  scalar keeps Settings' value where this process changed it since and
+   --  takes the file's otherwise; the lists and mappings merge entry by
+   --  entry: what this process added, removed or changed since is applied
+   --  to the file's (favorites and labels in the file's order, this
+   --  process's additions after; recent items this process opened since
+   --  first, then the file's, capped). Nothing is taken when the file is as
+   --  it was seen, cannot be read, or was never seen at Path; the file
+   --  counts as seen only once it is written (Save_Text), so a merge that
+   --  is not written is made again.
+   --
+   --  @param Path Settings file path about to be written.
+   --  @param Settings This process's settings, merged in place.
+   --  @param Merged Set when Settings took something from the file.
+   --  @param Refused Set when the file was changed into something this
+   --    build cannot load: writing over it would lose that change, so the
+   --    caller does not write.
+   procedure Merge_From_File
+     (Path     : String;
+      Settings : in out Settings_Model;
+      Merged   : out Boolean;
+      Refused  : out Boolean);
+
+   --  Write settings text to Path, creating parent directories as needed.
+   --
+   --  @param Path Settings file path.
+   --  @param Text Settings text to write.
+   --  @return Write result with path and deterministic diagnostic key.
+   function Save_Text
+     (Path : String;
+      Text : String)
+      return Settings_Write_Result;
 
 end Files.Settings.Storage;

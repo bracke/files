@@ -3,6 +3,7 @@ with Files.IO.Fs_Primitives;
 with Files.Timing;
 with Files.Protocol_Names;
 with Files.File_System.Support;
+with Files.File_System.Copying;
 with Files.Diagnostics;
 with Files.File_Identities;
 with Files.IO.Errors;

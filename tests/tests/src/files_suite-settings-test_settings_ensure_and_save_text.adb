@@ -1,3 +1,4 @@
+with Files.Settings.Storage;
 with Files.Preference_Types;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Settings)
@@ -12,16 +13,17 @@ separate (Files_Suite.Settings)
       Saved         : Files.Settings.Settings_Write_Result;
    begin
       Reset_Root;
-      Ensured := Files.Settings.Ensure_Default_File (Ensured_Path);
+      Ensured := Files.Settings.Storage.Ensure_Default_File (Ensured_Path);
       Assert (Ensured.Success, "ensure default settings creates missing file");
       Assert (Ada.Directories.Exists (Ensured_Path), "ensure default settings creates parent directories");
-      Loaded := Files.Settings.Load_File (Ensured_Path);
+      Loaded := Files.Settings.Storage.Load_File (Ensured_Path);
       Assert (Loaded.Success, "ensured default settings file loads");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Filetype_For_Extension (Loaded.Settings, "txt"),
          "text/plain",
          "ensured settings file contains default mappings");
-      Saved := Files.Settings.Save_Text (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
+      Saved :=
+        Files.Settings.Storage.Save_Text (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
       Assert (Saved.Success, "settings text can be saved to a new path");
       declare
          Linked : constant String := Saved_Path & ".link";
@@ -30,15 +32,15 @@ separate (Files_Suite.Settings)
          if not Files_Suite.Support.Disk.Create_Symlink (Saved_Path, Linked) then
             Files_Suite.Support.Disk.Link_Not_Made ("Test_Settings_Ensure_And_Save_Text");
          else
-            Result := Files.Settings.Save_Text
+            Result := Files.Settings.Storage.Save_Text
               (Linked, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
             Assert (Result.Success and then Hostkit.Fs.Is_Link (Linked),
                     "saving through a symlinked settings file keeps the link");
             Files_Suite.Support.Assert_Equal
-              (Files.Settings.Load_File (Saved_Path).Settings.Default_View,
+              (Files.Settings.Storage.Load_File (Saved_Path).Settings.Default_View,
                Files.Preference_Types.Details,
                "the save lands in the link's target");
-            Saved := Files.Settings.Save_Text
+            Saved := Files.Settings.Storage.Save_Text
               (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
             Assert (Hostkit.Fs.Delete_Link (Linked), "remove the test link");
          end if;
@@ -53,7 +55,7 @@ separate (Files_Suite.Settings)
          if not Files_Suite.Support.Disk.Create_Symlink (Missing, Linked) then
             Files_Suite.Support.Disk.Link_Not_Made ("Test_Settings_Ensure_And_Save_Text");
          else
-            Result := Files.Settings.Save_Text
+            Result := Files.Settings.Storage.Save_Text
               (Linked, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
             Assert (Result.Success and then Hostkit.Fs.Is_Link (Linked),
                     "saving through a dangling settings link keeps the link");
@@ -72,7 +74,7 @@ separate (Files_Suite.Settings)
                "saved settings containing private paths are owner-only");
          end;
       end if;
-      Loaded := Files.Settings.Load_File (Saved_Path);
+      Loaded := Files.Settings.Storage.Load_File (Saved_Path);
       Assert (Loaded.Success, "saved settings file loads");
       Files_Suite.Support.Assert_Equal
         (Loaded.Settings.Default_View,
@@ -81,19 +83,19 @@ separate (Files_Suite.Settings)
       --  Saving over an existing file goes through the atomic temp+rename path:
       --  the new content replaces the old and no temporary file is left behind.
       Saved :=
-        Files.Settings.Save_Text
+        Files.Settings.Storage.Save_Text
           (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
       Assert (Saved.Success, "settings text can be saved over an existing file");
       Assert
         (not Ada.Directories.Exists (Saved_Path & ".tmp"),
          "a successful settings save leaves no temporary file behind");
-      Loaded := Files.Settings.Load_File (Saved_Path);
+      Loaded := Files.Settings.Storage.Load_File (Saved_Path);
       Assert (Loaded.Success, "resaved settings file loads");
       Files_Suite.Support.Assert_Equal
         (Loaded.Settings.Default_View,
          Files.Preference_Types.Details,
          "resaved settings text replaces the previous content");
-      Saved := Files.Settings.Save_Text
+      Saved := Files.Settings.Storage.Save_Text
         (Saved_Path,
          "[settings]" & ASCII.LF
          & "default_view_mode = large" & Character'Val (0) & "ignored"
@@ -101,7 +103,7 @@ separate (Files_Suite.Settings)
       Assert
         (not Saved.Success,
          "settings saving rejects embedded NUL bytes");
-      Loaded := Files.Settings.Load_File (Saved_Path);
+      Loaded := Files.Settings.Storage.Load_File (Saved_Path);
       Assert
         (Loaded.Success
          and then Loaded.Settings.Default_View = Files.Preference_Types.Details,
@@ -113,12 +115,12 @@ separate (Files_Suite.Settings)
          procedure Free is new Ada.Unchecked_Deallocation (String, Text_Access);
          Oversized_Text : Text_Access := new String'[1 .. 1 * 1024 * 1024 + 1 => 'x'];
       begin
-         Saved := Files.Settings.Save_Text (Saved_Path, Oversized_Text.all);
+         Saved := Files.Settings.Storage.Save_Text (Saved_Path, Oversized_Text.all);
          Free (Oversized_Text);
          Assert
            (not Saved.Success,
             "settings saving rejects text that its bounded loader cannot read");
-         Loaded := Files.Settings.Load_File (Saved_Path);
+         Loaded := Files.Settings.Storage.Load_File (Saved_Path);
          Assert
            (Loaded.Success
             and then Loaded.Settings.Default_View = Files.Preference_Types.Details,
@@ -130,7 +132,7 @@ separate (Files_Suite.Settings)
       begin
          Write_File (Victim, "must stay intact");
          if Files_Suite.Support.Disk.Create_Symlink (Victim, Temp_Path) then
-            Saved := Files.Settings.Save_Text
+            Saved := Files.Settings.Storage.Save_Text
               (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
             Assert (Saved.Success, "settings save skips an occupied temp pathname");
             Assert (Hostkit.Fs.Is_Link (Temp_Path),
@@ -146,7 +148,7 @@ separate (Files_Suite.Settings)
          end if;
       end;
       Write_File (Blocked_Parent, "not a directory");
-      Saved := Files.Settings.Save_Text (Blocked_Path, "[settings]" & ASCII.LF);
+      Saved := Files.Settings.Storage.Save_Text (Blocked_Path, "[settings]" & ASCII.LF);
       Assert (not Saved.Success, "settings save rejects a file used as parent directory");
       Files_Suite.Support.Assert_Equal
         (To_String (Saved.Path),

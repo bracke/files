@@ -1,0 +1,83 @@
+with Files.Model.Recent;
+separate (Files.Operations.Trash)
+function Empty_Trash
+  (Model    : in out Files.Model.Window_Model;
+   Settings : Files.Settings.Settings_Model)
+   return Operation_Result
+is
+   Trash_Dir   : constant String :=
+     (if Files.Model.Background_Transfers (Model) then "" else Files.File_System.Trash.Trash_Files_Directory);
+   Load        : Files.File_System.Directory_Load_Result;
+   Total       : Natural := 0;
+   Failed      : Natural := 0;
+   First_Error : Unbounded_String;
+begin
+   if Trash_Dir = "" then
+      return Disabled (Model, "error.trash.unavailable");
+   end if;
+
+   --  Empty Trash purges every payload, regardless of display preferences.
+   Load :=
+     Files.File_System.Load_Directory_Filtered
+       (Trash_Dir,
+        Files.Settings.Classification_Of (Settings),
+        (Files.Settings.Listing_Options_Of (Settings) with delta Show_Hidden => True),
+        Include => null);
+   if not Load.Success then
+      Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+      return Make_Result (Operation_Failed, To_String (Load.Error_Key), Trash_Dir);
+   end if;
+
+   for Item of Load.Items loop
+      exit when Files.Jobs.Context.Cancelled;
+      Total := Total + 1;
+      declare
+         --  Its labels went into the trash with it.
+         Labeled  : constant String := To_String (Item.Full_Path);
+         Mutation : constant Files.File_System.Mutation_Result :=
+           Files.File_System.Trash.Delete_Trashed_Item (To_String (Item.Full_Path));
+      begin
+         if Mutation.Success then
+            Files.Model.Recent.Note_Path_Removed (Model, Labeled);
+         end if;
+         if not Mutation.Success then
+            Failed := Failed + 1;
+            if Length (First_Error) = 0 then
+               First_Error := Mutation.Error_Key;
+            end if;
+         end if;
+      end;
+   end loop;
+
+   --  Info files left describing nothing (a crash mid-trash) go too: they
+   --  are not listed, so the loop above never meets them.
+   if not Files.Jobs.Context.Cancelled then
+      Files.File_System.Trash.Remove_Orphan_Info_Files;
+   end if;
+
+   --  Reload the (now emptied) trash view regardless of per-item outcome.
+   declare
+      Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+      pragma Unreferenced (Reload);
+   begin
+      null;
+   end;
+
+   --  Emptying the trash is terminal: no undo entry is recorded.
+   if Total > 0 and then Failed = Total then
+      declare
+         Error_Key : constant String :=
+           (if Length (First_Error) > 0 then To_String (First_Error) else "error.trash.empty_failed");
+      begin
+         Files.Model.Set_Error (Model, Error_Key);
+         return Make_Result (Operation_Failed, Error_Key, Trash_Dir);
+      end;
+   elsif Failed > 0 then
+      --  Mixed outcome: the survivors are reported as a non-fatal diagnostic.
+      Files.Model.Set_Error (Model, "error.trash.empty_partial");
+      return Make_Result (Operation_Success, Path => Trash_Dir);
+   end if;
+
+   Files.Model.Set_Error (Model, "");
+   return Make_Result (Operation_Success, Path => Trash_Dir);
+end Empty_Trash;

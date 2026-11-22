@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -47,7 +48,7 @@ separate (Files_Suite.Transfer)
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Actions.Append (Action);
-      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
+      Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
       Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the UI collects a completed background action");
       Files_Suite.Support.Assert_Equal
@@ -59,7 +60,7 @@ separate (Files_Suite.Transfer)
                        (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Assert (not Ada.Directories.Exists (Dest), "undo removes a background copy");
 
-      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
+      Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
       Files.Job_Drivers.Foreground.Cancel (Model);
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "cancellation before launch finalizes immediately");

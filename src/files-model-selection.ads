@@ -1,4 +1,4 @@
-with Guikit.Item_Grid;
+with Ada.Containers.Vectors;
 
 --  The selection over the visible rows: single, multi and range selection,
 --  keyboard movement, type-ahead, and queries of what is selected.
@@ -39,11 +39,11 @@ package Files.Model.Selection is
      (Model         : in out Window_Model;
       Visible_Index : Positive);
 
-   --  Visible indexes, in the order they are taken: the vector the item
-   --  grid's hit tests (a marquee's) answer with, so they pass straight in.
-   --  On the heap: a marquee over a large folder names thousands, too many
-   --  for a stack array.
-   package Visible_Index_Lists renames Guikit.Item_Grid.Visible_Index_Vectors;
+   --  Visible indexes, in the order they are taken. On the heap: a marquee
+   --  over a large folder names thousands, too many for a stack array.
+   package Visible_Index_Lists is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Positive);
 
    subtype Visible_Index_List is Visible_Index_Lists.Vector;
 

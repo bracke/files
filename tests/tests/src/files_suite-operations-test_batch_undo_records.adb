@@ -1,3 +1,5 @@
+with Files.Operations.Editing;
+with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Operations.Undo_Recording;
@@ -63,7 +65,7 @@ separate (Files_Suite.Operations)
          end loop;
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.Clear_Undo (Model);
+         Files.Operations.History.Clear_Undo (Model);
          Files.Model.Selection.Select_All_Visible (Model);
          Files.Operations.Undo_Recording.Testing.Count_Undo_Records (True);
          Files.Operations.Testing.Fake_Checkpoint_Clock (True, Advance_At);
@@ -167,7 +169,7 @@ separate (Files_Suite.Operations)
       --  end, undone whole, and a missing Undo said as for the others. (Hard
       --  links: every runner may make them.)
       Prepare;
-      Step := Files.Operations.Create_Hardlink_Selected (Model, Settings);
+      Step := Files.Operations.Editing.Create_Hardlink_Selected (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success, "the links are made");
       Assert_Clock_Read ("the link batch");
       Files_Suite.Support.Assert_Equal
@@ -176,7 +178,7 @@ separate (Files_Suite.Operations)
       Assert (Files.Model.History.Undo_Available (Model), "the links can be undone");
       Prepare;
       Files.File_System.Testing.Refuse_Creation_Matches (True);
-      Step := Files.Operations.Create_Hardlink_Selected (Model, Settings);
+      Step := Files.Operations.Editing.Create_Hardlink_Selected (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success, "unverifiable links still stand");
       Assert (not Files.Model.History.Undo_Available (Model), "no Undo is recorded for unverifiable links");
       Assert (Files.Model.Last_Error_Key (Model) = "undo.unavailable",

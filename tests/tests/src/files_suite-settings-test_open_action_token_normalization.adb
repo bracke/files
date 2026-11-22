@@ -1,3 +1,4 @@
+with Files.Settings.Drafts;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
 separate (Files_Suite.Settings)
@@ -52,14 +53,14 @@ separate (Files_Suite.Settings)
            (Normalized_Draft_Settings,
             "text/plain+control+alt",
             Files.Settings.Open_Actions.Make_Action ("existing", Normalized_Args));
-         Normalized_Draft := Files.Settings.Make_Draft (Normalized_Draft_Settings);
+         Normalized_Draft := Files.Settings.Drafts.Make_Draft (Normalized_Draft_Settings);
          Normalized_Draft.Filetype_Extension := To_Unbounded_String (" .TXT ");
          Normalized_Draft.Filetype_Value := To_Unbounded_String ("text/x-overridden");
          Normalized_Draft.Icon_Filetype := To_Unbounded_String (" text/plain ");
          Normalized_Draft.Icon_Value := To_Unbounded_String ("text-updated");
          Normalized_Draft.Open_Action_Token := To_Unbounded_String (" text/plain + ALT + control ");
          Normalized_Draft.Open_Action_Command := To_Unbounded_String ("editor {path}");
-         Normalized_Load := Files.Settings.Apply_Draft (Normalized_Draft_Settings, Normalized_Draft);
+         Normalized_Load := Files.Settings.Drafts.Apply_Draft (Normalized_Draft_Settings, Normalized_Draft);
          Assert (Normalized_Load.Success, "normalized draft mapping replacement applies");
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Filetype_For_Extension (Normalized_Load.Settings, "txt"),
@@ -95,9 +96,9 @@ separate (Files_Suite.Settings)
          Normalized_Draft.Open_Action_Token := To_Unbounded_String (" application/ld+json + control ");
          Normalized_Draft.Open_Action_Command := To_Unbounded_String ("json-editor {path}");
          Assert
-           (Files.Settings.Validate_Draft (Normalized_Draft).Success,
+           (Files.Settings.Drafts.Validate_Draft (Normalized_Draft).Success,
             "draft validates structured-suffix modifier action");
-         Normalized_Load := Files.Settings.Apply_Draft (Normalized_Draft_Settings, Normalized_Draft);
+         Normalized_Load := Files.Settings.Drafts.Apply_Draft (Normalized_Draft_Settings, Normalized_Draft);
          Assert (Normalized_Load.Success, "draft applies structured-suffix modifier action");
          Lookup :=
            Files.Settings.Open_Actions.Lookup_Open_Action

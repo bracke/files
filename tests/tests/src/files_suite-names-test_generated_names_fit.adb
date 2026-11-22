@@ -1,3 +1,4 @@
+with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Names)
@@ -23,7 +24,7 @@ separate (Files_Suite.Names)
               "the fixture takes its 255-byte name");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Operations.Clear_Undo (Model);
+      Files.Operations.History.Clear_Undo (Model);
       Files.Model.Set_Background_Transfers (Model, False);
       Select_Name (Model, Name);
       Step := Operation_Commands.Duplicate_Selected (Model, Settings);

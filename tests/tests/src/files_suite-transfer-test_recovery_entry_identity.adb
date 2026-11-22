@@ -1,3 +1,4 @@
+with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -27,7 +28,7 @@ separate (Files_Suite.Transfer)
          Write_Binary_File (Source, "owned bytes");
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.Clear_Undo (Model);
+         Files.Operations.History.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, False);
          Select_Name (Model, "original");
          if Redo_Recovery then

@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Metadata;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Permissions;
@@ -63,7 +65,7 @@ separate (Files_Suite.History)
                Assert (Mutation.Success, "prepare metadata source");
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Operations.Clear_Undo (Model);
+               Files.Operations.History.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "metadata-source");
                if Kind < 3 then
@@ -72,7 +74,7 @@ separate (Files_Suite.History)
                else
                   Hostkit.Metadata.File_Ownership (Source, Uid, Gid, Available);
                   Assert (Available, "read the current owner");
-                  Step := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
+                  Step := Files.Operations.Metadata.Set_Ownership_For (Model, Uid, Gid, Settings);
                end if;
                Files_Suite.Support.Assert_Equal
                  (Step.Status,

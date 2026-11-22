@@ -1,3 +1,4 @@
+with Files.Operations.Opening;
 with Files.Operation_Results;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
@@ -45,7 +46,7 @@ separate (Files_Suite.Open_Actions)
         (To_String (Result.Action.Arguments.Element (1)),
          To_String (Injected_Argument),
          "explicit shell action keeps the separator argument as one vector value");
-      Result := Files.Operations.Open_Selected (Model, Settings);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Action_Executed,
@@ -61,7 +62,7 @@ separate (Files_Suite.Open_Actions)
          Exit_Status : Integer := -1;
          Failure_Key : Ada.Strings.Unbounded.Unbounded_String;
          Ran         : constant Boolean :=
-           Files.Operations.Execute_Open_Action (Result.Action, Exit_Status, Failure_Key);
+           Files.Operations.Opening.Execute_Open_Action (Result.Action, Exit_Status, Failure_Key);
       begin
          Assert (Ran, "the quoted shell action runs to completion when awaited");
          Files_Suite.Support.Assert_Equal
@@ -75,7 +76,7 @@ separate (Files_Suite.Open_Actions)
         (Settings,
          "text/plain",
          Files.Settings.Open_Actions.Make_Action ("cd", Files.Settings.String_Vectors.Empty_Vector, True));
-      Result := Files.Operations.Open_Selected (Model, Settings);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Action_Executed,
@@ -97,7 +98,7 @@ separate (Files_Suite.Open_Actions)
       --  "exit 7" is launched and let go, so its non-zero exit code is not surfaced.
       --  That was true before as well, but for a worse reason: the backgrounding
       --  wrapper shell exited zero and we reported *that*. Now nothing is reported.
-      Result := Files.Operations.Open_Selected (Model, Settings);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Action_Executed,

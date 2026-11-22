@@ -1,3 +1,4 @@
+with Files.Operations.Metadata;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Permissions;
@@ -31,7 +32,7 @@ separate (Files_Suite.Operations)
       --  Attempt to give the file to root. A non-root process is refused with
       --  error.ownership.denied; a root test process would instead succeed.
       --  Either way there must be no crash.
-      Result := Files.Operations.Set_Ownership_For (Model, 0, 0, Settings);
+      Result := Files.Operations.Metadata.Set_Ownership_For (Model, 0, 0, Settings);
       if Result.Status = Files.Operation_Results.Operation_Success then
          Files_Suite.Support.Assert_Equal
            (Uid,

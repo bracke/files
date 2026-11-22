@@ -26,6 +26,7 @@ with Guikit.Utf8.Editing;
 with Files.Leaf_Names;
 with Files.File_System.Content_Info;
 with Files.File_System.Support;
+with Files.File_System.Copying;
 with Files.File_System.Thumbnails;
 with Files.File_System.Recovery;
 with Files.File_Identities;
@@ -928,7 +929,7 @@ package body Files.File_System is
       return Mutation_Result is
    begin
       Files.IO.Errors.Reset;
-      Support.Copy_To_New_Path (Source_Path, Destination_Path, Batch => Batch);
+      Copying.Copy_To_New_Path (Source_Path, Destination_Path, Batch => Batch);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when Swallowed : others =>

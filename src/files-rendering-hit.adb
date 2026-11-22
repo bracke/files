@@ -1,3 +1,4 @@
+with Files.Commands.Context_Menus;
 with Files.Preference_Types;
 with Ada.Containers.Vectors;
 with Files.Rendering.Geometry;
@@ -8,7 +9,7 @@ package body Files.Rendering.Hit is
    use Files.Rendering.Geometry;
    use Guikit.Layout;
    use type Files.Preference_Types.View_Mode;
-   use type Files.Commands.Context_Menu_Row_Kind;
+   use type Files.Commands.Context_Menus.Context_Menu_Row_Kind;
 
    --  The region a point is in. A frame records regions in drawing order,
    --  so the last one recorded there is the one drawn on top: the search runs
@@ -82,7 +83,7 @@ package body Files.Rendering.Hit is
             Context_Menu_Row_Height (Menu, Row),
             X, Y)
          then
-            return (if Menu.Rows (Row).Kind = Files.Commands.Menu_Separator then 0 else Row);
+            return (if Menu.Rows (Row).Kind = Files.Commands.Context_Menus.Menu_Separator then 0 else Row);
          end if;
       end loop;
       return 0;

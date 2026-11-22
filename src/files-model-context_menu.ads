@@ -55,7 +55,7 @@ package Files.Model.Context_Menu is
 
    --  Set the one-based index of the keyboard-highlighted context-menu row (0
    --  for none). The controller resolves which row is a selectable command via
-   --  Files.Commands.Context_Menu_Rows_For and stores the result here.
+   --  Files.Commands.Context_Menus.Context_Menu_Rows_For and stores the result here.
    --
    --  @param Model Model to update.
    --  @param Row Highlighted row index, or 0 for none.

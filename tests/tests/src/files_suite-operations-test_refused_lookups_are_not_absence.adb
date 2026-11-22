@@ -1,3 +1,5 @@
+with Files.Operations.Navigation;
+with Files.Settings.Storage;
 with Files.File_System.Transfer;
 with Files.IO.Fs_Primitives.Testing;
 with Files.Operation_Results;
@@ -30,8 +32,9 @@ separate (Files_Suite.Operations)
       Files.IO.Fs_Primitives.Testing.Refuse_Lookups (Settings_File);
       declare
          Held   : constant String := Project_Tools.Files.Read_Raw_File (Settings_File);
-         Loaded : constant Files.Settings.Settings_Parse_Result := Files.Settings.Load_File (Settings_File);
-         Seeded : constant Files.Settings.Settings_Write_Result := Files.Settings.Ensure_Default_File (Settings_File);
+         Loaded : constant Files.Settings.Settings_Parse_Result := Files.Settings.Storage.Load_File (Settings_File);
+         Seeded : constant Files.Settings.Settings_Write_Result :=
+           Files.Settings.Storage.Ensure_Default_File (Settings_File);
       begin
          Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
          Assert (not Loaded.Success or else Loaded.Settings.Window_Width = 1234,
@@ -47,7 +50,7 @@ separate (Files_Suite.Operations)
       Files.Settings.Path_References.Note_Recent (Settings, Ada.Directories.Full_Name (Kept));
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Files.IO.Fs_Primitives.Testing.Refuse_Lookups (Ada.Directories.Full_Name (Kept));
-      Result := Files.Operations.Navigate_Recent (Model, Settings);
+      Result := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
       Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
       Files_Suite.Support.Assert_Equal
         (Result.Status, Files.Operation_Results.Operation_Navigated, "the recent view opens");

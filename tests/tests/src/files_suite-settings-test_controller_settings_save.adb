@@ -1,3 +1,4 @@
+with Files.Settings.Storage;
 with Files.Preference_Types;
 with Files.Overlays.Settings_Form;
 with Files.Operation_Results;
@@ -155,7 +156,7 @@ separate (Files_Suite.Settings)
               "text/markdown",
               Guikit.Input.No_Modifiers);
          Assert (Lookup.Found, "controller save updates live open-action settings");
-         Draft_Load := Files.Settings.Load_File (Draft_Path);
+         Draft_Load := Files.Settings.Storage.Load_File (Draft_Path);
          Assert (Draft_Load.Success, "controller-saved settings file reloads");
          Assert (Draft_Load.Settings.Show_Hidden_Files, "controller save persists edited hidden-file flag");
          declare

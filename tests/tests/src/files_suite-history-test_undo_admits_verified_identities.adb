@@ -1,3 +1,4 @@
+with Files.Operations.History;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Models;
@@ -23,7 +24,7 @@ separate (Files_Suite.History)
          Write_Binary_File (Older, "older bytes");
          Files.Model.Initialize
            (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-         Files.Operations.Clear_Undo (Model);
+         Files.Operations.History.Clear_Undo (Model);
          Older_Path.Append (To_Unbounded_String (Older));
          Files.Operations.Undo_Recording.Record_Undo
            (Model, Files.Undo.History.Undo_Delete_Created, Files_Suite.Support.Models.Undo_Items (Older_Path),

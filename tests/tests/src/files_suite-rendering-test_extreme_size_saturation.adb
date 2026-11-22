@@ -1,3 +1,4 @@
+with Files.Commands.Context_Menus;
 with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Extreme_Size_Saturation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -97,7 +98,7 @@ separate (Files_Suite.Rendering)
          Boundary_Menu.Row_Height := 1;
          Boundary_Menu.Row_Count := 1;
          Boundary_Menu.Rows (1) :=
-           (Kind => Files.Commands.Menu_Command, Command => Files.Commands.Toggle_Info_Pane_Command);
+           (Kind => Files.Commands.Context_Menus.Menu_Command, Command => Files.Commands.Toggle_Info_Pane_Command);
          Files_Suite.Support.Assert_Equal
            (Files.Rendering.Hit.Context_Menu_Row_At (Boundary_Menu, Natural'Last, Natural'Last),
             1,

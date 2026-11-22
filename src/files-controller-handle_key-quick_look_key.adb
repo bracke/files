@@ -1,3 +1,4 @@
+with Files.Operations.Opening;
 with Files.Model.Quick_Look;
 separate (Files.Controller.Handle_Key)
 --  Quick Look on top owns the keyboard: Space closes it (Escape, as for
@@ -20,7 +21,7 @@ begin
       Result := Selection_Result (Model, Navigation);
       if Result.Status = Controller_Selection_Moved then
          Files.Model.Quick_Look.Open
-           (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
+           (Model, Files.Operations.Opening.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
       end if;
    end if;
 end Quick_Look_Key;

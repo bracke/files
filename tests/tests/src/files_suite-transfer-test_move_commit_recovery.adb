@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -46,7 +48,7 @@ separate (Files_Suite.Transfer)
                   end if;
                   Load := Files_Suite.Listings.Load_Directory (Parent, Settings);
                   Files.Model.Initialize (Model, Parent, Load.Items, Parent);
-                  Files.Operations.Clear_Undo (Model);
+                  Files.Operations.History.Clear_Undo (Model);
                   Files.Model.Set_Background_Transfers (Model, True);
                   Actions.Clear;
                   Actions.Append (Files.Paste.Resolved_Action'
@@ -58,7 +60,8 @@ separate (Files_Suite.Transfer)
                   begin
                      Files_Suite.Support.Guards.Save (Fault, "FILES_TEST_TRANSFER_RESULT_LOSS");
                      Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS", "source-replacement");
-                     Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Move, False);
+                     Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Move,
+                                                                   False);
                      Step := Complete_Operation
                        (Model, Settings, Files.Job_Drivers.Foreground.Advance (Model, Settings, 1));
                      Await_View (Model, Settings);

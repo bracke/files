@@ -1,3 +1,4 @@
+with Files.Operations.Editing;
 with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Operation_Results;
@@ -27,7 +28,7 @@ separate (Files_Suite.Interaction)
          Files_Suite.Support.Models.Select_Name (Model, Name);
          Files.Model.Rename.Toggle (Model);
          Files.Model.Rename.Set_Text (Model, New_Name);
-         Op := Files.Operations.Commit_Rename (Model, Settings);
+         Op := Files.Operations.Editing.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Op.Status,
             Files.Operation_Results.Operation_Success,

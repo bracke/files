@@ -1,10 +1,11 @@
+with Files.Commands.Context_Menus;
 with Files.Items;
 with Files.Commands.Status;
 with Files.Model.Context_Menu;
 separate (Files_Suite.Commands)
    procedure Test_Context_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Commands.Context_Menu_Row_Kind;
+      use type Files.Commands.Context_Menus.Context_Menu_Row_Kind;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
@@ -34,11 +35,11 @@ separate (Files_Suite.Commands)
       --  Arrowing down lands only on enabled command rows, skipping separators and
       --  disabled entries, and always moves forward.
       declare
-         Rows : constant Files.Commands.Context_Menu_Rows :=
-           Files.Commands.Context_Menu_Rows_For (Files.Model.Context_Menu.Target_Of (Model));
+         Rows : constant Files.Commands.Context_Menus.Context_Menu_Rows :=
+           Files.Commands.Context_Menus.Context_Menu_Rows_For (Files.Model.Context_Menu.Target_Of (Model));
          Previous : Natural := 0;
       begin
-         for Step in 1 .. Files.Commands.Max_Context_Menu_Rows loop
+         for Step in 1 .. Files.Commands.Context_Menus.Max_Context_Menu_Rows loop
             Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
             declare
                Highlight : constant Natural := Files.Model.Context_Menu.Highlight (Model);
@@ -46,7 +47,7 @@ separate (Files_Suite.Commands)
                if Highlight /= Previous then
                   Assert (Highlight > Previous, "Down moves the context-menu highlight forward");
                   Assert
-                    (Rows.Rows (Highlight).Kind = Files.Commands.Menu_Command,
+                    (Rows.Rows (Highlight).Kind = Files.Commands.Context_Menus.Menu_Command,
                      "the highlight lands on a command row, never a separator");
                   Assert
                     (Files.Commands.Status.Is_Enabled (Rows.Rows (Highlight).Command, Model),

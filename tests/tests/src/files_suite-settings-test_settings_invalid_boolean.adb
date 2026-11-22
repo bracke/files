@@ -1,3 +1,4 @@
+with Files.Settings.Storage;
 separate (Files_Suite.Settings)
    procedure Test_Settings_Invalid_Boolean (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -22,7 +23,7 @@ separate (Files_Suite.Settings)
         (Bad_Path,
          "[settings]" & ASCII.LF &
          "show_hidden_files = maybe" & ASCII.LF);
-      Bad := Files.Settings.Load_File (Bad_Path);
+      Bad := Files.Settings.Storage.Load_File (Bad_Path);
       Assert (not Bad.Success, "invalid boolean setting is rejected");
       Files_Suite.Support.Assert_Equal
         (To_String (Bad.Error_Key),

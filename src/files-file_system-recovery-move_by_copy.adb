@@ -49,9 +49,9 @@ separate (Files.File_System.Recovery)
          if Expected_Identity /= "" and then To_String (Shape.Root_Identity) /= Expected_Identity then
             return (Success => False, Error_Key => To_Unbounded_String (Fallback_Key));
          end if;
-         Support.Copy_To_New_Path
+         Copying.Copy_To_New_Path
            (Source, Destination, Identity, Revision, Cancel, Shape.Times,
-            Purpose => Support.For_Move, Batch => Batch, Root_Digest => Digest'Access);
+            Purpose => Copying.For_Move, Batch => Batch, Root_Digest => Digest'Access);
          Copied := True;
          if After_Copy /= null then
             After_Copy (Source);

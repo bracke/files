@@ -237,7 +237,7 @@ package Files.Model.Pasting is
       Verified    : Boolean);
 
    --  Record how a cancellation of the armed execution went: when every
-   --  helper was told (Files.Operations.Cancel_Paste_Execution tells them),
+   --  helper was told (Files.Operations.Paste.Cancel_Paste_Execution tells them),
    --  the next advance finalizes over the items completed so far
    --  (already-written files are kept); otherwise it stays cancellable.
    --

@@ -83,19 +83,19 @@ separate (Check_All.Check_Rendering_Architecture)
          Label & " must not mutate settings open-action mappings");
       Require_Not_Contains_In_Unit
         (Path,
-         "Files.Settings.Apply_Draft",
+         "Files.Settings.Drafts.Apply_Draft",
          Label & " must not apply settings drafts");
       Require_Not_Contains_In_Unit
         (Path,
-         "Files.Settings.Ensure_Default_File",
+         "Files.Settings.Storage.Ensure_Default_File",
          Label & " must not create settings files");
       Require_Not_Contains_In_Unit
         (Path,
-         "Files.Settings.Save_Text",
+         "Files.Settings.Storage.Save_Text",
          Label & " must not write settings text");
       Require_Not_Contains_In_Unit
         (Path,
-         "Files.Settings.Load_File",
+         "Files.Settings.Storage.Load_File",
          Label & " must not load settings files");
       Require_Not_Contains_In_Unit
         (Path,

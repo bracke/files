@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files.Input_Actions;
 with Files.Settings.Path_References;
 separate (Files.Interaction)
@@ -19,11 +20,11 @@ separate (Files.Interaction)
       --  gives (Apply_All toggles instead of answering).
       subtype Conflict_Answer_Button is Files.Input_Actions.Conflict_Button_Kind
         range Files.Input_Actions.Conflict_Button_Replace .. Files.Input_Actions.Conflict_Button_Cancel;
-      Conflict_Choices : constant array (Conflict_Answer_Button) of Files.Operations.Conflict_Choice :=
-        [Files.Input_Actions.Conflict_Button_Replace => Files.Operations.Choice_Replace,
-         Files.Input_Actions.Conflict_Button_Skip    => Files.Operations.Choice_Skip,
-         Files.Input_Actions.Conflict_Button_Rename  => Files.Operations.Choice_Rename,
-         Files.Input_Actions.Conflict_Button_Cancel  => Files.Operations.Choice_Cancel];
+      Conflict_Choices : constant array (Conflict_Answer_Button) of Files.Operations.Paste.Conflict_Choice :=
+        [Files.Input_Actions.Conflict_Button_Replace => Files.Operations.Paste.Choice_Replace,
+         Files.Input_Actions.Conflict_Button_Skip    => Files.Operations.Paste.Choice_Skip,
+         Files.Input_Actions.Conflict_Button_Rename  => Files.Operations.Paste.Choice_Rename,
+         Files.Input_Actions.Conflict_Button_Cancel  => Files.Operations.Paste.Choice_Cancel];
 
       --  Toggle the current directory's favorite state directly by path,
       --  independent of the selection, under the policy every settings

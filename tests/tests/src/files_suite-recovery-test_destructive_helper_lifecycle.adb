@@ -1,3 +1,4 @@
+with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -34,7 +35,7 @@ separate (Files_Suite.Recovery)
          Write_Binary_File (Join (Root, "victim.txt"), "victim bytes");
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.Clear_Undo (Model);
+         Files.Operations.History.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, True);
          Select_Name (Model, "victim.txt");
          Paths.Clear;
@@ -120,7 +121,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Join (Root, "victim.txt"), "victim bytes");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Operations.Clear_Undo (Model);
+      Files.Operations.History.Clear_Undo (Model);
       Files.Model.Set_Background_Transfers (Model, True);
       Select_Name (Model, "victim.txt");
       Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
@@ -184,7 +185,7 @@ separate (Files_Suite.Recovery)
               and then not Ada.Directories.Exists (To_String (Paths.First_Element)),
               "background empty trash purges only the private test trash backend");
       Files.Model.Set_Background_Transfers (Model, False);
-      Files.Operations.Clear_Undo (Model);
+      Files.Operations.History.Clear_Undo (Model);
       Write_Binary_File (Join (Root, "checkpoint-target"), "preserve original bytes");
       Paths.Clear;
       Sources.Clear;

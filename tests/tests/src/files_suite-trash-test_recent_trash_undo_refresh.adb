@@ -1,3 +1,4 @@
+with Files.Operations.Navigation;
 with Files.Model.Recent;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -15,7 +16,7 @@ separate (Files_Suite.Trash)
       Write_Binary_File (Path, "original recent bytes");
       Files.Settings.Path_References.Note_Recent (Settings, Path);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Step := Files.Operations.Navigate_Recent (Model, Settings);
+      Step := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
       Files.Model.Selection.Select_All_Visible (Model);
       Step := Complete_Operation
                        (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));

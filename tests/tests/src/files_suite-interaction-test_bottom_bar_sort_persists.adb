@@ -1,3 +1,4 @@
+with Files.Settings.Storage;
 with Files.Input_Actions;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
@@ -67,7 +68,7 @@ separate (Files_Suite.Interaction)
 
       --  The direction survives a round-trip through the on-disk settings file.
       declare
-         Reloaded : constant Files.Settings.Settings_Parse_Result := Files.Settings.Load_File (Path);
+         Reloaded : constant Files.Settings.Settings_Parse_Result := Files.Settings.Storage.Load_File (Path);
       begin
          Assert (Reloaded.Success, "the persisted settings file reloads cleanly");
          Files_Suite.Support.Assert_Equal

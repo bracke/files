@@ -8,7 +8,7 @@ package Files.Model.Ownership_Input is
    --  The editor buffer is prefilled with Account_Name, the resolved name of
    --  the selected item's owner or group, or with its numeric id when the name
    --  is empty. Does nothing unless exactly one non-trash item is selected whose
-   --  ownership was read. Files.Operations.Focus_Ownership_Input resolves the
+   --  ownership was read. Files.Operations.Metadata.Focus_Ownership_Input resolves the
    --  name and checks that the platform supports chown.
    --
    --  @param Model Model to update.

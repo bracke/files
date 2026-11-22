@@ -15,7 +15,7 @@ package Files.Job_Drivers.Foreground is
    --  @param Settings Settings used for the finishing directory reload.
    --  @param Max_Items Most paste actions to process this call; an operation
    --    is polled once.
-   --  @return As Files.Operations.Advance_Paste_Execution or
+   --  @return As Files.Operations.Paste.Advance_Paste_Execution or
    --    Files.Job_Drivers.Operation.Advance; a no-op Success with no job.
    function Advance
      (Model     : in out Files.Model.Window_Model;

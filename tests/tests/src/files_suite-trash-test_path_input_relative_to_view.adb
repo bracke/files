@@ -1,3 +1,4 @@
+with Files.Operations.Navigation;
 with Files.Operation_Results;
 with Files.Items;
 separate (Files_Suite.Trash)
@@ -15,7 +16,7 @@ separate (Files_Suite.Trash)
       Ada.Directories.Create_Path (Join (Root, "beside"));
       Files.Model.Initialize (Model, Shown, Files.Items.Item_Vectors.Empty_Vector, Root);
       Files.Model.Set_Path_Input_Text (Model, "inner");
-      Result := Files.Operations.Commit_Path_Input (Model, Settings);
+      Result := Files.Operations.Navigation.Commit_Path_Input (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status, Files.Operation_Results.Operation_Navigated, "a relative child path is opened");
       Files_Suite.Support.Assert_Equal
@@ -23,7 +24,7 @@ separate (Files_Suite.Trash)
          Ada.Directories.Full_Name (Join (Shown, "inner")),
          "the child of the folder on screen is opened");
       Files.Model.Set_Path_Input_Text (Model, Join ("..", Join ("..", "beside")));
-      Result := Files.Operations.Commit_Path_Input (Model, Settings);
+      Result := Files.Operations.Navigation.Commit_Path_Input (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status, Files.Operation_Results.Operation_Navigated, "a path through .. is opened");
       Files_Suite.Support.Assert_Equal

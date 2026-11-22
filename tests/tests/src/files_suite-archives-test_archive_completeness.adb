@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Navigation;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
@@ -19,13 +21,13 @@ separate (Files_Suite.Archives)
          Write_Binary_File (Join (Root, "b.txt"), "b bytes");
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.Clear_Undo (Model);
+         Files.Operations.History.Clear_Undo (Model);
          Files.Model.Selection.Select_All_Visible (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Ada.Directories.Delete_File (Join (Root, "b.txt"));
          Step := Complete_Operation
            (Model, Settings,
-            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Archives.Zip_Archive));
          declare
             Context : constant String :=
               "a missing selected source cannot produce a successful incomplete archive or Undo entry";
@@ -51,13 +53,13 @@ separate (Files_Suite.Archives)
          Files.Settings.Path_References.Note_Recent (Settings, Join (Join (Root, "one"), "same.txt"));
          Files.Settings.Path_References.Note_Recent (Settings, Join (Join (Root, "two"), "same.txt"));
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-         Files.Operations.Clear_Undo (Model);
+         Files.Operations.History.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
-         Step := Files.Operations.Navigate_Recent (Model, Settings);
+         Step := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
          Files.Model.Selection.Select_All_Visible (Model);
          Step := Complete_Operation
            (Model, Settings,
-            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Archives.Zip_Archive));
          --  Two inputs with one name are both kept: the second as "same 2.txt",
          --  so neither overwrites nor silently replaces the other.
          Files_Suite.Support.Assert_Equal
@@ -96,12 +98,12 @@ separate (Files_Suite.Archives)
          Settings := Files.Settings.Default_Settings;
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.Clear_Undo (Model);
+         Files.Operations.History.Clear_Undo (Model);
          Select_Name (Model, "bag");
          Files.Model.Set_Background_Transfers (Model, Background);
          Step := Complete_Operation
            (Model, Settings,
-            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Archives.Zip_Archive));
          Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Ada.Directories.Exists (Join (Root, "bag.zip")),
                  "a folder holding a link still compresses");
@@ -122,12 +124,12 @@ separate (Files_Suite.Archives)
          Settings := Files.Settings.Default_Settings;
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.Clear_Undo (Model);
+         Files.Operations.History.Clear_Undo (Model);
          Select_Name (Model, "bag");
          Files.Model.Set_Background_Transfers (Model, False);
          Step := Complete_Operation
            (Model, Settings,
-            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Archives.Zip_Archive));
          Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Ada.Directories.Exists (Join (Root, "bag.zip")),
                  "a folder holding a dangling link still compresses");
@@ -141,14 +143,14 @@ separate (Files_Suite.Archives)
       end if;
       if Hostkit.Host.Current /= Hostkit.Host.Windows then
          for Background in Boolean loop
-            for Format in Files.Operations.Archive_Format loop
+            for Format in Files.Operations.Archives.Archive_Format loop
                Reset_Root;
                Ada.Directories.Create_Path (Join (Root, "bag"));
                Write_Binary_File (Join (Join (Root, "bag"), "notes:2024.txt"), "colon bytes");
                Settings := Files.Settings.Default_Settings;
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Operations.Clear_Undo (Model);
+               Files.Operations.History.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "bag");
                Step := Complete_Operation

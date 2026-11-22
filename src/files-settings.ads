@@ -403,17 +403,6 @@ package Files.Settings is
      (Text : String)
       return Settings_Parse_Result;
 
-   --  Load settings from a filesystem path.
-   --
-   --  Missing files return default settings successfully. Existing invalid files
-   --  return a failed parse result with a diagnostic key.
-   --
-   --  @param Path Settings file path.
-   --  @return Loaded settings or a deterministic diagnostic key.
-   function Load_File
-     (Path : String)
-      return Settings_Parse_Result;
-
    --  Serialize a settings model to settings-file text.
    --
    --  @param Settings Settings model to serialize.
@@ -421,132 +410,6 @@ package Files.Settings is
    function To_Text
      (Settings : Settings_Model)
       return String;
-
-   --  Build an editable settings draft from a settings model.
-   --
-   --  @param Settings Settings model to edit.
-   --  @return Text draft suitable for UI editing.
-   function Make_Draft
-     (Settings : Settings_Model)
-      return Settings_Draft;
-
-   --  Bring a draft into a consistent state: pair up its parallel key/value
-   --  mapping lists to equal length (dropping orphan rows) and clamp each
-   --  mapping's selection index, refreshing the selected key and value.
-   --
-   --  @param Draft Settings draft to normalize in place.
-   procedure Normalize_Draft
-     (Draft : in out Settings_Draft);
-
-   --  Bring the pane-edited scalars of Draft up to date with a change made
-   --  outside the pane (a command run while it is open), so the pane shows
-   --  the change and its next save keeps it. A setting that did not change
-   --  between Before and After keeps what the pane holds, an edit included.
-   --
-   --  @param Draft The pane's draft.
-   --  @param Before Settings before the change.
-   --  @param After Settings after it.
-   --  @return Draft with each changed pane setting taken from After.
-   function Refresh_Draft
-     (Draft  : Settings_Draft;
-      Before : Settings_Model;
-      After  : Settings_Model)
-      return Settings_Draft;
-
-   --  The settings pane's draft after Saved was saved from Draft: the pane
-   --  settings and every mapping row as Saved holds them (keys normalized,
-   --  a row whose key another row took merged into it), listed in the order
-   --  the pane showed them rather than Make_Draft's, a blank row the editor
-   --  had just added at the end kept (the file does not hold it; a blank
-   --  row elsewhere is dropped), and each mapping editor still on the row
-   --  it was on -- or, its row dropped, the nearest one before it.
-   --
-   --  @param Draft The pane's draft that was saved.
-   --  @param Saved The settings it saved.
-   --  @return Draft rebuilt from Saved, keeping where each editor was.
-   function Draft_After_Save
-     (Draft : Settings_Draft;
-      Saved : Settings_Model)
-      return Settings_Draft;
-
-   --  Validate a settings draft without changing a settings model.
-   --
-   --  @param Draft Draft to validate.
-   --  @return Validation result containing deterministic diagnostic key.
-   function Validate_Draft
-     (Draft : Settings_Draft)
-      return Settings_Parse_Result;
-
-   --  Apply a valid settings draft to an existing settings model.
-   --
-   --  @param Settings Settings model to update.
-   --  @param Draft Valid draft values.
-   --  @return Validation result containing updated settings or a diagnostic key.
-   function Apply_Draft
-     (Settings : Settings_Model;
-      Draft    : Settings_Draft)
-      return Settings_Parse_Result;
-
-   --  Return a default settings draft, discarding any edited values.
-   --
-   --  @return Draft created from Default_Settings.
-   function Reset_Draft_To_Defaults return Settings_Draft;
-
-   --  Write default settings to Path when it does not already exist.
-   --
-   --  Parent directories are created as needed. Existing regular files are left
-   --  unchanged. Existing non-regular paths are reported as not-file errors.
-   --
-   --  @param Path Settings file path to ensure.
-   --  @return Write result with path and deterministic diagnostic key.
-   function Ensure_Default_File
-     (Path : String)
-      return Settings_Write_Result;
-
-   --  Restate what the settings file at Path, as this process last read or
-   --  wrote it, says: Settings, when this process holds them in another form
-   --  than the file spells them (shortcut overrides held as a save writes
-   --  them), so Merge_From_File does not take that form for a change of its
-   --  own. Nothing happens for another path.
-   --
-   --  @param Path Settings file path.
-   --  @param Settings What the file as last seen says.
-   procedure Note_Seen_Settings (Path : String; Settings : Settings_Model);
-
-   --  Take into Settings what another process (another files, an editor)
-   --  wrote to the settings file at Path since this one last read or wrote
-   --  it (Load_File, Save_Text), so a save does not throw that away. Each
-   --  scalar keeps Settings' value where this process changed it since and
-   --  takes the file's otherwise; the lists and mappings merge entry by
-   --  entry: what this process added, removed or changed since is applied
-   --  to the file's (favorites and labels in the file's order, this
-   --  process's additions after; recent items this process opened since
-   --  first, then the file's, capped). Nothing is taken when the file is as
-   --  it was seen, cannot be read, or was never seen at Path; the file
-   --  counts as seen only once it is written (Save_Text), so a merge that
-   --  is not written is made again.
-   --
-   --  @param Path Settings file path about to be written.
-   --  @param Settings This process's settings, merged in place.
-   --  @param Merged Set when Settings took something from the file.
-   --  @param Refused Set when the file was changed into something this
-   --    build cannot load: writing over it would lose that change, so the
-   --    caller does not write.
-   procedure Merge_From_File
-     (Path     : String;
-      Settings : in out Settings_Model;
-      Merged   : out Boolean;
-      Refused  : out Boolean);
-
-   --  Write settings text to Path, creating parent directories as needed.
-   --
-   --  @param Path Settings file path.
-   --  @param Text Settings text to write.
-   --  @return Write result with path and deterministic diagnostic key.
-   function Save_Text
-     (Path : String;
-      Text : String)
-      return Settings_Write_Result;
 
    --  Return a normalized extension without a leading dot.
    --
@@ -664,5 +527,82 @@ private
    --
    --  @return Default settings file text.
    function Default_Settings_Text return String;
+
+   --  The most bytes a settings text may hold; Parse and the file reads
+   --  (Files.Settings.Storage) both refuse more.
+   Max_Settings_Text_Bytes : constant Natural := 1 * 1024 * 1024;
+
+   --  @param Text Text to scan.
+   --  @return True when Text holds a NUL character.
+   function Contains_Nul (Text : String) return Boolean;
+
+   --  @param Text Text to scan.
+   --  @return True when Text holds a line feed or carriage return.
+   function Contains_Line_Break (Text : String) return Boolean;
+
+   --  Whether the mapping row at Index has neither key nor value.
+   --
+   --  @param Keys Row keys.
+   --  @param Values Row values, aligned with Keys.
+   --  @param Index Row to test.
+   --  @return True when both the key and the value are blank.
+   function Blank_Row
+     (Keys   : String_Vectors.Vector;
+      Values : String_Vectors.Vector;
+      Index  : Positive)
+      return Boolean;
+
+   --  @param Text Mapping key text.
+   --  @return True when Text can be written as a mapping key.
+   function Mapping_Key_Is_Valid (Text : String) return Boolean;
+
+   --  @param Text Mapping value text.
+   --  @return True when Text, trimmed, can be written as a mapping value.
+   function Mapping_Value_Is_Valid (Text : String) return Boolean;
+
+   --  @param Token Open-action token, possibly with modifier suffixes.
+   --  @return Index where the modifier suffixes start, or 0 when there are none.
+   function Modifier_Suffix_Start (Token : String) return Natural;
+
+   --  @param Token Open-action token as typed.
+   --  @return The token in its canonical form.
+   function Normalize_Action_Token (Token : String) return String;
+
+   --  @param Token Open-action token.
+   --  @return True when every modifier suffix of Token is known.
+   function Action_Token_Modifiers_Are_Known (Token : String) return Boolean;
+
+   --  @param Text Open-action key text.
+   --  @return True when Text names a filetype or extension an action can bind.
+   function Open_Action_Base_Key_Is_Valid (Text : String) return Boolean;
+
+   --  @param Text Open-action command as written in the settings file.
+   --  @return The parsed action.
+   function Parse_Action (Text : String) return Open_Action;
+
+   --  @param Setting Scalar setting to write.
+   --  @param Value Its unquoted value text.
+   --  @return The settings-file line for Setting.
+   function Scalar_Line (Setting : Scalar_Setting; Value : String) return String;
+
+   --  @param Action Open action to write.
+   --  @return Its settings-file command text, which Parse_Action reads back.
+   function Action_Text (Action : Open_Action) return String;
+
+   --  @param Value Text to quote.
+   --  @return Value quoted as a settings-file token.
+   function Action_Token_Text (Value : String) return String;
+
+   --  Sort Keys in ascending byte order.
+   --  @param Keys Keys to sort in place.
+   procedure Sort (Keys : in out String_Vectors.Vector);
+
+   --  Whether the settings pane shows a scalar setting, and whether a draft
+   --  must write it.
+   type Pane_Slot is (Not_In_Pane, Pane_Required, Pane_Optional);
+
+   --  @param Setting Scalar setting.
+   --  @return Its place in the settings pane.
+   function Pane_Slot_Of (Setting : Scalar_Setting) return Pane_Slot;
 
 end Files.Settings;

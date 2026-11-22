@@ -6,7 +6,7 @@ function Copy_Tree
    return Mutation_Result is
 begin
    Files.IO.Errors.Reset;
-   Support.Copy_To_New_Path
+   Copying.Copy_To_New_Path
      (Source_Path, Destination_Path, Identity, Tree_Revision_Value, Batch => Batch);
    return (Success => True, Error_Key => Null_Unbounded_String);
 exception

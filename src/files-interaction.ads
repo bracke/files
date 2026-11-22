@@ -1,10 +1,10 @@
+with Guikit.Item_Grid;
 with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Commands;
 with Files.Controller;
 with Files.Drop_Events;
 with Files.Model;
-with Files.Model.Selection;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
@@ -20,6 +20,9 @@ with Files.Types;
 --  its own follow-up (font-size sync, glyph-cache invalidation, pending-text
 --  clearing) by inspecting the returned Interaction_Result flags.
 package Files.Interaction is
+
+   --  Visible rows as the item grid's hit tests (a marquee's) answer them.
+   subtype Marquee_Rows is Guikit.Item_Grid.Visible_Index_Vectors.Vector;
 
    --  Follow-up flags produced by an interaction. Every flag is an *observation*
    --  about what the reducer did; acting on the GPU/GLFW/timing consequences is
@@ -59,7 +62,7 @@ package Files.Interaction is
 
    --  Take settings another window changed (Shared) as this window's own.
    --  An open settings pane is refreshed as after a command run here
-   --  (Files.Settings.Refresh_Draft), so its draft shows the change and its
+   --  (Files.Settings.Drafts.Refresh_Draft), so its draft shows the change and its
    --  next save cannot write the old values back; the listing is reloaded
    --  when what it lists or how it names entries' types changed (the listing
    --  options, the filetype or icon mappings). An open command palette lists
@@ -271,7 +274,7 @@ package Files.Interaction is
    --  @param Base Selection snapshot captured at the marquee's press (Marquee_Base).
    procedure Apply_Marquee_Selection
      (Model    : in out Files.Model.Window_Model;
-      Hits     : Files.Model.Selection.Visible_Index_List;
+      Hits     : Marquee_Rows;
       Additive : Boolean;
       Base     : Files.Types.String_Vectors.Vector);
 
@@ -285,7 +288,7 @@ package Files.Interaction is
    function Marquee_Base_Rows
      (Model : Files.Model.Window_Model;
       Base  : Files.Types.String_Vectors.Vector)
-      return Files.Model.Selection.Visible_Index_List;
+      return Marquee_Rows;
 
    --  Apply_Marquee_Selection with the base's rows already worked out
    --  (Marquee_Base_Rows).
@@ -296,9 +299,9 @@ package Files.Interaction is
    --  @param Base_Rows The base selection's visible rows.
    procedure Apply_Marquee_Selection
      (Model     : in out Files.Model.Window_Model;
-      Hits      : Files.Model.Selection.Visible_Index_List;
+      Hits      : Marquee_Rows;
       Additive  : Boolean;
-      Base_Rows : Files.Model.Selection.Visible_Index_List);
+      Base_Rows : Marquee_Rows);
 
 private
 

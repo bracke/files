@@ -1,3 +1,4 @@
+with Files.Commands.Context_Menus;
 with Files.Commands.Status;
 with Files.Model.Context_Menu;
 with Files.Model.Tree_Panel;
@@ -98,8 +99,8 @@ separate (Files_Suite.Context_Menu)
       --  start of dispatch. It opens the destination picker, but the newly
       --  opened picker must not consume that same Enter and confirm immediately.
       declare
-         Rows : constant Files.Commands.Context_Menu_Rows :=
-           Files.Commands.Context_Menu_Rows_For
+         Rows : constant Files.Commands.Context_Menus.Context_Menu_Rows :=
+           Files.Commands.Context_Menus.Context_Menu_Rows_For
              (Files.Model.Context_Menu.Target_Of (Model));
          Copy_To_Row : Natural := 0;
       begin

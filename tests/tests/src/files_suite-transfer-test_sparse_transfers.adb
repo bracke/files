@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Volumes;
@@ -52,12 +54,12 @@ separate (Files_Suite.Transfer)
             Check (Source, Mixed);
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Operations.Clear_Undo (Model);
+            Files.Operations.History.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Paths.Clear;
             Paths.Append (To_Unbounded_String (Source));
             Step := Complete_Operation
-              (Model, Settings, Files.Operations.Begin_Paste_To (Model, Settings, Paths, Parent));
+              (Model, Settings, Files.Operations.Paste.Begin_Paste_To (Model, Settings, Paths, Parent));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                               "copy a sparse file");

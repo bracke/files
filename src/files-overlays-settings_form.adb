@@ -1,3 +1,4 @@
+with Files.Settings.Drafts;
 with Files.Preference_Types;
 with Ada.Strings;
 with Ada.Strings.Unbounded;
@@ -484,7 +485,7 @@ package body Files.Overlays.Settings_Form is
       --  the save that follows persists the default keymap (no [shortcuts]
       --  section).
       Files.Commands.Reset_Shortcut_Overrides;
-      return Files.Settings.Reset_Draft_To_Defaults;
+      return Files.Settings.Drafts.Reset_Draft_To_Defaults;
    end Reset_To_Defaults;
 
    function Needs_Save
@@ -503,7 +504,7 @@ package body Files.Overlays.Settings_Form is
       Draft : Files.Settings.Settings_Draft)
       return Boolean
    is
-      Applied : constant Files.Settings.Settings_Parse_Result := Files.Settings.Apply_Draft (Saved, Draft);
+      Applied : constant Files.Settings.Settings_Parse_Result := Files.Settings.Drafts.Apply_Draft (Saved, Draft);
    begin
       return Applied.Success and then Needs_Save (Saved, Applied.Settings);
    end Needs_Save;
@@ -599,7 +600,7 @@ package body Files.Overlays.Settings_Form is
                if Is_Reset or else Button = "add" or else Button = "remove" then
                   declare
                      Applied : constant Files.Settings.Settings_Parse_Result :=
-                       Files.Settings.Apply_Draft (Saved, D);
+                       Files.Settings.Drafts.Apply_Draft (Saved, D);
                   begin
                      Rechecked := True;
                      D.Valid := Applied.Success;
@@ -617,9 +618,9 @@ package body Files.Overlays.Settings_Form is
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
    is
-      Draft : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Settings);
+      Draft : Files.Settings.Settings_Draft := Files.Settings.Drafts.Make_Draft (Settings);
    begin
-      Files.Settings.Normalize_Draft (Draft);
+      Files.Settings.Drafts.Normalize_Draft (Draft);
       Files.Model.Settings_Pane.Begin_Edit (Model, Draft, Fields (Draft), Saved => Settings);
    end Begin_Edit;
 
@@ -629,7 +630,7 @@ package body Files.Overlays.Settings_Form is
    is
       Normalized : Files.Settings.Settings_Draft := Draft;
    begin
-      Files.Settings.Normalize_Draft (Normalized);
+      Files.Settings.Drafts.Normalize_Draft (Normalized);
       Files.Model.Settings_Pane.Set_Draft (Model, Normalized, Fields (Normalized));
    end Set_Draft;
 

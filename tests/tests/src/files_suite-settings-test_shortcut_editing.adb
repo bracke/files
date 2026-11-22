@@ -1,3 +1,4 @@
+with Files.Settings.Drafts;
 with Files.Commands.Keymap_Settings;
 with Files.Overlays.Settings_Form;
 with Files.Model.Settings_Pane;
@@ -20,7 +21,7 @@ separate (Files_Suite.Settings)
       use type SP.Field_Kind;
 
       Base  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Draft : constant Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Base);
+      Draft : constant Files.Settings.Settings_Draft := Files.Settings.Drafts.Make_Draft (Base);
       Model : Files.Model.Window_Model;
       Saved : Boolean;
 

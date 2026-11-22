@@ -1,3 +1,8 @@
+with Files.Operations.History;
+with Files.Operations.Archives;
+with Files.Operations.Editing;
+with Files.Operations.Navigation;
+with Files.Operations.Trash;
 with Files.Model.Recent;
 with Files.Model.Filtering;
 with Files.UI_Types;
@@ -52,20 +57,23 @@ package body Files.Job_Drivers.Operation.Helper is
       end if;
       Done.Result :=
         (case Work.Kind is
-            when Duplicate => Files.Operations.Duplicate_Selected (Model, Work.Settings),
+            when Duplicate => Files.Operations.Editing.Duplicate_Selected (Model, Work.Settings),
             when Compress_Zip =>
-              Files.Operations.Compress_Selected (Model, Work.Settings, Files.Operations.Zip_Archive),
+              Files.Operations.Archives.Compress_Selected (Model, Work.Settings, Files.Operations.Archives.Zip_Archive),
             when Compress_Seven_Zip =>
-              Files.Operations.Compress_Selected (Model, Work.Settings, Files.Operations.Seven_Zip_Archive),
-            when Extract => Files.Operations.Extract_Selected (Model, Work.Settings),
-            when Search_Names => Files.Operations.Run_Search (Model, Work.Settings, Files.UI_Types.Search_Names),
-            when Search_Contents => Files.Operations.Run_Search (Model, Work.Settings, Files.UI_Types.Search_Contents),
-            when Trash => Files.Operations.Delete_Selected (Model, Work.Settings),
-            when Delete_Permanently => Files.Operations.Delete_Selected_Permanently (Model, Work.Settings),
-            when Restore => Files.Operations.Restore_Selected_From_Trash (Model, Work.Settings),
-            when Empty_Trash => Files.Operations.Empty_Trash (Model, Work.Settings),
-            when Undo => Files.Operations.Undo_Last (Model, Work.Settings),
-            when Redo => Files.Operations.Redo_Last (Model, Work.Settings));
+              Files.Operations.Archives.Compress_Selected (Model, Work.Settings,
+                                                           Files.Operations.Archives.Seven_Zip_Archive),
+            when Extract => Files.Operations.Archives.Extract_Selected (Model, Work.Settings),
+            when Search_Names => Files.Operations.Navigation.Run_Search (Model, Work.Settings,
+                                                                         Files.UI_Types.Search_Names),
+            when Search_Contents => Files.Operations.Navigation.Run_Search (Model, Work.Settings,
+                                                                            Files.UI_Types.Search_Contents),
+            when Trash => Files.Operations.Trash.Delete_Selected (Model, Work.Settings),
+            when Delete_Permanently => Files.Operations.Trash.Delete_Selected_Permanently (Model, Work.Settings),
+            when Restore => Files.Operations.Trash.Restore_Selected_From_Trash (Model, Work.Settings),
+            when Empty_Trash => Files.Operations.Trash.Empty_Trash (Model, Work.Settings),
+            when Undo => Files.Operations.History.Undo_Last (Model, Work.Settings),
+            when Redo => Files.Operations.History.Redo_Last (Model, Work.Settings));
       Files.Undo.Journal.Save (Files.Model.History.State (Model));
       Done.Visible_Error := To_Unbounded_String
         (if Files.Model.Last_Error_Key (Model) = "" then To_String (Done.Result.Error_Key)

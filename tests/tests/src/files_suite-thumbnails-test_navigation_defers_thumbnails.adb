@@ -1,3 +1,4 @@
+with Files.Operations.Opening;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -41,7 +42,7 @@ separate (Files_Suite.Thumbnails)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "photos");
-      Step := Files.Operations.Open_Selected (Model, Settings);
+      Step := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Navigated, "opening the folder navigates into it");
       Assert (Files.Model.Current_Path (Model) = Photos and then not Photo_Has_Thumbnail,

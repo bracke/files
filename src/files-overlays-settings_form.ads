@@ -36,7 +36,7 @@ package Files.Overlays.Settings_Form is
       return Boolean;
 
    --  Needs_Save for a draft already applied over Saved
-   --  (Files.Settings.Apply_Draft, which also checks it): for a caller that
+   --  (Files.Settings.Drafts.Apply_Draft, which also checks it): for a caller that
    --  needs the check's verdict too, so the draft is parsed once.
    --
    --  @param Saved The settings as saved.

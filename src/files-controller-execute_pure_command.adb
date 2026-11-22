@@ -1,3 +1,4 @@
+with Files.Controller.Clipboard_Text;
 with Files.Model.Info_Pane;
 with Files.Model.Filtering;
 with Files.Commands; use Files.Commands;
@@ -52,7 +53,7 @@ separate (Files.Controller)
             --  Building the newline-joined selection paths is pure; the shell
             --  reads the recorded request and writes the system clipboard.
             Files.Model.Clipboard.Set_System_Request
-              (Model, Joined_Full_Paths (Files.Model.Selection.Selected_Items (Model)));
+              (Model, Clipboard_Text.Joined_Full_Paths (Files.Model.Selection.Selected_Items (Model)));
             Files.Model.Set_Error (Model, "");
          when Set_Color_Label_Command =>
             --  Opening the swatch picker is pure model state; the chosen label is

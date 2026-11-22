@@ -1,3 +1,4 @@
+with Files.Settings.Storage;
 with Files.Settings.Path_References;
 with Project_Tools.Files;
 with Files_Suite.Support.Guards;
@@ -27,9 +28,9 @@ separate (Files_Suite.Settings)
       Ada.Directories.Create_Path (Favorite);
       Ada.Directories.Create_Path (Own_Star);
       Files.Commands.Reset_Shortcut_Overrides;
-      Written := Files.Settings.Save_Text (Path, Files.Settings.To_Text (Files.Settings.Default_Settings));
+      Written := Files.Settings.Storage.Save_Text (Path, Files.Settings.To_Text (Files.Settings.Default_Settings));
       Assert (Written.Success, "the shared file is written");
-      Loaded := Files.Settings.Load_File (Path);
+      Loaded := Files.Settings.Storage.Load_File (Path);
       Assert (Loaded.Success, "and this process loads it");
       Mine := Loaded.Settings;
 
@@ -56,7 +57,7 @@ separate (Files_Suite.Settings)
               = Files.Commands.Parse_Shortcut ("control+shift+7"),
               "and the other's rebind is in force here");
       Assert (Files.Model.Settings_Revision (Model) /= Revision, "which the window notes as a settings change");
-      Loaded := Files.Settings.Load_File (Path);
+      Loaded := Files.Settings.Storage.Load_File (Path);
       Assert (Loaded.Success and then Loaded.Settings.Show_Hidden_Files
               and then Files.Settings.Path_References.Is_Favorite (Loaded.Settings, Favorite)
               and then Files.Settings.Path_References.Is_Favorite (Loaded.Settings, Own_Star),

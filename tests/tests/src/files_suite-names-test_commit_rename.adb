@@ -1,3 +1,4 @@
+with Files.Operations.Editing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Names)
@@ -118,7 +119,7 @@ separate (Files_Suite.Names)
       Files.Model.Rename.Toggle (Model);
       Files.Model.Set_Error (Model, "error.rename.failed");
       Files.Model.Rename.Set_Text (Model, "old.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,
@@ -140,7 +141,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Rename.Toggle (Model);
       Files.Model.Rename.Set_Text (Model, "taken.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Failed,
@@ -173,7 +174,7 @@ separate (Files_Suite.Names)
 
       Ada.Directories.Delete_File (Join (Root, "old.txt"));
       Files.Model.Rename.Set_Text (Model, "missing-result.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Failed,
@@ -212,7 +213,7 @@ separate (Files_Suite.Names)
       Files.Model.Rename.Toggle (Model);
       Ada.Directories.Delete_File (Join (Root, "same-missing.txt"));
       Files.Model.Rename.Set_Text (Model, "same-missing.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Failed,
@@ -235,7 +236,7 @@ separate (Files_Suite.Names)
       Select_Name (Model, "missing-parent-source.txt");
       Files.Model.Rename.Toggle (Model);
       Files.Model.Rename.Set_Text (Model, "new.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,
@@ -258,7 +259,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Rename.Toggle (Model);
       Files.Model.Rename.Set_Text (Model, Utf8_Target);
-      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,

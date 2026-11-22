@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -39,7 +41,7 @@ separate (Files_Suite.Transfer)
             end if;
             Load := Files_Suite.Listings.Load_Directory (Destination, Settings);
             Files.Model.Initialize (Model, Destination, Load.Items, Root);
-            Files.Operations.Clear_Undo (Model);
+            Files.Operations.History.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Sources.Clear;
             Sources.Append (To_Unbounded_String (Join (Source_Parent, "item.txt")));
@@ -48,11 +50,11 @@ separate (Files_Suite.Transfer)
             --  A locked folder does not stop its item going on Windows, where
             --  the item keeps DELETE through the ACE it inherited.
             Files_Suite.Support.Disk.Forbid_Deletion (Join (Source_Parent, "item.txt"));
-            Step := Files.Operations.Begin_Paste
+            Step := Files.Operations.Paste.Begin_Paste
               (Model, Settings, Sources, Files.File_System_Types.Drop_Move, False);
             if Replace then
-               Step := Files.Operations.Resolve_Paste_Conflict
-                 (Model, Settings, Files.Operations.Choice_Replace, True);
+               Step := Files.Operations.Paste.Resolve_Paste_Conflict
+                 (Model, Settings, Files.Operations.Paste.Choice_Replace, True);
             end if;
             Step := Complete_Operation (Model, Settings, Step);
             Await_View (Model, Settings);

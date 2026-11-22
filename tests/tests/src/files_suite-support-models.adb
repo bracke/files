@@ -1,4 +1,5 @@
 with Files.File_System_Types;
+with Files.Operations.Paste;
 with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Events;
@@ -158,7 +159,7 @@ package body Files_Suite.Support.Models is
 
       Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
-      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
+      Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
    end Arm_Numbered_Paste;
 
    function Undo_Items

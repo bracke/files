@@ -1,3 +1,4 @@
+with Files.Settings.Drafts;
 with Files.Settings.Testing;
 separate (Files_Suite.Settings)
    --  Every scalar setting in the descriptor table round-trips: a model holding a
@@ -64,9 +65,9 @@ separate (Files_Suite.Settings)
                   Key & " parses back to the written value");
 
                declare
-                  Draft   : constant Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Changed);
+                  Draft   : constant Files.Settings.Settings_Draft := Files.Settings.Drafts.Make_Draft (Changed);
                   Applied : constant Files.Settings.Settings_Parse_Result :=
-                    Files.Settings.Apply_Draft (Defaults, Draft);
+                    Files.Settings.Drafts.Apply_Draft (Defaults, Draft);
                begin
                   Assert (Applied.Success, Key & " draft applies");
                   if Files.Settings.Testing.Is_Pane_Setting (Setting) then

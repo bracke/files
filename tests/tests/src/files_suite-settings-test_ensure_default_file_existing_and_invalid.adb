@@ -1,3 +1,4 @@
+with Files.Settings.Storage;
 with Files.Preference_Types;
 separate (Files_Suite.Settings)
    procedure Test_Ensure_Default_File_Existing_And_Invalid (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -13,20 +14,20 @@ separate (Files_Suite.Settings)
       Ada.Directories.Create_Path (Join (Root, "created-config"));
       Write_File (Blocked_Parent, "not a directory");
       Write_File (Ensured_Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
-      Ensured := Files.Settings.Ensure_Default_File (Ensured_Path);
+      Ensured := Files.Settings.Storage.Ensure_Default_File (Ensured_Path);
       Assert (Ensured.Success, "ensure default settings accepts existing regular file");
-      Loaded := Files.Settings.Load_File (Ensured_Path);
+      Loaded := Files.Settings.Storage.Load_File (Ensured_Path);
       Files_Suite.Support.Assert_Equal
         (Loaded.Settings.Default_View,
          Files.Preference_Types.Details,
          "ensure default settings does not overwrite");
-      Ensured := Files.Settings.Ensure_Default_File (Join (Root, "settings-dir"));
+      Ensured := Files.Settings.Storage.Ensure_Default_File (Join (Root, "settings-dir"));
       Assert (not Ensured.Success, "ensure default settings rejects directory path");
       Files_Suite.Support.Assert_Equal
         (To_String (Ensured.Error_Key),
          "error.settings.not_file",
          "ensure default settings reports not-file diagnostic");
-      Ensured := Files.Settings.Ensure_Default_File (Blocked_Path);
+      Ensured := Files.Settings.Storage.Ensure_Default_File (Blocked_Path);
       Assert (not Ensured.Success, "ensure default settings rejects a file used as parent directory");
       Files_Suite.Support.Assert_Equal
         (To_String (Ensured.Path),
@@ -36,7 +37,7 @@ separate (Files_Suite.Settings)
         (To_String (Ensured.Error_Key),
          "error.settings.not_file",
          "ensure default settings parent failure reports not-file diagnostic");
-      Ensured := Files.Settings.Ensure_Default_File ("");
+      Ensured := Files.Settings.Storage.Ensure_Default_File ("");
       Assert (not Ensured.Success, "ensure default settings rejects empty settings path");
       Files_Suite.Support.Assert_Equal
         (To_String (Ensured.Error_Key),

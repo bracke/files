@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -27,7 +28,7 @@ separate (Files_Suite.Transfer)
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, Background);
-         Files.Operations.Begin_Paste_Execution (Model, Actions, Mode);
+         Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Mode);
          Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
          Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the paste finishes its execution");
       end Run;

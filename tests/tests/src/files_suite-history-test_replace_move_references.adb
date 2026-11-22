@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Preference_Types;
@@ -94,7 +95,7 @@ separate (Files_Suite.History)
             Replaced    => True));
       Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
-      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Move);
+      Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Move);
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "the move-replace paste succeeds");

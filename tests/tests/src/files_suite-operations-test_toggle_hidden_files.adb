@@ -1,3 +1,4 @@
+with Files.Settings.Storage;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Controller.Testing;
@@ -42,7 +43,7 @@ separate (Files_Suite.Operations)
 
       declare
          Reloaded : constant Files.Settings.Settings_Parse_Result :=
-           Files.Settings.Load_File (Settings_Path);
+           Files.Settings.Storage.Load_File (Settings_Path);
       begin
          Assert (Reloaded.Success, "persisted settings file parses successfully");
          Assert

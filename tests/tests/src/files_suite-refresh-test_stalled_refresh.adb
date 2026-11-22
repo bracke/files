@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
@@ -112,7 +113,7 @@ separate (Files_Suite.Refresh)
                         (To_Unbounded_String (Join (Root, "source")),
                          To_Unbounded_String (Join (Root, "dest")), False, False));
       Before := Now;
-      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
+      Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
       Assert (not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)),
               "starting paste immediately releases an outstanding read");
       Files.Job_Drivers.Foreground.Cancel (Model);

@@ -1,3 +1,4 @@
+with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Operations)
@@ -53,7 +54,7 @@ separate (Files_Suite.Operations)
          "Redo can retry after the source becomes readable");
       Assert (Ada.Directories.Exists (Link_Path), "retry publishes the hard link");
 
-      Files.Operations.Clear_Undo (Model);
+      Files.Operations.History.Clear_Undo (Model);
       Reset_Root;
       Ada.Directories.Create_Path (Dir);
       Write_File (Source, "hard link contents");

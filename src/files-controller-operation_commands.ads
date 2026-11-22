@@ -1,3 +1,4 @@
+with Files.Operations.Archives;
 with Files.UI_Types;
 with Files.Model;
 with Files.Operation_Results;
@@ -60,7 +61,7 @@ package Files.Controller.Operation_Commands is
    function Compress_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Format   : Files.Operations.Archive_Format)
+      Format   : Files.Operations.Archives.Archive_Format)
       return Files.Operation_Results.Operation_Result;
 
    --  @param Model Window model to update.

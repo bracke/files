@@ -1,3 +1,4 @@
+with Files.Settings.Drafts;
 with Files.Commands.Keymap_Settings;
 with Files.Operation_Results;
 separate (Files.Controller)
@@ -8,7 +9,7 @@ separate (Files.Controller)
       return Controller_Result
    is
       Applied : constant Files.Settings.Settings_Parse_Result :=
-        Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Pane.Draft_Of (Model));
+        Files.Settings.Drafts.Apply_Draft (Settings, Files.Model.Settings_Pane.Draft_Of (Model));
       Final     : Files.Settings.Settings_Model;
       --  Whether Final is now the live settings (with what another process
       --  wrote to the file taken in, they need not equal it).
@@ -69,7 +70,7 @@ separate (Files.Controller)
       --  draft from the saved settings alone would send every group back to
       --  its first entry.
       Files.Overlays.Settings_Form.Set_Draft
-        (Model, Files.Settings.Draft_After_Save (Files.Model.Settings_Pane.Draft_Of (Model), Settings));
+        (Model, Files.Settings.Drafts.Draft_After_Save (Files.Model.Settings_Pane.Draft_Of (Model), Settings));
       --  The settings now applied, for the pane's next change. A write that
       --  failed was reported; Save (which always writes) tries it again.
       Files.Overlays.Settings_Form.Mark_Saved (Model, Settings);

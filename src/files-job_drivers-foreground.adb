@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files.Model.Jobs;
 with Files.Operations;
 with Ada.Strings.Unbounded;
@@ -15,7 +16,7 @@ package body Files.Job_Drivers.Foreground is
    begin
       case Files.Model.Foreground_Job (Model) is
          when Files.Model.Paste_Job =>
-            return Files.Operations.Advance_Paste_Execution (Model, Settings, Max_Items);
+            return Files.Operations.Paste.Advance_Paste_Execution (Model, Settings, Max_Items);
          when Files.Model.Operation_Job =>
             return Files.Job_Drivers.Operation.Advance (Model, Settings);
          when Files.Model.No_Foreground_Job =>
@@ -29,7 +30,7 @@ package body Files.Job_Drivers.Foreground is
    begin
       case Files.Model.Foreground_Job (Model) is
          when Files.Model.Paste_Job =>
-            Files.Operations.Cancel_Paste_Execution (Model);
+            Files.Operations.Paste.Cancel_Paste_Execution (Model);
          when Files.Model.Operation_Job =>
             --  Refused when no trustworthy marker could be written: it stays
             --  retryable, and a later Cancel asks again.

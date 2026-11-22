@@ -1,3 +1,4 @@
+with Files.Operations.Editing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Names)
@@ -96,7 +97,7 @@ separate (Files_Suite.Names)
          Select_Name (Model, "report.txt");
          Files.Model.Rename.Toggle (Model);
          Files.Model.Rename.Set_Text (Model, "Report.txt");
-         Step := Files.Operations.Commit_Rename (Model, Settings);
+         Step := Files.Operations.Editing.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,
@@ -120,7 +121,7 @@ separate (Files_Suite.Names)
          Select_Name (Model, Lower_Cyrillic);
          Files.Model.Rename.Toggle (Model);
          Files.Model.Rename.Set_Text (Model, Upper_Cyrillic);
-         Step := Files.Operations.Commit_Rename (Model, Settings);
+         Step := Files.Operations.Editing.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,

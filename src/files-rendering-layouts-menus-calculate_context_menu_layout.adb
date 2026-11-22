@@ -8,7 +8,7 @@ separate (Files.Rendering.Layouts.Menus)
    is
       Result : Context_Menu_Layout;
 
-      use type Files.Commands.Context_Menu_Row_Kind;
+      use type Files.Commands.Context_Menus.Context_Menu_Row_Kind;
       use type Files.UI_Types.Context_Menu_Target;
    begin
       if not Snapshot.Context_Menu_Open
@@ -21,8 +21,8 @@ separate (Files.Rendering.Layouts.Menus)
       --  with the controller's keyboard navigation via Files.Commands so both
       --  agree on the menu; here it is only laid out and hit-tested.
       declare
-         Rows : constant Files.Commands.Context_Menu_Rows :=
-           Files.Commands.Context_Menu_Rows_For (Snapshot.Context_Menu_Target);
+         Rows : constant Files.Commands.Context_Menus.Context_Menu_Rows :=
+           Files.Commands.Context_Menus.Context_Menu_Rows_For (Snapshot.Context_Menu_Target);
       begin
          Result.Row_Count := Rows.Count;
          Result.Rows := Rows.Rows;
@@ -52,7 +52,7 @@ separate (Files.Rendering.Layouts.Menus)
          Max_Label : Natural := 0;
       begin
          for Row in 1 .. Result.Row_Count loop
-            if Result.Rows (Row).Kind = Files.Commands.Menu_Command then
+            if Result.Rows (Row).Kind = Files.Commands.Context_Menus.Menu_Command then
                declare
                   Label : constant String :=
                     Files.Localization.Text
@@ -84,7 +84,7 @@ separate (Files.Rendering.Layouts.Menus)
                Value :=
                  Guikit.Layout.Saturating_Add
                    (Value,
-                    (if Result.Rows (Row).Kind = Files.Commands.Menu_Separator
+                    (if Result.Rows (Row).Kind = Files.Commands.Context_Menus.Menu_Separator
                      then Result.Separator_Height
                      else Result.Row_Height));
             end loop;
@@ -108,7 +108,7 @@ separate (Files.Rendering.Layouts.Menus)
            and then Width >= Saturating_Multiply (Line_Height, 8)
          then
             for Row in 1 .. Result.Row_Count - 1 loop
-               if Result.Rows (Row).Kind = Files.Commands.Menu_Separator then
+               if Result.Rows (Row).Kind = Files.Commands.Context_Menus.Menu_Separator then
                   declare
                      Left_H  : constant Natural := Rows_Height (1, Row);
                      Right_H : constant Natural :=

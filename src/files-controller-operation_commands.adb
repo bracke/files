@@ -1,3 +1,7 @@
+with Files.Operations.Editing;
+with Files.Operations.History;
+with Files.Operations.Navigation;
+with Files.Operations.Trash;
 with Files.Undo.Journal;
 with Files.Model.History;
 with Files.Job_Drivers.Operation;
@@ -35,7 +39,7 @@ package body Files.Controller.Operation_Commands is
             return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Trash, Refusal);
          end;
       end if;
-      return Files.Operations.Delete_Selected (Model, Settings);
+      return Files.Operations.Trash.Delete_Selected (Model, Settings);
    end Delete_Selected;
 
    function Delete_Selected_Permanently
@@ -46,7 +50,7 @@ package body Files.Controller.Operation_Commands is
       if Files.Model.Background_Transfers (Model) then
          return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Delete_Permanently, No_Refusal);
       end if;
-      return Files.Operations.Delete_Selected_Permanently (Model, Settings);
+      return Files.Operations.Trash.Delete_Selected_Permanently (Model, Settings);
    end Delete_Selected_Permanently;
 
    function Restore_Selected_From_Trash
@@ -57,7 +61,7 @@ package body Files.Controller.Operation_Commands is
       if Files.Model.Background_Transfers (Model) then
          return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Restore, No_Refusal);
       end if;
-      return Files.Operations.Restore_Selected_From_Trash (Model, Settings);
+      return Files.Operations.Trash.Restore_Selected_From_Trash (Model, Settings);
    end Restore_Selected_From_Trash;
 
    function Empty_Trash
@@ -68,7 +72,7 @@ package body Files.Controller.Operation_Commands is
       if Files.Model.Background_Transfers (Model) then
          return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Empty_Trash, No_Refusal);
       end if;
-      return Files.Operations.Empty_Trash (Model, Settings);
+      return Files.Operations.Trash.Empty_Trash (Model, Settings);
    end Empty_Trash;
 
    function Duplicate_Selected
@@ -84,16 +88,16 @@ package body Files.Controller.Operation_Commands is
             return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Duplicate, Refusal);
          end;
       end if;
-      return Files.Operations.Duplicate_Selected (Model, Settings);
+      return Files.Operations.Editing.Duplicate_Selected (Model, Settings);
    end Duplicate_Selected;
 
    function Compress_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Format   : Files.Operations.Archive_Format)
+      Format   : Files.Operations.Archives.Archive_Format)
       return Operation_Result
    is
-      use type Files.Operations.Archive_Format;
+      use type Files.Operations.Archives.Archive_Format;
    begin
       if Files.Model.Background_Transfers (Model) then
          declare
@@ -102,12 +106,12 @@ package body Files.Controller.Operation_Commands is
          begin
             return Start_Unless_Refused
               (Model, Settings,
-               (if Format = Files.Operations.Zip_Archive then Files.Job_Drivers.Operation.Compress_Zip
+               (if Format = Files.Operations.Archives.Zip_Archive then Files.Job_Drivers.Operation.Compress_Zip
                 else Files.Job_Drivers.Operation.Compress_Seven_Zip),
                Refusal);
          end;
       end if;
-      return Files.Operations.Compress_Selected (Model, Settings, Format);
+      return Files.Operations.Archives.Compress_Selected (Model, Settings, Format);
    end Compress_Selected;
 
    function Extract_Selected
@@ -123,7 +127,7 @@ package body Files.Controller.Operation_Commands is
             return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Extract, Refusal);
          end;
       end if;
-      return Files.Operations.Extract_Selected (Model, Settings);
+      return Files.Operations.Archives.Extract_Selected (Model, Settings);
    end Extract_Selected;
 
    function Run_Search
@@ -143,7 +147,7 @@ package body Files.Controller.Operation_Commands is
                Refusal);
          end;
       end if;
-      return Files.Operations.Run_Search (Model, Settings, Scope);
+      return Files.Operations.Navigation.Run_Search (Model, Settings, Scope);
    end Run_Search;
 
    function Undo_Last
@@ -156,7 +160,7 @@ package body Files.Controller.Operation_Commands is
       then
          return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Undo, No_Refusal);
       end if;
-      return Files.Operations.Undo_Last (Model, Settings);
+      return Files.Operations.History.Undo_Last (Model, Settings);
    end Undo_Last;
 
    function Redo_Last
@@ -169,7 +173,7 @@ package body Files.Controller.Operation_Commands is
       then
          return Start_Unless_Refused (Model, Settings, Files.Job_Drivers.Operation.Redo, No_Refusal);
       end if;
-      return Files.Operations.Redo_Last (Model, Settings);
+      return Files.Operations.History.Redo_Last (Model, Settings);
    end Redo_Last;
 
 end Files.Controller.Operation_Commands;

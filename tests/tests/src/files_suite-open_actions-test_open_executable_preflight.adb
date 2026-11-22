@@ -1,3 +1,4 @@
+with Files.Operations.Opening;
 with Files.Operation_Results;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
@@ -22,7 +23,7 @@ separate (Files_Suite.Open_Actions)
            (Settings,
             "text/plain",
             Files.Settings.Open_Actions.Make_Action (Failing_Executable, Arguments));
-      Result := Files.Operations.Open_Selected (Model, Settings);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Action_Executed,
@@ -51,7 +52,7 @@ separate (Files_Suite.Open_Actions)
         (Settings,
          "text/plain",
          Files.Settings.Open_Actions.Make_Action ("/tmp/files_missing_open_action_executable", Arguments));
-      Result := Files.Operations.Open_Selected (Model, Settings);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Failed,
@@ -75,7 +76,7 @@ separate (Files_Suite.Open_Actions)
         (Settings,
          "text/plain",
          Files.Settings.Open_Actions.Make_Action (Root, Arguments));
-      Result := Files.Operations.Open_Selected (Model, Settings);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Failed,

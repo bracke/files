@@ -1,3 +1,4 @@
+with Files.Commands.Context_Menus;
 with Files.Preference_Types;
 with Files.Items;
 with Files.Model.Context_Menu;
@@ -64,8 +65,8 @@ separate (Files_Suite.Commands)
       Files.Model.Context_Menu.Open (Model, 10, 10, Files.UI_Types.Context_Menu_Item);
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       declare
-         Rows : constant Files.Commands.Context_Menu_Rows :=
-           Files.Commands.Context_Menu_Rows_For (Files.Model.Context_Menu.Target_Of (Model));
+         Rows : constant Files.Commands.Context_Menus.Context_Menu_Rows :=
+           Files.Commands.Context_Menus.Context_Menu_Rows_For (Files.Model.Context_Menu.Target_Of (Model));
          Row  : constant Positive := Files.Model.Context_Menu.Highlight (Model);
       begin
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);

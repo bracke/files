@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 separate (Files.Application.Windows)
 procedure Release_Window_Jobs
   (Model : in out Files.Model.Window_Model;
@@ -16,7 +17,7 @@ begin
       Files.Job_Drivers.Foreground.Cancel (Model);
       if Files.Model.Foreground_Job (Model) = Files.Model.Paste_Job then
          begin
-            Files.Operations.Record_Paste_So_Far (Model);
+            Files.Operations.Paste.Record_Paste_So_Far (Model);
          exception
             when Swallowed : others =>
                Files.Diagnostics.Note (Swallowed, "Files.Application.Windows");

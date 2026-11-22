@@ -1,3 +1,6 @@
+with Ada.Directories;
+with Hostkit.Fs;
+with Files.IO.Fs_Primitives;
 with Ada.Strings.Unbounded;
 
 with Files.Commands.Keymap_Settings;
@@ -5,6 +8,33 @@ with Files.Commands.Keymap_Settings;
 package body Files.Settings.Storage is
 
    use Ada.Strings.Unbounded;
+   use type Ada.Directories.File_Kind;
+
+   function Parent_Directory (Path : String) return String renames Files.IO.Fs_Primitives.Parent_Directory;
+
+   --  The settings file as this process last read or wrote it (Load_File,
+   --  Save_Text): its text, which tells another process's change, and what
+   --  it said (Note_Seen_Settings may restate it), which Merge_From_File
+   --  weighs this process's changes against.
+   Seen_Path  : Unbounded_String;
+   Seen_Text  : Unbounded_String;
+   Seen_Base  : Settings_Model;
+   Seen_Known : Boolean := False;
+
+   procedure Note_Seen (Path, Text : String; Base : Settings_Model) is
+   begin
+      Seen_Path := To_Unbounded_String (Path);
+      Seen_Text := To_Unbounded_String (Text);
+      Seen_Base := Base;
+      Seen_Known := True;
+   end Note_Seen;
+
+   procedure Note_Seen_Settings (Path : String; Settings : Settings_Model) is
+   begin
+      if Seen_Known and then To_String (Seen_Path) = Path then
+         Seen_Base := Settings;
+      end if;
+   end Note_Seen_Settings;
 
    function Full_Result (Settings_Path : String) return Settings_Write_Result is
      (Success   => False,
@@ -91,5 +121,28 @@ package body Files.Settings.Storage is
          return Commit_Accepted;
       end if;
    end Decide_Commit;
+
+   function Load_File
+     (Path : String)
+      return Settings_Parse_Result
+ is separate;
+
+   function Save_Text
+     (Path : String;
+      Text : String)
+      return Settings_Write_Result
+ is separate;
+
+   procedure Merge_From_File
+     (Path     : String;
+      Settings : in out Settings_Model;
+      Merged   : out Boolean;
+      Refused  : out Boolean)
+ is separate;
+
+   function Ensure_Default_File
+     (Path : String)
+      return Settings_Write_Result
+ is separate;
 
 end Files.Settings.Storage;

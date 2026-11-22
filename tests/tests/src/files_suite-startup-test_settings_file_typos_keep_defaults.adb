@@ -1,3 +1,4 @@
+with Files.Settings.Drafts;
 with Files_Suite.Support.Guards;
 with Guikit.Input;
 with Files.Overlays.Settings_Form;
@@ -64,6 +65,6 @@ separate (Files_Suite.Startup)
          "the held override names its command");
       Assert
         (not Files.Overlays.Settings_Form.Needs_Save
-           (Startup.Settings, Files.Settings.Make_Draft (Startup.Settings)),
+           (Startup.Settings, Files.Settings.Drafts.Make_Draft (Startup.Settings)),
          "an unchanged draft of hand-edited settings needs no save");
    end Test_Settings_File_Typos_Keep_Defaults;

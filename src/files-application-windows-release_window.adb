@@ -1,3 +1,4 @@
+with Files.Operations.History;
 separate (Files.Application.Windows)
 procedure Release_Window (Runtime : in out Runtime_Window) is
 begin
@@ -11,7 +12,7 @@ begin
       return;
    end if;
    --  History ends: originals kept for Undo go to the system trash.
-   Files.Operations.Release_History (Runtime.Model);
+   Files.Operations.History.Release_History (Runtime.Model);
    Save_Pending_Zoom (Runtime, Force => True);
    if Glfw.Windows.Initialized (As_Window (Runtime.Handle)) then
       declare

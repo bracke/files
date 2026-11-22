@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Model.Recent;
 with Files.Command_Reasons;
 with Files.Jobs.Context;
@@ -338,5 +339,10 @@ package body Files.Operations.Support is
          Files.Diagnostics.Trace ("Files.Operations", "stage_discard_failed=" & Stage);
       end if;
    end Discard_Stage;
+
+   function Is_Trash_Directory (Path : String) return Boolean
+     renames Files.File_System.Trash.Is_Trash_Files_Directory;
+
+   function Is_Trash_Child (Path : String) return Boolean is separate;
 
 end Files.Operations.Support;

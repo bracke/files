@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
@@ -123,11 +125,11 @@ separate (Files_Suite.Transfer)
             & (if Inherits (Dest) then "" else Files_Suite.Support.Disk.Access_Report (Dest)));
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.Clear_Undo (Model);
+         Files.Operations.History.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, True);
          Paths.Append (To_Unbounded_String (Folder));
          Step := Complete_Operation
-           (Model, Settings, Files.Operations.Begin_Paste_To (Model, Settings, Paths, Parent));
+           (Model, Settings, Files.Operations.Paste.Begin_Paste_To (Model, Settings, Paths, Parent));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "copy a folder into it in the background");
@@ -213,12 +215,12 @@ separate (Files_Suite.Transfer)
             if Background then
                Load := Files_Suite.Listings.Load_Directory (Parent, Settings);
                Files.Model.Initialize (Model, Parent, Load.Items, Parent);
-               Files.Operations.Clear_Undo (Model);
+               Files.Operations.History.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, True);
                Actions.Clear;
                Actions.Append (Files.Paste.Resolved_Action'
                  (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, False));
-               Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy, False);
+               Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy, False);
                Step := Complete_Operation
                  (Model, Settings, Files.Job_Drivers.Foreground.Advance (Model, Settings, 1));
                Await_View (Model, Settings);

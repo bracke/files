@@ -13,6 +13,6 @@ begin
       return False;
    end if;
    --  Its tree on the device before it is published, its new name after.
-   return Support.Publish_From_Stage
-     (Staged, Target, "", To_String (Identity), Revision, Support.Flush_Tree_And_Folder);
+   return Copying.Publish_From_Stage
+     (Staged, Target, "", To_String (Identity), Revision, Copying.Flush_Tree_And_Folder);
 end Publish_Staged;

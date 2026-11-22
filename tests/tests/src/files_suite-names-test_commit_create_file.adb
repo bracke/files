@@ -1,3 +1,6 @@
+with Files.Operations.Editing;
+with Files.Operations.Opening;
+with Files.Operations.Paste;
 with Files.Model.Filtering;
 with Files.Model.Creation;
 with Files.UI_Types;
@@ -17,7 +20,7 @@ separate (Files_Suite.Names)
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Set_Error (Model, "error.file.create");
       Files.Model.Creation.Begin_Create_File (Model, "created.txt");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                         "create commit succeeds");
       Files_Suite.Support.Assert_Equal
@@ -39,7 +42,7 @@ separate (Files_Suite.Names)
 
       Items := Files.Model.Selection.Selected_Items (Model);
       Files.Model.Navigate_Recent (Model, Items);
-      Result := Files.Operations.Open_Terminal (Model);
+      Result := Files.Operations.Opening.Open_Terminal (Model);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Disabled,
@@ -47,7 +50,7 @@ separate (Files_Suite.Names)
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Rename.Toggle (Model);
       Files.Model.Rename.Set_Text (Model, "recent-renamed-must-not-write-7f62b1");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Disabled,
@@ -64,7 +67,7 @@ separate (Files_Suite.Names)
          "direct recent-view rename cannot move an item into the process directory: nothing written");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files.Model.Creation.Begin_Create_File (Model, Guard_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Assert
         (Result.Status = Files.Operation_Results.Operation_Disabled
          and then Files.Model.Last_Error_Key (Model) = "error.file.parent_missing",
@@ -74,7 +77,7 @@ separate (Files_Suite.Names)
          "a rejected recent-view create does not write relative to the process directory");
 
       Paths.Append (To_Unbounded_String (Join (Root, "created.txt")));
-      Result := Files.Operations.Begin_Paste (Model, Settings, Paths);
+      Result := Files.Operations.Paste.Begin_Paste (Model, Settings, Paths);
       Assert
         (Result.Status = Files.Operation_Results.Operation_Disabled
          and then Files.Model.Last_Error_Key (Model) = "error.drop.invalid_destination",

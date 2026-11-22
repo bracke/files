@@ -1,3 +1,4 @@
+with Files.Operations.Opening;
 with Files.Model.Creation;
 with Files.Operation_Results;
 separate (Files_Suite.Open_Actions)
@@ -40,7 +41,7 @@ separate (Files_Suite.Open_Actions)
          "preparing pending create open records disabled state");
       Files.Model.Set_Error (Model, "error.directory.load");
 
-      Result := Files.Operations.Open_Selected (Model, Settings);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Disabled,
@@ -90,7 +91,7 @@ separate (Files_Suite.Open_Actions)
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
-      Result := Files.Operations.Open_Selected (Model, Settings);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Failed,

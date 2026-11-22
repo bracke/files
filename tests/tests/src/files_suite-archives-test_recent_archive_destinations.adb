@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Navigation;
 with Files.Model.Recent;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
@@ -35,14 +37,14 @@ separate (Files_Suite.Archives)
          Files.Settings.Path_References.Note_Recent (Settings, Join (One, "report.txt"));
          Files.Settings.Path_References.Note_Recent (Settings, Join (Two, "note.txt"));
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-         Files.Operations.Clear_Undo (Model);
+         Files.Operations.History.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
-         Step := Files.Operations.Navigate_Recent (Model, Settings);
+         Step := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
          Files.Model.Selection.Select_All_Visible (Model);
          Ada.Directories.Set_Directory (Cwd);
          Step := Complete_Operation
            (Model, Settings,
-            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Archives.Zip_Archive));
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,

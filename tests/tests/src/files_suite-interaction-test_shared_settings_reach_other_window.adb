@@ -1,3 +1,4 @@
+with Files.Settings.Drafts;
 with Files_Suite.Listings;
 with Files.Overlays.Settings_Form;
 with Files.Model.Settings_Pane;
@@ -66,7 +67,7 @@ separate (Files_Suite.Interaction)
          "an edit in progress in the second window's pane survives");
       declare
          Applied : constant Files.Settings.Settings_Parse_Result :=
-           Files.Settings.Apply_Draft (Second_Settings, Files.Model.Settings_Pane.Draft_Of (Second_Window));
+           Files.Settings.Drafts.Apply_Draft (Second_Settings, Files.Model.Settings_Pane.Draft_Of (Second_Window));
       begin
          Assert (Applied.Settings.Show_Hidden_Files, "saving the second window's pane does not revert the change");
       end;

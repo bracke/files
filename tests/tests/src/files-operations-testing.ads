@@ -1,3 +1,5 @@
+with Guikit.Input;
+
 --  Test-only views of Files.Operations: how the suite classifies an open
 --  action's result, which the program never asks.
 package Files.Operations.Testing is

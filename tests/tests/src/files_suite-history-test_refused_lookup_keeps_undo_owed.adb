@@ -1,3 +1,4 @@
+with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.IO.Fs_Primitives.Testing;
 with Files.Operation_Results;
@@ -22,7 +23,7 @@ separate (Files_Suite.History)
       Reset_Root;
       Write_Binary_File (Made, "made bytes");
       Files.Model.Initialize (Model, Root, Files_Suite.Listings.Load_Directory (Root, Settings).Items, Root);
-      Files.Operations.Clear_Undo (Model);
+      Files.Operations.History.Clear_Undo (Model);
       Files.Model.Set_Background_Transfers (Model, False);
       Created.Append (To_Unbounded_String (Made));
       Files.Operations.Undo_Recording.Record_Undo

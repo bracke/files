@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files.Preference_Types;
 with Files.Operation_Results;
@@ -128,7 +129,7 @@ package Files.Controller is
    --
    --  @param Model Window whose error line reports a failed write.
    --  @param Settings Settings model to serialize; takes what another
-   --    process wrote to the file since (Files.Settings.Merge_From_File).
+   --    process wrote to the file since (Files.Settings.Storage.Merge_From_File).
    --  @param Settings_Path Central settings file path (empty disables persistence).
    procedure Persist_Settings
      (Model         : in out Files.Model.Window_Model;
@@ -219,7 +220,7 @@ package Files.Controller is
    function Handle_Conflict_Choice
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Choice   : Files.Operations.Conflict_Choice)
+      Choice   : Files.Operations.Paste.Conflict_Choice)
       return Controller_Result;
 
    --  Flip whether the open paste conflict's answer applies to the rest.

@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -39,13 +41,13 @@ separate (Files_Suite.History)
             Replaced    => True));
       Files.Model.Initialize
         (Model, Dest_Dir, Files_Suite.Listings.Load_Directory (Dest_Dir, Settings).Items, Root);
-      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
+      Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                         "the replacing paste runs");
       Assert (Files.Model.History.Undo_Available (Model), "and can be undone");
 
-      Files.Operations.Release_History (Model);
+      Files.Operations.History.Release_History (Model);
       Assert (not Files.Model.History.Undo_Available (Model), "the history ends");
       for Item of
         Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings).Items

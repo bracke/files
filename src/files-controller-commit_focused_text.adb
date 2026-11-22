@@ -1,3 +1,7 @@
+with Files.Operations.Editing;
+with Files.Operations.Metadata;
+with Files.Operations.Navigation;
+with Files.Settings.Drafts;
 with Files.Model.Creation;
 with Files.Operation_Results;
 separate (Files.Controller)
@@ -11,7 +15,7 @@ separate (Files.Controller)
    begin
       case Files.Model.Focus (Model) is
          when Files.UI_Types.Focus_Path_Input =>
-            Operation := Files.Operations.Commit_Path_Input (Model, Settings);
+            Operation := Files.Operations.Navigation.Commit_Path_Input (Model, Settings);
             return Make_Result (Controller_Command_Executed, Files.Commands.Focus_Path_Input_Command, Operation);
          when Files.UI_Types.Focus_Filter_Input =>
             Files.Model.Cancel_Focus_Or_Edit (Model);
@@ -19,9 +23,9 @@ separate (Files.Controller)
             return Make_Result (Controller_Command_Executed, Files.Commands.Focus_Filter_Input_Command, Operation);
          when Files.UI_Types.Focus_Rename_Input =>
             if Files.Model.Creation.Temporary_Item_Is_Active (Model) then
-               Operation := Files.Operations.Commit_Create_File (Model, Settings);
+               Operation := Files.Operations.Editing.Commit_Create_File (Model, Settings);
             else
-               Operation := Files.Operations.Commit_Rename (Model, Settings);
+               Operation := Files.Operations.Editing.Commit_Rename (Model, Settings);
             end if;
             return Make_Result (Controller_Command_Executed, Files.Commands.Rename_Selected_Items_Command, Operation);
          when Files.UI_Types.Focus_Command_Palette =>
@@ -32,7 +36,8 @@ separate (Files.Controller)
                Draft  : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
                --  Checked and applied in one: the verdict and what a save
                --  would write.
-               Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Apply_Draft (Saved, Draft);
+               Parsed : constant Files.Settings.Settings_Parse_Result :=
+                 Files.Settings.Drafts.Apply_Draft (Saved, Draft);
             begin
                if Parsed.Success then
                   Draft.Valid := True;
@@ -63,7 +68,7 @@ separate (Files.Controller)
          when Files.UI_Types.Focus_Ownership_Input =>
             return Make_Result
               (Controller_Command_Executed, Files.Commands.No_Command,
-               Files.Operations.Commit_Ownership_Input (Model, Settings));
+               Files.Operations.Metadata.Commit_Ownership_Input (Model, Settings));
          when Files.UI_Types.Focus_None =>
             --  Return over the grid opens the selection.
             return Execute_Non_Settings_Command

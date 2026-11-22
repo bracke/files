@@ -1,3 +1,6 @@
+with Files.Operations.Editing;
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -52,19 +55,20 @@ separate (Files_Suite.History)
                end case;
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Operations.Clear_Undo (Model);
+               Files.Operations.History.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
                if Paste_Move then
                   Actions.Clear;
                   Actions.Append (Files.Paste.Resolved_Action'
                     (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, False));
-                  Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Move, False);
+                  Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Move,
+                                                                False);
                   Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
                else
                   Select_Name (Model, "original");
                   Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
                   Files.Model.Rename.Set_Text (Model, "renamed");
-                  Step := Files.Operations.Commit_Rename (Model, Settings);
+                  Step := Files.Operations.Editing.Commit_Rename (Model, Settings);
                end if;
                Step := Complete_Operation (Model, Settings, Step);
                Await_View (Model, Settings);

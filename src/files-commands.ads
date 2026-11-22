@@ -1,8 +1,6 @@
 with Files.Command_Reasons;
-with Files.Items;
 with Guikit.Input;
 with Files.Types;
-with Files.UI_Types;
 
 --  Central command registry, shortcuts, enablement, and execution routing.
 package Files.Commands is
@@ -298,27 +296,6 @@ package Files.Commands is
      (Id : Command_Id)
       return Boolean;
 
-   --  Join the full paths of the given items into one text, one path per
-   --  line, in item order: lines end CR LF on Windows, LF elsewhere (Line_Break).
-   --  One path is copied exactly as it is. Among several, a path that holds a
-   --  line break or starts with '"' -- which pasted would read as two paths,
-   --  or as a quoted one -- is written in double quotes, a '"' inside it
-   --  doubled, as a spreadsheet reads a field. Returns an empty string when no
-   --  items are supplied. This is the pure, filesystem-free text seam the
-   --  Copy_Path_Command uses before the platform layer writes the system
-   --  clipboard.
-   --
-   --  @param Items Items whose full paths are joined.
-   --  @return The joined full paths, or an empty string when Items is empty.
-   function Joined_Full_Paths
-     (Items : Files.Items.Item_Vectors.Vector)
-      return String;
-
-   --  The line break between copied paths: CR LF on Windows, LF elsewhere.
-   --
-   --  @return The line break.
-   function Line_Break return String;
-
    --  Return whether Identifier names a registered command.
    --
    --  @param Identifier_Text Stable identifier string to find.
@@ -345,37 +322,6 @@ package Files.Commands is
       --  Meaningful only when Enabled is False.
       Reason  : Disabled_Reason := Files.Command_Reasons.No_Reason;
    end record;
-
-   --  The rows the right-click context menu shows for a target, in order --
-   --  command rows interleaved with separator dividers. Shared by the renderer
-   --  (which lays them out and hit-tests them) and the controller (which
-   --  navigates and activates them by keyboard) so both agree on the set.
-   --  The item menu carries 19 commands split into 6 groups by 5 separators
-   --  (24 rows); the bound keeps headroom so the fixed arrays never overflow.
-   Max_Context_Menu_Rows : constant := 26;
-
-   type Context_Menu_Row_Kind is (Menu_Command, Menu_Separator);
-
-   type Context_Menu_Row is record
-      Kind    : Context_Menu_Row_Kind := Menu_Separator;
-      Command : Command_Id := No_Command;
-   end record;
-
-   type Context_Menu_Row_Array is
-     array (1 .. Max_Context_Menu_Rows) of Context_Menu_Row;
-
-   type Context_Menu_Rows is record
-      Rows  : Context_Menu_Row_Array;
-      Count : Natural := 0;
-   end record;
-
-   --  Return the ordered rows for a context-menu target.
-   --
-   --  @param Target Which context menu (item / empty area / column header).
-   --  @return The rows for that target (Count is zero for Context_Menu_None).
-   function Context_Menu_Rows_For
-     (Target : Files.UI_Types.Context_Menu_Target)
-      return Context_Menu_Rows;
 
    --  Return whether a command may execute while the root selector is open.
    --

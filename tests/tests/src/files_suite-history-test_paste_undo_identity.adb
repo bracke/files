@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Model.Testing;
@@ -23,7 +25,7 @@ separate (Files_Suite.History)
             Write_Binary_File (Join (Join (Root, "inbox"), "b.txt"), "b bytes");
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Operations.Clear_Undo (Model);
+            Files.Operations.History.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             declare
                Actions : Files.Paste.Resolved_Action_Vectors.Vector;
@@ -35,7 +37,7 @@ separate (Files_Suite.History)
                  (To_Unbounded_String (Join (Join (Root, "inbox"), "a.txt")), To_Unbounded_String (A), False, False));
                Actions.Append (Files.Paste.Resolved_Action'
                  (To_Unbounded_String (Join (Join (Root, "inbox"), "b.txt")), To_Unbounded_String (B), False, False));
-               Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, False);
+               Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Mode, False);
                for Attempt in Files_Suite.Support.Timing.Polling loop
                   Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
                   exit when Files.Model.Testing.Paste_Execution_Done (Model) = 1;

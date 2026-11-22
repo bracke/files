@@ -8,6 +8,6 @@ begin
    Result := Make_Result (Controller_Ignored);
    if Is_Close_Key then
       --  As the dialog's Cancel button does, with its apply-to-all choice.
-      Result := Handle_Conflict_Choice (Model, Settings, Files.Operations.Choice_Cancel);
+      Result := Handle_Conflict_Choice (Model, Settings, Files.Operations.Paste.Choice_Cancel);
    end if;
 end Paste_Conflict_Key;

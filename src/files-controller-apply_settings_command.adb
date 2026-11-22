@@ -1,3 +1,4 @@
+with Files.Operations.Navigation;
 with Files.Model.Recent;
 with Files.Preference_Types;
 with Files.Overlays.Settings_Form;
@@ -143,7 +144,7 @@ begin
                declare
                   Reported : constant String := Files.Model.Last_Error_Key (Model);
                   Listed   : constant Files.Operation_Results.Operation_Result :=
-                    Files.Operations.Navigate_Recent (Model, Settings);
+                    Files.Operations.Navigation.Navigate_Recent (Model, Settings);
                   pragma Unreferenced (Listed);
                begin
                   Files.Model.Set_Error (Model, Reported);

@@ -1,3 +1,4 @@
+with Files.Settings.Storage;
 separate (Files_Suite.Operations)
    --  A scalar applied as the user drags or scrolls (the zoom by wheel, a
    --  column width, the window's size) is saved as it stands; a save that
@@ -15,7 +16,7 @@ separate (Files_Suite.Operations)
       Settings.Font_Pixel_Size := Files.Settings.Clamp_Font_Pixel_Size (Settings.Font_Pixel_Size + 3);
       Files.Controller.Persist_Settings (Model, Settings, Path);
       declare
-         Loaded : constant Files.Settings.Settings_Parse_Result := Files.Settings.Load_File (Path);
+         Loaded : constant Files.Settings.Settings_Parse_Result := Files.Settings.Storage.Load_File (Path);
       begin
          Assert (Loaded.Success, "the settings are written");
          Files_Suite.Support.Assert_Equal

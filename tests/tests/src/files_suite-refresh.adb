@@ -1,3 +1,4 @@
+with Files.Operations.Archives;
 with Files.Controller.Operation_Commands;
 with Files.Preference_Types;
 with Files.Controller.Testing;
@@ -46,7 +47,7 @@ package body Files_Suite.Refresh is
    use AUnit.Assertions;
    use type Files.Commands.Command_Id;
    use type Files.Operation_Results.Operation_Status;
-   use type Files.Operations.Archive_Format;
+   use type Files.Operations.Archives.Archive_Format;
    use type Files.UI_Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use type Files.Preference_Types.View_Mode;

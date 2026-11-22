@@ -136,7 +136,7 @@ begin
                Published_Tree_Revision := To_Unbounded_String (Tree_Revision (Destination_Path));
             end if;
          else
-            Support.Copy_To_New_Path
+            Copying.Copy_To_New_Path
               (Source_Path, Destination_Path, Published_Identity, Published_Tree_Revision,
                Cancel => Cancel, Batch => Context);
          end if;

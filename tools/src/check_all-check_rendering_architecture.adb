@@ -101,8 +101,10 @@ separate (Check_All)
       Require_Only_Allowed_With_Clauses
         (Hit_Body,
          "Files.",
-         --  The view mode and detail columns it tests against: value types.
-         [To_Unbounded_String ("Files.Preference_Types"),
+         --  The view mode and detail columns it tests against: value types;
+         --  and which rows a context menu has, which its hit test walks.
+         [To_Unbounded_String ("Files.Commands.Context_Menus"),
+          To_Unbounded_String ("Files.Preference_Types"),
           To_Unbounded_String ("Files.Rendering.Geometry")]);
       --  The layouts and the text read no model and no files: snapshots in,
       --  geometry or glyphs out.
@@ -131,6 +133,7 @@ separate (Check_All)
             To_Unbounded_String ("Files.Breadcrumbs"),
             To_Unbounded_String ("Files.Overlays.Command_Palette"),
             To_Unbounded_String ("Files.Commands"),
+            To_Unbounded_String ("Files.Commands.Context_Menus"),
             To_Unbounded_String ("Files.Commands.Status"),
             To_Unbounded_String ("Files.Extension_Labels"),
             To_Unbounded_String ("Files.Extra_Info"),
@@ -168,6 +171,7 @@ separate (Check_All)
             To_Unbounded_String ("Files.Model.Tree_Panel"),
             To_Unbounded_String ("Files.Preference_Types"),
             To_Unbounded_String ("Files.Quick_Look"),
+            To_Unbounded_String ("Files.Rendering.Display_Text"),
             To_Unbounded_String ("Files.Rendering.Geometry"),
             To_Unbounded_String ("Files.Rendering.Labels"),
             To_Unbounded_String ("Files.Rendering.Layouts"),

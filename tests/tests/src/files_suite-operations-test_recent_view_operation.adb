@@ -1,3 +1,4 @@
+with Files.Operations.Navigation;
 with Files.Model.Recent;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
@@ -37,7 +38,7 @@ separate (Files_Suite.Operations)
       Items.Append (Files.File_System.Make_Item (Root, "recent-dir", Files.Types.Directory_Item, "inode/directory"));
       Files.Model.Initialize (Model, Root, Items, Root);
 
-      Result := Files.Operations.Navigate_Recent (Model, Settings);
+      Result := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Navigated,
@@ -70,13 +71,13 @@ separate (Files_Suite.Operations)
       end;
 
       --  Re-enter, then clear: the view rebuilds empty.
-      Result := Files.Operations.Navigate_Recent (Model, Settings);
+      Result := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),
          2,
          "re-entering the recent view relists the items");
       Files.Settings.Path_References.Clear_Recent (Settings);
-      Result := Files.Operations.Navigate_Recent (Model, Settings);
+      Result := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
       Assert (Files.Model.Recent.In_Recent_View (Model), "the view stays active after clearing");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 0, "clearing empties the recent listing");
    end Test_Recent_View_Operation;

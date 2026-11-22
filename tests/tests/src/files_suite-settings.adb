@@ -1,3 +1,4 @@
+with Files.Settings.Storage;
 with Files.Preference_Types;
 with Files.Controller.Testing;
 with Files.File_System.Permissions;
@@ -346,7 +347,7 @@ package body Files_Suite.Settings is
    begin
       Reset_Root;
       Write_File (Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
-      return Files.Settings.Load_File (Path);
+      return Files.Settings.Storage.Load_File (Path);
    end Load_Saved_Details_Settings;
 
    procedure Test_Default_Settings_Text_And_Themes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

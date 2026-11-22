@@ -1,3 +1,5 @@
+with Files.Settings.Drafts;
+with Files.Settings.Storage;
 with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Controller.Testing;
@@ -16,17 +18,17 @@ separate (Files_Suite.Settings)
          Draft    : Files.Settings.Settings_Draft)
          return Files.Settings.Settings_Write_Result
       is
-         Applied : constant Files.Settings.Settings_Parse_Result := Files.Settings.Apply_Draft (Settings, Draft);
+         Applied : constant Files.Settings.Settings_Parse_Result := Files.Settings.Drafts.Apply_Draft (Settings, Draft);
       begin
          if not Applied.Success then
             return (Success => False, Durable => False, Path => To_Unbounded_String (Path),
                     Error_Key => Applied.Error_Key);
          end if;
-         return Files.Settings.Save_Text (Path, Files.Settings.To_Text (Applied.Settings));
+         return Files.Settings.Storage.Save_Text (Path, Files.Settings.To_Text (Applied.Settings));
       end Save_Draft;
    begin
       declare
-         Reset_Draft : constant Files.Settings.Settings_Draft := Files.Settings.Reset_Draft_To_Defaults;
+         Reset_Draft : constant Files.Settings.Settings_Draft := Files.Settings.Drafts.Reset_Draft_To_Defaults;
       begin
          Files_Suite.Support.Assert_Equal
            (To_String (Reset_Draft.Scalars (Files.Settings.Default_View_Mode_Setting)),
@@ -35,7 +37,7 @@ separate (Files_Suite.Settings)
       end;
       declare
          Draft_Path : constant String := Join (Join (Root, "draft-config"), "settings.conf");
-         Draft      : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Loaded.Settings);
+         Draft      : Files.Settings.Settings_Draft := Files.Settings.Drafts.Make_Draft (Loaded.Settings);
          Draft_Load : Files.Settings.Settings_Parse_Result;
          Draft_Model : Files.Model.Window_Model := Sample_Model;
          Draft_Settings : constant Files.Settings.Settings_Model := Loaded.Settings;
@@ -66,8 +68,8 @@ separate (Files_Suite.Settings)
          Draft.Icon_Value := To_Unbounded_String ("text");
          Draft.Open_Action_Token := To_Unbounded_String ("application/ld+json+alt");
          Draft.Open_Action_Command := To_Unbounded_String ("json-editor {path}");
-         Assert (Files.Settings.Validate_Draft (Draft).Success, "settings draft validates editable values");
-         Draft_Load := Files.Settings.Apply_Draft (Loaded.Settings, Draft);
+         Assert (Files.Settings.Drafts.Validate_Draft (Draft).Success, "settings draft validates editable values");
+         Draft_Load := Files.Settings.Drafts.Apply_Draft (Loaded.Settings, Draft);
          Assert (Draft_Load.Success, "settings draft applies to a settings model");
          Files_Suite.Support.Assert_Equal
            (Draft_Load.Settings.Default_View,
@@ -105,7 +107,7 @@ separate (Files_Suite.Settings)
             "draft action executable is parsed");
          Saved := Save_Draft (Draft_Path, Loaded.Settings, Draft);
          Assert (Saved.Success, "settings draft saves to disk");
-         Draft_Load := Files.Settings.Load_File (Draft_Path);
+         Draft_Load := Files.Settings.Storage.Load_File (Draft_Path);
          Assert (Draft_Load.Success, "saved draft settings load");
          Files_Suite.Support.Assert_Equal
            (Draft_Load.Settings.Default_View,

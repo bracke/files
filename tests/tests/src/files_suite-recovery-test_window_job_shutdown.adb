@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -66,7 +67,7 @@ separate (Files_Suite.Recovery)
          case Scenario is
             when Operation_Job => Attach_Operation (Closing, Started);
             when Transfer_Job =>
-               Files.Operations.Begin_Paste_Execution (Closing, Actions, Files.File_System_Types.Drop_Copy);
+               Files.Operations.Paste.Begin_Paste_Execution (Closing, Actions, Files.File_System_Types.Drop_Copy);
                Step := Files.Job_Drivers.Foreground.Advance (Closing, Settings, 1);
                Assert (Step.Status = Files.Operation_Results.Operation_Success
                        and then Files.Model.Foreground_Job_Is_Active (Closing), "start the stalled transfer");

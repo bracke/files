@@ -1,3 +1,5 @@
+with Files.Operations.Navigation;
+with Files.Operations.Tree;
 with Files.Operation_Results;
 separate (Files.Controller)
    function Activate_Tree_Node
@@ -23,13 +25,13 @@ separate (Files.Controller)
          end if;
 
          if not Files.Model.Tree_Panel.Node_Is_Expanded (Model, Node_Index) then
-            Files.Operations.Load_Tree_Children (Model, Settings, Node_Index);
+            Files.Operations.Tree.Load_Tree_Children (Model, Settings, Node_Index);
          end if;
          Files.Model.Tree_Panel.Set_Expanded (Model, Node_Index, True);
 
          declare
             Operation : constant Files.Operation_Results.Operation_Result :=
-              Files.Operations.Select_Root (Model, Settings, Node_Path);
+              Files.Operations.Navigation.Select_Root (Model, Settings, Node_Path);
          begin
             return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
          end;

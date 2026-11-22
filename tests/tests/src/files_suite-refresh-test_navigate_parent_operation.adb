@@ -1,3 +1,7 @@
+with Files.Operations.Editing;
+with Files.Operations.Navigation;
+with Files.Operations.Opening;
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files.Model.Creation;
 with Files_Suite.Listings;
@@ -84,7 +88,7 @@ separate (Files_Suite.Refresh)
          Assert
            (not Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Parent_Command, Root_Model),
             "navigate-parent is disabled at the filesystem root");
-         Root_Op := Files.Operations.Navigate_Parent (Root_Model, Settings);
+         Root_Op := Files.Operations.Navigation.Navigate_Parent (Root_Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Root_Op.Status,
             Files.Operation_Results.Operation_Disabled,
@@ -123,12 +127,12 @@ separate (Files_Suite.Refresh)
                  (Files.File_System.Trash.Is_Trash_Files_Directory
                     (Files.Model.Current_Path (Trash_Model)),
                   "the shared identity check recognizes the active trash payload directory");
-               Trash_Result := Files.Operations.Navigate_Parent (Trash_Model, Settings);
+               Trash_Result := Files.Operations.Navigation.Navigate_Parent (Trash_Model, Settings);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then Files.Model.Current_Path (Trash_Model) = To_String (Trash_Load.Path),
                   "direct parent navigation cannot expose trash metadata beside the payload directory");
-               Trash_Result := Files.Operations.Open_Terminal (Trash_Model);
+               Trash_Result := Files.Operations.Opening.Open_Terminal (Trash_Model);
                Files_Suite.Support.Assert_Equal
                  (Trash_Result.Status,
                   Files.Operation_Results.Operation_Disabled,
@@ -175,7 +179,7 @@ separate (Files_Suite.Refresh)
                   "direct duplicate cannot create an orphaned trash payload");
                Trash_Result :=
                  Operation_Commands.Compress_Selected
-                   (Trash_Model, Settings, Files.Operations.Zip_Archive);
+                   (Trash_Model, Settings, Files.Operations.Archives.Zip_Archive);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then not Files.Jobs.Process.Active
@@ -187,20 +191,20 @@ separate (Files_Suite.Refresh)
                   and then not Files.Jobs.Process.Active
                     (Files.Model.Jobs.Background_Operation (Trash_Model)),
                   "direct extraction cannot create an orphaned trash payload");
-               Trash_Result := Files.Operations.Create_Symlink_Selected (Trash_Model, Settings);
+               Trash_Result := Files.Operations.Editing.Create_Symlink_Selected (Trash_Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Trash_Result.Status,
                   Files.Operation_Results.Operation_Disabled,
                   "direct link creation cannot create an orphaned trash payload");
                Files.Model.Rename.Toggle (Trash_Model);
                Files.Model.Rename.Set_Text (Trash_Model, "renamed-payload");
-               Trash_Result := Files.Operations.Commit_Rename (Trash_Model, Settings);
+               Trash_Result := Files.Operations.Editing.Commit_Rename (Trash_Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Trash_Result.Status,
                   Files.Operation_Results.Operation_Disabled,
                   "direct rename cannot desynchronize a trash payload from its metadata");
                Trash_Result :=
-                 Files.Operations.Begin_Paste_To
+                 Files.Operations.Paste.Begin_Paste_To
                    (Trash_Model, Settings, Trash_Sources, Trash_Dir);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
@@ -210,7 +214,7 @@ separate (Files_Suite.Refresh)
                Trash_Sources.Append
                  (To_Unbounded_String (Join (Trash_Dir, "untracked-payload")));
                Trash_Result :=
-                 Files.Operations.Begin_Paste_To
+                 Files.Operations.Paste.Begin_Paste_To
                    (Trash_Model, Settings, Trash_Sources, Full_Child,
                     Files.File_System_Types.Drop_Move, From_Clipboard => False);
                Assert
@@ -218,7 +222,7 @@ separate (Files_Suite.Refresh)
                   and then Files.Model.Last_Error_Key (Trash_Model) = "error.drop.invalid_source",
                   "direct move cannot detach a trash payload from its metadata");
                Files.Model.Creation.Begin_Create_File (Trash_Model, "orphaned-payload");
-               Trash_Result := Files.Operations.Commit_Create_File (Trash_Model, Settings);
+               Trash_Result := Files.Operations.Editing.Commit_Create_File (Trash_Model, Settings);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then Files.Model.Last_Error_Key (Trash_Model) = "error.file.parent_missing",

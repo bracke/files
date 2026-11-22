@@ -264,4 +264,14 @@ private package Files.Operations.Support is
    --  @param Stage The stage directory.
    procedure Discard_Stage (Stage : String);
 
+   --  Whether Path is a trash's files folder, by filesystem identity: the
+   --  one check every trash-directory decision uses.
+   --  @param Path Folder to test.
+   --  @return True when Path is a trash's files folder.
+   function Is_Trash_Directory (Path : String) return Boolean;
+
+   --  @param Path Entry to test.
+   --  @return True when Path is inside a trash's files folder.
+   function Is_Trash_Child (Path : String) return Boolean;
+
 end Files.Operations.Support;

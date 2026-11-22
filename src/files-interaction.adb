@@ -1,3 +1,6 @@
+with Ada.Containers;
+with Files.Model.Selection;
+with Files.Commands.Context_Menus;
 with Files.Model.Recent;
 with Files.Model.Info_Pane;
 with Files.Events;
@@ -405,8 +408,8 @@ package body Files.Interaction is
 
       if not Offered then
          declare
-            Rows : constant Files.Commands.Context_Menu_Rows :=
-              Files.Commands.Context_Menu_Rows_For
+            Rows : constant Files.Commands.Context_Menus.Context_Menu_Rows :=
+              Files.Commands.Context_Menus.Context_Menu_Rows_For
                 (Files.Model.Context_Menu.Target_Of (Model));
          begin
             for Row in 1 .. Rows.Count loop
@@ -580,10 +583,10 @@ package body Files.Interaction is
    function Marquee_Base_Rows
      (Model : Files.Model.Window_Model;
       Base  : Files.Types.String_Vectors.Vector)
-      return Files.Model.Selection.Visible_Index_List
+      return Marquee_Rows
    is
       Base_Paths : Files.Settings.Path_References.Path_Sets.Set;
-      Base_Rows  : Files.Model.Selection.Visible_Index_List;
+      Base_Rows  : Marquee_Rows;
       Position   : Natural := 0;
 
       procedure Note (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean) is
@@ -607,24 +610,31 @@ package body Files.Interaction is
 
    procedure Apply_Marquee_Selection
      (Model     : in out Files.Model.Window_Model;
-      Hits      : Files.Model.Selection.Visible_Index_List;
+      Hits      : Marquee_Rows;
       Additive  : Boolean;
-      Base_Rows : Files.Model.Selection.Visible_Index_List)
+      Base_Rows : Marquee_Rows)
    is
-      use type Files.Model.Selection.Visible_Index_List;
+      Rows : Files.Model.Selection.Visible_Index_List;
    begin
       --  The base's rows (when additive), then the hits; the model drops
       --  repeats.
       if Additive then
-         Files.Model.Selection.Select_Visible_Set (Model, Base_Rows & Hits);
+         Rows.Reserve_Capacity (Ada.Containers."+" (Base_Rows.Length, Hits.Length));
+         for Row of Base_Rows loop
+            Rows.Append (Row);
+         end loop;
       else
-         Files.Model.Selection.Select_Visible_Set (Model, Hits);
+         Rows.Reserve_Capacity (Hits.Length);
       end if;
+      for Row of Hits loop
+         Rows.Append (Row);
+      end loop;
+      Files.Model.Selection.Select_Visible_Set (Model, Rows);
    end Apply_Marquee_Selection;
 
    procedure Apply_Marquee_Selection
      (Model    : in out Files.Model.Window_Model;
-      Hits     : Files.Model.Selection.Visible_Index_List;
+      Hits     : Marquee_Rows;
       Additive : Boolean;
       Base     : Files.Types.String_Vectors.Vector) is
    begin
@@ -634,7 +644,7 @@ package body Files.Interaction is
          Additive,
          Base_Rows =>
            (if Additive then Marquee_Base_Rows (Model, Base)
-            else Files.Model.Selection.Visible_Index_Lists.Empty_Vector));
+            else Guikit.Item_Grid.Visible_Index_Vectors.Empty_Vector));
    end Apply_Marquee_Selection;
 
 end Files.Interaction;

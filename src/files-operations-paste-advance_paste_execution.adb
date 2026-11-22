@@ -1,0 +1,190 @@
+with Files.File_System_Types;
+with Files.File_System.Transfer;
+with Files.Name_Parts;
+
+separate (Files.Operations.Paste)
+function Advance_Paste_Execution
+  (Model     : in out Files.Model.Window_Model;
+   Settings  : Files.Settings.Settings_Model;
+   Max_Items : Positive)
+   return Operation_Result
+is
+   Processed : Natural := 0;
+
+   --  A failed move that still published its copy left its source in place
+   --  (its removal was refused, and so was removing the copy) unless the
+   --  source went to a recovery stage. Only a vacated source makes the copy
+   --  a move; otherwise undo must delete the copy, not move it back.
+   function Source_Remains (Action : Files.Paste.Resolved_Action) return Boolean is
+     (Files.Model.Pasting.Execution_Mode (Model) = Files.File_System_Types.Drop_Move
+      --  refusal-safe: a refused source counts as vacated, so undo moves the copy back
+      --  without replacing anything and never deletes what may be the only copy
+      and then Files.IO.Fs_Primitives.Entry_Exists (To_String (Action.Source_Path)));
+
+   --  Start the current action in a helper when none runs, then poll it:
+   --  the model holds the transfer handle, this drives it.
+   procedure Advance_Background_Paste
+     (Model    : in out Files.Model.Window_Model;
+      Finished : out Boolean;
+      Result   : out Files.Transfer_Jobs.Job_Result)
+   is
+      Job : Files.Transfer_Jobs.Session := Files.Model.Pasting.Job (Model);
+   begin
+      if not Files.Transfer_Jobs.Active (Job) then
+         if Files.Model.Pasting.Execution_Cancelled (Model) then
+            Finished := True;
+            Result := (Cancelled => True, others => <>);
+            return;
+         end if;
+         begin
+            Files.Transfer_Jobs.Start
+              (Job,
+               Files.Model.Pasting.Execution_Action (Model, Files.Model.Pasting.Execution_Cursor (Model) + 1),
+               Files.Model.Pasting.Execution_Mode (Model), Files.Model.Pasting.Execution_Copy_Context (Model));
+         exception
+            when Failure : others =>
+               --  No helper (a process limit, a full temporary volume): the
+               --  paste ends here with the error, its finished part kept for
+               --  undo. Raising instead left it armed, and every loop pass
+               --  raised again before the window could repaint.
+               Files.Diagnostics.Note (Failure, "Files.Operations");
+               Finished := True;
+               Result :=
+                 (Mutation => (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed")),
+                  others   => <>);
+               return;
+         end;
+         Files.Model.Pasting.Set_Job (Model, Job);
+         Files.Model.Pasting.Note_Action_Started (Model);
+      end if;
+      Files.Transfer_Jobs.Poll (Job, Finished, Result);
+      if Finished then
+         Files.Transfer_Jobs.Reset (Job);
+         Files.Model.Pasting.Set_Job (Model, Job);
+      end if;
+   end Advance_Background_Paste;
+
+begin
+   if not Files.Model.Pasting.Execution_Is_Active (Model) then
+      return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+   end if;
+
+   while Processed < Max_Items
+     and then (not Files.Model.Pasting.Execution_Cancelled (Model)
+               or else Files.Model.Background_Transfers (Model))
+     and then Files.Model.Pasting.Execution_Cursor (Model)
+              < Files.Model.Pasting.Execution_Action_Count (Model)
+   loop
+      declare
+         Index  : constant Positive := Files.Model.Pasting.Execution_Cursor (Model) + 1;
+         Action : constant Files.Paste.Resolved_Action :=
+           Files.Model.Pasting.Execution_Action (Model, Index);
+      begin
+         if Action.Skip then
+            Files.Model.Pasting.Skip_Action (Model);
+         elsif Files.Model.Background_Transfers (Model) then
+            declare
+               Finished : Boolean;
+               Result   : Files.Transfer_Jobs.Job_Result;
+               Kept     : Kept_Copy := No_Kept_Copy;
+            begin
+               Advance_Background_Paste (Model, Finished, Result);
+               if not Finished then
+                  return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+               end if;
+               if Length (Result.Trashed) > 0 then
+                  Record_Paste_Replaced_Trash
+                    (Model, Result.Trashed, To_String (Result.Trashed_Identity), To_String (Action.Dest_Path));
+               end if;
+               --  A move that failed yet kept its copy at the destination:
+               --  the copy is recorded so the paste's undo covers it -- as a
+               --  move when its source is gone, as a copy when it remains.
+               if not Result.Mutation.Success and then Length (Result.Created_Identity) > 0 then
+                  if Source_Remains (Action) then
+                     Kept :=
+                       (Action.Dest_Path, Action.Source_Path, Result.Created_Identity, Result.Created_Tree_Revision);
+                  else
+                     Record_Paste_Write
+                       (Model, Action.Dest_Path, Action.Source_Path,
+                        Files.Name_Parts.Leaf_Of (To_String (Action.Dest_Path)),
+                        To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision));
+                  end if;
+               end if;
+               if Result.Cancelled then
+                  return Finalize_Paste_Execution (Model, Settings, "", Kept);
+               elsif not Result.Mutation.Success then
+                  return Finalize_Paste_Execution (Model, Settings, To_String (Result.Mutation.Error_Key), Kept);
+               end if;
+               Record_Paste_Write
+                 (Model, Action.Dest_Path, Action.Source_Path,
+                  Files.Name_Parts.Leaf_Of (To_String (Action.Dest_Path)),
+                  To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision),
+                  Retain_Verified_Snapshot => Result.Recovered);
+               if Result.Recovered then
+                  return Finalize_Paste_Execution (Model, Settings, "error.drop.failed");
+               end if;
+               if Files.Model.Pasting.Execution_Cancelled (Model) then
+                  return Finalize_Paste_Execution (Model, Settings, "");
+               end if;
+            end;
+         else
+            declare
+               Replaced_Trash, Replaced_Identity : Files.Types.UString;
+               Created_Identity, Created_Tree_Revision : Files.Types.UString;
+               Mutation : constant Files.File_System.Mutation_Result :=
+                 Files.File_System.Transfer.Import_Replacing
+                   (Source                => To_String (Action.Source_Path),
+                    Destination           => To_String (Action.Dest_Path),
+                    Mode                  => Files.Model.Pasting.Execution_Mode (Model),
+                    Replace               => Action.Replaced,
+                    Replaced              => Replaced_Trash,
+                    Replaced_Identity     => Replaced_Identity,
+                    Created_Identity      => Created_Identity,
+                    Created_Tree_Revision => Created_Tree_Revision,
+                    Batch                 => Files.Model.Pasting.Execution_Copy_Context (Model));
+            begin
+               --  An original still held after the action (the write
+               --  succeeded, or neither it nor putting it back did) is
+               --  tracked so the paste's undo entry can restore it.
+               if Length (Replaced_Trash) > 0 then
+                  Record_Paste_Replaced_Trash
+                    (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
+               end if;
+               if not Mutation.Success then
+                  --  A move that failed yet kept its copy at the destination:
+                  --  the copy is recorded so the paste's undo covers it -- as
+                  --  a move when its source is gone, as a copy when it remains.
+                  if Length (Created_Identity) > 0 and then Source_Remains (Action) then
+                     return Finalize_Paste_Execution
+                       (Model, Settings, To_String (Mutation.Error_Key),
+                        (Action.Dest_Path, Action.Source_Path, Created_Identity, Created_Tree_Revision));
+                  elsif Length (Created_Identity) > 0 then
+                     Record_Paste_Write
+                       (Model, Action.Dest_Path, Action.Source_Path,
+                        Files.Name_Parts.Leaf_Of (To_String (Action.Dest_Path)),
+                        To_String (Created_Identity), To_String (Created_Tree_Revision));
+                  end if;
+                  return Finalize_Paste_Execution (Model, Settings, To_String (Mutation.Error_Key));
+               end if;
+               Record_Paste_Write
+                 (Model,
+                  Action.Dest_Path,
+                  Action.Source_Path,
+                  Files.Name_Parts.Leaf_Of (To_String (Action.Dest_Path)),
+                  To_String (Created_Identity),
+                  To_String (Created_Tree_Revision));
+            end;
+         end if;
+      end;
+      Processed := Processed + 1;
+   end loop;
+
+   if Files.Model.Pasting.Execution_Cancelled (Model)
+     or else Files.Model.Pasting.Execution_Cursor (Model)
+             >= Files.Model.Pasting.Execution_Action_Count (Model)
+   then
+      return Finalize_Paste_Execution (Model, Settings, "");
+   end if;
+
+   return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+end Advance_Paste_Execution;

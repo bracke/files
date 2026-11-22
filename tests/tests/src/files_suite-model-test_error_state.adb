@@ -1,3 +1,6 @@
+with Files.Operations.Editing;
+with Files.Operations.Navigation;
+with Files.Operations.Opening;
 with Files.Operation_Results;
 separate (Files_Suite.Model)
    procedure Test_Error_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -13,7 +16,7 @@ separate (Files_Suite.Model)
       Assert (Item.Kind = Files.Types.Unknown_Item, "empty selection selected item has unknown kind");
       Assert (not Files.Model.Testing.Selected_Item_Is_Temporary (Model), "empty selection is not temporary");
 
-      Result := Files.Operations.Open_Selected (Model, Settings);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Disabled,
@@ -23,7 +26,7 @@ separate (Files_Suite.Model)
         (Files.Model.Last_Error_Key (Model),
          "error.selection.empty",
          "empty open records an error");
-      Result := Files.Operations.Navigate_Back (Model, Settings);
+      Result := Files.Operations.Navigation.Navigate_Back (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Disabled,
@@ -32,7 +35,7 @@ separate (Files_Suite.Model)
         (Files.Model.Last_Error_Key (Model),
          "error.history.back_unavailable",
          "empty back history records an error");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Disabled,
@@ -42,7 +45,7 @@ separate (Files_Suite.Model)
         (Files.Model.Last_Error_Key (Model),
          "error.create.no_temporary_item",
          "missing temporary item records an error");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Disabled,

@@ -1,3 +1,4 @@
+with Files.Commands.Context_Menus;
 with Files.Rendering.Layouts.Menus;
 with Files.Input_Actions;
 with Files.Model.Clipboard;
@@ -15,7 +16,7 @@ separate (Files_Suite.Context_Menu)
       pragma Unreferenced (T);
       use type Files.Input_Actions.Input_Action_Kind;
       use type Guikit.Draw.Accessibility_Role;
-      use type Files.Commands.Context_Menu_Row_Kind;
+      use type Files.Commands.Context_Menus.Context_Menu_Row_Kind;
       Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
@@ -76,7 +77,7 @@ separate (Files_Suite.Context_Menu)
             "the item menu offers Copy to a screen reader");
          --  A separator is part of the menu, not a choice: swallowed.
          for Row in 1 .. Menu.Row_Count loop
-            if Menu.Rows (Row).Kind = Files.Commands.Menu_Separator then
+            if Menu.Rows (Row).Kind = Files.Commands.Context_Menus.Menu_Separator then
                Assert
                  (Click (Menu.X + Menu.Width / 2,
                          Files.Rendering.Layouts.Menus.Context_Menu_Row_Top (Menu, Row)).Kind

@@ -25,7 +25,7 @@ separate (Files_Suite.Archives)
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success, "the search runs");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the search finds both files");
       Files.Model.Selection.Select_All_Visible (Model);
-      Result := Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive);
+      Result := Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Archives.Zip_Archive);
       Files_Suite.Support.Assert_Equal
         (Result.Status, Files.Operation_Results.Operation_Success, "two same-named files compress together");
 

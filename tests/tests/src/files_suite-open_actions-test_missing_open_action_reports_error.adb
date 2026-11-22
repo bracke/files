@@ -1,3 +1,4 @@
+with Files.Operations.Opening;
 with Files.Operation_Results;
 separate (Files_Suite.Open_Actions)
    procedure Test_Missing_Open_Action_Reports_Error (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -23,7 +24,7 @@ separate (Files_Suite.Open_Actions)
         (Files.Model.Last_Error_Key (Model),
          "error.open_action.missing",
          "prepare missing action records error");
-      Result := Files.Operations.Open_Selected (Model, Settings);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Missing_Open_Action,

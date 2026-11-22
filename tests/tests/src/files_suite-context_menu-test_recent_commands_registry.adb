@@ -1,3 +1,4 @@
+with Files.Operations.Navigation;
 with Files.Model.Recent;
 with Files.Input_Actions;
 with Files.Operation_Results;
@@ -75,7 +76,7 @@ separate (Files_Suite.Context_Menu)
         (Settings, Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "missing-recent"));
       declare
          Rebuilt : constant Files.Operation_Results.Operation_Result :=
-           Files.Operations.Navigate_Recent (Model, Settings);
+           Files.Operations.Navigation.Navigate_Recent (Model, Settings);
          Clear_Action : constant Files.Input_Actions.Input_Action :=
            (Kind    => Files.Input_Actions.Command_Input_Action,
             Command => Files.Commands.Clear_Recent_Command);

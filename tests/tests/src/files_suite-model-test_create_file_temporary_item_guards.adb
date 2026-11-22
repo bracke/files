@@ -1,3 +1,5 @@
+with Files.Operations.Editing;
+with Files.Operations.Opening;
 with Files.Model.Filtering;
 with Files.Model.Creation;
 with Files.Operation_Results;
@@ -56,7 +58,7 @@ separate (Files_Suite.Model)
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Model),
          "selected temporary item does not enable open");
-      Operation := Files.Operations.Open_Selected (Model, Settings);
+      Operation := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Operation.Status,
          Files.Operation_Results.Operation_Disabled,
@@ -74,7 +76,7 @@ separate (Files_Suite.Model)
         (Files.Model.Last_Error_Key (Model),
          "error.create.pending",
          "temporary delete records disabled state");
-      Operation := Files.Operations.Commit_Rename (Model, Settings);
+      Operation := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Operation.Status,
          Files.Operation_Results.Operation_Disabled,

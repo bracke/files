@@ -1,3 +1,4 @@
+with Files.Rendering.Display_Text;
 with Ada.Calendar.Formatting;
 with Ada.Strings;
 
@@ -10,6 +11,7 @@ package body Files.Rendering.Geometry is
 
    use Ada.Strings.Unbounded;
    use Files.Rendering.Labels;
+   use Files.Rendering.Display_Text;
 
    function Contains_Rectangle_Point
      (X        : Natural;

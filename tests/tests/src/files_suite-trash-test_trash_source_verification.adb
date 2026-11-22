@@ -1,3 +1,4 @@
+with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Testing;
@@ -59,7 +60,7 @@ separate (Files_Suite.Trash)
                 else Files.File_System.Testing.Edit_Folder_Child));
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Operations.Clear_Undo (Model);
+            Files.Operations.History.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Model.Selection.Select_All_Visible (Model);
             Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));

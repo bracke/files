@@ -1,3 +1,4 @@
+with Files.Operations.Navigation;
 with Files.Model.Recent;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
@@ -71,7 +72,7 @@ separate (Files_Suite.History)
                   if Recent then
                      Files.Settings.Path_References.Note_Recent (Settings, Source_A);
                      Files.Settings.Path_References.Note_Recent (Settings, Source_B);
-                     Step := Files.Operations.Navigate_Recent (Model, Settings);
+                     Step := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
                   end if;
                   Sources.Append (To_Unbounded_String (Source_A));
                   Sources.Append (To_Unbounded_String (Source_B));

@@ -723,7 +723,7 @@ private
    --  renamed into place, given the access its new folder hands down (as a
    --  published copy is, its revision read again where that changed it and
    --  named again with it), recorded as created, and its new name flushed --
-   --  the publication Copy_Tree's copies share (Support.Publish_From_Stage). A failure of that last
+   --  the publication Copy_Tree's copies share (Copying.Publish_From_Stage). A failure of that last
    --  flush is traced, not returned: the entry is published and recorded,
    --  as a Durable_Writes publication that is Published_Not_Durable. The one
    --  way Compress and Extract publish what they made.

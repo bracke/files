@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -23,7 +25,7 @@ separate (Files_Suite.Transfer)
          Write_Binary_File (Join (Join (Root, "inbox"), "incoming.txt"), "incoming");
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.Clear_Undo (Model);
+         Files.Operations.History.Clear_Undo (Model);
          Select_Name (Model, "original.txt");
          Files.Model.Set_Background_Transfers (Model, True);
          Step := Operation_Commands.Duplicate_Selected (Model, Settings);
@@ -41,7 +43,7 @@ separate (Files_Suite.Transfer)
             Sources.Clear;
             Sources.Append (To_Unbounded_String (Join (Join (Root, "inbox"), "incoming.txt")));
             Outcome := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
-            Step := Files.Operations.Begin_Paste (Model, Settings, Sources);
+            Step := Files.Operations.Paste.Begin_Paste (Model, Settings, Sources);
             declare
                Context : constant String :=
                  "controller and direct paste calls preserve the active job and its revision";
@@ -68,13 +70,13 @@ separate (Files_Suite.Transfer)
                  "the original job remains undoable after a blocked drop");
       end loop;
       Write_Binary_File (Join (Root, "incoming.txt"), "existing destination");
-      Step := Files.Operations.Begin_Paste (Model, Settings, Sources);
+      Step := Files.Operations.Paste.Begin_Paste (Model, Settings, Sources);
       Assert (Files.Model.Pasting.Conflict_Is_Active (Model), "prepare a collision dialog");
       declare
          Revision : constant Natural := Files.Model.Revision (Model);
       begin
          Outcome := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
-         Step := Files.Operations.Begin_Paste (Model, Settings, Sources);
+         Step := Files.Operations.Paste.Begin_Paste (Model, Settings, Sources);
          Files_Suite.Support.Assert_Equal
            (Outcome.Status,
             Files.Controller.Controller_Ignored,

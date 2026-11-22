@@ -1,3 +1,4 @@
+with Files.Operations.Editing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Disk;
@@ -22,7 +23,7 @@ separate (Files_Suite.History)
          Select_Name (Model, From_Name);
          Files.Model.Rename.Toggle (Model);
          Files.Model.Rename.Set_Text (Model, To_Name);
-         Step := Files.Operations.Commit_Rename (Model, Settings);
+         Step := Files.Operations.Editing.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,

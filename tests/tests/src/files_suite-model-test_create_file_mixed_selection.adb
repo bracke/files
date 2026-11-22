@@ -1,3 +1,4 @@
+with Files.Operations.Opening;
 with Files.Model.Creation;
 with Files.Operation_Results;
 with Files.Items;
@@ -36,7 +37,7 @@ separate (Files_Suite.Model)
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Mixed_Model),
          "mixed temporary selection does not enable open");
-      Operation := Files.Operations.Open_Selected (Mixed_Model, Settings);
+      Operation := Files.Operations.Opening.Open_Selected (Mixed_Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Operation.Status,
          Files.Operation_Results.Operation_Disabled,

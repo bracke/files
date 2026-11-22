@@ -31,7 +31,7 @@ package Files.Model.Settings_Pane is
 
    --  Begin editing settings values in the settings pane. The model never
    --  builds the panel's (localized) fields itself: the caller hands them in,
-   --  built from the normalized draft (Files.Settings.Normalize_Draft).
+   --  built from the normalized draft (Files.Settings.Drafts.Normalize_Draft).
    --  Closing the pane lets go of Saved.
    --
    --  @param Model Model to update.

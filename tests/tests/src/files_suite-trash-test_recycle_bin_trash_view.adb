@@ -1,3 +1,4 @@
+with Files.Operations.Navigation;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Trash;
@@ -119,7 +120,7 @@ separate (Files_Suite.Trash)
       Mutation := Files.File_System.Trash.Move_To_Trash (Source, Trashed);
       Assert (Mutation.Success, "the item goes to the Recycle Bin again; error was " & To_String (Mutation.Error_Key));
       Assert (Path_Exists (To_String (Trashed)), "and the trashed path names it there");
-      Step := Files.Operations.Navigate_Trash (Model, Settings);
+      Step := Files.Operations.Navigation.Navigate_Trash (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Navigated, "Go to Trash opens the Recycle Bin");
       Assert (Files.Model.Current_Is_Trash (Model), "the view knows it is the trash");

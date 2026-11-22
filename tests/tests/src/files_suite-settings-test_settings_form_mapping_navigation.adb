@@ -1,3 +1,4 @@
+with Files.Settings.Drafts;
 with Files.Commands.Keymap_Settings;
 with Files.Controller;
 with Files.Controller.Testing;
@@ -9,7 +10,7 @@ separate (Files_Suite.Settings)
       package SP renames Guikit.Settings_Panel;
 
       Base  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Draft : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Base);
+      Draft : Files.Settings.Settings_Draft := Files.Settings.Drafts.Make_Draft (Base);
       Model : Files.Model.Window_Model;
       Saved : Boolean;
       --  What the test's saves have saved, as the app's settings would be.
@@ -63,8 +64,8 @@ separate (Files_Suite.Settings)
       --  The pane opens on these rows as saved, with the keymap they hold
       --  (no overrides another test may have left).
       Files.Commands.Reset_Shortcut_Overrides;
-      Files.Settings.Normalize_Draft (Draft);
-      Live := Files.Settings.Apply_Draft (Base, Draft).Settings;
+      Files.Settings.Drafts.Normalize_Draft (Draft);
+      Live := Files.Settings.Drafts.Apply_Draft (Base, Draft).Settings;
       Files.Overlays.Settings_Form.Begin_Edit (Model, Live);
       Files.Overlays.Settings_Form.Set_Draft (Model, Draft);
 
@@ -91,7 +92,7 @@ separate (Files_Suite.Settings)
       Assert (not Saved, "adding a blank entry, which the file does not hold, does not save");
       Files_Suite.Support.Assert_Equal (Count, 3, "Add appends a mapping entry");
       Assert
-        (Files.Settings.Apply_Draft
+        (Files.Settings.Drafts.Apply_Draft
            (Files.Settings.Default_Settings, Files.Model.Settings_Pane.Draft_Of (Model)).Success,
          "a freshly added, still blank row does not block saving other settings");
 
@@ -185,7 +186,7 @@ separate (Files_Suite.Settings)
       --  (an entry paged to, an error shown); with a saved shortcut override
       --  it does, to drop it.
       declare
-         Defaults : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Files.Settings.Default_Settings);
+         Defaults : Files.Settings.Settings_Draft := Files.Settings.Drafts.Make_Draft (Files.Settings.Default_Settings);
          With_Override : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Reset_Button  : constant SP.Change :=
            (Kind  => SP.Button_Pressed,

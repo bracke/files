@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -30,7 +31,7 @@ separate (Files_Suite.Transfer)
 
       Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
-      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
+      Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
 
       --  A single-item paste finishes within the first advance and leaves no
       --  lingering execution state (so no progress overlay is ever shown).

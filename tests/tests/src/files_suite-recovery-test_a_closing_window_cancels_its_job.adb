@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
@@ -67,14 +69,14 @@ separate (Files_Suite.Recovery)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, False);
-      Files.Operations.Clear_Undo (Model);
+      Files.Operations.History.Clear_Undo (Model);
       Actions.Append (Files.Paste.Resolved_Action'
                         (To_Unbounded_String (Join (Root, "new-one.txt")),
                          To_Unbounded_String (Join (Root, "one.txt")), False, True));
       Actions.Append (Files.Paste.Resolved_Action'
                         (To_Unbounded_String (Join (Root, "new-two.txt")),
                          To_Unbounded_String (Join (Root, "two.txt")), False, False));
-      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
+      Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
       Assert (Step.Status = Files.Operation_Results.Operation_Success
               and then Files.Model.Foreground_Job_Is_Active (Model)

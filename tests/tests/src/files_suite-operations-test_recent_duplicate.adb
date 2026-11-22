@@ -1,3 +1,4 @@
+with Files.Operations.Navigation;
 with Files.Model.Recent;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -95,7 +96,7 @@ separate (Files_Suite.Operations)
             Files.Settings.Path_References.Note_Recent (Settings, Bundle);
             Files.Settings.Path_References.Note_Recent (Settings, Unselected);
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-            Step := Files.Operations.Navigate_Recent (Model, Settings);
+            Step := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
             Files.Model.Selection.Select_All_Visible (Model);
             for Index in 1 .. Files.Model.Visible_Count (Model) loop
                Expected_Rows.Append (Files.Model.Visible_Item (Model, Index).Full_Path);

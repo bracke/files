@@ -1,3 +1,4 @@
+with Files.Operations.Navigation;
 with Files.Operation_Results;
 with Files.File_System.Trash;
 with Files.Items;
@@ -20,7 +21,7 @@ separate (Files_Suite.Trash)
                  "something is in the trash");
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Model.Set_Path_Input_Text (Model, Files.File_System.Trash.Trash_Files_Directory);
-         Result := Files.Operations.Commit_Path_Input (Model, Settings);
+         Result := Files.Operations.Navigation.Commit_Path_Input (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Status, Files.Operation_Results.Operation_Navigated, "the typed path is opened");
          Assert (Files.Model.Current_Is_Trash (Model), "the folder typed in is shown as the trash");

@@ -1,3 +1,8 @@
+with Files.Operations.Archives;
+with Files.Operations.Editing;
+with Files.Operations.Navigation;
+with Files.Operations.Opening;
+with Files.Operations.Tree;
 with Files.File_System_Types;
 with Files.Model.Filtering;
 with Files.UI_Types;
@@ -78,13 +83,13 @@ separate (Files.Controller)
       begin
          case Command is
             when Files.Commands.Navigate_Home_Command =>
-               Operation := Files.Operations.Navigate_Home (Model, Settings);
+               Operation := Files.Operations.Navigation.Navigate_Home (Model, Settings);
             when Files.Commands.Navigate_Parent_Command =>
-               Operation := Files.Operations.Navigate_Parent (Model, Settings);
+               Operation := Files.Operations.Navigation.Navigate_Parent (Model, Settings);
             when Files.Commands.Navigate_Trash_Command =>
-               Operation := Files.Operations.Navigate_Trash (Model, Settings);
+               Operation := Files.Operations.Navigation.Navigate_Trash (Model, Settings);
             when Files.Commands.Navigate_Recent_Command =>
-               Operation := Files.Operations.Navigate_Recent (Model, Settings);
+               Operation := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
             when Files.Commands.Restore_From_Trash_Command =>
                Operation := Operation_Commands.Restore_Selected_From_Trash (Model, Settings);
             when Files.Commands.Empty_Trash_Command =>
@@ -94,11 +99,11 @@ separate (Files.Controller)
             when Files.Commands.Redo_Command =>
                Operation := Operation_Commands.Redo_Last (Model, Settings);
             when Files.Commands.Navigate_Back_Command =>
-               Operation := Files.Operations.Navigate_Back (Model, Settings);
+               Operation := Files.Operations.Navigation.Navigate_Back (Model, Settings);
             when Files.Commands.Navigate_Forward_Command =>
-               Operation := Files.Operations.Navigate_Forward (Model, Settings);
+               Operation := Files.Operations.Navigation.Navigate_Forward (Model, Settings);
             when Files.Commands.Open_Selected_Items_Command =>
-               Operation := Files.Operations.Open_Selected (Model, Settings, Modifiers);
+               Operation := Files.Operations.Opening.Open_Selected (Model, Settings, Modifiers);
             when Files.Commands.Delete_Selected_Items_Command =>
                Operation := Operation_Commands.Delete_Selected (Model, Settings);
             when Files.Commands.Delete_Selected_Permanently_Command =>
@@ -106,19 +111,19 @@ separate (Files.Controller)
             when Files.Commands.Duplicate_Selected_Command =>
                Operation := Operation_Commands.Duplicate_Selected (Model, Settings);
             when Files.Commands.Create_Symlink_Command =>
-               Operation := Files.Operations.Create_Symlink_Selected (Model, Settings);
+               Operation := Files.Operations.Editing.Create_Symlink_Selected (Model, Settings);
             when Files.Commands.Create_Hardlink_Command =>
-               Operation := Files.Operations.Create_Hardlink_Selected (Model, Settings);
+               Operation := Files.Operations.Editing.Create_Hardlink_Selected (Model, Settings);
             when Files.Commands.Open_Terminal_Command =>
-               Operation := Files.Operations.Open_Terminal (Model);
+               Operation := Files.Operations.Opening.Open_Terminal (Model);
             when Files.Commands.Compress_Zip_Command =>
                Operation :=
                  Operation_Commands.Compress_Selected
-                   (Model, Settings, Files.Operations.Zip_Archive);
+                   (Model, Settings, Files.Operations.Archives.Zip_Archive);
             when Files.Commands.Compress_7z_Command =>
                Operation :=
                  Operation_Commands.Compress_Selected
-                   (Model, Settings, Files.Operations.Seven_Zip_Archive);
+                   (Model, Settings, Files.Operations.Archives.Seven_Zip_Archive);
             when Files.Commands.Extract_Archive_Command =>
                Operation := Operation_Commands.Extract_Selected (Model, Settings);
             when Files.Commands.Paste_Items_Command =>
@@ -138,10 +143,10 @@ separate (Files.Controller)
                   --  clipboard is cleared by the operation once the move actually
                   --  runs (immediately, or after the last conflict is resolved).
                   Operation :=
-                    Files.Operations.Begin_Paste (Model, Settings, Paths, Drop_Mode);
+                    Files.Operations.Paste.Begin_Paste (Model, Settings, Paths, Drop_Mode);
                end;
             when Files.Commands.Generate_Thumbnails_Command =>
-               Operation := Files.Operations.Generate_Selected_Thumbnails (Model, Settings);
+               Operation := Files.Operations.Editing.Generate_Selected_Thumbnails (Model, Settings);
             when Files.Commands.Search_Recursive_Command =>
                Operation := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
             when Files.Commands.Search_Contents_Command =>
@@ -149,7 +154,7 @@ separate (Files.Controller)
             when Files.Commands.Refresh_Directory_Command =>
                Operation := Files.Operations.Refresh (Model, Settings);
             when Files.Commands.Eject_Selected_Root_Command =>
-               Operation := Files.Operations.Eject_Selected_Root (Model);
+               Operation := Files.Operations.Navigation.Eject_Selected_Root (Model);
          end case;
          return Operation;
       end Run_Operation;
@@ -160,7 +165,7 @@ separate (Files.Controller)
       begin
          case Command is
             when Files.Commands.Open_With_Command =>
-               Files.Operations.Begin_Open_With (Model);
+               Files.Operations.Opening.Begin_Open_With (Model);
             when Files.Commands.Copy_Selected_Items_Command =>
                Files.Model.Clipboard.Set (Model, Selected_Paths, Files.Model.Clipboard_Copy);
                Files.Model.Set_Error (Model, "");
@@ -168,14 +173,14 @@ separate (Files.Controller)
                Files.Model.Clipboard.Set (Model, Selected_Paths, Files.Model.Clipboard_Cut);
                Files.Model.Set_Error (Model, "");
             when Files.Commands.Create_File_Command =>
-               Files.Operations.Begin_Create_Item (Model, Folder => False);
+               Files.Operations.Editing.Begin_Create_Item (Model, Folder => False);
             when Files.Commands.New_Folder_Command =>
-               Files.Operations.Begin_Create_Item (Model, Folder => True);
+               Files.Operations.Editing.Begin_Create_Item (Model, Folder => True);
             when Files.Commands.Select_Drive_Command =>
                if Files.Model.Root_Selector.Is_Open (Model) then
                   Files.Model.Root_Selector.Close (Model);
                else
-                  Files.Model.Root_Selector.Open (Model, Files.Operations.Root_Entries_With_Favorites (Settings));
+                  Files.Model.Root_Selector.Open (Model, Files.Operations.Tree.Root_Entries_With_Favorites (Settings));
                end if;
                Files.Model.Set_Error (Model, "");
             when Files.Commands.Toggle_Folder_Tree_Command =>
@@ -185,7 +190,7 @@ separate (Files.Controller)
                elsif Files.Model.Tree_Panel.Is_Open (Model) then
                   Files.Model.Tree_Panel.Close (Model);
                else
-                  Files.Operations.Seed_Tree (Model, Settings);
+                  Files.Operations.Tree.Seed_Tree (Model, Settings);
                   Files.Model.Tree_Panel.Open (Model);
                end if;
                Files.Model.Set_Error (Model, "");
@@ -200,7 +205,7 @@ separate (Files.Controller)
                begin
                   Files.Model.Tree_Panel.Begin_Pick
                     (Model, Mode, Selected_Paths, Files.Model.Current_Path (Model));
-                  Files.Operations.Seed_Tree (Model, Settings);
+                  Files.Operations.Tree.Seed_Tree (Model, Settings);
                   Files.Model.Tree_Panel.Open (Model);
                   Files.Model.Set_Error (Model, "");
                end;
@@ -212,7 +217,7 @@ separate (Files.Controller)
                   Files.Model.Quick_Look.Close (Model);
                else
                   Files.Model.Quick_Look.Open
-                    (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
+                    (Model, Files.Operations.Opening.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
                end if;
                Files.Model.Set_Error (Model, "");
             when Files.Commands.Toggle_Settings_Pane_Command =>

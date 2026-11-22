@@ -1,3 +1,4 @@
+with Files.Rendering.Display_Text;
 with Files.Extra_Info;
 
 separate (Files.Rendering.Build_Snapshot_Into)
@@ -10,7 +11,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
          Subject : constant String := To_String (Extra.Subject);
          Value   : constant String := To_String (Extra.Value);
          Count   : constant String :=
-           Files.Rendering.Labels.Grouped_Integer_Text (Long_Long_Integer (Extra.Count))
+           Files.Rendering.Display_Text.Grouped_Integer_Text (Long_Long_Integer (Extra.Count))
            & (if Extra.Capped then "+" else "");
 
          function Fill (Key, Name, Text : String) return UString is
@@ -40,8 +41,8 @@ separate (Files.Rendering.Build_Snapshot_Into)
             when Files.Extra_Info.Image_Dimensions =>
                return Fill
                  ("image.dimensions", "dimensions",
-                  Files.Rendering.Labels.Digits_Text (Extra.Width) & "x"
-                  & Files.Rendering.Labels.Digits_Text (Extra.Height));
+                  Files.Rendering.Display_Text.Digits_Text (Extra.Width) & "x"
+                  & Files.Rendering.Display_Text.Digits_Text (Extra.Height));
             when Files.Extra_Info.Document_Kind =>
                return To_Unbounded_String (Word ("document." & Value));
             when Files.Extra_Info.Pdf_Pages =>

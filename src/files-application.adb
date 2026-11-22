@@ -1,3 +1,4 @@
+with Files.Settings.Storage;
 with Files.Commands.Keymap_Settings;
 with Files.File_System_Types;
 with Files.Model.Info_Pane;
@@ -262,7 +263,7 @@ package body Files.Application is
    begin
       declare
          Ensured : constant Files.Settings.Settings_Write_Result :=
-           Files.Settings.Ensure_Default_File (Effective_Path);
+           Files.Settings.Storage.Ensure_Default_File (Effective_Path);
       begin
          if Ensured.Success then
             if not Ensured.Durable then
@@ -272,7 +273,8 @@ package body Files.Application is
                      Error_Key  => Ensured.Error_Key));
             end if;
             declare
-               Loaded : constant Files.Settings.Settings_Parse_Result := Files.Settings.Load_File (Effective_Path);
+               Loaded : constant Files.Settings.Settings_Parse_Result :=
+                 Files.Settings.Storage.Load_File (Effective_Path);
             begin
                if Loaded.Success then
                   Settings := Loaded.Settings;
@@ -308,7 +310,7 @@ package body Files.Application is
       Files.Commands.Keymap_Settings.Apply_Shortcut_Overrides (Settings);
       --  The file, as read, says that: a later merge weighs this session's
       --  changes against it, not against how the file happened to spell it.
-      Files.Settings.Note_Seen_Settings (Effective_Path, Settings);
+      Files.Settings.Storage.Note_Seen_Settings (Effective_Path, Settings);
       Result.Settings := Settings;
       Result.Settings_Path :=
         (if Load_Failed then Null_Unbounded_String else To_Unbounded_String (Effective_Path));

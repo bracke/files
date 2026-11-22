@@ -1,11 +1,6 @@
-with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
-with Hostkit.Fs;
-
-with Files.IO.Fs_Primitives;
-with Files.IO.Durable_Writes;
 with Guikit.Utf8;
 with Files.Text_Basics;
 with Files.Text_Case;
@@ -13,38 +8,12 @@ use Files.Text_Basics;
 
 package body Files.Settings is
    use Ada.Strings.Unbounded;
-   use type Ada.Directories.File_Kind;
 
    --  Settings are persistent user input.  Bound both their serialized size
    --  and the number of heap-owning objects a compact file can create.
-   Max_Settings_Text_Bytes      : constant Natural := 1 * 1024 * 1024;
    Max_Settings_Line_Bytes      : constant Natural := 64 * 1024;
    Max_Settings_Entries         : constant Natural := 4_096;
    Max_Parsed_Action_Arguments  : constant Natural := 256;
-
-   --  The settings file as this process last read or wrote it (Load_File,
-   --  Save_Text): its text, which tells another process's change, and what
-   --  it said (Note_Seen_Settings may restate it), which Merge_From_File
-   --  weighs this process's changes against.
-   Seen_Path  : Unbounded_String;
-   Seen_Text  : Unbounded_String;
-   Seen_Base  : Settings_Model;
-   Seen_Known : Boolean := False;
-
-   procedure Note_Seen (Path, Text : String; Base : Settings_Model) is
-   begin
-      Seen_Path := To_Unbounded_String (Path);
-      Seen_Text := To_Unbounded_String (Text);
-      Seen_Base := Base;
-      Seen_Known := True;
-   end Note_Seen;
-
-   procedure Note_Seen_Settings (Path : String; Settings : Settings_Model) is
-   begin
-      if Seen_Known and then To_String (Seen_Path) = Path then
-         Seen_Base := Settings;
-      end if;
-   end Note_Seen_Settings;
 
    function Contains_Nul (Text : String) return Boolean is
    begin
@@ -66,8 +35,6 @@ package body Files.Settings is
       return Boolean is
      (Length (Keys.Element (Index)) = 0
       and then (Index > Natural (Values.Length) or else Length (Values.Element (Index)) = 0));
-
-   function Contains_Line_Break (Text : String) return Boolean;
 
    --  The settings file is line-oriented, so a path holding a line break
    --  cannot round-trip: written raw it splits into a bogus line that fails
@@ -148,8 +115,6 @@ package body Files.Settings is
    --  always written into the draft validation text, so an empty value is
    --  rejected; Pane_Optional slots are written only when non-empty, so an
    --  empty value keeps the default.
-   type Pane_Slot is (Not_In_Pane, Pane_Required, Pane_Optional);
-
    type Scalar_Descriptor is record
       --  The settings-file key.
       Key          : Key_Text;
@@ -248,6 +213,9 @@ package body Files.Settings is
    function Scalar_Key (Setting : Scalar_Setting) return String is
      (Scalar_Table (Setting).Key.all);
 
+   function Pane_Slot_Of (Setting : Scalar_Setting) return Pane_Slot is
+     (Scalar_Table (Setting).Pane);
+
    function Is_Pane_Setting (Setting : Scalar_Setting) return Boolean is
      (Scalar_Table (Setting).Pane /= Not_In_Pane);
 
@@ -321,8 +289,6 @@ package body Files.Settings is
    function Strip_Quotes (Text : String) return String is separate;
 
    function Quoted_Value_Is_Valid (Text : String) return Boolean is separate;
-
-   function Parent_Directory (Path : String) return String renames Files.IO.Fs_Primitives.Parent_Directory;
 
    function Next_Action_Token
      (Text  : String;
@@ -667,11 +633,6 @@ package body Files.Settings is
       return Settings_Parse_Result
  is separate;
 
-   function Load_File
-     (Path : String)
-      return Settings_Parse_Result
- is separate;
-
    function Default_Settings_Text return String is
    begin
       return To_Text (Default_Settings);
@@ -772,170 +733,6 @@ package body Files.Settings is
    function To_Text
      (Settings : Settings_Model)
       return String
- is separate;
-
-   function Make_Draft
-     (Settings : Settings_Model)
-      return Settings_Draft is separate;
-
-   procedure Normalize_Draft
-     (Draft : in out Settings_Draft) is separate;
-
-   function Refresh_Draft
-     (Draft  : Settings_Draft;
-      Before : Settings_Model;
-      After  : Settings_Model)
-      return Settings_Draft
-   is
-      Result : Settings_Draft := Draft;
-   begin
-      for Setting in Scalar_Setting loop
-         if Is_Pane_Setting (Setting) then
-            declare
-               Now : constant String := Scalar_Text (After, Setting);
-            begin
-               if Scalar_Text (Before, Setting) /= Now then
-                  Result.Scalars (Setting) := To_Unbounded_String (Now);
-               end if;
-            end;
-         end if;
-      end loop;
-      return Result;
-   end Refresh_Draft;
-
-   function Draft_Mapping_Vectors_Are_Aligned
-     (Draft : Settings_Draft)
-      return Boolean is
-   begin
-      return Natural (Draft.Filetype_Keys.Length) = Natural (Draft.Filetype_Values.Length)
-        and then Natural (Draft.Icon_Keys.Length) = Natural (Draft.Icon_Values.Length)
-        and then Natural (Draft.Open_Action_Keys.Length) = Natural (Draft.Open_Action_Commands.Length);
-   end Draft_Mapping_Vectors_Are_Aligned;
-
-   function Draft_Mapping_Key_Error
-     (Draft : Settings_Draft)
-      return String is separate;
-
-   function Draft_Mapping_Value_Error
-     (Draft : Settings_Draft)
-      return String is separate;
-
-   type Draft_Mapping_Kind is
-     (Draft_Filetype_Mapping,
-      Draft_Icon_Mapping,
-      Draft_Open_Action_Mapping);
-
-   function Draft_Mapping_Key_Text
-     (Kind : Draft_Mapping_Kind;
-      Key  : UString)
-      return String is
-   begin
-      case Kind is
-         when Draft_Filetype_Mapping =>
-            return Normalize_Extension (To_String (Key));
-         when Draft_Icon_Mapping =>
-            return Trim (To_String (Key));
-         when Draft_Open_Action_Mapping =>
-            return Normalize_Action_Token (To_String (Key));
-      end case;
-   end Draft_Mapping_Key_Text;
-
-   --  Return Draft with each mapping editor's selected key/value merged into
-   --  its row vectors: replacing the row whose normalized key matches (which
-   --  also writes that key in its normal form), or appended as a new row. The
-   --  settings pane keeps its selected fields on a row of its own (typing into
-   --  an empty group starts one), so an appended row comes only from a draft
-   --  built elsewhere with fields that name no row. An edit with an empty key
-   --  and value is not a row. Draft_Settings_Text and Apply_Draft both read
-   --  the merged rows.
-   function With_Pending_Rows
-     (Draft : Settings_Draft)
-      return Settings_Draft
-   is
-      Result : Settings_Draft := Draft;
-
-      procedure Upsert
-        (Keys   : in out String_Vectors.Vector;
-         Values : in out String_Vectors.Vector;
-         Kind   : Draft_Mapping_Kind;
-         Key    : UString;
-         Value  : UString)
-      is
-         Key_Text : constant String := Draft_Mapping_Key_Text (Kind, Key);
-      begin
-         if Length (Key) = 0 and then Length (Value) = 0 then
-            return;
-         end if;
-
-         for Index in 1 .. Natural (Keys.Length) loop
-            if Draft_Mapping_Key_Text (Kind, Keys.Element (Index)) = Key_Text then
-               Keys.Replace_Element (Index, To_Unbounded_String (Key_Text));
-               Values.Replace_Element (Index, Value);
-               return;
-            end if;
-         end loop;
-
-         Keys.Append (To_Unbounded_String (Key_Text));
-         Values.Append (Value);
-      end Upsert;
-   begin
-      Upsert
-        (Result.Filetype_Keys,
-         Result.Filetype_Values,
-         Draft_Filetype_Mapping,
-         Draft.Filetype_Extension,
-         Draft.Filetype_Value);
-      Upsert (Result.Icon_Keys, Result.Icon_Values, Draft_Icon_Mapping, Draft.Icon_Filetype, Draft.Icon_Value);
-      Upsert
-        (Result.Open_Action_Keys,
-         Result.Open_Action_Commands,
-         Draft_Open_Action_Mapping,
-         Draft.Open_Action_Token,
-         Draft.Open_Action_Command);
-      return Result;
-   end With_Pending_Rows;
-
-   function Draft_Settings_Text
-     (Draft : Settings_Draft)
-      return String
- is separate;
-
-   function Validate_Draft
-     (Draft : Settings_Draft)
-      return Settings_Parse_Result is separate;
-
-   function Draft_After_Save
-     (Draft : Settings_Draft;
-      Saved : Settings_Model)
-      return Settings_Draft is separate;
-
-   function Apply_Draft
-     (Settings : Settings_Model;
-      Draft    : Settings_Draft)
-      return Settings_Parse_Result
- is separate;
-
-   function Reset_Draft_To_Defaults return Settings_Draft is
-   begin
-      return Make_Draft (Default_Settings);
-   end Reset_Draft_To_Defaults;
-
-   function Save_Text
-     (Path : String;
-      Text : String)
-      return Settings_Write_Result
- is separate;
-
-   procedure Merge_From_File
-     (Path     : String;
-      Settings : in out Settings_Model;
-      Merged   : out Boolean;
-      Refused  : out Boolean)
- is separate;
-
-   function Ensure_Default_File
-     (Path : String)
-      return Settings_Write_Result
  is separate;
 
 end Files.Settings;

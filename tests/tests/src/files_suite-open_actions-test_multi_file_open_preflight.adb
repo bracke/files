@@ -1,3 +1,4 @@
+with Files.Operations.Opening;
 with Files.Operation_Results;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
@@ -45,7 +46,7 @@ separate (Files_Suite.Open_Actions)
            (To_String (Preflight_Result.Path),
             Join (Root, "Gamma.md"),
             "multi-file open preparation failure reports missing-action path");
-         Preflight_Result := Files.Operations.Open_Selected (Preflight_Model, Preflight_Settings);
+         Preflight_Result := Files.Operations.Opening.Open_Selected (Preflight_Model, Preflight_Settings);
          Files_Suite.Support.Assert_Equal
            (Preflight_Result.Status,
             Files.Operation_Results.Operation_Missing_Open_Action,
@@ -84,7 +85,7 @@ separate (Files_Suite.Open_Actions)
             Files.Settings.Open_Actions.Make_Action (Missing_Executable, Files.Settings.String_Vectors.Empty_Vector));
          Files.Model.Selection.Select_Visible (Preflight_Model, 1);
          Files.Model.Selection.Toggle_Visible_Selection (Preflight_Model, 3);
-         Preflight_Result := Files.Operations.Open_Selected (Preflight_Model, Preflight_Settings);
+         Preflight_Result := Files.Operations.Opening.Open_Selected (Preflight_Model, Preflight_Settings);
          Files_Suite.Support.Assert_Equal
            (Preflight_Result.Status,
             Files.Operation_Results.Operation_Failed,
@@ -120,7 +121,7 @@ separate (Files_Suite.Open_Actions)
             Files.Settings.Open_Actions.Make_Action (Failing_Executable, Files.Settings.String_Vectors.Empty_Vector));
          Files.Model.Selection.Select_Visible (Detached_Model, 1);
          Files.Model.Selection.Toggle_Visible_Selection (Detached_Model, 3);
-         Detached_Result := Files.Operations.Open_Selected (Detached_Model, Detached_Settings);
+         Detached_Result := Files.Operations.Opening.Open_Selected (Detached_Model, Detached_Settings);
          Files_Suite.Support.Assert_Equal
            (Detached_Result.Status,
             Files.Operation_Results.Operation_Action_Executed,

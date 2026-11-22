@@ -1,3 +1,4 @@
+with Files.Operations.Editing;
 with Files.Model.Creation;
 with Files.Operation_Results;
 separate (Files_Suite.Names)
@@ -14,7 +15,7 @@ separate (Files_Suite.Names)
       Files.Model.Creation.Begin_Create_Folder (Model, "created-folder");
       Assert (Files.Model.Creation.Temporary_Item_Is_Directory (Model),
               "create-folder marks temporary item as directory");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,

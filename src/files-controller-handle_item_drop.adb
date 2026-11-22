@@ -30,7 +30,7 @@ separate (Files.Controller)
          --  From_Clipboard is False: a dropped move leaves the clipboard alone.
          declare
             Op : constant Files.Operation_Results.Operation_Result :=
-              Files.Operations.Begin_Paste_To
+              Files.Operations.Paste.Begin_Paste_To
                 (Model          => Model,
                  Settings       => Settings,
                  Source_Paths   => Sources,

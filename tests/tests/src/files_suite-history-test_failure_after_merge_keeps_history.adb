@@ -1,3 +1,4 @@
+with Files.Operations.History;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -25,7 +26,7 @@ separate (Files_Suite.History)
       Write_Binary_File (Extra, "made while the job finished");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Operations.Clear_Undo (Model);
+      Files.Operations.History.Clear_Undo (Model);
       Files.Model.Filtering.Set_Filter (Model, "a.txt");
       Files.Model.Selection.Select_All_Visible (Model);
       --  A helper job, so the operation finishes through Jobs.Operation.Advance.

@@ -1,3 +1,4 @@
+with Files.Operations.Editing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.IO.Fs_Primitives;
@@ -46,7 +47,7 @@ separate (Files_Suite.Names)
       Select_Name (Model, "source.txt");
       Files.Model.Rename.Toggle (Model);
       Assert (Files.Model.Rename.Insert_At_Carets (Model, [1 .. 300 => 'n']), "the typed name is entered");
-      Committed := Files.Operations.Commit_Rename (Model, Settings);
+      Committed := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Assert (Committed.Status /= Files.Operation_Results.Operation_Success,
               "inline rename: a 300-byte name is refused");
       Files_Suite.Support.Assert_Equal

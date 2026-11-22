@@ -3,6 +3,8 @@ with Files.Localization;
 
 package body Files.Rendering.Labels is
 
+   use Files.Rendering.Display_Text;
+
    function Command_Label (Id : Files.Commands.Command_Id) return UString is
      (To_Unbounded_String (Files.Localization.Text (Files.Commands.Name_Key (Id))));
 

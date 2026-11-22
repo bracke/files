@@ -1,3 +1,4 @@
+with Files.Operations.Archives;
 with Files.Controller.Operation_Commands;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -85,7 +86,7 @@ package body Files_Suite.Recovery is
    use type Files.IO.Private_Directories.Create_Result;
    use type Files.Jobs.Transports.Claim_Outcome;
    use type Files.Operation_Results.Operation_Status;
-   use type Files.Operations.Archive_Format;
+   use type Files.Operations.Archives.Archive_Format;
    use type Interfaces.Unsigned_8;
    use type Hostkit.Lease_Files.Open_Outcome;
    use type Files.Types.Item_Kind;

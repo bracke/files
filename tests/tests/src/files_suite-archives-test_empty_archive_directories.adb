@@ -1,3 +1,4 @@
+with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -16,7 +17,7 @@ separate (Files_Suite.Archives)
       Verify : constant String := Join (Root, "verify");
    begin
       for Background in Boolean loop
-         for Format in Files.Operations.Archive_Format loop
+         for Format in Files.Operations.Archives.Archive_Format loop
             for Empty_Only in Boolean loop
                Reset_Root;
                Ada.Directories.Create_Path (Join (Join (Join (Root, "bag"), "empty"), "nested"));
@@ -26,13 +27,13 @@ separate (Files_Suite.Archives)
                end if;
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Operations.Clear_Undo (Model);
+               Files.Operations.History.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "bag");
                Step := Complete_Operation
                  (Model, Settings, Operation_Commands.Compress_Selected (Model, Settings, Format));
                Archive := To_Unbounded_String
-                 (Join (Root, (if Format = Files.Operations.Zip_Archive then "bag.zip" else "bag.7z")));
+                 (Join (Root, (if Format = Files.Operations.Archives.Zip_Archive then "bag.zip" else "bag.7z")));
                Assert (Step.Status = Files.Operation_Results.Operation_Success
                        and then Ada.Directories.Exists (To_String (Archive)),
                        "mixed and directory-only selections produce successful ZIP and 7z archives");

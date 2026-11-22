@@ -1,3 +1,5 @@
+with Files.Operations.Editing;
+with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.History)
@@ -19,7 +21,7 @@ separate (Files_Suite.History)
       Select_Name (Model, "orig.txt");
       Files.Model.Rename.Toggle (Model);
       Files.Model.Rename.Set_Text (Model, "renamed.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,
@@ -37,7 +39,7 @@ separate (Files_Suite.History)
       Assert (not Ada.Directories.Exists (Renamed), "undo removed the renamed file");
       Assert (not Files.Model.History.Undo_Available (Model), "undo record is cleared after undo");
 
-      Files.Operations.Clear_Undo (Model);
+      Files.Operations.History.Clear_Undo (Model);
       Files.Model.Set_Error (Model, "error.directory.load");
       Result := Operation_Commands.Undo_Last (Model, Settings);
       Assert

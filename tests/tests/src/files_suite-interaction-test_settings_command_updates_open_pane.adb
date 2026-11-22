@@ -1,3 +1,4 @@
+with Files.Settings.Drafts;
 with Files.Overlays.Settings_Form;
 with Files.Settings.Testing;
 with Files.Model.Settings_Pane;
@@ -47,7 +48,7 @@ separate (Files_Suite.Interaction)
       --  Saving the pane now writes the new value, not the one it opened with.
       declare
          Applied : constant Files.Settings.Settings_Parse_Result :=
-           Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Pane.Draft_Of (Model));
+           Files.Settings.Drafts.Apply_Draft (Settings, Files.Model.Settings_Pane.Draft_Of (Model));
       begin
          Assert (Applied.Settings.Show_Hidden_Files, "applying the pane keeps hidden files on");
       end;

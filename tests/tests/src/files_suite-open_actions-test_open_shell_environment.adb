@@ -1,3 +1,4 @@
+with Files.Operations.Opening;
 with Files.Operation_Results;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
@@ -82,7 +83,7 @@ separate (Files_Suite.Open_Actions)
             Files.Settings.Open_Actions.Make_Action
               ("cd", Files.Settings.String_Vectors.Empty_Vector, Use_Shell => True));
          Files.Model.Selection.Select_Visible (Missing_Shell_Model, 1);
-         Missing_Shell_Action := Files.Operations.Open_Selected (Missing_Shell_Model, Missing_Shell_Settings);
+         Missing_Shell_Action := Files.Operations.Opening.Open_Selected (Missing_Shell_Model, Missing_Shell_Settings);
          if Hostkit.Host.Current = Hostkit.Host.Windows then
             Files_Suite.Support.Assert_Equal
               (Missing_Shell_Action.Status,

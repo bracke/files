@@ -1,3 +1,8 @@
+with Files.Operations.Navigation;
+with Files.Operations.Opening;
+with Files.Operations.Metadata;
+with Files.Operations.Tree;
+with Files.Settings.Drafts;
 with Files.Model.Ownership_Input;
 with Files.Model.Info_Pane;
 with Files.Model.Filtering;
@@ -67,7 +72,7 @@ package body Files.Controller is
         and then not Files.Settings.Path_References.Same_Favorites
           (Settings, Files.Settings.Path_References.Favorite_Paths (Before))
       then
-         Files.Operations.Seed_Tree (Model, Settings);
+         Files.Operations.Tree.Seed_Tree (Model, Settings);
       end if;
    end Follow_Favorites;
 
@@ -81,7 +86,7 @@ package body Files.Controller is
             use type Files.Settings.Settings_Draft;
             Shown     : constant Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
             Refreshed : constant Files.Settings.Settings_Draft :=
-              Files.Settings.Refresh_Draft (Shown, Before, Settings);
+              Files.Settings.Drafts.Refresh_Draft (Shown, Before, Settings);
          begin
             if Refreshed /= Shown then
                Files.Overlays.Settings_Form.Set_Draft (Model, Refreshed);
@@ -332,7 +337,7 @@ package body Files.Controller is
          Command : constant Files.Commands.Command_Id :=
            (if Mode = Files.Model.Pick_Move then Files.Commands.Move_To_Command else Files.Commands.Copy_To_Command);
          Op      : constant Files.Operation_Results.Operation_Result :=
-           Files.Operations.Begin_Paste_To
+           Files.Operations.Paste.Begin_Paste_To
              (Model, Settings, Files.Model.Tree_Panel.Pick_Sources (Model),
               Files.Model.Tree_Panel.Pick_Target (Model),
               (if Mode = Files.Model.Pick_Move
@@ -598,7 +603,8 @@ package body Files.Controller is
       end if;
       return Make_Result
         (Controller_Command_Executed,
-         Operation => Files.Operations.Toggle_Permission_Bit (Model => Model, Bit => Bit, Settings => Settings));
+         Operation => Files.Operations.Metadata.Toggle_Permission_Bit (Model => Model, Bit => Bit,
+                                                                       Settings => Settings));
    end Handle_Permission_Toggle;
 
    function Handle_Ownership_Edit
@@ -611,14 +617,14 @@ package body Files.Controller is
       then
          return Make_Result (Controller_Ignored);
       end if;
-      Files.Operations.Focus_Ownership_Input (Model, Editing_Group => Group);
+      Files.Operations.Metadata.Focus_Ownership_Input (Model, Editing_Group => Group);
       return Make_Result (Controller_Text_Updated);
    end Handle_Ownership_Edit;
 
    function Handle_Conflict_Choice
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Choice   : Files.Operations.Conflict_Choice)
+      Choice   : Files.Operations.Paste.Conflict_Choice)
       return Controller_Result is
    begin
       if not Files.Model.Pasting.Conflict_Is_Active (Model) then
@@ -627,7 +633,7 @@ package body Files.Controller is
       return Make_Result
         (Controller_Command_Executed,
          Operation =>
-           Files.Operations.Resolve_Paste_Conflict
+           Files.Operations.Paste.Resolve_Paste_Conflict
              (Model     => Model,
               Settings  => Settings,
               Choice    => Choice,
@@ -685,7 +691,7 @@ package body Files.Controller is
          return Make_Result
            (Controller_Command_Executed,
             Files.Commands.Open_Containing_Folder_Command,
-            Files.Operations.Navigate_And_Select (Model, Settings, Path));
+            Files.Operations.Navigation.Navigate_And_Select (Model, Settings, Path));
       end;
    end Reveal_Selected_Item;
 
@@ -704,16 +710,16 @@ package body Files.Controller is
          --  A favorite may target a file or a stale path; ordinary roots are
          --  always directories and take the direct navigation path.
          if Kind = Files.File_System_Types.Root_Favorite then
-            case Files.Operations.Classify_Favorite (Path) is
-               when Files.Operations.Favorite_Stale =>
+            case Files.Operations.Tree.Classify_Favorite (Path) is
+               when Files.Operations.Tree.Favorite_Stale =>
                   --  Broken favorite: skip the click without raising so a stale
                   --  entry can never crash the selector.
                   return Make_Result (Controller_Ignored);
-               when Files.Operations.Favorite_File =>
+               when Files.Operations.Tree.Favorite_File =>
                   --  The folder opens with the file selected.
                   declare
                      Operation : constant Files.Operation_Results.Operation_Result :=
-                       Files.Operations.Navigate_And_Select (Model, Settings, Path);
+                       Files.Operations.Navigation.Navigate_And_Select (Model, Settings, Path);
                   begin
                      return Make_Result
                        ((if Operation.Status = Files.Operation_Results.Operation_Disabled
@@ -722,14 +728,14 @@ package body Files.Controller is
                         Files.Commands.Open_Selected_Root_Command,
                         Operation);
                   end;
-               when Files.Operations.Favorite_Folder =>
+               when Files.Operations.Tree.Favorite_Folder =>
                   null;
             end case;
          end if;
 
          declare
             Operation : constant Files.Operation_Results.Operation_Result :=
-              Files.Operations.Select_Root (Model, Settings, Path);
+              Files.Operations.Navigation.Select_Root (Model, Settings, Path);
          begin
             return Make_Result (Controller_Command_Executed, Files.Commands.Open_Selected_Root_Command, Operation);
          end;
@@ -779,7 +785,7 @@ package body Files.Controller is
 
          declare
             Operation : constant Files.Operation_Results.Operation_Result :=
-              Files.Operations.Select_Root (Model, Settings, Target);
+              Files.Operations.Navigation.Select_Root (Model, Settings, Target);
          begin
             return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
          end;
@@ -807,7 +813,7 @@ package body Files.Controller is
          return Make_Result (Controller_Ignored);
       end if;
       if not Files.Model.Tree_Panel.Node_Is_Expanded (Model, Node_Index) then
-         Files.Operations.Load_Tree_Children (Model, Settings, Node_Index);
+         Files.Operations.Tree.Load_Tree_Children (Model, Settings, Node_Index);
       end if;
       Files.Model.Tree_Panel.Toggle_Expanded (Model, Node_Index);
       return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Empty_Operation);
@@ -835,7 +841,7 @@ package body Files.Controller is
       return Make_Result
         (Controller_Command_Executed,
          Files.Commands.Open_With_Command,
-         Files.Operations.Launch_Application (Model, App, Targets));
+         Files.Operations.Opening.Launch_Application (Model, App, Targets));
    end Launch_Application_Result;
 
    --  Act on the palette's highlighted command (from Command_Palette.Selected_Id):
@@ -919,7 +925,7 @@ package body Files.Controller is
       if not Accepts_Drop_Import (Model) then
          return Make_Result (Controller_Ignored);
       end if;
-      Operation := Files.Operations.Begin_Paste
+      Operation := Files.Operations.Paste.Begin_Paste
         (Model, Settings, Source_Paths, Mode, From_Clipboard => False);
       return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
    end Handle_Drop_Import;

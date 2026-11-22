@@ -1,0 +1,54 @@
+with Files.Model.Filtering;
+with Files.File_System.Search;
+with Files.File_Types;
+with Files.UI_Types;
+separate (Files.Operations.Navigation)
+function Run_Search
+  (Model    : in out Files.Model.Window_Model;
+   Settings : Files.Settings.Settings_Model;
+   Scope    : Files.UI_Types.Tree_Search_Scope)
+   return Operation_Result
+is
+   use type Files.UI_Types.Search_Scope;
+   Query   : constant String := Files.Model.Filtering.Filter_Text (Model);
+   Root    : constant String := Files.Model.Current_Path (Model);
+   Classes : constant Files.File_Types.Classification := Files.Settings.Classification_Of (Settings);
+   Options : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Settings);
+begin
+   declare
+      Refusal : constant Operation_Result := Search_Refusal (Model);
+   begin
+      if Refusal.Status /= Operation_Success then
+         return Refusal;
+      end if;
+   end;
+
+   declare
+      Found : constant Files.File_System.Recursive_Search_Result :=
+        (if Scope = Files.UI_Types.Search_Contents
+         then Files.File_System.Search.Search_Contents (Root, Query, Classes, Options)
+         else Files.File_System.Search.Search_Names (Root, Query, Classes, Options));
+   begin
+      if not Found.Success then
+         Files.Model.Set_Error (Model, To_String (Found.Error_Key));
+         return Make_Result (Operation_Failed, To_String (Found.Error_Key), Root);
+      end if;
+      Files.Model.Replace_Items (Model, Found.Items);
+      Files.Model.Filtering.Note_Search_Results (Model, Scope);
+      Files.Model.Set_Directory_Signature (Model, Files.File_System.Directory_State (Root));
+      --  A partial answer is still shown, with a notice that it is one: a
+      --  limit cut it short, or something under the root went unsearched.
+      Files.Model.Set_Error
+        (Model,
+         (if Found.Truncated then "search.truncated"
+          elsif Found.Incomplete then "search.incomplete"
+          elsif Found.Items.Is_Empty then "search.no_matches"
+          else ""));
+      return Make_Result (Operation_Success, Path => Root);
+   end;
+exception
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
+      Files.Model.Set_Error (Model, "error.search.failed");
+      return Make_Result (Operation_Failed, "error.search.failed", Root);
+end Run_Search;

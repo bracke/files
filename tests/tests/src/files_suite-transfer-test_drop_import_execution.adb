@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
@@ -54,7 +55,7 @@ separate (Files_Suite.Transfer)
          "drop-source.txt",
          "the drop conflict dialog names the colliding item");
       Routed.Operation :=
-        Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
+        Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Rename, False);
       Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "resolving the drop conflict clears the dialog");
       Assert
         (Ada.Directories.Exists (Join (Drop_Target, "drop-source 2.txt")),
@@ -73,7 +74,7 @@ separate (Files_Suite.Transfer)
       --  A drop onto a specific folder row routes through Begin_Paste_To; with
       --  no name collision it executes the move immediately.
       Routed.Operation :=
-        Files.Operations.Begin_Paste_To
+        Files.Operations.Paste.Begin_Paste_To
           (Model          => Model,
            Settings       => Settings,
            Source_Paths   => Sources,

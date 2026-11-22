@@ -1,3 +1,4 @@
+with Files.Operations.History;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -32,7 +33,7 @@ separate (Files_Suite.History)
                end if;
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Operations.Clear_Undo (Model);
+               Files.Operations.History.Clear_Undo (Model);
                Prior.Clear;
                Prior.Append (To_Unbounded_String (Join (Root, "prior")));
                Files.Operations.Undo_Recording.Record_Undo

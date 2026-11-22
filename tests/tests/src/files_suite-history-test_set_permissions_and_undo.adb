@@ -1,3 +1,4 @@
+with Files.Operations.Metadata;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.History)
@@ -58,7 +59,7 @@ separate (Files_Suite.History)
       Select_Name (Model, "modeable.txt");
       Ada.Directories.Delete_File (Target);
       Files.Model.Set_Error (Model, "error.directory.load");
-      Result := Files.Operations.Toggle_Permission_Bit (Model, 8, Settings);
+      Result := Files.Operations.Metadata.Toggle_Permission_Bit (Model, 8, Settings);
       Assert
         (Result.Status = Files.Operation_Results.Operation_Failed
          and then Files.Model.Last_Error_Key (Model) = "error.permissions.failed",

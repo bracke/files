@@ -47,13 +47,13 @@ separate (Files_Suite.Recovery)
       Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Ada.Directories.Exists (Join (Root,
               "a (copy).txt")),
               "background duplicate records Undo on the owning window");
-      for Format in Files.Operations.Archive_Format loop
+      for Format in Files.Operations.Archives.Archive_Format loop
          Select_Name (Model, "a.txt");
          Step := Operation_Commands.Compress_Selected (Model, Settings, Format);
          Finish;
          declare
             Archive : constant String :=
-              (if Format = Files.Operations.Zip_Archive then "a.zip" else "a.7z");
+              (if Format = Files.Operations.Archives.Zip_Archive then "a.zip" else "a.7z");
          begin
             Assert (Ada.Directories.Exists (Join (Root, Archive)),
                     "background compression publishes a complete archive");

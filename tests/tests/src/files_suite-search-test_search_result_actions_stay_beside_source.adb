@@ -1,3 +1,4 @@
+with Files.Operations.Editing;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
@@ -47,7 +48,7 @@ separate (Files_Suite.Search)
       Search ("report");
       Files.Model.Rename.Toggle (Model);
       Files.Model.Rename.Set_Text (Model, "summary.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                         "the search result renames");
       Assert (Path_Exists (Join (Deep, "summary.txt")) and then not Path_Exists (Join (Root, "summary.txt")),
@@ -63,7 +64,7 @@ separate (Files_Suite.Search)
               "the duplicate is made beside its source, not in the search root");
 
       Search ("summary.txt");
-      Result := Files.Operations.Create_Symlink_Selected (Model, Settings);
+      Result := Files.Operations.Editing.Create_Symlink_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,
@@ -85,7 +86,7 @@ separate (Files_Suite.Search)
       Files.Model.Initialize (Model, Deep, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, False);
       Assert (Files.Model.Selection.Select_By_Name (Model, "summary.txt"), "the file to archive is listed");
-      Result := Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive);
+      Result := Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Archives.Zip_Archive);
       Assert (Path_Exists (Join (Deep, "summary.zip")), "an archive is made beside the file");
       Search ("summary.zip");
       Files.Model.Set_Background_Transfers (Model, True);
@@ -114,7 +115,7 @@ separate (Files_Suite.Search)
       Files.Model.Filtering.Clear_Filter (Model);
       Files.Model.Rename.Toggle (Model);
       Files.Model.Rename.Set_Text (Model, "notes.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Rename (Model, Settings);
       Assert (Path_Exists (Join (Deep, "notes.txt")) and then not Path_Exists (Join (Root, "notes.txt")),
               "a result still listed after Clear Filter renames in its own folder");
       Project_Tools.Files.Delete_Tree (Join (Root, "a"));

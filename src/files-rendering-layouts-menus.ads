@@ -1,3 +1,4 @@
+with Files.Commands.Context_Menus;
 --  The rows of the context menu and the sort menu: where the menus open,
 --  where each row lies, and which row a point hits -- what their drawing
 --  and their hit tests both resolve against.
@@ -19,7 +20,7 @@ package Files.Rendering.Layouts.Menus is
       Column_Width     : Natural := 0;
       Column_Break_Row : Natural := 0;
       Row_Count        : Natural := 0;
-      Rows             : Files.Commands.Context_Menu_Row_Array;
+      Rows             : Files.Commands.Context_Menus.Context_Menu_Row_Array;
    end record;
 
    --  Calculate the context-menu popup rectangle and per-row geometry.
@@ -152,7 +153,7 @@ package Files.Rendering.Layouts.Menus is
      (Menu : Context_Menu_Layout;
       Row  : Positive)
       return Natural
-   is (if Files.Commands."=" (Menu.Rows (Row).Kind, Files.Commands.Menu_Separator)
+   is (if Files.Commands.Context_Menus."=" (Menu.Rows (Row).Kind, Files.Commands.Context_Menus.Menu_Separator)
        then Menu.Separator_Height
        else Menu.Row_Height);
 

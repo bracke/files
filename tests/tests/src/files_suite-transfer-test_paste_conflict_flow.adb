@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Model.Clipboard;
@@ -66,7 +67,7 @@ separate (Files_Suite.Transfer)
          "a.txt",
          "the dialog names the colliding item");
       Resolved :=
-        Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
+        Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Replace, False);
       Files_Suite.Support.Assert_Equal
         (Resolved.Status,
          Files.Operation_Results.Operation_Success,
@@ -87,7 +88,7 @@ separate (Files_Suite.Transfer)
       Arm_Model (Model, One_File);
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Resolved :=
-        Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Skip, False);
+        Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Skip, False);
       Files_Suite.Support.Assert_Equal
         (Resolved.Status,
          Files.Operation_Results.Operation_Success,
@@ -108,7 +109,7 @@ separate (Files_Suite.Transfer)
       Arm_Model (Model, One_File);
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Resolved :=
-        Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
+        Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Rename, False);
       Files_Suite.Support.Assert_Equal
         (Resolved.Status,
          Files.Operation_Results.Operation_Success,
@@ -140,7 +141,7 @@ separate (Files_Suite.Transfer)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Assert (Files.Model.Pasting.Conflict_Is_Active (Model), "two collisions arm the dialog");
       Resolved :=
-        Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, True);
+        Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Replace, True);
       Files_Suite.Support.Assert_Equal
         (Resolved.Status,
          Files.Operation_Results.Operation_Success,
@@ -174,12 +175,13 @@ separate (Files_Suite.Transfer)
          Files_Suite.Support.Assert_Equal
            (Files.Model.Pasting.Conflict_Name (Model), "a.txt", "the dialog asks about a.txt first");
          Resolved :=
-           Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Skip, False);
+           Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Skip, False);
          Assert (Files.Model.Pasting.Conflict_Is_Active (Model), "a choice for one item leaves the other to ask about");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Pasting.Conflict_Name (Model), "b.txt", "the dialog moves on to b.txt");
          Resolved :=
-           Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
+           Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Replace,
+                                                          False);
          Files_Suite.Support.Assert_Equal
            (Resolved.Status, Files.Operation_Results.Operation_Success, "the second choice finishes the paste");
          Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "and closes the dialog");
@@ -199,7 +201,7 @@ separate (Files_Suite.Transfer)
       Arm_Model (Model, One_File);
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Resolved :=
-        Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Cancel, False);
+        Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Cancel, False);
       Files_Suite.Support.Assert_Equal
         (Resolved.Status,
          Files.Operation_Results.Operation_Success,
@@ -224,7 +226,8 @@ separate (Files_Suite.Transfer)
          Assert
            (Files.Model.Pasting.Conflict_Is_Active (Model), "a dangling link at the name arms the conflict dialog");
          Resolved :=
-           Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
+           Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Replace,
+                                                          False);
          Files_Suite.Support.Assert_Equal
            (Resolved.Status,
             Files.Operation_Results.Operation_Success,

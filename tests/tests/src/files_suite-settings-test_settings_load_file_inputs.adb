@@ -1,3 +1,4 @@
+with Files.Settings.Storage;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Settings)
    procedure Test_Settings_Load_File_Inputs (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -27,26 +28,26 @@ separate (Files_Suite.Settings)
       Oversized_Loaded : Files.Settings.Settings_Parse_Result;
    begin
       Reset_Root;
-      Missing := Files.Settings.Load_File (Join (Root, "missing.conf"));
+      Missing := Files.Settings.Storage.Load_File (Join (Root, "missing.conf"));
       Assert (Missing.Success, "missing settings file falls back to defaults");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Filetype_For_Extension (Missing.Settings, "txt"),
          "text/plain",
          "default settings are returned for a missing file");
-      Empty_Load := Files.Settings.Load_File ("");
+      Empty_Load := Files.Settings.Storage.Load_File ("");
       Assert (not Empty_Load.Success, "empty settings file path is rejected");
       Files_Suite.Support.Assert_Equal
         (To_String (Empty_Load.Error_Key),
          "error.settings.load",
          "empty settings file path reports load diagnostic");
-      Loaded := Files.Settings.Load_File
+      Loaded := Files.Settings.Storage.Load_File
         (Settings_Path & Character'Val (0) & "ignored");
       Assert
         (not Loaded.Success
          and then To_String (Loaded.Error_Key) = "error.settings.load",
          "settings loading rejects NUL-containing paths without truncating them");
       Ada.Directories.Create_Path (Join (Root, "settings-dir"));
-      Not_File := Files.Settings.Load_File (Join (Root, "settings-dir"));
+      Not_File := Files.Settings.Storage.Load_File (Join (Root, "settings-dir"));
       Assert (not Not_File.Success, "directory settings path is rejected");
       Files_Suite.Support.Assert_Equal
         (To_String (Not_File.Error_Key),
@@ -64,7 +65,7 @@ separate (Files_Suite.Settings)
          "[filetypes]" & ASCII.LF &
          "foo = application/x-foo" & ASCII.LF);
       --  Both legacy booleans set: high contrast wins over light (old precedence).
-      Loaded := Files.Settings.Load_File (Settings_Path);
+      Loaded := Files.Settings.Storage.Load_File (Settings_Path);
       Assert (Loaded.Success, "settings file parses from disk");
       Assert (Loaded.Settings.Show_Hidden_Files, "show-hidden setting loads from disk");
       Files_Suite.Support.Assert_Equal
@@ -83,7 +84,7 @@ separate (Files_Suite.Settings)
          Link_Path : constant String := Join (Root, "linked-settings.conf");
       begin
          if Files_Suite.Support.Disk.Create_Symlink (Settings_Path, Link_Path) then
-            Loaded := Files.Settings.Load_File (Link_Path);
+            Loaded := Files.Settings.Storage.Load_File (Link_Path);
             Assert
               (Loaded.Success and then Loaded.Settings.Show_Hidden_Files,
                "settings loading follows a link only to its verified regular-file target");
@@ -93,7 +94,7 @@ separate (Files_Suite.Settings)
          end if;
       end;
       --  /dev/null, or Windows' NUL device.
-      Loaded := Files.Settings.Load_File (Hostkit.Fs.Null_Device);
+      Loaded := Files.Settings.Storage.Load_File (Hostkit.Fs.Null_Device);
       Assert
         (not Loaded.Success
          and then To_String (Loaded.Error_Key) = "error.settings.not_file",
@@ -103,7 +104,7 @@ separate (Files_Suite.Settings)
         (Long_Path,
          "[filetypes]" & ASCII.LF &
          "long = " & Long_Type & ASCII.LF);
-      Long_Loaded := Files.Settings.Load_File (Long_Path);
+      Long_Loaded := Files.Settings.Storage.Load_File (Long_Path);
       Assert (Long_Loaded.Success, "settings loader preserves long logical lines");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Filetype_For_Extension (Long_Loaded.Settings, "long"),
@@ -114,7 +115,7 @@ separate (Files_Suite.Settings)
         (Oversized_Path,
          'x',
          1 * 1024 * 1024 + 1);
-      Oversized_Loaded := Files.Settings.Load_File (Oversized_Path);
+      Oversized_Loaded := Files.Settings.Storage.Load_File (Oversized_Path);
       Assert
         (not Oversized_Loaded.Success
          and then To_String (Oversized_Loaded.Error_Key) = "error.settings.load",

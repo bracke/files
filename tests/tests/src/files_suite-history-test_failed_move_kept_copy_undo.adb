@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files.Operation_Results;
 with Files.IO.Durability.Testing;
@@ -57,14 +59,14 @@ separate (Files_Suite.History)
                Write_Binary_File (Moved_Source, "moved bytes");
             end if;
             Files.Model.Initialize (Model, Remote.Path, Files.Items.Item_Vectors.Empty_Vector, Root);
-            Files.Operations.Clear_Undo (Model);
+            Files.Operations.History.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             --  Every recovery stage holding its payload fails its flush: the
             --  source cannot be set aside for removal and is put back, and the
             --  copy cannot be set aside for deletion either, so it stays.
             Files.IO.Durability.Testing.Fail_Stage_Sync;
             Ada.Environment_Variables.Set ("FILES_TEST_STAGE_SYNC_FAULT", "1");
-            Files.Operations.Begin_Paste_Execution
+            Files.Operations.Paste.Begin_Paste_Execution
               (Model, (if Mixed then Mixed_Actions else Actions), Files.File_System_Types.Drop_Move);
             Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
             Cleanup;

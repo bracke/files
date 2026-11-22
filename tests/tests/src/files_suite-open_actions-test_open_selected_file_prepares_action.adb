@@ -1,3 +1,4 @@
+with Files.Operations.Opening;
 with Files.Operation_Results;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
@@ -61,7 +62,7 @@ separate (Files_Suite.Open_Actions)
          "Alpha.txt",
          "name placeholder expands");
 
-      Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Action_Executed,
@@ -120,7 +121,7 @@ separate (Files_Suite.Open_Actions)
         (Settings,
          "text/plain",
          Files.Settings.Open_Actions.Make_Action (No_Op_Executable, Files.Settings.String_Vectors.Empty_Vector));
-      Result := Files.Operations.Open_Selected (Model, Settings);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Action_Executed,
@@ -158,7 +159,7 @@ separate (Files_Suite.Open_Actions)
         (Files.Model.Last_Error_Key (Model),
          "",
          "multi-file open preparation clears stale error state");
-      Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
+      Result := Files.Operations.Opening.Open_Selected (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Action_Executed,

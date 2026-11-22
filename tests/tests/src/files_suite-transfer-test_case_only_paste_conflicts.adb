@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Job_Drivers.Foreground;
@@ -59,7 +60,8 @@ separate (Files_Suite.Transfer)
          --  Undo brings the original back under that name too.
          declare
             Step : Files.Operation_Results.Operation_Result :=
-              Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
+              Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Replace,
+                                                             False);
             pragma Unreferenced (Step);
 
             --  The folder's one entry, by name and content.

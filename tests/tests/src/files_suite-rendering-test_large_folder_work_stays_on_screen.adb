@@ -166,7 +166,7 @@ separate (Files_Suite.Rendering)
             Default_View_Mode => Files.Preference_Types.Details);
          declare
             Base_List : Files.Model.Selection.Visible_Index_List;
-            Hits      : Files.Model.Selection.Visible_Index_List;
+            Hits      : Files.Interaction.Marquee_Rows;
             Rounds    : constant := 50;
             Start     : Ada.Real_Time.Time;
          begin
@@ -189,7 +189,7 @@ separate (Files_Suite.Rendering)
                  ("large-folder: additive marquee move, base rows found per move" & Per_Round (Start, Rounds));
                declare
                   Key       : constant Natural := Files.Model.Selection.Visible_Rows_Key (Model);
-                  Base_Rows : constant Files.Model.Selection.Visible_Index_List :=
+                  Base_Rows : constant Files.Interaction.Marquee_Rows :=
                     Files.Interaction.Marquee_Base_Rows (Model, Base);
                begin
                   Start := Ada.Real_Time.Clock;

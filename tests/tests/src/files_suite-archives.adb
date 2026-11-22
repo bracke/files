@@ -1,3 +1,4 @@
+with Files.Operations.Archives;
 with Files.Controller.Operation_Commands;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -42,7 +43,7 @@ package body Files_Suite.Archives is
    use type Ada.Directories.File_Kind;
    use type Hostkit.Host.Kind;
    use type Files.Operation_Results.Operation_Status;
-   use type Files.Operations.Archive_Format;
+   use type Files.Operations.Archives.Archive_Format;
    use type Files.Types.Item_Kind;
    use type Files.UI_Types.Search_Scope;
    use Files_Suite.Support;

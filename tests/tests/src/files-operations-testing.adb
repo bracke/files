@@ -1,3 +1,7 @@
+with Files.File_System.Search;
+with Files.Operations.Metadata.Testing;
+with Files.Operations.Opening.Testing;
+with Files.Operations.Paste.Testing;
 with Ada.Real_Time;
 with Ada.Strings.Unbounded;
 
@@ -41,27 +45,27 @@ package body Files.Operations.Testing is
    end Open_Action_Lifecycle_Of;
 
    function Detected_Terminal return String
-     renames Files.Operations.Detected_Terminal;
+     renames Files.Operations.Opening.Testing.Detected_Terminal;
 
    function Content_Matches
      (Bytes : String;
       Query : String)
       return Boolean
-     renames Files.Operations.Content_Matches;
+     renames Files.File_System.Search.Content_Matches;
 
    function Prepare_Open_Selected_Action
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Operation_Result
-     renames Files.Operations.Prepare_Open_Selected_Action;
+     renames Files.Operations.Opening.Testing.Prepare_Open_Selected_Action;
 
    function Set_Permissions_For
      (Model    : in out Files.Model.Window_Model;
       New_Mode : Natural;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     renames Files.Operations.Set_Permissions_For;
+     renames Files.Operations.Metadata.Testing.Set_Permissions_For;
 
    --  The fake throttle clock: an instant well inside the clock's range,
    --  how often it was read, and the reading that moves it a second on.
@@ -95,14 +99,7 @@ package body Files.Operations.Testing is
       Settings  : Files.Settings.Settings_Model;
       Error_Key : String;
       Dest, Source, Identity, Tree_Revision : String)
-      return Operation_Result is
-   begin
-      return Finalize_Paste_Execution
-        (Model, Settings, Error_Key,
-         (Dest_Path     => To_Unbounded_String (Dest),
-          Source_Path   => To_Unbounded_String (Source),
-          Identity      => To_Unbounded_String (Identity),
-          Tree_Revision => To_Unbounded_String (Tree_Revision)));
-   end Finalize_Paste_With_Kept_Copy;
+      return Operation_Result
+     renames Files.Operations.Paste.Testing.Finalize_Paste_With_Kept_Copy;
 
 end Files.Operations.Testing;

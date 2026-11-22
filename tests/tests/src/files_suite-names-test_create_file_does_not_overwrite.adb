@@ -1,3 +1,4 @@
+with Files.Operations.Editing;
 with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -79,7 +80,7 @@ separate (Files_Suite.Names)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Creation.Begin_Create_File (Model, "existing.txt");
 
-         Result := Files.Operations.Commit_Create_File (Model, Settings);
+         Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Status,
             Files.Operation_Results.Operation_Failed,
@@ -108,7 +109,7 @@ separate (Files_Suite.Names)
             "failed create keeps attempted name");
 
          Files.Model.Rename.Set_Text (Model, "retry.txt");
-         Result := Files.Operations.Commit_Create_File (Model, Settings);
+         Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Status,
             Files.Operation_Results.Operation_Success,
@@ -126,7 +127,7 @@ separate (Files_Suite.Names)
       end;
 
       Files.Model.Creation.Begin_Create_File (Model, Utf8_Two_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,
@@ -138,7 +139,7 @@ separate (Files_Suite.Names)
          "two-byte UTF-8 create selects file");
 
       Files.Model.Creation.Begin_Create_File (Model, Utf8_Three_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,
@@ -150,7 +151,7 @@ separate (Files_Suite.Names)
          "three-byte UTF-8 create selects file");
 
       Files.Model.Creation.Begin_Create_File (Model, Utf8_Four_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,

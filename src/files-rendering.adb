@@ -1,3 +1,4 @@
+with Files.Rendering.Display_Text;
 with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings;
@@ -18,6 +19,7 @@ package body Files.Rendering is
 
    use Files.Rendering.Geometry;
    use Files.Rendering.Labels;
+   use Files.Rendering.Display_Text;
    use Files.Rendering.Layouts;
    use Ada.Strings.Unbounded;
    use type Ada.Containers.Count_Type;

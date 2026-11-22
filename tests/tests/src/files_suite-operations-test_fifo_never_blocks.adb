@@ -1,3 +1,4 @@
+with Files.Operations.Opening;
 with Files.Model.Filtering;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
@@ -41,7 +42,7 @@ separate (Files_Suite.Operations)
       for Item of Load.Items loop
          if To_String (Item.Name) = "pipe" then
             Assert (Files.Quick_Look."/="
-                      (Files.Operations.Prepare_Quick_Look (Item).Kind, Files.Quick_Look.Text_Content),
+                      (Files.Operations.Opening.Prepare_Quick_Look (Item).Kind, Files.Quick_Look.Text_Content),
                     "Quick Look of a FIFO shows its card without reading it");
          end if;
       end loop;
@@ -74,7 +75,7 @@ separate (Files_Suite.Operations)
          Select_Name (Parent, "with-fifo");
          Step := Complete_Operation
            (Parent, Settings,
-            Operation_Commands.Compress_Selected (Parent, Settings, Files.Operations.Zip_Archive));
+            Operation_Commands.Compress_Selected (Parent, Settings, Files.Operations.Archives.Zip_Archive));
          Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Ada.Directories.Exists (Join (Root, "with-fifo.zip")),
                  "a folder holding a FIFO still compresses");

@@ -1,3 +1,5 @@
+with Files.Operations.History;
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -33,7 +35,7 @@ separate (Files_Suite.History)
                Write_Binary_File (Source, "original bytes");
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Operations.Clear_Undo (Model);
+               Files.Operations.History.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
                if Scenario = 1 then
                   Selected := Files.Model.Selection.Select_By_Name (Model, "entry");
@@ -50,7 +52,8 @@ separate (Files_Suite.History)
                   Actions.Clear;
                   Actions.Append (Files.Paste.Resolved_Action'
                     (To_Unbounded_String (Join (Root, "inbox/entry")), To_Unbounded_String (Source), False, True));
-                  Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy, False);
+                  Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy,
+                                                                False);
                   Step := Complete_Operation
                     (Model, Settings, Files.Job_Drivers.Foreground.Advance (Model, Settings, 1));
                   Await_View (Model, Settings);

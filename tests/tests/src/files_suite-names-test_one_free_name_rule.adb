@@ -1,3 +1,5 @@
+with Files.Operations.Archives;
+with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Leaf_Names;
 with Files.Operation_Results;
@@ -80,7 +82,7 @@ separate (Files_Suite.Names)
       Ada.Directories.Create_Directory (Join (Root, "v1.2"));
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Operations.Clear_Undo (Model);
+      Files.Operations.History.Clear_Undo (Model);
       Files.Model.Set_Background_Transfers (Model, False);
       Select_Name (Model, "v1.2");
       Step := Operation_Commands.Duplicate_Selected (Model, Settings);
@@ -90,7 +92,7 @@ separate (Files_Suite.Names)
       Assert (Listed ("v1.2 (copy)"), "a folder's copy keeps its dots in its name");
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "v1.2");
-      Step := Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive);
+      Step := Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Archives.Zip_Archive);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "the folder is compressed");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);

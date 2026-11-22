@@ -1,3 +1,4 @@
+with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -57,7 +58,8 @@ separate (Files_Suite.Transfer)
             "a.txt",
             "the drop dialog names the colliding item");
          Routed.Operation :=
-           Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
+           Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Replace,
+                                                          False);
          Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "resolving the drop clears the dialog");
          Files_Suite.Support.Assert_Equal
            (Read (Join (Dest_Dir, "a.txt")),
@@ -72,7 +74,7 @@ separate (Files_Suite.Transfer)
       begin
          Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
          Routed.Operation :=
-           Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Skip, False);
+           Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Skip, False);
          Files_Suite.Support.Assert_Equal
            (Read (Join (Dest_Dir, "a.txt")),
             "DEST",
@@ -86,7 +88,7 @@ separate (Files_Suite.Transfer)
       begin
          Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
          Routed.Operation :=
-           Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
+           Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Rename, False);
          Files_Suite.Support.Assert_Equal
            (Read (Join (Dest_Dir, "a.txt")),
             "DEST",

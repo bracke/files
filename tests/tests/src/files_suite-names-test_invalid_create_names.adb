@@ -1,3 +1,4 @@
+with Files.Operations.Editing;
 with Files.Model.Creation;
 with Files.Operation_Results;
 separate (Files_Suite.Names)
@@ -11,7 +12,7 @@ separate (Files_Suite.Names)
       Reset_Root;
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Creation.Begin_Create_File (Model, "");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -23,7 +24,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, ".");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -31,7 +32,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, "..");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -39,7 +40,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, "bad/name.txt");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -62,7 +63,7 @@ separate (Files_Suite.Names)
       --  rather than through the create operation here.
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, "trailing-space.txt ");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -73,7 +74,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, NBSP_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -82,7 +83,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, Trailing_NBSP_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -93,7 +94,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, Trailing_Ideographic_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -106,7 +107,7 @@ separate (Files_Suite.Names)
       --  rejected only under Windows rules; Test_Leaf_Name_Rules covers that.
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, Nul_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -122,7 +123,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, Tab_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -130,7 +131,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, C1_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -138,7 +139,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, Encoded_C1_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -146,7 +147,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, Truncated_UTF8_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
@@ -154,7 +155,7 @@ separate (Files_Suite.Names)
 
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Creation.Begin_Create_File (Model, Overlong_UTF8_Name);
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Invalid_Name,
