@@ -1,3 +1,4 @@
+with Hostkit.Fs;
 with Files.Settings.Path_References.Testing;
 with Files.UI_Types;
 with Files.File_System_Types;
@@ -640,7 +641,7 @@ separate (Files_Suite.Rendering)
       begin
          for Index in 1 .. 500 loop
             Files.Settings.Path_References.Testing.Set_Label
-              (Settings, "/probe/item" & Integer'Image (Index), Files.Preference_Types.Green);
+              (Settings, Hostkit.Fs.Join ("/probe", "item" & Integer'Image (Index)), Files.Preference_Types.Green);
          end loop;
          Start := Ada.Real_Time.Clock;
          for Round in 1 .. Rounds loop
@@ -683,7 +684,7 @@ separate (Files_Suite.Rendering)
             Items.Append
               (Files.Item_Lists.Make_Item
                  ("/probe", "item" & Integer'Image (Index), Files.Types.Regular_File_Item, "text/plain"));
-            Paths.Append (To_Unbounded_String ("/probe/item" & Integer'Image (Index)));
+            Paths.Append (To_Unbounded_String (Hostkit.Fs.Join ("/probe", "item" & Integer'Image (Index))));
          end loop;
          Files.Model.Initialize
            (Model, Directory_Path => "/probe", Items => Items, Home_Path => "/home/test",
@@ -756,7 +757,7 @@ separate (Files_Suite.Rendering)
          Start := Ada.Real_Time.Clock;
          for Round in 1 .. Rounds loop
             Files.Settings.Path_References.Testing.Set_Label
-              (Settings, "/probe/item" & Integer'Image (Round),
+              (Settings, Hostkit.Fs.Join ("/probe", "item" & Integer'Image (Round)),
                Files.Preference_Types.Blue);
             Refresh;
          end loop;
