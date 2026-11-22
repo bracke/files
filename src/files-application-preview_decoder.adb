@@ -1,6 +1,6 @@
-with Files.Background_Slots;
+with Files.Application.Background_Slots;
 
-package body Files.Preview_Decoder is
+package body Files.Application.Preview_Decoder is
 
    function Decode (Path : String; Size : Positive) return Files.Images.Decoded_Image is
      (Files.Images.Decode_Image_To_Pixels (Path, Size));
@@ -9,7 +9,7 @@ package body Files.Preview_Decoder is
 
    function No_Image return Files.Images.Decoded_Image is ((others => <>));
 
-   package Decoder is new Files.Background_Slots
+   package Decoder is new Files.Application.Background_Slots
      (Parameters  => Positive,
       Result      => Files.Images.Decoded_Image,
       Work        => Decode,
@@ -36,4 +36,4 @@ package body Files.Preview_Decoder is
       Decoder.Release (Decoder.Requester (Owner));
    end Release;
 
-end Files.Preview_Decoder;
+end Files.Application.Preview_Decoder;

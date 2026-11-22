@@ -36,7 +36,7 @@ separate (Files_Suite.Info)
       Files.Model.Toggle_Info_Pane (Model);
       --  Extra info is computed lazily for the selected item when the info pane
       --  is open (the interaction reducer does this after each input).
-      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
+      Files.Refresh.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
       Files_Suite.Support.Assert_Equal
         (Natural (Snapshot.Selected_Info.Length),

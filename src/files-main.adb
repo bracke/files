@@ -3,6 +3,7 @@ with Files.Job_Drivers.Helpers;
 with Files.Jobs.Context;
 with Files.Jobs.Scavenger;
 with Files.Jobs.Process;
+with Files.Localization;
 with Files.Recovery_CLI;
 with Files.Diagnostics;
 with Guikit.Errors;
@@ -38,6 +39,8 @@ begin
          Hostkit.Process.End_Now (1);
       end if;
    else
+      Files.Jobs.Scavenger.Set_Report_Label
+        (Files.Localization.Text (Files.Jobs.Scavenger.Report_Label_Key));
       Files.Jobs.Scavenger.Scavenge;
       Status := Files.Application.Run;
       Shut_Down_Workers;

@@ -4,7 +4,7 @@ with Files.File_System.Thumbnails;
 with Files.Items;
 with Files.File_Identities.Testing;
 with Files.Jobs.Process;
-with Files.Jobs.Records;
+with Files.Job_Payloads;
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
 with Ada.Directories;

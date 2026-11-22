@@ -59,11 +59,11 @@ separate (Check_All)
    begin
       Check_All ("files-file_system-thumbnails.ad?");
       Check_All ("files-images*.ad?");
-      Check_All ("files-preview_decoder.ad?");
-      --  The worker tasks of Files.Background_Slots, and the readers the
+      Check_All ("files-application-preview_decoder.ad?");
+      --  The worker tasks of Files.Application.Background_Slots, and the readers the
       --  info pane's worker runs.
-      Check_All ("files-background_slots.ad?");
-      Check_All ("files-extra_info_reader.ad?");
+      Check_All ("files-application-background_slots.ad?");
+      Check_All ("files-application-extra_info_reader.ad?");
       Check_All ("files-file_system-content_info*.ad?");
       Check_All ("files-extra_info.ads");
       --  Its worker runs a tree walk on a large stack while the caller waits.

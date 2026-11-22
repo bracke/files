@@ -1,20 +1,16 @@
-with Files.Items;
 with Ada.Streams;
 with Files.IO.Record_Fields;
 
 with Files.File_System_Types;
-with Files.Operation_Results;
 with Files.Jobs.Process;
-with Files.Settings;
 with Files.Types;
 
 --  Bounded wire primitives shared by private background-job transports.
+--  The payloads of particular jobs (settings, listings, operation results)
+--  are encoded above this layer, in Files.Job_Payloads.
 package Files.Jobs.Records is
    Max_Transport_Bytes : constant := 512 * 1024 * 1024;
 
-   --  The thumbnail pixels one refresh may carry: half the transport, about
-   --  16,000 thumbnails, so a folder of more images still fits the rest.
-   Max_Thumbnail_Transport_Bytes : constant := Max_Transport_Bytes / 2;
    Max_Path_Length : constant := Files.IO.Record_Fields.Max_Path_Length;
    Max_Text_Length : constant := 64 * 1024;
    Max_Error_Length : constant := 256;
@@ -38,20 +34,6 @@ package Files.Jobs.Records is
    --  @param Size Encoded transport size to validate.
    procedure Validate_Size (Size : Long_Long_Integer);
 
-   --  Encode settings through their bounded, stable textual representation.
-   --  @param Stream Destination stream.
-   --  @param Value Settings snapshot to encode.
-   procedure Write_Settings
-     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value : Files.Settings.Settings_Model);
-
-   --  Decode and validate a bounded textual settings snapshot.
-   --  @param Stream Source stream.
-   --  @return Parsed settings snapshot.
-   function Read_Settings
-     (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
-      return Files.Settings.Settings_Model;
-
    --  Encode a directory change signature.
    --  @param Stream Destination stream.
    --  @param Value Signature to encode.
@@ -65,20 +47,6 @@ package Files.Jobs.Records is
    function Read_Signature
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
       return Files.File_System_Types.Directory_Signature;
-
-   --  Encode a bounded vector of directory items and thumbnail data.
-   --  @param Stream Destination stream.
-   --  @param Value Items to encode.
-   procedure Write_Items
-     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value : Files.Items.Item_Vectors.Vector);
-
-   --  Decode a bounded vector of directory items and thumbnail data.
-   --  @param Stream Source stream.
-   --  @return Decoded items.
-   function Read_Items
-     (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
-      return Files.Items.Item_Vectors.Vector;
 
    --  The most path moves one record carries (Write_Path_Moves).
    Max_Path_Moves : constant := 100_000;
@@ -102,25 +70,5 @@ package Files.Jobs.Records is
    function Read_Path_Moves
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
       return Files.Types.Path_Move_Vectors.Vector;
-
-   --  Encode a background operation result.
-   --  @param Stream Destination stream.
-   --  @param Value Result to encode.
-   procedure Write_Operation_Result
-     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value : Files.Operation_Results.Operation_Result);
-
-   --  Decode a bounded background operation result.
-   --  @param Stream Source stream.
-   --  @return Decoded result.
-   function Read_Operation_Result
-     (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
-      return Files.Operation_Results.Operation_Result;
-   --  Drop the thumbnails past Max_Thumbnail_Transport_Bytes, in order: the
-   --  items keep their icons, and the transport stays inside its bound
-   --  instead of failing the whole read of a large photo folder.
-   --
-   --  @param Items Items about to be written to a transport.
-   procedure Fit_Thumbnails (Items : in out Files.Items.Item_Vectors.Vector);
 
 end Files.Jobs.Records;

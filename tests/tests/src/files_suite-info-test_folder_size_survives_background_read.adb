@@ -1,6 +1,6 @@
 with Files.Model.Jobs;
 with Files.Operation_Results;
-with Files.Window_Polls;
+with Files.Application.Window_Polls;
 with Ada.Strings.Maps;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
@@ -38,7 +38,7 @@ separate (Files_Suite.Info)
 
       Select_Name (Model, "folder");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Marker);
-      Files.Window_Polls.Update_Folder_Size (Model);
+      Files.Application.Window_Polls.Update_Folder_Size (Model);
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (Marker);
       end loop;
@@ -58,8 +58,8 @@ separate (Files_Suite.Info)
          Step := Files.Operations.Refresh_If_Changed (Model, Settings);
          Assert (Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model)), "a background read runs");
          for Frame in 1 .. 5 loop
-            Files.Window_Polls.Update_Folder_Size (Model);
-            Files.Window_Polls.Poll_Folder_Sizes (Model);
+            Files.Application.Window_Polls.Update_Folder_Size (Model);
+            Files.Application.Window_Polls.Poll_Folder_Sizes (Model);
          end loop;
          Assert (Files.Model.Testing.Folder_Scan_Is_Active (Model),
                  "the background read leaves the measurement running");
@@ -68,15 +68,15 @@ separate (Files_Suite.Info)
             exit when Files.Refresh.Advance (Model, Settings)
               or else not Files.Jobs.Process.Active (Files.Model.Jobs.Background_Refresh (Model));
          end loop;
-         Files.Window_Polls.Update_Folder_Size (Model);
+         Files.Application.Window_Polls.Update_Folder_Size (Model);
          Assert (Files.Model.Testing.Folder_Scan_Is_Active (Model),
                  "and so does taking the selection up again after it");
          Assert (Ada.Directories.Exists (Started) and then not Ada.Directories.Exists (Marker),
                  "the measurement running is the first one, not a restart: " & Started);
       end;
-      Files.Window_Polls.Cancel_Folder_Scan (Model);
+      Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
    exception
       when others =>
-         Files.Window_Polls.Cancel_Folder_Scan (Model);
+         Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
          raise;
    end Test_Folder_Size_Survives_Background_Read;

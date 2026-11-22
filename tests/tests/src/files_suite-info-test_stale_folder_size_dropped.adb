@@ -85,7 +85,7 @@ separate (Files_Suite.Info)
       Assert
         (not Files.Model.Folder_Sizes.Cached_For (Model, Folder), "a size of an older listing is dropped");
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         Files.Window_Polls.Poll_Folder_Sizes (Model);
+         Files.Application.Window_Polls.Poll_Folder_Sizes (Model);
          exit when Files.Model.Folder_Sizes.Cached_For (Model, Folder);
       end loop;
       Assert (Files.Model.Folder_Sizes.Cached_For (Model, Folder), "the folder is measured again");
@@ -102,10 +102,10 @@ separate (Files_Suite.Info)
       Files_Suite.Support.Assert_Equal
         (Files.Model.Folder_Sizes.Value (Model, Folder).Total_Bytes, 999,
          "a size of the listing in view is kept");
-      Files.Window_Polls.Cancel_Folder_Scan (Model);
+      Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
    exception
       when others =>
          Files.Folder_Size.Cancel (Scan);
-         Files.Window_Polls.Cancel_Folder_Scan (Model);
+         Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
          raise;
    end Test_Stale_Folder_Size_Dropped;

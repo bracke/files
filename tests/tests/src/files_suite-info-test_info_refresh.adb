@@ -34,7 +34,8 @@ separate (Files_Suite.Info)
             "even an empty metadata result is cached");
          Revision := Files.Model.Revision (Model);
          for Attempt in 1 .. 20 loop
-            Files.Window_Polls.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));
+            Files.Application.Window_Polls.Poll_Selected_Item_Extra
+              (Model, Files.Application.Extra_Info_Reader.Requester (77));
          end loop;
          Files_Suite.Support.Assert_Equal
            (Files.Model.Revision (Model),

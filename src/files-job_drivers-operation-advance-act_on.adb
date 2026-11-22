@@ -28,7 +28,7 @@ begin
          Files.Model.Set_Error (Model, To_String (Done.Visible_Error));
          Note_History_Lost (Done.Kind);
          Reload_Current_View (To_String (Done.Selection));
-         Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
+         Files.Refresh.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
          return Done.Result;
       when Report =>
          return Report_In_View;

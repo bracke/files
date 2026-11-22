@@ -807,6 +807,9 @@ procedure Check_All is
    --  and localizes them.
    procedure Check_Command_And_Overlay_Layers is separate;
 
+   --  Files.Jobs imports nothing from the file system or above it.
+   procedure Check_Job_Layer is separate;
+
    --  Test hooks are environment variables named FILES_TEST_*, read only in
    --  the listed files. FILES_TRASH_BACKEND is no test hook -- production
    --  reads it, to force another host's trash layout -- but the suite leans
@@ -920,6 +923,7 @@ procedure Check_All is
       Named ("Check_Test_Hook_Disarms", Check_Test_Hook_Disarms'Access),
       Named ("Check_Test_Stage_Removal", Check_Test_Stage_Removal'Access),
       Named ("Check_Command_And_Overlay_Layers", Check_Command_And_Overlay_Layers'Access),
+      Named ("Check_Job_Layer", Check_Job_Layer'Access),
       Named ("Check_Crate_Structure", Check_Crate_Structure'Access),
       Named ("Check_Application_CLI_Surface", Check_Application_CLI_Surface'Access),
       Named ("Check_Rendering_Architecture", Check_Rendering_Architecture'Access),

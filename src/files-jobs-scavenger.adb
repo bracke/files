@@ -11,10 +11,9 @@ with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
-with Files.File_System;
 with Files.Jobs.Cleanup;
+with Files.Jobs.Storage;
 with Files.Jobs.Transports;
-with Files.Localization;
 with Files.Types;
 with Hostkit.Fs;
 with Files.IO.Lease_Streams;
@@ -179,10 +178,9 @@ package body Files.Jobs.Scavenger is
       end Mark_If_New;
    end Terminal_Reports;
 
-   --  The localized report label, rendered on the main thread by Scavenge.
-   --  Report_Unrecoverable also runs on the Coordinator_Monitor task, and
-   --  Files.Localization keeps unsynchronized state the UI reads every frame,
-   --  so the task must not look the text up itself.
+   --  The localized report label, set by the caller (Set_Report_Label) on
+   --  its own thread. Report_Unrecoverable also runs on the
+   --  Coordinator_Monitor task, so the text is held in a protected object.
    protected Report_Label is
       procedure Set (Text : String);
       function Get return String;
@@ -199,6 +197,11 @@ package body Files.Jobs.Scavenger is
       function Get return String is (To_String (Value));
    end Report_Label;
 
+   procedure Set_Report_Label (Text : String) is
+   begin
+      Report_Label.Set (Text);
+   end Set_Report_Label;
+
    procedure Report_Unrecoverable (Directory : String) is
       New_Report : Boolean;
       Label      : constant String := Report_Label.Get;
@@ -211,7 +214,7 @@ package body Files.Jobs.Scavenger is
       if New_Report then
          Ada.Text_IO.Put_Line
            (Ada.Text_IO.Standard_Error,
-            (if Label /= "" then Label else "recovery.unsafe_transport") & ": " & Directory);
+            (if Label /= "" then Label else Report_Label_Key) & ": " & Directory);
          declare
             Target_Directory : constant String := Report_Target.Get;
          begin
@@ -461,7 +464,6 @@ package body Files.Jobs.Scavenger is
         (if Coordinator = "" then Hostkit.Fs.Own_Executable else Coordinator);
       Resolved  : constant String := Hostkit.Process.Locate (Program);
    begin
-      Report_Label.Set (Files.Localization.Text ("recovery.unsafe_transport"));
       --  One coordinator bounds recovery to a single process regardless of
       --  how many abandoned transports exist. It performs the scan outside
       --  application startup and serializes each transport through its lease.
@@ -613,8 +615,8 @@ package body Files.Jobs.Scavenger is
                         if Outcome = Files.Jobs.Transports.Claim_Acquired then
                            declare
                               Removed : constant Boolean :=
-                                Files.File_System.Delete_Transport_Entry
-                                  (Directory, To_String (Incomplete_Identity)).Success;
+                                Files.Jobs.Storage.Delete_Transport_Entry
+                                  (Directory, To_String (Incomplete_Identity));
                            begin
                               if not Removed
                                 or else not Files.IO.Fs_Primitives.Entry_Is_Absent (Directory)
@@ -653,11 +655,8 @@ package body Files.Jobs.Scavenger is
       Grace            : constant Duration := Duration'Max (0.0, Minimum_Unmarked_Age);
    begin
       --  Called non-interruptibly only on a main thread (a helper process
-      --  runs it directly), where looking the label up is safe.
+      --  runs it directly).
       if not Interruptible then
-         if Report_Label.Get = "" then
-            Report_Label.Set (Files.Localization.Text ("recovery.unsafe_transport"));
-         end if;
          Take_Report_Target;
       end if;
       Scan (Retry_Needed);

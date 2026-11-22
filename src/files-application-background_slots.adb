@@ -2,7 +2,7 @@ with Files.Diagnostics;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
-package body Files.Background_Slots is
+package body Files.Application.Background_Slots is
    use Ada.Strings.Unbounded;
 
    type Request_State is record
@@ -217,7 +217,7 @@ package body Files.Background_Slots is
                   Value := Work (To_String (Path), Arguments);
                exception
                   when Swallowed : others =>
-                     Files.Diagnostics.Note (Swallowed, "Files.Background_Slots");
+                     Files.Diagnostics.Note (Swallowed, "Files.Application.Background_Slots");
                      Value := Failed;
                end;
                Slots.Deliver (Owner, Path, Arguments, Value);
@@ -281,4 +281,4 @@ package body Files.Background_Slots is
       Slots.Forget (Owner);
    end Release;
 
-end Files.Background_Slots;
+end Files.Application.Background_Slots;

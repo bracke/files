@@ -24,7 +24,7 @@ generic
    --  for other parameters (an older revision of the file) is not handed out
    --  by the Take that names its parameters.
    with function "=" (Left, Right : Parameters) return Boolean is <>;
-package Files.Background_Slots is
+package Files.Application.Background_Slots is
 
    --  Who asks: one key per window.
    type Requester is new Natural;
@@ -79,4 +79,4 @@ package Files.Background_Slots is
    --  @param Owner The window going away.
    procedure Release (Owner : Requester);
 
-end Files.Background_Slots;
+end Files.Application.Background_Slots;

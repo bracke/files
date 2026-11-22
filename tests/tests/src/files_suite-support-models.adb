@@ -2,7 +2,7 @@ with Files.Preference_Types;
 with Files.Events;
 with Files.Operations;
 with Files.Job_Drivers.Foreground;
-with Files.Window_Polls;
+with Files.Application.Window_Polls;
 with Files.File_System;
 with Files.Model.Testing;
 with Ada.Directories;
@@ -102,7 +102,7 @@ package body Files_Suite.Support.Models is
    procedure Drain_Folder_Sizes (Model : in out Files.Model.Window_Model) is
    begin
       for Attempt in Polling loop
-         Files.Window_Polls.Poll_Folder_Sizes (Model);
+         Files.Application.Window_Polls.Poll_Folder_Sizes (Model);
          exit when not Files.Model.Testing.Folder_Scan_Is_Active (Model);
       end loop;
       Assert (not Files.Model.Testing.Folder_Scan_Is_Active (Model), "the background folder-size walks finish");

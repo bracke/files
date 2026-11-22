@@ -1,6 +1,6 @@
-with Files.Extra_Info_Reader;
+with Files.Application.Extra_Info_Reader;
 with Files.Model;
-with Files.Preview_Decoder;
+with Files.Application.Preview_Decoder;
 
 --  What the shown window needs read for it beside its input: details,
 --  folder sizes and Quick Look images, read off the UI thread and handed to
@@ -8,25 +8,10 @@ with Files.Preview_Decoder;
 --  volume's free space and the info pane's account names, sampled before a
 --  frame is drawn. Driven by the window loop and by what changes the
 --  selection; nothing here is an operation the user started.
-package Files.Window_Polls is
-
-   --  Compute and cache the selected item's "extra info" (folder child count,
-   --  document counts, symlink target) when the info pane wants it and it has
-   --  not been computed yet. Called after input so the info pane can show the
-   --  detail without every item paying for it on load. A no-op when the info
-   --  pane is closed, nothing is selected, or the value is already cached --
-   --  and in a window (Background_Transfers), whose loop reads it off the UI
-   --  thread through Poll_Selected_Item_Extra instead.
-   --
-   --  @param Model Window model whose selected item is updated in place.
-   --  @param Show_Hidden Whether the listing shows hidden entries
-   --    (Settings.Show_Hidden_Files): a folder's count includes them only then.
-   procedure Ensure_Selected_Item_Extra
-     (Model       : in out Files.Model.Window_Model;
-      Show_Hidden : Boolean);
+package Files.Application.Window_Polls is
 
    --  Ensure_Selected_Item_Extra for a window: the details are read by
-   --  Files.Extra_Info_Reader's worker, asked for here and taken on a later
+   --  Files.Application.Extra_Info_Reader's worker, asked for here and taken on a later
    --  poll once read.
    --
    --  The request names the item's revision, so details read for a file
@@ -39,7 +24,7 @@ package Files.Window_Polls is
    --    then. True, for a caller without settings, counts every entry.
    procedure Poll_Selected_Item_Extra
      (Model       : in out Files.Model.Window_Model;
-      Owner       : Files.Extra_Info_Reader.Requester;
+      Owner       : Files.Application.Extra_Info_Reader.Requester;
       Show_Hidden : Boolean := True);
 
    --  Publish the folder sizes the window's measurement helper has finished,
@@ -55,7 +40,7 @@ package Files.Window_Polls is
    --  @param Owner Which window asks (one decode in flight per window).
    procedure Poll_Quick_Look
      (Model : in out Files.Model.Window_Model;
-      Owner : Files.Preview_Decoder.Requester);
+      Owner : Files.Application.Preview_Decoder.Requester);
 
    --  Stop the window's folder-size measurement and discard what it had not
    --  yet published.
@@ -90,4 +75,4 @@ package Files.Window_Polls is
    procedure Sample_Account_Names
      (Model : in out Files.Model.Window_Model);
 
-end Files.Window_Polls;
+end Files.Application.Window_Polls;

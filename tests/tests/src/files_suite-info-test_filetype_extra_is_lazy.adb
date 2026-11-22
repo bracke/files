@@ -27,7 +27,7 @@ separate (Files_Suite.Info)
       Select_Name (Model, "sub");
 
       --  Info pane closed: the child count is not computed (no subfolder opened).
-      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
+      Files.Refresh.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Files_Suite.Support.Assert_Equal
         (Files_Suite.Support.Models.Describe (Files.Model.Selection.Selected_Item (Model).Filetype_Extra),
          "",
@@ -36,7 +36,7 @@ separate (Files_Suite.Info)
       --  Info pane open: the selected folder's child count is computed lazily,
       --  replacing the fallback with the actual count detail.
       Files.Model.Toggle_Info_Pane (Model);
-      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
+      Files.Refresh.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Assert (Folder_Extra /= Fallback and then Folder_Extra'Length > 0,
               "folder child count is computed lazily when the info pane is open");
    end Test_Filetype_Extra_Is_Lazy;

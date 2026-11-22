@@ -6,7 +6,7 @@ separate (Files_Suite.Thumbnails)
       Pixels : Files.Types.Byte_Vectors.Vector;
       Items  : Files.Items.Item_Vectors.Vector;
       Thumb_Bytes : constant := 64 * 64 * 4;
-      Fits   : constant Natural := Files.Jobs.Records.Max_Thumbnail_Transport_Bytes / Thumb_Bytes;
+      Fits   : constant Natural := Files.Job_Payloads.Max_Thumbnail_Transport_Bytes / Thumb_Bytes;
       Kept   : Natural := 0;
    begin
       Pixels.Append (0, Ada.Containers.Count_Type (Thumb_Bytes));
@@ -18,7 +18,7 @@ separate (Files_Suite.Thumbnails)
          Item.Thumbnail_Pixels := Shared;
          Items.Append (Item, Ada.Containers.Count_Type (Fits + 3));
       end;
-      Files.Jobs.Records.Fit_Thumbnails (Items);
+      Files.Job_Payloads.Fit_Thumbnails (Items);
       for Item of Items loop
          if Item.Thumbnail_Available then
             Kept := Kept + 1;

@@ -130,7 +130,7 @@ separate (Files_Suite.Recovery)
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
       Rejected := False;
       begin
-         Files.Jobs.Records.Write_Items
+         Files.Job_Payloads.Write_Items
            (Ada.Streams.Stream_IO.Stream (File), Items);
       exception
          when Ada.Directories.Use_Error => Rejected := True;
@@ -146,7 +146,7 @@ separate (Files_Suite.Recovery)
         (File, Ada.Streams.Stream_IO.In_File, Path);
       Rejected := False;
       begin
-         Items := Files.Jobs.Records.Read_Items
+         Items := Files.Job_Payloads.Read_Items
            (Ada.Streams.Stream_IO.Stream (File));
       exception
          when Ada.IO_Exceptions.Data_Error => Rejected := True;
@@ -165,7 +165,7 @@ separate (Files_Suite.Recovery)
         (File, Ada.Streams.Stream_IO.Out_File, Path);
       Rejected := False;
       begin
-         Files.Jobs.Records.Write_Items
+         Files.Job_Payloads.Write_Items
            (Ada.Streams.Stream_IO.Stream (File), Items);
       exception
          when Ada.Directories.Use_Error => Rejected := True;

@@ -18,7 +18,7 @@ separate (Files_Suite.Info)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "a.txt");
       Files.Model.Toggle_Info_Pane (Model);
-      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
+      Files.Refresh.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_End, Guikit.Input.No_Modifiers, Routed);
       Files_Suite.Support.Assert_Equal
@@ -38,7 +38,8 @@ separate (Files_Suite.Info)
                 (Files.Model.Selection.Selected_Item (Model).Filetype_Extra) /= "",
               "completed refresh repopulates the selected item's details");
       Revision := Files.Model.Revision (Model);
-      Files.Window_Polls.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));
+      Files.Application.Window_Polls.Poll_Selected_Item_Extra
+        (Model, Files.Application.Extra_Info_Reader.Requester (77));
       Files_Suite.Support.Assert_Equal (Revision, Files.Model.Revision (Model), "completed details remain cached");
    exception
       when others => Files.Refresh.Cancel (Model); raise;

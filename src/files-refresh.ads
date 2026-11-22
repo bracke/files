@@ -142,6 +142,22 @@ package Files.Refresh is
 
    --  @param Directory Private native-watch request/notification directory.
    procedure Run_Watch_Helper (Directory : String);
+   --  Compute and cache the selected item's "extra info" (folder child count,
+   --  document counts, symlink target) when the info pane wants it and it has
+   --  not been computed yet. Called after input so the info pane can show the
+   --  detail without every item paying for it on load. A no-op when the info
+   --  pane is closed, nothing is selected, or the value is already cached --
+   --  and in a window (Background_Transfers), whose loop reads it off the UI
+   --  thread through Files.Application.Window_Polls.Poll_Selected_Item_Extra
+   --  instead.
+   --
+   --  @param Model Window model whose selected item is updated in place.
+   --  @param Show_Hidden Whether the listing shows hidden entries
+   --    (Settings.Show_Hidden_Files): a folder's count includes them only then.
+   procedure Ensure_Selected_Item_Extra
+     (Model       : in out Files.Model.Window_Model;
+      Show_Hidden : Boolean);
+
 private
    --  A real directory request carries absolute filesystem paths. The Recent
    --  view is synthetic, so both path fields are deliberately empty there.
@@ -181,4 +197,5 @@ private
       --  The helper reported a native watch (Watch_Is_Native).
       Native      : Boolean := False;
    end record;
+
 end Files.Refresh;

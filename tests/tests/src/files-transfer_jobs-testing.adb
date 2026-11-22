@@ -2,7 +2,7 @@ with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
 
-package body Files.Jobs.Transfer.Testing is
+package body Files.Transfer_Jobs.Testing is
    use Ada.Strings.Unbounded;
 
    Max_Path_Length : constant := 32 * 1024;
@@ -127,7 +127,7 @@ package body Files.Jobs.Transfer.Testing is
    end Apply_Checkpoint;
    procedure Settle (Result : in out Job_Result; Cancelled : Boolean) is
    begin
-      Files.Jobs.Transfer.Settle (Result, Cancelled);
+      Files.Transfer_Jobs.Settle (Result, Cancelled);
    end Settle;
 
-end Files.Jobs.Transfer.Testing;
+end Files.Transfer_Jobs.Testing;

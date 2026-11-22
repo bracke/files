@@ -1,5 +1,16 @@
 --  Startup recovery for helper transports left behind by abnormal termination.
 package Files.Jobs.Scavenger is
+   --  The message key of the line naming a transport recovery could not
+   --  safely reclaim. The job layer translates nothing: the caller looks it
+   --  up and hands the text to Set_Report_Label.
+   Report_Label_Key : constant String := "recovery.unsafe_transport";
+
+   --  Set the localized text that prefixes each unrecoverable-transport
+   --  line, before Scavenge or Run. Until it is set the line starts with
+   --  Report_Label_Key itself.
+   --  @param Text The localized text of Report_Label_Key.
+   procedure Set_Report_Label (Text : String);
+
    --  Start one independent recovery coordinator and return immediately. If
    --  it cannot be launched, perform the scan in the monitor task so startup
    --  remains responsive. Coordinator is injectable for the

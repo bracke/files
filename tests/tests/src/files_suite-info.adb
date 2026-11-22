@@ -1,12 +1,12 @@
 with Files.Operations;
-with Files.Window_Polls;
+with Files.Application.Window_Polls;
 with Files.File_System.Permissions;
 with Files.Items;
 with Files.Folder_Size.Testing;
 with Files.Model.Testing;
 with Files.Jobs.Process;
 with Files.Refresh;
-with Files.Extra_Info_Reader;
+with Files.Application.Extra_Info_Reader;
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
 with Ada.Directories;

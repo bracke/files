@@ -1,10 +1,10 @@
 with Files.Model.Jobs;
 with Files.Input_Actions;
-with Files.Window_Polls;
+with Files.Application.Window_Polls;
 with Files.File_System.Permissions;
 with Files.Jobs.Process;
 with Files.Refresh;
-with Files.Extra_Info_Reader;
+with Files.Application.Extra_Info_Reader;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Streams.Stream_IO;
@@ -47,7 +47,8 @@ package body Files_Suite.Operations_Support is
    procedure Await_Item_Details (Model : in out Files.Model.Window_Model) is
    begin
       for Attempt in Polling loop
-         Files.Window_Polls.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));
+         Files.Application.Window_Polls.Poll_Selected_Item_Extra
+           (Model, Files.Application.Extra_Info_Reader.Requester (77));
          exit when not Files.Model.Selected_Item_Needs_Extra (Model);
       end loop;
       Assert (not Files.Model.Selected_Item_Needs_Extra (Model), "the window's poll brings the details in");

@@ -1,5 +1,5 @@
-with Files.Window_Polls;
-with Files.Extra_Info_Reader;
+with Files.Application.Window_Polls;
+with Files.Application.Extra_Info_Reader;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Info)
@@ -19,12 +19,13 @@ separate (Files_Suite.Info)
 
       --  In a window the details are not read on the UI thread...
       Files.Model.Set_Background_Transfers (Model, True);
-      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
+      Files.Refresh.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Assert (Files.Model.Selected_Item_Needs_Extra (Model), "a window does not read the details while it waits");
 
       --  ...but asked of the reader and taken once read.
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         Files.Window_Polls.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (401));
+         Files.Application.Window_Polls.Poll_Selected_Item_Extra
+           (Model, Files.Application.Extra_Info_Reader.Requester (401));
          exit when not Files.Model.Selected_Item_Needs_Extra (Model);
       end loop;
       Assert (not Files.Model.Selected_Item_Needs_Extra (Model), "the window's poll brings the details in");
@@ -40,6 +41,6 @@ separate (Files_Suite.Info)
       Files.Model.Set_Background_Transfers (Model, False);
       Files.Model.Toggle_Info_Pane (Model);
       Assert (Files.Model.Selection.Select_By_Name (Model, "notes.txt"), "the text file is listed again");
-      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
+      Files.Refresh.Ensure_Selected_Item_Extra (Model, Show_Hidden => True);
       Assert (not Files.Model.Selected_Item_Needs_Extra (Model), "outside a window the details are read at once");
    end Test_Item_Details_Off_The_UI_Thread;

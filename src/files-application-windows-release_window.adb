@@ -5,8 +5,8 @@ begin
    --  native cleanup. A cleared handle also prevents queued input dispatch.
    Release_Window_Jobs (Runtime.Model, Runtime.Watch);
    --  The background readers' slots for this window go with it.
-   Files.Extra_Info_Reader.Release (Files.Extra_Info_Reader.Requester (Runtime.A11y_Key));
-   Files.Preview_Decoder.Release (Files.Preview_Decoder.Requester (Runtime.A11y_Key));
+   Files.Application.Extra_Info_Reader.Release (Files.Application.Extra_Info_Reader.Requester (Runtime.A11y_Key));
+   Files.Application.Preview_Decoder.Release (Files.Application.Preview_Decoder.Requester (Runtime.A11y_Key));
    if Runtime.Handle = null then
       return;
    end if;

@@ -1,7 +1,7 @@
 with Files.File_System;
 with Files.Paste;
 
-package Files.Jobs.Transfer.Testing is
+package Files.Transfer_Jobs.Testing is
    --  Write a transfer request using the production transport format.
    --  @param Path Request file to create.
    --  @param Action Transfer action to encode.
@@ -54,4 +54,4 @@ package Files.Jobs.Transfer.Testing is
    --  @param Result The result read; settled in place.
    --  @param Cancelled Whether the user cancelled the helper.
    procedure Settle (Result : in out Job_Result; Cancelled : Boolean);
-end Files.Jobs.Transfer.Testing;
+end Files.Transfer_Jobs.Testing;

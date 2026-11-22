@@ -5,7 +5,8 @@ with Files.Jobs.Context;
 with Files.Jobs.Scavenger;
 with Files.Jobs.Transports;
 with Files.Job_Drivers.Operation.Helper;
-with Files.Jobs.Transfer;
+with Files.Transfer_Jobs;
+with Files.Localization;
 with Files.Refresh;
 with Files.Folder_Size;
 with Hostkit.Parent_Watch;
@@ -34,6 +35,8 @@ package body Files.Job_Drivers.Helpers is
       --  is answered below, or this does not compile.
       case Mode is
          when Scavenge =>
+            Files.Jobs.Scavenger.Set_Report_Label
+              (Files.Localization.Text (Files.Jobs.Scavenger.Report_Label_Key));
             if Ada.Command_Line.Argument_Count /= 1 or else not Files.Jobs.Scavenger.Run then
                Fail;
             end if;
@@ -63,7 +66,7 @@ package body Files.Job_Drivers.Helpers is
                end if;
                Files.Jobs.Context.Initialize (Directory);
                case Mode is
-                  when Files.Jobs.Helper_Modes.Transfer => Files.Jobs.Transfer.Run_Helper (Directory);
+                  when Files.Jobs.Helper_Modes.Transfer => Files.Transfer_Jobs.Run_Helper (Directory);
                   when Files.Jobs.Helper_Modes.Operation => Files.Job_Drivers.Operation.Helper.Run (Directory);
                   when Files.Jobs.Helper_Modes.Refresh => Files.Refresh.Run_Helper (Directory);
                   when Files.Jobs.Helper_Modes.Folder_Size => Files.Folder_Size.Run_Helper (Directory);

@@ -12,7 +12,7 @@ begin
    --  "cancelled" while the helper ran to completion, and a second Cancel
    --  was never possible.
    begin
-      Files.Jobs.Transfer.Cancel (Files.Model.Pasting.Job (Model));
+      Files.Transfer_Jobs.Cancel (Files.Model.Pasting.Job (Model));
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Operations");

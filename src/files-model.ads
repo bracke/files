@@ -21,7 +21,6 @@ private with Guikit.Settings_Panel;
 with Files.Types;
 with Files.UI_Types;
 private with Files.Undo.History;
-private with Files.Jobs.Transfer;
 
 --  Directory state, selection, filtering, history, input state, and pane state.
 package Files.Model is
@@ -867,7 +866,7 @@ package Files.Model is
    --  Return whether the selected item's "extra info" (folder child count,
    --  document counts, symlink target) is wanted and not computed yet: the info
    --  pane is open, no paste or listing is in flight, and the value is not
-   --  cached. Files.Window_Polls.Ensure_Selected_Item_Extra computes it.
+   --  cached. Files.Refresh.Ensure_Selected_Item_Extra computes it.
    --
    --  @param Model Model to inspect.
    --  @return True when the selected item's extra info should be computed.
@@ -1432,7 +1431,7 @@ private
       Context_Menu                  : Context_Menu_State;
       Paste_Conflict                : Files.Paste_States.Conflict_State;
       Background_Transfers_Value    : Boolean := False;
-      Paste_Exec_Job                 : Files.Jobs.Transfer.Session;
+      Paste_Exec_Job                 : Files.Jobs.Process.Session;
       Foreground_Kind               : Foreground_Job_Kind := No_Foreground_Job;
       Operation_Job                 : Files.Jobs.Process.Session;
       --  Defer_Operation_Merge's wait for the job's journal.

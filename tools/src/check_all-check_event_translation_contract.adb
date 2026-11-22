@@ -123,7 +123,7 @@ separate (Check_All)
       --  polling, cancelling and stepping them is Files.Operations' work. So
       --  model code names only the handle type and the queries below.
       for Job_Package of String_List'
-        [To_Unbounded_String ("Files.Jobs.Transfer"),
+        [To_Unbounded_String ("Files.Transfer_Jobs"),
          To_Unbounded_String ("Files.Jobs.Process"),
          To_Unbounded_String ("Files.Folder_Size")]
       loop
@@ -219,7 +219,7 @@ separate (Check_All)
             To_Unbounded_String ("Files.Items"),
             To_Unbounded_String ("Files.Jobs.Copy_Context"),
             To_Unbounded_String ("Files.Jobs.Process"),
-            To_Unbounded_String ("Files.Jobs.Transfer"),
+            To_Unbounded_String ("Files.Transfer_Jobs"),
             To_Unbounded_String ("Files.Model.Support"),
             --  A leaf name's stem and extension, from its text alone.
             To_Unbounded_String ("Files.Name_Parts"),

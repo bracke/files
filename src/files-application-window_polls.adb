@@ -20,27 +20,9 @@ with Files.Jobs.Process;
 with Files.Quick_Look;
 with Files.Types;
 
-package body Files.Window_Polls is
+package body Files.Application.Window_Polls is
    use Ada.Strings.Unbounded;
    use type Files.Types.Item_Kind;
-
-   procedure Ensure_Selected_Item_Extra
-     (Model       : in out Files.Model.Window_Model;
-      Show_Hidden : Boolean) is
-   begin
-      if not Files.Model.Background_Transfers (Model)
-        and then Files.Model.Selected_Item_Needs_Extra (Model)
-      then
-         declare
-            Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
-         begin
-            Files.Model.Set_Selected_Item_Extra
-              (Model,
-               Files.File_System.Extra_Info_Of
-                 (To_String (Item.Full_Path), Item.Kind, To_String (Item.Filetype), Show_Hidden));
-         end;
-      end if;
-   end Ensure_Selected_Item_Extra;
 
    --  A size result changes the render revision, and a listing read in
    --  flight (or a paste) must see the revision it was started at. While one
@@ -51,7 +33,7 @@ package body Files.Window_Polls is
 
    procedure Poll_Selected_Item_Extra
      (Model       : in out Files.Model.Window_Model;
-      Owner       : Files.Extra_Info_Reader.Requester;
+      Owner       : Files.Application.Extra_Info_Reader.Requester;
       Show_Hidden : Boolean := True) is
    begin
       if Files.Model.Selected_Item_Needs_Extra (Model) then
@@ -63,9 +45,9 @@ package body Files.Window_Polls is
          begin
             --  Taken only when read for the item as listed now: a read of
             --  the file before a refresh relisted it is asked for again.
-            Files.Extra_Info_Reader.Take (Owner, Item, Show_Hidden, Extra, Ready, Asked);
+            Files.Application.Extra_Info_Reader.Take (Owner, Item, Show_Hidden, Extra, Ready, Asked);
             if not Asked then
-               Files.Extra_Info_Reader.Request (Owner, Item, Show_Hidden);
+               Files.Application.Extra_Info_Reader.Request (Owner, Item, Show_Hidden);
             elsif Ready then
                Files.Model.Set_Selected_Item_Extra (Model, Extra);
             end if;
@@ -107,7 +89,7 @@ package body Files.Window_Polls is
 
    procedure Poll_Quick_Look
      (Model : in out Files.Model.Window_Model;
-      Owner : Files.Preview_Decoder.Requester) is
+      Owner : Files.Application.Preview_Decoder.Requester) is
       use type Files.Quick_Look.Content_Kind;
    begin
       if Files.Model.Quick_Look.Is_Open (Model) then
@@ -123,9 +105,9 @@ package body Files.Window_Polls is
                   Ready : Boolean;
                   Asked : Boolean;
                begin
-                  Files.Preview_Decoder.Take (Owner, Path, Image, Ready, Asked);
+                  Files.Application.Preview_Decoder.Take (Owner, Path, Image, Ready, Asked);
                   if not Asked then
-                     Files.Preview_Decoder.Request (Owner, Path, Files.Quick_Look.Preview_Side);
+                     Files.Application.Preview_Decoder.Request (Owner, Path, Files.Quick_Look.Preview_Side);
                   elsif Ready and then Image.Available then
                      Files.Model.Quick_Look.Set_Image
                        (Model, Path, Guikit.Shared_Bytes.To_Shared (Image.Pixels), Image.Width, Image.Height);
@@ -299,4 +281,4 @@ package body Files.Window_Polls is
       Files.Model.Status_Samples.Note_Account_Names_Sampled (Model);
    end Sample_Account_Names;
 
-end Files.Window_Polls;
+end Files.Application.Window_Polls;

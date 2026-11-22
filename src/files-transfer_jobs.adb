@@ -13,7 +13,7 @@ with Files.File_Identities;
 with Files.IO.Lease_Streams;
 with Files.Path_Checks;
 
-package body Files.Jobs.Transfer is
+package body Files.Transfer_Jobs is
    use Ada.Strings.Unbounded;
 
    Max_Transport_Path_Length : constant := Files.IO.Record_Fields.Max_Path_Length;
@@ -257,7 +257,7 @@ package body Files.Jobs.Transfer is
       Result.Trashed_Identity := Backup_Identity;
    exception
       when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Jobs.Transfer");
+         Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
    end Apply_Replacement_Checkpoint;
 
    --  A failed result that is the cancel: its key, read as a finished job's,
@@ -279,8 +279,8 @@ package body Files.Jobs.Transfer is
          Write_Request (Stream, Action, Mode, Files.Jobs.Copy_Context.Directory (Batch));
       end Write;
    begin
-      Files.Jobs.Process.Reserve (Job.Process);
-      Files.Jobs.Process.Launch_With_Request (Job.Process, Files.Jobs.Helper_Modes.Transfer, Write'Access);
+      Files.Jobs.Process.Reserve (Job);
+      Files.Jobs.Process.Launch_With_Request (Job, Files.Jobs.Helper_Modes.Transfer, Write'Access);
    exception
       when others =>
          Reset (Job);
@@ -322,24 +322,24 @@ package body Files.Jobs.Transfer is
       begin
          begin
             Result := Read_Transport_Result
-              (Files.Jobs.Process.Path (Job.Process, Files.Protocol_Names.Completed_File));
+              (Files.Jobs.Process.Path (Job, Files.Protocol_Names.Completed_File));
             Result.Recovered := True;
             Result.Cancelled := False;
             return;
          exception
             when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Jobs.Transfer");
+               Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
          end;
          Read_Transport_Request
-           (Files.Jobs.Process.Path (Job.Process, Files.Jobs.Process.Request_File),
+           (Files.Jobs.Process.Path (Job, Files.Jobs.Process.Request_File),
             Action, Mode, Batch_Directory);
          Apply_Replacement_Checkpoint
-           (Files.Jobs.Process.Path (Job.Process, Files.Protocol_Names.Replaced_File), Result);
+           (Files.Jobs.Process.Path (Job, Files.Protocol_Names.Replaced_File), Result);
          declare
             Journal : constant Files.Jobs.Context.Journal_Entry_Vectors.Vector :=
               (if Mode = Files.File_System.Drop_Move
-               then Files.Jobs.Context.Read_Moved (Files.Jobs.Process.Path (Job.Process, ""))
-               else Files.Jobs.Context.Read_Created (Files.Jobs.Process.Path (Job.Process, "")));
+               then Files.Jobs.Context.Read_Moved (Files.Jobs.Process.Path (Job, ""))
+               else Files.Jobs.Context.Read_Created (Files.Jobs.Process.Path (Job, "")));
          begin
             for Done of Journal loop
                if Done.Destination = Action.Dest_Path and then Done.Source = Action.Source_Path then
@@ -353,16 +353,16 @@ package body Files.Jobs.Transfer is
          end;
       exception
          when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Jobs.Transfer");
+            Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
       end Recover;
    begin
       --  Set first: if Jobs.Process.Poll raises, the handler below reads it.
       Finished := False;
       Result := (others => <>);
-      Files.Jobs.Process.Poll (Job.Process, Finished, Cancelled);
+      Files.Jobs.Process.Poll (Job, Finished, Cancelled);
       if Finished then
          Result := Read_Transport_Result
-           (Files.Jobs.Process.Path (Job.Process, Files.Jobs.Process.Result_File));
+           (Files.Jobs.Process.Path (Job, Files.Jobs.Process.Result_File));
          if not Result.Mutation.Success then
             Recover;
          end if;
@@ -370,7 +370,7 @@ package body Files.Jobs.Transfer is
       end if;
    exception
       when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Jobs.Transfer");
+         Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
          Result.Mutation := (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
          Result.Cancelled := Cancelled and then Length (Result.Trashed) = 0;
          if Finished then
@@ -380,14 +380,14 @@ package body Files.Jobs.Transfer is
 
    procedure Cancel (Job : Session) is
    begin
-      Files.Jobs.Process.Cancel (Job.Process);
+      Files.Jobs.Process.Cancel (Job);
    end Cancel;
 
-   function Active (Job : Session) return Boolean is (Files.Jobs.Process.Active (Job.Process));
+   function Active (Job : Session) return Boolean is (Files.Jobs.Process.Active (Job));
 
    procedure Reset (Job : in out Session) is
    begin
-      Files.Jobs.Process.Reset (Job.Process);
+      Files.Jobs.Process.Reset (Job);
    end Reset;
 
    procedure Run_Helper (Directory : String) is
@@ -477,7 +477,7 @@ package body Files.Jobs.Transfer is
          end if;
       exception
          when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Jobs.Transfer");
+            Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
             Result.Mutation := (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
             --  Import_Replacing rolls back its own failures; this covers only
             --  a raise around it, with the same routine. A kept copy holds
@@ -500,9 +500,9 @@ package body Files.Jobs.Transfer is
             Files.Jobs.Records.Publish_Result (Directory, Write'Access, Name => Files.Protocol_Names.Completed_File);
          exception
             when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Jobs.Transfer");
+               Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
          end;
       end if;
       Save;
    end Run_Helper;
-end Files.Jobs.Transfer;
+end Files.Transfer_Jobs;

@@ -18,7 +18,7 @@ begin
    declare
       Item : Files.Items.Directory_Item := Model.Items.Element (Idx);
    begin
-      --  The details depend on the item as listed (see Files.Extra_Info_Reader):
+      --  The details depend on the item as listed (see Files.Application.Extra_Info_Reader):
       --  the same facts read the same details.
       if Keep_Extra
         and then Previous.Filetype_Extra_Loaded

@@ -9,7 +9,7 @@ with GNAT.OS_Lib;
 
 with Files.IO.Fs_Primitives;
 with Files.Undo.Payloads;
-with Files.Jobs.Transfer;
+with Files.Transfer_Jobs;
 with Files.Jobs.Context;
 with Hostkit.Metadata;
 

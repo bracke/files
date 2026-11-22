@@ -3,10 +3,10 @@ with Files.UI_Types;
 with Files.Operation_Results;
 with Ada.Calendar;
 with Ada.Containers;
-with Files.Window_Polls;
+with Files.Application.Window_Polls;
 with Files.Job_Drivers.Foreground;
-with Files.Preview_Decoder;
-with Files.Extra_Info_Reader;
+with Files.Application.Preview_Decoder;
+with Files.Application.Extra_Info_Reader;
 with Files.Controller;
 with Files.Diagnostics;
 with Ada.Unchecked_Deallocation;
@@ -454,16 +454,16 @@ package body Files.Application.Windows is
             --  as the folder watch does: what the job changes is read once
             --  it is done.
             if not Files.Model.Foreground_Job_Is_Active (Runtime.Model) then
-               Files.Window_Polls.Poll_Selected_Item_Extra
-                 (Runtime.Model, Files.Extra_Info_Reader.Requester (Runtime.A11y_Key),
+               Files.Application.Window_Polls.Poll_Selected_Item_Extra
+                 (Runtime.Model, Files.Application.Extra_Info_Reader.Requester (Runtime.A11y_Key),
                   Runtime.Settings.Show_Hidden_Files);
             end if;
             --  It asks for nothing while the targets it set still stand
             --  (Targets_Set_For) or a read or job is under way.
-            Files.Window_Polls.Update_Folder_Size (Runtime.Model);
-            Files.Window_Polls.Poll_Folder_Sizes (Runtime.Model);
-            Files.Window_Polls.Poll_Quick_Look
-              (Runtime.Model, Files.Preview_Decoder.Requester (Runtime.A11y_Key));
+            Files.Application.Window_Polls.Update_Folder_Size (Runtime.Model);
+            Files.Application.Window_Polls.Poll_Folder_Sizes (Runtime.Model);
+            Files.Application.Window_Polls.Poll_Quick_Look
+              (Runtime.Model, Files.Application.Preview_Decoder.Requester (Runtime.A11y_Key));
          end if;
       end Poll;
    begin

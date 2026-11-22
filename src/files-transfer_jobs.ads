@@ -6,8 +6,12 @@ with Files.File_System;
 with Files.Paste;
 with Files.Types;
 
---  Filesystem-only helpers. Model and rendering state stay on the UI thread.
-package Files.Jobs.Transfer is
+--  The paste transfer job: one copy or move run on a helper process, with
+--  its request, result and replacement checkpoint records. It drives the
+--  file system's copy and move, so it sits above Files.File_System, beside
+--  Files.Refresh; Files.Operations advances it. Model and rendering state
+--  stay on the UI thread.
+package Files.Transfer_Jobs is
    type Job_Result is record
       Mutation  : Files.File_System.Mutation_Result := (Success => False, Error_Key => <>);
       Cancelled : Boolean := False;
@@ -18,7 +22,9 @@ package Files.Jobs.Transfer is
       Recovered : Boolean := False;
    end record;
 
-   type Session is private;
+   --  A transfer is one helper session: the window's model holds it as a
+   --  plain Files.Jobs.Process.Session, below this unit.
+   subtype Session is Files.Jobs.Process.Session;
 
    --  Start one action in a helper, leaving Result collection to Poll.
    --  @param Job Shared, reference-counted helper session.
@@ -108,8 +114,4 @@ private
    procedure Apply_Replacement_Checkpoint
      (Path : String;
       Result : in out Job_Result);
-
-   type Session is record
-      Process : Files.Jobs.Process.Session;
-   end record;
-end Files.Jobs.Transfer;
+end Files.Transfer_Jobs;

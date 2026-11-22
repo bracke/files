@@ -156,8 +156,8 @@ separate (Files_Suite.Info)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "tree");
       Files.Model.Toggle_Info_Pane (Model);
-      Files.Window_Polls.Cancel_Folder_Scan (Model);
-      Files.Window_Polls.Update_Folder_Size (Model);
+      Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
+      Files.Application.Window_Polls.Update_Folder_Size (Model);
 
       --  The measurement now runs in a helper off the UI path; drive it to
       --  completion and publish it, as the frame loop would, before snapshotting.

@@ -4,13 +4,13 @@ with Files.Items;
 --  The info pane's type details (a text file's lines, a PDF's pages, an
 --  archive's entries, a folder's count), read off the UI thread: one could
 --  read up to 8 MiB, on every arrow key with the pane open. One worker task
---  reads (Files.Background_Slots), one slot per window.
+--  reads (Files.Application.Background_Slots), one slot per window.
 --
 --  A request names the item's revision as well as its path: its kind,
 --  filetype, modification time and size as listed. A refresh that relists a
 --  rewritten file gives its item a new revision, so a read of the old file
 --  still in work is not taken for the new one.
-package Files.Extra_Info_Reader is
+package Files.Application.Extra_Info_Reader is
 
    --  Who asks: one key per window.
    type Requester is new Natural;
@@ -49,4 +49,4 @@ package Files.Extra_Info_Reader is
    --  @param Owner The window going away.
    procedure Release (Owner : Requester);
 
-end Files.Extra_Info_Reader;
+end Files.Application.Extra_Info_Reader;

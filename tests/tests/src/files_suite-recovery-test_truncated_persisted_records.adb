@@ -68,7 +68,7 @@ separate (Files_Suite.Recovery)
       Reset_Root;
       Ada.Streams.Stream_IO.Create
         (File, Ada.Streams.Stream_IO.Out_File, Job_Path);
-      Files.Jobs.Records.Write_Operation_Result
+      Files.Job_Payloads.Write_Operation_Result
         (Ada.Streams.Stream_IO.Stream (File), Written_Result);
       Ada.Streams.Stream_IO.Close (File);
 
@@ -78,7 +78,7 @@ separate (Files_Suite.Recovery)
       begin
          Ada.Streams.Stream_IO.Open
            (File, Ada.Streams.Stream_IO.In_File, Job_Path);
-         Read_Result := Files.Jobs.Records.Read_Operation_Result
+         Read_Result := Files.Job_Payloads.Read_Operation_Result
            (Ada.Streams.Stream_IO.Stream (File));
          Ada.Streams.Stream_IO.Close (File);
          Files_Suite.Support.Assert_Equal
@@ -94,7 +94,7 @@ separate (Files_Suite.Recovery)
                Rejected : Boolean := False;
             begin
                begin
-                  Read_Result := Files.Jobs.Records.Read_Operation_Result
+                  Read_Result := Files.Job_Payloads.Read_Operation_Result
                     (Ada.Streams.Stream_IO.Stream (File));
                exception
                   when others =>

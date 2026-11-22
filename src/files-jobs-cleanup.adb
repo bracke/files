@@ -2,8 +2,8 @@ with Files.Protocol_Names;
 with Files.Diagnostics;
 with Files.IO.Fs_Primitives;
 
-with Files.File_System;
 with Files.Jobs.Context;
+with Files.Jobs.Storage;
 with Files.Jobs.Transports;
 with Hostkit.Fs;
 
@@ -79,14 +79,11 @@ package body Files.Jobs.Cleanup is
                   --  retiring marker keeps a late helper from joining then.
                   Files.Jobs.Transports.Release (Claim);
                   Have_Claim := False;
-                  declare
-                     Removed : constant Files.File_System.Mutation_Result :=
-                       Files.File_System.Delete_Transport_Entry (Directory, Expected_Identity);
-                  begin
-                     if Removed.Success and then Directory_Gone then
-                        return Cleanup_Removed;
-                     end if;
-                  end;
+                  if Files.Jobs.Storage.Delete_Transport_Entry (Directory, Expected_Identity)
+                    and then Directory_Gone
+                  then
+                     return Cleanup_Removed;
+                  end if;
                exception
                   when Swallowed : others =>
                      Files.Diagnostics.Note (Swallowed, "Files.Jobs.Cleanup");

@@ -2,7 +2,6 @@ with Files.UI_Types;
 with Files.Model.Jobs;
 with Files.IO.Record_Fields;
 with Files.Operations.Undo_Recording;
-with Files.Window_Polls;
 with Files.Jobs.Helper_Modes;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
@@ -12,6 +11,7 @@ with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
 
 with Files.Jobs.Context;
+with Files.Job_Payloads;
 with Files.Jobs.Records;
 with Files.IO.Lease_Streams;
 with Files.Undo.Journal;
@@ -94,8 +94,8 @@ package body Files.Job_Drivers.Operation is
       Boolean'Output (Stream, Work.Recent);
       Files.IO.Record_Fields.Output_String
         (Stream, To_String (Work.Query), Files.Jobs.Records.Max_Text_Length);
-      Files.Jobs.Records.Write_Items (Stream, Work.Selected);
-      Files.Jobs.Records.Write_Settings (Stream, Work.Settings);
+      Files.Job_Payloads.Write_Items (Stream, Work.Selected);
+      Files.Job_Payloads.Write_Settings (Stream, Work.Settings);
       Natural'Output (Stream, Work.Context_Revision);
       Natural'Output (Stream, Work.View_Incarnation);
       Natural'Output (Stream, Work.Undo_Sequence);
@@ -111,8 +111,8 @@ package body Files.Job_Drivers.Operation is
       Work.Recent := Boolean'Input (Stream);
       Work.Query :=
         To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Text_Length));
-      Work.Selected := Files.Jobs.Records.Read_Items (Stream);
-      Work.Settings := Files.Jobs.Records.Read_Settings (Stream);
+      Work.Selected := Files.Job_Payloads.Read_Items (Stream);
+      Work.Settings := Files.Job_Payloads.Read_Settings (Stream);
       Work.Context_Revision := Natural'Input (Stream);
       Work.View_Incarnation := Natural'Input (Stream);
       Work.Undo_Sequence := Natural'Input (Stream);
@@ -135,8 +135,8 @@ package body Files.Job_Drivers.Operation is
       String'Output (Stream, Result_Header);
       Operation_Kind'Output (Stream, Done.Kind);
       Boolean'Output (Stream, Done.Recent);
-      Files.Jobs.Records.Write_Operation_Result (Stream, Done.Result);
-      Files.Jobs.Records.Write_Items (Stream, Done.Items);
+      Files.Job_Payloads.Write_Operation_Result (Stream, Done.Result);
+      Files.Job_Payloads.Write_Items (Stream, Done.Items);
       Files.IO.Record_Fields.Output_String
         (Stream, To_String (Done.Selection), Files.Jobs.Records.Max_Path_Length);
       Files.IO.Record_Fields.Output_String
@@ -152,8 +152,8 @@ package body Files.Job_Drivers.Operation is
    begin
       Done.Kind := Operation_Kind'Input (Stream);
       Done.Recent := Boolean'Input (Stream);
-      Done.Result := Files.Jobs.Records.Read_Operation_Result (Stream);
-      Done.Items := Files.Jobs.Records.Read_Items (Stream);
+      Done.Result := Files.Job_Payloads.Read_Operation_Result (Stream);
+      Done.Items := Files.Job_Payloads.Read_Items (Stream);
       Done.Selection :=
         To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
       Done.Visible_Error :=

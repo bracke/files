@@ -18,8 +18,8 @@ with Files.IO.Private_Directories;
 with Files.Jobs.Process;
 with Files.Jobs.Process.Testing;
 with Files.Refresh.Testing;
-with Files.Jobs.Transfer;
-with Files.Jobs.Transfer.Testing;
+with Files.Transfer_Jobs;
+with Files.Transfer_Jobs.Testing;
 with Files_Suite.Support;
 with Hostkit.Fs;
 with Hostkit.Host;
@@ -815,18 +815,18 @@ package body Test_Helpers is
             Directory : constant String := Ada.Command_Line.Argument (2);
             Fault : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TRANSFER_RESULT_LOSS");
             File : Ada.Streams.Stream_IO.File_Type;
-            Checkpoint : constant Files.Jobs.Transfer.Job_Result := (others => <>);
+            Checkpoint : constant Files.Transfer_Jobs.Job_Result := (others => <>);
             Action : Files.Paste.Resolved_Action;
          begin
             Ada.Directories.Delete_File (Directory & "/result");
             if Fault = "checkpoint" then
-               Files.Jobs.Transfer.Testing.Write_Result
+               Files.Transfer_Jobs.Testing.Write_Result
                  (Directory & "/result", Checkpoint);
             elsif Fault in "journal" | "replacement" | "source-replacement" then
                Ada.Directories.Delete_File (Directory & "/completed");
             end if;
             if Fault in "replacement" | "source-replacement" then
-               Action := Files.Jobs.Transfer.Testing.Read_Request_Action
+               Action := Files.Transfer_Jobs.Testing.Read_Request_Action
                  (Directory & "/request");
                declare
                   Dest : constant String := Ada.Strings.Unbounded.To_String

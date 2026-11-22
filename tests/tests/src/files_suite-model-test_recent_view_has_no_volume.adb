@@ -9,9 +9,9 @@ separate (Files_Suite.Model)
    begin
       Reset_Root;
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Files.Window_Polls.Sample_Volume_Space (Model);
+      Files.Application.Window_Polls.Sample_Volume_Space (Model);
       Assert (Files.Model.Status_Samples.Volume_Space_Of (Model).Known, "a folder's volume space is known");
       Files.Model.Navigate_Recent (Model, Files.Items.Item_Vectors.Empty_Vector);
-      Files.Window_Polls.Sample_Volume_Space (Model);
+      Files.Application.Window_Polls.Sample_Volume_Space (Model);
       Assert (not Files.Model.Status_Samples.Volume_Space_Of (Model).Known, "the Recent view shows no volume space");
    end Test_Recent_View_Has_No_Volume;

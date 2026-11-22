@@ -1,10 +1,10 @@
 with Ada.Calendar;
 with Ada.Strings.Unbounded;
-with Files.Background_Slots;
+with Files.Application.Background_Slots;
 with Files.File_System;
 with Files.Types;
 
-package body Files.Extra_Info_Reader is
+package body Files.Application.Extra_Info_Reader is
    use Ada.Strings.Unbounded;
 
    --  What the details depend on besides the path: the item's revision (as
@@ -44,7 +44,7 @@ package body Files.Extra_Info_Reader is
 
    function No_Details return Files.Extra_Info.Info is (Files.Extra_Info.No_Info);
 
-   package Reader is new Files.Background_Slots
+   package Reader is new Files.Application.Background_Slots
      (Parameters  => Item_Facts,
       Result      => Files.Extra_Info.Info,
       Work        => Read,
@@ -76,4 +76,4 @@ package body Files.Extra_Info_Reader is
       Reader.Release (Reader.Requester (Owner));
    end Release;
 
-end Files.Extra_Info_Reader;
+end Files.Application.Extra_Info_Reader;

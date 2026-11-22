@@ -1,7 +1,7 @@
 with Files.Paste;
 with Files.Jobs.Copy_Context;
 with Files.Paste_States;
-with Files.Jobs.Transfer;
+with Files.Jobs.Process;
 --  A paste, a drop or a Copy to.../Move to... as the model holds it: the
 --  conflict dialog that resolves its collisions, and the execution that
 --  works through its resolved actions, with the transfer job that runs
@@ -130,13 +130,13 @@ package Files.Model.Pasting is
    --
    --  @param Model Window to inspect.
    --  @return Its transfer session (inactive between actions).
-   function Job (Model : Window_Model) return Files.Jobs.Transfer.Session;
+   function Job (Model : Window_Model) return Files.Jobs.Process.Session;
 
    --  Store the transfer session after driving it.
    --
    --  @param Model Window to update.
    --  @param Job Its transfer session.
-   procedure Set_Job (Model : in out Window_Model; Job : Files.Jobs.Transfer.Session);
+   procedure Set_Job (Model : in out Window_Model; Job : Files.Jobs.Process.Session);
 
    --  The current paste action has been handed to a helper: show its name.
    --

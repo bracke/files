@@ -22,7 +22,7 @@ separate (Files_Suite.Transfer)
                   Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
                   pragma Unreferenced (Paste);
                   Step : Files.Operation_Results.Operation_Result;
-                  Outcome : Files.Jobs.Transfer.Job_Result;
+                  Outcome : Files.Transfer_Jobs.Job_Result;
                begin
                   Write_Binary_File (Source, "source bytes");
                   if Replaced then
@@ -32,10 +32,10 @@ separate (Files_Suite.Transfer)
                   Ada.Directories.Create_Path (Join (Transport, "created"));
                   Files.Jobs.Context.Initialize (Transport);
                   if Via_Helper then
-                     Files.Jobs.Transfer.Testing.Write_Request
+                     Files.Transfer_Jobs.Testing.Write_Request
                        (Join (Transport, "request"), Action, Mode);
-                     Files.Jobs.Transfer.Run_Helper (Transport);
-                     Outcome := Files.Jobs.Transfer.Testing.Read_Result
+                     Files.Transfer_Jobs.Run_Helper (Transport);
+                     Outcome := Files.Transfer_Jobs.Testing.Read_Result
                        (Join (Transport, "result"));
                      Assert
                        (Outcome.Mutation.Success,

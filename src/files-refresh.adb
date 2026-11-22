@@ -1,5 +1,4 @@
 with Files.Model.Jobs;
-with Files.Window_Polls;
 with Files.Protocol_Names;
 with Files.Quick_Look.Preparation;
 with Files.Jobs.Helper_Modes;
@@ -13,6 +12,7 @@ with Files.IO.Record_Fields;
 with Files.File_System;
 with Files.IO.Exclusive_Streams;
 with Files.Jobs.Context;
+with Files.Job_Payloads;
 with Files.Jobs.Records;
 with Files.IO.Lease_Streams;
 with Files.IO.Fs_Primitives;
@@ -90,7 +90,7 @@ package body Files.Refresh is
       Files.IO.Record_Fields.Output_String
         (Stream, To_String (Work.Root), Files.Jobs.Records.Max_Path_Length);
       Natural'Output (Stream, Work.Context_Revision);
-      Files.Jobs.Records.Write_Settings (Stream, Work.Settings);
+      Files.Job_Payloads.Write_Settings (Stream, Work.Settings);
       Files.Jobs.Records.Write_Signature (Stream, Work.Previous);
       Boolean'Output (Stream, Work.Recent);
       Boolean'Output (Stream, Work.Force);
@@ -107,7 +107,7 @@ package body Files.Refresh is
       Work.Root :=
         To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Path_Length));
       Work.Context_Revision := Natural'Input (Stream);
-      Work.Settings := Files.Jobs.Records.Read_Settings (Stream);
+      Work.Settings := Files.Job_Payloads.Read_Settings (Stream);
       Work.Previous := Files.Jobs.Records.Read_Signature (Stream);
       Work.Recent := Boolean'Input (Stream);
       Work.Force := Boolean'Input (Stream);
@@ -161,7 +161,7 @@ package body Files.Refresh is
       String'Output (Stream, Result_Header);
       Boolean'Output (Stream, Done.Success);
       Boolean'Output (Stream, Done.Reloaded);
-      Files.Jobs.Records.Write_Items (Stream, Done.Items);
+      Files.Job_Payloads.Write_Items (Stream, Done.Items);
       Files.Jobs.Records.Write_Signature (Stream, Done.Signature);
       Files.IO.Record_Fields.Output_String
         (Stream, To_String (Done.Error_Key), Files.Jobs.Records.Max_Error_Length);
@@ -173,7 +173,7 @@ package body Files.Refresh is
    begin
       Done.Success := Boolean'Input (Stream);
       Done.Reloaded := Boolean'Input (Stream);
-      Done.Items := Files.Jobs.Records.Read_Items (Stream);
+      Done.Items := Files.Job_Payloads.Read_Items (Stream);
       Done.Signature := Files.Jobs.Records.Read_Signature (Stream);
       Done.Error_Key :=
         To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Files.Jobs.Records.Max_Error_Length));
@@ -430,7 +430,7 @@ package body Files.Refresh is
          Files.Model.Set_Error (Model, To_String (Work.Error_Key));
       end if;
       Files.Model.Set_Directory_Signature (Model, Done.Signature);
-      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
+      Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
       return Done.Reloaded;
    exception
       when Swallowed : others =>
@@ -539,7 +539,7 @@ package body Files.Refresh is
                      Done.Success := Loaded.Success;
                      Done.Reloaded := Loaded.Success;
                      Done.Items := Loaded.Items;
-                     Files.Jobs.Records.Fit_Thumbnails (Done.Items);
+                     Files.Job_Payloads.Fit_Thumbnails (Done.Items);
                      Done.Error_Key := Loaded.Error_Key;
                      --  Use the signature from before loading, so a concurrent
                      --  change during enumeration schedules another refresh.
@@ -802,4 +802,22 @@ package body Files.Refresh is
          Files.Diagnostics.Note (Swallowed, "Files.Refresh");
          Hostkit.Watch.Release (Watch);
    end Run_Watch_Helper;
+   procedure Ensure_Selected_Item_Extra
+     (Model       : in out Files.Model.Window_Model;
+      Show_Hidden : Boolean) is
+   begin
+      if not Files.Model.Background_Transfers (Model)
+        and then Files.Model.Selected_Item_Needs_Extra (Model)
+      then
+         declare
+            Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
+         begin
+            Files.Model.Set_Selected_Item_Extra
+              (Model,
+               Files.File_System.Extra_Info_Of
+                 (To_String (Item.Full_Path), Item.Kind, To_String (Item.Filetype), Show_Hidden));
+         end;
+      end if;
+   end Ensure_Selected_Item_Extra;
+
 end Files.Refresh;

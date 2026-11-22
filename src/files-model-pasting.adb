@@ -132,9 +132,9 @@ package body Files.Model.Pasting is
 
    function Execution_Of (Model : Window_Model) return Files.Paste_States.Execution_State is (Model.Paste_Exec);
 
-   function Job (Model : Window_Model) return Files.Jobs.Transfer.Session is (Model.Paste_Exec_Job);
+   function Job (Model : Window_Model) return Files.Jobs.Process.Session is (Model.Paste_Exec_Job);
 
-   procedure Set_Job (Model : in out Window_Model; Job : Files.Jobs.Transfer.Session) is
+   procedure Set_Job (Model : in out Window_Model; Job : Files.Jobs.Process.Session) is
    begin
       Model.Paste_Exec_Job := Job;
    end Set_Job;

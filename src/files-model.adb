@@ -13,8 +13,8 @@ package body Files.Model is
    --  model only holds the job handles; Files.Operations drives them.
    --
    --  @return A session holding no job.
-   function Released_Transfer return Files.Jobs.Transfer.Session is
-      Idle : Files.Jobs.Transfer.Session;
+   function Released_Transfer return Files.Jobs.Process.Session is
+      Idle : Files.Jobs.Process.Session;
    begin
       return Idle;
    end Released_Transfer;

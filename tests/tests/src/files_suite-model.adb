@@ -20,7 +20,7 @@ with AUnit.Test_Cases;
 with GNAT.OS_Lib;
 with Hostkit.Host;
 
-with Files.Window_Polls;
+with Files.Application.Window_Polls;
 with Files.Application.Window_Policy;
 with Files.IO.Bounded_Text;
 with Files.Commands;

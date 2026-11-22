@@ -1,4 +1,4 @@
-with Files.Background_Slots;
+with Files.Application.Background_Slots;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Info)
    procedure Test_Background_Slots_Serve_Many_Windows (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -11,7 +11,7 @@ separate (Files_Suite.Info)
       function No_Result return Natural is (Failure);
       function Succeeded (Value : Natural) return Boolean is (Value /= Failure);
 
-      package Slots is new Files.Background_Slots
+      package Slots is new Files.Application.Background_Slots
         (Parameters  => Natural,
          Result      => Natural,
          Work        => Measure,

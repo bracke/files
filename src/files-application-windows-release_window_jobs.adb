@@ -5,7 +5,7 @@ procedure Release_Window_Jobs
 is
    use type Files.Model.Foreground_Job_Kind;
 begin
-   Files.Window_Polls.Cancel_Folder_Scan (Model);
+   Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
    if Files.Model.Foreground_Job_Is_Active (Model) then
       --  Asked to stop as the user's Cancel asks, not just dropped: a helper
       --  keeps its grace to put back an original it was replacing

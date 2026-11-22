@@ -11,7 +11,7 @@ package Files.UI_Types is
    --  How many selected items the info pane lists in detail. Past a hundred
    --  the list is unreadable anyway; the selection count shows the extent.
    --  Here rather than in Files.Rendering so the info pane's background read
-   --  (Files.Window_Polls) asks for the same count without the renderer.
+   --  (Files.Application.Window_Polls) asks for the same count without the renderer.
    Max_Info_Items : constant := 100;
 
    --  Which text field of a window takes typed text and the caret, or none.

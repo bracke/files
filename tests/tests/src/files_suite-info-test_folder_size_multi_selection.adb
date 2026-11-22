@@ -16,13 +16,13 @@ separate (Files_Suite.Info)
       Write_Binary_File (Join (Dir_B, "two.bin"), "0123456789");    --  10 bytes
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Window_Polls.Cancel_Folder_Scan (Model);
+      Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
 
       --  Select both folders with the info pane open, then request their sizes.
       Files.Model.Toggle_Info_Pane (Model);
       Files.Model.Selection.Select_All_Visible (Model);
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Count (Model), 2, "both folders are selected");
-      Files.Window_Polls.Update_Folder_Size (Model);
+      Files.Application.Window_Polls.Update_Folder_Size (Model);
 
       --  Drive both queued walks to completion, publishing each result as the
       --  frame loop's Poll_Window_Workers would.

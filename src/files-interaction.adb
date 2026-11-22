@@ -1,7 +1,7 @@
 with Files.Events;
 with Files.UI_Types;
 with Files.Operation_Results;
-with Files.Window_Polls;
+with Files.Refresh;
 with Files.Items;
 with Ada.Strings.Unbounded;
 
@@ -327,7 +327,7 @@ package body Files.Interaction is
       Result                : in out Interaction_Result) is
    begin
       Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
-      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
+      Files.Refresh.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
    end Finish_Dispatch;
 
    procedure Handle_Key
