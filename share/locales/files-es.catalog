@@ -440,6 +440,7 @@ es.info.contents.items = elementos
 es.info.contents.total = total
 es.info.folder_size = Contenido
 es.info.folder_size.tooltip = El tamaño total de la carpeta y el número de elementos.
+es.tree.loading = …
 es.tree.panel.title = Carpetas
 es.tree.pick.cancel = Cancelar
 es.tree.pick.choose = Elegir

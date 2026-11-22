@@ -13,6 +13,9 @@ with Hostkit.Metadata_Copy;
 private package Files.File_System.Support is
    use type Hostkit.Metadata_Copy.Entry_Times;
 
+   --  The most entries one directory may list before it counts as hostile.
+   Max_Directory_Entries : constant := 1_000_000;
+
    --  Enumerate names without following links or dropping dangling links.
    --  Raises Use_Error before buffered names exceed the shared entry or byte
    --  budget, so a single hostile directory cannot exhaust process memory.

@@ -37,6 +37,8 @@ package Files.Folder_Tree is
       Expanded     : Boolean := False;
       Loaded       : Boolean := False;
       Has_Children : Boolean := False;
+      --  Its children are being read (Set_Loading): the panel says so.
+      Loading      : Boolean := False;
    end record;
 
    package Visible_Row_Vectors is new Ada.Containers.Vectors
@@ -122,6 +124,17 @@ package Files.Folder_Tree is
       Index    : Positive;
       Expanded : Boolean);
 
+   --  Mark a node's children as being read, or no longer; Replace_Children
+   --  ends it too.
+   --
+   --  @param T Tree to update.
+   --  @param Index One-based node index.
+   --  @param Loading Whether its children are being read.
+   procedure Set_Loading
+     (T       : in out Tree;
+      Index   : Positive;
+      Loading : Boolean);
+
    --  Flip a node's expanded flag.
    --
    --  @param T Tree to update.
@@ -150,6 +163,17 @@ package Files.Folder_Tree is
      (T : Tree)
       return Natural;
 
+   --  Moved by every change to what Visible_Rows returns (Seed,
+   --  Replace_Children, an expand or collapse), so a reader can keep the rows
+   --  it took while this stands. The rows are flattened once a change, not
+   --  on every read: a snapshot, a scroll clamp and an arrow key all ask.
+   --
+   --  @param T Tree to inspect.
+   --  @return The tree's structure revision.
+   function Structure_Revision
+     (T : Tree)
+      return Natural;
+
 private
    type Node is record
       Path         : UString;
@@ -159,6 +183,7 @@ private
       Expanded     : Boolean := False;
       Loaded       : Boolean := False;
       Has_Children : Boolean := True;
+      Loading      : Boolean := False;
       Rank         : Natural := 0;
       --  Position among its siblings: a child kept across a re-read keeps its
       --  node (and subtree) but takes the place the new listing gives it.
@@ -169,8 +194,11 @@ private
       Element_Type => Node);
 
    type Tree is record
-      Nodes  : Node_Vectors.Vector;
-      Seeded : Boolean := False;
+      Nodes    : Node_Vectors.Vector;
+      Seeded   : Boolean := False;
+      --  Visible_Rows as of the last change, and that change's number.
+      Rows     : Visible_Row_Vectors.Vector;
+      Revision : Natural := 0;
    end record;
 
 end Files.Folder_Tree;

@@ -20,6 +20,7 @@ separate (Files.Settings.Path_References)
       Dropped : Boolean := False;
       Kept    : Path_Label_Vectors.Vector;
    begin
+      Restamp (Settings.Paths);
       for Index in Settings.Paths.Labels.First_Index .. Settings.Paths.Labels.Last_Index loop
          if not Stored.Contains (Key (To_String (Settings.Paths.Labels (Index).Path))) then
             Stored.Insert (Key (To_String (Settings.Paths.Labels (Index).Path)), Index);

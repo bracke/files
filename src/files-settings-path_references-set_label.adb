@@ -8,6 +8,7 @@ separate (Files.Settings.Path_References)
       use type Files.Preference_Types.Color_Label;
       Existing : Natural := 0;
    begin
+      Restamp (Settings.Paths);
       if not Persistent_Path_Is_Valid (Path) then
          return;
       end if;

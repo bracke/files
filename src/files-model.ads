@@ -72,10 +72,11 @@ package Files.Model is
      (Model : in out Window_Model);
 
    --  Moved by a change that only an overlay drawn from the model shows (the
-   --  command palette's query, highlight and page), and by nothing else:
-   --  such a change leaves Revision, and with it the snapshot and the
-   --  palette's command list, as they were. The window layer rebuilds an
-   --  overlay when either moved.
+   --  command palette's query, highlight and page; the settings pane's
+   --  focus, values, scroll and section), and by nothing else: such a
+   --  change leaves Revision, and with it the snapshot and the palette's
+   --  command list, as they were. The window layer rebuilds an overlay when
+   --  either moved.
    --
    --  @param Model Model to inspect.
    --  @return The overlay revision.
@@ -1040,6 +1041,10 @@ private
       Tree     : Files.Folder_Tree.Tree;
       Keyboard : Boolean := False;
       Cursor   : UString;
+      --  Children are read off the UI thread (Tree_Panel.Load_In_Background):
+      --  the nodes whose children are asked for and not yet in.
+      Background : Boolean := False;
+      Pending    : Natural_Vectors.Vector;
    end record;
 
    --  Inline rename: whether it is active and one field per renamed item.
@@ -1212,6 +1217,11 @@ private
       --  The settings as saved: what the pane opened on, or what was saved
       --  since (Settings_Pane.Saved_Of).
       Settings_Saved_Value : Files.Settings.Settings_Model;
+      --  A held key is repeating into the pane (Settings_Pane.Note_Key_Repeat),
+      --  and a change it made is in force but not yet written
+      --  (Settings_Pane.Defer_Save).
+      Settings_Key_Repeat    : Boolean := False;
+      Settings_Save_Deferred : Boolean := False;
       Settings_Panel_View  : Guikit.Settings_Panel.Panel;
       Ownership_Input      : Ownership_Input_State;
       Info_Pane_Scroll     : Natural := 0;

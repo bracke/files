@@ -95,6 +95,7 @@ package body Files_Suite.Settings is
    procedure Test_Scalar_Settings_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Secondary_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Reset_Keeps_Taken_Secondary (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Held_Key_Saves_Once (T : in out AUnit.Test_Cases.Test_Case'Class);
    overriding function Name (T : Settings_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
    begin
@@ -224,6 +225,9 @@ package body Files_Suite.Settings is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shortcut_Reset_Keeps_Taken_Secondary'Access,
          "resetting a shortcut leaves its built-in secondary with the command that took it");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Held_Key_Saves_Once'Access,
+         "a held arrow's steps on a setting are in force at once and written once, when it is let go");
    end Register_Tests;
 
    --  A settings text exercising every section the parsing and open-action
@@ -409,4 +413,6 @@ package body Files_Suite.Settings is
    procedure Test_Secondary_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Shortcut_Reset_Keeps_Taken_Secondary (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Held_Key_Saves_Once (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 end Files_Suite.Settings;

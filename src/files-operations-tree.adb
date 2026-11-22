@@ -1,4 +1,3 @@
-with Files.File_System;
 with Ada.Strings.Unbounded;
 with Files.IO.Fs_Primitives;
 with Files.Diagnostics;
@@ -22,6 +21,12 @@ package body Files.Operations.Tree is
      (Model      : in out Files.Model.Window_Model;
       Settings   : Files.Settings.Settings_Model;
       Node_Index : Positive)
+   is separate;
+
+   procedure Apply_Tree_Children
+     (Model      : in out Files.Model.Window_Model;
+      Node_Index : Positive;
+      Load       : Files.File_System.Directory_Load_Result)
    is separate;
 
    function Classify_Favorite (Path : String) return Favorite_Target is separate;

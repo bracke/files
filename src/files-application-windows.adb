@@ -7,6 +7,7 @@ with Files.Application.Window_Polls;
 with Files.Job_Drivers.Foreground;
 with Files.Application.Preview_Decoder;
 with Files.Application.Extra_Info_Reader;
+with Files.Application.Tree_Reader;
 with Files.Controller;
 with Files.Diagnostics;
 with Ada.Unchecked_Deallocation;
@@ -26,6 +27,7 @@ with Files.Jobs.Scavenger;
 with Files.Operations;
 with Files.Model.Clipboard;
 with Files.Model.Tree_Panel;
+with Files.Model.Settings_Pane;
 with Files.Model.Selection;
 with Files.Rendering.Layouts;
 with Files.Application.Windows.Gestures;
@@ -265,66 +267,16 @@ package body Files.Application.Windows is
    --  by name: a reload that named its item, a mouse or menu command.
    procedure Reveal_Pending_Selection (Runtime : in out Runtime_Window) is separate;
 
+   --  A settings change a held key's repeats made is in force but not yet
+   --  written (Files.Model.Settings_Pane.Defer_Save): saved here, as Save
+   --  would, once the key is let go, or with Force at once (the window
+   --  closing, another input arriving).
+   procedure Save_Held_Settings (Runtime : in out Runtime_Window; Force : Boolean) is separate;
+
    --  Run the window's key presses and typed text in the order they arrived.
    procedure Handle_Keyboard
      (Runtime : in out Runtime_Window)
-   is
-      Events   : Input_Event_Vectors.Vector;
-      Consumed : Boolean := False;
-      Selected_Before : Natural := 0;
-      Path_Before     : Ada.Strings.Unbounded.Unbounded_String;
-   begin
-      if Runtime.Handle = null then
-         return;
-      end if;
-      --  This runs on every pass of the loop; with no key event nothing
-      --  below can happen, and Selected_Index walks the items.
-      if Runtime.Handle.Pending_Input.Is_Empty then
-         return;
-      end if;
-      Selected_Before := Files.Model.Selection.Selected_Index (Runtime.Model);
-      Path_Before := To_Unbounded_String (Files.Model.Current_Path (Runtime.Model));
-      Events := Runtime.Handle.Pending_Input;
-      Runtime.Handle.Pending_Input.Clear;
-      Runtime.Handle.Last_Was_Tracked_Press := False;
-      Runtime.Handle.Drop_Next_Character := False;
-
-      for Event of Events loop
-         --  A key that navigated (or reloaded) replaced the items; the next
-         --  one queued in this batch walks them in the drawn group order.
-         Files.Model.Sync_Grouping (Runtime.Model, Runtime.Settings);
-         case Event.Kind is
-            when Key_Press_Event =>
-               --  With the traces below a presented frame, CI follows a key
-               --  it sends through the loop to what it did (the selection
-               --  it moved, selected=<before>-><after>) and onto the screen.
-               Files.Diagnostics.Trace ("Files.Application.Windows", "key=" & Guikit.Input.Key_Code'Image (Event.Key));
-               declare
-                  Key_Selected_Before : constant Natural := Files.Model.Selection.Selected_Index (Runtime.Model);
-               begin
-                  Fire_Key (Runtime, Event.Key, Event.Modifiers, Consumed);
-                  Files.Diagnostics.Trace
-                    ("Files.Application.Windows",
-                     "selected=" & Files.Text_Basics.Natural_Text (Key_Selected_Before) & "->"
-                     & Files.Text_Basics.Natural_Text (Files.Model.Selection.Selected_Index (Runtime.Model)));
-               end;
-            when Text_Event =>
-               if not (Event.Parallel and then Consumed) then
-                  Dispatch_Text (Runtime, To_String (Event.Text));
-               end if;
-               Consumed := False;
-         end case;
-      end loop;
-
-      --  The selection follows the keyboard into view.
-      if Runtime.Handle /= null
-        and then (Files.Model.Selection.Selected_Index (Runtime.Model) /= Selected_Before
-                  or else Files.Model.Current_Path (Runtime.Model) /= To_String (Path_Before)
-                  or else Files.Model.Reveal_Is_Pending (Runtime.Model))
-      then
-         Reveal_Selection (Runtime);
-      end if;
-   end Handle_Keyboard;
+   is separate;
 
    --  Run one per-window step for every window, each behind its own exception
    --  boundary. A step that fails for one window's state must not starve the
@@ -469,6 +421,11 @@ package body Files.Application.Windows is
             --  (Targets_Set_For) or a read or job is under way.
             Files.Application.Window_Polls.Update_Folder_Size (Runtime.Model);
             Files.Application.Window_Polls.Poll_Folder_Sizes (Runtime.Model);
+            --  A window this loop polls has its tree's children read by
+            --  the worker: an expand only asks.
+            Files.Model.Tree_Panel.Load_In_Background (Runtime.Model);
+            Files.Application.Window_Polls.Poll_Tree_Children
+              (Runtime.Model, Runtime.Settings, Files.Application.Tree_Reader.Requester (Runtime.A11y_Key));
             Files.Application.Window_Polls.Poll_Quick_Look
               (Runtime.Model, Files.Application.Preview_Decoder.Requester (Runtime.A11y_Key));
          end if;

@@ -435,6 +435,7 @@ he.accessibility.context_menu = תפריט הקשר
 he.accessibility.tree_panel = עץ תיקיות
 he.accessibility.favorite_toggle.on = הסר את התיקייה הנוכחית מהמועדפים
 he.accessibility.favorite_toggle.off = הוסף את התיקייה הנוכחית למועדפים
+he.tree.loading = …
 he.tree.panel.title = תיקיות
 he.tree.pick.copy = העתק לתיקייה
 he.tree.pick.move = העבר לתיקייה

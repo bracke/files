@@ -59,6 +59,7 @@ package body Files_Suite.Tree is
    procedure Test_Tree_Panel_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Right_On_Empty_Folder (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Large_Folder_Tree (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Tree_Loads_In_Background (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Tree_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -112,6 +113,9 @@ package body Files_Suite.Tree is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Large_Folder_Tree'Access,
          "a folder tree of 150,000 shown folders flattens without exhausting the stack");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Tree_Loads_In_Background'Access,
+         "a window's tree reads a folder's children off the UI thread: the node loads, keeping its children");
    end Register_Tests;
 
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -143,6 +147,7 @@ package body Files_Suite.Tree is
    procedure Test_Tree_Right_On_Empty_Folder (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Large_Folder_Tree (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Tree_Loads_In_Background (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

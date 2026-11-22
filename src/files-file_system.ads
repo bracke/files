@@ -179,12 +179,12 @@ package Files.File_System is
       Options : Files.Types.Listing_Options)
       return Directory_Load_Result;
 
-   --  Path's subdirectories, for the folder tree: named, dated and classified
-   --  for the listing's sort, in its order, but without the per-item
-   --  metadata, thumbnails and file kinds a listing builds. Expanding a node
-   --  over a large folder took a full listing's time (200 ms for 22,000
-   --  entries) on the UI thread; this takes one no-follow stat per entry
-   --  where mode bits are native. A link to a folder is not a subdirectory.
+   --  Path's subdirectories, for the folder tree, in the listing's sort
+   --  order, read lean: an entry's kind comes from the directory listing
+   --  (Hostkit.Directory_Listing; one no-follow stat only where it does not
+   --  record it), and a subfolder is dated or classified only when the sort
+   --  reads it (by date, by type). A full listing took 200 ms for 22,000
+   --  entries. A link to a folder is not a subdirectory.
    --
    --  @param Path Directory whose subdirectories are listed.
    --  @param Classes Filetype and icon maps items are classified by

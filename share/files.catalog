@@ -478,6 +478,7 @@ en.accessibility.context_menu = Context menu
 en.accessibility.tree_panel = Folder tree
 en.accessibility.favorite_toggle.on = Remove current folder from favorites
 en.accessibility.favorite_toggle.off = Add current folder to favorites
+en.tree.loading = …
 en.tree.panel.title = Folders
 en.tree.pick.copy = Copy to folder
 en.tree.pick.move = Move to folder

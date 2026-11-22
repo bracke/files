@@ -435,6 +435,7 @@ fa.accessibility.context_menu = منوی زمینه
 fa.accessibility.tree_panel = درخت پوشه
 fa.accessibility.favorite_toggle.on = برداشتن پوشهٔ کنونی از علاقه‌مندی‌ها
 fa.accessibility.favorite_toggle.off = افزودن پوشهٔ کنونی به علاقه‌مندی‌ها
+fa.tree.loading = …
 fa.tree.panel.title = پوشه‌ها
 fa.tree.pick.copy = رونوشت به پوشه
 fa.tree.pick.move = انتقال به پوشه

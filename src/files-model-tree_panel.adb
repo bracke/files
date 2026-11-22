@@ -180,8 +180,58 @@ package body Files.Model.Tree_Panel is
    begin
       Touch_Header (Model);
       Model.Tree_Panel.Scroll := 0;
+      --  The nodes are new: what was asked for the old ones is not theirs.
+      Model.Tree_Panel.Pending.Clear;
       Files.Folder_Tree.Seed (Model.Tree_Panel.Tree, Roots);
    end Seed;
+
+   procedure Load_In_Background
+     (Model : in out Window_Model) is
+   begin
+      Model.Tree_Panel.Background := True;
+   end Load_In_Background;
+
+   function Loads_In_Background
+     (Model : Window_Model)
+      return Boolean is (Model.Tree_Panel.Background);
+
+   procedure Forget_Pending
+     (Model : in out Window_Model;
+      Index : Positive) is
+   begin
+      for Position in reverse Model.Tree_Panel.Pending.First_Index .. Model.Tree_Panel.Pending.Last_Index loop
+         if Model.Tree_Panel.Pending (Position) = Index then
+            Model.Tree_Panel.Pending.Delete (Position);
+         end if;
+      end loop;
+   end Forget_Pending;
+
+   procedure Request_Children
+     (Model : in out Window_Model;
+      Index : Positive) is
+   begin
+      if Index > Files.Folder_Tree.Node_Count (Model.Tree_Panel.Tree) then
+         return;
+      end if;
+      Touch_Header (Model);
+      Forget_Pending (Model, Index);
+      Model.Tree_Panel.Pending.Append (Index);
+      Files.Folder_Tree.Set_Loading (Model.Tree_Panel.Tree, Index, True);
+   end Request_Children;
+
+   function Pending_Load
+     (Model : Window_Model)
+      return Natural is
+     (if Model.Tree_Panel.Pending.Is_Empty then 0 else Model.Tree_Panel.Pending.First_Element);
+
+   procedure Load_Failed
+     (Model : in out Window_Model;
+      Index : Positive) is
+   begin
+      Touch_Header (Model);
+      Forget_Pending (Model, Index);
+      Files.Folder_Tree.Set_Loading (Model.Tree_Panel.Tree, Index, False);
+   end Load_Failed;
 
    function Node_Count
      (Model : Window_Model)
@@ -206,6 +256,7 @@ package body Files.Model.Tree_Panel is
       Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector) is
    begin
       Touch_Header (Model);
+      Forget_Pending (Model, Index);
       Files.Folder_Tree.Replace_Children (Model.Tree_Panel.Tree, Index, Children);
       Clamp_Tree_Panel_Scroll (Model);
       Reconcile_Tree_Pick_Target (Model, Index);
@@ -236,6 +287,11 @@ package body Files.Model.Tree_Panel is
      (Model : Window_Model)
       return Files.Folder_Tree.Visible_Row_Vectors.Vector is
      (Files.Folder_Tree.Visible_Rows (Model.Tree_Panel.Tree));
+
+   function Rows_Revision
+     (Model : Window_Model)
+      return Natural is
+     (Files.Folder_Tree.Structure_Revision (Model.Tree_Panel.Tree));
 
    procedure Give_Keyboard
      (Model : in out Window_Model)

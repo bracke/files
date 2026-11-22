@@ -441,6 +441,7 @@ pt.info.contents.separator = ,
 pt.info.contents.total = total
 pt.info.folder_size = Conteúdo
 pt.info.folder_size.tooltip = O tamanho total da pasta e o número de itens.
+pt.tree.loading = …
 pt.tree.panel.title = Pastas
 pt.tree.pick.cancel = Cancelar
 pt.tree.pick.choose = Escolher

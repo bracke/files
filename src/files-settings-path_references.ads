@@ -66,6 +66,14 @@ package Files.Settings.Path_References is
       Labels   : Path_Label_Vectors.Vector)
       return Boolean;
 
+   --  Which write the favorites and labels came from: equal stamps mean
+   --  equal favorites and labels (a different stamp may still hold the same
+   --  ones). Zero for settings whose favorites and labels no write touched.
+   --
+   --  @param Settings Settings model to query.
+   --  @return The stamp of the last write to its favorites or labels.
+   function Path_Stamp (Settings : Settings_Model) return Natural;
+
    --  Toggle Path in the favorites list, adding it when absent and removing
    --  it when present. An invalid path is ignored.
    --

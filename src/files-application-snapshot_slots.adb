@@ -16,6 +16,9 @@ package body Files.Application.Snapshot_Slots is
    is
       use type Ada.Calendar.Time;
       Minute : constant Ada.Calendar.Time := Files.Timing.Minute_Start (Wall_Now);
+      --  A number comparison unless the favorites or labels were written.
+      Same_Paths : constant Boolean :=
+        View.Snapshot_Valid and then Settings_Keys.Same_Path_References (Settings, View.Cached_Settings_Key);
       Action : constant Files.Snapshot_Policy.Snapshot_Action :=
         Files.Snapshot_Policy.Action_For
           (Valid         => View.Snapshot_Valid,
@@ -65,6 +68,9 @@ package body Files.Application.Snapshot_Slots is
          --  Built in place: a snapshot's copy is milliseconds of its own.
          From      : constant Snapshot_Slot := View.Current_Slot;
          Keep_Rows : constant Boolean := Action = Files.Snapshot_Policy.Patch_Rows;
+         --  Kept rows whose stars and labels are read again are rows of
+         --  their own: no longer those of the slot they came from.
+         Restarred : constant Boolean := Keep_Rows and then not Same_Paths;
       begin
          if View.Current_Slot = View.Drawn_Slot then
             View.Current_Slot := Other (View.Drawn_Slot);
@@ -74,17 +80,19 @@ package body Files.Application.Snapshot_Slots is
                Files.Rendering.Copy_Rows (View.Snapshots (View.Current_Slot), View.Snapshots (From));
             end if;
          end if;
-         Files.Rendering.Build_Snapshot_Into (View.Snapshots (View.Current_Slot), Model, Settings, Minute, Keep_Rows);
+         Files.Rendering.Build_Snapshot_Into
+           (View.Snapshots (View.Current_Slot), Model, Settings, Minute, Keep_Rows,
+            Path_References_Changed => Restarred);
          View.Last_Generation := View.Last_Generation + 1;
          View.Slot_Contents (View.Current_Slot) := View.Last_Generation;
          View.Slot_Rows (View.Current_Slot) :=
-           (if Keep_Rows then View.Slot_Rows (From) else View.Last_Generation);
+           (if Keep_Rows and then not Restarred then View.Slot_Rows (From) else View.Last_Generation);
       end;
       View.Cached_Rows_Revision := Files.Model.Rows_Revision (Model);
       View.Cached_Scroll_Revision := Files.Model.Scroll_Revision (Model);
       View.Slot_Model_Rows (View.Current_Slot) := Files.Model.Rows_Revision (Model);
       View.Cached_Model_Revision := Files.Model.Revision (Model);
-      View.Cached_Settings_Key := Settings_Keys.Snapshot_Settings_Key_Of (Settings);
+      Settings_Keys.Update_Key (View.Cached_Settings_Key, Settings);
       View.Snapshot_Built_At := Now;
       View.Cached_Minute := Minute;
       View.Snapshot_Valid := True;

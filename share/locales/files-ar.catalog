@@ -435,6 +435,7 @@ ar.accessibility.context_menu = قائمة السياق
 ar.accessibility.tree_panel = شجرة المجلدات
 ar.accessibility.favorite_toggle.on = إزالة المجلد الحالي من المفضلة
 ar.accessibility.favorite_toggle.off = إضافة المجلد الحالي إلى المفضلة
+ar.tree.loading = …
 ar.tree.panel.title = المجلدات
 ar.tree.pick.copy = نسخ إلى مجلد
 ar.tree.pick.move = نقل إلى مجلد

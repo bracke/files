@@ -438,7 +438,30 @@ private
       --  Per-path color labels (tags). Each entry maps a full item or folder
       --  path to one of the seven swatch colors; No_Label is never stored.
       Labels    : Path_Label_Vectors.Vector;
+      --  Which write the favorites and labels are the result of (Restamp):
+      --  two stores with the same stamp hold the same favorites and labels,
+      --  so the per-frame check that a snapshot still shows them is a number
+      --  comparison. Zero is the empty store no write has touched. Not part
+      --  of what the settings say ("=" below leaves it out).
+      Stamp     : Natural := 0;
    end record;
+
+   --  The favorites, recent paths and labels; not the stamp.
+   --
+   --  @param Left First store.
+   --  @param Right Second store.
+   --  @return True when both hold the same paths and labels.
+   function "=" (Left, Right : Path_Store) return Boolean is
+     (String_Vectors."=" (Left.Favorites, Right.Favorites)
+      and then String_Vectors."=" (Left.Recent, Right.Recent)
+      and then Path_Label_Vectors."=" (Left.Labels, Right.Labels));
+
+   --  Give Store a stamp no other write in this process has had: every
+   --  change to its favorites or labels ends with this (Path_References,
+   --  Storage's merge).
+   --
+   --  @param Store Store just written.
+   procedure Restamp (Store : in out Path_Store);
 
    --  Whether Path can be stored: not empty, and without a NUL or a line
    --  break, which the line-oriented settings file cannot round-trip.

@@ -171,6 +171,7 @@ separate (Files.Settings.Storage)
               Merged_Recent (Base.Paths.Recent, Mine.Paths.Recent, Theirs.Settings.Paths.Recent);
             Result.Paths.Labels :=
               Merged_Labels (Base.Paths.Labels, Mine.Paths.Labels, Theirs.Settings.Paths.Labels);
+            Restamp (Result.Paths);
             Result.Shortcut_Overrides :=
               Merged_Overrides (Base.Shortcut_Overrides, Mine.Shortcut_Overrides, Theirs.Settings.Shortcut_Overrides);
             Result.Persistence_Refused := Mine.Persistence_Refused;

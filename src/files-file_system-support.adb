@@ -24,8 +24,6 @@ with Files.Text_Basics;
 
 package body Files.File_System.Support is
 
-   --  The most entries one directory may list before it counts as hostile.
-   Max_Directory_Entries : constant := 1_000_000;
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
    use type Hostkit.Fs.Move_Outcome;

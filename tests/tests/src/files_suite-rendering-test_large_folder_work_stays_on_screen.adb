@@ -27,6 +27,10 @@ with Files.Model.Command_Palette;
 with Files.Rendering.Testing;
 with Files.Text_Case;
 with Files.Settings.Path_References;
+with Files.Overlays.Settings_Form;
+with Files.Model.Settings_Pane;
+with A11ykit;
+with A11ykit.Tree;
 separate (Files_Suite.Rendering)
    --  In a large folder, the work a pointer move, a hover over the settings
    --  pane, a marquee move and a type-ahead keystroke do is bounded by what
@@ -650,5 +654,164 @@ separate (Files_Suite.Rendering)
          Ada.Text_IO.Put_Line
            ("large-folder: settings copy and compare per key, 500 labels" & Per_Round (Start, Rounds));
          Assert (Same = Rounds, "an unchanged copy compares equal");
+      end;
+
+      --  Settings changes no row shows, and labels, in a 20k-item folder:
+      --  opening the settings pane and stepping in it leave the rows; a
+      --  theme toggle keeps them; labelling every item patches each row's
+      --  label where all the rows were built again. A rebuild is the cost
+      --  each paid before.
+      declare
+         Items    : Files.Items.Item_Vectors.Vector;
+         Model    : Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         View     : Files.Application.Snapshot_Slots.View_Slots;
+         Wall     : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+         Rounds   : constant := 10;
+         Start    : Ada.Real_Time.Time;
+         Paths    : Files.Settings.String_Vectors.Vector;
+         Rows     : Natural;
+
+         procedure Refresh is
+         begin
+            Files.Application.Snapshot_Slots.Refresh (View, Model, Settings, Ada.Real_Time.Clock, Wall);
+            View.Drawn_Slot := View.Current_Slot;
+         end Refresh;
+      begin
+         for Index in 1 .. Count loop
+            Items.Append
+              (Files.Item_Lists.Make_Item
+                 ("/probe", "item" & Integer'Image (Index), Files.Types.Regular_File_Item, "text/plain"));
+            Paths.Append (To_Unbounded_String ("/probe/item" & Integer'Image (Index)));
+         end loop;
+         Files.Model.Initialize
+           (Model, Directory_Path => "/probe", Items => Items, Home_Path => "/home/test",
+            Default_View_Mode => Files.Preference_Types.Details);
+         Refresh;
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            View.Snapshot_Valid := False;
+            Refresh;
+         end loop;
+         Ada.Text_IO.Put_Line ("large-folder: full rebuild (what each change below paid)" & Per_Round (Start, Rounds));
+
+         Rows := Files.Model.Rows_Revision (Model);
+         Start := Ada.Real_Time.Clock;
+         Files.Overlays.Settings_Form.Begin_Edit (Model, Settings);
+         Refresh;
+         Ada.Text_IO.Put_Line ("large-folder: settings pane opened" & Per_Round (Start, 1));
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            Files.Model.Settings_Pane.Move_Focus (Model, 1);
+            Refresh;
+         end loop;
+         Ada.Text_IO.Put_Line ("large-folder: settings pane step" & Per_Round (Start, Rounds));
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Rows_Revision (Model), Rows, "opening and stepping in the settings pane leaves the rows");
+         Files.Model.Settings_Pane.Close (Model);
+
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            Settings.Theme :=
+              (if Files.Settings."=" (Settings.Theme, Files.Settings.Theme_Dark)
+               then Files.Settings.Theme_Light
+               else Files.Settings.Theme_Dark);
+            Settings.Show_File_Extensions := not Settings.Show_File_Extensions;
+            Refresh;
+         end loop;
+         Ada.Text_IO.Put_Line ("large-folder: theme and extensions toggle" & Per_Round (Start, Rounds));
+
+         declare
+            Labelling : Duration := 0.0;
+            Refreshing : Duration := 0.0;
+         begin
+            for Round in 1 .. Rounds loop
+               Start := Ada.Real_Time.Clock;
+               Files.Settings.Path_References.Set_Labels
+                 (Settings, Paths,
+                  (if Round mod 2 = 0 then Files.Preference_Types.Green else Files.Preference_Types.Red));
+               Labelling := Labelling + Ada.Real_Time.To_Duration (Ada.Real_Time.Clock - Start);
+               Start := Ada.Real_Time.Clock;
+               Refresh;
+               Refreshing := Refreshing + Ada.Real_Time.To_Duration (Ada.Real_Time.Clock - Start);
+            end loop;
+            Ada.Text_IO.Put_Line
+              ("large-folder: label every item: labels set" & Duration'Image (Labelling / Rounds * 1000) & " ms,"
+               & " rows patched" & Duration'Image (Refreshing / Rounds * 1000) & " ms");
+         end;
+         Assert
+           (Files.Preference_Types."="
+              (View.Snapshots (View.Current_Slot).Items (Count).Label, Files.Preference_Types.Green),
+            "a labelled row shows its new label");
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            View.Snapshot_Valid := False;
+            Refresh;
+         end loop;
+         Ada.Text_IO.Put_Line
+           ("large-folder: full rebuild with 20k labels (what a label change paid)" & Per_Round (Start, Rounds));
+         Settings := Files.Settings.Default_Settings;
+         Refresh;
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            Files.Settings.Path_References.Set_Label
+              (Settings, "/probe/item" & Integer'Image (Round),
+               Files.Preference_Types.Blue);
+            Refresh;
+         end loop;
+         Ada.Text_IO.Put_Line ("large-folder: label one item and refresh" & Per_Round (Start, Rounds));
+         Assert
+           (Files.Preference_Types."="
+              (View.Snapshots (View.Current_Slot).Items (Rounds).Label, Files.Preference_Types.Blue),
+            "the labelled row shows it");
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. 100 loop
+            Refresh;
+         end loop;
+         Ada.Text_IO.Put_Line ("large-folder: unchanged frame, 20k labels" & Per_Round (Start, 100));
+      end;
+
+      --  The accessibility tree of a 4K small-icon grid: its parents found
+      --  by area order, where every node was tried as every node's parent.
+      declare
+         Flat   : A11ykit.Tree.Node_Vectors.Vector;
+         Built  : A11ykit.Tree.Accessibility_Tree;
+         Rounds : constant := 10;
+         Start  : Ada.Real_Time.Time;
+      begin
+         Flat.Append (A11ykit.Tree.Node'(Bounds => (0, 0, 3840, 2160), others => <>));
+         Flat.Append (A11ykit.Tree.Node'(Bounds => (0, 40, 3840, 2080), others => <>));
+         for Row in 0 .. 29 loop
+            for Column in 0 .. 49 loop
+               Flat.Append (A11ykit.Tree.Node'(Bounds => (Column * 76, 40 + Row * 69, 72, 64), others => <>));
+            end loop;
+         end loop;
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            Built := A11ykit.Tree.Build (Flat);
+         end loop;
+         Ada.Text_IO.Put_Line ("large-folder: accessibility tree of 1,502 nodes" & Per_Round (Start, Rounds));
+         declare
+            --  What Build did before: every node tried as every node's
+            --  parent.
+            Tried : Natural := 0;
+         begin
+            Start := Ada.Real_Time.Clock;
+            for Child of Flat loop
+               for Cand of Flat loop
+                  if Cand.Bounds.X <= Child.Bounds.X and then Cand.Bounds.Y <= Child.Bounds.Y
+                    and then Cand.Bounds.X + Cand.Bounds.Width >= Child.Bounds.X + Child.Bounds.Width
+                    and then Cand.Bounds.Y + Cand.Bounds.Height >= Child.Bounds.Y + Child.Bounds.Height
+                  then
+                     Tried := Tried + 1;
+                  end if;
+               end loop;
+            end loop;
+            Ada.Text_IO.Put_Line
+              ("large-folder: every node tried as every node's parent (replaced)" & Per_Round (Start, 1));
+            Assert (Tried > 0, "containers found");
+         end;
+         Files_Suite.Support.Assert_Equal (Built.Nodes (2).Parent, 1, "the pane is in the window");
+         Files_Suite.Support.Assert_Equal (Built.Nodes (1_502).Parent, 2, "a cell is in the pane");
       end;
    end Test_Large_Folder_Work_Stays_On_Screen;

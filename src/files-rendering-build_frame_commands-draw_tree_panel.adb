@@ -84,7 +84,9 @@ separate (Files.Rendering.Build_Frame_Commands)
             begin
                Rows.Append
                  (Guikit.Menu_Tree.Menu_Tree_Row'
-                    (Label          => Data.Name,
+                    --  A folder whose children are being read says so.
+                    (Label          =>
+                       (if Data.Loading then Data.Name & " " & Localized ("tree.loading") else Data.Name),
                      X              => Row.X,
                      Y              => Row.Y,
                      Width          => Row.Width,

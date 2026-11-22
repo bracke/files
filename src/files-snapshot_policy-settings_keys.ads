@@ -28,6 +28,10 @@ package Files.Snapshot_Policy.Settings_Keys is
       Group_By             : Files.Preference_Types.Group_Mode := Files.Preference_Types.No_Grouping;
       Favorite_Paths       : Files.Settings.String_Vectors.Vector;
       Labels               : Files.Settings.Path_Label_Vectors.Vector;
+      --  Files.Settings.Path_References.Path_Stamp of the favorites and
+      --  labels above: while the settings' stamp is still this one they are
+      --  unchanged, and neither is compared nor copied.
+      Path_Stamp           : Natural := 0;
    end record;
 
    --  Capture the snapshot-relevant settings for caching.
@@ -38,15 +42,41 @@ package Files.Snapshot_Policy.Settings_Keys is
      (Settings : Files.Settings.Settings_Model)
       return Snapshot_Settings_Key;
 
-   --  Whether the settings a snapshot's rows read (favorites, labels, the
-   --  grouping, how names and icons show) are still those in Key: the detail
-   --  columns' widths, order and visibility and the free-space display are
-   --  drawn from the snapshot's header, so a column drag keeps the rows.
+   --  Key brought up to Settings, as Snapshot_Settings_Key_Of would give
+   --  it, copying the favorites and labels only when their stamp moved and
+   --  they differ: a rebuild in a folder with many labels need not copy
+   --  them.
+   --
+   --  @param Key Key updated in place.
+   --  @param Settings Settings model to read.
+   procedure Update_Key
+     (Key      : in out Snapshot_Settings_Key;
+      Settings : Files.Settings.Settings_Model);
+
+   --  Whether the settings the order and banding of a snapshot's rows
+   --  follow (the grouping) are still those in Key. Everything else a row
+   --  draws is read at draw time from the snapshot's header (the theme, the
+   --  icon theme, whether extensions show, the detail columns), or is the
+   --  favorites and labels (Same_Path_References), which a kept row is
+   --  patched for: so a column drag, a theme or a label change keeps the
+   --  rows.
    --
    --  @param Settings Settings model to test.
    --  @param Key Previously captured snapshot-input key.
    --  @return True when the row inputs equal Key's.
    function Same_Row_Settings
+     (Settings : Files.Settings.Settings_Model;
+      Key      : Snapshot_Settings_Key)
+      return Boolean;
+
+   --  Whether the favorites and labels are still those in Key: a number
+   --  comparison while they have not been written since, else compared in
+   --  place.
+   --
+   --  @param Settings Settings model to test.
+   --  @param Key Previously captured snapshot-input key.
+   --  @return True when the favorites and labels equal Key's.
+   function Same_Path_References
      (Settings : Files.Settings.Settings_Model;
       Key      : Snapshot_Settings_Key)
       return Boolean;

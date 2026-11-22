@@ -441,6 +441,7 @@ da.info.contents.separator = ,
 da.info.contents.total = i alt
 da.info.folder_size = Indhold
 da.info.folder_size.tooltip = Mappens samlede størrelse og antal elementer.
+da.tree.loading = …
 da.tree.panel.title = Mapper
 da.tree.pick.cancel = Annuller
 da.tree.pick.choose = Vælg

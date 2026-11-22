@@ -435,6 +435,7 @@ yi.accessibility.context_menu = קאָנטעקסט־מעניו
 yi.accessibility.tree_panel = פֿאָלדער־בוים
 yi.accessibility.favorite_toggle.on = אַוועקנעמען דעם איצטיקן פֿאָלדער פֿון די באַליבטע
 yi.accessibility.favorite_toggle.off = צולײגן דעם איצטיקן פֿאָלדער צו די באַליבטע
+yi.tree.loading = …
 yi.tree.panel.title = פֿאָלדערס
 yi.tree.pick.copy = קאָפּירן אין פֿאָלדער
 yi.tree.pick.move = אַריבערפֿירן אין פֿאָלדער

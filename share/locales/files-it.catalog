@@ -441,6 +441,7 @@ it.info.contents.separator = ,
 it.info.contents.total = totale
 it.info.folder_size = Contenuto
 it.info.folder_size.tooltip = La dimensione totale della cartella e il numero di elementi.
+it.tree.loading = …
 it.tree.panel.title = Cartelle
 it.tree.pick.cancel = Annulla
 it.tree.pick.choose = Scegli

@@ -12,6 +12,7 @@ separate (Files.Application.Windows)
       Object.Last_Was_Tracked_Press := False;
       Object.Drop_Next_Character := False;
       if Action = Glfw.Input.Keys.Release then
+         Object.Key_Held := False;
          return;
       end if;
       declare
@@ -24,11 +25,13 @@ separate (Files.Application.Windows)
          elsif Action = Glfw.Input.Keys.Repeat and then not Key_Repeats (Code) then
             Object.Drop_Next_Character := True;
          elsif Natural (Object.Pending_Input.Length) < Max_Pending_Input_Events then
+            Object.Key_Held := Action = Glfw.Input.Keys.Repeat;
             Object.Pending_Input.Append
               (Input_Event'
                  (Kind      => Key_Press_Event,
                   Key       => Code,
                   Modifiers => Glfw.Input.Keys.Codes.To_Modifiers (Mods),
+                  Repeated  => Action = Glfw.Input.Keys.Repeat,
                   others    => <>));
             Object.Last_Was_Tracked_Press := True;
          end if;

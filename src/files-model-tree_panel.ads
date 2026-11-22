@@ -114,6 +114,49 @@ package Files.Model.Tree_Panel is
       Index : Positive)
       return Boolean;
 
+   --  Have this window's tree read its children off the UI thread: the
+   --  window layer, which runs the reader, says so for its windows. A model
+   --  it does not (a test's, the helper's) reads them where asked.
+   --
+   --  @param Model Model to update.
+   procedure Load_In_Background
+     (Model : in out Window_Model);
+
+   --  Whether children are read off the UI thread (Load_In_Background).
+   --
+   --  @param Model Model to inspect.
+   --  @return True when Request_Children only asks.
+   function Loads_In_Background
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Ask for a node's children to be read: the node shows it is loading,
+   --  and keeps the children it had until they come (Set_Children) or the
+   --  read fails (Load_Failed).
+   --
+   --  @param Model Model to update.
+   --  @param Index One-based node index.
+   procedure Request_Children
+     (Model : in out Window_Model;
+      Index : Positive);
+
+   --  The node whose children were asked for longest ago and are not in.
+   --
+   --  @param Model Model to inspect.
+   --  @return Its index, or 0 when none is asked for.
+   function Pending_Load
+     (Model : Window_Model)
+      return Natural;
+
+   --  A node's children could not be read: it stops loading, keeping those
+   --  it had.
+   --
+   --  @param Model Model to update.
+   --  @param Index One-based node index.
+   procedure Load_Failed
+     (Model : in out Window_Model;
+      Index : Positive);
+
    --  Attach a tree node's child subdirectories in place of those it had
    --  (Files.Folder_Tree.Replace_Children): children still there keep their
    --  nodes and expanded subtrees, and the tree pick target follows them.
@@ -151,6 +194,16 @@ package Files.Model.Tree_Panel is
    function Visible_Rows
      (Model : Window_Model)
       return Files.Folder_Tree.Visible_Row_Vectors.Vector;
+
+   --  Moved whenever Visible_Rows would return other rows
+   --  (Files.Folder_Tree.Structure_Revision): a snapshot keeps the rows it
+   --  took while this stands.
+   --
+   --  @param Model Model to inspect.
+   --  @return The tree's structure revision.
+   function Rows_Revision
+     (Model : Window_Model)
+      return Natural;
 
    --  Hand the keyboard to the folder tree side panel: arrows then move a
    --  highlighted row instead of the grid selection. The highlight starts on

@@ -19,7 +19,8 @@ separate (Files.Application.Windows.Smoke.Run_Live_Window_Smoke)
             Key       => Guikit.Input.Key_Equal,
             Modifiers => [Guikit.Input.Control_Key => True, others => False],
             Text      => Null_Unbounded_String,
-            Parallel  => False));
+            Parallel  => False,
+            Repeated  => False));
       for Pass in 1 .. Settle_Passes loop
          Guikit.Vulkan.Poll_Events;
          Event_Loop_Pass (Runtime_Windows, Loop_State);

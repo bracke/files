@@ -28,7 +28,8 @@ separate (Files_Suite.Rendering)
                Depth        => 0,
                Expanded     => False,
                Loaded       => True,
-               Has_Children => False));
+               Has_Children => False,
+               Loading      => False));
       end loop;
 
       Layout  := Calculate_Layout (Snap, Width, 200, LH);

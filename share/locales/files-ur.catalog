@@ -435,6 +435,7 @@ ur.accessibility.context_menu = سیاقی مینو
 ur.accessibility.tree_panel = فولڈر ٹری
 ur.accessibility.favorite_toggle.on = موجودہ فولڈر پسندیدہ سے ہٹائیں
 ur.accessibility.favorite_toggle.off = موجودہ فولڈر پسندیدہ میں شامل کریں
+ur.tree.loading = …
 ur.tree.panel.title = فولڈر
 ur.tree.pick.copy = فولڈر میں کاپی
 ur.tree.pick.move = فولڈر میں منتقل

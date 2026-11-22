@@ -20,11 +20,12 @@ with Files.Model.Pasting;
 with Files.Timing;
 separate (Files.Rendering)
    procedure Build_Snapshot_Into
-     (Snapshot  : in out View_Snapshot;
-      Model     : Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Now       : Ada.Calendar.Time;
-      Keep_Rows : Boolean := False)
+     (Snapshot                : in out View_Snapshot;
+      Model                   : Files.Model.Window_Model;
+      Settings                : Files.Settings.Settings_Model;
+      Now                     : Ada.Calendar.Time;
+      Keep_Rows               : Boolean := False;
+      Path_References_Changed : Boolean := False)
    is
 
       function Complete_RGBA_Image
@@ -77,6 +78,7 @@ separate (Files.Rendering)
       procedure Snapshot_Overlays is separate;
       procedure Reuse_Rows is separate;
       procedure Patch_Renamed_Rows is separate;
+      procedure Patch_Path_References is separate;
       procedure Snapshot_Rows is separate;
       procedure Snapshot_Selection is separate;
       procedure Snapshot_Info_Pane is separate;
@@ -98,7 +100,12 @@ separate (Files.Rendering)
          Info_Sections    : Coalesced_Section_Vectors.Vector;
          Permissions_Editable : constant Boolean := Snapshot.Permissions_Editable;
          Ownership_Editable   : constant Boolean := Snapshot.Ownership_Editable;
+         --  The tree rows this slot took, whatever the rows: Snapshot_Overlays
+         --  keeps them while the tree's structure revision stands.
+         Tree_Rows            : Files.Folder_Tree.Visible_Row_Vectors.Vector;
+         Tree_Rows_Revision   : constant Natural := Snapshot.Tree_Rows_Revision;
       begin
+         Tree_Rows.Move (Snapshot.Tree_Rows);
          if Keep_Rows then
             Info_Rows.Move (Snapshot.Selected_Info);
             Info_Sections.Move (Snapshot.Info_Sections);
@@ -107,6 +114,8 @@ separate (Files.Rendering)
             Renamed.Move (Snapshot.Renamed_Rows);
          end if;
          Snapshot := (others => <>);
+         Snapshot.Tree_Rows.Move (Tree_Rows);
+         Snapshot.Tree_Rows_Revision := Tree_Rows_Revision;
          if Keep_Rows then
             Snapshot.Items.Move (Rows);
             Snapshot.Visible_Rows.Move (Row_Table);
@@ -138,6 +147,10 @@ separate (Files.Rendering)
          --  again, the others stand.
          if Snapshot.Rows_Rename_Revision /= Files.Model.Rename_Revision (Model) then
             Patch_Renamed_Rows;
+         end if;
+         --  A star or a label moved: each row's is read again.
+         if Path_References_Changed then
+            Patch_Path_References;
          end if;
       end if;
       Snapshot.Rows_Selection_Revision := Files.Model.Selection_Revision (Model);

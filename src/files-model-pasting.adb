@@ -117,7 +117,9 @@ package body Files.Model.Pasting is
       end if;
       Model.Refresh_Job := Released_Process;
       Model.Foreground_Kind := Paste_Job;
-      Touch (Model);
+      --  The progress dialog is the header's; no row changes until the
+      --  paste's own reload.
+      Touch_Header (Model);
       Claim_Overlay_Input (Model);
       for Action of Actions loop
          if not Action.Skip then

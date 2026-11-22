@@ -92,6 +92,8 @@ private
       --  Text produced by the key press just before it (its own character),
       --  which a consumed shortcut discards.
       Parallel  : Boolean := False;
+      --  A held key's repeat, not a press.
+      Repeated  : Boolean := False;
    end record;
 
    package Input_Event_Vectors is new Ada.Containers.Vectors
@@ -108,6 +110,9 @@ private
       --  True between a suppressed repeat and the next callback: the repeat's
       --  character (a held Space's spaces) is not typing either.
       Drop_Next_Character : Boolean := False;
+      --  A repeating key is held down: from its first repeat to its release.
+      --  A settings change its repeats made is written once it is let go.
+      Key_Held : Boolean := False;
       Pending_Scroll : Integer := 0;
       Pending_Scroll_Remainder : Long_Float := 0.0;
       --  Mouse button changes in arrival order, each with where it happened
@@ -315,6 +320,10 @@ private
       --  per gesture, not one per wheel step.
       Zoom_Unsaved    : Boolean := False;
       Zoom_At         : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+      --  When a held key last repeated into the settings pane: a change its
+      --  repeats made is saved once the key is let go, or once it has not
+      --  repeated for Held_Settings_Timeout (a release the window missed).
+      Settings_Repeat_At : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
       Column_Reorder  : Column_Reorder_Drag;
       Marquee         : Marquee_Drag_State;
       Last_Click_Item : Natural := 0;

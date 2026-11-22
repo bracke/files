@@ -56,7 +56,8 @@ separate (Files_Suite.Interaction)
                   Depth        => 0,
                   Expanded     => False,
                   Loaded       => True,
-                  Has_Children => False));
+                  Has_Children => False,
+                  Loading      => False));
          end loop;
          declare
             Tree_Layout : constant Files.Rendering.Layout_Metrics :=

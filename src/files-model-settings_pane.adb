@@ -3,6 +3,10 @@ with Files.Model.Support;
 
 package body Files.Model.Settings_Pane is
 
+   --  The pane is drawn by its overlay from the model (Files.Overlays), not
+   --  from the snapshot, which only knows it is open: a change inside it
+   --  moves the overlay revision, not the snapshot's.
+
    use Files.Model.Support;
 
    procedure Close
@@ -20,7 +24,10 @@ package body Files.Model.Settings_Pane is
       Fields : Guikit.Settings_Panel.Field_Vectors.Vector;
       Saved  : Files.Settings.Settings_Model) is
    begin
-      Touch (Model);
+      --  The frame leaves room for the pane and the focus moves (the
+      --  header); the pane itself is an overlay drawn from the model.
+      Touch_Header (Model);
+      Touch_Overlay (Model);
       Model.Settings_Draft_Value := Draft;
       Model.Settings_Saved_Value := Saved;
       Model.Settings_Pane_Open := True;
@@ -43,7 +50,7 @@ package body Files.Model.Settings_Pane is
       Draft  : Files.Settings.Settings_Draft;
       Fields : Guikit.Settings_Panel.Field_Vectors.Vector) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Model.Settings_Draft_Value := Draft;
       Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Fields);
    end Set_Draft;
@@ -62,25 +69,25 @@ package body Files.Model.Settings_Pane is
 
    procedure Move_Focus (Model : in out Window_Model; Delta_Rows : Integer) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Settings_Panel.Move_Focus (Model.Settings_Panel_View, Delta_Rows);
    end Move_Focus;
 
    procedure Cycle_Choice (Model : in out Window_Model; Forward : Boolean) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Settings_Panel.Cycle_Choice (Model.Settings_Panel_View, Forward);
    end Cycle_Choice;
 
    procedure Set_Focused_Value (Model : in out Window_Model; Text : String) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Settings_Panel.Set_Focused_Value (Model.Settings_Panel_View, Text);
    end Set_Focused_Value;
 
    procedure Scroll (Model : in out Window_Model; Lines : Integer) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Settings_Panel.Scroll (Model.Settings_Panel_View, Lines);
    end Scroll;
 
@@ -92,14 +99,14 @@ package body Files.Model.Settings_Pane is
         Guikit.Settings_Panel.Click (Model.Settings_Panel_View, X, Y);
    begin
       if Clicked then
-         Touch_Header (Model);
+         Touch_Overlay (Model);
       end if;
       return Clicked;
    end Click;
 
    function Take_Change (Model : in out Window_Model) return Guikit.Settings_Panel.Change is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       return Guikit.Settings_Panel.Take_Change (Model.Settings_Panel_View);
    end Take_Change;
 
@@ -114,7 +121,7 @@ package body Files.Model.Settings_Pane is
 
    procedure Set_Active_Section (Model : in out Window_Model; Ordinal : Natural) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Settings_Panel.Set_Active_Section (Model.Settings_Panel_View, Ordinal);
    end Set_Active_Section;
 
@@ -126,7 +133,7 @@ package body Files.Model.Settings_Pane is
 
    procedure Begin_Capture (Model : in out Window_Model) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Settings_Panel.Begin_Capture (Model.Settings_Panel_View);
    end Begin_Capture;
 
@@ -138,7 +145,7 @@ package body Files.Model.Settings_Pane is
 
    procedure Set_Captured_Shortcut (Model : in out Window_Model; Text : String) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Settings_Panel.Set_Captured_Shortcut (Model.Settings_Panel_View, Text);
    end Set_Captured_Shortcut;
 
@@ -155,8 +162,29 @@ package body Files.Model.Settings_Pane is
 
    procedure Cancel_Capture (Model : in out Window_Model) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Settings_Panel.Cancel_Capture (Model.Settings_Panel_View);
    end Cancel_Capture;
+
+   procedure Note_Key_Repeat (Model : in out Window_Model; Repeat : Boolean) is
+   begin
+      Model.Settings_Key_Repeat := Repeat;
+   end Note_Key_Repeat;
+
+   function Key_Repeat (Model : Window_Model) return Boolean is (Model.Settings_Key_Repeat);
+
+   procedure Defer_Save (Model : in out Window_Model) is
+   begin
+      Model.Settings_Save_Deferred := True;
+   end Defer_Save;
+
+   function Take_Deferred_Save (Model : in out Window_Model) return Boolean is
+      Deferred : constant Boolean := Model.Settings_Save_Deferred;
+   begin
+      Model.Settings_Save_Deferred := False;
+      return Deferred;
+   end Take_Deferred_Save;
+
+   function Save_Is_Deferred (Model : Window_Model) return Boolean is (Model.Settings_Save_Deferred);
 
 end Files.Model.Settings_Pane;

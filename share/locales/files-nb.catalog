@@ -441,6 +441,7 @@ nb.info.contents.separator = ,
 nb.info.contents.total = totalt
 nb.info.folder_size = Innhold
 nb.info.folder_size.tooltip = Mappens totale størrelse og antall elementer.
+nb.tree.loading = …
 nb.tree.panel.title = Mapper
 nb.tree.pick.cancel = Avbryt
 nb.tree.pick.choose = Velg

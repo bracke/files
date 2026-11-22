@@ -114,11 +114,14 @@ package body Files.Settings.Path_References is
       Labels   : Path_Label_Vectors.Vector)
       return Boolean is (Path_Label_Vectors."=" (Settings.Paths.Labels, Labels));
 
+   function Path_Stamp (Settings : Settings_Model) return Natural is (Settings.Paths.Stamp);
+
    procedure Toggle_Favorite_Path
      (Settings : in out Settings_Model;
       Path     : String)
    is
    begin
+      Restamp (Settings.Paths);
       if not Persistent_Path_Is_Valid (Path) then
          return;
       end if;
@@ -136,6 +139,7 @@ package body Files.Settings.Path_References is
      (Settings : in out Settings_Model;
       Path     : String) is
    begin
+      Restamp (Settings.Paths);
       if Persistent_Path_Is_Valid (Path) and then not Holds (Settings.Paths.Favorites, Path) then
          Settings.Paths.Favorites.Append (To_Unbounded_String (Path));
       end if;
@@ -209,6 +213,7 @@ package body Files.Settings.Path_References is
       Matched : constant String := Key (Path);
       Place   : Label_Position_Maps.Cursor;
    begin
+      Restamp (Settings.Paths);
       if not Persistent_Path_Is_Valid (Path) then
          return;
       end if;
@@ -348,6 +353,7 @@ package body Files.Settings.Path_References is
         [others => False];
       Kept_Labels   : Path_Label_Vectors.Vector;
    begin
+      Restamp (Settings.Paths);
       Changed := False;
       if From = "" or else To = "" or else From = To then
          return;
@@ -403,6 +409,7 @@ package body Files.Settings.Path_References is
          end loop;
       end Drop;
    begin
+      Restamp (Settings.Paths);
       Changed := False;
       if Path = "" then
          return;

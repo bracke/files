@@ -8,6 +8,7 @@ separate (Files.Controller)
       Settings_Path : String)
       return Controller_Result
    is
+      use type Files.Settings.Storage.Commit_Decision;
       Applied : constant Files.Settings.Settings_Parse_Result :=
         Files.Settings.Drafts.Apply_Draft (Settings, Files.Model.Settings_Pane.Draft_Of (Model));
       Final     : Files.Settings.Settings_Model;
@@ -39,6 +40,25 @@ separate (Files.Controller)
       --  stays open for editing.
       Final := Applied.Settings;
       Files.Commands.Keymap_Settings.Store_Shortcut_Overrides (Final);
+      --  A held arrow stepping a number (or cycling a choice): each step is
+      --  in force for the session, the file written and the folder read
+      --  again once, when the key is let go (the window layer saves then).
+      --  A durable write and a reload per repeat held the window.
+      if Files.Model.Settings_Pane.Key_Repeat (Model) then
+         if Files.Settings.Storage.Decide_Commit (Settings, Final) = Files.Settings.Storage.Commit_Accepted then
+            declare
+               Before : constant Files.Settings.Settings_Model := Settings;
+            begin
+               Settings := Final;
+               Files.Model.Note_Settings_Changed (Model);
+               Take_In_Settings (Model, Before, Settings);
+            end;
+            Files.Model.Settings_Pane.Defer_Save (Model);
+         end if;
+         Files.Overlays.Settings_Form.Set_Draft
+           (Model, Files.Settings.Drafts.Draft_After_Save (Files.Model.Settings_Pane.Draft_Of (Model), Settings));
+         return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
+      end if;
       --  Save writes even an unchanged draft: it is how a save that failed
       --  earlier is tried again.
       if Files.Settings.Same_Content (Settings, Final) then

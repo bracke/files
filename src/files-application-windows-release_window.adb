@@ -8,12 +8,14 @@ begin
    --  The background readers' slots for this window go with it.
    Files.Application.Extra_Info_Reader.Release (Files.Application.Extra_Info_Reader.Requester (Runtime.A11y_Key));
    Files.Application.Preview_Decoder.Release (Files.Application.Preview_Decoder.Requester (Runtime.A11y_Key));
+   Files.Application.Tree_Reader.Release (Files.Application.Tree_Reader.Requester (Runtime.A11y_Key));
    if Runtime.Handle = null then
       return;
    end if;
    --  History ends: originals kept for Undo go to the system trash.
    Files.Operations.History.Release_History (Runtime.Model);
    Save_Pending_Zoom (Runtime, Force => True);
+   Save_Held_Settings (Runtime, Force => True);
    if Glfw.Windows.Initialized (As_Window (Runtime.Handle)) then
       declare
          Window_W : Glfw.Size := 0;

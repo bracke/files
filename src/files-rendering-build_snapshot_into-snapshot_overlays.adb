@@ -79,9 +79,17 @@ separate (Files.Rendering.Build_Snapshot_Into)
       --  Rows only for a tree on screen: a closed one is not walked on every
       --  keystroke's rebuild.
       if Snapshot.Tree_Panel_Open or else Snapshot.Tree_Pick_Active then
-         Snapshot.Tree_Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
+         --  Taken again only when the tree changed: copying a large
+         --  expanded tree on every keystroke's build was milliseconds.
+         if Snapshot.Tree_Rows_Revision /= Files.Model.Tree_Panel.Rows_Revision (Model)
+           or else Snapshot.Tree_Rows_Revision = 0
+         then
+            Snapshot.Tree_Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
+            Snapshot.Tree_Rows_Revision := Files.Model.Tree_Panel.Rows_Revision (Model);
+         end if;
       else
          Snapshot.Tree_Rows.Clear;
+         Snapshot.Tree_Rows_Revision := 0;
       end if;
       Snapshot.Tree_Pick_Moving :=
         Files.Model.Tree_Panel.Pick_Mode_Of (Model) = Files.Model.Pick_Move;

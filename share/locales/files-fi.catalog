@@ -441,6 +441,7 @@ fi.info.contents.separator = ,
 fi.info.contents.total = yhteensä
 fi.info.folder_size = Sisältö
 fi.info.folder_size.tooltip = Kansion kokonaiskoko ja kohteiden määrä.
+fi.tree.loading = …
 fi.tree.panel.title = Kansiot
 fi.tree.pick.cancel = Peruuta
 fi.tree.pick.choose = Valitse

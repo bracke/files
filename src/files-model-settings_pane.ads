@@ -212,4 +212,37 @@ package Files.Model.Settings_Pane is
    --  @param Model Model to update.
    procedure Cancel_Capture (Model : in out Window_Model);
 
+   --  Whether the key being handled is a held key's repeat: the window layer
+   --  says so around each key it hands in. A number field stepped by a held
+   --  arrow then takes each step for the session only (Defer_Save) and is
+   --  written once, when the key is let go.
+   --
+   --  @param Model Model to update.
+   --  @param Repeat True while a repeat is handled.
+   procedure Note_Key_Repeat (Model : in out Window_Model; Repeat : Boolean);
+
+   --  Whether the key being handled is a repeat (Note_Key_Repeat).
+   --
+   --  @param Model Model to inspect.
+   --  @return True for a held key's repeat.
+   function Key_Repeat (Model : Window_Model) return Boolean;
+
+   --  Note that a settings change is in force for the session but not yet
+   --  written: the window layer saves it once the held key is let go.
+   --
+   --  @param Model Model to update.
+   procedure Defer_Save (Model : in out Window_Model);
+
+   --  Take the note Defer_Save left: True once, then False until the next.
+   --
+   --  @param Model Model to update.
+   --  @return Whether a save was deferred.
+   function Take_Deferred_Save (Model : in out Window_Model) return Boolean;
+
+   --  Whether a save is deferred (Defer_Save), without taking it.
+   --
+   --  @param Model Model to inspect.
+   --  @return True while one is.
+   function Save_Is_Deferred (Model : Window_Model) return Boolean;
+
 end Files.Model.Settings_Pane;

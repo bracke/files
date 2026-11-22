@@ -10,7 +10,8 @@ separate (Files.Application.Windows.Smoke.Drive_Settings_Keys)
             Key       => Key,
             Modifiers => Modifiers,
             Text      => Null_Unbounded_String,
-            Parallel  => False));
+            Parallel  => False,
+            Repeated  => False));
       if Typed /= "" then
          Runtime.Handle.Pending_Input.Append
            (Input_Event'
@@ -18,7 +19,8 @@ separate (Files.Application.Windows.Smoke.Drive_Settings_Keys)
                Key       => Key,
                Modifiers => Modifiers,
                Text      => To_Unbounded_String (Typed),
-               Parallel  => True));
+               Parallel  => True,
+               Repeated  => False));
       end if;
       Handle_Keyboard (Runtime);
       Render_Window (Runtime);

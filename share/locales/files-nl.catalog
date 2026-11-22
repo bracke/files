@@ -441,6 +441,7 @@ nl.info.contents.separator = ,
 nl.info.contents.total = totaal
 nl.info.folder_size = Inhoud
 nl.info.folder_size.tooltip = De totale grootte van de map en het aantal items.
+nl.tree.loading = …
 nl.tree.panel.title = Mappen
 nl.tree.pick.cancel = Annuleren
 nl.tree.pick.choose = Kiezen

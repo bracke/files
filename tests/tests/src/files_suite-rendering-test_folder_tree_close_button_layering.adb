@@ -23,7 +23,8 @@ separate (Files_Suite.Rendering)
             Depth        => 20,
             Expanded     => False,
             Loaded       => True,
-            Has_Children => True));
+            Has_Children => True,
+            Loading      => False));
       Layout := Calculate_Layout (Snap, Width, Height, LH);
       Panel  := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
       Rows   := Calculate_Tree_Row_Layout (Snap, Panel, LH);

@@ -43,7 +43,9 @@ package body Files.Model is
       Model.Operation_Name := Null_Unbounded_String;
       Model.Paste_Exec := (others => <>);
       Model.Foreground_Kind := No_Foreground_Job;
-      Support.Touch (Model);
+      --  Only the progress dialog goes; the reload that follows a job moves
+      --  the rows itself.
+      Support.Touch_Header (Model);
    end End_Foreground_Job;
 
    use type Ada.Calendar.Time;

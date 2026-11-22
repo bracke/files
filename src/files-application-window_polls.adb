@@ -1,4 +1,6 @@
 with Files.Model.Info_Pane;
+with Files.Model.Tree_Panel;
+with Files.Operations.Tree;
 with Files.Model.Jobs;
 with Files.File_System_Types;
 with Ada.Calendar;
@@ -21,6 +23,7 @@ with Files.Model.Selection;
 with Files.Jobs.Process;
 with Files.Quick_Look;
 with Files.Types;
+with Files.File_Types;
 
 package body Files.Application.Window_Polls is
    use Ada.Strings.Unbounded;
@@ -56,6 +59,35 @@ package body Files.Application.Window_Polls is
          end;
       end if;
    end Poll_Selected_Item_Extra;
+
+   procedure Poll_Tree_Children
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Owner    : Files.Application.Tree_Reader.Requester)
+   is
+      Node : constant Natural := Files.Model.Tree_Panel.Pending_Load (Model);
+   begin
+      if Node = 0 then
+         return;
+      end if;
+      declare
+         Path    : constant String := Files.Model.Tree_Panel.Node_Path (Model, Node);
+         Classes : constant Files.File_Types.Classification := Files.Settings.Classification_Of (Settings);
+         Options : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Settings);
+         Load    : Files.File_System.Directory_Load_Result;
+         Ready   : Boolean;
+         Asked   : Boolean;
+      begin
+         --  Taken only when read with the settings in force now: a read
+         --  made before the hidden filter changed is asked for again.
+         Files.Application.Tree_Reader.Take (Owner, Path, Classes, Options, Load, Ready, Asked);
+         if not Asked then
+            Files.Application.Tree_Reader.Request (Owner, Path, Classes, Options);
+         elsif Ready then
+            Files.Operations.Tree.Apply_Tree_Children (Model, Node, Load);
+         end if;
+      end;
+   end Poll_Tree_Children;
 
    procedure Poll_Folder_Sizes (Model : in out Files.Model.Window_Model) is
       Paused : constant Boolean := Folder_Sizes_Paused (Model);

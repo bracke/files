@@ -290,6 +290,10 @@ package Files.Rendering is
       Tree_Panel_Open       : Boolean := False;
       Tree_Panel_Scroll_Rows : Natural := 0;
       Tree_Rows             : Files.Folder_Tree.Visible_Row_Vectors.Vector;
+      --  The tree structure revision Tree_Rows were taken at
+      --  (Files.Model.Tree_Panel.Rows_Revision); 0 for none. A build keeps
+      --  the rows while it stands instead of copying them again.
+      Tree_Rows_Revision    : Natural := 0;
       --  Copy to.../Move to... destination picker state driving the tree: when
       --  active the panel shows a Choose/Cancel bar, the title names the copy or
       --  move intent, and the row whose path equals Tree_Panel.Pick_Target is marked.
@@ -513,12 +517,16 @@ package Files.Rendering is
    --  @param Keep_Rows Snapshot's rows are still right but for which are
    --    selected (Files.Model.Rows_Revision has not moved since they were
    --    built): only their selected flags are set.
+   --  @param Path_References_Changed With Keep_Rows, the favorites or labels
+   --    moved since the rows were built: each row's star and label are read
+   --    again (a lookup per row, not a rebuild).
    procedure Build_Snapshot_Into
-     (Snapshot  : in out View_Snapshot;
-      Model     : Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Now       : Ada.Calendar.Time;
-      Keep_Rows : Boolean := False);
+     (Snapshot                : in out View_Snapshot;
+      Model                   : Files.Model.Window_Model;
+      Settings                : Files.Settings.Settings_Model;
+      Now                     : Ada.Calendar.Time;
+      Keep_Rows               : Boolean := False;
+      Path_References_Changed : Boolean := False);
 
    --  Give Target Source's rows and what is kept with them (the row of each
    --  visible index, the selection their flags show, the selection total

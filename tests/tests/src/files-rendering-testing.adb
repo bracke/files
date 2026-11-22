@@ -38,7 +38,10 @@ package body Files.Rendering.Testing is
    begin
       return Result : View_Snapshot do
          Copy_Rows (Result, Rows_From);
-         Build_Snapshot_Into (Result, Model, Settings, Rows_From.Now, Keep_Rows => True);
+         --  Whatever the favorites and labels were: reading them again is
+         --  right either way.
+         Build_Snapshot_Into
+           (Result, Model, Settings, Rows_From.Now, Keep_Rows => True, Path_References_Changed => True);
       end return;
    end Build_Snapshot_Keeping_Rows;
 

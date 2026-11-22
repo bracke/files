@@ -9,6 +9,29 @@ use Files.Text_Basics;
 package body Files.Settings is
    use Ada.Strings.Unbounded;
 
+   --  Stamps for Restamp, process-wide: settings are parsed on worker tasks
+   --  too. Never zero, which only the untouched empty store has.
+   protected Stamps is
+      procedure Next (Stamp : out Positive);
+   private
+      Last : Natural := 0;
+   end Stamps;
+
+   protected body Stamps is
+      procedure Next (Stamp : out Positive) is
+      begin
+         Last := (if Last = Natural'Last then 1 else Last + 1);
+         Stamp := Last;
+      end Next;
+   end Stamps;
+
+   procedure Restamp (Store : in out Path_Store) is
+      Stamp : Positive;
+   begin
+      Stamps.Next (Stamp);
+      Store.Stamp := Stamp;
+   end Restamp;
+
    --  Settings are persistent user input.  Bound both their serialized size
    --  and the number of heap-owning objects a compact file can create.
    Max_Settings_Line_Bytes      : constant Natural := 64 * 1024;

@@ -82,7 +82,7 @@ package body Files.Rendering is
       Model     : Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Now       : Ada.Calendar.Time;
-      Keep_Rows : Boolean := False)
+      Keep_Rows, Path_References_Changed : Boolean := False)
    is separate;
 
    procedure Copy_Rows (Target : in out View_Snapshot; Source : View_Snapshot) is separate;

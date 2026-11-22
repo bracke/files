@@ -441,6 +441,7 @@ fr.info.contents.separator = ,
 fr.info.contents.total = au total
 fr.info.folder_size = Contenu
 fr.info.folder_size.tooltip = La taille totale du dossier et le nombre d'éléments.
+fr.tree.loading = …
 fr.tree.panel.title = Dossiers
 fr.tree.pick.cancel = Annuler
 fr.tree.pick.choose = Choisir

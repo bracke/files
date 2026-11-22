@@ -1,6 +1,8 @@
 with Files.Application.Extra_Info_Reader;
+with Files.Application.Tree_Reader;
 with Files.Model;
 with Files.Application.Preview_Decoder;
+with Files.Settings;
 
 --  What the shown window needs read for it beside its input: details,
 --  folder sizes and Quick Look images, read off the UI thread and handed to
@@ -26,6 +28,20 @@ package Files.Application.Window_Polls is
      (Model       : in out Files.Model.Window_Model;
       Owner       : Files.Application.Extra_Info_Reader.Requester;
       Show_Hidden : Boolean := True);
+
+   --  The folder tree's children a window asked for
+   --  (Files.Model.Tree_Panel.Request_Children): read by
+   --  Files.Application.Tree_Reader's worker, asked for here and attached on
+   --  a later poll once read (Files.Operations.Tree.Apply_Tree_Children),
+   --  one node at a time.
+   --
+   --  @param Model Window model whose tree is updated in place.
+   --  @param Settings The window's settings (hidden entries, sort, types).
+   --  @param Owner Which window asks.
+   procedure Poll_Tree_Children
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Owner    : Files.Application.Tree_Reader.Requester);
 
    --  Publish the folder sizes the window's measurement helper has finished,
    --  for its current selection, after letting it make progress.

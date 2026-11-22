@@ -64,6 +64,17 @@ package body Files.Application.Accessibility is
       "="          => A11ykit.Tree."=");
 
    Trees       : Window_Trees.Map;
+
+   --  The frame nodes each window's tree was built from. A pointer move
+   --  rebuilds the frame but mostly leaves these as they were: compared
+   --  first, in one pass, they spare the containment search that gives the
+   --  tree its parents (A11ykit.Tree.Build, quadratic in the nodes).
+   package Window_Inputs is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Window_Key,
+      Element_Type => Guikit.Draw.Accessibility_Node_Vectors.Vector,
+      "="          => Guikit.Draw.Accessibility_Node_Vectors."=");
+
+   Inputs      : Window_Inputs.Map;
    Focused     : Window_Key := 0;
    Last_Key    : Window_Key := 0;
 
@@ -97,6 +108,7 @@ package body Files.Application.Accessibility is
    begin
       Stopped := True;
       Trees.Clear;
+      Inputs.Clear;
       Ranges.Clear;
       Handles.Clear;
       Focused := 0;
@@ -163,16 +175,28 @@ package body Files.Application.Accessibility is
 
    procedure Publish (Window : Window_Key; Frame : Files.Rendering.Frame_Commands) is
       use type A11ykit.Tree.Accessibility_Tree;
-      Tree  : constant A11ykit.Tree.Accessibility_Tree := To_A11ykit_Tree (Frame);
+      use type Guikit.Draw.Accessibility_Node_Vectors.Vector;
       First : constant Boolean := not Trees.Contains (Window);
    begin
-      --  An overlay is republished every frame it is up; an unchanged tree
-      --  costs no combining, no provider diff and no native attach (and is
-      --  compared in place, not copied out first).
-      if Stopped or else (not First and then Trees.Constant_Reference (Window) = Tree) then
+      --  The same frame nodes make the same tree: nothing is built.
+      if Stopped
+        or else (not First and then Inputs.Contains (Window)
+                 and then Inputs.Constant_Reference (Window) = Frame.Accessibility)
+      then
          return;
       end if;
-      Trees.Include (Window, Tree);
+      Inputs.Include (Window, Frame.Accessibility);
+      declare
+         Tree : constant A11ykit.Tree.Accessibility_Tree := To_A11ykit_Tree (Frame);
+      begin
+         --  An overlay is republished every frame it is up; an unchanged tree
+         --  costs no combining, no provider diff and no native attach (and is
+         --  compared in place, not copied out first).
+         if not First and then Trees.Constant_Reference (Window) = Tree then
+            return;
+         end if;
+         Trees.Include (Window, Tree);
+      end;
       --  Native providers establish their host registration from the first
       --  tree, because only then is the application root known.  Available is
       --  therefore an outcome of Publish, not a precondition for calling it.
@@ -191,6 +215,7 @@ package body Files.Application.Accessibility is
       Handles.Exclude (Window);
       if Trees.Contains (Window) then
          Trees.Delete (Window);
+         Inputs.Exclude (Window);
          if Focused = Window then
             Focused := 0;
          end if;

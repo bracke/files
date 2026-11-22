@@ -7,6 +7,24 @@ with Ada.Unchecked_Deallocation;
 package body Files.Folder_Tree is
    use Ada.Strings.Unbounded;
 
+   procedure Changed (T : in out Tree);
+
+   --  Revisions are drawn process-wide, so two trees (another window's, a
+   --  tree seeded again) never share one: a revision names one set of rows.
+   protected Revisions is
+      procedure Next (Revision : out Positive);
+   private
+      Last : Natural := 0;
+   end Revisions;
+
+   protected body Revisions is
+      procedure Next (Revision : out Positive) is
+      begin
+         Last := (if Last = Natural'Last then 1 else Last + 1);
+         Revision := Last;
+      end Next;
+   end Revisions;
+
    procedure Seed
      (T     : out Tree;
       Roots : Entry_Seed_Vectors.Vector) is
@@ -22,9 +40,11 @@ package body Files.Folder_Tree is
                Expanded     => False,
                Loaded       => False,
                Has_Children => True,
+               Loading      => False,
                Rank         => 0));
       end loop;
       T.Seeded := True;
+      Changed (T);
    end Seed;
 
    function Is_Seeded
@@ -123,6 +143,7 @@ package body Files.Folder_Tree is
                         Expanded     => False,
                         Loaded       => False,
                         Has_Children => True,
+                        Loading      => False,
                         Rank         => Rank));
                end if;
             end;
@@ -133,8 +154,10 @@ package body Files.Folder_Tree is
             end if;
          end loop;
          T.Nodes (Index).Loaded := True;
+         T.Nodes (Index).Loading := False;
          T.Nodes (Index).Has_Children := not Children.Is_Empty;
       end;
+      Changed (T);
    end Replace_Children;
 
    function Same_Roots
@@ -172,7 +195,32 @@ package body Files.Folder_Tree is
          Target.Expanded := Expanded;
          T.Nodes.Replace_Element (Index, Target);
       end;
+      Changed (T);
    end Set_Expanded;
+
+   procedure Set_Loading
+     (T       : in out Tree;
+      Index   : Positive;
+      Loading : Boolean) is
+   begin
+      if In_Range (T, Index) and then T.Nodes (Index).Loading /= Loading then
+         T.Nodes (Index).Loading := Loading;
+         --  Only the node's row changes: patched in place, not flattened
+         --  again (a large expanded tree took tens of milliseconds).
+         for Row of T.Rows loop
+            if Row.Node_Index = Index then
+               Row.Loading := Loading;
+               exit;
+            end if;
+         end loop;
+         declare
+            Revision : Positive;
+         begin
+            Revisions.Next (Revision);
+            T.Revision := Revision;
+         end;
+      end if;
+   end Set_Loading;
 
    procedure Toggle_Expanded
      (T     : in out Tree;
@@ -184,7 +232,11 @@ package body Files.Folder_Tree is
       Set_Expanded (T, Index, not T.Nodes.Element (Index).Expanded);
    end Toggle_Expanded;
 
-   function Visible_Rows
+   --  The visible rows, flattened from the nodes.
+   --
+   --  @param T Tree to project.
+   --  @return Visible rows in top-to-bottom display order.
+   function Flatten
      (T : Tree)
       return Visible_Row_Vectors.Vector
    is
@@ -220,7 +272,8 @@ package body Files.Folder_Tree is
                   Depth        => N.Depth,
                   Expanded     => N.Expanded,
                   Loaded       => N.Loaded,
-                  Has_Children => N.Has_Children));
+                  Has_Children => N.Has_Children,
+                  Loading      => N.Loading));
             if N.Expanded then
                declare
                   Count : Natural := 0;
@@ -295,49 +348,31 @@ package body Files.Folder_Tree is
             raise;
       end;
       return Result;
-   end Visible_Rows;
+   end Flatten;
+
+   --  After a change to the nodes: the rows flattened again, the revision
+   --  moved.
+   --
+   --  @param T Tree just changed.
+
+   procedure Changed (T : in out Tree) is
+      Revision : Positive;
+   begin
+      T.Rows := Flatten (T);
+      Revisions.Next (Revision);
+      T.Revision := Revision;
+   end Changed;
+
+   function Visible_Rows
+     (T : Tree)
+      return Visible_Row_Vectors.Vector is (T.Rows);
+
+   function Structure_Revision
+     (T : Tree)
+      return Natural is (T.Revision);
 
    function Visible_Row_Count
      (T : Tree)
-      return Natural
-   is
-      type Flag_Array is array (Positive range <>) of Boolean;
-      type Flag_Array_Access is access Flag_Array;
-      procedure Free is new Ada.Unchecked_Deallocation (Flag_Array, Flag_Array_Access);
-      Count : Natural := 0;
-   begin
-      if T.Nodes.Is_Empty then
-         return 0;
-      end if;
-
-      declare
-         --  Replace_Children appends children after their parent, so one forward
-         --  pass sees each parent's visibility before any of its children.
-         --  On the heap, as Visible_Rows' links are.
-         Shown : Flag_Array_Access :=
-           new Flag_Array'[T.Nodes.First_Index .. T.Nodes.Last_Index => False];
-      begin
-         for Index in Shown'Range loop
-            declare
-               Parent : constant Natural := T.Nodes.Element (Index).Parent;
-            begin
-               Shown (Index) :=
-                 Parent = 0
-                 or else (Parent < Index
-                          and then Shown (Parent)
-                          and then T.Nodes.Element (Parent).Expanded);
-               if Shown (Index) then
-                  Count := Count + 1;
-               end if;
-            end;
-         end loop;
-         Free (Shown);
-      exception
-         when others =>
-            Free (Shown);
-            raise;
-      end;
-      return Count;
-   end Visible_Row_Count;
+      return Natural is (Natural (T.Rows.Length));
 
 end Files.Folder_Tree;
