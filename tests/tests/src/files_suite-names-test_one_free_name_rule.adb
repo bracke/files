@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.File_Types;
 with Files.Model.Jobs;
 with Files.Operations.Archives;
@@ -84,7 +85,7 @@ separate (Files_Suite.Names)
       Ada.Directories.Create_Directory (Join (Root, "v1.2"));
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Operations.History.Clear_Undo (Model);
+      Files.Operations.History.Testing.Clear_Undo (Model);
       Files.Model.Jobs.Set_Background_Transfers (Model, False);
       Select_Name (Model, "v1.2");
       Step := Operation_Commands.Duplicate_Selected (Model, Settings);

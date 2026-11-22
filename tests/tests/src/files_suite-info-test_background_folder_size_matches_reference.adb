@@ -1,3 +1,4 @@
+with Files.Folder_Size.Testing;
 with Files.File_System_Types;
 separate (Files_Suite.Info)
    procedure Test_Background_Folder_Size_Matches_Reference
@@ -35,7 +36,7 @@ separate (Files_Suite.Info)
             Path := Taken.First_Element.Path;
             Result := Taken.First_Element.Result;
          end if;
-         exit when Available or else not Files.Folder_Size.Is_Active (Scan);
+         exit when Available or else not Files.Folder_Size.Testing.Is_Active (Scan);
       end loop;
 
       Assert (Available, "background scan produced a finished result");

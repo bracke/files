@@ -131,7 +131,6 @@ separate (Files_Suite.Model)
            (Files.Item_Lists.Make_Item (Root, Lower_Sigma & "ema", Files.Types.Regular_File_Item, "text/plain"));
          Items.Append
            (Files.Item_Lists.Make_Item (Root, Upper_Sigma & "akos", Files.Types.Regular_File_Item, "text/plain"));
-         Model := New_Grid_Model;
          Files.Model.Initialize
            (Model,
             Directory_Path    => Root,

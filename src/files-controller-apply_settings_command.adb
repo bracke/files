@@ -60,9 +60,9 @@ begin
                end if;
             end Set_Favorite;
 
-            --  Unconditionally flip Path's favorite state. Used for the
-            --  single-item and folder-fallback cases where the intent is a
-            --  plain toggle. The empty path is ignored.
+            --  Unconditionally flip Path's favorite state: the single-item
+            --  case, where the intent is a plain toggle. The empty path is
+            --  ignored.
             procedure Toggle_One (Path : String) is
             begin
                if Path = "" then
@@ -72,9 +72,9 @@ begin
             end Toggle_One;
          begin
             if Selected.Is_Empty then
-               --  No selection: fall back to favoriting the current folder,
-               --  preserving the historical "bookmark this folder" behavior.
-               Toggle_One (Files.Model.Current_Path (Model));
+               --  No selection: the current folder, as the path bar's star
+               --  stars it (Toggle_Folder_Favorite).
+               Updated := With_Folder_Favorite_Toggled (Model, Settings);
             elsif Natural (Selected.Length) = 1 then
                --  Single selection: plain toggle of that one item's path.
                Toggle_One (To_String (Selected.First_Element.Full_Path));

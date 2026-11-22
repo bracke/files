@@ -1,3 +1,5 @@
+with Files.Operations.History.Testing;
+with Files.File_System.Permissions.Testing;
 with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.History;
@@ -29,15 +31,15 @@ separate (Files_Suite.Transfer)
          if Directory_Move then
             Ada.Directories.Create_Directory (Source);
             Write_Binary_File (Join (Source, "child"), "private bytes");
-            Mutation := Files.File_System.Permissions.Set_Permissions (Join (Source, "child"), 0);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Join (Source, "child"), 0);
          else
             Write_Binary_File (Source, "private bytes");
-            Mutation := Files.File_System.Permissions.Set_Permissions (Source, 0);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 0);
          end if;
          Assert (Mutation.Success, "prepare an unreadable move source");
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.History.Clear_Undo (Model);
+         Files.Operations.History.Testing.Clear_Undo (Model);
          Files.Model.Jobs.Set_Background_Transfers (Model, False);
          Actions.Clear;
          Actions.Append (Files.Paste.Resolved_Action'
@@ -70,7 +72,7 @@ separate (Files_Suite.Transfer)
          Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Ada.Directories.Exists (Destination),
                  "Redo moves the unreadable entry by identity");
-         Mutation := Files.File_System.Permissions.Set_Permissions
+         Mutation := Files.File_System.Permissions.Testing.Set_Permissions
            ((if Directory_Move then Join (Destination, "child") else Destination), 8#644#);
       end loop;
    end Test_Move_Without_Read_Access;

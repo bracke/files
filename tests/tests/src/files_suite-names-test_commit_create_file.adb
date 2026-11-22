@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Operations.Editing;
 with Files.Operations.Opening;
 with Files.Operations.Paste;
@@ -19,7 +20,7 @@ separate (Files_Suite.Names)
       Reset_Root;
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Set_Error (Model, "error.file.create");
-      Files.Model.Creation.Begin_Create_File (Model, "created.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "created.txt", Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                         "create commit succeeds");
@@ -66,7 +67,7 @@ separate (Files_Suite.Names)
         (not Ada.Directories.Exists ("recent-renamed-must-not-write-7f62b1"),
          "direct recent-view rename cannot move an item into the process directory: nothing written");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Files.Model.Creation.Begin_Create_File (Model, Guard_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Guard_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Assert
         (Result.Status = Files.Operation_Results.Operation_Disabled

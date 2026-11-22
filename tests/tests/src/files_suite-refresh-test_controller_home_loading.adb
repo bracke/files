@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -17,7 +18,8 @@ separate (Files_Suite.Refresh)
       Write_File (Join (First, "one.txt"));
       Load := Files_Suite.Listings.Load_Directory (First, Settings);
       Files.Model.Initialize (Model, First, Load.Items, Missing_Home);
-      Files.Model.Creation.Begin_Create_File (Model, "failed-home-pending.txt");
+      Files.Model.Creation.Begin_Create_File
+        (Model, "failed-home-pending.txt", Files.File_Types.Default_Classification);
       Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -43,7 +45,7 @@ separate (Files_Suite.Refresh)
       Assert (Files.Model.Command_Palette.Is_Open (Model), "failed home preserves command palette");
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Initialize (Model, First, Load.Items, First);
-      Files.Model.Creation.Begin_Create_File (Model, "home-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "home-pending.txt", Files.File_Types.Default_Classification);
       Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal

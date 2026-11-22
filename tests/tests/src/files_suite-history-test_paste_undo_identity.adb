@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.History;
@@ -27,7 +28,7 @@ separate (Files_Suite.History)
             Write_Binary_File (Join (Join (Root, "inbox"), "b.txt"), "b bytes");
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Operations.History.Clear_Undo (Model);
+            Files.Operations.History.Testing.Clear_Undo (Model);
             Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             declare
                Actions : Files.Paste.Resolved_Action_Vectors.Vector;
@@ -50,7 +51,7 @@ separate (Files_Suite.History)
                   "the first paste member commits");
                Assert (Hostkit.Fs.Move_No_Replace (A, Saved_A), "retain the first owned entry between batches");
                Write_Binary_File (A, "unrelated a");
-               Step := Complete_Operation (Model, Settings, Step);
+               Files_Suite.Support.Discard (Complete_Operation (Model, Settings, Step));
                Await_View (Model, Settings);
                Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);

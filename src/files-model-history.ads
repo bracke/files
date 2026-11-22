@@ -106,13 +106,6 @@ package Files.Model.History is
    procedure Release
      (Model : in out Window_Model);
 
-   --  Forget the entire undo and redo history, queueing the retired recovery
-   --  payloads and the journal save for Take_Retired.
-   --
-   --  @param Model Model to update.
-   procedure Clear_Undo
-     (Model : in out Window_Model);
-
    --  Return whether an undoable action is available.
    --
    --  @param Model Model to inspect.
@@ -191,5 +184,14 @@ package Files.Model.History is
    function Undo_From_Paths
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
+
+private
+
+   --  Forget the entire undo and redo history, queueing the retired recovery
+   --  payloads and the journal save for Take_Retired.
+   --
+   --  @param Model Model to update.
+   procedure Clear_Undo
+     (Model : in out Window_Model);
 
 end Files.Model.History;

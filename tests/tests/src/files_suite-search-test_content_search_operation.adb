@@ -141,8 +141,8 @@ separate (Files_Suite.Search)
          "content-search matches stay visible even when the filenames do not match the query");
 
       --  Search_Recursive_Command uses the Names scope on the same query.
-      Routed :=
-        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Recursive_Command, Model, Settings);
+      Files_Suite.Support.Discard (
+        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Recursive_Command, Model, Settings));
       Assert
         (Files.Model.Filtering.Search_Scope_Of (Model) = Files.UI_Types.Search_Names,
          "recursive name search sets the Search_Names scope");

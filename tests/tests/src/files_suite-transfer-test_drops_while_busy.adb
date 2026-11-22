@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Controller.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
@@ -26,7 +27,7 @@ separate (Files_Suite.Transfer)
          Write_Binary_File (Join (Join (Root, "inbox"), "incoming.txt"), "incoming");
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.History.Clear_Undo (Model);
+         Files.Operations.History.Testing.Clear_Undo (Model);
          Select_Name (Model, "original.txt");
          Files.Model.Jobs.Set_Background_Transfers (Model, True);
          Step := Operation_Commands.Duplicate_Selected (Model, Settings);
@@ -71,7 +72,7 @@ separate (Files_Suite.Transfer)
                  "the original job remains undoable after a blocked drop");
       end loop;
       Write_Binary_File (Join (Root, "incoming.txt"), "existing destination");
-      Step := Files.Operations.Paste.Begin_Paste (Model, Settings, Sources);
+      Files_Suite.Support.Discard (Files.Operations.Paste.Begin_Paste (Model, Settings, Sources));
       Assert (Files.Model.Pasting.Conflict_Is_Active (Model), "prepare a collision dialog");
       declare
          Revision : constant Natural := Files.Model.Revision (Model);

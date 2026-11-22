@@ -1,3 +1,4 @@
+with Files.Model.Status_Samples;
 with Files.Settings.Path_References;
 separate (Files.Rendering.Build_Snapshot_Into)
    --  The rows kept from the last build, of which only the rename fields'
@@ -42,7 +43,8 @@ separate (Files.Rendering.Build_Snapshot_Into)
                   Item  : constant Files.Items.Directory_Item :=
                     Files.Model.Visible_Item (Model, Renamed_Row_Maps.Element (Found));
                   Paths : constant Files.Settings.Path_References.Path_Index :=
-                    Files.Settings.Path_References.Index_Paths (Settings);
+                    Files.Settings.Path_References.Index_Paths
+          (Settings, Files.Model.Status_Samples.Name_Folding (Model));
                   Full  : constant String := To_String (Item.Full_Path);
                begin
                   Shown.Name := Item.Name;

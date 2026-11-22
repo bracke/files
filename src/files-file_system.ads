@@ -243,21 +243,6 @@ package Files.File_System is
       Path         : String)
       return Directory_Change_Result;
 
-   --  Build an item value classified by Classes, as a listing would.
-   --
-   --  @param Parent_Path Parent directory path.
-   --  @param Name Item name.
-   --  @param Kind Filesystem item kind.
-   --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.Settings.Classification_Of the settings).
-   --  @return Directory item value.
-   function Make_Item
-     (Parent_Path : String;
-      Name        : String;
-      Kind        : Files.Types.Item_Kind;
-      Classes     : Files.File_Types.Classification)
-      return Directory_Item;
-
    --  Which host's filesystem naming rules Valid_Leaf_Name enforces. Host_Rules
    --  follows the operating system this build runs on: a POSIX host allows any
    --  visible character except '/', while Windows additionally forbids

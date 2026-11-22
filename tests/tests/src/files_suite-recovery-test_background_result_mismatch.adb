@@ -22,7 +22,7 @@ separate (Files_Suite.Recovery)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Jobs.Set_Background_Transfers (Model, True);
-      Step := Files.Operations.Refresh (Model, Settings);
+      Files_Suite.Support.Discard (Files.Operations.Refresh (Model, Settings));
       Files.Model.Filtering.Clear_Search_Results (Model);
       Select_Name (Model, "a.txt");
       declare
@@ -33,7 +33,7 @@ separate (Files_Suite.Recovery)
          Files_Suite.Support.Guards.Save (Fault, "FILES_TEST_OPERATION_RESULT_KIND_MISMATCH");
          Ada.Environment_Variables.Set
            ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "1");
-         Step := Operation_Commands.Duplicate_Selected (Model, Settings);
+         Files_Suite.Support.Discard (Operation_Commands.Duplicate_Selected (Model, Settings));
          Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
       end;
       Assert
@@ -69,7 +69,7 @@ separate (Files_Suite.Recovery)
          Files_Suite.Support.Guards.Save (Fault, "FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH");
          Ada.Environment_Variables.Set
            ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "1");
-         Step := Operation_Commands.Duplicate_Selected (Model, Settings);
+         Files_Suite.Support.Discard (Operation_Commands.Duplicate_Selected (Model, Settings));
          Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
       end;
       Assert

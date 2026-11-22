@@ -68,17 +68,17 @@ separate (Files_Suite.Tree)
       Assert (CResult.Status = Files.Controller.Controller_Command_Executed
               and then Files.Model.Tree_Panel.Has_Keyboard (Model),
               "Right expands the highlighted folder and the tree keeps the keyboard");
-      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Tree_Panel.Cursor (Model),
          A1,
          "Right on an expanded folder steps into it");
-      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Tree_Panel.Cursor (Model), Alpha, "Left steps out to the parent folder");
 
       --  Enter opens the highlighted folder in the main view.
-      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
          Alpha,

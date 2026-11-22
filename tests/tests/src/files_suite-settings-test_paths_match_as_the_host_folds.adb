@@ -22,10 +22,10 @@ separate (Files_Suite.Settings)
       Refs.Add_Favorite (Settings, Stored);
       Refs.Testing.Set_Label (Settings, File, Files.Preference_Types.Red);
       Assert (Refs.Is_Favorite (Settings, Typed), "the star shows for the folder however it is typed");
-      Assert (Refs.Is_Favorite (Refs.Index_Paths (Settings), Typed), "and through the index");
+      Assert (Refs.Is_Favorite (Refs.Index_Paths (Settings, Refs.Ask_Each_Path), Typed), "and through the index");
       Assert (Refs.Label_Of (Settings, "/users/me/documents/report.TXT") = Files.Preference_Types.Red,
               "the label shows for the file however it is typed");
-      Assert (Refs.Label_Of (Refs.Index_Paths (Settings),
+      Assert (Refs.Label_Of (Refs.Index_Paths (Settings, Refs.Ask_Each_Path),
         "/users/me/documents/report.TXT") = Files.Preference_Types.Red,
               "and through the index");
 

@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -57,7 +58,7 @@ separate (Files_Suite.Operations)
       Write_File (Join (Dir, "b.txt"), "second");
       Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
-      Files.Operations.History.Clear_Undo (Model);
+      Files.Operations.History.Testing.Clear_Undo (Model);
       Files.Model.Selection.Select_All_Visible (Model);
       Ada.Directories.Delete_File (Join (Dir, "b.txt"));
       Routed := Files.Controller.Execute_Non_Settings_Command

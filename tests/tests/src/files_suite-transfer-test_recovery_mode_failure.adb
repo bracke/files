@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
@@ -21,7 +22,7 @@ separate (Files_Suite.Transfer)
       procedure Cleanup is
       begin
          Files.File_System.Testing.Stop_Failing_Directory_Restore;
-         Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#755#);
+         Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#755#);
       end Cleanup;
    begin
       Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
@@ -41,7 +42,7 @@ separate (Files_Suite.Transfer)
          Ada.Directories.Create_Directory (Source);
          Write_Binary_File (Join (Source, "child"), "original bytes");
          Assert
-           (Files.File_System.Permissions.Set_Permissions (Source, 8#555#).Success,
+           (Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#555#).Success,
             "prepare a read-only original");
          --  Giving the staged original its mode back fails; with a block,
          --  something new appears at its name meanwhile.
@@ -102,7 +103,7 @@ separate (Files_Suite.Transfer)
               (Mode_Of (Source, With_Special_Bits => True) = 8#555#,
                "retry restores the original bytes and mode: mode restored");
          end if;
-         Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#755#);
+         Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#755#);
       end loop;
       for Background in Boolean loop
          declare
@@ -120,7 +121,7 @@ separate (Files_Suite.Transfer)
             Write_Binary_File (Join (Source, "child"), "original bytes");
             Write_Binary_File (Join (Copy_Source, "child"), "replacement copy");
             Assert
-              (Files.File_System.Permissions.Set_Permissions (Source, 8#555#).Success,
+              (Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#555#).Success,
                "prepare paste replacement");
             --  Here, and in the environment for a background transfer's helper.
             Files.File_System.Testing.Fail_Directory_Restore (Join (Root, ".files-recovery-1/payload"), Source);
@@ -154,7 +155,7 @@ separate (Files_Suite.Transfer)
             Assert
               (Mode_Of (Source, With_Special_Bits => True) = 8#555#,
                "Undo recovers the retained original and mode: mode restored");
-            Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#755#);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#755#);
          end;
       end loop;
       Cleanup;

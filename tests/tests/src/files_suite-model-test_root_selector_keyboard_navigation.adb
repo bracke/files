@@ -59,18 +59,18 @@ separate (Files_Suite.Model)
          "Down moves root selector row");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Root_Selector.Selected_Index (Model), 2, "Down selects next root row");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Up);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Up));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Root_Selector.Selected_Index (Model), 1, "Up selects previous root row");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Up);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Up));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Root_Selector.Selected_Index (Model),
          3,
          "Up wraps root selector to last row");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Home));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Root_Selector.Selected_Index (Model), 1, "Home selects first root row");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_End);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_End));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Root_Selector.Selected_Index (Model), 3, "End selects last root row");
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);

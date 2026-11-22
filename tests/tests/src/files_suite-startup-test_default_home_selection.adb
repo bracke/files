@@ -1,3 +1,5 @@
+with Files.Settings.Storage;
+with Files.Settings.Storage.Testing;
 with Files.Application.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Startup)
@@ -26,7 +28,7 @@ separate (Files_Suite.Startup)
       Files_Suite.Support.Guards.Save (Environment, "HOMEPATH");
       Files_Suite.Support.Guards.Save (Environment, "HOMESHARE");
 
-      Assert (Files.Application.Home_Directory /= "", "home directory fallback is never empty");
+      Assert (Files.Application.Testing.Home_Directory /= "", "home directory fallback is never empty");
       Ada.Directories.Create_Path (Join (Root, "profile-home"));
       Ada.Directories.Create_Path (Join (Root, "drive-profile"));
       Ada.Directories.Create_Path (Join (Root, "share-profile"));
@@ -42,15 +44,15 @@ separate (Files_Suite.Startup)
       --  and what this used to have no equivalent of.
       if Hostkit.Host.Current = Hostkit.Host.Windows then
          Files_Suite.Support.Assert_Equal
-           (Files.Application.Home_Directory,
+           (Files.Application.Testing.Home_Directory,
             Join (Root, "profile-home"),
             "USERPROFILE is the home on the host whose profile folder it names");
       else
          Assert
-           (Files.Application.Home_Directory /= Join (Root, "profile-home"),
+           (Files.Application.Testing.Home_Directory /= Join (Root, "profile-home"),
             "a Windows profile variable does not decide the home on a POSIX host");
          Assert
-           (Files.IO.Fs_Primitives.Directory_Exists (Files.Application.Home_Directory),
+           (Files.IO.Fs_Primitives.Directory_Exists (Files.Application.Testing.Home_Directory),
             "and what the password file reports is a directory that exists");
       end if;
 
@@ -69,20 +71,20 @@ separate (Files_Suite.Startup)
       Ada.Environment_Variables.Set
         ("HOMEPATH", GNAT.OS_Lib.Directory_Separator & "drive-profile");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Home_Directory,
+        (Files.Application.Testing.Home_Directory,
          Join (Root, "drive-profile"),
          "a home that does not exist falls through to the drive profile");
       Ada.Environment_Variables.Set ("HOMEPATH", "/missing-drive-profile");
       Ada.Environment_Variables.Set ("HOMESHARE", Join (Root, "share-profile"));
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Home_Directory,
+        (Files.Application.Testing.Home_Directory,
          Join (Root, "share-profile"),
          "HOMESHARE is used when the drive profile is not there either");
       Ada.Environment_Variables.Set ("HOMESHARE", Join (Root, "missing-share-profile"));
 
       Files_Suite.Support.Assert_Equal
 
-        (Files.Application.Home_Directory,
+        (Files.Application.Testing.Home_Directory,
 
          Ada.Directories.Current_Directory,
 
@@ -101,42 +103,42 @@ separate (Files_Suite.Startup)
       Ada.Environment_Variables.Clear ("FILES_SETTINGS");
       Ada.Environment_Variables.Clear ("XDG_CONFIG_HOME");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Testing.Default_Settings_Path (Home_Path),
+        (Files.Settings.Storage.Testing.Default_Settings_Path (Home_Path),
          Expected_Default,
          "default settings path is under home config directory");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Testing.Configured_Settings_Path (Home_Path),
+        (Files.Settings.Storage.Configured_Settings_Path (Home_Path),
          Expected_Default,
          "configured settings path falls back to home config directory");
 
       Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", Xdg_Path);
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Testing.Configured_Settings_Path (Home_Path),
+        (Files.Settings.Storage.Configured_Settings_Path (Home_Path),
          Expected_Xdg,
          "XDG_CONFIG_HOME selects the XDG settings path");
 
       Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", "relative-config-home");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Testing.Configured_Settings_Path (Home_Path),
+        (Files.Settings.Storage.Configured_Settings_Path (Home_Path),
          Expected_Default,
          "a relative XDG_CONFIG_HOME cannot redirect settings into the process directory");
       Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", Xdg_Path);
 
       Ada.Environment_Variables.Set ("FILES_SETTINGS", Override_Path);
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Testing.Configured_Settings_Path (Home_Path),
+        (Files.Settings.Storage.Configured_Settings_Path (Home_Path),
          Override_Path,
          "FILES_SETTINGS overrides the XDG settings path");
 
       Ada.Environment_Variables.Set ("FILES_SETTINGS", "");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Testing.Configured_Settings_Path (Home_Path),
+        (Files.Settings.Storage.Configured_Settings_Path (Home_Path),
          Expected_Xdg,
          "empty FILES_SETTINGS is ignored");
 
       Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", "");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Testing.Configured_Settings_Path (Home_Path),
+        (Files.Settings.Storage.Configured_Settings_Path (Home_Path),
          Expected_Default,
          "empty XDG_CONFIG_HOME is ignored");
    end Test_Default_Home_Selection;

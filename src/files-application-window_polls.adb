@@ -1,3 +1,4 @@
+with Files.Settings.Path_References;
 with Files.Model.Info_Pane;
 with Files.Model.Tree_Panel;
 with Files.Operations.Tree;
@@ -251,16 +252,31 @@ package body Files.Application.Window_Polls is
    procedure Sample_Volume_Space
      (Model : in out Files.Model.Window_Model)
    is
-      Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+      Now  : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+      Path : constant String := Files.Model.Current_Path (Model);
    begin
-      if Files.Model.Current_Path (Model) = "" then
+      if Path = "" then
          --  A view with no folder of its own (Recent) is on no volume: a
          --  capacity query for "" fails here and on Windows may answer for
          --  the working directory's drive. An unchanged unknown touches nothing.
          Files.Model.Status_Samples.Set_Volume_Space (Model, "", (others => <>), Now);
-      elsif not Files.Model.Status_Samples.Volume_Space_Is_Current (Model, Now) then
+         return;
+      end if;
+      --  Asked once per folder, before the snapshot is built: matching each
+      --  row's path against the stored favorites and labels then asks no
+      --  volume.
+      if not Files.Model.Status_Samples.Name_Folding_Sampled (Model) then
          declare
-            Path     : constant String := Files.Model.Current_Path (Model);
+            use type Files.Settings.Path_References.Path_Folding;
+         begin
+            Files.Model.Status_Samples.Set_Name_Folding
+              (Model, Path,
+               Folds => Files.Settings.Path_References.Folding_In (Path)
+                 = Files.Settings.Path_References.Match_Folded);
+         end;
+      end if;
+      if not Files.Model.Status_Samples.Volume_Space_Is_Current (Model, Now) then
+         declare
             Capacity : constant Hostkit.Metadata.Volume_Capacity := Hostkit.Metadata.Volume_Capacity_Of (Path);
          begin
             Files.Model.Status_Samples.Set_Volume_Space

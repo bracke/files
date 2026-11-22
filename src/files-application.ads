@@ -53,11 +53,6 @@ package Files.Application is
       Error_Argument : UString;
    end record;
 
-   --  Return the current user's home directory using platform environment variables.
-   --
-   --  @return Home directory path, or the current directory as a fallback.
-   function Home_Directory return String;
-
    --  Run the application entry point using process command-line arguments.
    --
    --  The selected run mode may print help, execute smoke checks, or open
@@ -66,6 +61,11 @@ package Files.Application is
    function Run return Ada.Command_Line.Exit_Status;
 
 private
+
+   --  Return the current user's home directory using platform environment variables.
+   --
+   --  @return Home directory path, or the current directory as a fallback.
+   function Home_Directory return String;
 
    --  Parse application command-line arguments into runtime mode and paths.
    --
@@ -91,25 +91,6 @@ private
    --
    --  @return Crate name and version from generated Alire configuration.
    function Version_Text return String;
-
-   --  Return the default settings file path under a home directory.
-   --
-   --  @param Home_Path Home directory path.
-   --  @return Default settings file path.
-   function Default_Settings_Path
-     (Home_Path : String)
-      return String;
-
-   --  Return the settings file path selected by environment or default fallback.
-   --
-   --  FILES_SETTINGS overrides all defaults. XDG_CONFIG_HOME selects an XDG path
-   --  when present. Otherwise the path is under Home_Path.
-   --
-   --  @param Home_Path Home directory path.
-   --  @return Configured settings file path.
-   function Configured_Settings_Path
-     (Home_Path : String)
-      return String;
 
    --  Load startup settings and resolve command-line paths into window models.
    --

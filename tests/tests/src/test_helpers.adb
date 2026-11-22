@@ -410,7 +410,7 @@ package body Test_Helpers is
          Files.Jobs.Process.Reserve (Job);
          Directory := Ada.Strings.Unbounded.To_Unbounded_String
            (Files.Jobs.Process.Path (Job, ""));
-         Files.Jobs.Process.Launch (Job, "--files-test-blocked");
+         Files.Jobs.Process.Testing.Launch (Job, "--files-test-blocked");
          for Attempt in Files_Suite.Support.Timing.Polling loop
             exit when Ada.Directories.Exists
               (Ada.Strings.Unbounded.To_String (Directory) & "/started");

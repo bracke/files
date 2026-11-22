@@ -24,7 +24,7 @@ separate (Files_Suite.Tree)
            (Path => To_Unbounded_String (Tree_Dir), Name => To_Unbounded_String ("tree")));
       Files.Model.Tree_Panel.Seed (Model, Seeds);
       Files.Model.Tree_Panel.Open (Model);
-      CResult := Files.Controller.Toggle_Tree_Node (Model, Settings, 1);
+      Files_Suite.Support.Discard (Files.Controller.Toggle_Tree_Node (Model, Settings, 1));
       Files.Model.Tree_Panel.Give_Keyboard (Model);
       Files.Model.Tree_Panel.Set_Cursor (Model, Alpha);
 
@@ -37,13 +37,13 @@ separate (Files_Suite.Tree)
         (Files.Model.Tree_Panel.Cursor (Model), Alpha, "expanding keeps the highlight on the folder");
 
       --  The second has no child to step into: nothing moves.
-      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Tree_Panel.Cursor (Model), Alpha,
          "Right on an expanded folder with no children does not jump to the next sibling");
 
       --  Down still reaches the sibling.
-      CResult := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down));
       Files_Suite.Support.Assert_Equal (Files.Model.Tree_Panel.Cursor (Model), Beta, "Down moves on to the sibling");
       Files_Suite.Support.Disk.Reset_Root;
    end Test_Tree_Right_On_Empty_Folder;

@@ -21,8 +21,8 @@ separate (Files_Suite.Model)
       Write_File (Join (Target, "inside.txt"));
       --  A three-row selector opened over a focused path input.
       Files.Model.Initialize (Model, Root, Sample_Items, Root);
-      Result := Files.Controller.Execute_Non_Settings_Command
-        (Files.Commands.Focus_Path_Input_Command, Model, Settings);
+      Files_Suite.Support.Discard (Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Focus_Path_Input_Command, Model, Settings));
       Roots_A.Append (To_Unbounded_String (Root));
       Roots_A.Append (To_Unbounded_String (Target));
       Roots_A.Append (To_Unbounded_String (Ada.Directories.Full_Name (Root)));

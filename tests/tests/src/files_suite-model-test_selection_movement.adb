@@ -157,7 +157,8 @@ separate (Files_Suite.Model)
         (Files.Model.Selection.Selected_Count (Model), 2, "control-click adds to selection");
       Assert (Files.Model.Selection.Is_Selected (Model, 1), "control-click selects clicked item");
       Assert (Files.Model.Selection.Is_Selected (Model, 3), "control-click preserves existing selection");
-      Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 3, Modifiers => Ctrl);
+      Files_Suite.Support.Discard
+        (Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 3, Modifiers => Ctrl));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),
          1,
@@ -272,7 +273,8 @@ separate (Files_Suite.Model)
          Shift : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       begin
          Shift (Guikit.Input.Shift_Key) := True;
-         Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 3, Modifiers => Shift);
+         Files_Suite.Support.Discard
+           (Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 3, Modifiers => Shift));
       end;
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),

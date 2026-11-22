@@ -11,7 +11,7 @@ package body Files.Model.Testing is
    use Ada.Strings.Unbounded;
 
    function Folder_Scan_Is_Active (Model : Window_Model) return Boolean is
-     (Files.Folder_Size.Is_Active (Model.Folder_Scan));
+     (Files.Folder_Size.Testing.Is_Active (Model.Folder_Scan));
 
    function Folder_Scan_Target (Model : Window_Model) return String is
      (Files.Folder_Size.Testing.Target (Model.Folder_Scan));

@@ -85,7 +85,7 @@ separate (Files_Suite.Refresh)
       Step := Files.Operations.Refresh (Model, Settings);
       Await_Job (Files.Model.Jobs.Background_Refresh (Model), "the second refresh helper finishes");
       Files.Model.Set_Error (Model, "");
-      Applied := Files.Refresh.Advance (Model, Settings);
+      Files_Suite.Support.Discard (Files.Refresh.Advance (Model, Settings));
       Assert (Files.Model.Refresh_Is_Owed (Model), "the outdated read is owed again");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Navigate_To (Model, Root, Load.Items);

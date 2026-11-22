@@ -26,21 +26,10 @@ separate (Files.Interaction)
          Files.Input_Actions.Conflict_Button_Rename  => Files.Operations.Paste.Choice_Rename,
          Files.Input_Actions.Conflict_Button_Cancel  => Files.Operations.Paste.Choice_Cancel];
 
-      --  Toggle the current directory's favorite state directly by path,
-      --  independent of the selection, under the policy every settings
-      --  change has (Commit_Settings). The recent view has no path.
+      --  The path bar's star: the current folder, whatever is selected.
       procedure Toggle_Current_Favorite is
       begin
-         if Files.Model.Input_Owning_Overlay_Is_Open (Model) or else Files.Model.Current_Path (Model) = "" then
-            return;
-         end if;
-         declare
-            Updated : Files.Settings.Settings_Model := Settings;
-         begin
-            Files.Settings.Path_References.Toggle_Favorite_Path (Updated, Files.Model.Current_Path (Model));
-            Files.Controller.Commit_Settings
-              (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
-         end;
+         Files.Controller.Toggle_Folder_Favorite (Model, Settings, Settings_Path, Accepted => Result.Settings_Changed);
       end Toggle_Current_Favorite;
 
       --  The actions a controller entry always answers.

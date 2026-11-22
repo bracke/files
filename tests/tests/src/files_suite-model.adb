@@ -117,6 +117,7 @@ package body Files_Suite.Model is
    procedure Test_Multi_Rename_Broadcast (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_File_Command_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_File_Temporary_Item_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Create_Row_Uses_Settings_Maps (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_File_Mixed_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_File_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Temporary_Row_Encoding (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -239,6 +240,9 @@ package body Files_Suite.Model is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Create_File_Temporary_Item_Guards'Access,
          "pending temporary item is visible and selected but not openable, deletable or renamable");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Create_Row_Uses_Settings_Maps'Access,
+         "a new item's row is typed by the settings' extension and icon maps as it is named");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Create_File_Mixed_Selection'Access, "mixed selection with a temporary item disables open and delete");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -372,6 +376,7 @@ package body Files_Suite.Model is
    procedure Test_Create_File_Command_State (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Create_File_Temporary_Item_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Create_Row_Uses_Settings_Maps (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Create_File_Mixed_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

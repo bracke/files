@@ -1,3 +1,4 @@
+with Files.Model.Status_Samples;
 with Files.Preference_Types;
 with Files.Settings.Path_References;
 separate (Files.Rendering.Build_Snapshot_Into)
@@ -113,7 +114,8 @@ separate (Files.Rendering.Build_Snapshot_Into)
       end Add_Row;
    begin
       Cut_Paths := Build_Cut_Set;
-      Paths := Files.Settings.Path_References.Index_Paths (Settings);
+      Paths := Files.Settings.Path_References.Index_Paths
+          (Settings, Files.Model.Status_Samples.Name_Folding (Model));
       Files.Model.Rename.For_Each_Field (Model, Note_Rename'Access);
       Snapshot.Items.Reserve_Capacity (Ada.Containers.Count_Type (Snapshot.Visible_Count) + 1);
       Files.Model.For_Each_Visible_Row (Model, Add_Row'Access);

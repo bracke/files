@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.Model.Info_Pane;
 with Files.Model.Jobs;
 with Files.Input_Actions;
@@ -57,7 +58,7 @@ package body Files_Suite.Operations_Support is
 
    procedure Unlock_Directory (Directory : String) is
       Unlocked : constant Files.File_System.Mutation_Result :=
-        Files.File_System.Permissions.Set_Permissions (Directory, 8#755#);
+        Files.File_System.Permissions.Testing.Set_Permissions (Directory, 8#755#);
       pragma Unreferenced (Unlocked);
    begin
       null;
@@ -72,7 +73,7 @@ package body Files_Suite.Operations_Support is
       --  stop a write (Windows), and the refusal's mapping is host code
       --  worth proving on macOS too.
       if (Hostkit.Metadata.Mode_Bits_Are_Native and then Hostkit.Host.Is_Elevated)
-        or else not Files.File_System.Permissions.Set_Permissions (Directory, 8#555#).Success
+        or else not Files.File_System.Permissions.Testing.Set_Permissions (Directory, 8#555#).Success
       then
          return False;
       end if;

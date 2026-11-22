@@ -38,25 +38,27 @@ separate (Files_Suite.Settings)
             Draft_Settings.Open_Actions := Defaults.Open_Actions;
          end;
          Files.Model.Settings_Pane.Close (Draft_Model);
-         Controller_Result :=
+         Files_Suite.Support.Discard (
            Files.Controller.Execute_Non_Settings_Command
-             (Files.Commands.Toggle_Settings_Pane_Command, Draft_Model, Draft_Settings);
+             (Files.Commands.Toggle_Settings_Pane_Command, Draft_Model, Draft_Settings));
          Files_Suite.Support.Assert_Equal
            (Files.Model.Focus (Draft_Model),
             Files.UI_Types.Focus_Settings_Input,
             "controller settings command opens editable settings focus");
-         Controller_Result := Files.Controller.Testing.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Right);
+         Files_Suite.Support.Discard
+           (Files.Controller.Testing.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Right));
          Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "details");
-         Controller_Result := Files.Controller.Testing.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Down);
+         Files_Suite.Support.Discard
+           (Files.Controller.Testing.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Down));
          Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "true");
          Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "high_contrast");
          Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "files-high-contrast");
-         Controller_Result :=
-           Files.Controller.Testing.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_N, Ctrl);
+         Files_Suite.Support.Discard (
+           Files.Controller.Testing.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_N, Ctrl));
          Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "tmpdel");
          Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "text/x-delete-me");
-         Controller_Result :=
-           Files.Controller.Testing.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Delete, Ctrl);
+         Files_Suite.Support.Discard (
+           Files.Controller.Testing.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Delete, Ctrl));
          Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "cfg");
          Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "text/x-config");
          Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "text/x-config");

@@ -20,6 +20,22 @@ package body Files.Model.Status_Samples is
       Model.Volume_Sample := (Space => Space, Path => To_Unbounded_String (Path), Sampled => Sampled);
    end Set_Volume_Space;
 
+   procedure Set_Name_Folding
+     (Model : in out Window_Model;
+      Path  : String;
+      Folds : Boolean) is
+   begin
+      Model.Name_Folding := (Path => To_Unbounded_String (Path), Folds => Folds);
+   end Set_Name_Folding;
+
+   function Name_Folding_Sampled (Model : Window_Model) return Boolean is
+     (Length (Model.Name_Folding.Path) > 0 and then To_String (Model.Name_Folding.Path) = Current_Path (Model));
+
+   function Name_Folding (Model : Window_Model) return Files.Settings.Path_References.Path_Folding is
+     (if not Name_Folding_Sampled (Model) then Files.Settings.Path_References.Ask_Each_Path
+      elsif Model.Name_Folding.Folds then Files.Settings.Path_References.Match_Folded
+      else Files.Settings.Path_References.Match_Exactly);
+
    function Volume_Space_Is_Current
      (Model : Window_Model;
       Now   : Ada.Calendar.Time)

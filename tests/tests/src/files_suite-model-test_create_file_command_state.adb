@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.File_System.Roots.Testing;
 with Files.Model.Filtering;
 with Files.Model.Creation;
@@ -20,7 +21,7 @@ separate (Files_Suite.Model)
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Root_Selector.Open (Model, Files.File_System.Roots.Testing.Available_Roots);
       Files.Model.Command_Palette.Open (Model);
-      Files.Model.Creation.Begin_Create_File (Model, "draft.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "draft.txt", Files.File_Types.Default_Classification);
       Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "direct create adds temporary item");
       Assert (not Files.Model.Root_Selector.Is_Open (Model), "direct create closes stale root selector");
       Files_Suite.Support.Assert_Equal

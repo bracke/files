@@ -34,14 +34,14 @@ separate (Files_Suite.Refresh)
         (Files.Refresh.Testing.Watch_Refresh_Due (Pacer, Start + Gap + Gap + Gap, False),
          "a change owed during a read is refreshed once the gap allows");
 
-      Assert (Files.Refresh.Retry_Due (Pacer, Start, False), "a listing that loaded may be re-read");
-      Assert (Files.Refresh.Retry_Due (Pacer, Start, True), "the first retry after a failure runs");
+      Assert (Files.Refresh.Testing.Retry_Due (Pacer, Start, False), "a listing that loaded may be re-read");
+      Assert (Files.Refresh.Testing.Retry_Due (Pacer, Start, True), "the first retry after a failure runs");
       Assert
-        (not Files.Refresh.Retry_Due (Pacer, Start + Retry - Ada.Real_Time.Milliseconds (1), True),
+        (not Files.Refresh.Testing.Retry_Due (Pacer, Start + Retry - Ada.Real_Time.Milliseconds (1), True),
          "the next waits out the retry gap");
-      Assert (Files.Refresh.Retry_Due (Pacer, Start + Retry, True), "and then runs");
+      Assert (Files.Refresh.Testing.Retry_Due (Pacer, Start + Retry, True), "and then runs");
       Assert
-        (Files.Refresh.Retry_Due (Pacer, Start + Retry + Ada.Real_Time.Milliseconds (1), False),
+        (Files.Refresh.Testing.Retry_Due (Pacer, Start + Retry + Ada.Real_Time.Milliseconds (1), False),
          "a load that succeeds ends the back-off");
 
       --  The window's step, as the event loop takes it.

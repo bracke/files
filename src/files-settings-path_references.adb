@@ -78,6 +78,21 @@ package body Files.Settings.Path_References is
    function Key (Path : String) return String is
      (if Folds (Path) then Files.Text_Case.Fold_Case (Path) else Path);
 
+   function Folding_In (Directory : String) return Path_Folding is
+     (if Folds_Paths then Match_Folded
+      elsif not Asks_Volume then Match_Exactly
+      elsif Directory = "" then Ask_Each_Path
+      elsif Volume_Folds (Directory) then Match_Folded
+      else Match_Exactly);
+
+   --  The form a path asked of Index is matched in, by the index's folding:
+   --  only Ask_Each_Path asks the path's volume.
+   function Asked_Key (Index : Path_Index; Path : String) return String is
+     (case Index.Folding is
+         when Ask_Each_Path => Key (Path),
+         when Match_Exactly => (if Folds_Paths then Files.Text_Case.Fold_Case (Path) else Path),
+         when Match_Folded  => Files.Text_Case.Fold_Case (Path));
+
    function Same (Left : String; Right : String) return Boolean is
      (Left = Right or else Key (Left) = Key (Right));
 
@@ -254,11 +269,13 @@ package body Files.Settings.Path_References is
    end Load_Label;
 
    function Index_Paths
-     (Settings : Settings_Model)
+     (Settings : Settings_Model;
+      Folding  : Path_Folding)
       return Path_Index
    is
       Result : Path_Index;
    begin
+      Result.Folding := Folding;
       --  Every stored favorite is valid and none repeats (Add_Favorite,
       --  Toggle_Favorite_Path, Move_Path_References). Is_Favorite and
       --  Label_Of take the first stored label, so keep the first of a path's.
@@ -282,7 +299,7 @@ package body Files.Settings.Path_References is
       Path  : String)
       return Boolean is
    begin
-      return Persistent_Path_Is_Valid (Path) and then Index.Favorites.Contains (Key (Path));
+      return Persistent_Path_Is_Valid (Path) and then Index.Favorites.Contains (Asked_Key (Index, Path));
    end Is_Favorite;
 
    function Label_Of
@@ -295,7 +312,7 @@ package body Files.Settings.Path_References is
       if not Persistent_Path_Is_Valid (Path) then
          return Files.Preference_Types.No_Label;
       end if;
-      Found := Index.Labels.Find (Key (Path));
+      Found := Index.Labels.Find (Asked_Key (Index, Path));
       if Path_Label_Maps.Has_Element (Found) then
          return Path_Label_Maps.Element (Found);
       end if;

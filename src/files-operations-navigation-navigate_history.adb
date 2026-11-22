@@ -12,6 +12,8 @@ function Navigate_History
 is
    Had_Temporary  : constant Boolean := Files.Model.Creation.Temporary_Item_Is_Active (Model);
    Temporary_Name : constant String := Files.Model.Creation.Temporary_Item_Name (Model);
+   Temporary_Dir  : constant Boolean :=
+     Had_Temporary and then Files.Model.Creation.Temporary_Item_Is_Directory (Model);
    Had_Rename     : constant Boolean := Files.Model.Rename.Is_Active (Model);
    Rename_Text    : constant String := Files.Model.Rename.Text (Model);
    Rename_Source  : constant String := Files.Model.Selection.Selected_Name (Model);
@@ -47,7 +49,13 @@ begin
          Files.Model.Return_To (Model, Origin);
          Settle_Current_Is_Trash (Model);
          if Had_Temporary then
-            Files.Model.Creation.Begin_Create_File (Model, Temporary_Name);
+            if Temporary_Dir then
+               Files.Model.Creation.Begin_Create_Folder
+                 (Model, Temporary_Name, Files.Settings.Classification_Of (Settings));
+            else
+               Files.Model.Creation.Begin_Create_File
+                 (Model, Temporary_Name, Files.Settings.Classification_Of (Settings));
+            end if;
          elsif Had_Rename then
             declare
                Selection_Restored : constant Boolean :=

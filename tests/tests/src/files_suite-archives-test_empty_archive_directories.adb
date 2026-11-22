@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Model.Jobs;
 with Files.Operations.History;
 with Files_Suite.Listings;
@@ -28,7 +29,7 @@ separate (Files_Suite.Archives)
                end if;
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Operations.History.Clear_Undo (Model);
+               Files.Operations.History.Testing.Clear_Undo (Model);
                Files.Model.Jobs.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "bag");
                Step := Complete_Operation

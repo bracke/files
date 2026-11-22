@@ -75,7 +75,10 @@ package Files.Application.Window_Polls is
 
    --  Sample the current directory's volume space into Model when its last
    --  sample is stale (Files.Model.Status_Samples.Volume_Space_Is_Current),
-   --  so the snapshot shows it without querying the disk itself.
+   --  and, once per folder, whether its paths are matched without regard to
+   --  case (Status_Samples.Set_Name_Folding), so the snapshot shows the one
+   --  and matches favorites and labels by the other without querying the
+   --  disk itself.
    --
    --  @param Model Window model whose current directory is sampled.
    procedure Sample_Volume_Space

@@ -6,8 +6,10 @@ with Files.Undo.History;
 --  operations (Files.Operations) and the helper jobs that run them
 --  (Files.Job_Drivers.Operation) add an entry, and settle what the history then
 --  retires, and the growing entry of a batch (Progressive_Undo,
---  Checkpoint_Undo, Finish_Undo). Its own unit so Files.Job_Drivers.Operation
---  records what a helper did without depending on Files.Operations.
+--  Checkpoint_Undo, Finish_Undo). A public child, not the private Support,
+--  because the job drivers record through it too; each concern child of
+--  Files.Operations and each driver names it rather than reaching into
+--  another's history code.
 package Files.Operations.Undo_Recording is
 
    --  Items or originals whose identities are all read when recorded.

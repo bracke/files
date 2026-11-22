@@ -35,7 +35,7 @@ separate (Files_Suite.Commands)
       Files.Commands.Set_Shortcut_Override
         (Files.Commands.Close_Overlay_Command, (Present => True, Key => Guikit.Input.Key_F9, others => <>));
       Files.Model.Command_Palette.Open (Model);
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape));
       Assert (Files.Model.Command_Palette.Is_Open (Model), "Escape no longer closes once the close key is rebound");
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F9);
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "the rebound key closes the palette");
@@ -44,9 +44,9 @@ separate (Files_Suite.Commands)
 
       --  The rebound key cancels an edit too.
       Files.Model.Selection.Select_Visible (Model, 2);
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F2));
       Assert (Files.Model.Rename.Is_Active (Model), "F2 starts a rename");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F9);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F9));
       Assert (not Files.Model.Rename.Is_Active (Model), "the rebound close key cancels the rename");
       Files.Commands.Reset_Shortcut_Overrides;
    end Test_Close_Command_Follows_Its_Binding;

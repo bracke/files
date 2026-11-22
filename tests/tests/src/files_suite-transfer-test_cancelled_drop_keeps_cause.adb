@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Testing;
@@ -24,9 +25,10 @@ separate (Files_Suite.Transfer)
          pragma Unreferenced (Mutation);
       begin
          Files.File_System.Testing.Stop_Failing_Directory_Restore;
-         Mutation := Files.File_System.Permissions.Set_Permissions (Join (Root, ".files-recovery-1/payload"), 8#755#);
-         Mutation := Files.File_System.Permissions.Set_Permissions (To_String (Destination), 8#755#);
-         Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#755#);
+         Mutation := Files.File_System.Permissions.Testing.Set_Permissions
+           (Join (Root, ".files-recovery-1/payload"), 8#755#);
+         Mutation := Files.File_System.Permissions.Testing.Set_Permissions (To_String (Destination), 8#755#);
+         Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#755#);
       end Cleanup;
    begin
       if not Hostkit.Metadata.Mode_Bits_Are_Native then
@@ -44,7 +46,7 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Create_Directory (Source);
       Write_Binary_File (Join (Source, "child"), "original bytes");
       Assert
-        (Files.File_System.Permissions.Set_Permissions (Source, 8#555#).Success, "prepare a read-only source");
+        (Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#555#).Success, "prepare a read-only source");
       --  Setting the source aside cannot give it its mode back, and a
       --  replacement takes its name meanwhile: it stays in its stage.
       Files.File_System.Testing.Fail_Directory_Restore (Join (Root, ".files-recovery-1/payload"), Source);

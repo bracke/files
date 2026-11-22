@@ -1,3 +1,4 @@
+with Files.Folder_Size.Testing;
 with Ada.Containers.Ordered_Maps;
 with Ada.Real_Time;
 separate (Files_Suite.Info)
@@ -80,7 +81,7 @@ separate (Files_Suite.Info)
             Files.Folder_Size.Step (Scan);
             Files.Folder_Size.Take_All (Scan, Taken);
             Note (Taken, Seen, "over several helpers");
-            exit when Natural (Seen.Length) >= Folders and then not Files.Folder_Size.Is_Active (Scan);
+            exit when Natural (Seen.Length) >= Folders and then not Files.Folder_Size.Testing.Is_Active (Scan);
          end loop;
          Expect_All_Once (Seen, "over several helpers");
       end;
@@ -112,7 +113,7 @@ separate (Files_Suite.Info)
             Files.Folder_Size.Take_Due (Scan, Now, Taken);
             Note (Taken, Seen, "handed over at the interval");
             declare
-               Working : constant Boolean := Files.Folder_Size.Is_Active (Scan);
+               Working : constant Boolean := Files.Folder_Size.Testing.Is_Active (Scan);
             begin
                --  Just after a hand-over, nothing more while the helper works
                --  (Step alone queues more; nothing has run in between).
@@ -121,7 +122,7 @@ separate (Files_Suite.Info)
                Note (Taken, Seen, "handed over at the interval");
             end;
             Now := Now + Files.Folder_Size.Hand_Over_Interval;
-            exit when Natural (Seen.Length) >= Folders and then not Files.Folder_Size.Is_Active (Scan);
+            exit when Natural (Seen.Length) >= Folders and then not Files.Folder_Size.Testing.Is_Active (Scan);
          end loop;
          Expect_All_Once (Seen, "handed over at the interval");
       end;

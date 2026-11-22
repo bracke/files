@@ -56,9 +56,9 @@ package body Files.Operations.Editing is
    is separate;
 
    procedure Begin_Create_Item
-     (Model  : in out Files.Model.Window_Model;
-      Folder : Boolean)
-   is separate;
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Folder   : Boolean) is separate;
 
    function Commit_Rename
      (Model    : in out Files.Model.Window_Model;

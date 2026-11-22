@@ -1,3 +1,5 @@
+with Files.Operations.History.Testing;
+with Files.File_System.Permissions.Testing;
 with Files.Model.Jobs;
 with Files.Operations.History;
 with Files.Operations.Paste;
@@ -25,7 +27,7 @@ separate (Files_Suite.Transfer)
       begin
          Files_Suite.Support.Disk.Allow_Deletion (Join (Source_Parent, "item.txt"));
          if Ada.Directories.Exists (Source_Parent) then
-            Mutation := Files.File_System.Permissions.Set_Permissions (Source_Parent, 8#755#);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source_Parent, 8#755#);
          end if;
       end Restore;
    begin
@@ -42,11 +44,11 @@ separate (Files_Suite.Transfer)
             end if;
             Load := Files_Suite.Listings.Load_Directory (Destination, Settings);
             Files.Model.Initialize (Model, Destination, Load.Items, Root);
-            Files.Operations.History.Clear_Undo (Model);
+            Files.Operations.History.Testing.Clear_Undo (Model);
             Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Sources.Clear;
             Sources.Append (To_Unbounded_String (Join (Source_Parent, "item.txt")));
-            Mutation := Files.File_System.Permissions.Set_Permissions (Source_Parent, 8#555#);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source_Parent, 8#555#);
             Assert (Mutation.Success, "deny source unlink and rename");
             --  A locked folder does not stop its item going on Windows, where
             --  the item keeps DELETE through the ACE it inherited.
@@ -60,7 +62,7 @@ separate (Files_Suite.Transfer)
             Step := Complete_Operation (Model, Settings, Step);
             Await_View (Model, Settings);
             Files_Suite.Support.Disk.Allow_Deletion (Join (Source_Parent, "item.txt"));
-            Mutation := Files.File_System.Permissions.Set_Permissions (Source_Parent, 8#755#);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source_Parent, 8#755#);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Failed,

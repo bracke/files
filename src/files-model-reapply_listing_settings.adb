@@ -44,6 +44,10 @@ begin
               (Files.File_Types.Icon_Id_For (Classes, Item.Kind, To_String (Filetype)));
          end;
       end loop;
+      --  The new item being named is classified as the listing it joins.
+      if Model.Temporary.Active then
+         Model.Temporary.Classes := Classes;
+      end if;
       --  A type sort may order them differently now; the selection and the
       --  rename fields follow their items by path.
       Resort_Items (Model);

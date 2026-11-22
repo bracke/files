@@ -46,4 +46,9 @@ package body Files.Rendering.Testing is
       end return;
    end Build_Snapshot_Keeping_Rows;
 
+   function Overlay_Open
+     (Snapshot : View_Snapshot;
+      Overlay  : Files.UI_Types.Input_Overlay)
+      return Boolean renames Files.Rendering.Overlay_Open;
+
 end Files.Rendering.Testing;

@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
@@ -27,7 +28,7 @@ separate (Files_Suite.Recovery)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Jobs.Set_Background_Transfers (Model, True);
-      Step := Files.Operations.Refresh (Model, Settings);
+      Files_Suite.Support.Discard (Files.Operations.Refresh (Model, Settings));
       Await_View (Model, Settings);
       Select_Name (Model, "a.txt");
       Ada.Directories.Create_Directory (Other);
@@ -64,8 +65,8 @@ separate (Files_Suite.Recovery)
         (Ada.Directories.Exists (Join (Root, "a (copy).txt"))
          and then Files.Model.History.Undo_Available (Model),
          "the stale-view duplicate still publishes its file and recoverable history");
-      Step := Complete_Operation
-        (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
+      Files_Suite.Support.Discard (Complete_Operation
+        (Model, Settings, Operation_Commands.Undo_Last (Model, Settings)));
       Await_View (Model, Settings);
       Assert
         (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
@@ -99,7 +100,7 @@ separate (Files_Suite.Recovery)
       Files.Model.Navigate_To (Model, Other, Load.Items);
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Navigate_To (Model, Root, Load.Items);
-      Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "pending.txt", Files.File_Types.Default_Classification);
       Files.Model.Set_Error (Model, "error.trash.restore_exists");
       Finish;
       Files_Suite.Support.Assert_Equal
@@ -118,8 +119,8 @@ separate (Files_Suite.Recovery)
          and then Files.Model.History.Undo_Available (Model),
          "the round-trip stale result retains its file and Undo history");
       Files.Model.Testing.Cancel_Create_File (Model);
-      Step := Complete_Operation
-        (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
+      Files_Suite.Support.Discard (Complete_Operation
+        (Model, Settings, Operation_Commands.Undo_Last (Model, Settings)));
       Await_View (Model, Settings);
       Assert
         (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
@@ -141,7 +142,7 @@ separate (Files_Suite.Recovery)
       end;
       Load := Files_Suite.Listings.Load_Directory (Other, Settings);
       Files.Model.Navigate_To (Model, Other, Load.Items);
-      Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "pending.txt", Files.File_Types.Default_Classification);
       Files.Model.Set_Error (Model, "error.trash.restore_exists");
       Finish;
       Files_Suite.Support.Assert_Equal
@@ -163,8 +164,8 @@ separate (Files_Suite.Recovery)
          and then Files.Model.History.Undo_Available (Model),
          "the stale-view destructive result retains its mutation and Undo history");
       Files.Model.Testing.Cancel_Create_File (Model);
-      Step := Complete_Operation
-        (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
+      Files_Suite.Support.Discard (Complete_Operation
+        (Model, Settings, Operation_Commands.Undo_Last (Model, Settings)));
       Await_View (Model, Settings);
       Assert
         (Ada.Directories.Exists (Join (Root, "a.txt")),

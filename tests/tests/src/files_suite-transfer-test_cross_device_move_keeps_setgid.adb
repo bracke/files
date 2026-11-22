@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Testing;
@@ -28,7 +29,7 @@ separate (Files_Suite.Transfer)
       end if;
       Ada.Directories.Create_Directory (Source);
       Write_Binary_File (Join (Source, "notes.txt"), "shared");
-      Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#2775#);
+      Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#2775#);
       Assert (Mutation.Success, "prepare a setgid folder");
       Mode := Files.File_System.Permissions.Permission_Bits_Of (Source, Available);
       Assert (Available, "the source mode is readable");

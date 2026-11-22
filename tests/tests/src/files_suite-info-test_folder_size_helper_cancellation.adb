@@ -1,3 +1,4 @@
+with Files.Folder_Size.Testing;
 with Files.File_System_Types;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
@@ -73,13 +74,13 @@ separate (Files_Suite.Info)
       end loop;
       Files.Folder_Size.Request (Scan, "relative-folder-size-target");
       Assert
-        (not Files.Folder_Size.Is_Active (Scan)
+        (not Files.Folder_Size.Testing.Is_Active (Scan)
          and then Files.Folder_Size.Testing.Target (Scan) = "",
          "folder-size requests reject relative targets before launching a helper");
       Files.Folder_Size.Request
         (Scan, Root & Character'Val (0) & "ignored");
       Assert
-        (not Files.Folder_Size.Is_Active (Scan)
+        (not Files.Folder_Size.Testing.Is_Active (Scan)
          and then Files.Folder_Size.Testing.Target (Scan) = "",
          "folder-size requests reject NUL-containing targets before launching a helper");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Marker);
@@ -99,7 +100,7 @@ separate (Files_Suite.Info)
          Assert (not Available, "a stalled scan does not publish a partial total");
       end loop;
       Assert_Within (Before, Prompt_Limit, "repeated frame polling never waits for the helper's filesystem work");
-      Assert (Files.Folder_Size.Is_Active (Scan) and then Ada.Directories.Exists (To_String (Started)),
+      Assert (Files.Folder_Size.Testing.Is_Active (Scan) and then Ada.Directories.Exists (To_String (Started)),
               "repeated frame polling preserves the active helper");
       Previous := Started;
       Ada.Directories.Delete_File (Marker);
@@ -115,7 +116,7 @@ separate (Files_Suite.Info)
       Files.Folder_Size.Cancel (Scan);
       Files.Folder_Size.Cancel (Scan);
       Assert_Within (Before, Prompt_Limit, "repeated cancellation is prompt even while a size read is stalled");
-      Assert (not Files.Folder_Size.Is_Active (Scan), "cancellation leaves no size request active");
+      Assert (not Files.Folder_Size.Testing.Is_Active (Scan), "cancellation leaves no size request active");
       Await_Reaped (Started);
       Take (Scan, Path, Result, Available);
       Assert (not Available, "cancelled requests never publish stale measurements");
@@ -142,7 +143,7 @@ separate (Files_Suite.Info)
               (if Invalid_Target = 1 then Join (Root, "missing") else Join (Join (Root, "ready"), "data"));
          begin
             Files.Folder_Size.Request (Scan, Target);
-            Assert (Files.Folder_Size.Is_Active (Scan), "a request leaves collection for a later frame");
+            Assert (Files.Folder_Size.Testing.Is_Active (Scan), "a request leaves collection for a later frame");
             for Attempt in Files_Suite.Support.Timing.Polling loop
                Files.Folder_Size.Step (Scan);
                Take (Scan, Path, Result, Available);

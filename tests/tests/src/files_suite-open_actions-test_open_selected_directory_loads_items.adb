@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Operations.Opening.Testing;
 with Files.Item_Lists;
 with Files.Operations.Opening;
@@ -21,7 +22,7 @@ separate (Files_Suite.Open_Actions)
       Items.Append (Files.Item_Lists.Make_Item (Root, "other-dir", Files.Types.Directory_Item, "inode/directory"));
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Selection.Select_Visible (Model, 1);
-      Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "pending.txt", Files.File_Types.Default_Classification);
       Files.Model.Set_Error (Model, "error.directory.load");
 
       Result := Files.Operations.Opening.Testing.Prepare_Open_Selected_Action (Model, Settings);

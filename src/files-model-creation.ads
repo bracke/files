@@ -6,17 +6,22 @@ package Files.Model.Creation is
    --
    --  @param Model Model to update.
    --  @param Name Temporary file name.
+   --  @param Classes The maps the new row's type and icon are worked out by
+   --    (Files.Settings.Classification_Of the settings in force).
    procedure Begin_Create_File
-     (Model : in out Window_Model;
-      Name  : String);
+     (Model   : in out Window_Model;
+      Name    : String;
+      Classes : Files.File_Types.Classification);
 
    --  Begin temporary create-folder state and enter rename mode.
    --
    --  @param Model Model to update.
    --  @param Name Temporary folder name.
+   --  @param Classes The maps the new row's type and icon are worked out by.
    procedure Begin_Create_Folder
-     (Model : in out Window_Model;
-      Name  : String);
+     (Model   : in out Window_Model;
+      Name    : String;
+      Classes : Files.File_Types.Classification);
 
    --  Return whether a temporary create-file item is active.
    --

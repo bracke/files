@@ -143,8 +143,6 @@ package body Files.Operations.History is
       return Operation_Result
    is (Replay (Model, Settings, Replay_Redo));
 
-   procedure Clear_Undo (Model : in out Files.Model.Window_Model) is separate;
-
    procedure Release_History (Model : in out Files.Model.Window_Model) is separate;
 
 end Files.Operations.History;

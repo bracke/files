@@ -39,7 +39,7 @@ separate (Files_Suite.Settings)
          Other (Theirs);
          Write_File (Path, Files.Settings.To_Text (Theirs));
          Own (Mine);
-         Written := Files.Settings.Storage.Write (Path, Mine);
+         Written := Files.Settings.Storage.Testing.Write (Path, Mine);
          Assert (Written.Success, Name & ": the save succeeds");
          Assert (Expect (Mine), Name & ": the merged settings");
          Loaded := Files.Settings.Storage.Load_File (Path);

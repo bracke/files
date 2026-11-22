@@ -460,28 +460,6 @@ package Files.Rendering is
    function Modal_Backdrop (Width, Height : Natural) return Guikit.Draw.Rectangle_Command is
      ((X => 0, Y => 0, Width => Width, Height => Height, Color => Guikit.Draw.Modal_Backdrop_Color));
 
-   --  Whether Snapshot shows Overlay open: the snapshot's own flag for each
-   --  Files.UI_Types.Input_Overlay.
-   --
-   --  @param Snapshot Snapshot to inspect.
-   --  @param Overlay The overlay asked about.
-   --  @return True when the snapshot has Overlay open.
-   function Overlay_Open
-     (Snapshot : View_Snapshot;
-      Overlay  : Files.UI_Types.Input_Overlay)
-      return Boolean is
-     (case Overlay is
-         when Files.UI_Types.Settings_Pane_Overlay   => Snapshot.Settings_Pane_Open,
-         when Files.UI_Types.Command_Palette_Overlay => Snapshot.Command_Palette_Open,
-         when Files.UI_Types.Root_Selector_Overlay   => Snapshot.Root_Selector_Open,
-         when Files.UI_Types.Sort_Menu_Overlay       => Snapshot.Sort_Menu_Open,
-         when Files.UI_Types.Context_Menu_Overlay    => Snapshot.Context_Menu_Open,
-         when Files.UI_Types.Label_Picker_Overlay    => Snapshot.Label_Picker_Open,
-         when Files.UI_Types.Quick_Look_Overlay      => Snapshot.Quick_Look.Open,
-         when Files.UI_Types.Tree_Pick_Overlay       => Snapshot.Tree_Pick_Active,
-         when Files.UI_Types.Paste_Conflict_Overlay  => Snapshot.Paste_Conflict_Open,
-         when Files.UI_Types.Foreground_Job_Overlay  => Snapshot.Paste_Progress.Open);
-
    --  Where the open overlay on top in Snapshot stands in
    --  Files.UI_Types.Overlay_Stack: the first open one, as
    --  Files.Model.Topmost_Overlay finds it in the model the snapshot was
@@ -646,6 +624,28 @@ package Files.Rendering is
      (Positive'Max (1, Size * 5 / 4));
 
 private
+
+   --  Whether Snapshot shows Overlay open: the snapshot's own flag for each
+   --  Files.UI_Types.Input_Overlay.
+   --
+   --  @param Snapshot Snapshot to inspect.
+   --  @param Overlay The overlay asked about.
+   --  @return True when the snapshot has Overlay open.
+   function Overlay_Open
+     (Snapshot : View_Snapshot;
+      Overlay  : Files.UI_Types.Input_Overlay)
+      return Boolean is
+     (case Overlay is
+         when Files.UI_Types.Settings_Pane_Overlay   => Snapshot.Settings_Pane_Open,
+         when Files.UI_Types.Command_Palette_Overlay => Snapshot.Command_Palette_Open,
+         when Files.UI_Types.Root_Selector_Overlay   => Snapshot.Root_Selector_Open,
+         when Files.UI_Types.Sort_Menu_Overlay       => Snapshot.Sort_Menu_Open,
+         when Files.UI_Types.Context_Menu_Overlay    => Snapshot.Context_Menu_Open,
+         when Files.UI_Types.Label_Picker_Overlay    => Snapshot.Label_Picker_Open,
+         when Files.UI_Types.Quick_Look_Overlay      => Snapshot.Quick_Look.Open,
+         when Files.UI_Types.Tree_Pick_Overlay       => Snapshot.Tree_Pick_Active,
+         when Files.UI_Types.Paste_Conflict_Overlay  => Snapshot.Paste_Conflict_Open,
+         when Files.UI_Types.Foreground_Job_Overlay  => Snapshot.Paste_Progress.Open);
 
    --  One text per details column: the column names a row's accessibility
    --  description repeats, or one row's cells.

@@ -72,13 +72,13 @@ separate (Files_Suite.Operations)
       end;
 
       --  Re-enter, then clear: the view rebuilds empty.
-      Result := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
+      Files_Suite.Support.Discard (Files.Operations.Navigation.Navigate_Recent (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),
          2,
          "re-entering the recent view relists the items");
       Files.Settings.Path_References.Clear_Recent (Settings);
-      Result := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
+      Files_Suite.Support.Discard (Files.Operations.Navigation.Navigate_Recent (Model, Settings));
       Assert (Files.Model.Recent.In_Recent_View (Model), "the view stays active after clearing");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 0, "clearing empties the recent listing");
    end Test_Recent_View_Operation;

@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.File_System.Transfer.Testing;
 with Files.File_System.Trash;
 with Files.File_System_Types;
@@ -33,9 +34,9 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Create_Directory (Source);
       Ada.Directories.Create_Directory (Parent);
       Write_Binary_File (Join (Source, "secret"), "private content");
-      Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#700#);
+      Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#700#);
       Assert (Mutation.Success, "make the source directory private");
-      Mutation := Files.File_System.Permissions.Set_Permissions (Join (Source, "secret"), 8#644#);
+      Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Join (Source, "secret"), 8#644#);
       Assert (Mutation.Success, "its child relies on the private ancestor");
       --  An existing stage belongs to another operation and must be skipped.
       Ada.Directories.Create_Directory (Stage);

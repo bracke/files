@@ -42,7 +42,7 @@ separate (Files_Suite.Commands)
            (Result.Status = Files.Controller.Controller_Command_Executed
             and then Settings.Show_Hidden_Files /= Hidden_Before,
             "completing it with the path applies the settings command");
-         Result := Files.Controller.Complete_Settings_Command (Result, Model, Settings, "");
+         Files_Suite.Support.Discard (Files.Controller.Complete_Settings_Command (Result, Model, Settings, ""));
          Assert
            (Settings.Show_Hidden_Files /= Hidden_Before,
             "completing a result that asks for nothing changes nothing");
@@ -51,7 +51,7 @@ separate (Files_Suite.Commands)
       --  Enter on the label picker asks for its highlighted swatch to be applied.
       Files.Model.Label_Picker.Open (Model);
       --  From the clear swatch (the last) onto a colour.
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left));
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Assert
         (Result.Status = Files.Controller.Controller_Activation_Requested
@@ -64,7 +64,7 @@ separate (Files_Suite.Commands)
 
       --  Enter on a highlighted context-menu row asks for that row to be run.
       Files.Model.Context_Menu.Open (Model, 10, 10, Files.UI_Types.Context_Menu_Item);
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down));
       declare
          Rows : constant Files.Commands.Context_Menus.Context_Menu_Rows :=
            Files.Commands.Context_Menus.Context_Menu_Rows_For (Files.Model.Context_Menu.Target_Of (Model));

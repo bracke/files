@@ -98,7 +98,8 @@ separate (Files_Suite.Transfer)
            (Read (Join (Dest_Dir, "a 2.txt")),
             "SRC",
             "rename writes the dropped source under a unique name");
-         Routed.Operation := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
+         Files_Suite.Support.Discard
+           (Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings)));
          Assert
            (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")),
             "undo reverses a completed drag-and-drop import");

@@ -24,4 +24,15 @@ package Files.Icon_Assets.Testing is
       Theme_Name : String)
       return String;
 
+   --  The definition files draws an icon with: the bundled file when it
+   --  reads and parses, otherwise the compiled-in copy.
+   --
+   --  @param Icon_Id Bundled icon identifier (e.g. "folder").
+   --  @param Theme_Name Icon theme identifier, or "" for the base set.
+   --  @return The icon definition, or "" for an id or theme files does not ship.
+   function Icon_Asset
+     (Icon_Id    : String;
+      Theme_Name : String)
+      return String;
+
 end Files.Icon_Assets.Testing;

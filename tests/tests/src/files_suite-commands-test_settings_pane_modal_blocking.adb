@@ -18,12 +18,12 @@ separate (Files_Suite.Commands)
          Files.Commands.Toggle_Settings_Pane_Command,
          "control+comma routes settings command");
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "control+comma opens settings pane");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl));
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "control+comma closes open settings pane");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl));
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "control+comma reopens settings pane");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape));
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "Escape closes unfocused settings pane");
       Result := Files.Controller.Handle_Text_Click (Model, Files.UI_Types.Focus_Settings_Input, Cursor_Position => 2);
       Files_Suite.Support.Assert_Equal
@@ -37,8 +37,8 @@ separate (Files_Suite.Commands)
       Files.Model.Command_Palette.Open (Model);
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Rename.Toggle (Model);
-      Result := Files.Controller.Execute_Non_Settings_Command
-        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Files_Suite.Support.Discard (Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings));
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane opens from palette state");
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "settings pane opening closes command palette");
       Assert (not Files.Model.Rename.Is_Active (Model), "settings pane opening clears active rename state");
@@ -99,14 +99,14 @@ separate (Files_Suite.Commands)
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "settings clicks route through the panel, not the generic text-click path");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape));
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "settings pane closes after focus Escape");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_None,
          "settings Escape clears settings focus");
-      Result := Files.Controller.Execute_Non_Settings_Command
-        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Files_Suite.Support.Discard (Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings));
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane reopens after Escape close check");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Assert
@@ -124,10 +124,10 @@ separate (Files_Suite.Commands)
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "settings text-clicks are handled by the panel, not the generic path");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl));
       Assert (Files.Model.Command_Palette.Is_Open (Model), "palette can open over settings pane");
       Files.Model.Command_Palette.Close (Model);
-      Result := Files.Controller.Execute_Non_Settings_Command
-        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Files_Suite.Support.Discard (Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings));
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "settings pane closes before history enablement check");
    end Test_Settings_Pane_Modal_Blocking;

@@ -1,3 +1,5 @@
+with Files.Operations.History.Testing;
+with Files.File_System.Permissions.Testing;
 with Files.Model.Jobs;
 with Files.Operations.History;
 with Files.Operations.Paste;
@@ -46,7 +48,7 @@ separate (Files_Suite.Transfer)
       procedure Protect (Path : String; Mode : Natural) is
       begin
          if Hostkit.Metadata.Mode_Bits_Are_Native then
-            Assert (Files.File_System.Permissions.Set_Permissions (Path, Mode).Success, "protect " & Path);
+            Assert (Files.File_System.Permissions.Testing.Set_Permissions (Path, Mode).Success, "protect " & Path);
          else
             declare
                use type GNAT.OS_Lib.String_Access;
@@ -126,7 +128,7 @@ separate (Files_Suite.Transfer)
          Remove (Join (Root, "copy"));
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.History.Clear_Undo (Model);
+         Files.Operations.History.Testing.Clear_Undo (Model);
          Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Paths.Clear;
          Paths.Append (To_Unbounded_String (Source));

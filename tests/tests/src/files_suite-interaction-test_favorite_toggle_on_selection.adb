@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Model.Creation;
 with Files.Input_Actions;
 with Files.Commands.Status;
@@ -78,7 +79,7 @@ separate (Files_Suite.Interaction)
       Assert
         (not Is_Favorite (Settings, Files.Model.Current_Path (Model)),
          "the setup removes the current-folder favorite");
-      Files.Model.Creation.Begin_Create_File (Model, "untitled.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "untitled.txt", Files.File_Types.Default_Classification);
       Assert
         (Files.Model.Selection.Includes_Temporary (Model),
          "the pending create row is selected before the favorite command");

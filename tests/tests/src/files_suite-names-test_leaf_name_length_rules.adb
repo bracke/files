@@ -84,11 +84,11 @@ separate (Files_Suite.Names)
          Repeat (Emoji, 127),
          "a surrogate pair is never split");
       Files_Suite.Support.Assert_Equal
-        (Files.Leaf_Names.Fit ([1 .. 300 => 'n'] & ".txt", 255),
+        (Files.Leaf_Names.Testing.Fit ([1 .. 300 => 'n'] & ".txt", 255),
          [1 .. 251 => 'n'] & ".txt",
          "a fitted name keeps its extension");
       Files_Suite.Support.Assert_Equal
-        (Files.Leaf_Names.Fit ("notes.txt", 255, Insert => " (renaming)"),
+        (Files.Leaf_Names.Testing.Fit ("notes.txt", 255, Insert => " (renaming)"),
          "notes (renaming).txt",
          "a short name only gains the insert, before its extension");
    end Test_Leaf_Name_Length_Rules;

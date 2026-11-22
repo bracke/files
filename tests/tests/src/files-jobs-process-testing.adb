@@ -30,4 +30,6 @@ package body Files.Jobs.Process.Testing is
    begin
       Test_Refuse_Next_Launch := False;
    end Clear_Refusal;
+
+   procedure Launch (Job : in out Session; Mode : String) renames Files.Jobs.Process.Launch;
 end Files.Jobs.Process.Testing;

@@ -10,8 +10,6 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Interfaces;
 
-with GNAT.OS_Lib;
-
 with Hostkit.Fs;
 
 with Files.Diagnostics;
@@ -168,87 +166,6 @@ package body Files.Application is
       return Hostkit.Fs.Current_Directory;
    end Home_Directory;
 
-   --  ~/.config/files/settings.conf on every host: correct on Linux, and where a
-   --  settings file may already have been written on any host, which has to
-   --  keep being found: see Default_Settings_Path.
-   function Legacy_Settings_Path
-     (Home_Path : String)
-      return String is
-   begin
-      return
-        Hostkit.Fs.Join
-          (Hostkit.Fs.Join
-             (Hostkit.Fs.Join (Home_Path, ".config"), "files"),
-           "settings.conf");
-   end Legacy_Settings_Path;
-
-   function Default_Settings_Path
-     (Home_Path : String)
-      return String
-   is
-      --  Honouring XDG_CONFIG_HOME on every host is this application's policy,
-      --  the same policy the thumbnail cache applies to XDG_CACHE_HOME: macOS and
-      --  Windows do not read it, and Hostkit says what the host does, but a user
-      --  who exported it meant it. It is a user-level override, so it applies
-      --  whichever home is being asked about.
-      Raw_Xdg_Config : constant String :=
-        Files.Environment.Value ("XDG_CONFIG_HOME");
-      Xdg_Config : constant String :=
-        (if GNAT.OS_Lib.Is_Absolute_Path (Raw_Xdg_Config) then
-            Raw_Xdg_Config
-         else "");
-
-      Legacy : constant String := Legacy_Settings_Path (Home_Path);
-
-      --  Hostkit answers where configuration goes for THIS user -- it resolves
-      --  the home itself -- so its answer applies only when the home being asked
-      --  about is that user's. Asked about another home (a test fixture, or the
-      --  fallback this application picked when the host's own home did not
-      --  exist), the only layout that can be applied to it is the POSIX one.
-      Host_Config : constant String :=
-        (if Home_Path /= "" and then Home_Path = Hostkit.Fs.Home_Directory
-           and then GNAT.OS_Lib.Is_Absolute_Path (Hostkit.Fs.Config_Directory)
-         then Hostkit.Fs.Config_Directory
-         else "");
-
-      function In_Config_Root (Root : String) return String is
-        (Hostkit.Fs.Join
-           (Hostkit.Fs.Join (Root, "files"), "settings.conf"));
-   begin
-      if Xdg_Config /= "" then
-         return In_Config_Root (Xdg_Config);
-      end if;
-
-      --  An existing settings file wins over relocating it. Configuration used
-      --  to go in ~/.config on every host: right on Linux, neither convention on
-      --  the other two. Asking Hostkit fixes that for a new install, but moving
-      --  the path for an existing one would orphan the file -- Ensure_Default_File
-      --  would find nothing at the new location and write a fresh default,
-      --  silently, over choices that cannot be regenerated from anything.
-      if Files.IO.Fs_Primitives.File_Exists (Legacy) or else Host_Config = "" then
-         return Legacy;
-      end if;
-
-      return In_Config_Root (Host_Config);
-   end Default_Settings_Path;
-
-   function Configured_Settings_Path
-     (Home_Path : String)
-      return String
-   is
-      Files_Settings : constant String := Files.Environment.Value ("FILES_SETTINGS");
-   begin
-      --  FILES_SETTINGS is this application's own override and is read here.
-      --  XDG_CONFIG_HOME is not: it is part of what "where does configuration
-      --  go" means on Linux, so it is Hostkit's answer, and reading it here
-      --  would answer for hosts that do not have it.
-      if Files_Settings /= "" then
-         return Files_Settings;
-      end if;
-
-      return Default_Settings_Path (Home_Path);
-   end Configured_Settings_Path;
-
    function Resolve_Startup
      (Arguments     : String_Vectors.Vector;
       Settings_Path : String := "")
@@ -256,7 +173,7 @@ package body Files.Application is
    is
       Home           : constant String := Home_Directory;
       Effective_Path : constant String :=
-        (if Settings_Path = "" then Configured_Settings_Path (Home) else Settings_Path);
+        (if Settings_Path = "" then Files.Settings.Storage.Configured_Settings_Path (Home) else Settings_Path);
       Settings       : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result         : Startup_Result;
       Resolved       : Startup_Result;

@@ -102,7 +102,7 @@ separate (Files_Suite.Settings)
             Write_File (Shared, Files.Settings.To_Text (There));
             GNAT.OS_Lib.Set_Non_Writable (Folder);
             begin
-               Saved := Files.Settings.Storage.Write (Shared, Here);
+               Saved := Files.Settings.Storage.Testing.Write (Shared, Here);
             exception
                when others =>
                   GNAT.OS_Lib.Set_Writable (Folder);
@@ -113,7 +113,7 @@ separate (Files_Suite.Settings)
             Assert (Here.Show_Hidden_Files, "after taking in the other's change");
             There.Show_Hidden_Files := False;
             Write_File (Shared, Files.Settings.To_Text (There));
-            Saved := Files.Settings.Storage.Write (Shared, Here);
+            Saved := Files.Settings.Storage.Testing.Write (Shared, Here);
             Assert (Saved.Success, "the next save succeeds");
             Assert (not Here.Show_Hidden_Files, "and keeps the other's later change rather than reverting it");
          end;

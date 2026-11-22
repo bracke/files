@@ -5,7 +5,6 @@ with Ada.Strings.Unbounded;
 
 with Hostkit.Fs;
 
-with Files.File_Types;
 with Files.Text_Case;
 
 package body Files.Item_Lists is
@@ -22,15 +21,18 @@ package body Files.Item_Lists is
    --  hundred map inserts for each row a snapshot rebuild asked about.
    Default_Classes : constant Files.File_Types.Classification := Files.File_Types.Default_Classification;
 
-   function Make_Item
+   --  The one item maker both Make_Items use: Type_Name as given, or
+   --  worked out by Classes when "".
+   function Classified_Item
      (Parent_Path : String;
       Name        : String;
       Kind        : Files.Types.Item_Kind;
-      Filetype    : String := "")
+      Filetype    : String;
+      Classes     : Files.File_Types.Classification)
       return Directory_Item
    is
       Type_Name : constant String :=
-        (if Filetype /= "" then Filetype else Files.File_Types.Detect_Filetype (Default_Classes, Kind, Name));
+        (if Filetype /= "" then Filetype else Files.File_Types.Detect_Filetype (Classes, Kind, Name));
       --  Hostkit.Fs.Join only joins the text.
       Full      : constant String := Hostkit.Fs.Join (Parent_Path, Name);
    begin
@@ -41,9 +43,23 @@ package body Files.Item_Lists is
          Hidden      => Name'Length > 0 and then Name (Name'First) = '.',
          Kind        => Kind,
          Filetype    => To_Unbounded_String (Type_Name),
-         Icon_Id     => To_Unbounded_String (Files.File_Types.Icon_Id_For (Default_Classes, Kind, Type_Name)),
+         Icon_Id     => To_Unbounded_String (Files.File_Types.Icon_Id_For (Classes, Kind, Type_Name)),
          others      => <>);
-   end Make_Item;
+   end Classified_Item;
+
+   function Make_Item
+     (Parent_Path : String;
+      Name        : String;
+      Kind        : Files.Types.Item_Kind;
+      Filetype    : String := "")
+      return Directory_Item is (Classified_Item (Parent_Path, Name, Kind, Filetype, Default_Classes));
+
+   function Make_Item
+     (Parent_Path : String;
+      Name        : String;
+      Kind        : Files.Types.Item_Kind;
+      Classes     : Files.File_Types.Classification)
+      return Directory_Item is (Classified_Item (Parent_Path, Name, Kind, "", Classes));
 
    procedure Sort_Items
      (Items     : in out Item_Vectors.Vector;

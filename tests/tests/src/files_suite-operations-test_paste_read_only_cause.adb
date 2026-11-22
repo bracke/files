@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Model.Jobs;
 with Files.Operations.History;
 with Files.Operations.Paste;
@@ -27,7 +28,7 @@ separate (Files_Suite.Operations)
          Ada.Directories.Create_Directory (Locked);
          Load := Files_Suite.Listings.Load_Directory (Locked, Settings);
          Files.Model.Initialize (Model, Locked, Load.Items, Root);
-         Files.Operations.History.Clear_Undo (Model);
+         Files.Operations.History.Testing.Clear_Undo (Model);
          Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          if not Lock_Directory (Locked) then
             Unlock_Directory (Locked);

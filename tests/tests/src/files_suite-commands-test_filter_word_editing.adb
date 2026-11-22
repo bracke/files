@@ -49,7 +49,7 @@ separate (Files_Suite.Commands)
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "Control+Delete at end is ignored");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Home));
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

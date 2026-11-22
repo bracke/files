@@ -18,4 +18,8 @@ package Files.Folder_Size.Testing is
    --  not fail) since the program began; compare two readings.
    function Helper_Starts return Natural;
 
+   --  @param Scan Measurements to inspect.
+   --  @return True when a helper is active.
+   function Is_Active (Scan : Session) return Boolean;
+
 end Files.Folder_Size.Testing;

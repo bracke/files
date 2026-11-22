@@ -10,4 +10,9 @@ package body Files.Icon_Assets.Testing is
       Theme_Name : String)
       return String renames Files.Icon_Assets.Builtin_Icon_Asset;
 
+   function Icon_Asset
+     (Icon_Id    : String;
+      Theme_Name : String)
+      return String renames Files.Icon_Assets.Icon_Asset;
+
 end Files.Icon_Assets.Testing;

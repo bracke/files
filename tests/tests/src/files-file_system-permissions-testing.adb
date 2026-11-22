@@ -32,4 +32,9 @@ package body Files.File_System.Permissions.Testing is
 
    function Last_Ownership_Group return Files.Types.Account_Id is (Last_Group);
 
+   function Set_Permissions
+     (Path : String;
+      Mode : Natural)
+      return Mutation_Result renames Files.File_System.Permissions.Set_Permissions;
+
 end Files.File_System.Permissions.Testing;

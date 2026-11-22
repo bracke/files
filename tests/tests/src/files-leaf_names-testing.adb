@@ -7,4 +7,11 @@ package body Files.Leaf_Names.Testing is
       Unit : Hostkit.Fs.Name_Length_Unit := Hostkit.Fs.Bytes)
       return String renames Files.Leaf_Names.Cut;
 
+   function Fit
+     (Name   : String;
+      Room   : Natural;
+      Unit   : Hostkit.Fs.Name_Length_Unit := Hostkit.Fs.Bytes;
+      Insert : String := "")
+      return String renames Files.Leaf_Names.Fit;
+
 end Files.Leaf_Names.Testing;

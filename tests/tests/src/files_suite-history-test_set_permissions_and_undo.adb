@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.Operations.Metadata.Testing;
 with Files.Operations.Metadata;
 with Files_Suite.Listings;
@@ -19,7 +20,7 @@ separate (Files_Suite.History)
       Reset_Root;
       Write_File (Target, "mode me");
       Assert
-        (Files.File_System.Permissions.Set_Permissions (Target, 8#644#).Success,
+        (Files.File_System.Permissions.Testing.Set_Permissions (Target, 8#644#).Success,
          "baseline chmod to 0644 succeeds");
 
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
@@ -28,7 +29,7 @@ separate (Files_Suite.History)
       Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#644#, "baseline permission bits are 0644");
 
       Assert
-        (not Files.File_System.Permissions.Set_Permissions (Target, 8#10_000#).Success,
+        (not Files.File_System.Permissions.Testing.Set_Permissions (Target, 8#10_000#).Success,
          "the filesystem API rejects permission bits outside 07777");
       Result := Files.Operations.Metadata.Testing.Set_Permissions_For
         (Model, 8#10_000#, Settings);

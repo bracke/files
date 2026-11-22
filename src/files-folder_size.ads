@@ -116,10 +116,6 @@ package Files.Folder_Size is
    --  @param Selection The model's selection revision.
    procedure Note_Targets_Set_For (Scan : in out Session; Rows, Selection : Natural);
 
-   --  @param Scan Measurements to inspect.
-   --  @return True when a helper is active.
-   function Is_Active (Scan : Session) return Boolean;
-
    --  Set_Targets with the one directory Path.
    --
    --  @param Scan The window's scan.
@@ -131,6 +127,10 @@ package Files.Folder_Size is
    procedure Run_Helper (Directory : String);
 
 private
+
+   --  @param Scan Measurements to inspect.
+   --  @return True when a helper is active.
+   function Is_Active (Scan : Session) return Boolean;
    --  The most directories one helper measures.
    Max_Batch : constant := 256;
 

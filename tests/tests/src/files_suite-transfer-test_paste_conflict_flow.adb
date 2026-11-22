@@ -174,8 +174,8 @@ separate (Files_Suite.Transfer)
          Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Pasting.Conflict_Name (Model), "a.txt", "the dialog asks about a.txt first");
-         Resolved :=
-           Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Skip, False);
+         Files_Suite.Support.Discard (
+           Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Skip, False));
          Assert (Files.Model.Pasting.Conflict_Is_Active (Model), "a choice for one item leaves the other to ask about");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Pasting.Conflict_Name (Model), "b.txt", "the dialog moves on to b.txt");

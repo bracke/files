@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.Operations.Metadata.Testing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -18,7 +19,7 @@ separate (Files_Suite.History)
       Reset_Root;
       Write_File (Target, "mode me");
       Assert
-        (Files.File_System.Permissions.Set_Permissions (Target, 8#644#).Success,
+        (Files.File_System.Permissions.Testing.Set_Permissions (Target, 8#644#).Success,
          "baseline chmod to 0644 succeeds");
 
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);

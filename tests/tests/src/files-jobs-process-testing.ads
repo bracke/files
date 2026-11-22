@@ -22,4 +22,10 @@ package Files.Jobs.Process.Testing is
    --  Disarm a refusal that no Launch consumed, so it cannot leak into the
    --  next test.
    procedure Clear_Refusal;
+
+   --  Launch a reserved job's helper in Mode on a request written by hand
+   --  (the suite's blocked helper).
+   --  @param Job Reserved session to launch.
+   --  @param Mode Internal helper command identifying its request format.
+   procedure Launch (Job : in out Session; Mode : String);
 end Files.Jobs.Process.Testing;

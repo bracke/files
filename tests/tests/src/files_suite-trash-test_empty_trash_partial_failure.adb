@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -21,7 +22,7 @@ separate (Files_Suite.Trash)
       --  Re-open the locked payload so the fixture tree can be removed.
       procedure Unlock_Payload is
          Unlocked : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Permissions.Set_Permissions (Trashed_Lock, 8#755#);
+           Files.File_System.Permissions.Testing.Set_Permissions (Trashed_Lock, 8#755#);
          pragma Unreferenced (Unlocked);
       begin
          null;
@@ -52,7 +53,7 @@ separate (Files_Suite.Trash)
       --  Strip all permissions from the trashed directory so its child cannot be
       --  removed, forcing that one entry's purge to fail while the file succeeds.
       Assert
-        (Files.File_System.Permissions.Set_Permissions (Trashed_Lock, 8#000#).Success,
+        (Files.File_System.Permissions.Testing.Set_Permissions (Trashed_Lock, 8#000#).Success,
          "partial-empty setup locks the trashed directory");
 
       Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);

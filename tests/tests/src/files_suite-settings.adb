@@ -82,6 +82,7 @@ package body Files_Suite.Settings is
    procedure Test_Detail_Columns_And_Grouping (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Labels (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Path_Index_Folding (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Set_Labels_Matches_Set_Label (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paths_Match_As_The_Host_Folds (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_Items (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -188,6 +189,9 @@ package body Files_Suite.Settings is
         (T, Test_Column_Order_Reorder'Access, "detail column order move helper, round-trip, and validation");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Color_Labels'Access, "color label set/clear, round-trip, and invalid-color skip");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Path_Index_Folding'Access,
+         "a path index decided for a folder matches as that folder's volume folds names");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Set_Labels_Matches_Set_Label'Access,
          "labelling a selection at once matches labelling one path at a time");
@@ -393,6 +397,7 @@ package body Files_Suite.Settings is
    procedure Test_Detail_Columns_And_Grouping (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Color_Labels (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Path_Index_Folding (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Set_Labels_Matches_Set_Label (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Paths_Match_As_The_Host_Folds (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

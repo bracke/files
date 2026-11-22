@@ -14,12 +14,14 @@ package body Files.Model.Creation is
    procedure Begin_Create_Temporary
       (Model        : in out Window_Model;
        Name         : String;
-       Is_Directory : Boolean) is
+       Is_Directory : Boolean;
+       Classes      : Files.File_Types.Classification) is
    begin
       Touch (Model);
       Support.Touch_Listing (Model);
       Clear_Overlay_State_For_Edit (Model);
-      Model.Temporary := (Active => True, Is_Directory => Is_Directory, Name => To_Unbounded_String (Name));
+      Model.Temporary :=
+        (Active => True, Is_Directory => Is_Directory, Name => To_Unbounded_String (Name), Classes => Classes);
       Model.Rename.Fields.Clear;
       Model.Rename.Fields.Append
         (Rename_Field'
@@ -34,19 +36,21 @@ package body Files.Model.Creation is
    end Begin_Create_Temporary;
 
    procedure Begin_Create_File
-      (Model : in out Window_Model;
-       Name  : String) is
+      (Model   : in out Window_Model;
+       Name    : String;
+       Classes : Files.File_Types.Classification) is
    begin
       Touch (Model);
-      Begin_Create_Temporary (Model, Name, Is_Directory => False);
+      Begin_Create_Temporary (Model, Name, Is_Directory => False, Classes => Classes);
    end Begin_Create_File;
 
    procedure Begin_Create_Folder
-      (Model : in out Window_Model;
-       Name  : String) is
+      (Model   : in out Window_Model;
+       Name    : String;
+       Classes : Files.File_Types.Classification) is
    begin
       Touch (Model);
-      Begin_Create_Temporary (Model, Name, Is_Directory => True);
+      Begin_Create_Temporary (Model, Name, Is_Directory => True, Classes => Classes);
    end Begin_Create_Folder;
 
    function Temporary_Item_Is_Active

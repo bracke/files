@@ -26,25 +26,6 @@ package Files.Application.Testing is
    --  @return Crate name and version from generated Alire configuration.
    function Version_Text return String;
 
-   --  Return the default settings file path under a home directory.
-   --
-   --  @param Home_Path Home directory path.
-   --  @return Default settings file path.
-   function Default_Settings_Path
-     (Home_Path : String)
-      return String;
-
-   --  Return the settings file path selected by environment or default fallback.
-   --
-   --  FILES_SETTINGS overrides all defaults. XDG_CONFIG_HOME selects an XDG path
-   --  when present. Otherwise the path is under Home_Path.
-   --
-   --  @param Home_Path Home directory path.
-   --  @return Configured settings file path.
-   function Configured_Settings_Path
-     (Home_Path : String)
-      return String;
-
    --  Load startup settings and resolve command-line paths into window models.
    --
    --  Invalid existing settings files are reported as startup errors and default
@@ -105,5 +86,8 @@ package Files.Application.Testing is
       Height : Natural := Files.Rendering.Layouts.Default_Window_Height;
       Locale : String := "en")
       return String;
+
+   --  @return The current user's home directory, or the current directory.
+   function Home_Directory return String;
 
 end Files.Application.Testing;

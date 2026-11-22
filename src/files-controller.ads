@@ -173,6 +173,83 @@ package Files.Controller is
       Settings_Path : String;
       Accepted      : out Boolean);
 
+   --  Star or unstar the current folder, whatever is selected (the path
+   --  bar's star), under Commit_Settings' policy. Nothing happens in a view
+   --  of no folder (Recent) or while an overlay owns the input.
+   --
+   --  @param Model Window whose folder is starred.
+   --  @param Settings Live settings model.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Accepted True when the change took (Commit_Settings).
+   procedure Toggle_Folder_Favorite
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Accepted      : out Boolean);
+
+   --  Give every selected item Label (No_Label clears it) and close the
+   --  label picker, under Commit_Settings' policy: an edit that would make
+   --  the settings file too big to load again is refused whole.
+   --
+   --  @param Model Window whose selection is labelled.
+   --  @param Settings Live settings model.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Label The label to give.
+   --  @param Accepted True when the change took.
+   procedure Label_Selection
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Label         : Files.Preference_Types.Color_Label;
+      Accepted      : out Boolean);
+
+   --  Set the font size (zoom), under Commit_Settings' policy; the window's
+   --  next frame takes it up.
+   --
+   --  @param Model Window that zoomed.
+   --  @param Settings Live settings model.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Size The new font pixel size (already clamped).
+   --  @param Accepted True when the size changed and took.
+   procedure Set_Font_Size
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Size          : Positive;
+      Accepted      : out Boolean);
+
+   --  Give a details column Width (in reference units) while it is dragged:
+   --  in memory only -- Persist_Settings writes it once the drag ends -- but
+   --  the window's settings moved, so other windows take them from here.
+   --
+   --  @param Model Window whose column is resized.
+   --  @param Settings Live settings model.
+   --  @param Column The column resized.
+   --  @param Width Its new width in reference units.
+   --  @param Changed True when the width moved.
+   procedure Resize_Column
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model;
+      Column   : Files.Preference_Types.Detail_Column;
+      Width    : Natural;
+      Changed  : out Boolean);
+
+   --  Move a details column to To_Index, under Commit_Settings' policy.
+   --
+   --  @param Model Window whose columns are reordered.
+   --  @param Settings Live settings model.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Column The column moved.
+   --  @param To_Index Where it goes.
+   --  @param Accepted True when the order changed and took.
+   procedure Reorder_Column
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Column        : Files.Preference_Types.Detail_Column;
+      To_Index      : Files.Preference_Types.Detail_Column_Index;
+      Accepted      : out Boolean);
+
    --  Cycle the filter-bar search scope one step forward and re-run the shared
    --  query in the new scope. Filter_Here restores the live-filtered directory,
    --  Search_Names runs a recursive name search, and Search_Contents runs a

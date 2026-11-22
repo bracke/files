@@ -1,3 +1,5 @@
+with Files.Settings.Storage;
+with Files.Settings.Storage.Testing;
 with Files.Application.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Startup)
@@ -50,7 +52,7 @@ separate (Files_Suite.Startup)
 
       --  A fresh install goes where this host says configuration goes.
       declare
-         Fresh : constant String := Files.Application.Testing.Default_Settings_Path (Scratch_Home);
+         Fresh : constant String := Files.Settings.Storage.Testing.Default_Settings_Path (Scratch_Home);
          Host  : constant String := Hostkit.Fs.Config_Directory;
       begin
          if Host /= "" then
@@ -65,11 +67,11 @@ separate (Files_Suite.Startup)
       Ada.Directories.Create_Path (Legacy_Dir);
       Write_File (Legacy_File, "[settings]" & ASCII.LF);
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Testing.Default_Settings_Path (Scratch_Home),
+        (Files.Settings.Storage.Testing.Default_Settings_Path (Scratch_Home),
          Legacy_File,
          "a settings file already on disk keeps being used rather than orphaned");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Testing.Configured_Settings_Path (Scratch_Home),
+        (Files.Settings.Storage.Configured_Settings_Path (Scratch_Home),
          Legacy_File,
          "and the configured path agrees with it");
 

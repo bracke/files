@@ -31,9 +31,9 @@ separate (Files_Suite.Model)
       Files.Settings.Testing.Add_Extension_Mapping (Settings, "profile", "text/x-profile");
       Files.Settings.Testing.Add_Icon_Mapping (Settings, "text/x-ada", "ada");
       Classes := Files.Settings.Classification_Of (Settings);
-      Ada_Item := Files.File_System.Make_Item (Root, "main.adb", Files.Types.Regular_File_Item, Classes);
-      Executable_Ada_Item := Files.File_System.Make_Item (Root, "tool.adb", Files.Types.Executable_Item, Classes);
-      Symlink_Ada_Item := Files.File_System.Make_Item (Root, "link.adb", Files.Types.Symlink_Item, Classes);
+      Ada_Item := Files.Item_Lists.Make_Item (Root, "main.adb", Files.Types.Regular_File_Item, Classes);
+      Executable_Ada_Item := Files.Item_Lists.Make_Item (Root, "tool.adb", Files.Types.Executable_Item, Classes);
+      Symlink_Ada_Item := Files.Item_Lists.Make_Item (Root, "link.adb", Files.Types.Symlink_Item, Classes);
       Files_Suite.Support.Assert_Equal
         (To_String (Directory_Item.Filetype),
          "inode/directory",

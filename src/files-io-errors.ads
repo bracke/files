@@ -36,10 +36,6 @@ package Files.IO.Errors is
    --  refusal and a missing privilege both mean the user may not.
    subtype Cause is Hostkit.Errors.Cause;
 
-   --  @param Item Cause to name.
-   --  @return The catalog key a user is shown for Item.
-   function Key_Of (Item : Cause) return String;
-
    --  @param Key Catalog key to test.
    --  @return True when Key is one of the cause keys above.
    function Is_Cause_Key (Key : String) return Boolean;
@@ -75,6 +71,10 @@ package Files.IO.Errors is
    function Error_Key (Fallback : String) return Files.Types.UString;
 
 private
+
+   --  @param Item Cause to name.
+   --  @return The catalog key a user is shown for Item.
+   function Key_Of (Item : Cause) return String;
 
    --  @param Code An errno value from this host; zero means none.
    --  @param Fallback Key to answer when Code is no cause the user can act on.

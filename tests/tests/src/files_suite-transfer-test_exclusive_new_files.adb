@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.File_System.Permissions;
 with Hostkit.Metadata;
 separate (Files_Suite.Transfer)
@@ -43,7 +44,7 @@ separate (Files_Suite.Transfer)
          end if;
          if not Hostkit.Metadata.Mode_Bits_Are_Native or else User_Id /= 0 then
             Assert
-              (Files.File_System.Permissions.Set_Permissions (Parent, 8#555#).Success,
+              (Files.File_System.Permissions.Testing.Set_Permissions (Parent, 8#555#).Success,
                "prepare a read-only parent");
             Mutation := Files.File_System.Create_Empty_File (Join (Parent, "child"));
             Assert (not Mutation.Success,
@@ -58,10 +59,10 @@ separate (Files_Suite.Transfer)
          else
             Skip ("Test_Exclusive_New_Files", "root ignores a read-only directory");
          end if;
-         Mutation := Files.File_System.Permissions.Set_Permissions (Parent, 8#755#);
+         Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Parent, 8#755#);
       exception
          when others =>
-            Mutation := Files.File_System.Permissions.Set_Permissions (Parent, 8#755#);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Parent, 8#755#);
             raise;
       end;
    end Test_Exclusive_New_Files;

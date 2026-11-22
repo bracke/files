@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.Operations.Opening.Testing;
 with Files.Operations.Opening;
 with Files.Settings.Open_Actions;
@@ -17,7 +18,7 @@ separate (Files_Suite.Open_Actions)
             Available : Boolean := False;
          begin
             Write_File (Tool, "#!/bin/sh" & ASCII.LF & "exit 0" & ASCII.LF);
-            Mutation := Files.File_System.Permissions.Set_Permissions (Tool, 8#755#);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Tool, 8#755#);
             Assert (Mutation.Success, "the fixture tool can be made executable");
             declare
                --  Puts PATH back before the check, on failure too.

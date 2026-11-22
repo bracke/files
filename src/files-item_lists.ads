@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Items;
 with Files.Types;
 
@@ -22,6 +23,24 @@ package Files.Item_Lists is
       Name        : String;
       Kind        : Files.Types.Item_Kind;
       Filetype    : String := "")
+      return Files.Items.Directory_Item;
+
+   --  Make_Item with the filetype and icon worked out by Classes, as a
+   --  listing classified by them would: for a row that has no entry on disk
+   --  yet (the new item being named), so it is hidden when its name starts
+   --  with a dot -- the host's hidden attribute is a question for an entry
+   --  that exists.
+   --
+   --  @param Parent_Path Parent directory path.
+   --  @param Name Item name.
+   --  @param Kind Filesystem item kind.
+   --  @param Classes Filetype and icon maps (Files.Settings.Classification_Of).
+   --  @return Directory item value.
+   function Make_Item
+     (Parent_Path : String;
+      Name        : String;
+      Kind        : Files.Types.Item_Kind;
+      Classes     : Files.File_Types.Classification)
       return Files.Items.Directory_Item;
 
    --  Sort Items in place into the display order for the given sort field and

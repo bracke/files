@@ -100,8 +100,8 @@ separate (Files_Suite.Trash)
          Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
          Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
          Files.Operations.Settle_Current_Is_Trash (Model);
-         Result :=
-           Files.Controller.Execute_Non_Settings_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
+         Files_Suite.Support.Discard (
+           Files.Controller.Execute_Non_Settings_Command (Files.Commands.Empty_Trash_Command, Model, Settings));
          Assert (not Ada.Directories.Exists (Old_Orphan), "an old info file describing nothing is removed");
          Assert (Ada.Directories.Exists (Fresh_Orphan), "a fresh one, maybe a trash in progress, stays");
       end;

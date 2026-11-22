@@ -23,7 +23,7 @@ separate (Files_Suite.Trash)
       Write_File (Item, "kept");
       Files.Model.Initialize (Model, Root, Files_Suite.Listings.Load_Directory (Root, Settings).Items, Root);
       Select_Name (Model, "kept.txt");
-      Result := Operation_Commands.Delete_Selected (Model, Settings);
+      Files_Suite.Support.Discard (Operation_Commands.Delete_Selected (Model, Settings));
       Assert (not Ada.Directories.Exists (Item), "the item is trashed");
       Assert (Files.File_System.Trash.Restore_From_Trash
                 (Join (Files.File_System.Trash.Trash_Files_Directory, "kept.txt")).Success,

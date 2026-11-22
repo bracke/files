@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Operations.History;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
@@ -35,7 +36,7 @@ separate (Files_Suite.Recovery)
          Write_Binary_File (Join (Root, "victim.txt"), "victim bytes");
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.History.Clear_Undo (Model);
+         Files.Operations.History.Testing.Clear_Undo (Model);
          Files.Model.Jobs.Set_Background_Transfers (Model, True);
          Select_Name (Model, "victim.txt");
          Paths.Clear;
@@ -121,7 +122,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Join (Root, "victim.txt"), "victim bytes");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Operations.History.Clear_Undo (Model);
+      Files.Operations.History.Testing.Clear_Undo (Model);
       Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Select_Name (Model, "victim.txt");
       Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
@@ -147,10 +148,11 @@ separate (Files_Suite.Recovery)
       Assert (Step.Status = Files.Operation_Results.Operation_Failed and then Files.Model.Last_Error_Key (Model) /= "",
               "the failed operation's error survives its successful background refresh");
       Write_Binary_File (Join (Root, "victim.txt"), "restorable bytes");
-      Step := Files.Operations.Refresh (Model, Settings);
+      Files_Suite.Support.Discard (Files.Operations.Refresh (Model, Settings));
       Await_View (Model, Settings);
       Select_Name (Model, "victim.txt");
-      Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
+      Files_Suite.Support.Discard
+        (Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings)));
       Await_View (Model, Settings);
       Paths := Files.Model.History.Undo_From_Paths (Model);
       Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
@@ -173,10 +175,11 @@ separate (Files_Suite.Recovery)
               and then not Ada.Directories.Exists (Join (Root, "victim.txt")),
               "background permanent deletion removes its selected source");
       Write_Binary_File (Join (Root, "victim.txt"), "empty trash bytes");
-      Step := Files.Operations.Refresh (Model, Settings);
+      Files_Suite.Support.Discard (Files.Operations.Refresh (Model, Settings));
       Await_View (Model, Settings);
       Select_Name (Model, "victim.txt");
-      Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
+      Files_Suite.Support.Discard
+        (Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings)));
       Await_View (Model, Settings);
       Paths := Files.Model.History.Undo_From_Paths (Model);
       Step := Complete_Operation (Model, Settings, Operation_Commands.Empty_Trash (Model, Settings));
@@ -185,7 +188,7 @@ separate (Files_Suite.Recovery)
               and then not Ada.Directories.Exists (To_String (Paths.First_Element)),
               "background empty trash purges only the private test trash backend");
       Files.Model.Jobs.Set_Background_Transfers (Model, False);
-      Files.Operations.History.Clear_Undo (Model);
+      Files.Operations.History.Testing.Clear_Undo (Model);
       Write_Binary_File (Join (Root, "checkpoint-target"), "preserve original bytes");
       Paths.Clear;
       Sources.Clear;

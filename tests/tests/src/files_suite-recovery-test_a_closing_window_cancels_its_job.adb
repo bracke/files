@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Operations.Paste.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
@@ -70,7 +71,7 @@ separate (Files_Suite.Recovery)
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Jobs.Set_Background_Transfers (Model, False);
-      Files.Operations.History.Clear_Undo (Model);
+      Files.Operations.History.Testing.Clear_Undo (Model);
       Actions.Append (Files.Paste.Resolved_Action'
                         (To_Unbounded_String (Join (Root, "new-one.txt")),
                          To_Unbounded_String (Join (Root, "one.txt")), False, True));

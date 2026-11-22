@@ -1,3 +1,5 @@
+with Files.Operations.History.Testing;
+with Files.File_System.Permissions.Testing;
 with Files.Model.Jobs;
 with Files.Operations.Metadata.Testing;
 with Files.Operations.History;
@@ -30,7 +32,7 @@ separate (Files_Suite.History)
             "retain the metadata history inode"
             & (if Retained then "" else Files_Suite.Support.Disk.Access_Report (Source)));
          Write_Binary_File (Source, "unrelated replacement");
-         Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#640#);
+         Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#640#);
          Assert (Mutation.Success, "give the replacement independent permissions");
          Step := Complete_Operation (Model, Settings,
            (if Forward then Operation_Commands.Redo_Last (Model, Settings)
@@ -63,11 +65,11 @@ separate (Files_Suite.History)
             if Kind < 3 or else Files.File_System.Permissions.Supports_Ownership then
                Reset_Root;
                Write_Binary_File (Source, "owned bytes");
-               Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#644#);
+               Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#644#);
                Assert (Mutation.Success, "prepare metadata source");
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Operations.History.Clear_Undo (Model);
+               Files.Operations.History.Testing.Clear_Undo (Model);
                Files.Model.Jobs.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "metadata-source");
                if Kind < 3 then

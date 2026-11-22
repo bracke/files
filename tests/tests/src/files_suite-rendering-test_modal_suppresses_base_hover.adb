@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Modal_Suppresses_Base_Hover (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -36,14 +37,14 @@ separate (Files_Suite.Rendering)
          --  them shows no hover, whatever lies under the pointer.
          Looking.Quick_Look.Open := True;
          Assert
-           (Overlay_Open (Looking, Files.UI_Types.Quick_Look_Overlay)
+           (Files.Rendering.Testing.Overlay_Open (Looking, Files.UI_Types.Quick_Look_Overlay)
             and then not Cell_Has_Hover_Highlight
               (Build_Frame_Commands (Looking, 1000, 800, 20, Pointer => Pointer), Cell),
             "with Quick Look open the item under the pointer is not drawn hovered");
 
          Pasting.Paste_Conflict_Open := True;
          Assert
-           (Overlay_Open (Pasting, Files.UI_Types.Paste_Conflict_Overlay)
+           (Files.Rendering.Testing.Overlay_Open (Pasting, Files.UI_Types.Paste_Conflict_Overlay)
             and then not Cell_Has_Hover_Highlight
               (Build_Frame_Commands (Pasting, 1000, 800, 20, Pointer => Pointer), Cell),
             "with a paste dialog open the item under the pointer is not drawn hovered");

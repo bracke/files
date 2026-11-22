@@ -1,3 +1,5 @@
+with Files.Jobs.Scavenger.Testing;
+with Files.File_System.Permissions.Testing;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
@@ -35,14 +37,14 @@ separate (Files_Suite.Recovery)
          Before : Instant;
       begin
          if Restricted then
-            Result := Files.File_System.Permissions.Set_Permissions (Marker, 0);
+            Result := Files.File_System.Permissions.Testing.Set_Permissions (Marker, 0);
             Assert (Result.Success, "make the fallback scan wait for marker access");
          end if;
          Before := Now;
          Files.Jobs.Scavenger.Scavenge (Join (Root, "missing-scavenge-coordinator"));
          Assert_Within (Before, Prompt_Limit, "startup returns promptly even when the coordinator cannot launch");
          if Restricted then
-            Result := Files.File_System.Permissions.Set_Permissions (Marker, 8#600#);
+            Result := Files.File_System.Permissions.Testing.Set_Permissions (Marker, 8#600#);
             Assert (Result.Success, "restore fallback marker access");
          end if;
          for Attempt in Files_Suite.Support.Timing.Polling loop
@@ -57,7 +59,7 @@ separate (Files_Suite.Recovery)
       exception
          when others =>
             if Restricted then
-               Result := Files.File_System.Permissions.Set_Permissions (Marker, 8#600#);
+               Result := Files.File_System.Permissions.Testing.Set_Permissions (Marker, 8#600#);
             end if;
             raise;
       end;
@@ -107,10 +109,10 @@ separate (Files_Suite.Recovery)
         (not Ada.Directories.Exists (To_String (Delayed_Path)),
          "the idle coordinator retries autonomously after access returns");
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         exit when Files.Jobs.Scavenger.Idle;
+         exit when Files.Jobs.Scavenger.Testing.Idle;
       end loop;
       Assert
-        (Files.Jobs.Scavenger.Idle,
+        (Files.Jobs.Scavenger.Testing.Idle,
          "recovery is quiet again once its retries succeed: " & Files.Jobs.Scavenger.Testing.Busy_Reason);
       Files_Suite.Support.Guards.Finalize (Until_Environment);
       Files_Suite.Support.Guards.Release (Jobs);

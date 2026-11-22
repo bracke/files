@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Model.Creation;
 with Files.Operation_Results;
 with Files.Controller.Testing;
@@ -28,7 +29,7 @@ separate (Files_Suite.Commands)
          Files.Commands.Focus_Path_Input_Command,
          "Control+L focuses path input");
       Files_Suite.Support.Assert_Equal (Files.Model.Last_Error_Key (Model), "", "path focus clears stale error state");
-      Files.Model.Creation.Begin_Create_File (Model, "path-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "path-pending.txt", Files.File_Types.Default_Classification);
       Files.Model.Focus_Path_Input (Model);
       Files.Controller.Testing.Replace_Focused_Text (Model, "");
       Files_Suite.Support.Assert_Equal

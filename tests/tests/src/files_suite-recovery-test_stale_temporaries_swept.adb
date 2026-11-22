@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Ada.Streams;
 with Files.IO.Durable_Writes;
 with Files_Suite.Support.Disk;
@@ -37,7 +38,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Base & ".tmp-2", "someone else's");
       GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp (Base & ".tmp-2", Old_Time);
       Assert
-        (Files.File_System.Permissions.Set_Permissions (Base & ".tmp-2", 8#644#).Success,
+        (Files.File_System.Permissions.Testing.Set_Permissions (Base & ".tmp-2", 8#644#).Success,
          "prepare a temporary others may read");
       --  Written since this process started: perhaps another writer's.
       Files.IO.Durable_Writes.Write_Private_File (Base & ".tmp-3", Write_Text'Access, Identity);

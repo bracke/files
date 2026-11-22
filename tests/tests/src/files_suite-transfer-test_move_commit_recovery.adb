@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.History;
@@ -50,7 +51,7 @@ separate (Files_Suite.Transfer)
                   end if;
                   Load := Files_Suite.Listings.Load_Directory (Parent, Settings);
                   Files.Model.Initialize (Model, Parent, Load.Items, Parent);
-                  Files.Operations.History.Clear_Undo (Model);
+                  Files.Operations.History.Testing.Clear_Undo (Model);
                   Files.Model.Jobs.Set_Background_Transfers (Model, True);
                   Actions.Clear;
                   Actions.Append (Files.Paste.Resolved_Action'

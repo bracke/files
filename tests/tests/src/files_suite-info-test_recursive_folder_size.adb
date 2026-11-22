@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.File_System_Types;
 with Files.Model.Info_Pane;
 with Files_Suite.Listings;
@@ -84,7 +85,7 @@ separate (Files_Suite.Info)
          Write_Binary_File (Join (Locked, "hidden"), "not empty");
          Mutation :=
            (if Files.File_System.Permissions.Supports_Permissions
-            then Files.File_System.Permissions.Set_Permissions (Locked, 0)
+            then Files.File_System.Permissions.Testing.Set_Permissions (Locked, 0)
             else (Success => False, others => <>));
          if not Files.File_System.Permissions.Supports_Permissions then
             Files_Suite.Support.Skip ("Test_Recursive_Folder_Size", "this host has no POSIX permissions to set");
@@ -114,7 +115,7 @@ separate (Files_Suite.Info)
             end;
 
             Guarded := Files.File_System.Directory_Size (Locked);
-            Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Locked, 8#755#);
             Assert (Mutation.Success, "restore the folder-size test root mode");
             if Denied then
                Assert
@@ -150,7 +151,7 @@ separate (Files_Suite.Info)
                   when others => null;
                end;
             end if;
-            Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Locked, 8#755#);
             Project_Tools.Files.Delete_Tree (Locked);
             raise;
       end;

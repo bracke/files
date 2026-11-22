@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files_Suite.Listings;
 separate (Files_Suite.Operations)
    procedure Test_Permission_String_Agrees_With_The_Host (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -30,7 +31,7 @@ separate (Files_Suite.Operations)
         (Execute_Bit (Sub_Dir) = (if Hostkit.Fs.Is_Executable (Sub_Dir) then 'x' else '-'),
          "a directory's execute bit matches the host");
 
-      if Files.File_System.Permissions.Set_Permissions (Runnable, 8#755#).Success then
+      if Files.File_System.Permissions.Testing.Set_Permissions (Runnable, 8#755#).Success then
          Assert
            (Execute_Bit (Runnable) = (if Hostkit.Fs.Is_Executable (Runnable) then 'x' else '-'),
             "a file the host will run matches the host");
@@ -65,7 +66,7 @@ separate (Files_Suite.Operations)
 
          procedure Check_At (Mode : Natural) is
             Applied : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Permissions.Set_Permissions (Probe, Mode);
+              Files.File_System.Permissions.Testing.Set_Permissions (Probe, Mode);
          begin
             if not Applied.Success then
                return;
@@ -112,7 +113,7 @@ separate (Files_Suite.Operations)
          --  Leave it removable for Reset_Root.
          declare
             Restored : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Permissions.Set_Permissions (Probe, 8#644#);
+              Files.File_System.Permissions.Testing.Set_Permissions (Probe, 8#644#);
             pragma Unreferenced (Restored);
          begin
             null;

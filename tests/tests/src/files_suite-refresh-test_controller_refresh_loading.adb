@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Model.Info_Pane;
 with Files.Model.Creation;
 with Files_Suite.Listings;
@@ -17,9 +18,10 @@ separate (Files_Suite.Refresh)
       Write_File (Join (First, "one.txt"));
       Load := Files_Suite.Listings.Load_Directory (First, Settings);
       Files.Model.Initialize (Model, First, Load.Items, First);
-      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
+      Files_Suite.Support.Discard
+        (Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings));
       Write_File (Join (First, "fresh.txt"));
-      Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "pending.txt", Files.File_Types.Default_Classification);
       Files.Model.Selection.Select_Visible (Model, 3);
       Files.Model.Info_Pane.Scroll_Info_Pane (Model, Lines => 4);
       Files.Model.Command_Palette.Open (Model);

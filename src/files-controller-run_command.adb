@@ -174,9 +174,9 @@ separate (Files.Controller)
                Files.Model.Clipboard.Set (Model, Selected_Paths, Files.Model.Clipboard_Cut);
                Files.Model.Set_Error (Model, "");
             when Files.Commands.Create_File_Command =>
-               Files.Operations.Editing.Begin_Create_Item (Model, Folder => False);
+               Files.Operations.Editing.Begin_Create_Item (Model, Settings, Folder => False);
             when Files.Commands.New_Folder_Command =>
-               Files.Operations.Editing.Begin_Create_Item (Model, Folder => True);
+               Files.Operations.Editing.Begin_Create_Item (Model, Settings, Folder => True);
             when Files.Commands.Select_Drive_Command =>
                if Files.Model.Root_Selector.Is_Open (Model) then
                   Files.Model.Root_Selector.Close (Model);

@@ -10,6 +10,17 @@ with Files_Suite.Generic_Assert_Equal;
 
 package Files_Suite.Support is
 
+   --  Drop the answer of a call made for its effect, where the test checks
+   --  the effect and not the answer: keeping it in a variable the next call
+   --  overwrites unread is a useless assignment.
+   --
+   --  @param Result The answer dropped.
+   procedure Discard (Result : Files.Controller.Controller_Result) is null;
+   --  @param Result The answer dropped.
+   procedure Discard (Result : Files.Operation_Results.Operation_Result) is null;
+   --  @param Result The answer dropped.
+   procedure Discard (Result : Boolean) is null;
+
    --  Record that Test does not run here (a host without the feature it
    --  needs), so a skipped test is counted and named instead of passing in
    --  silence.

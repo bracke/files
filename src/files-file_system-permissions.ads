@@ -18,26 +18,6 @@ package Files.File_System.Permissions is
       Available : out Boolean)
       return Natural;
 
-   --  Change the POSIX permission bits of an existing entry through chmod(2).
-   --
-   --  The path must already exist. Mode carries the numeric POSIX permission
-   --  bits (the low 12 bits). Failures map to error.permissions.failed, and an
-   --  unsupported platform maps to error.permissions.unsupported.
-   --
-   --  Exact, not an edit: on Windows the entry's access becomes just the
-   --  three accounts' bits (Hostkit.Metadata.Set_Exact_Permissions), so 0
-   --  takes access away even from an administrator -- what a test's fixture
-   --  needs. A user's edit goes through Change_Access, which changes only
-   --  what the bits do.
-   --
-   --  @param Path Existing filesystem path whose mode is changed.
-   --  @param Mode New permission bits to apply.
-   --  @return Mutation result with a localized error key on failure.
-   function Set_Permissions
-     (Path : String;
-      Mode : Natural)
-      return Mutation_Result;
-
    --  Return whether this build can read and change file ownership.
    --
    --  @return True on the Linux platform, False on the stub platforms.
@@ -117,6 +97,26 @@ package Files.File_System.Permissions is
    function Group_Name_For_Id (Id : Files.Types.Account_Id) return String;
 
 private
+
+   --  Change the POSIX permission bits of an existing entry through chmod(2).
+   --
+   --  The path must already exist. Mode carries the numeric POSIX permission
+   --  bits (the low 12 bits). Failures map to error.permissions.failed, and an
+   --  unsupported platform maps to error.permissions.unsupported.
+   --
+   --  Exact, not an edit: on Windows the entry's access becomes just the
+   --  three accounts' bits (Hostkit.Metadata.Set_Exact_Permissions), so 0
+   --  takes access away even from an administrator -- what a test's fixture
+   --  needs. A user's edit goes through Change_Access, which changes only
+   --  what the bits do.
+   --
+   --  @param Path Existing filesystem path whose mode is changed.
+   --  @param Mode New permission bits to apply.
+   --  @return Mutation result with a localized error key on failure.
+   function Set_Permissions
+     (Path : String;
+      Mode : Natural)
+      return Mutation_Result;
 
    --  What an ownership change calls with the path and the ids it asks
    --  for, before it asks the host.

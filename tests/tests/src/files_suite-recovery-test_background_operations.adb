@@ -97,7 +97,7 @@ separate (Files_Suite.Recovery)
          2,
          "background content search returns matches regardless of filename: visible count");
       Files.Model.Filtering.Set_Filter (Model, "");
-      Step := Files.Operations.Refresh (Model, Settings);
+      Files_Suite.Support.Discard (Files.Operations.Refresh (Model, Settings));
       Select_Name (Model, "a.txt");
       declare
          --  The helper stalls for this duplicate only; the guard puts the

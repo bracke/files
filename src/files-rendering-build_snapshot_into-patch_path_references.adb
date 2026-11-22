@@ -1,10 +1,12 @@
+with Files.Model.Status_Samples;
 with Files.Settings.Path_References;
 separate (Files.Rendering.Build_Snapshot_Into)
    --  The kept rows' stars and labels read again from the settings: a lookup
    --  per row where a rebuild resolved every row's type, icon and texts.
    procedure Patch_Path_References is
       Paths : constant Files.Settings.Path_References.Path_Index :=
-        Files.Settings.Path_References.Index_Paths (Settings);
+        Files.Settings.Path_References.Index_Paths
+          (Settings, Files.Model.Status_Samples.Name_Folding (Model));
    begin
       for Row of Snapshot.Items loop
          if not Row.Is_Group_Header then

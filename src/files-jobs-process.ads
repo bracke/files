@@ -28,10 +28,6 @@ package Files.Jobs.Process is
    --  @return Full path inside the private job directory, or empty for no job.
    function Path (Job : Session; Name : String) return String;
 
-   --  @param Job Reserved session to launch.
-   --  @param Mode Internal helper command identifying its request format.
-   procedure Launch (Job : in out Session; Mode : String);
-
    --  Start a reserved job the one way every job starts: Write fills its
    --  request file, which is checked against the transport bound
    --  (Files.Jobs.Records.Max_Transport_Bytes) and closed, then the helper for
@@ -78,6 +74,10 @@ package Files.Jobs.Process is
    function Cancellation_Requested (Directory : String) return Boolean;
 
 private
+
+   --  @param Job Reserved session to launch.
+   --  @param Mode Internal helper command identifying its request format.
+   procedure Launch (Job : in out Session; Mode : String);
    --  Test seam: the next Launch is refused as a failed spawn is.
    Test_Refuse_Next_Launch : Boolean := False;
    pragma Atomic (Test_Refuse_Next_Launch);

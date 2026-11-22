@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Editing;
@@ -57,7 +58,7 @@ separate (Files_Suite.History)
                end case;
                Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Operations.History.Clear_Undo (Model);
+               Files.Operations.History.Testing.Clear_Undo (Model);
                Files.Model.Jobs.Set_Background_Transfers (Model, Background);
                if Paste_Move then
                   Actions.Clear;

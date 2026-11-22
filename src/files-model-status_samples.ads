@@ -1,3 +1,5 @@
+with Files.Settings.Path_References;
+
 --  What the window layer samples from the host for the status bar, the info
 --  pane and the commands -- the current volume's free space, the names of
 --  owner and group ids, and what the host offers (a trash, permissions,
@@ -8,6 +10,29 @@ package Files.Model.Status_Samples is
    --  samples again, so the readout follows a delete, a paste or another
    --  process rather than sticking until the user navigates away.
    Volume_Space_Refresh_Interval : constant Duration := 3.0;
+
+   --  Record how the paths of the folder Path are matched against stored
+   --  ones (Files.Settings.Path_References.Folding_In), asked once per
+   --  folder. Moves no revision: a row matched before it was known asked its
+   --  own volume, which is the folder's, and got the same answer.
+   --
+   --  @param Model Model to update.
+   --  @param Path The folder it was asked for.
+   --  @param Folds Whether that folder's paths are matched without regard to case.
+   procedure Set_Name_Folding
+     (Model : in out Window_Model;
+      Path  : String;
+      Folds : Boolean);
+
+   --  @param Model Model to inspect.
+   --  @return True when Set_Name_Folding answered for the current folder.
+   function Name_Folding_Sampled (Model : Window_Model) return Boolean;
+
+   --  @param Model Model to inspect.
+   --  @return How the current folder's paths are matched: as sampled, or
+   --    Ask_Each_Path when not (a view of no one folder, or before the
+   --    window asked).
+   function Name_Folding (Model : Window_Model) return Files.Settings.Path_References.Path_Folding;
 
    --  Record a volume-space sample. The window layer takes it (a statvfs);
    --  Build_Snapshot only reads it, so building a snapshot touches no disk.

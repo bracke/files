@@ -19,13 +19,13 @@ separate (Files_Suite.Operations)
       Write_File (Item, "opened");
       Files.Settings.Path_References.Note_Recent (Settings, Item);
       Files.Model.Initialize (Model, Folder, Files.Items.Item_Vectors.Empty_Vector, Root);
-      Step := Files.Operations.Refresh (Model, Settings);
-      Step := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
+      Files_Suite.Support.Discard (Files.Operations.Refresh (Model, Settings));
+      Files_Suite.Support.Discard (Files.Operations.Navigation.Navigate_Recent (Model, Settings));
       Assert (Files.Model.Recent.In_Recent_View (Model), "the recent view is open");
 
       --  A refresh (Clear Recent, a finished job) swaps the items, not the view.
       Files.Model.Filtering.Set_Filter (Model, "open");
-      Step := Files.Operations.Navigation.Navigate_Recent (Model, Settings);
+      Files_Suite.Support.Discard (Files.Operations.Navigation.Navigate_Recent (Model, Settings));
       Assert (Files.Model.Recent.In_Recent_View (Model), "a refresh keeps the recent view");
       Files_Suite.Support.Assert_Equal (Files.Model.Filtering.Filter_Text (Model), "open",
                                         "a refresh keeps the view's filter");

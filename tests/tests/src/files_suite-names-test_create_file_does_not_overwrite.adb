@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Operations.Editing;
 with Files.Model.Creation;
 with Files_Suite.Listings;
@@ -78,7 +79,7 @@ separate (Files_Suite.Names)
       begin
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Creation.Begin_Create_File (Model, "existing.txt");
+         Files.Model.Creation.Begin_Create_File (Model, "existing.txt", Files.File_Types.Default_Classification);
 
          Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
          Files_Suite.Support.Assert_Equal
@@ -126,7 +127,7 @@ separate (Files_Suite.Names)
             "create retry selects created file");
       end;
 
-      Files.Model.Creation.Begin_Create_File (Model, Utf8_Two_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Utf8_Two_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -138,7 +139,7 @@ separate (Files_Suite.Names)
          Utf8_Two_Name,
          "two-byte UTF-8 create selects file");
 
-      Files.Model.Creation.Begin_Create_File (Model, Utf8_Three_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Utf8_Three_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -150,7 +151,7 @@ separate (Files_Suite.Names)
          Utf8_Three_Name,
          "three-byte UTF-8 create selects file");
 
-      Files.Model.Creation.Begin_Create_File (Model, Utf8_Four_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Utf8_Four_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
@@ -10,7 +11,7 @@ separate (Files_Suite.Recovery)
       procedure Restore is
       begin
          if Length (Transport) > 0 and then Ada.Directories.Exists (To_String (Transport)) then
-            Result := Files.File_System.Permissions.Set_Permissions (To_String (Transport), 8#700#);
+            Result := Files.File_System.Permissions.Testing.Set_Permissions (To_String (Transport), 8#700#);
             Project_Tools.Files.Delete_Tree (To_String (Transport));
          end if;
       end Restore;
@@ -28,7 +29,7 @@ separate (Files_Suite.Recovery)
       Files.Jobs.Process.Reserve (Job);
       Transport := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
       Write_Binary_File (Files.Jobs.Process.Path (Job, "ordinary-result"), "result");
-      Result := Files.File_System.Permissions.Set_Permissions (To_String (Transport), 0);
+      Result := Files.File_System.Permissions.Testing.Set_Permissions (To_String (Transport), 0);
       Assert (Result.Success, "prepare an unreadable ordinary transport");
 
       declare
@@ -53,7 +54,7 @@ separate (Files_Suite.Recovery)
          Assert (Ada.Directories.Exists (To_String (Transport)),
                  "the initial ordinary transport removal is forced to fail");
       end;
-      Result := Files.File_System.Permissions.Set_Permissions (To_String (Transport), 8#700#);
+      Result := Files.File_System.Permissions.Testing.Set_Permissions (To_String (Transport), 8#700#);
       Assert (Result.Success, "restore access for the cleanup retry");
 
       for Attempt in Files_Suite.Support.Timing.Polling loop
@@ -87,7 +88,7 @@ separate (Files_Suite.Recovery)
          else
             Files_Suite.Support.Disk.Link_Not_Made ("Test_Transport_Cleanup_Retry", Files_Suite.Support.Disk.Hard_Link);
          end if;
-         Result := Files.File_System.Permissions.Set_Permissions (Marker, 0);
+         Result := Files.File_System.Permissions.Testing.Set_Permissions (Marker, 0);
          Assert (Result.Success, "prepare a temporarily unreadable transport marker");
          Files.Jobs.Transports.Inspect_Marker (To_String (Transport), Identity, Read_Error);
          Assert (Read_Error and then Length (Identity) = 0,
@@ -95,7 +96,7 @@ separate (Files_Suite.Recovery)
          Complete := Files.Jobs.Scavenger.Run (Wait_For_Grace => False);
          Assert (not Complete and then Ada.Directories.Exists (To_String (Transport)),
                  "scavenging retries an unreadable marker instead of skipping it");
-         Result := Files.File_System.Permissions.Set_Permissions (Marker, 8#600#);
+         Result := Files.File_System.Permissions.Testing.Set_Permissions (Marker, 8#600#);
          Assert (Result.Success, "restore transport marker access");
          Complete := Files.Jobs.Scavenger.Run (Wait_For_Grace => False);
          Assert (Complete and then not Ada.Directories.Exists (To_String (Transport)),
@@ -110,12 +111,12 @@ separate (Files_Suite.Recovery)
          Lease_Path : constant String := Join (To_String (Transport), ".files-job-owner");
          Complete : Boolean;
       begin
-         Result := Files.File_System.Permissions.Set_Permissions (Lease_Path, 0);
+         Result := Files.File_System.Permissions.Testing.Set_Permissions (Lease_Path, 0);
          Assert (Result.Success, "prepare a temporarily inaccessible transport lease");
          Complete := Files.Jobs.Scavenger.Run (Wait_For_Grace => False);
          Assert (not Complete and then Ada.Directories.Exists (To_String (Transport)),
                  "scavenging retries a lease access failure");
-         Result := Files.File_System.Permissions.Set_Permissions (Lease_Path, 8#600#);
+         Result := Files.File_System.Permissions.Testing.Set_Permissions (Lease_Path, 8#600#);
          Assert (Result.Success, "restore transport lease access");
          Complete := Files.Jobs.Scavenger.Run (Wait_For_Grace => False);
          Assert (Complete and then not Ada.Directories.Exists (To_String (Transport)),

@@ -1,3 +1,4 @@
+with Files.Jobs.Scavenger.Testing;
 with Files.Jobs.Helper_Modes;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
@@ -15,10 +16,10 @@ separate (Files_Suite.Recovery)
       --  A scan or retry left by an earlier test would reclaim this test's
       --  fixtures before its own coordinator could.
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         exit when Files.Jobs.Scavenger.Idle;
+         exit when Files.Jobs.Scavenger.Testing.Idle;
       end loop;
       Assert
-        (Files.Jobs.Scavenger.Idle,
+        (Files.Jobs.Scavenger.Testing.Idle,
          "no earlier recovery scan is still running: " & Files.Jobs.Scavenger.Testing.Busy_Reason);
       Reset_Root;
       --  A live job keeps its transport present, as it is during startup recovery.

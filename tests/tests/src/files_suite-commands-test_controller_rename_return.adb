@@ -31,7 +31,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Text_Cursor_Position (Model),
          3,
          "F2 places rename cursor before the file extension");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_End);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_End));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
          Files.Model.Rename.Text (Model)'Length,
@@ -51,7 +51,7 @@ separate (Files_Suite.Commands)
         (Result.Status,
          Files.Controller.Controller_Text_Updated,
          "rename Left moves cursor");
-      Result := Files.Controller.Append_Focused_Text (Model, "t");
+      Files_Suite.Support.Discard (Files.Controller.Append_Focused_Text (Model, "t"));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Rename.Text (Model),
          "new.ttx",
@@ -74,7 +74,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Rename.Text (Model),
          "new.ttx",
          "rename Backspace removes character before cursor");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Rename.Text (Model),
          "new.tt",
@@ -84,7 +84,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Text_Cursor_Position (Model),
          6,
          "rename replacement clamps cursor to text end");
-      Result := Files.Controller.Append_Focused_Text (Model, "t");
+      Files_Suite.Support.Discard (Files.Controller.Append_Focused_Text (Model, "t"));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Rename.Text (Model),
          "new.txt",

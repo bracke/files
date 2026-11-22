@@ -43,7 +43,7 @@ separate (Files_Suite.Info)
                   Unmeasured := Unmeasured + 1;
                end if;
             end loop;
-            exit when Measured + Unmeasured >= Count and then not Files.Folder_Size.Is_Active (Scan);
+            exit when Measured + Unmeasured >= Count and then not Files.Folder_Size.Testing.Is_Active (Scan);
          end loop;
          Files_Suite.Support.Assert_Equal (Measured + Unmeasured, Count, What & ": every folder is answered once");
       end Measure_All;

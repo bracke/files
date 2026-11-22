@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Model.Jobs;
 with Files.Operations.History;
 with Files_Suite.Listings;
@@ -22,7 +23,7 @@ separate (Files_Suite.History)
       Write_Binary_File (Join (Root, "a.txt"), "a bytes");
       Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Operations.History.Clear_Undo (Model);
+      Files.Operations.History.Testing.Clear_Undo (Model);
       Assert (Files.Model.Selection.Select_By_Name (Model, "a.txt"), "the file is listed");
       Files.Model.Jobs.Set_Background_Transfers (Model, True);
       Step := Operation_Commands.Duplicate_Selected (Model, Settings);

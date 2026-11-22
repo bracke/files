@@ -9,7 +9,7 @@ separate (Files_Suite.Commands)
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Selection.Select_Visible (Model, 2);
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F2));
       Assert (Files.Model.Rename.Is_Active (Model), "F2 enters rename before palette opens");
 
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);

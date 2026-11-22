@@ -77,13 +77,12 @@ package body Files.Interaction is
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
       New_Size      : Positive;
-      Result        : in out Interaction_Result) is
+      Result        : in out Interaction_Result)
+   is
+      Accepted : Boolean;
    begin
-      if New_Size /= Settings.Font_Pixel_Size then
-         Files.Controller.Commit_Settings
-           (Model, Settings, (Settings with delta Font_Pixel_Size => New_Size), Settings_Path,
-            Accepted => Result.Settings_Changed);
-      end if;
+      Files.Controller.Set_Font_Size (Model, Settings, Settings_Path, New_Size, Accepted);
+      Result.Settings_Changed := Result.Settings_Changed or else Accepted;
    end Apply_Zoom;
 
    --  Give every selected item Label (No_Label clears it) and close the label
@@ -96,11 +95,8 @@ package body Files.Interaction is
       Label         : Files.Preference_Types.Color_Label;
       Result        : in out Interaction_Result)
    is
-      Updated : Files.Settings.Settings_Model := Settings;
    begin
-      Files.Settings.Path_References.Set_Labels (Updated, Files.Model.Selection.Selected_Paths (Model), Label);
-      Files.Model.Label_Picker.Close (Model);
-      Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
+      Files.Controller.Label_Selection (Model, Settings, Settings_Path, Label, Accepted => Result.Settings_Changed);
    end Apply_Label;
 
    function Follow_Path_Moves
@@ -532,17 +528,10 @@ package body Files.Interaction is
       New_Width  : constant Natural :=
         (if Target_Ref >= Long_Long_Integer (Natural'Last) then Natural'Last
          else Natural (Target_Ref));
-      Updated    : constant Files.Settings.Settings_Model :=
-        Files.Settings.With_Column_Width (Settings, Column, New_Width);
    begin
       Result := (others => <>);
-      if Updated.Column_Widths (Column) /= Settings.Column_Widths (Column) then
-         Settings := Updated;
-         Result.Settings_Changed := True;
-         --  In memory only (End_Column_Resize writes the file once), but the
-         --  window's settings moved: other windows take them from here.
-         Files.Model.Note_Settings_Changed (Model);
-      end if;
+      --  In memory only (End_Column_Resize writes the file once).
+      Files.Controller.Resize_Column (Model, Settings, Column, New_Width, Changed => Result.Settings_Changed);
    end Apply_Column_Resize;
 
    procedure End_Column_Resize
@@ -564,15 +553,10 @@ package body Files.Interaction is
       To_Index      : Files.Preference_Types.Detail_Column_Index;
       Result        : out Interaction_Result)
    is
-      use type Files.Preference_Types.Detail_Column_Order;
-      Updated : constant Files.Settings.Settings_Model :=
-        Files.Settings.With_Column_Order (Settings, Column, To_Index);
    begin
       Result := (others => <>);
-      if Updated.Column_Order /= Settings.Column_Order then
-         Files.Controller.Commit_Settings
-           (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
-      end if;
+      Files.Controller.Reorder_Column
+        (Model, Settings, Settings_Path, Column, To_Index, Accepted => Result.Settings_Changed);
    end Apply_Column_Reorder;
 
    function Marquee_Base

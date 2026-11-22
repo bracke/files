@@ -14,4 +14,8 @@ package Files.IO.Errors.Testing is
    --  @return Key_For_Errno (Last_Code, Fallback).
    function Key_For_Last (Fallback : String) return String;
 
+   --  @param Item Cause to name.
+   --  @return The catalog key a user is shown for Item.
+   function Key_Of (Item : Cause) return String;
+
 end Files.IO.Errors.Testing;

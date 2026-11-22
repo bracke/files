@@ -30,6 +30,7 @@ with Files.Model.Tree_Panel;
 with Files.Model.Pasting;
 with Files.Model.Rename;
 with Files.Model.Selection;
+with Files.Model.Label_Picker;
 with Files.Settings.Open_Actions;
 with Files.Settings.Path_References;
 with Files.Settings.Storage;
@@ -260,6 +261,94 @@ package body Files.Controller is
    begin
       Accepted := Commit (Model, Settings, Updated, Settings_Path).Accepted;
    end Commit_Settings;
+
+   function With_Folder_Favorite_Toggled
+     (Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Files.Settings.Settings_Model
+   is
+      Updated : Files.Settings.Settings_Model := Settings;
+   begin
+      if Files.Model.Current_Path (Model) /= "" then
+         Files.Settings.Path_References.Toggle_Favorite_Path (Updated, Files.Model.Current_Path (Model));
+      end if;
+      return Updated;
+   end With_Folder_Favorite_Toggled;
+
+   procedure Toggle_Folder_Favorite
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Accepted      : out Boolean) is
+   begin
+      Accepted := False;
+      if Files.Model.Input_Owning_Overlay_Is_Open (Model) then
+         return;
+      end if;
+      Commit_Settings
+        (Model, Settings, With_Folder_Favorite_Toggled (Model, Settings), Settings_Path, Accepted => Accepted);
+   end Toggle_Folder_Favorite;
+
+   procedure Label_Selection
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Label         : Files.Preference_Types.Color_Label;
+      Accepted      : out Boolean)
+   is
+      Updated : Files.Settings.Settings_Model := Settings;
+   begin
+      Files.Settings.Path_References.Set_Labels (Updated, Files.Model.Selection.Selected_Paths (Model), Label);
+      Files.Model.Label_Picker.Close (Model);
+      Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Accepted);
+   end Label_Selection;
+
+   procedure Set_Font_Size
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Size          : Positive;
+      Accepted      : out Boolean) is
+   begin
+      Accepted := False;
+      if Size /= Settings.Font_Pixel_Size then
+         Commit_Settings
+           (Model, Settings, (Settings with delta Font_Pixel_Size => Size), Settings_Path, Accepted => Accepted);
+      end if;
+   end Set_Font_Size;
+
+   procedure Resize_Column
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model;
+      Column   : Files.Preference_Types.Detail_Column;
+      Width    : Natural;
+      Changed  : out Boolean)
+   is
+      Updated : constant Files.Settings.Settings_Model := Files.Settings.With_Column_Width (Settings, Column, Width);
+   begin
+      Changed := Updated.Column_Widths (Column) /= Settings.Column_Widths (Column);
+      if Changed then
+         Settings := Updated;
+         Files.Model.Note_Settings_Changed (Model);
+      end if;
+   end Resize_Column;
+
+   procedure Reorder_Column
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Column        : Files.Preference_Types.Detail_Column;
+      To_Index      : Files.Preference_Types.Detail_Column_Index;
+      Accepted      : out Boolean)
+   is
+      use type Files.Preference_Types.Detail_Column_Order;
+      Updated : constant Files.Settings.Settings_Model := Files.Settings.With_Column_Order (Settings, Column, To_Index);
+   begin
+      Accepted := False;
+      if Updated.Column_Order /= Settings.Column_Order then
+         Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Accepted);
+      end if;
+   end Reorder_Column;
 
    procedure Persist_Settings
      (Model         : in out Files.Model.Window_Model;

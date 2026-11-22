@@ -62,4 +62,12 @@ package Files.Rendering.Testing is
       Rows_From : View_Snapshot)
       return View_Snapshot;
 
+   --  @param Snapshot Snapshot to inspect.
+   --  @param Overlay The overlay asked about.
+   --  @return True when the snapshot has Overlay open.
+   function Overlay_Open
+     (Snapshot : View_Snapshot;
+      Overlay  : Files.UI_Types.Input_Overlay)
+      return Boolean;
+
 end Files.Rendering.Testing;

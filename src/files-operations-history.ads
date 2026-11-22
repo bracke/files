@@ -31,12 +31,6 @@ package Files.Operations.History is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
-   --  Forget the entire undo and redo history, then delete the recovery
-   --  payloads it retained and save the history journal.
-   --
-   --  @param Model Model whose history is cleared.
-   procedure Clear_Undo (Model : in out Files.Model.Window_Model);
-
    --  End the history with its window: originals a paste replaced, kept in a
    --  hidden recovery folder only so Undo could put them back, go to the
    --  system trash under their own names instead of staying hidden there.

@@ -80,7 +80,7 @@ separate (Files_Suite.Rendering)
                Open (One, Stack (Upper));
                Assert
                  (Files.Rendering.Testing.Any_Overlay_Open (One)
-                    and then Files.Rendering.Overlay_Open (One, Stack (Upper)),
+                    and then Files.Rendering.Testing.Overlay_Open (One, Stack (Upper)),
                   Files.UI_Types.Input_Overlay'Image (Stack (Upper)) & " hides covered tooltips");
                Files_Suite.Support.Assert_Equal
                  (Files.Rendering.Topmost_Overlay_Position (One), Upper,

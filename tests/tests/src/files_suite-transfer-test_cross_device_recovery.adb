@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Transfer;
@@ -22,7 +23,7 @@ separate (Files_Suite.Transfer)
 
       procedure Unlock (Path : String) is
          Result : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Permissions.Set_Permissions (Path, 8#755#);
+           Files.File_System.Permissions.Testing.Set_Permissions (Path, 8#755#);
          pragma Unreferenced (Result);
       begin
          null;
@@ -54,7 +55,7 @@ separate (Files_Suite.Transfer)
       Files_Suite.Support.Guards.Save (Environment, "FILES_TRASH_BACKEND");
       Prepare_Tree;
       Assert
-        (Files.File_System.Permissions.Set_Permissions (Locked, 8#555#).Success,
+        (Files.File_System.Permissions.Testing.Set_Permissions (Locked, 8#555#).Success,
          "lock source deletion but permit copying");
       Paths.Append (To_Unbounded_String (Tree));
       Plans := Files.File_System.Transfer.Plan_Drop_Import (Paths, Remote.Path, Files.File_System_Types.Drop_Move);
@@ -74,7 +75,9 @@ separate (Files_Suite.Transfer)
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Remote.Path, "data"));
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Prepare_Tree;
-      Assert (Files.File_System.Permissions.Set_Permissions (Locked, 8#555#).Success, "lock the trash source deletion");
+      Assert
+        (Files.File_System.Permissions.Testing.Set_Permissions (Locked, 8#555#).Success,
+         "lock the trash source deletion");
       Result := Files.File_System.Trash.Move_To_Trash (Tree, Trashed);
       Assert (Result.Success and then not Ada.Directories.Exists (Tree),
               "read-only descendants do not cause partial source deletion during trash (success="
@@ -100,7 +103,7 @@ separate (Files_Suite.Transfer)
       Result := Files.File_System.Trash.Move_To_Trash (Tree, Trashed);
       Assert (Result.Success, "prepare a cross-device restore");
       Assert
-        (Files.File_System.Permissions.Set_Permissions (Join (To_String (Trashed), "locked"), 8#000#).Success,
+        (Files.File_System.Permissions.Testing.Set_Permissions (Join (To_String (Trashed), "locked"), 8#000#).Success,
          "make the restore fail after it begins copying");
       Result := Files.File_System.Trash.Restore_From_Trash (To_String (Trashed));
       Assert (not Result.Success, "a partial restore reports failure");

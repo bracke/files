@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Files.File_System.Transfer;
 separate (Files_Suite.Transfer)
    procedure Test_Copy_Access_Bits (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -17,12 +18,12 @@ separate (Files_Suite.Transfer)
          if Directory_Copy then
             Ada.Directories.Create_Directory (Source);
             Write_Binary_File (Join (Source, "run.sh"), "executable bytes");
-            Mutation := Files.File_System.Permissions.Set_Permissions (Join (Source, "run.sh"), 8#750#);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Join (Source, "run.sh"), 8#750#);
             Assert (Mutation.Success, "prepare nested executable");
          else
             Write_Binary_File (Source, "executable bytes");
          end if;
-         Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#750#);
+         Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#750#);
          Assert (Mutation.Success, "prepare source access bits");
          Mutation := Files.File_System.Transfer.Copy_Tree (Source, Dest);
          Mode := Files.File_System.Permissions.Permission_Bits_Of (Dest, Available);
@@ -41,7 +42,7 @@ separate (Files_Suite.Transfer)
       end loop;
       Reset_Root;
       Ada.Directories.Create_Directory (Source);
-      Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#7777#);
+      Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#7777#);
       Assert (Mutation.Success, "prepare sticky and privilege bits");
       Mutation := Files.File_System.Transfer.Copy_Tree (Source, Dest);
       Mode := Files.File_System.Permissions.Permission_Bits_Of (Dest, Available);

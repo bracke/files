@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Settings.Path_References.Testing;
 with Files.Item_Lists;
 with Files.Model.Filtering;
@@ -116,7 +117,11 @@ separate (Files_Suite.Rendering)
          Assert (Typed, "the rename field takes the text");
       end Rename_Type;
       procedure Info_Toggle is begin Files.Model.Info_Pane.Toggle_Info_Pane (Model); end Info_Toggle;
-      procedure Create_Start is begin Files.Model.Creation.Begin_Create_File (Model, "Untitled.txt"); end Create_Start;
+      procedure Create_Start is
+      begin
+         Files.Model.Creation.Begin_Create_File
+           (Model, "Untitled.txt", Files.File_Types.Default_Classification);
+      end Create_Start;
       procedure Create_Type is
          Typed : constant Boolean := Files.Model.Rename.Insert_At_Carets (Model, "x.png");
       begin

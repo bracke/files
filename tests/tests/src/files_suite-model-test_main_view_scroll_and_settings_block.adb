@@ -37,11 +37,11 @@ separate (Files_Suite.Model)
             Before,
             "holding an unmoved main scrollbar does not revise the model");
       end;
-      Result :=
+      Files_Suite.Support.Discard (
         Files.Controller.Execute_Non_Settings_Command
           (Files.Commands.Toggle_Settings_Pane_Command,
            Model,
-           Settings);
+           Settings));
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane opens over main view");
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Settings_Pane, 3);
       Files_Suite.Support.Assert_Equal
@@ -80,10 +80,10 @@ separate (Files_Suite.Model)
         (Files.Model.Main_View_Scroll_Lines (Model),
          0,
          "blocked PageDown leaves main view still");
-      Result :=
+      Files_Suite.Support.Discard (
         Files.Controller.Execute_Non_Settings_Command
           (Files.Commands.Toggle_Settings_Pane_Command,
            Model,
-           Settings);
+           Settings));
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "settings pane closes before command click checks");
    end Test_Main_View_Scroll_And_Settings_Block;

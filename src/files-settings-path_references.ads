@@ -190,6 +190,29 @@ package Files.Settings.Path_References is
       Hash                => Ada.Strings.Hash,
       Equivalent_Elements => "=");
 
+   --  How the paths a caller asks an index about are matched. Every path in
+   --  one folder lies on the folder's volume, so a caller asking about a
+   --  folder's items decides once, for the folder (Folding_In), instead of
+   --  each lookup asking the item's volume.
+   type Path_Folding is
+     (Ask_Each_Path,
+      --  Each path as its own volume folds names: for paths from anywhere
+      --  (the Recent view), or when nobody decided for the folder.
+      Match_Exactly,
+      --  Exactly as spelled: the folder's volume tells case apart (on a
+      --  host whose every volume folds, Windows, still folded).
+      Match_Folded);
+      --  Without regard to case: the folder's volume folds names.
+
+   --  How paths in Directory are matched: folded on every path on Windows,
+   --  as Directory's volume folds names on macOS (a volume query, so ask once
+   --  per folder), exactly elsewhere; Ask_Each_Path on macOS for "" (a view
+   --  of no one folder).
+   --
+   --  @param Directory The folder whose items will be asked about, or "".
+   --  @return The matching that folder's paths take.
+   function Folding_In (Directory : String) return Path_Folding;
+
    --  The favorites and labels of one settings model, hashed by path so a
    --  caller that asks about many paths (one view snapshot asks once per
    --  listed item) pays one lookup per path instead of a scan of both lists.
@@ -197,14 +220,19 @@ package Files.Settings.Path_References is
    type Path_Index is record
       Favorites : Path_Sets.Set;
       Labels    : Path_Label_Maps.Map;
+      --  How a path asked about is matched (Index_Paths' Folding).
+      Folding   : Path_Folding := Ask_Each_Path;
    end record;
 
    --  Index the favorites and labels of Settings by path.
    --
    --  @param Settings Settings model to index.
-   --  @return Index answering exactly as Is_Favorite and Label_Of on Settings do.
+   --  @param Folding How the paths later asked about are matched: the
+   --    folder's, from Folding_In, when they all lie in one folder.
+   --  @return Index answering as Is_Favorite and Label_Of on Settings do.
    function Index_Paths
-     (Settings : Settings_Model)
+     (Settings : Settings_Model;
+      Folding  : Path_Folding)
       return Path_Index;
 
    --  Report whether Path is a stored favorite, as Is_Favorite on the indexed

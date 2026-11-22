@@ -60,4 +60,16 @@ package Files.Refresh.Testing is
    --  @param Changed The watch reported a change.
    procedure Owe_Watch_Refresh (Pacer : in out Watch_Pacer; Changed : Boolean);
 
+   --  Whether a timed re-read may run: after a failed load once per
+   --  Load_Retry_Gap, otherwise always.
+   --
+   --  @param Pacer This window's pacing.
+   --  @param Now The current time.
+   --  @param Load_Failed The listing on screen failed to load.
+   --  @return True when the caller may re-read.
+   function Retry_Due
+     (Pacer       : in out Watch_Pacer;
+      Now         : Ada.Real_Time.Time;
+      Load_Failed : Boolean) return Boolean;
+
 end Files.Refresh.Testing;

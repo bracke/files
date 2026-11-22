@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Operations.Editing;
 with Files.Operations.History;
 with Files_Suite.Listings;
@@ -65,7 +66,7 @@ separate (Files_Suite.Operations)
          end loop;
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.History.Clear_Undo (Model);
+         Files.Operations.History.Testing.Clear_Undo (Model);
          Files.Model.Selection.Select_All_Visible (Model);
          Files.Operations.Undo_Recording.Testing.Count_Undo_Records (True);
          Files.Operations.Undo_Recording.Testing.Fake_Checkpoint_Clock (True, Advance_At);

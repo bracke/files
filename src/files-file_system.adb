@@ -229,26 +229,6 @@ package body Files.File_System is
       return Directory_Change_Result
    is separate;
 
-   function Make_Item
-     (Parent_Path : String;
-      Name        : String;
-      Kind        : Files.Types.Item_Kind;
-      Classes     : Files.File_Types.Classification)
-      return Directory_Item
-   is
-      Filetype : constant String := Files.File_Types.Detect_Filetype (Classes, Kind, Name);
-   begin
-      return
-        (Name        => To_Unbounded_String (Name),
-         Full_Path   => To_Unbounded_String (Hostkit.Fs.Join (Parent_Path, Name)),
-         Parent_Path => To_Unbounded_String (Parent_Path),
-         Hidden      => Entry_Is_Hidden (Name, Hostkit.Fs.Join (Parent_Path, Name)),
-         Kind        => Kind,
-         Filetype    => To_Unbounded_String (Filetype),
-         Icon_Id     => To_Unbounded_String (Files.File_Types.Icon_Id_For (Classes, Kind, Filetype)),
-         others      => <>);
-   end Make_Item;
-
    function Directory_Size
      (Path        : String;
       Max_Entries : Natural := 50_000;

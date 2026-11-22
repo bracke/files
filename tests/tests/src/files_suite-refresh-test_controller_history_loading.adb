@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.File_System.Roots.Testing;
 with Files.Model.Creation;
 with Files_Suite.Listings;
@@ -28,7 +29,8 @@ separate (Files_Suite.Refresh)
       Write_File (Join (First, "later.txt"));
       Load := Files_Suite.Listings.Load_Directory (First, Settings);
       Files.Model.Initialize (Model, First, Load.Items, First);
-      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
+      Files_Suite.Support.Discard
+        (Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings));
 
       Load := Files_Suite.Listings.Load_Directory (Second, Settings);
       Files.Model.Root_Selector.Open (Model, Files.File_System.Roots.Testing.Available_Roots);
@@ -37,7 +39,7 @@ separate (Files_Suite.Refresh)
         (Files.Model.Root_Selector.Count (Model),
          0,
          "direct navigation clears stale root selector entries");
-      Files.Model.Creation.Begin_Create_File (Model, "history-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "history-pending.txt", Files.File_Types.Default_Classification);
       Files.Model.Selection.Select_Visible (Model, 2);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -57,7 +59,8 @@ separate (Files_Suite.Refresh)
       Assert (not Files.Model.Rename.Is_Active (Model), "back clears rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model), Files.UI_Types.Focus_None, "back clears rename focus");
-      Files.Model.Creation.Begin_Create_File (Model, "forward-history-pending.txt");
+      Files.Model.Creation.Begin_Create_File
+        (Model, "forward-history-pending.txt", Files.File_Types.Default_Classification);
       Files.Model.Selection.Select_Visible (Model, 3);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
@@ -82,7 +85,8 @@ separate (Files_Suite.Refresh)
          "forward clears rename focus");
 
       Project_Tools.Files.Delete_Tree (First);
-      Files.Model.Creation.Begin_Create_File (Model, "failed-history-pending.txt");
+      Files.Model.Creation.Begin_Create_File
+        (Model, "failed-history-pending.txt", Files.File_Types.Default_Classification);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
@@ -132,7 +136,8 @@ separate (Files_Suite.Refresh)
          Files.UI_Types.Focus_Rename_Input,
          "failed forward restores rename focus");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Files.Model.Creation.Begin_Create_File (Model, "failed-forward-pending.txt");
+      Files.Model.Creation.Begin_Create_File
+        (Model, "failed-forward-pending.txt", Files.File_Types.Default_Classification);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal

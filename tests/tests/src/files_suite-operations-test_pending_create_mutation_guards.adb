@@ -1,3 +1,5 @@
+with Files.File_Types;
+with Files.Operations.History.Testing;
 with Files.Controller.Testing;
 with Files.Operations.Editing;
 with Files.Operations.History;
@@ -30,9 +32,9 @@ separate (Files_Suite.Operations)
             Write_Binary_File (Join (Root, "source.zip"), "not an archive");
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Operations.History.Clear_Undo (Model);
+            Files.Operations.History.Testing.Clear_Undo (Model);
             Files.Model.Jobs.Set_Background_Transfers (Model, Background);
-            Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
+            Files.Model.Creation.Begin_Create_File (Model, "pending.txt", Files.File_Types.Default_Classification);
             Files.Model.Selection.Toggle_Visible_Selection (Model, 1);
             Assert
               (Files.Model.Selection.Includes_Temporary (Model)
@@ -98,7 +100,7 @@ separate (Files_Suite.Operations)
       Write_Binary_File (Join (Join (Root, "inbox"), "incoming.txt"), "incoming");
       Load := Files_Suite.Listings.Load_Directory (Join (Root, "view"), Settings);
       Files.Model.Initialize (Model, Join (Root, "view"), Load.Items, Root);
-      Files.Model.Creation.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "pending.txt", Files.File_Types.Default_Classification);
       declare
          Sources : Files.Types.String_Vectors.Vector;
          Outcome : Files.Controller.Controller_Result;

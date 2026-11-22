@@ -36,24 +36,6 @@ package Files.Leaf_Names is
       return Boolean is
      (Length_Under (Name, Limit.Unit) > Limit.Most);
 
-   --  Name with Insert placed before its extension, its stem cut down as
-   --  Cut cuts so the whole measures at most Room. The extension -- from the
-   --  last dot, unless the name starts with that dot or it is longer than 32
-   --  bytes -- is kept whole; a name that fits as it is comes back unchanged
-   --  but for Insert.
-   --
-   --  @param Name A leaf name, UTF-8 encoded.
-   --  @param Room The most the result may measure (Length_Under).
-   --  @param Unit How the result is measured.
-   --  @param Insert Text placed between the stem and the extension.
-   --  @return The fitted name.
-   function Fit
-     (Name   : String;
-      Room   : Natural;
-      Unit   : Hostkit.Fs.Name_Length_Unit := Hostkit.Fs.Bytes;
-      Insert : String := "")
-      return String;
-
    --  How many names a search for a free one tries (First_Free) before it
    --  gives up: a folder holding this many numbered copies of one name is
    --  pathological, and every try may ask a disk.
@@ -140,6 +122,24 @@ package Files.Leaf_Names is
       return String;
 
 private
+
+   --  Name with Insert placed before its extension, its stem cut down as
+   --  Cut cuts so the whole measures at most Room. The extension -- from the
+   --  last dot, unless the name starts with that dot or it is longer than 32
+   --  bytes -- is kept whole; a name that fits as it is comes back unchanged
+   --  but for Insert.
+   --
+   --  @param Name A leaf name, UTF-8 encoded.
+   --  @param Room The most the result may measure (Length_Under).
+   --  @param Unit How the result is measured.
+   --  @param Insert Text placed between the stem and the extension.
+   --  @return The fitted name.
+   function Fit
+     (Name   : String;
+      Room   : Natural;
+      Unit   : Hostkit.Fs.Name_Length_Unit := Hostkit.Fs.Bytes;
+      Insert : String := "")
+      return String;
 
    --  Head cut down at a whole UTF-8 character, as little as needed, with
    --  Tail kept whole after it, so the result measures at most Room.

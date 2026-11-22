@@ -13,8 +13,8 @@ separate (Files_Suite.Commands)
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
-      Result := Files.Controller.Execute_Non_Settings_Command
-        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Files_Suite.Support.Discard (Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings));
       Files.Controller.Testing.Replace_Focused_Text (Model, "details");
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
       --  Opening the pane now focuses the first setting, not the preamble action
@@ -102,9 +102,9 @@ separate (Files_Suite.Commands)
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "scalar settings field ignores entry paging");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down));
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down));
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Down));
       declare
          Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       begin
@@ -139,7 +139,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Last_Error_Key (Model),
          "",
          "valid settings draft field validates on Return");
-      Result := Files.Controller.Execute_Non_Settings_Command
-        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Files_Suite.Support.Discard (Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings));
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "controller closes settings pane");
    end Test_Settings_Field_Keys;

@@ -6,8 +6,8 @@ separate (Files_Suite.Commands)
       Model    : Files.Model.Window_Model := Sample_Model;
       Result   : Files.Controller.Controller_Result;
    begin
-      Result := Files.Controller.Execute_Non_Settings_Command
-        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Files_Suite.Support.Discard (Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings));
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "controller opens the settings pane");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Close_Overlay_Command, Model, Settings);

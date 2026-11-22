@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Files.File_System.Permissions;
 with Files.Job_Drivers.Helpers.Testing;
@@ -234,7 +235,7 @@ separate (Files_Suite.Recovery)
          begin
             Add_Stage_Record
               ("stage-unreadable", Join (Root, Files.Protocol_Names.Work_Stage_Prefix & "missing"), "");
-            Result := Files.File_System.Permissions.Set_Permissions (Data, 0);
+            Result := Files.File_System.Permissions.Testing.Set_Permissions (Data, 0);
             Assert (Result.Success, "make a stage record temporarily unreadable");
             Outcome := Files.Jobs.Cleanup.Run
               (Transport, To_String (Transport_Identity),
@@ -244,7 +245,7 @@ separate (Files_Suite.Recovery)
                and then Ada.Directories.Exists
                  (Join (Join (Transport, "stages"), "stage-unreadable")),
                "one fallback pass keeps an unreadable stage record for later retry");
-            Result := Files.File_System.Permissions.Set_Permissions (Data, 8#600#);
+            Result := Files.File_System.Permissions.Testing.Set_Permissions (Data, 8#600#);
             Assert (Result.Success, "restore stage record access for cleanup");
          end;
       end if;

@@ -17,4 +17,19 @@ package Files.Leaf_Names.Testing is
       Unit : Hostkit.Fs.Name_Length_Unit := Hostkit.Fs.Bytes)
       return String;
 
+   --  Name with Insert placed before its extension, its stem cut down so the
+   --  whole measures at most Room.
+   --
+   --  @param Name A leaf name, UTF-8 encoded.
+   --  @param Room The most the result may measure (Length_Under).
+   --  @param Unit How the result is measured.
+   --  @param Insert Text placed between the stem and the extension.
+   --  @return The fitted name.
+   function Fit
+     (Name   : String;
+      Room   : Natural;
+      Unit   : Hostkit.Fs.Name_Length_Unit := Hostkit.Fs.Bytes;
+      Insert : String := "")
+      return String;
+
 end Files.Leaf_Names.Testing;

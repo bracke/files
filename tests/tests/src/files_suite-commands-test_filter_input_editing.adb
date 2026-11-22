@@ -42,12 +42,12 @@ separate (Files_Suite.Commands)
          Files.Controller.Controller_Text_Updated,
          "filter click updates text cursor");
       Files_Suite.Support.Assert_Equal (Files.Model.Text_Cursor_Position (Model), 2, "filter click positions cursor");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Escape));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_None,
          "filter Escape clears focus before refocus");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_Filter_Input,
@@ -66,7 +66,7 @@ separate (Files_Suite.Commands)
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "same filter cursor click is ignored");
-      Result := Files.Controller.Append_Focused_Text (Model, "X");
+      Files_Suite.Support.Discard (Files.Controller.Append_Focused_Text (Model, "X"));
       Files_Suite.Support.Assert_Equal (Files.Model.Filtering.Filter_Text (Model), "beXta",
                                         "filter insert uses cursor position");
       Files_Suite.Support.Assert_Equal
@@ -103,7 +103,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Filtering.Filter_Text (Model),
          "bea",
          "filter Delete removes character at cursor");
-      Result := Files.Controller.Append_Focused_Text (Model, "t");
+      Files_Suite.Support.Discard (Files.Controller.Append_Focused_Text (Model, "t"));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Filtering.Filter_Text (Model),
          "beta",
@@ -140,7 +140,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Filtering.Filter_Text (Model),
          "beta",
          "filter Backspace at start leaves text unchanged");
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_End);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_End));
       Files_Suite.Support.Assert_Equal (Files.Model.Text_Cursor_Position (Model), 4, "filter End moves cursor to end");
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_End);
       Files_Suite.Support.Assert_Equal

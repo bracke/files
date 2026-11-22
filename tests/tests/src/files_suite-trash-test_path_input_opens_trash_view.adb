@@ -19,6 +19,7 @@ separate (Files_Suite.Trash)
          Write_File (Join (Root, "path-input-trash.txt"));
          Assert (Files.File_System.Trash.Move_To_Trash (Join (Root, "path-input-trash.txt"), Trashed).Success,
                  "something is in the trash");
+         Assert (Ada.Strings.Unbounded.Length (Trashed) > 0, "the trash names where it went");
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Model.Set_Path_Input_Text (Model, Files.File_System.Trash.Trash_Files_Directory);
          Result := Files.Operations.Navigation.Commit_Path_Input (Model, Settings);

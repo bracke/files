@@ -23,7 +23,7 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "info pane opens without a selection");
       --  Close it again, then reopen with a selection so the rest of the
       --  scenario starts from an open, selection-backed info pane.
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl));
       Assert (not Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "a second Control+4 closes the info pane");
       Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
@@ -95,7 +95,7 @@ separate (Files_Suite.Model)
          0,
          "large negative info scroll clamps to top");
 
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          10,

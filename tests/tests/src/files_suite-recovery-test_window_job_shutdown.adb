@@ -1,3 +1,4 @@
+with Files.Jobs.Process.Testing;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -43,7 +44,7 @@ separate (Files_Suite.Recovery)
       begin
          Files.Jobs.Process.Reserve (Job);
          Marker := To_Unbounded_String (Files.Jobs.Process.Path (Job, "started"));
-         Files.Jobs.Process.Launch (Job, "--files-test-blocked");
+         Files.Jobs.Process.Testing.Launch (Job, "--files-test-blocked");
          Await_Started (To_String (Marker));
          Files.Model.Jobs.Begin_Operation_Job (Model, Job, "command.file.duplicate");
          Files.Jobs.Process.Reset (Job); --  The window is now its helper's only owner.

@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Operations.Editing;
 with Files.Model.Creation;
 with Files.Operation_Results;
@@ -11,7 +12,7 @@ separate (Files_Suite.Names)
    begin
       Reset_Root;
       Files.Model.Initialize (Model, Root, Items, Root);
-      Files.Model.Creation.Begin_Create_File (Model, "");
+      Files.Model.Creation.Begin_Create_File (Model, "", Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -23,7 +24,7 @@ separate (Files_Suite.Names)
          "empty create records invalid name");
 
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, ".");
+      Files.Model.Creation.Begin_Create_File (Model, ".", Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -31,7 +32,7 @@ separate (Files_Suite.Names)
          "create rejects dot names");
 
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, "..");
+      Files.Model.Creation.Begin_Create_File (Model, "..", Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -39,7 +40,7 @@ separate (Files_Suite.Names)
          "create rejects parent-directory names");
 
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, "bad/name.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "bad/name.txt", Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -62,7 +63,7 @@ separate (Files_Suite.Names)
       --  the host-gated behaviour is covered directly in Test_Leaf_Name_Rules
       --  rather than through the create operation here.
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, "trailing-space.txt ");
+      Files.Model.Creation.Begin_Create_File (Model, "trailing-space.txt ", Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -73,7 +74,7 @@ separate (Files_Suite.Names)
          "invalid trailing-space create writes no file");
 
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, NBSP_Name);
+      Files.Model.Creation.Begin_Create_File (Model, NBSP_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -82,7 +83,7 @@ separate (Files_Suite.Names)
       Assert (not Ada.Directories.Exists (Join (Root, NBSP_Name)), "invalid NBSP-only create writes no file");
 
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, Trailing_NBSP_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Trailing_NBSP_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -93,7 +94,8 @@ separate (Files_Suite.Names)
          "invalid trailing NBSP create writes no file");
 
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, Trailing_Ideographic_Name);
+      Files.Model.Creation.Begin_Create_File
+        (Model, Trailing_Ideographic_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -106,7 +108,7 @@ separate (Files_Suite.Names)
       --  Reserved device names (CON, LPT1, CONIN$ and space-padded variants) are
       --  rejected only under Windows rules; Test_Leaf_Name_Rules covers that.
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, Nul_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Nul_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -122,7 +124,7 @@ separate (Files_Suite.Names)
          "create NUL name records error");
 
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, Tab_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Tab_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -130,7 +132,7 @@ separate (Files_Suite.Names)
          "create rejects control-character names");
 
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, C1_Name);
+      Files.Model.Creation.Begin_Create_File (Model, C1_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -138,7 +140,7 @@ separate (Files_Suite.Names)
          "create rejects C1 control-character names");
 
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, Encoded_C1_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Encoded_C1_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -146,7 +148,7 @@ separate (Files_Suite.Names)
          "create rejects UTF-8 encoded C1 control-character names");
 
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, Truncated_UTF8_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Truncated_UTF8_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -154,7 +156,7 @@ separate (Files_Suite.Names)
          "create rejects truncated UTF-8 names");
 
       Files.Model.Testing.Cancel_Create_File (Model);
-      Files.Model.Creation.Begin_Create_File (Model, Overlong_UTF8_Name);
+      Files.Model.Creation.Begin_Create_File (Model, Overlong_UTF8_Name, Files.File_Types.Default_Classification);
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

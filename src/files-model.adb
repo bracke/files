@@ -296,6 +296,11 @@ package body Files.Model is
       Model.Filter.Cursor := 0;
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
+      --  A model met again (Model is by reference) keeps no typed prefix or
+      --  range anchor of the folder it showed before.
+      Model.Type_Ahead_Buffer_Value := Null_Unbounded_String;
+      Model.Range_Anchor_Path := Null_Unbounded_String;
+      Model.Range_Anchor_Item := 0;
       Model.View_Value := Default_View_Mode;
       Model.Sort_Field_Value := Files.Types.Sort_Name;
       Model.Sort_Ascending := True;

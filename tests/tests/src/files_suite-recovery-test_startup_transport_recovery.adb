@@ -1,3 +1,4 @@
+with Files.Jobs.Scavenger.Testing;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
@@ -29,10 +30,10 @@ separate (Files_Suite.Recovery)
       --  A scan or retry left by an earlier test would reclaim this test's
       --  fixtures before its own coordinator could.
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         exit when Files.Jobs.Scavenger.Idle;
+         exit when Files.Jobs.Scavenger.Testing.Idle;
       end loop;
       Assert
-        (Files.Jobs.Scavenger.Idle,
+        (Files.Jobs.Scavenger.Testing.Idle,
          "no earlier recovery scan is still running: " & Files.Jobs.Scavenger.Testing.Busy_Reason);
       Reset_Root;
       Files.Jobs.Process.Reserve (Active);
@@ -199,10 +200,11 @@ separate (Files_Suite.Recovery)
       --  The repeated scan runs once the first coordinator ends; it is this
       --  test's to wait out, not the next one's.
       for Attempt in Files_Suite.Support.Timing.Polling loop
-         exit when Files.Jobs.Scavenger.Idle;
+         exit when Files.Jobs.Scavenger.Testing.Idle;
       end loop;
       Assert
-        (Files.Jobs.Scavenger.Idle, "the repeated scan has finished: " & Files.Jobs.Scavenger.Testing.Busy_Reason);
+        (Files.Jobs.Scavenger.Testing.Idle,
+         "the repeated scan has finished: " & Files.Jobs.Scavenger.Testing.Busy_Reason);
    exception
       when others =>
          Restore;

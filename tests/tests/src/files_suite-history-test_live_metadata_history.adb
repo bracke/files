@@ -1,3 +1,5 @@
+with Files.Operations.History.Testing;
+with Files.File_System.Permissions.Testing;
 with Files.Model.Jobs;
 with Files.Operations.Metadata.Testing;
 with Files.Operations.History;
@@ -30,14 +32,14 @@ separate (Files_Suite.History)
          for Toggle in Boolean loop
             Reset_Root;
             Write_Binary_File (Source, "owned bytes");
-            Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#644#);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#644#);
             Assert (Mutation.Success, "prepare cached permissions");
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Operations.History.Clear_Undo (Model);
+            Files.Operations.History.Testing.Clear_Undo (Model);
             Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Select_Name (Model, "live-source");
-            Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#600#);
+            Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Source, 8#600#);
             Assert (Mutation.Success, "simulate a permission change after the directory listing");
             Step := (if Toggle then Files.Operations.Metadata.Toggle_Permission_Bit (Model, 8, Settings)
                      else Files.Operations.Metadata.Testing.Set_Permissions_For (Model, 8#750#, Settings));
@@ -68,7 +70,7 @@ separate (Files_Suite.History)
                Load.Items.Replace_Element (Load.Items.First_Index, Item);
             end;
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Operations.History.Clear_Undo (Model);
+            Files.Operations.History.Testing.Clear_Undo (Model);
             Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Select_Name (Model, "live-source");
             Step := Files.Operations.Metadata.Testing.Set_Ownership_For (Model, Uid, Gid, Settings);

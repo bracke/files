@@ -77,10 +77,10 @@ separate (Files_Suite.Operations)
         (Guikit.Draw.Parse_Icon_Asset (Guikit.Draw.Icon_Asset_Text ("folder", "files-basic")).Valid,
          "the files icon source is installed in Guikit.Draw");
       Files_Suite.Support.Assert_Equal
-        (Files.Icon_Assets.Icon_Asset ("markdown", "files-high-contrast"),
+        (Files.Icon_Assets.Testing.Icon_Asset ("markdown", "files-high-contrast"),
          Files.Icon_Assets.Testing.Builtin_Icon_Asset ("markdown", "files-high-contrast"),
          "the source serves the bundled definition");
       Assert
-        (Files.Icon_Assets.Icon_Asset ("not-an-icon", "") = "",
+        (Files.Icon_Assets.Testing.Icon_Asset ("not-an-icon", "") = "",
          "the source has no definition for an icon files does not ship");
    end Test_Builtin_Icons_Match_Share;

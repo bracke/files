@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Snapshot_Policy.Settings_Keys.Testing;
 with Files.Settings.Path_References.Testing;
 with Files.Model.Creation;
@@ -199,10 +200,18 @@ separate (Files_Suite.Rendering)
          Files.Model.Rename.Toggle (Model);
 
          --  In a grouped view the create row's name decides its band. By
-         --  type it stays in its band (a new file is plain text whatever it
-         --  is called): its typing is patched like any rename.
-         Files.Model.Creation.Begin_Create_File (Model, "untitled.txt");
+         --  type, typing that keeps its type keeps its band and is patched
+         --  like any rename; a name of another type (the row is typed as a
+         --  listing of that name would be) moves it, which rebuilds the rows.
+         Files.Model.Creation.Begin_Create_File (Model, "untitled", Files.File_Types.Default_Classification);
          Check_Rename ("grouped new file name typing", Type_Text'Access);
+         declare
+            Rows : constant Natural := Files.Model.Rows_Revision (Model);
+         begin
+            Files.Model.Rename.Set_Text (Model, "untitled.png");
+            Assert (Files.Model.Rows_Revision (Model) /= Rows,
+                    "a new file name of another type rebuilds the rows grouped by type");
+         end;
          Files.Model.Rename.Toggle (Model);
 
          --  By label a name that takes another label moves it to another
@@ -212,7 +221,7 @@ separate (Files_Suite.Rendering)
            (Settings, Hostkit.Fs.Join (Files.Model.Current_Path (Model), "labelled.txt"), Files.Preference_Types.Red);
          Settings.Group_By := Files.Preference_Types.Group_By_Label;
          Files.Model.Sync_Grouping (Model, Settings);
-         Files.Model.Creation.Begin_Create_File (Model, "untitled.txt");
+         Files.Model.Creation.Begin_Create_File (Model, "untitled.txt", Files.File_Types.Default_Classification);
          Check_Rename ("labelled grouping, unlabelled name", Replace'Access);
          declare
             Rows : constant Natural := Files.Model.Rows_Revision (Model);
@@ -226,7 +235,7 @@ separate (Files_Suite.Rendering)
 
          Settings.Group_By := Files.Preference_Types.No_Grouping;
          Files.Model.Sync_Grouping (Model, Settings);
-         Files.Model.Creation.Begin_Create_File (Model, "untitled.txt");
+         Files.Model.Creation.Begin_Create_File (Model, "untitled.txt", Files.File_Types.Default_Classification);
          Check_Rename ("new file name typing", Type_Text'Access);
          Check_Rename ("new file name delete", Erase'Access);
          Files.Model.Rename.Toggle (Model);

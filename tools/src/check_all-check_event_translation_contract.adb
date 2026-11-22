@@ -170,7 +170,13 @@ separate (Check_All)
         ("files-model", "Files.Settings.Path_References",
          [To_Unbounded_String ("Path_Labels"),
           To_Unbounded_String ("Same_Labels"),
-          To_Unbounded_String ("Recent_Paths")],
+          To_Unbounded_String ("Recent_Paths"),
+          --  How the current folder's paths match, as the window sampled
+          --  it (Status_Samples.Name_Folding): an answer kept, not asked.
+          To_Unbounded_String ("Path_Folding"),
+          To_Unbounded_String ("Ask_Each_Path"),
+          To_Unbounded_String ("Match_Exactly"),
+          To_Unbounded_String ("Match_Folded")],
          "the model only reads the stored labels and recent list");
       Require_Only_Names_From
         ("files-model", "Files.Desktop_Applications",

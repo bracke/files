@@ -27,9 +27,9 @@ separate (Files_Suite.Commands)
       --  at 3 across both shift-clicks so the range grows to {3..9}; the bug this
       --  guards against reused the moved cursor as the anchor, collapsing the
       --  second shift-click to {6..9}.
-      Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 3);
-      Result :=
-        Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 6, Modifiers => Shift);
+      Files_Suite.Support.Discard (Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 3));
+      Files_Suite.Support.Discard (
+        Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 6, Modifiers => Shift));
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Count (Model),
          4,
@@ -60,7 +60,7 @@ separate (Files_Suite.Commands)
       declare
          Matched : Boolean;
       begin
-         Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 2);
+         Files_Suite.Support.Discard (Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 2));
          Files.Model.Selection.Type_Ahead_Input (Model, "05", Matched);
          Assert (Matched, "typing 05 finds 05.txt");
          Files_Suite.Support.Assert_Equal

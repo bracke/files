@@ -16,4 +16,6 @@ package body Files.Folder_Size.Testing is
 
    function Helper_Starts return Natural is (Test_Helper_Starts);
 
+   function Is_Active (Scan : Session) return Boolean renames Files.Folder_Size.Is_Active;
+
 end Files.Folder_Size.Testing;

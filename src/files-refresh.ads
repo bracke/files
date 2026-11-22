@@ -75,18 +75,6 @@ package Files.Refresh is
    --  How long a listing that failed to load waits before the next try.
    Load_Retry_Gap : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (30);
 
-   --  Whether a timed re-read may run. After a failed load it may, once per
-   --  Load_Retry_Gap; otherwise always.
-   --
-   --  @param Pacer This window's pacing.
-   --  @param Now The current time.
-   --  @param Load_Failed The listing on screen failed to load.
-   --  @return True when the caller may re-read.
-   function Retry_Due
-     (Pacer       : in out Watch_Pacer;
-      Now         : Ada.Real_Time.Time;
-      Load_Failed : Boolean) return Boolean;
-
    --  What a window's watch poll does this pass.
    type Watch_Step_Action is
      (Watch_Wait,
@@ -149,6 +137,18 @@ package Files.Refresh is
    function Load_Recent_Items (Settings : Files.Settings.Settings_Model) return Files.Items.Item_Vectors.Vector;
 
 private
+
+   --  Whether a timed re-read may run. After a failed load it may, once per
+   --  Load_Retry_Gap; otherwise always.
+   --
+   --  @param Pacer This window's pacing.
+   --  @param Now The current time.
+   --  @param Load_Failed The listing on screen failed to load.
+   --  @return True when the caller may re-read.
+   function Retry_Due
+     (Pacer       : in out Watch_Pacer;
+      Now         : Ada.Real_Time.Time;
+      Load_Failed : Boolean) return Boolean;
 
    --  Whether to refresh now for the watch. A change seen while the last
    --  refresh is too recent is owed, and a later call pays it, so the last

@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Model.Jobs;
 with Files.Operations.History;
 with Files.Operations.Paste;
@@ -47,7 +48,7 @@ separate (Files_Suite.Transfer)
          Paths.Append (To_Unbounded_String (Join (Source, "third")));
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Operations.History.Clear_Undo (Model);
+         Files.Operations.History.Testing.Clear_Undo (Model);
          Files.Model.Jobs.Set_Background_Transfers (Model, Background);
          Step :=
            Complete_Operation (Model, Settings, Files.Operations.Paste.Begin_Paste_To (Model, Settings, Paths, Parent));
@@ -89,7 +90,8 @@ separate (Files_Suite.Transfer)
             Files.Operation_Results.Operation_Success,
             "Redo the copied hard-link batch");
          Check;
-         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
+         Files_Suite.Support.Discard
+           (Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings)));
          Await_View (Model, Settings);
          Write_Binary_File (Join (Parent, "second"), "unrelated replacement");
          Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
@@ -105,7 +107,8 @@ separate (Files_Suite.Transfer)
             Files.Operation_Results.Operation_Success,
             "retry a partially completed hard-link Redo");
          Check;
-         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
+         Files_Suite.Support.Discard
+           (Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings)));
          Await_View (Model, Settings);
          Write_Binary_File (Join (Parent, "second"), "retry obstruction");
          Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));

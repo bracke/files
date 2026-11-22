@@ -12,6 +12,7 @@ with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
 
 with Files.File_System_Types;
+with Files.File_Types;
 private with Files.Folder_Tree;
 private with Files.Folder_Size;
 private with Files.Quick_Look;
@@ -988,6 +989,10 @@ private
       Active       : Boolean := False;
       Is_Directory : Boolean := False;
       Name         : UString;
+      --  The maps the row's type and icon are worked out by, as the listing
+      --  it joins is classified (the settings' when the creation began, and
+      --  again when they change: Reapply_Listing_Settings).
+      Classes      : Files.File_Types.Classification;
    end record;
 
    --  A discarded background read whose reload is still owed, the view
@@ -1117,6 +1122,14 @@ private
       Space   : Files.File_System_Types.Volume_Space;
       Path    : UString;
       Sampled : Ada.Calendar.Time;
+   end record;
+
+   --  Whether the volume of the folder Path names fold case, as the window
+   --  layer asked it once for that folder. Every default is the unsampled
+   --  state.
+   type Name_Folding_Sample is record
+      Path  : UString;
+      Folds : Boolean := False;
    end record;
 
    --  The grouping the items are ordered by: the effective mode, the labels
@@ -1297,6 +1310,8 @@ private
       Host_Sample : Host_Sample_State;
       --  The volume-space sample (Set_Volume_Space).
       Volume_Sample : Volume_Sample_State;
+      --  How the current folder's paths are matched (Set_Name_Folding).
+      Name_Folding : Name_Folding_Sample;
       Account_Names         : Account_Names_State;
       --  The grouping the items are ordered by (Sync_Grouping).
       Grouping : Grouping_State;

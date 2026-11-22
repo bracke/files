@@ -125,4 +125,9 @@ package body Files.Refresh.Testing is
 
    procedure Owe_Watch_Refresh (Pacer : in out Watch_Pacer; Changed : Boolean) renames Files.Refresh.Owe_Watch_Refresh;
 
+   function Retry_Due
+     (Pacer       : in out Watch_Pacer;
+      Now         : Ada.Real_Time.Time;
+      Load_Failed : Boolean) return Boolean renames Files.Refresh.Retry_Due;
+
 end Files.Refresh.Testing;

@@ -1,3 +1,4 @@
+with Files.File_System.Permissions.Testing;
 with Hostkit.Fs;
 with Files.IO.Fs_Primitives;
 with Files.File_System.Permissions;
@@ -23,7 +24,7 @@ separate (Files_Suite.Recovery)
          Reset_Root;
          return;
       end if;
-      Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 0);
+      Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Locked, 0);
       Assert (Mutation.Success, "the folder is made unsearchable");
       if Mutation.Success then
          begin
@@ -51,12 +52,12 @@ separate (Files_Suite.Recovery)
               ("Test_An_Unsearchable_Entry_Is_Not_Absent",
                "this host answers for an entry in a folder that may not be searched");
          end if;
-         Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
+         Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Locked, 8#755#);
          Assert (Mutation.Success, "the folder is opened again");
       end if;
       Reset_Root;
    exception
       when others =>
-         Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
+         Mutation := Files.File_System.Permissions.Testing.Set_Permissions (Locked, 8#755#);
          raise;
    end Test_An_Unsearchable_Entry_Is_Not_Absent;

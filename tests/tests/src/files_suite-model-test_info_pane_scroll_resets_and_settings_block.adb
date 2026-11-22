@@ -12,7 +12,7 @@ separate (Files_Suite.Model)
       Ctrl (Guikit.Input.Control_Key) := True;
       --  Start from an open, selection-backed, unscrolled info pane.
       Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl));
 
       Files.Model.Info_Pane.Scroll_Info_Pane (Model, Lines => 3);
       Files_Suite.Support.Assert_Equal
@@ -42,11 +42,11 @@ separate (Files_Suite.Model)
         (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "clear selection resets info pane scroll");
-      Result :=
+      Files_Suite.Support.Discard (
         Files.Controller.Execute_Non_Settings_Command
           (Files.Commands.Toggle_Settings_Pane_Command,
            Model,
-           Settings);
+           Settings));
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane opens over info pane");
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Input_Actions.Scroll_Settings_Pane, 3);
       Files_Suite.Support.Assert_Equal
@@ -85,10 +85,10 @@ separate (Files_Suite.Model)
         (Files.Model.Info_Pane.Info_Pane_Scroll_Lines (Model),
          0,
          "blocked PageDown leaves info pane still");
-      Result :=
+      Files_Suite.Support.Discard (
         Files.Controller.Execute_Non_Settings_Command
           (Files.Commands.Toggle_Settings_Pane_Command,
            Model,
-           Settings);
+           Settings));
       Assert (not Files.Model.Settings_Pane.Is_Open (Model), "settings pane closes after scroll block checks");
    end Test_Info_Pane_Scroll_Resets_And_Settings_Block;

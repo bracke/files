@@ -1,3 +1,4 @@
+with Files.Operations.History.Testing;
 with Files.Model.Jobs;
 with Files.Operations.History;
 with Files.File_System.Transfer;
@@ -40,7 +41,7 @@ separate (Files_Suite.History)
             end case;
             Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Operations.History.Clear_Undo (Model);
+            Files.Operations.History.Testing.Clear_Undo (Model);
             Files.Model.Jobs.Set_Background_Transfers (Model, Background);
             Select_Name (Model, "original");
             Step := Complete_Operation (Model, Settings, Operation_Commands.Duplicate_Selected (Model, Settings));
@@ -82,7 +83,8 @@ separate (Files_Suite.History)
               (Step.Status,
                Files.Operation_Results.Operation_Success,
                "Undo uses the new identity recorded by Redo");
-            Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
+            Files_Suite.Support.Discard
+              (Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings)));
             Await_View (Model, Settings);
             Assert (Hostkit.Fs.Move_No_Replace (Dest, Old_Dest), "retain the original inode at another path");
             Mutation := Files.File_System.Transfer.Copy_Tree (Source, Dest);

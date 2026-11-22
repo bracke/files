@@ -12,4 +12,9 @@ package Files.Jobs.Scavenger.Testing is
    --  @return True once a report for it was made.
    function Was_Reported (Directory : String) return Boolean;
 
+   --  True when no scan is queued, none is running and no retry is
+   --  scheduled: a test creating recovery fixtures waits for this first.
+   --  @return Whether recovery is quiet.
+   function Idle return Boolean;
+
 end Files.Jobs.Scavenger.Testing;

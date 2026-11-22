@@ -1,3 +1,4 @@
+with Files.Jobs.Process.Testing;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
@@ -51,8 +52,8 @@ separate (Files_Suite.Recovery)
       Remove (Held);
       Files.Jobs.Process.Reserve (Job);
       begin
-         Files.Jobs.Process.Launch (Job, "--files-test-blocked");
-         Files.Jobs.Process.Launch (Job, "--files-test-blocked");
+         Files.Jobs.Process.Testing.Launch (Job, "--files-test-blocked");
+         Files.Jobs.Process.Testing.Launch (Job, "--files-test-blocked");
       exception
          when Ada.Directories.Use_Error => Rejected := True;
       end;
@@ -179,7 +180,7 @@ separate (Files_Suite.Recovery)
       Assert (Status.State = Hostkit.Spawn.Wait_Exited, "the paused creator exits after release: exited");
       Files_Suite.Support.Assert_Equal (Status.Exit_Code, 0, "the paused creator exits after release: exit code");
       Hostkit.Spawn.Release (Child);
-      Found := Files.Jobs.Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
+      Files_Suite.Support.Discard (Files.Jobs.Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False));
       Assert (not Ada.Directories.Exists (Held), "recovery reclaims the creator after its lock closes");
 
       --  Simulate a failed witness unlink after a successful publication,

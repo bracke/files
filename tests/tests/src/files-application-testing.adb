@@ -10,14 +10,6 @@ package body Files.Application.Testing is
 
    function Version_Text return String renames Files.Application.Version_Text;
 
-   function Default_Settings_Path
-     (Home_Path : String)
-      return String renames Files.Application.Default_Settings_Path;
-
-   function Configured_Settings_Path
-     (Home_Path : String)
-      return String renames Files.Application.Configured_Settings_Path;
-
    function Resolve_Startup
      (Arguments     : String_Vectors.Vector;
       Settings_Path : String := "")
@@ -44,5 +36,7 @@ package body Files.Application.Testing is
       Height : Natural := Files.Rendering.Layouts.Default_Window_Height;
       Locale : String := "en")
       return String renames Files.Application.Runtime_Smoke_Report;
+
+   function Home_Directory return String renames Files.Application.Home_Directory;
 
 end Files.Application.Testing;

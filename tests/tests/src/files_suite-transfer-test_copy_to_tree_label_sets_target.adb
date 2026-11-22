@@ -21,7 +21,8 @@ separate (Files_Suite.Transfer)
       Files.Model.Initialize (Model, Src_Dir, Load.Items, Root);
       Select_Name (Model, "a.txt");
 
-      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings);
+      Files_Suite.Support.Discard
+        (Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings));
       Assert (Files.Model.Tree_Panel.Pick_Is_Active (Model), "the picker is active after the command");
 
       --  Reseed the tree with the destination as its only node so the label

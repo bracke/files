@@ -11,7 +11,7 @@ separate (Files_Suite.Model)
       Ctrl (Guikit.Input.Control_Key) := True;
       --  Start from an open info pane with nothing selected.
       Files.Model.Selection.Move (Model, Guikit.Input.Move_Right);
-      Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
+      Files_Suite.Support.Discard (Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl));
       Files.Model.Selection.Clear (Model);
 
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_2, Ctrl);
@@ -63,8 +63,8 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "info-pane click toggles open");
       --  Restore the closed state expected by the following command click
       --  checks.
-      Result :=
-        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
+      Files_Suite.Support.Discard (
+        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings));
       Assert (not Files.Model.Info_Pane.Info_Pane_Is_Open (Model), "a second info-pane click closes the pane again");
 
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Details_Command, Model, Settings);

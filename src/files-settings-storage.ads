@@ -9,6 +9,19 @@
 --  merged-in settings into the open pane and listing).
 package Files.Settings.Storage is
 
+   --  The settings file this user's settings live in: FILES_SETTINGS when
+   --  set; otherwise under XDG_CONFIG_HOME when it is set (an absolute path,
+   --  on every host: a user who exported it meant it); otherwise an existing
+   --  ~/.config/files/settings.conf, so a file written there before is not
+   --  orphaned; otherwise the host's configuration folder (Hostkit), for the
+   --  host's own user's home.
+   --
+   --  @param Home_Path Home directory path.
+   --  @return Configured settings file path.
+   function Configured_Settings_Path
+     (Home_Path : String)
+      return String;
+
    --  The result of a settings write refused because the settings would be
    --  too big to load again.
    --
@@ -21,27 +34,6 @@ package Files.Settings.Storage is
    --  @param Settings_Path Central settings file path.
    --  @return A successful, durable result.
    function Unchanged_Result (Settings_Path : String) return Settings_Write_Result;
-
-   --  The one place settings are written. An empty path turns persistence
-   --  off (smoke runs, tests): the settings apply in memory and count as
-   --  saved. A session whose settings file could not be loaded refuses to
-   --  write it: the change applies in memory and the result says it was not
-   --  saved. The shortcut overrides written are Settings' own (the caller
-   --  stores the live keymap into them). What another process wrote to the
-   --  file since this one saw it is taken into Settings first
-   --  (Merge_From_File), its shortcuts included, for the caller to put in
-   --  force; a file
-   --  changed into one this build cannot load is not written over, nor is a
-   --  merge that would make it too big to load (Settings then stay as they
-   --  were).
-   --
-   --  @param Settings_Path Central settings file path (empty disables persistence).
-   --  @param Settings Settings to write; takes in another process's changes.
-   --  @return The write's result.
-   function Write
-     (Settings_Path : String;
-      Settings      : in out Settings_Model)
-      return Settings_Write_Result;
 
    --  Save already-applied settings: settings that would not load again are
    --  not written (Full_Result); otherwise Write.
@@ -110,6 +102,35 @@ package Files.Settings.Storage is
    procedure Note_Seen_Settings (Path : String; Settings : Settings_Model);
 
 private
+
+   --  Configured_Settings_Path without the FILES_SETTINGS override.
+   --
+   --  @param Home_Path Home directory path.
+   --  @return Default settings file path.
+   function Default_Settings_Path
+     (Home_Path : String)
+      return String;
+
+   --  The one place settings are written. An empty path turns persistence
+   --  off (smoke runs, tests): the settings apply in memory and count as
+   --  saved. A session whose settings file could not be loaded refuses to
+   --  write it: the change applies in memory and the result says it was not
+   --  saved. The shortcut overrides written are Settings' own (the caller
+   --  stores the live keymap into them). What another process wrote to the
+   --  file since this one saw it is taken into Settings first
+   --  (Merge_From_File), its shortcuts included, for the caller to put in
+   --  force; a file
+   --  changed into one this build cannot load is not written over, nor is a
+   --  merge that would make it too big to load (Settings then stay as they
+   --  were).
+   --
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Settings Settings to write; takes in another process's changes.
+   --  @return The write's result.
+   function Write
+     (Settings_Path : String;
+      Settings      : in out Settings_Model)
+      return Settings_Write_Result;
 
    --  Write settings text to Path, creating parent directories as needed.
    --

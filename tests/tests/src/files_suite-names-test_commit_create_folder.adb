@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Operations.Editing;
 with Files.Model.Creation;
 with Files.Operation_Results;
@@ -12,7 +13,7 @@ separate (Files_Suite.Names)
       Reset_Root;
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Set_Error (Model, "error.file.create");
-      Files.Model.Creation.Begin_Create_Folder (Model, "created-folder");
+      Files.Model.Creation.Begin_Create_Folder (Model, "created-folder", Files.File_Types.Default_Classification);
       Assert (Files.Model.Creation.Temporary_Item_Is_Directory (Model),
               "create-folder marks temporary item as directory");
       Result := Files.Operations.Editing.Commit_Create_File (Model, Settings);

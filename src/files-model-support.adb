@@ -210,16 +210,12 @@ package body Files.Model.Support is
    end Temporary_Is_Visible;
 
    function Temporary_Item (Model : Window_Model) return Files.Items.Directory_Item is
-     (if Model.Temporary.Is_Directory
-      then Files.Item_Lists.Make_Item
+     (Files.Item_Lists.Make_Item
         (Parent_Path => Current_Path (Model),
          Name        => To_String (Model.Temporary.Name),
-         Kind        => Files.Types.Directory_Item)
-      else Files.Item_Lists.Make_Item
-        (Parent_Path => Current_Path (Model),
-         Name        => To_String (Model.Temporary.Name),
-         Kind        => Files.Types.Regular_File_Item,
-         Filetype    => "text/plain"));
+         Kind        =>
+           (if Model.Temporary.Is_Directory then Files.Types.Directory_Item else Files.Types.Regular_File_Item),
+         Classes     => Model.Temporary.Classes));
 
    function Visible_To_Item_Index
      (Model         : Window_Model;

@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Model.Creation;
 with Files.Operation_Results;
 with Files.Model.Root_Selector;
@@ -16,9 +17,10 @@ separate (Files_Suite.Model)
       --  An empty listing at Root with every overlay closed.
       Files.Model.Navigate_To (Model, Root, Files.Items.Item_Vectors.Empty_Vector);
 
-      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Files_Suite.Support.Discard
+        (Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings));
       Assert (Files.Model.Root_Selector.Is_Open (Model), "drive selector can reopen after palette Escape");
-      Files.Model.Creation.Begin_Create_File (Model, "root-pending.txt");
+      Files.Model.Creation.Begin_Create_File (Model, "root-pending.txt", Files.File_Types.Default_Classification);
       --  A row for a root that is gone, and one for Target, picked as a click
       --  on the row picks it.
       Rows.Append (To_Unbounded_String (Join (Root, "missing-root")));

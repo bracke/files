@@ -1,3 +1,4 @@
+with Files.Jobs.Process.Testing;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
    procedure Test_Helper_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -44,9 +45,10 @@ separate (Files_Suite.Recovery)
          Arguments.Append (To_Unbounded_String ("--files-test-late-shutdown-owner"));
          Arguments.Append (To_Unbounded_String (Report));
          Assert
-           (Hostkit.Process.Run (Hostkit.Fs.Own_Executable, Arguments, Exit_Status)
-            and then Exit_Status = 0,
-            "shutdown waits for live session owners before sealing the queue");
+           (Hostkit.Process.Run (Hostkit.Fs.Own_Executable, Arguments, Exit_Status),
+            "the late-shutdown owner runs");
+         Files_Suite.Support.Assert_Equal
+           (Exit_Status, 0, "shutdown waits for live session owners before sealing the queue");
          Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Report);
          Directory := To_Unbounded_String (Ada.Text_IO.Get_Line (File));
          Ada.Text_IO.Close (File);
@@ -56,7 +58,7 @@ separate (Files_Suite.Recovery)
       end;
       Files.Jobs.Process.Reserve (Job);
       Started := To_Unbounded_String (Files.Jobs.Process.Path (Job, "started"));
-      Files.Jobs.Process.Launch (Job, "--files-test-blocked");
+      Files.Jobs.Process.Testing.Launch (Job, "--files-test-blocked");
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (To_String (Started));
       end loop;
@@ -79,7 +81,7 @@ separate (Files_Suite.Recovery)
               "terminated helpers are reaped and their transport is cleaned");
       Files.Jobs.Process.Reserve (Job);
       Started := To_Unbounded_String (Files.Jobs.Process.Path (Job, "started"));
-      Files.Jobs.Process.Launch (Job, "--files-test-blocked");
+      Files.Jobs.Process.Testing.Launch (Job, "--files-test-blocked");
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (To_String (Started));
       end loop;
@@ -96,7 +98,7 @@ separate (Files_Suite.Recovery)
 
       Files.Jobs.Process.Reserve (Job);
       Started := To_Unbounded_String (Files.Jobs.Process.Path (Job, "started"));
-      Files.Jobs.Process.Launch (Job, "--files-test-blocked");
+      Files.Jobs.Process.Testing.Launch (Job, "--files-test-blocked");
       for Attempt in Files_Suite.Support.Timing.Polling loop
          exit when Ada.Directories.Exists (To_String (Started));
       end loop;

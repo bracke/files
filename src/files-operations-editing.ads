@@ -62,10 +62,12 @@ package Files.Operations.Editing is
    --  named with the next free untitled name.
    --
    --  @param Model Window model to update.
+   --  @param Settings Settings whose type and icon maps classify the new row.
    --  @param Folder True for a folder, False for a file.
    procedure Begin_Create_Item
-     (Model  : in out Files.Model.Window_Model;
-      Folder : Boolean);
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Folder   : Boolean);
 
    --  Commit active single-item rename mode to the filesystem.
    --
