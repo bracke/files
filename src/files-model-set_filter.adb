@@ -1,3 +1,4 @@
+with Files.Text_Case;
 separate (Files.Model)
 procedure Set_Filter
   (Model : in out Window_Model;
@@ -72,6 +73,7 @@ begin
    Touch (Model);
    Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
    Model.Filter.Text := To_Unbounded_String (Text);
+   Model.Folded_Filter := To_Unbounded_String (Files.Text_Case.Fold_Case (Text));
    Invalidate_Visible (Model);
    Model.Filter.Cursor := Text'Length;
    Model.Main_View_Scroll := 0;

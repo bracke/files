@@ -39,7 +39,7 @@ package body Files.Model.Command_Palette is
    begin
       --  A new revision is not the one listed (Is_Listed), and the window
       --  layer rebuilds an overlay whose model moved.
-      Touch (Model);
+      Touch_Header (Model);
    end Relist;
 
    --  The presentation config for the command palette (overlay with shortcuts,
@@ -70,7 +70,7 @@ package body Files.Model.Command_Palette is
    procedure Open
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Command_Palette.Open := True;
       Model.Command_Palette.Mode := Palette_Commands;
       Model.Command_Palette.Open_With_Targets.Clear;
@@ -96,7 +96,7 @@ package body Files.Model.Command_Palette is
    procedure Toggle
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       if Model.Command_Palette.Open then
          Close (Model);
       else
@@ -114,31 +114,31 @@ package body Files.Model.Command_Palette is
 
    procedure Set_Query (Model : in out Window_Model; Text : String) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Command_Palette.Set_Query (Model.Command_Palette.View, Text);
    end Set_Query;
 
    procedure Move_Selection (Model : in out Window_Model; Delta_Rows : Integer) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Command_Palette.Move_Selection (Model.Command_Palette.View, Delta_Rows);
    end Move_Selection;
 
    procedure Select_First (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Command_Palette.Select_First (Model.Command_Palette.View);
    end Select_First;
 
    procedure Select_Last (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Command_Palette.Select_Last (Model.Command_Palette.View);
    end Select_Last;
 
    procedure Page (Model : in out Window_Model; Down : Boolean) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Command_Palette.Page (Model.Command_Palette.View, Down);
    end Page;
 
@@ -147,7 +147,7 @@ package body Files.Model.Command_Palette is
         Guikit.Command_Palette.Click (Model.Command_Palette.View, X, Y);
    begin
       if Clicked then
-         Touch (Model);
+         Touch_Header (Model);
       end if;
       return Clicked;
    end Click;
@@ -188,7 +188,7 @@ package body Files.Model.Command_Palette is
    procedure Focus_Input
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       if Model.Command_Palette.Open then
          Reset_Type_Ahead (Model);
          Model.Focus_Value := Files.UI_Types.Focus_Command_Palette;

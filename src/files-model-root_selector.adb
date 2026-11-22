@@ -13,7 +13,7 @@ package body Files.Model.Root_Selector is
    is
       Entries : Files.File_System_Types.Root_Entry_Vectors.Vector;
    begin
-      Touch (Model);
+      Touch_Header (Model);
       for Root of Roots loop
          Entries.Append
            (Files.File_System_Types.Root_Entry'
@@ -32,7 +32,7 @@ package body Files.Model.Root_Selector is
      (Model : in out Window_Model;
       Roots : Files.File_System_Types.Root_Entry_Vectors.Vector) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Root_Selector.Entries := Roots;
       Model.Root_Selector.Open := not Roots.Is_Empty;
       Model.Root_Selector.Selected := (if Model.Root_Selector.Open then 1 else 0);
@@ -79,7 +79,7 @@ package body Files.Model.Root_Selector is
      (Model : in out Window_Model;
       Index : Natural) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       if not Model.Root_Selector.Open or else Count (Model) = 0 then
          Model.Root_Selector.Selected := 0;
       elsif Index = 0 then
@@ -96,7 +96,7 @@ package body Files.Model.Root_Selector is
       Total   : constant Natural := Count (Model);
       Current : constant Natural := Selected_Index (Model);
    begin
-      Touch (Model);
+      Touch_Header (Model);
       if not Model.Root_Selector.Open or else Total = 0 then
          Model.Root_Selector.Selected := 0;
       elsif Current = 0 then

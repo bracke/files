@@ -29,7 +29,7 @@ package body Files.Model.Jobs is
       Model.Operation_Job := Job;
       Model.Operation_Label_Key := To_Unbounded_String (Label_Key);
       Model.Operation_Name := To_Unbounded_String (Current_Path (Model));
-      Support.Touch (Model);
+      Support.Touch_Header (Model);
    end Begin_Operation_Job;
 
    function Background_Operation (Model : Window_Model) return Files.Jobs.Process.Session is (Model.Operation_Job);

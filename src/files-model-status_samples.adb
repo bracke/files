@@ -53,7 +53,7 @@ package body Files.Model.Status_Samples is
       if Account_Name_Maps.Has_Element (Found) then
          if To_String (Account_Name_Maps.Element (Found)) /= Name then
             Names.Replace_Element (Found, To_Unbounded_String (Name));
-            Touch (Model);
+            Touch_Header (Model);
          end if;
          return;
       end if;
@@ -61,7 +61,7 @@ package body Files.Model.Status_Samples is
          Names.Clear;
       end if;
       Names.Insert (Id, To_Unbounded_String (Name));
-      Touch (Model);
+      Touch_Header (Model);
    end Set_Account_Name;
 
    function Account_Name_Known

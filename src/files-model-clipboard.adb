@@ -44,7 +44,7 @@ package body Files.Model.Clipboard is
      (Model : in out Window_Model;
       Text  : String) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Clipboard.System_Request := To_Unbounded_String (Text);
       Model.Clipboard.System_Request_Pending := True;
    end Set_System_Request;
@@ -62,7 +62,7 @@ package body Files.Model.Clipboard is
    procedure Clear_System_Request
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Clipboard.System_Request := Null_Unbounded_String;
       Model.Clipboard.System_Request_Pending := False;
    end Clear_System_Request;

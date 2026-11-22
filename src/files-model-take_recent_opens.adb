@@ -6,7 +6,7 @@ is
    Drained : constant Files.Types.String_Vectors.Vector := Model.Recent_Open_Queue;
 begin
    if not Drained.Is_Empty then
-      Touch (Model);
+      Touch_Header (Model);
       Model.Recent_Open_Queue.Clear;
    end if;
    return Drained;

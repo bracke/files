@@ -2,7 +2,7 @@ separate (Files.Model)
 procedure Focus_Filter_Input
   (Model : in out Window_Model) is
 begin
-   Touch (Model);
+   Touch_Header (Model);
    Reset_Type_Ahead (Model);
    Model.Focus_Value := Files.UI_Types.Focus_Filter_Input;
    Model.Tree_Panel.Keyboard := False;

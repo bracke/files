@@ -84,6 +84,8 @@ package body Files.Rendering is
       Keep_Rows : Boolean := False)
    is separate;
 
+   procedure Copy_Rows (Target : in out View_Snapshot; Source : View_Snapshot) is separate;
+
    function Build_Snapshot
      (Model    : Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)

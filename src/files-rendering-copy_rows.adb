@@ -1,0 +1,11 @@
+separate (Files.Rendering)
+procedure Copy_Rows (Target : in out View_Snapshot; Source : View_Snapshot) is
+begin
+   Target.Items := Source.Items;
+   Target.Visible_Rows := Source.Visible_Rows;
+   Target.Rows_Selection_Revision := Source.Rows_Selection_Revision;
+   Target.Total_Selection_Revision := Source.Total_Selection_Revision;
+   Target.Total_Sizes_Revision := Source.Total_Sizes_Revision;
+   Target.Selection_Total_Bytes := Source.Selection_Total_Bytes;
+   Target.Selection_Total_Pending := Source.Selection_Total_Pending;
+end Copy_Rows;

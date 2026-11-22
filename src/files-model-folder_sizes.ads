@@ -68,4 +68,25 @@ package Files.Model.Folder_Sizes is
       Path  : String)
       return Files.File_System_Types.Directory_Size_Result;
 
+   --  Look Path up once: whether it is measured, and its totals. For a
+   --  caller that asks for many folders (a selection's total), without the
+   --  two lookups and copies of the path Cached_For and Value make.
+   --
+   --  @param Model Model to inspect.
+   --  @param Path Directory path, as the items hold it.
+   --  @param Known True when a measurement for Path is cached.
+   --  @param Bytes Its total bytes (0 when not Known).
+   procedure Find
+     (Model : Window_Model;
+      Path  : Ada.Strings.Unbounded.Unbounded_String;
+      Known : out Boolean;
+      Bytes : out Long_Long_Integer);
+
+   --  A number that moves with every change to the folder sizes measured, so
+   --  a total computed from them can be kept until it does.
+   --
+   --  @param Model Model to inspect.
+   --  @return The folder sizes' revision.
+   function Revision (Model : Window_Model) return Natural;
+
 end Files.Model.Folder_Sizes;

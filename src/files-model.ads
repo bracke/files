@@ -1312,14 +1312,18 @@ private
    end record;
 
    --  The grouping the items are ordered by: the effective mode, the labels
-   --  and day it was computed with, and the rows revision it was last
-   --  checked at (a selection or scroll moves no item). Every default is the
-   --  never-synced, ungrouped state.
+   --  and day it was computed with, and whether the items have been put in
+   --  band order since they were last replaced (only a new listing, a
+   --  navigation or a sort moves an item; a rename keystroke, a selection or
+   --  a scroll does not, so none of them walks the items again). Next_Day is
+   --  the midnight Day ends at, so a pass learns the day has not turned from
+   --  one clock reading. Every default is the never-synced, ungrouped state.
    type Grouping_State is record
-      Mode            : Files.Preference_Types.Group_Mode := Files.Preference_Types.No_Grouping;
-      Labels          : Files.Settings.Path_Label_Vectors.Vector;
-      Day             : Ada.Calendar.Time := Files.Types.Unknown_Time;
-      Synced_Revision : Natural := Natural'Last;
+      Mode     : Files.Preference_Types.Group_Mode := Files.Preference_Types.No_Grouping;
+      Labels   : Files.Settings.Path_Label_Vectors.Vector;
+      Day      : Ada.Calendar.Time := Files.Types.Unknown_Time;
+      Next_Day : Ada.Calendar.Time := Files.Types.Unknown_Time;
+      Banded   : Boolean := False;
    end record;
 
    type Navigation_Mark is record
@@ -1353,8 +1357,10 @@ private
       Path_Move_Queue      : Files.Types.Path_Move_Vectors.Vector;
       Items                : Files.Items.Item_Vectors.Vector;
       Directory_Signature  : Files.File_System_Types.Directory_Signature;
-      --  The filter bar's query and caret.
+      --  The filter bar's query and caret, and the query folded
+      --  (Files.Text_Case.Fold_Case) once a keystroke for matching each item.
       Filter               : Text_Field_State;
+      Folded_Filter        : UString;
       Type_Ahead_Buffer_Value : UString;
       Selected_Item_Index  : Natural := 0;
       Selected_Item_Indexes : Natural_Vectors.Vector;
@@ -1362,6 +1368,10 @@ private
       --  plain or Ctrl selection and by a cursor move, kept by a range. A
       --  path, so a reload or a resort cannot turn it into another item.
       Range_Anchor_Path    : UString;
+      --  The anchor's item index when it was noted (kept through a resort):
+      --  checked against the path, it finds the anchor's row without a
+      --  search of the items on every shift-extend. 0: search by path.
+      Range_Anchor_Item    : Natural := 0;
       --  The visible rows, worked out once per listing, filter and search
       --  (Support.Invalidate_Visible at every write of those): which item each
       --  visible row is, and each item's row (0: hidden), so a visible-index
@@ -1415,6 +1425,9 @@ private
       Clipboard             : Clipboard_State;
       History               : Files.Undo.History.Undo_History_State;
       Folder_Sizes            : Folder_Size_Maps.Map;
+      --  Moves with every change to Folder_Sizes (Support.Note_Folder_Sizes):
+      --  what a selection's total, kept across builds, is keyed on.
+      Folder_Sizes_Revision   : Natural := 0;
       Folder_Scan             : Files.Folder_Size.Session;
       Context_Menu                  : Context_Menu_State;
       Paste_Conflict                : Files.Paste_States.Conflict_State;

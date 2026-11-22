@@ -8,6 +8,12 @@ with Files.Preference_Types;
 with Files.Settings;
 with Guikit.Input;
 with Files_Suite.Support.Models;
+with Ada.Calendar;
+with Files.Application.Snapshot_Slots;
+with Files.Model.Command_Palette;
+with Files.Rendering.Testing;
+with Files.Text_Case;
+with Files.Settings.Path_References;
 separate (Files_Suite.Rendering)
    --  In a large folder, the work a pointer move, a hover over the settings
    --  pane, a marquee move and a type-ahead keystroke do is bounded by what
@@ -221,5 +227,155 @@ separate (Files_Suite.Rendering)
               (Files.Model.Selection.Selected_Index (Model) /= 0,
                "typing a letter the names start with selects one of them");
          end;
+      end;
+
+      --  A keystroke as the window sees it: the model change and the snapshot
+      --  refresh after it, in a 20k-item Details folder. A palette or
+      --  type-ahead keystroke leaves the rows, so its refresh keeps them; the
+      --  full rebuild it once forced is timed beside it.
+      declare
+         Items    : Files.Items.Item_Vectors.Vector;
+         Model    : Files.Model.Window_Model;
+         Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         View     : Files.Application.Snapshot_Slots.View_Slots;
+         Wall     : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+         Rounds   : constant := 20;
+         Start    : Ada.Real_Time.Time;
+
+         procedure Refresh is
+         begin
+            Files.Model.Sync_Grouping (Model, Settings);
+            Files.Application.Snapshot_Slots.Refresh (View, Model, Settings, Ada.Real_Time.Clock, Wall);
+            View.Drawn_Slot := View.Current_Slot;
+         end Refresh;
+      begin
+         for Index in 1 .. Count loop
+            Items.Append
+              (Files.File_System.Make_Item
+                 ("/probe", "item" & Integer'Image (Index), Files.Types.Regular_File_Item, "text/plain"));
+         end loop;
+         Files.Model.Initialize
+           (Model, Directory_Path => "/probe", Items => Items, Home_Path => "/home/test",
+            Default_View_Mode => Files.Preference_Types.Details);
+         Refresh;
+
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            declare
+               Snap : constant View_Snapshot := Files.Rendering.Testing.Build_Snapshot_At (Model, Settings, Wall);
+               pragma Unreferenced (Snap);
+            begin
+               null;
+            end;
+         end loop;
+         Ada.Text_IO.Put_Line
+           ("large-folder: full snapshot rebuild (what a row change costs)" & Per_Round (Start, Rounds));
+
+         Files.Model.Command_Palette.Open (Model);
+         Refresh;
+         declare
+            Rows : constant Natural := Files.Model.Rows_Revision (Model);
+         begin
+            Start := Ada.Real_Time.Clock;
+            for Round in 1 .. Rounds loop
+               Files.Model.Command_Palette.Set_Query (Model, (if Round mod 2 = 0 then "co" else "c"));
+               Refresh;
+            end loop;
+            Ada.Text_IO.Put_Line ("large-folder: palette keystroke and refresh" & Per_Round (Start, Rounds));
+            Assert (Files.Model.Rows_Revision (Model) = Rows, "a palette keystroke leaves the rows");
+         end;
+         Files.Model.Command_Palette.Close (Model);
+         Refresh;
+
+         declare
+            Rows   : constant Natural := Files.Model.Rows_Revision (Model);
+            Result : Files.Controller.Controller_Result;
+            pragma Unreferenced (Result);
+         begin
+            Start := Ada.Real_Time.Clock;
+            for Round in 1 .. Rounds loop
+               Result := Files.Controller.Append_Focused_Text (Model, "i");
+               Refresh;
+            end loop;
+            Ada.Text_IO.Put_Line ("large-folder: type-ahead keystroke and refresh" & Per_Round (Start, Rounds));
+            Assert (Files.Model.Rows_Revision (Model) = Rows, "a type-ahead keystroke leaves the rows");
+         end;
+
+         --  Shift+Down from an anchor: the anchor's row is found without a
+         --  search of the items; the search it once was is timed beside it.
+         Files.Model.Selection.Select_Visible (Model, 15_000);
+         Refresh;
+         declare
+            Anchor_Path : constant String := To_String (Files.Model.Visible_Item (Model, 15_000).Full_Path);
+            Found       : Natural := 0;
+         begin
+            Start := Ada.Real_Time.Clock;
+            for Round in 1 .. Rounds loop
+               declare
+                  Anchor : constant Natural := Files.Model.Selection.Range_Anchor (Model);
+               begin
+                  Files.Model.Selection.Select_Visible_Range (Model, Positive (Anchor), 15_000 + Round);
+               end;
+               Refresh;
+            end loop;
+            Ada.Text_IO.Put_Line ("large-folder: shift+down and refresh" & Per_Round (Start, Rounds));
+            Assert (Files.Model.Selection.Range_Anchor (Model) = 15_000, "the range keeps its anchor");
+            Start := Ada.Real_Time.Clock;
+            for Round in 1 .. Rounds loop
+               Found := Files.Model.Visible_Index_Of (Model, Anchor_Path);
+            end loop;
+            Ada.Text_IO.Put_Line ("large-folder: anchor search by path (replaced)" & Per_Round (Start, Rounds));
+            Assert (Found = 15_000, "the path search finds the anchor too");
+         end;
+
+         --  A filter keystroke changes which rows show, so it rebuilds them;
+         --  the filter is folded once, not once per item.
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            Files.Model.Set_Filter (Model, (if Round mod 2 = 0 then "ITEM1" else "Item12"));
+            Refresh;
+         end loop;
+         Ada.Text_IO.Put_Line ("large-folder: filter keystroke and refresh" & Per_Round (Start, Rounds));
+         declare
+            Matches : Natural := 0;
+         begin
+            Start := Ada.Real_Time.Clock;
+            for Round in 1 .. Rounds loop
+               for Item of Items loop
+                  if Files.Text_Case.Contains_Case_Insensitive (To_String (Item.Name), "Item12") then
+                     Matches := Matches + 1;
+                  end if;
+               end loop;
+            end loop;
+            Ada.Text_IO.Put_Line ("large-folder: per-item filter folding (replaced)" & Per_Round (Start, Rounds));
+            Assert (Matches = Rounds * Files.Model.Visible_Count (Model), "both matchers agree");
+         end;
+      end;
+
+      --  What a key or click pays to learn whether it changed the settings:
+      --  a copy of them and a comparison, here with 500 labels.
+      declare
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Rounds   : constant := 200;
+         Start    : Ada.Real_Time.Time;
+         Same     : Natural := 0;
+      begin
+         for Index in 1 .. 500 loop
+            Files.Settings.Path_References.Set_Label
+              (Settings, "/probe/item" & Integer'Image (Index), Files.Preference_Types.Green);
+         end loop;
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            declare
+               Before : constant Files.Settings.Settings_Model := Settings;
+            begin
+               if Files.Settings.Same_Content (Before, Settings) then
+                  Same := Same + 1;
+               end if;
+            end;
+         end loop;
+         Ada.Text_IO.Put_Line
+           ("large-folder: settings copy and compare per key, 500 labels" & Per_Round (Start, Rounds));
+         Assert (Same = Rounds, "an unchanged copy compares equal");
       end;
    end Test_Large_Folder_Work_Stays_On_Screen;

@@ -34,7 +34,7 @@ package body Files.Rendering.Testing is
       return View_Snapshot is
    begin
       return Result : View_Snapshot do
-         Result.Items := Rows_From.Items;
+         Copy_Rows (Result, Rows_From);
          Build_Snapshot_Into (Result, Model, Settings, Rows_From.Now, Keep_Rows => True);
       end return;
    end Build_Snapshot_Keeping_Rows;

@@ -85,23 +85,38 @@ separate (Files.Rendering)
       --  previous header must not leak into this one.
       declare
          Rows : Item_Snapshot_Vectors.Vector;
+         Row_Table : Row_Index_Vectors.Vector;
+         Rows_Selection   : constant Natural := Snapshot.Rows_Selection_Revision;
+         Total_Selection  : constant Natural := Snapshot.Total_Selection_Revision;
+         Total_Sizes      : constant Natural := Snapshot.Total_Sizes_Revision;
+         Total_Bytes      : constant Long_Long_Integer := Snapshot.Selection_Total_Bytes;
+         Total_Pending    : constant Boolean := Snapshot.Selection_Total_Pending;
       begin
          if Keep_Rows then
             Rows.Move (Snapshot.Items);
+            Row_Table.Move (Snapshot.Visible_Rows);
          end if;
          Snapshot := (others => <>);
          if Keep_Rows then
             Snapshot.Items.Move (Rows);
+            Snapshot.Visible_Rows.Move (Row_Table);
+            Snapshot.Rows_Selection_Revision := Rows_Selection;
+            Snapshot.Total_Selection_Revision := Total_Selection;
+            Snapshot.Total_Sizes_Revision := Total_Sizes;
+            Snapshot.Selection_Total_Bytes := Total_Bytes;
+            Snapshot.Selection_Total_Pending := Total_Pending;
          end if;
       end;
       Snapshot.Now := Files.Timing.Minute_Start (Now);
       Copy_Fields;
       Snapshot_Overlays;
-      if Keep_Rows then
-         Reuse_Rows;
-      else
+      --  Kept rows whose flags already show this selection are left alone.
+      if not Keep_Rows then
          Snapshot_Rows;
+      elsif Snapshot.Rows_Selection_Revision /= Files.Model.Selection_Revision (Model) then
+         Reuse_Rows;
       end if;
+      Snapshot.Rows_Selection_Revision := Files.Model.Selection_Revision (Model);
       Snapshot_Selection;
       if Snapshot.Info_Pane_Open and then Snapshot.Selected_Count > 0 then
          Snapshot_Info_Pane;

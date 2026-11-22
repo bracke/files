@@ -15,7 +15,7 @@ package body Files.Model.Pasting is
       Index           : Positive;
       Clear_Clipboard : Boolean := True) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Claim_Overlay_Input (Model);
       Model.Paste_Conflict :=
         (Active           => True,
@@ -61,7 +61,7 @@ package body Files.Model.Pasting is
    procedure Toggle_Conflict_Apply_All
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Paste_Conflict.Apply_All := not Model.Paste_Conflict.Apply_All;
    end Toggle_Conflict_Apply_All;
 
@@ -69,7 +69,7 @@ package body Files.Model.Pasting is
      (Model  : in out Window_Model;
       Policy : Files.Paste.Conflict_Policy) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Paste_Conflict.Policy := Policy;
    end Set_Conflict_Policy;
 
@@ -78,7 +78,7 @@ package body Files.Model.Pasting is
       Index    : Positive;
       Decision : Files.Paste.Item_Decision) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       if Index <= Natural (Model.Paste_Conflict.Overrides.Length) then
          Model.Paste_Conflict.Overrides.Replace_Element (Index, Decision);
       end if;
@@ -88,14 +88,14 @@ package body Files.Model.Pasting is
      (Model : in out Window_Model;
       Index : Positive) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Paste_Conflict.Index := Index;
    end Set_Conflict_Index;
 
    procedure Clear_Conflict
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Paste_Conflict := (others => <>);
    end Clear_Conflict;
 
@@ -189,7 +189,7 @@ package body Files.Model.Pasting is
       Original_Path : String;
       Verified : Boolean) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Paste_Exec.Replaced.Append
         (Files.Undo.History.Recorded_Original'
            (Original   =>
@@ -237,7 +237,7 @@ package body Files.Model.Pasting is
      (Model     : in out Window_Model;
       Requested : Boolean) is
    begin
-      Support.Touch (Model);
+      Support.Touch_Header (Model);
       Model.Paste_Exec.Cancelled := Requested;
    end Set_Cancelled;
 

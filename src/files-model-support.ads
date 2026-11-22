@@ -130,10 +130,19 @@ private package Files.Model.Support is
    procedure Touch_Selection (Model : in out Window_Model);
 
    --  Note a change no row shows and that is not the selection (a folder
-   --  size, the Quick Look preview, the type-ahead text): Revision moves.
+   --  size, the Quick Look preview, the type-ahead text, an overlay or pane
+   --  and its highlight, a caret outside the rename field, the undo stacks):
+   --  Revision moves. In a large folder a Touch rebuilds every row, so use
+   --  this whenever the rows stand.
    --
    --  @param Model Model that changed.
    procedure Touch_Header (Model : in out Window_Model);
+
+   --  Note a change to the folder sizes measured: Folder_Sizes_Revision and
+   --  Revision move.
+   --
+   --  @param Model Model that changed.
+   procedure Note_Folder_Sizes (Model : in out Window_Model);
 
    --  Add Item_Index to the multi-selection (no-op when already present).
    --

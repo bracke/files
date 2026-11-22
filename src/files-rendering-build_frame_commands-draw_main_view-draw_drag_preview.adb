@@ -1,10 +1,13 @@
 separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
    --  The dragged item's preview, an icon and name beside the pointer.
+   --  Its row is looked up, not searched for: this draws on every pointer
+   --  move of a drag.
    procedure Draw_Drag_Preview is
+      Row : constant Natural := Files.Rendering.Layouts.Row_Position_Of (Snapshot, Drag_Item_Index);
    begin
-      for Index in 1 .. Natural (Snapshot.Items.Length) loop
+      if Row in 1 .. Natural (Snapshot.Items.Length) then
          declare
-            Item : Item_Snapshot renames Snapshot.Items (Positive (Index));
+            Item : Item_Snapshot renames Snapshot.Items (Positive (Row));
          begin
             if Item.Visible_Index = Drag_Item_Index then
                declare
@@ -85,9 +88,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
                   Add_Overlay_Text
                     (Text_X, Text_Y, Text_W, Text_H, Item.Name, Fit => True);
                end;
-
-               exit;
             end if;
          end;
-      end loop;
+      end if;
    end Draw_Drag_Preview;

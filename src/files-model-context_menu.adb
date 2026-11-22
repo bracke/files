@@ -10,7 +10,7 @@ package body Files.Model.Context_Menu is
       Y      : Natural;
       Target : Context_Menu_Target) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Claim_Overlay_Input (Model);
       --  No keyboard highlight until the user arrows; a mouse-opened menu shows
       --  none pre-selected.
@@ -46,7 +46,7 @@ package body Files.Model.Context_Menu is
      (Model : in out Window_Model;
       Row   : Natural) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Context_Menu.Highlight := Row;
    end Set_Highlight;
 

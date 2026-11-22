@@ -9,7 +9,7 @@ package body Files.Model.Quick_Look is
      (Model   : in out Window_Model;
       Content : Files.Quick_Look.Quick_Look_Content) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Claim_Overlay_Input (Model);
       Model.Quick_Look := (Open => True, Path => Selected_Item (Model).Full_Path, Content => Content);
    end Open;
@@ -38,7 +38,7 @@ package body Files.Model.Quick_Look is
    procedure Toggle
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       if Model.Quick_Look.Open then
          Reset_Quick_Look (Model);
       elsif Selected_Count (Model) = 1 then

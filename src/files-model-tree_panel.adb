@@ -55,7 +55,7 @@ package body Files.Model.Tree_Panel is
    procedure Open
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Tree_Panel.Open := True;
    end Open;
 
@@ -159,7 +159,7 @@ package body Files.Model.Tree_Panel is
       Wanted := Natural'Min (Wanted, Maximum);
 
       if Model.Tree_Panel.Scroll /= Wanted then
-         Touch (Model);
+         Touch_Header (Model);
          Model.Tree_Panel.Scroll := Wanted;
       end if;
    end Ensure_Row_Visible;
@@ -178,7 +178,7 @@ package body Files.Model.Tree_Panel is
      (Model : in out Window_Model;
       Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Tree_Panel.Scroll := 0;
       Files.Folder_Tree.Seed (Model.Tree_Panel.Tree, Roots);
    end Seed;
@@ -205,7 +205,7 @@ package body Files.Model.Tree_Panel is
       Index    : Positive;
       Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Files.Folder_Tree.Replace_Children (Model.Tree_Panel.Tree, Index, Children);
       Clamp_Tree_Panel_Scroll (Model);
       Reconcile_Tree_Pick_Target (Model, Index);
@@ -216,7 +216,7 @@ package body Files.Model.Tree_Panel is
       Index    : Positive;
       Expanded : Boolean) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Files.Folder_Tree.Set_Expanded (Model.Tree_Panel.Tree, Index, Expanded);
       Clamp_Tree_Panel_Scroll (Model);
       Reconcile_Tree_Pick_Target (Model, Index);
@@ -226,7 +226,7 @@ package body Files.Model.Tree_Panel is
      (Model : in out Window_Model;
       Index : Positive) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Files.Folder_Tree.Toggle_Expanded (Model.Tree_Panel.Tree, Index);
       Clamp_Tree_Panel_Scroll (Model);
       Reconcile_Tree_Pick_Target (Model, Index);
@@ -250,7 +250,7 @@ package body Files.Model.Tree_Panel is
          return;
       end if;
 
-      Touch (Model);
+      Touch_Header (Model);
       Model.Tree_Panel.Keyboard := True;
       Model.Tree_Panel.Cursor := Rows.First_Element.Path;
       for Row of Rows loop
@@ -265,7 +265,7 @@ package body Files.Model.Tree_Panel is
      (Model : in out Window_Model) is
    begin
       if Model.Tree_Panel.Keyboard then
-         Touch (Model);
+         Touch_Header (Model);
          Model.Tree_Panel.Keyboard := False;
       end if;
    end Take_Keyboard;
@@ -287,7 +287,7 @@ package body Files.Model.Tree_Panel is
      (Model : in out Window_Model;
       Path  : String) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Tree_Panel.Cursor := To_Unbounded_String (Path);
    end Set_Cursor;
 
@@ -297,7 +297,7 @@ package body Files.Model.Tree_Panel is
       Sources        : Files.Types.String_Vectors.Vector;
       Initial_Target : String) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Tree_Pick :=
         (Mode         => Mode,
          Sources      => Sources,
@@ -314,7 +314,7 @@ package body Files.Model.Tree_Panel is
      (Model  : in out Window_Model;
       Target : String) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Tree_Pick.Target := To_Unbounded_String (Target);
    end Set_Pick_Target;
 

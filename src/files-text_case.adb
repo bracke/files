@@ -326,10 +326,38 @@ package body Files.Text_Case is
       return Boolean
    is
    begin
-      if Needle = "" then
+      return Contains_Folded (Haystack, Fold_Case (Needle));
+   end Contains_Case_Insensitive;
+
+   function Contains_Folded (Haystack : String; Folded_Needle : String) return Boolean is
+      function Lower (C : Character) return Character is
+        (if C in 'A' .. 'Z' then Character'Val (Character'Pos (C) + 32) else C);
+   begin
+      if Folded_Needle = "" then
          return True;
       end if;
-
-      return Ada.Strings.Fixed.Index (Fold_Case (Haystack), Fold_Case (Needle)) > 0;
-   end Contains_Case_Insensitive;
+      for C of Haystack loop
+         if Character'Pos (C) >= 128 then
+            return Ada.Strings.Fixed.Index (Fold_Case (Haystack), Folded_Needle) > 0;
+         end if;
+      end loop;
+      --  ASCII folds to its lower case alone; a needle holding anything else
+      --  cannot occur in it.
+      for Start in Haystack'First .. Haystack'Last - Folded_Needle'Length + 1 loop
+         declare
+            Matched : Boolean := True;
+         begin
+            for Offset in 0 .. Folded_Needle'Length - 1 loop
+               if Lower (Haystack (Start + Offset)) /= Folded_Needle (Folded_Needle'First + Offset) then
+                  Matched := False;
+                  exit;
+               end if;
+            end loop;
+            if Matched then
+               return True;
+            end if;
+         end;
+      end loop;
+      return False;
+   end Contains_Folded;
 end Files.Text_Case;

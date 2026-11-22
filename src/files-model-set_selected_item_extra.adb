@@ -15,7 +15,7 @@ begin
       Item.Filetype_Extra := Extra;
       Item.Filetype_Extra_Loaded := True;
       if Extra.Of_Kind /= Files.Extra_Info.None then
-         Touch (Model);
+         Touch_Header (Model);
       end if;
       Model.Items.Replace_Element (Idx, Item);
    end;

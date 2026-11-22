@@ -67,7 +67,9 @@ package body Files.Application.Snapshot_Slots is
          if View.Current_Slot = View.Drawn_Slot then
             View.Current_Slot := Other (View.Drawn_Slot);
             if Keep_Rows and then View.Slot_Rows (View.Current_Slot) /= View.Slot_Rows (From) then
-               View.Snapshots (View.Current_Slot).Items := View.Snapshots (From).Items;
+               --  With what is kept with them: a total from this slot's
+               --  older rows could count sizes since reloaded.
+               Files.Rendering.Copy_Rows (View.Snapshots (View.Current_Slot), View.Snapshots (From));
             end if;
          end if;
          Files.Rendering.Build_Snapshot_Into (View.Snapshots (View.Current_Slot), Model, Settings, Minute, Keep_Rows);

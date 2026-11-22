@@ -296,8 +296,10 @@ package body Files.Model is
       Model.Refresh_Job := Released_Process;
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
       Model.Items := Items;
+      Model.Grouping.Banded := False;
       Model.Directory_Signature := Files.File_System_Types.Unknown_Signature (Directory_Path);
       Model.Filter.Text := Null_Unbounded_String;
+      Model.Folded_Filter := Null_Unbounded_String;
       Model.Filter.Cursor := 0;
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
@@ -620,6 +622,7 @@ package body Files.Model is
       Model.Info_Pane_Scroll := 0;
       Model.Main_View_Scroll := 0;
       Model.Filter.Text := Null_Unbounded_String;
+      Model.Folded_Filter := Null_Unbounded_String;
       Model.Filter.Cursor := 0;
       --  Once, after the search state and the filter are both reset: nothing
       --  above reads the visible rows.
@@ -645,6 +648,7 @@ package body Files.Model is
       Model.Recent_View_Active := False;
       Leave_View (Model, To_Unbounded_String (Directory_Path));
       Model.Items := Items;
+      Model.Grouping.Banded := False;
       Support.Invalidate_Visible (Model);
       --  The model's order is the displayed order: keyboard and range
       --  selection walk it, so it must already be sorted by the model's field.
@@ -670,6 +674,7 @@ package body Files.Model is
       Model.Recent_View_Active := True;
       Leave_View (Model, Null_Unbounded_String);
       Model.Items := Items;
+      Model.Grouping.Banded := False;
       Support.Invalidate_Visible (Model);
       Model.Directory_Signature := Files.File_System_Types.Unknown_Signature ("");
    end Navigate_Recent;
@@ -830,7 +835,13 @@ package body Files.Model is
       Clamped : constant Natural :=
         Guikit.Utf8.Editing.Boundary_At_Or_Before (Focused_Text (Model), Position);
    begin
-      Support.Touch (Model);
+      --  Only the rename caret is drawn inside a row; the other fields are
+      --  the window's chrome, so their caret leaves the rows standing.
+      if Model.Focus_Value = Files.UI_Types.Focus_Rename_Input then
+         Support.Touch (Model);
+      else
+         Support.Touch_Header (Model);
+      end if;
       case Model.Focus_Value is
          when Files.UI_Types.Focus_Path_Input =>
             Model.Path_Input.Edit.Cursor := Clamped;
@@ -865,7 +876,8 @@ package body Files.Model is
       Cursor : constant Natural := Text_Cursor_Position (Model);
       Text   : constant String := Focused_Text (Model);
    begin
-      Support.Touch (Model);
+      --  Set_Text_Cursor_Position notes the change the caret makes.
+      Support.Touch_Header (Model);
       case Direction is
          when Guikit.Input.Move_Left | Guikit.Input.Move_Right =>
             Set_Text_Cursor_Position
@@ -1025,6 +1037,7 @@ package body Files.Model is
                  or else Measured_At.Element (Item.Full_Path) /= Item.Modified_Time)
             then
                Model.Folder_Sizes.Delete (Item.Full_Path);
+               Support.Note_Folder_Sizes (Model);
             end if;
          end loop;
       end if;
@@ -1040,6 +1053,7 @@ package body Files.Model is
          Model.Focus_Value := Files.UI_Types.Focus_None;
       end if;
       Model.Items := Items;
+      Model.Grouping.Banded := False;
       Support.Invalidate_Visible (Model);
       --  Order the loaded items by the active sort so the model's order matches
       --  the displayed order. Without this, arrow navigation (which walks the
@@ -1077,7 +1091,7 @@ package body Files.Model is
      (Model      : in out Window_Model;
       Notice_Key : String) is
    begin
-      Support.Touch (Model);
+      Support.Touch_Header (Model);
       Model.Last_Error_Notice_Key := To_Unbounded_String (Notice_Key);
    end Set_Error_Notice;
 

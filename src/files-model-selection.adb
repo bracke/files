@@ -123,7 +123,7 @@ package body Files.Model.Selection is
       Start    : Natural;
       Target   : Natural;
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Matched := False;
 
       if not Is_Printable_Run (Text) then
@@ -170,11 +170,14 @@ package body Files.Model.Selection is
    procedure Note_Range_Anchor
      (Model         : in out Window_Model;
       Visible_Index : Positive) is
+      In_View : constant Boolean := Natural (Visible_Index) <= Visible_Count (Model);
+      Item    : constant Natural := (if In_View then Selection_Index_Of_Visible (Model, Visible_Index) else 0);
    begin
       Model.Range_Anchor_Path :=
-        (if Natural (Visible_Index) <= Visible_Count (Model)
+        (if In_View
          then Visible_Item (Model, Visible_Index).Full_Path
          else Null_Unbounded_String);
+      Model.Range_Anchor_Item := (if Item = Temporary_Item_Index then 0 else Item);
    end Note_Range_Anchor;
 
    procedure Select_Visible
@@ -305,6 +308,7 @@ package body Files.Model.Selection is
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
       Model.Range_Anchor_Path := Null_Unbounded_String;
+      Model.Range_Anchor_Item := 0;
       Model.Info_Pane_Scroll := 0;
       Reconcile_Rename_With_Selection (Model);
    end Clear;
@@ -356,7 +360,7 @@ package body Files.Model.Selection is
    procedure Deselect_All
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      --  Clear notes the selection change; no row changes otherwise.
       Clear (Model);
    end Deselect_All;
 
@@ -499,7 +503,7 @@ package body Files.Model.Selection is
       if Model.Selection_Columns = Columns then
          return;
       end if;
-      Touch (Model);
+      Touch_Header (Model);
       Model.Selection_Columns := Columns;
    end Set_Grid_Columns;
 
@@ -596,6 +600,7 @@ package body Files.Model.Selection is
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
       Model.Range_Anchor_Path := Null_Unbounded_String;
+      Model.Range_Anchor_Item := 0;
       Reset_Quick_Look (Model);
       if not Model.Items.Is_Empty then
          for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
@@ -607,6 +612,7 @@ package body Files.Model.Selection is
                Model.Selected_Item_Index := Natural (Index);
                Add_Selected_Index (Model, Model.Selected_Item_Index);
                Model.Range_Anchor_Path := Model.Items (Index).Full_Path;
+               Model.Range_Anchor_Item := Natural (Index);
                Reconcile_Rename_With_Selection (Model);
                Model.Reveal_Pending := True;
                return True;
@@ -687,9 +693,24 @@ package body Files.Model.Selection is
      (Model : Window_Model)
       return Natural
    is
-      Anchor : constant Natural :=
-        (if Length (Model.Range_Anchor_Path) = 0 then 0
-         else Visible_Index_Of (Model, To_String (Model.Range_Anchor_Path)));
+      --  The anchor's row: from its noted item when that is still the
+      --  anchor's path (the common case, no search), else by its path.
+      function Anchor_Row return Natural is
+         Item : constant Natural := Model.Range_Anchor_Item;
+      begin
+         if Length (Model.Range_Anchor_Path) = 0 then
+            return 0;
+         end if;
+         if Item in 1 .. Natural (Model.Items.Length)
+           and then Model.Items (Item).Full_Path = Model.Range_Anchor_Path
+         then
+            Support.Ensure_Visible_Map (Model);
+            return Model.Item_Visible_Rows (Item);
+         end if;
+         return Visible_Index_Of (Model, To_String (Model.Range_Anchor_Path));
+      end Anchor_Row;
+
+      Anchor : constant Natural := Anchor_Row;
    begin
       if Anchor > 0 and then Selected_Count (Model) > 0 then
          return Anchor;

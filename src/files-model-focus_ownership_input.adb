@@ -14,7 +14,7 @@ begin
       return;
    end if;
 
-   Touch (Model);
+   Touch_Header (Model);
    Reset_Type_Ahead (Model);
    Model.Focus_Value := Files.UI_Types.Focus_Ownership_Input;
    Model.Ownership_Input.Editing_Group := Editing_Group;

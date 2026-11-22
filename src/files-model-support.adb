@@ -72,6 +72,13 @@ package body Files.Model.Support is
       Model.Revision_Value := Model.Revision_Value + 1;
    end Touch_Header;
 
+   procedure Note_Folder_Sizes (Model : in out Window_Model) is
+   begin
+      Touch_Header (Model);
+      Model.Folder_Sizes_Revision :=
+        (if Model.Folder_Sizes_Revision = Natural'Last then 0 else Model.Folder_Sizes_Revision + 1);
+   end Note_Folder_Sizes;
+
    procedure Reset_Quick_Look
      (Model : in out Window_Model) is
    begin
@@ -123,7 +130,7 @@ package body Files.Model.Support is
    procedure Clear_Root_Selector_State
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Root_Selector := (others => <>);
    end Clear_Root_Selector_State;
 
@@ -139,8 +146,8 @@ package body Files.Model.Support is
          return not (Model.Results_Hide_Hidden and then Item.Hidden);
       end if;
       --  No filter (the common case): no copy of it, nor of the name.
-      return Length (Model.Filter.Text) = 0
-        or else Files.Text_Case.Contains_Case_Insensitive (To_String (Item.Name), To_String (Model.Filter.Text));
+      return Length (Model.Folded_Filter) = 0
+        or else Files.Text_Case.Contains_Folded (To_String (Item.Name), To_String (Model.Folded_Filter));
    end Item_Is_Visible;
 
    function Temporary_Is_Visible (Model : Window_Model) return Boolean is
@@ -330,10 +337,16 @@ package body Files.Model.Support is
       Item   : Files.Items.Directory_Item)
       return Positive
    is
-      Found : constant Label_Maps.Cursor := Labels.Find (To_String (Item.Full_Path));
+      --  Only what the mode bands by is read: the path and its label for a
+      --  label grouping, the filetype for a type grouping. Each costs a copy
+      --  of the text per item, on every check of a large folder's order.
+      By_Label : constant Boolean := Model.Grouping.Mode = Files.Preference_Types.Group_By_Label;
+      Found    : constant Label_Maps.Cursor :=
+        (if By_Label then Labels.Find (To_String (Item.Full_Path)) else Label_Maps.No_Element);
    begin
       return Files.Grouping.Band_Of
-        (Model.Grouping.Mode, Item.Kind, To_String (Item.Filetype),
+        (Model.Grouping.Mode, Item.Kind,
+         (if Model.Grouping.Mode = Files.Preference_Types.Group_By_Type then To_String (Item.Filetype) else ""),
          Item.Modified_Available, Item.Modified_Time, Item.Size_Available, Item.Size,
          (if Label_Maps.Has_Element (Found) then Label_Maps.Element (Found) else Files.Preference_Types.No_Label),
          Model.Grouping.Day);
@@ -452,6 +465,7 @@ package body Files.Model.Support is
       for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
          Sorted_Index.Include (To_String (Model.Items (Index).Full_Path), Index);
       end loop;
+      Model.Range_Anchor_Item := Index_Of (Model.Range_Anchor_Path);
 
       declare
          --  The pending create row is selected through a marker, not an item
@@ -557,7 +571,7 @@ package body Files.Model.Support is
    procedure Close_Command_Palette
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Hide_Command_Palette (Model);
       if Model.Focus_Value = Files.UI_Types.Focus_Command_Palette then
          --  What the palette was opened over keeps going: the settings pane
@@ -574,42 +588,42 @@ package body Files.Model.Support is
    procedure Close_Root_Selector
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Clear_Root_Selector_State (Model);
    end Close_Root_Selector;
 
    procedure Close_Label_Picker
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Label_Picker := (others => <>);
    end Close_Label_Picker;
 
    procedure Close_Sort_Menu
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Sort_Menu := (others => <>);
    end Close_Sort_Menu;
 
    procedure Close_Context_Menu
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Context_Menu := (others => <>);
    end Close_Context_Menu;
 
    procedure Close_Quick_Look
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Reset_Quick_Look (Model);
    end Close_Quick_Look;
 
    procedure Close_Tree_Panel
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Tree_Panel.Open := False;
       --  Closing the sidebar also abandons any in-flight destination picker so
       --  a later reopen starts clean. Whether the picker opened the sidebar is
@@ -636,7 +650,7 @@ package body Files.Model.Support is
       if not Model.Settings_Pane_Open then
          return;
       end if;
-      Touch (Model);
+      Touch_Header (Model);
       Model.Settings_Pane_Open := False;
       --  What was saved is weighed only while the pane is open; do not keep
       --  a copy of every label, favorite and recent item past it.
@@ -799,6 +813,12 @@ package body Files.Model.Support is
                   if Path = Primary_Path then
                      Primary_Selected := Natural (Index);
                   end if;
+                  --  The anchor is a selected item: its new index, found on
+                  --  the way, so a shift-extend after the reload need not
+                  --  search for it.
+                  if Item.Full_Path = Model.Range_Anchor_Path then
+                     Model.Range_Anchor_Item := Natural (Index);
+                  end if;
                end if;
             end;
          end loop;
@@ -836,7 +856,7 @@ package body Files.Model.Support is
       --  last handle going.
       Model.Folder_Scan := Released_Scan;
       if not Model.Folder_Sizes.Is_Empty then
-         Touch_Header (Model);
+         Note_Folder_Sizes (Model);
          Model.Folder_Sizes.Clear;
       end if;
    end Clear_Folder_Size;

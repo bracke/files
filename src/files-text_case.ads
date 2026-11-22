@@ -86,4 +86,14 @@ package Files.Text_Case is
      (Haystack : String;
       Needle   : String)
       return Boolean;
+
+   --  Whether Folded_Needle (a needle already folded with Fold_Case) occurs
+   --  in Haystack after case folding: a filter's match, its text folded once
+   --  per keystroke rather than once per item. An ASCII haystack is matched
+   --  in place, without folding a copy of it.
+   --
+   --  @param Haystack Text to search.
+   --  @param Folded_Needle Fold_Case of the text to find; "" matches all.
+   --  @return True when the needle occurs in Haystack case-insensitively.
+   function Contains_Folded (Haystack : String; Folded_Needle : String) return Boolean;
 end Files.Text_Case;

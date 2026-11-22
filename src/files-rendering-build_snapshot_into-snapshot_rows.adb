@@ -140,6 +140,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
          begin
             Grouped.Reserve_Capacity (Snapshot.Items.Length + Ada.Containers.Count_Type
               (Files.Grouping.Band_Count (Snapshot.Group_By)));
+            Snapshot.Visible_Rows.Reserve_Capacity (Snapshot.Items.Length);
             for Item of Snapshot.Items loop
                declare
                   Band : constant Positive := Files.Grouping.Band_Of
@@ -159,6 +160,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
                   end if;
                end;
                Grouped.Append (Item);
+               Snapshot.Visible_Rows.Append (Positive (Grouped.Length));
             end loop;
             Snapshot.Items.Move (Grouped);
          end;

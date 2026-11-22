@@ -339,7 +339,7 @@ package body Files.Model.History is
       Model.History.Redo_Stack := Sanitized_Redo;
       Model.History.Journal :=
         (Next_Sequence => Next, Unjournaled => Left_Out, Redo_Retired => False, Dropped => Dropped);
-      Support.Touch (Model);
+      Support.Touch_Header (Model);
    end Restore;
 
    function Journal_State (Model : Window_Model) return Files.Undo.History.History_Journal_State is
@@ -470,7 +470,7 @@ package body Files.Model.History is
          Redo_Retired  => Model.History.Journal.Redo_Retired or else State.Redo_Retired,
          Dropped       => Files.Undo.History.Sequence_Vectors.Empty_Vector);
       Model.History.Journal_Dirty := True;
-      Support.Touch (Model);
+      Support.Touch_Header (Model);
    end Merge;
 
    procedure Retire_Payloads
@@ -493,7 +493,7 @@ package body Files.Model.History is
       Kind  : Files.Undo.History.Undo_Action_Kind;
       Items : Files.Undo.History.Undo_Item_Vectors.Vector) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       if Kind = Files.Undo.History.Undo_None or else Items.Is_Empty then
          return;
       end if;
@@ -520,7 +520,7 @@ package body Files.Model.History is
       --  Redo entries a background helper's journal left out go too.
       Model.History.Journal.Redo_Retired := True;
       --  Undo and Redo availability is drawn and enables commands.
-      Touch (Model);
+      Touch_Header (Model);
       Model.History.Journal_Dirty := True;
       if Action.Items.Is_Empty then
          --  Nothing to record, but originals a replace preserved must not stay
@@ -566,13 +566,13 @@ package body Files.Model.History is
       Retire_Payloads (Model.History.Retired_Releases, Model.History.Redo_Stack);
       Model.History.Undo_Stack.Clear;
       Model.History.Redo_Stack.Clear;
-      Touch (Model);
+      Touch_Header (Model);
    end Release;
 
    procedure Clear_Undo
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Retire_Payloads (Model.History.Retired_Discards, Model.History.Undo_Stack);
       Retire_Payloads (Model.History.Retired_Discards, Model.History.Redo_Stack);
       Model.History.Undo_Stack.Clear;
@@ -613,7 +613,7 @@ package body Files.Model.History is
       Action : out Files.Undo.History.Undo_Entry;
       Found  : out Boolean) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Take_Newest (Model.History.Undo_Stack, Action, Found);
    end Take_Undo;
 
@@ -622,7 +622,7 @@ package body Files.Model.History is
       Action : out Files.Undo.History.Undo_Entry;
       Found  : out Boolean) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Take_Newest (Model.History.Redo_Stack, Action, Found);
    end Take_Redo;
 
@@ -637,7 +637,7 @@ package body Files.Model.History is
       then
          return False;
       end if;
-      Touch (Model);
+      Touch_Header (Model);
       Model.History.Undo_Stack.Delete_Last;
       --  The step the helper would have pushed for Redo is lost, so what the
       --  redo stack holds would be offered out of order: it is retired as a
@@ -653,7 +653,7 @@ package body Files.Model.History is
      (Model  : in out Window_Model;
       Action : Files.Undo.History.Undo_Entry) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.History.Redo_Stack.Append (Action);
       Model.History.Journal_Dirty := True;
    end Push_Redo;
@@ -662,7 +662,7 @@ package body Files.Model.History is
      (Model  : in out Window_Model;
       Action : Files.Undo.History.Undo_Entry) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.History.Undo_Stack.Append (Action);
       Model.History.Journal_Dirty := True;
    end Push_Undo;

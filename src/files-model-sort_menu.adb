@@ -8,7 +8,7 @@ package body Files.Model.Sort_Menu is
    procedure Toggle
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Sort_Menu.Open := not Model.Sort_Menu.Open;
       --  Open the menu with the keyboard highlight on the current sort field.
       if Model.Sort_Menu.Open then
@@ -32,7 +32,7 @@ package body Files.Model.Sort_Menu is
       Current : constant Natural :=
         (if Model.Sort_Menu.Highlight = 0 then 1 else Model.Sort_Menu.Highlight);
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Sort_Menu.Highlight :=
         Integer'Max (1, Integer'Min (Files.UI_Types.Sort_Menu_Rows, Current + Delta_Value));
    end Move_Highlight;

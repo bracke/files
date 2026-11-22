@@ -84,6 +84,10 @@ package Files.Rendering is
      (Index_Type   => Positive,
       Element_Type => Item_Snapshot);
 
+   package Row_Index_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Positive);
+
    type Info_Snapshot is record
       Name               : UString;
       Filetype           : UString;
@@ -270,6 +274,12 @@ package Files.Rendering is
       Command_Palette_Open           : Boolean := False;
       Command_Enabled                : Command_Enablement_Array := [others => False];
       Items                          : Item_Snapshot_Vectors.Vector;
+      --  With group headers among the rows, the row each visible index is
+      --  drawn at (Layouts.Row_Position_Of), so a reveal or a drag preview
+      --  does not search the rows for it; empty without headers, where the
+      --  row is the visible index. Part of the rows: kept and copied with
+      --  Items.
+      Visible_Rows                   : Row_Index_Vectors.Vector;
       Selected_Info                  : Info_Snapshot_Vectors.Vector;
       --  A multi-item selection's info, field by field, formatted once per
       --  build rather than twice per frame (Info_Sections_Built: present).
@@ -280,6 +290,14 @@ package Files.Rendering is
       --  selected folder is still being measured, so the total is not yet final.
       Selection_Total_Bytes          : Long_Long_Integer := 0;
       Selection_Total_Pending        : Boolean := False;
+      --  What a build that keeps the rows may keep with them: the model's
+      --  selection revision the rows' Selected flags show, and the selection
+      --  and folder-size revisions the total above was summed at. A header
+      --  change (a folder size streaming in, a palette keystroke) then walks
+      --  neither the rows nor the selection again. Natural'Last: not known.
+      Rows_Selection_Revision        : Natural := Natural'Last;
+      Total_Selection_Revision       : Natural := Natural'Last;
+      Total_Sizes_Revision           : Natural := Natural'Last;
       Context_Menu_Open              : Boolean := False;
       Context_Menu_Highlight         : Natural := 0;
       Context_Menu_X                 : Natural := 0;
@@ -463,6 +481,15 @@ package Files.Rendering is
       Settings  : Files.Settings.Settings_Model;
       Now       : Ada.Calendar.Time;
       Keep_Rows : Boolean := False);
+
+   --  Give Target Source's rows and what is kept with them (the row of each
+   --  visible index, the selection their flags show, the selection total
+   --  and what it was summed at), for a Build_Snapshot_Into that keeps the
+   --  rows into another snapshot than the one they were built in.
+   --
+   --  @param Target Snapshot to build into next, with Keep_Rows.
+   --  @param Source Snapshot whose rows are still right.
+   procedure Copy_Rows (Target : in out View_Snapshot; Source : View_Snapshot);
 
    --  The model's visible index of the item drawn at Index in Drawn, a
    --  snapshot that may be older than the model's listing (a watched change,

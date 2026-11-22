@@ -8,6 +8,11 @@ separate (Files.Rendering.Layouts)
       if Visible_Index = 0 then
          return 0;
       end if;
+      --  With group headers, the row the build noted for it.
+      if not Snapshot.Visible_Rows.Is_Empty then
+         return (if Visible_Index <= Natural (Snapshot.Visible_Rows.Length)
+                 then Snapshot.Visible_Rows (Visible_Index) else 0);
+      end if;
       --  Without group headers the row is the visible index itself.
       if Visible_Index <= Natural (Snapshot.Items.Length)
         and then Snapshot.Items (Snapshot.Items.First_Index + Visible_Index - 1).Visible_Index = Visible_Index

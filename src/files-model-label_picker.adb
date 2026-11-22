@@ -8,7 +8,7 @@ package body Files.Model.Label_Picker is
    procedure Open
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Claim_Overlay_Input (Model);
       --  Start the keyboard highlight on the clear swatch; the item's current
       --  label lives in the settings, which this model operation does not see.
@@ -28,7 +28,7 @@ package body Files.Model.Label_Picker is
      (Model : in out Window_Model;
       Delta_Value : Integer) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Label_Picker.Swatch :=
         Integer'Max (1, Integer'Min (Files.UI_Types.Swatch_Count, Model.Label_Picker.Swatch + Delta_Value));
    end Move_Highlight;

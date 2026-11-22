@@ -33,7 +33,7 @@ begin
          Item.Filetype_Extra := Previous.Filetype_Extra;
          Item.Filetype_Extra_Loaded := True;
          Model.Items.Replace_Element (Idx, Item);
-         Touch (Model);
+         Touch_Header (Model);
       end if;
    end;
 end Keep_Info_Pane;

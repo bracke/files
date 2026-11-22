@@ -4,7 +4,7 @@ procedure Set_Error
    Error_Key : String;
    Path      : String := "") is
 begin
-   Touch (Model);
+   Touch_Header (Model);
    --  Refresh requests also snapshot the current error so a completed load
    --  cannot clear or restore an error recorded after the request began.
    Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;

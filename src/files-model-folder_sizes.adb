@@ -64,7 +64,7 @@ package body Files.Model.Folder_Sizes is
          end if;
       end loop;
       if Taken then
-         Support.Touch_Header (Model);
+         Support.Note_Folder_Sizes (Model);
       end if;
    end Note;
 
@@ -92,7 +92,7 @@ package body Files.Model.Folder_Sizes is
          end if;
       end loop;
       if not Folder_Size_Maps."=" (Model.Folder_Sizes, Kept) then
-         Touch_Header (Model);
+         Note_Folder_Sizes (Model);
          Model.Folder_Sizes := Kept;
       end if;
    end Prune_To_Selection;
@@ -104,6 +104,20 @@ package body Files.Model.Folder_Sizes is
    begin
       return Model.Folder_Sizes.Contains (To_Unbounded_String (Path));
    end Cached_For;
+
+   procedure Find
+     (Model : Window_Model;
+      Path  : Ada.Strings.Unbounded.Unbounded_String;
+      Known : out Boolean;
+      Bytes : out Long_Long_Integer)
+   is
+      Found : constant Folder_Size_Maps.Cursor := Model.Folder_Sizes.Find (Path);
+   begin
+      Known := Folder_Size_Maps.Has_Element (Found);
+      Bytes := (if Known then Folder_Size_Maps.Element (Found).Total_Bytes else 0);
+   end Find;
+
+   function Revision (Model : Window_Model) return Natural is (Model.Folder_Sizes_Revision);
 
    function Value
      (Model : Window_Model;

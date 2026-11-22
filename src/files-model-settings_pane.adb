@@ -43,7 +43,7 @@ package body Files.Model.Settings_Pane is
       Draft  : Files.Settings.Settings_Draft;
       Fields : Guikit.Settings_Panel.Field_Vectors.Vector) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Model.Settings_Draft_Value := Draft;
       Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Fields);
    end Set_Draft;
@@ -62,25 +62,25 @@ package body Files.Model.Settings_Pane is
 
    procedure Move_Focus (Model : in out Window_Model; Delta_Rows : Integer) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Settings_Panel.Move_Focus (Model.Settings_Panel_View, Delta_Rows);
    end Move_Focus;
 
    procedure Cycle_Choice (Model : in out Window_Model; Forward : Boolean) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Settings_Panel.Cycle_Choice (Model.Settings_Panel_View, Forward);
    end Cycle_Choice;
 
    procedure Set_Focused_Value (Model : in out Window_Model; Text : String) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Settings_Panel.Set_Focused_Value (Model.Settings_Panel_View, Text);
    end Set_Focused_Value;
 
    procedure Scroll (Model : in out Window_Model; Lines : Integer) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Settings_Panel.Scroll (Model.Settings_Panel_View, Lines);
    end Scroll;
 
@@ -92,14 +92,14 @@ package body Files.Model.Settings_Pane is
         Guikit.Settings_Panel.Click (Model.Settings_Panel_View, X, Y);
    begin
       if Clicked then
-         Touch (Model);
+         Touch_Header (Model);
       end if;
       return Clicked;
    end Click;
 
    function Take_Change (Model : in out Window_Model) return Guikit.Settings_Panel.Change is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       return Guikit.Settings_Panel.Take_Change (Model.Settings_Panel_View);
    end Take_Change;
 
@@ -114,7 +114,7 @@ package body Files.Model.Settings_Pane is
 
    procedure Set_Active_Section (Model : in out Window_Model; Ordinal : Natural) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Settings_Panel.Set_Active_Section (Model.Settings_Panel_View, Ordinal);
    end Set_Active_Section;
 
@@ -126,7 +126,7 @@ package body Files.Model.Settings_Pane is
 
    procedure Begin_Capture (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Settings_Panel.Begin_Capture (Model.Settings_Panel_View);
    end Begin_Capture;
 
@@ -138,7 +138,7 @@ package body Files.Model.Settings_Pane is
 
    procedure Set_Captured_Shortcut (Model : in out Window_Model; Text : String) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Settings_Panel.Set_Captured_Shortcut (Model.Settings_Panel_View, Text);
    end Set_Captured_Shortcut;
 
@@ -155,7 +155,7 @@ package body Files.Model.Settings_Pane is
 
    procedure Cancel_Capture (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_Header (Model);
       Guikit.Settings_Panel.Cancel_Capture (Model.Settings_Panel_View);
    end Cancel_Capture;
 
