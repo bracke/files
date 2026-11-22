@@ -201,7 +201,7 @@ jobs:
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit f48b6c9cbfd58a364894b486d9a523743facfa5f
+          clone_at a11ykit a8c7895640841a17b153784ae73cd17276f89d38
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -210,7 +210,7 @@ jobs:
           clone_at truststores 90ce36a625ce8687685e0bf98ce279ee0f39c697
           clone_at tarlib 1a6f22ae04e89a2e634d00f283527d337e3d3b1b
           clone_at awklib 648bd7466e3b36112027c2116326b146224b2e21
-          clone_at regexp f660333a314f3c610bb255478ac86656e2fd0c4c
+          clone_at regexp dd03e51f57db0c639f07ec55b15554b95eae17e5
 
       - name: Compute an OS-stable i18n upstream cache key
         id: cldr_key
