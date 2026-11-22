@@ -1,4 +1,4 @@
-with Files.File_Types;
+with Files.File_System_Types;
 with Files.Model.Root_Selector;
 separate (Files.Operations)
 --  Shared normalize -> load -> navigate tail for the absolute-destination
@@ -13,10 +13,10 @@ function Load_And_Navigate
    Close_Selector : Boolean := False)
    return Operation_Result
 is
-   Path_Result : constant Files.File_System.Path_Result :=
+   Path_Result : constant Files.File_System_Types.Path_Result :=
      Files.File_System.Normalize_Path (Path);
 begin
-   if Path_Result.Status /= Files.File_System.Path_Valid then
+   if Path_Result.Status /= Files.File_System_Types.Path_Valid then
       Files.Model.Set_Error (Model, To_String (Path_Result.Error_Key));
       return Make_Result
         (Operation_Failed, To_String (Path_Result.Error_Key), Path);
@@ -25,7 +25,7 @@ begin
    declare
       Load : constant Files.File_System.Directory_Load_Result :=
         Files.File_System.Load_Directory_Deferring_Thumbnails
-          (To_String (Path_Result.Directory_Path), Files.File_Types.Classification_Of (Settings),
+          (To_String (Path_Result.Directory_Path), Files.Settings.Classification_Of (Settings),
            Files.Settings.Listing_Options_Of (Settings));
    begin
       if not Load.Success then

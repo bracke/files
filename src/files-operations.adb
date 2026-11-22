@@ -1,3 +1,4 @@
+with Files.File_System;
 with Files.Model.Recent;
 with Files.Model.Filtering;
 with Files.File_System.Search;
@@ -48,9 +49,9 @@ package body Files.Operations is
    use Ada.Strings.Unbounded;
    use type Files.File_System.Thumbnails.Thumbnail_Status;
    use type Files.Types.Item_Kind;
-   use type Files.File_System.Path_Status;
+   use type Files.File_System_Types.Path_Status;
    use type Ada.Directories.File_Kind;
-   use type Files.File_System.Drop_Import_Mode;
+   use type Files.File_System_Types.Drop_Import_Mode;
    use type Files.Undo.History.Undo_Action_Kind;
    use type Zlib.Status_Code;
 
@@ -402,7 +403,7 @@ package body Files.Operations is
      (Model          : in out Files.Model.Window_Model;
       Settings       : Files.Settings.Settings_Model;
       Source_Paths   : Files.Types.String_Vectors.Vector;
-      Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      Mode           : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy;
       From_Clipboard : Boolean := True)
       return Operation_Result is separate;
 
@@ -411,7 +412,7 @@ package body Files.Operations is
       Settings       : Files.Settings.Settings_Model;
       Source_Paths   : Files.Types.String_Vectors.Vector;
       Destination    : String;
-      Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      Mode           : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy;
       From_Clipboard : Boolean := True)
       return Operation_Result
    is separate;
@@ -678,7 +679,7 @@ package body Files.Operations is
 
    function Root_Entries_With_Favorites
      (Settings : Files.Settings.Settings_Model)
-      return Files.File_System.Root_Entry_Vectors.Vector
+      return Files.File_System_Types.Root_Entry_Vectors.Vector
    is separate;
 
    procedure Seed_Tree
@@ -715,7 +716,7 @@ package body Files.Operations is
    procedure Begin_Paste_Execution
      (Model           : in out Files.Model.Window_Model;
       Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
-      Mode            : Files.File_System.Drop_Import_Mode;
+      Mode            : Files.File_System_Types.Drop_Import_Mode;
       Clear_Clipboard : Boolean := True)
    is
       Writes : Natural := 0;

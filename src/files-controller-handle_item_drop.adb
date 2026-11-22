@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 separate (Files.Controller)
    function Handle_Item_Drop
      (Model        : in out Files.Model.Window_Model;
@@ -34,7 +35,8 @@ separate (Files.Controller)
                  Settings       => Settings,
                  Source_Paths   => Sources,
                  Destination    => Ada.Strings.Unbounded.To_String (Target.Full_Path),
-                 Mode           => (if Copy then Files.File_System.Drop_Copy else Files.File_System.Drop_Move),
+                 Mode           =>
+                   (if Copy then Files.File_System_Types.Drop_Copy else Files.File_System_Types.Drop_Move),
                  From_Clipboard => False);
          begin
             if Op.Status /= Files.Operation_Results.Operation_Success then

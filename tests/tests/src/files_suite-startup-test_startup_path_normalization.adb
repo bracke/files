@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 separate (Files_Suite.Startup)
    procedure Test_Startup_Path_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,11 +8,11 @@ separate (Files_Suite.Startup)
       Other    : constant String := Join (Dir, "other.txt");
       Args     : Files.Types.String_Vectors.Vector;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Direct   : Files.File_System.Path_Result;
-      File     : Files.File_System.Path_Result;
-      Current  : Files.File_System.Path_Result;
-      Missing  : Files.File_System.Path_Result;
-      Empty    : Files.File_System.Path_Result;
+      Direct   : Files.File_System_Types.Path_Result;
+      File     : Files.File_System_Types.Path_Result;
+      Current  : Files.File_System_Types.Path_Result;
+      Missing  : Files.File_System_Types.Path_Result;
+      Empty    : Files.File_System_Types.Path_Result;
       Startup  : Files.Application.Startup_Result;
       Full_Dir : Unbounded_String;
    begin
@@ -29,23 +30,23 @@ separate (Files_Suite.Startup)
       Missing := Files.File_System.Normalize_Path (Join (Root, "missing"));
       Empty := Files.File_System.Normalize_Path ("");
 
-      Assert (Direct.Status = Files.File_System.Path_Valid, "directory path is valid");
+      Assert (Direct.Status = Files.File_System_Types.Path_Valid, "directory path is valid");
       Files_Suite.Support.Assert_Equal
         (To_String (Direct.Directory_Path),
          Ada.Directories.Full_Name (Dir),
          "directory is normalized");
-      Assert (File.Status = Files.File_System.Path_Valid, "file path is valid");
+      Assert (File.Status = Files.File_System_Types.Path_Valid, "file path is valid");
       Files_Suite.Support.Assert_Equal
         (To_String (File.Directory_Path),
          Ada.Directories.Full_Name (Dir),
          "file maps to parent");
-      Assert (Current.Status = Files.File_System.Path_Valid, "current-directory path is valid");
+      Assert (Current.Status = Files.File_System_Types.Path_Valid, "current-directory path is valid");
       Files_Suite.Support.Assert_Equal
         (To_String (Current.Directory_Path),
          Ada.Directories.Full_Name (Ada.Directories.Current_Directory),
          "current-directory path normalizes to absolute directory");
-      Assert (Missing.Status = Files.File_System.Path_Missing, "missing path reports an error");
-      Assert (Empty.Status = Files.File_System.Path_Missing, "empty path reports missing");
+      Assert (Missing.Status = Files.File_System_Types.Path_Missing, "missing path reports an error");
+      Assert (Empty.Status = Files.File_System_Types.Path_Missing, "empty path reports missing");
       Files_Suite.Support.Assert_Equal
         (To_String (Empty.Error_Key),
          "error.path.missing",
@@ -57,9 +58,10 @@ separate (Files_Suite.Startup)
            and then Ada.Directories.Kind (Special_Path) = Ada.Directories.Special_File
          then
             declare
-               Special : constant Files.File_System.Path_Result := Files.File_System.Normalize_Path (Special_Path);
+               Special : constant Files.File_System_Types.Path_Result :=
+                 Files.File_System.Normalize_Path (Special_Path);
             begin
-               Assert (Special.Status = Files.File_System.Path_Inaccessible, "special path reports inaccessible");
+               Assert (Special.Status = Files.File_System_Types.Path_Inaccessible, "special path reports inaccessible");
                Files_Suite.Support.Assert_Equal
                  (To_String (Special.Error_Key),
                   "error.path.inaccessible",

@@ -3,6 +3,7 @@ with Ada.Strings;
 with Ada.Strings.Unbounded;
 
 with Files.Commands;
+with Files.Commands.Keymap_Settings;
 with Files.Diagnostics;
 with Files.Icon_Themes;
 with Files.Localization;
@@ -486,43 +487,6 @@ package body Files.Overlays.Settings_Form is
       return Files.Settings.Reset_Draft_To_Defaults;
    end Reset_To_Defaults;
 
-   procedure Store_Shortcut_Overrides (Settings : in out Files.Settings.Settings_Model) is
-   begin
-      Settings.Shortcut_Overrides.Clear;
-      for Id in Files.Commands.Registered_Command_Id loop
-         declare
-            Is_Set : Boolean;
-            Value  : constant Files.Commands.Shortcut := Files.Commands.Shortcut_Override (Id, Is_Set);
-         begin
-            if Is_Set then
-               Settings.Shortcut_Overrides.Append
-                 (Files.Settings.Shortcut_Override'
-                    (Command => To_Unbounded_String (Files.Commands.Identifier (Id)),
-                     Combo   => To_Unbounded_String (Files.Commands.Shortcut_Text (Value))));
-            end if;
-         end;
-      end loop;
-   end Store_Shortcut_Overrides;
-
-   procedure Apply_Shortcut_Overrides (Settings : in out Files.Settings.Settings_Model) is
-   begin
-      Files.Commands.Reset_Shortcut_Overrides;
-      for Entry_Value of Settings.Shortcut_Overrides loop
-         declare
-            Id : constant Files.Commands.Command_Id :=
-              Files.Commands.Id_For_Identifier (To_String (Entry_Value.Command));
-         begin
-            if Id /= Files.Commands.No_Command
-              and then Files.Commands.Is_Valid_Shortcut_Text (To_String (Entry_Value.Combo))
-            then
-               Files.Commands.Set_Shortcut_Override
-                 (Id, Files.Commands.Parse_Shortcut (To_String (Entry_Value.Combo)));
-            end if;
-         end;
-      end loop;
-      Store_Shortcut_Overrides (Settings);
-   end Apply_Shortcut_Overrides;
-
    function Needs_Save
      (Saved   : Files.Settings.Settings_Model;
       Applied : Files.Settings.Settings_Model)
@@ -530,7 +494,7 @@ package body Files.Overlays.Settings_Form is
    is
       With_Overrides : Files.Settings.Settings_Model := Applied;
    begin
-      Store_Shortcut_Overrides (With_Overrides);
+      Files.Commands.Keymap_Settings.Store_Shortcut_Overrides (With_Overrides);
       return not Files.Settings.Same_Content (Saved, With_Overrides);
    end Needs_Save;
 

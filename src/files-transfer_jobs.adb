@@ -99,7 +99,7 @@ package body Files.Transfer_Jobs is
    procedure Write_Request
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Action : Files.Paste.Resolved_Action;
-      Mode : Files.File_System.Drop_Import_Mode;
+      Mode : Files.File_System_Types.Drop_Import_Mode;
       Batch_Directory : String)
    is
    begin
@@ -108,14 +108,14 @@ package body Files.Transfer_Jobs is
       end if;
       String'Output (Stream, Request_Header);
       Write_Action (Stream, Action);
-      Files.File_System.Drop_Import_Mode'Output (Stream, Mode);
+      Files.File_System_Types.Drop_Import_Mode'Output (Stream, Mode);
       Write_String
         (Stream, Batch_Directory, Max_Transport_Path_Length);
    end Write_Request;
 
    type Transfer_Request is record
       Action          : Files.Paste.Resolved_Action;
-      Mode            : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      Mode            : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy;
       Batch_Directory : Files.Types.UString;
    end record;
 
@@ -124,7 +124,7 @@ package body Files.Transfer_Jobs is
       Work   : out Transfer_Request) is
    begin
       Work.Action := Read_Action (Stream);
-      Work.Mode := Files.File_System.Drop_Import_Mode'Input (Stream);
+      Work.Mode := Files.File_System_Types.Drop_Import_Mode'Input (Stream);
       Work.Batch_Directory :=
         To_Unbounded_String (Files.IO.Record_Fields.Input_String (Stream, Max_Transport_Path_Length));
    end Read_Request_Body;
@@ -138,7 +138,7 @@ package body Files.Transfer_Jobs is
    procedure Read_Transport_Request
      (Path : String;
       Action : out Files.Paste.Resolved_Action;
-      Mode : out Files.File_System.Drop_Import_Mode;
+      Mode : out Files.File_System_Types.Drop_Import_Mode;
       Batch_Directory : out Files.Types.UString)
    is
       Work : constant Transfer_Request := Read_Request_Record (Path, Request_Header);
@@ -272,7 +272,7 @@ package body Files.Transfer_Jobs is
    procedure Start
      (Job    : in out Session;
       Action : Files.Paste.Resolved_Action;
-      Mode   : Files.File_System.Drop_Import_Mode;
+      Mode   : Files.File_System_Types.Drop_Import_Mode;
       Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
    is
       procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
@@ -317,9 +317,9 @@ package body Files.Transfer_Jobs is
 
       procedure Recover is
          Action : Files.Paste.Resolved_Action;
-         Mode : Files.File_System.Drop_Import_Mode;
+         Mode : Files.File_System_Types.Drop_Import_Mode;
          Batch_Directory : Files.Types.UString;
-         use type Files.File_System.Drop_Import_Mode;
+         use type Files.File_System_Types.Drop_Import_Mode;
       begin
          begin
             Result := Read_Transport_Result
@@ -338,7 +338,7 @@ package body Files.Transfer_Jobs is
            (Files.Jobs.Process.Path (Job, Files.Protocol_Names.Replaced_File), Result);
          declare
             Journal : constant Files.Jobs.Context.Journal_Entry_Vectors.Vector :=
-              (if Mode = Files.File_System.Drop_Move
+              (if Mode = Files.File_System_Types.Drop_Move
                then Files.Jobs.Context.Read_Moved (Files.Jobs.Process.Path (Job, ""))
                else Files.Jobs.Context.Read_Created (Files.Jobs.Process.Path (Job, "")));
          begin
@@ -393,7 +393,7 @@ package body Files.Transfer_Jobs is
 
    procedure Run_Helper (Directory : String) is
       Action : Files.Paste.Resolved_Action;
-      Mode   : Files.File_System.Drop_Import_Mode;
+      Mode   : Files.File_System_Types.Drop_Import_Mode;
       Result : Job_Result;
       Batch : Files.Jobs.Copy_Context.Session;
       Batch_Directory : Files.Types.UString;

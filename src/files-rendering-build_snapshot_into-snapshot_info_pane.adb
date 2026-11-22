@@ -39,7 +39,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
            and then Files.Model.Folder_Sizes.Cached_For (Model, To_String (Item.Full_Path))
          then
             declare
-               Measured : constant Files.File_System.Directory_Size_Result :=
+               Measured : constant Files.File_System_Types.Directory_Size_Result :=
                  Files.Model.Folder_Sizes.Value (Model, To_String (Item.Full_Path));
             begin
                Info.Folder_Size_Available := Measured.Available;

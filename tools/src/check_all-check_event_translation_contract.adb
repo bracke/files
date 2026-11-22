@@ -156,7 +156,9 @@ separate (Check_All)
           To_Unbounded_String ("Normalize_Draft"),
           To_Unbounded_String ("Path_Label_Vectors"),
           To_Unbounded_String ("Path_References"),
-          To_Unbounded_String ("Path_Sets")],
+          To_Unbounded_String ("Path_Sets"),
+          --  Copies the two classification maps out of a settings model.
+          To_Unbounded_String ("Classification_Of")],
          "the model reads no disk (settings are loaded and saved elsewhere)",
          --  Settings is also what the model's parameters are called.
          Short_Too => False);

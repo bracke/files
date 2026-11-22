@@ -1,3 +1,4 @@
+with Files.Commands.Keymap_Settings;
 with Files.Operation_Results;
 separate (Files.Controller)
    function Save_Settings
@@ -36,7 +37,7 @@ separate (Files.Controller)
       --  reported, not undone; a draft the file could not hold is refused and
       --  stays open for editing.
       Final := Applied.Settings;
-      Files.Overlays.Settings_Form.Store_Shortcut_Overrides (Final);
+      Files.Commands.Keymap_Settings.Store_Shortcut_Overrides (Final);
       --  Save writes even an unchanged draft: it is how a save that failed
       --  earlier is tried again.
       if Files.Settings.Same_Content (Settings, Final) then

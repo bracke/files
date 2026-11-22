@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Model.Filtering;
 with Files.UI_Types;
 with Files.Overlays.Settings_Form;
@@ -127,10 +128,10 @@ separate (Files.Controller)
                     Files.Model.Clipboard.Paths (Model);
                   Mode  : constant Files.Model.Clipboard_Mode :=
                     Files.Model.Clipboard.Mode_Of (Model);
-                  Drop_Mode : constant Files.File_System.Drop_Import_Mode :=
+                  Drop_Mode : constant Files.File_System_Types.Drop_Import_Mode :=
                     (if Mode = Files.Model.Clipboard_Cut
-                     then Files.File_System.Drop_Move
-                     else Files.File_System.Drop_Copy);
+                     then Files.File_System_Types.Drop_Move
+                     else Files.File_System_Types.Drop_Copy);
                begin
                   --  Begin_Paste executes immediately when no destination name
                   --  collides, or arms the conflict dialog when one does. The cut

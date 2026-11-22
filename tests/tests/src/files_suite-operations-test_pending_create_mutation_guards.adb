@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
@@ -133,7 +134,7 @@ separate (Files_Suite.Operations)
             "external drops share the pending-create paste guard: nothing written");
          Step := Files.Operations.Begin_Paste_To
            (Model, Settings, Sources, Join (Root, "view"),
-            Files.File_System.Drop_Move, From_Clipboard => False);
+            Files.File_System_Types.Drop_Move, From_Clipboard => False);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Disabled,

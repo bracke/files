@@ -1,4 +1,4 @@
-with Files.File_Types;
+with Files.File_System_Types;
 with GNAT.OS_Lib;
 
 separate (Files.Operations)
@@ -10,13 +10,13 @@ is
    Typed : constant String := Files.File_System.Expand_User_Path (Files.Model.Path_Input_Text (Model));
    --  A relative path is relative to the folder on screen, not to wherever
    --  the program was started.
-   Path_Result : constant Files.File_System.Path_Result :=
+   Path_Result : constant Files.File_System_Types.Path_Result :=
      Files.File_System.Normalize_Path
        (if Typed = "" or else GNAT.OS_Lib.Is_Absolute_Path (Typed) then Typed
         else Hostkit.Fs.Join (Files.Model.Current_Path (Model), Typed));
    Empty_Items : Files.Items.Item_Vectors.Vector;
 begin
-   if Path_Result.Status /= Files.File_System.Path_Valid then
+   if Path_Result.Status /= Files.File_System_Types.Path_Valid then
       Files.Model.Commit_Path_Input (Model, Path_Result, Empty_Items);
       Files.Model.Set_Error (Model, To_String (Path_Result.Error_Key));
       return Make_Result (Operation_Failed, To_String (Path_Result.Error_Key));
@@ -25,7 +25,7 @@ begin
    declare
       Load : constant Files.File_System.Directory_Load_Result :=
         Files.File_System.Load_Directory_Deferring_Thumbnails
-          (To_String (Path_Result.Directory_Path), Files.File_Types.Classification_Of (Settings),
+          (To_String (Path_Result.Directory_Path), Files.Settings.Classification_Of (Settings),
            Files.Settings.Listing_Options_Of (Settings));
    begin
       if not Load.Success then

@@ -1,4 +1,4 @@
-with Files.File_System;
+with Files.File_System_Types;
 
 --  What a root location is called on screen: the root selector's rows and the
 --  folder tree's top nodes say the same.
@@ -10,6 +10,6 @@ package Files.Root_Labels is
    --
    --  @param Root The root entry.
    --  @return The text to show.
-   function Display_Label (Root : Files.File_System.Root_Entry) return String;
+   function Display_Label (Root : Files.File_System_Types.Root_Entry) return String;
 
 end Files.Root_Labels;

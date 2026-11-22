@@ -1,5 +1,6 @@
+with Files.Commands.Keymap_Settings;
+with Files.File_System_Types;
 with Files.Model.Info_Pane;
-with Files.File_Types;
 with Files.Environment;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
@@ -21,7 +22,6 @@ with Files.Icon_Assets;
 with Files.Localization;
 with Files.Operations;
 with Files.Rendering;
-with Files.Overlays.Settings_Form;
 with Guikit.Frame_Analysis;
 with Guikit.Mirroring;
 with Guikit.Vulkan;
@@ -31,7 +31,7 @@ use Files.Text_Basics;
 package body Files.Application is
 
    use Ada.Strings.Unbounded;
-   use type Files.File_System.Path_Status;
+   use type Files.File_System_Types.Path_Status;
 
    function Parse_Run_Configuration
      (Arguments : String_Vectors.Vector)
@@ -305,7 +305,7 @@ package body Files.Application is
       --  Held as a save writes them (known commands, valid combos, canonical
       --  text and order), so the settings pane does not take a file written
       --  by hand for a change of its own.
-      Files.Overlays.Settings_Form.Apply_Shortcut_Overrides (Settings);
+      Files.Commands.Keymap_Settings.Apply_Shortcut_Overrides (Settings);
       --  The file, as read, says that: a later merge weighs this session's
       --  changes against it, not against how the file happened to spell it.
       Files.Settings.Note_Seen_Settings (Effective_Path, Settings);
@@ -374,9 +374,9 @@ package body Files.Application is
       for Argument of Candidates loop
          declare
             Input      : constant String := To_String (Argument);
-            Path_Check : constant Files.File_System.Path_Result := Files.File_System.Normalize_Path (Input);
+            Path_Check : constant Files.File_System_Types.Path_Result := Files.File_System.Normalize_Path (Input);
          begin
-            if Path_Check.Status = Files.File_System.Path_Valid then
+            if Path_Check.Status = Files.File_System_Types.Path_Valid then
                declare
                   Directory_Path : constant String := To_String (Path_Check.Directory_Path);
                begin
@@ -391,7 +391,7 @@ package body Files.Application is
                      declare
                         Load   : constant Files.File_System.Directory_Load_Result :=
                           Files.File_System.Load_Directory_Deferring_Thumbnails
-                            (Directory_Path, Files.File_Types.Classification_Of (Settings),
+                            (Directory_Path, Files.Settings.Classification_Of (Settings),
                              Files.Settings.Listing_Options_Of (Settings));
                         Window : Startup_Window;
                      begin

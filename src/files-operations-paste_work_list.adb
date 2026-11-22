@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Name_Parts;
 
 separate (Files.Operations)
@@ -13,7 +14,7 @@ is
 begin
    for Plan of Plans loop
       if Plan.Valid
-        and then not (Plan.Mode = Files.File_System.Drop_Move
+        and then not (Plan.Mode = Files.File_System_Types.Drop_Move
                       and then Plan.Source_Path = Plan.Destination_Path)
       then
          Work.Append

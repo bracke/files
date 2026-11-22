@@ -1,4 +1,4 @@
-with Files.File_System;
+with Files.File_System_Types;
 with Files.Types;
 
 --  Drop event-source backend shared by native callbacks and automation tests.
@@ -20,7 +20,7 @@ package Files.Drop_Events is
    procedure Queue
      (Source : in out Drop_Event_Source;
       Paths  : Files.Types.String_Vectors.Vector;
-      Mode   : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy);
+      Mode   : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy);
 
    --  Return whether Source has a queued drop event.
    --
@@ -46,12 +46,12 @@ package Files.Drop_Events is
    procedure Take
      (Source : in out Drop_Event_Source;
       Paths  : out Files.Types.String_Vectors.Vector;
-      Mode   : out Files.File_System.Drop_Import_Mode);
+      Mode   : out Files.File_System_Types.Drop_Import_Mode);
 
 private
    type Drop_Event_Source is record
       Pending_Paths : Files.Types.String_Vectors.Vector;
-      Pending_Mode  : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      Pending_Mode  : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy;
       Overflowed    : Boolean := False;
    end record;
 

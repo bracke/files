@@ -12,29 +12,16 @@ with Files.File_System_Types;
 package Files.File_System is
    subtype UString is Files.Types.UString;
 
-   --  The value types below live in Files.File_System_Types, so a unit
-   --  that only holds them need not depend on this package; they are
-   --  re-exported here under their own names, literals included. Their
-   --  operators are not this package's own, so they are made visible to it
-   --  and its children here.
-   use type Files.File_System_Types.Drop_Import_Mode;
-   use type Files.File_System_Types.Root_Kind;
-
-   subtype Path_Status is Files.File_System_Types.Path_Status;
-   --  @return The literal Path_Valid of Path_Status, as Files.File_System_Types names it.
-   function Path_Valid return Path_Status renames Files.File_System_Types.Path_Valid;
-   --  @return The literal Path_Missing of Path_Status, as Files.File_System_Types names it.
-   function Path_Missing return Path_Status renames Files.File_System_Types.Path_Missing;
-   --  @return The literal Path_Inaccessible of Path_Status, as Files.File_System_Types names it.
-   function Path_Inaccessible return Path_Status renames Files.File_System_Types.Path_Inaccessible;
-
-   subtype Path_Result is Files.File_System_Types.Path_Result;
+   --  The value types this package's subprograms take and return (path
+   --  status, signatures, drop modes, roots) live in Files.File_System_Types,
+   --  so a unit that only holds them need not depend on this package; clients
+   --  name them there. They are made directly visible to this package and its
+   --  children here.
+   use Files.File_System_Types;
 
    --  The item type is Files.Items'; these names keep it at hand here.
    subtype Directory_Item is Files.Items.Directory_Item;
    package Item_Vectors renames Files.Items.Item_Vectors;
-
-   subtype Directory_Signature is Files.File_System_Types.Directory_Signature;
 
    --  The signature of a listing not read from the directory (search
    --  results, items handed in) or one that could not be signed: the next
@@ -85,12 +72,6 @@ package Files.File_System is
       Error_Key      : UString;
    end record;
 
-   subtype Drop_Import_Mode is Files.File_System_Types.Drop_Import_Mode;
-   --  @return The literal Drop_Copy of Drop_Import_Mode, as Files.File_System_Types names it.
-   function Drop_Copy return Drop_Import_Mode renames Files.File_System_Types.Drop_Copy;
-   --  @return The literal Drop_Move of Drop_Import_Mode, as Files.File_System_Types names it.
-   function Drop_Move return Drop_Import_Mode renames Files.File_System_Types.Drop_Move;
-
    type Drop_Import_Plan is record
       Source_Path      : UString;
       Destination_Path : UString;
@@ -113,8 +94,6 @@ package Files.File_System is
       Success   : Boolean := False;
       Error_Key : UString;
    end record;
-
-   subtype Directory_Size_Result is Files.File_System_Types.Directory_Size_Result;
 
    type Trash_Backend is
      (Trash_Unavailable,
@@ -142,27 +121,6 @@ package Files.File_System is
       Error_Key : UString;
    end record;
 
-   subtype Root_Kind is Files.File_System_Types.Root_Kind;
-   --  @return The literal Root_Filesystem of Root_Kind, as Files.File_System_Types names it.
-   function Root_Filesystem return Root_Kind renames Files.File_System_Types.Root_Filesystem;
-   --  @return The literal Root_Home of Root_Kind, as Files.File_System_Types names it.
-   function Root_Home return Root_Kind renames Files.File_System_Types.Root_Home;
-   --  @return The literal Root_Current of Root_Kind, as Files.File_System_Types names it.
-   function Root_Current return Root_Kind renames Files.File_System_Types.Root_Current;
-   --  @return The literal Root_Mount of Root_Kind, as Files.File_System_Types names it.
-   function Root_Mount return Root_Kind renames Files.File_System_Types.Root_Mount;
-   --  @return The literal Root_User_Mount of Root_Kind, as Files.File_System_Types names it.
-   function Root_User_Mount return Root_Kind renames Files.File_System_Types.Root_User_Mount;
-   --  @return The literal Root_Network_Mount of Root_Kind, as Files.File_System_Types names it.
-   function Root_Network_Mount return Root_Kind renames Files.File_System_Types.Root_Network_Mount;
-   --  @return The literal Root_Windows_Drive of Root_Kind, as Files.File_System_Types names it.
-   function Root_Windows_Drive return Root_Kind renames Files.File_System_Types.Root_Windows_Drive;
-   --  @return The literal Root_Favorite of Root_Kind, as Files.File_System_Types names it.
-   function Root_Favorite return Root_Kind renames Files.File_System_Types.Root_Favorite;
-
-   subtype Root_Entry is Files.File_System_Types.Root_Entry;
-   package Root_Entry_Vectors renames Files.File_System_Types.Root_Entry_Vectors;
-
    --  Normalize an existing filesystem path to a directory path.
    --
    --  @param Path Path supplied by a user or command line.
@@ -187,7 +145,7 @@ package Files.File_System is
    --
    --  @param Path Directory path to load.
    --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
+   --    (Files.Settings.Classification_Of the settings).
    --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
    --  @return Loaded directory model or a recoverable error result.
    function Load_Directory
@@ -202,7 +160,7 @@ package Files.File_System is
    --
    --  @param Path Directory path to load.
    --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
+   --    (Files.Settings.Classification_Of the settings).
    --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
    --  @return Loaded directory model or a recoverable error result.
    function Load_Directory_Generating_Thumbnails
@@ -221,7 +179,7 @@ package Files.File_System is
    --
    --  @param Path Directory path to load.
    --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
+   --    (Files.Settings.Classification_Of the settings).
    --  @param Options Hidden-entry and sort policy for the listing.
    --  @param Include Entry filter, or null for every entry.
    --  @param Name Entry name Include is asked about.
@@ -248,7 +206,7 @@ package Files.File_System is
    --
    --  @param Path Directory path to load.
    --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
+   --    (Files.Settings.Classification_Of the settings).
    --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
    --  @return Directory load result.
    function Load_Directory_Deferring_Thumbnails
@@ -266,7 +224,7 @@ package Files.File_System is
    --
    --  @param Path Directory whose subdirectories are listed.
    --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
+   --    (Files.Settings.Classification_Of the settings).
    --  @param Options Hidden-entry and sort policy.
    --  @return The subdirectories, or a recoverable error result.
    function Load_Subdirectories
@@ -294,7 +252,7 @@ package Files.File_System is
    --
    --  @param Full_Path Absolute or relative path to describe.
    --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
+   --    (Files.Settings.Classification_Of the settings).
    --  @return Loaded item, or a failure result when the path is missing or
    --  cannot be described.
    function Load_Item
@@ -368,7 +326,7 @@ package Files.File_System is
    --  @param Name Item name.
    --  @param Kind Filesystem item kind.
    --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
+   --    (Files.Settings.Classification_Of the settings).
    --  @return Directory item value.
    function Make_Item
      (Parent_Path : String;
@@ -682,7 +640,7 @@ private
    --  @param Root_Path Directory where recursive search starts.
    --  @param Query Case-insensitive name fragment to match.
    --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
+   --    (Files.Settings.Classification_Of the settings).
    --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
    --  @param Max_Items Maximum number of matching items to return.
    --  @return Deterministic recursive search result or recoverable error.
@@ -717,7 +675,7 @@ private
    --  @param Root_Path Directory where the search starts.
    --  @param Query Text to look for.
    --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
+   --    (Files.Settings.Classification_Of the settings).
    --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
    --  @return The matching files, or why the search failed.
    function Search_Contents

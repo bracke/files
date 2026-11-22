@@ -1,3 +1,4 @@
+with Files.File_System;
 with Files.Diagnostics;
 with Files.Jobs.Helper_Modes;
 with Ada.Directories;
@@ -73,7 +74,7 @@ package body Files.Folder_Size is
      ("result-" & Files.Text_Basics.Natural_Text (Index));
 
    --  What Write_Result refuses to write.
-   function Result_Is_Consistent (Result : Files.File_System.Directory_Size_Result) return Boolean is
+   function Result_Is_Consistent (Result : Files.File_System_Types.Directory_Size_Result) return Boolean is
      (Result.Total_Bytes >= 0
       and then Result.File_Count <= Result.Item_Count
       and then
@@ -86,7 +87,7 @@ package body Files.Folder_Size is
 
    procedure Write_Result
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Result : Files.File_System.Directory_Size_Result)
+      Result : Files.File_System_Types.Directory_Size_Result)
    is
    begin
       if not Result_Is_Consistent (Result) then
@@ -102,7 +103,7 @@ package body Files.Folder_Size is
 
    procedure Read_Result_Body
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Result : out Files.File_System.Directory_Size_Result) is
+      Result : out Files.File_System_Types.Directory_Size_Result) is
    begin
       Result.Available := Boolean'Input (Stream);
       Result.Total_Bytes := Long_Long_Integer'Input (Stream);
@@ -112,11 +113,11 @@ package body Files.Folder_Size is
    end Read_Result_Body;
 
    function Read_Result_Record is new Files.IO.Lease_Streams.Read_Record
-     (Files.File_System.Directory_Size_Result, Read_Result_Body, Result_Is_Consistent);
+     (Files.File_System_Types.Directory_Size_Result, Read_Result_Body, Result_Is_Consistent);
 
    function Read_Result
      (Path : String)
-      return Files.File_System.Directory_Size_Result is
+      return Files.File_System_Types.Directory_Size_Result is
      (Read_Result_Record (Path, Result_Header, Long_Long_Integer (Max_Record_Bytes)));
 
    --  Whether a finished measurement of Path, asked for as listed at Listed,
@@ -128,7 +129,7 @@ package body Files.Folder_Size is
    function Answer
      (Scan   : Session;
       Index  : Positive;
-      Result : Files.File_System.Directory_Size_Result) return Measurement is
+      Result : Files.File_System_Types.Directory_Size_Result) return Measurement is
      ((Path => Scan.Batch (Index).Path, Result => Result, Listed => Scan.Batch (Index).Listed));
 
    procedure Start_Next (Scan : in out Session) is
@@ -267,7 +268,7 @@ package body Files.Folder_Size is
          declare
             Name : constant String :=
               Files.Jobs.Process.Path (Scan.Job, Result_Name (Scan.Next_Result));
-            Result : Files.File_System.Directory_Size_Result;
+            Result : Files.File_System_Types.Directory_Size_Result;
             Read   : Boolean := False;
          begin
             --  refusal-safe: a result not seen is waited for; once the helper

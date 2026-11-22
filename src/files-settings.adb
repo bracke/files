@@ -630,29 +630,9 @@ package body Files.Settings is
  is separate;
 
    function Filetype_For_Extension
-     (Mapping   : String_Maps.Map;
-      Extension : String)
-      return String
-   is
-      Position : constant String_Maps.Cursor := Mapping.Find (Normalize_Extension (Extension));
-   begin
-      return (if String_Maps.Has_Element (Position) then String_Maps.Element (Position) else "");
-   end Filetype_For_Extension;
-
-   function Filetype_For_Extension
      (Settings  : Settings_Model;
       Extension : String)
       return String is (Filetype_For_Extension (Settings.Extension_Filetypes, Extension));
-
-   function Icon_For_Filetype
-     (Mapping  : String_Maps.Map;
-      Filetype : String)
-      return String
-   is
-      Position : constant String_Maps.Cursor := Mapping.Find (Trim (Filetype));
-   begin
-      return (if String_Maps.Has_Element (Position) then String_Maps.Element (Position) else "");
-   end Icon_For_Filetype;
 
    function Icon_For_Filetype
      (Settings : Settings_Model;
@@ -957,23 +937,5 @@ package body Files.Settings is
      (Path : String)
       return Settings_Write_Result
  is separate;
-
-   function Normalize_Extension
-     (Extension : String)
-      return String
-   is
-      Clean : constant String := Trim (Extension);
-   begin
-      if Clean = "" then
-         return "";
-      elsif Clean (Clean'First) = '.' then
-         if Clean'Length = 1 then
-            return "";
-         end if;
-         return Files.Text_Case.To_Lower_Unicode (Trim (Clean (Clean'First + 1 .. Clean'Last)));
-      else
-         return Files.Text_Case.To_Lower_Unicode (Clean);
-      end if;
-   end Normalize_Extension;
 
 end Files.Settings;

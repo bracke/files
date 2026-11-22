@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Controller.Operation_Commands;
 with Files.Preference_Types;
 with Files.Controller.Testing;
@@ -59,7 +60,7 @@ package body Files_Suite.Model is
    use type Ada.Directories.File_Kind;
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
-   use type Files.File_System.Root_Kind;
+   use type Files.File_System_Types.Root_Kind;
    use type Files.Types.Sort_Field;
    use type Files.Undo.History.Undo_Entry;
    use type Files.Types.Item_Kind;

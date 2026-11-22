@@ -5,7 +5,7 @@ with Files.Types;
 package body Files_Suite.Listings is
 
    function Classes (Settings : Files.Settings.Settings_Model) return Files.File_Types.Classification
-     renames Files.File_Types.Classification_Of;
+     renames Files.Settings.Classification_Of;
 
    function Options (Settings : Files.Settings.Settings_Model) return Files.Types.Listing_Options
      renames Files.Settings.Listing_Options_Of;

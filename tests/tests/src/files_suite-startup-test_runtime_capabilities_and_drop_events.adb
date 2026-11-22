@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Drop_Events.Testing;
 separate (Files_Suite.Startup)
    procedure Test_Runtime_Capabilities_And_Drop_Events (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -20,18 +21,18 @@ separate (Files_Suite.Startup)
          Source        : Files.Drop_Events.Drop_Event_Source;
          Paths         : Files.Types.String_Vectors.Vector;
          Drained       : Files.Types.String_Vectors.Vector;
-         Mode          : Files.File_System.Drop_Import_Mode;
+         Mode          : Files.File_System_Types.Drop_Import_Mode;
       begin
          Paths.Append (To_Unbounded_String (""));
          Paths.Append (To_Unbounded_String ("  " & Dir & "  "));
-         Files.Drop_Events.Queue (Source, Paths, Files.File_System.Drop_Move);
+         Files.Drop_Events.Queue (Source, Paths, Files.File_System_Types.Drop_Move);
          Assert (Files.Drop_Events.Has_Pending (Source), "drop event source queues non-empty paths");
          Files_Suite.Support.Assert_Equal
            (Files.Drop_Events.Testing.Pending_Count (Source),
             1,
             "drop event source filters empty paths");
          Files.Drop_Events.Take (Source, Drained, Mode);
-         Assert (Mode = Files.File_System.Drop_Move, "drop event source preserves queued import mode");
+         Assert (Mode = Files.File_System_Types.Drop_Move, "drop event source preserves queued import mode");
          Files_Suite.Support.Assert_Equal (Natural (Drained.Length), 1, "drop event source drains one filtered path");
          Files_Suite.Support.Assert_Equal
            (To_String (Drained.Element (1)),

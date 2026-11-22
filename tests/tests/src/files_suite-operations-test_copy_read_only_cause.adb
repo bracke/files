@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
@@ -30,7 +31,7 @@ separate (Files_Suite.Operations)
       Mutation := Files.File_System.Transfer.Copy_Tree (Folder, Join (Locked, "folder"));
       Assert_Equal
         (To_String (Mutation.Error_Key), "error.io.denied", "the refused folder copy says permission was denied");
-      for Mode in Files.File_System.Drop_Import_Mode loop
+      for Mode in Files.File_System_Types.Drop_Import_Mode loop
          Plans.Clear;
          Plans.Append
            (Files.File_System.Drop_Import_Plan'
@@ -42,7 +43,8 @@ separate (Files_Suite.Operations)
          Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans);
          Assert_Equal
            (To_String (Mutation.Error_Key), "error.io.denied",
-            Files.File_System.Drop_Import_Mode'Image (Mode) & " into a read-only folder says permission was denied");
+            Files.File_System_Types.Drop_Import_Mode'Image (Mode)
+            & " into a read-only folder says permission was denied");
       end loop;
       Unlock_Directory (Locked);
       Assert (File_Is (Source, "source bytes"),

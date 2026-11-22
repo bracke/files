@@ -1,3 +1,4 @@
+with Files.Commands.Keymap_Settings;
 with Files.Controller;
 with Files.Controller.Testing;
 with Files.Overlays.Settings_Form;
@@ -200,7 +201,7 @@ separate (Files_Suite.Settings)
 
          Files.Commands.Set_Shortcut_Override
            (Files.Commands.Select_Small_Icons_Command, Files.Commands.Parse_Shortcut ("control+shift+5"));
-         Files.Overlays.Settings_Form.Store_Shortcut_Overrides (With_Override);
+         Files.Commands.Keymap_Settings.Store_Shortcut_Overrides (With_Override);
          Files.Overlays.Settings_Form.Begin_Edit (Model, With_Override);
          Files.Overlays.Settings_Form.Set_Draft (Model, Defaults);
          Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Reset_Button);

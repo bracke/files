@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Model.Recent;
 with Files.Model.Info_Pane;
 with Files.Model.Filtering;
@@ -44,7 +45,7 @@ package body Files.Refresh is
       Root : Files.Types.UString;
       Context_Revision : Natural;
       Settings : Files.Settings.Settings_Model;
-      Previous : Files.File_System.Directory_Signature;
+      Previous : Files.File_System_Types.Directory_Signature;
       Recent : Boolean;
       Force : Boolean;
       Selection : Files.Types.UString;
@@ -55,7 +56,7 @@ package body Files.Refresh is
       Success : Boolean := False;
       Reloaded : Boolean := False;
       Items : Files.Items.Item_Vectors.Vector;
-      Signature : Files.File_System.Directory_Signature;
+      Signature : Files.File_System_Types.Directory_Signature;
       Error_Key : Files.Types.UString;
    end record;
 
@@ -543,7 +544,7 @@ package body Files.Refresh is
                   declare
                      Loaded : constant Files.File_System.Directory_Load_Result :=
                        Files.File_System.Load_Directory_Generating_Thumbnails
-                         (To_String (Work.Root), Files.File_Types.Classification_Of (Work.Settings),
+                         (To_String (Work.Root), Files.Settings.Classification_Of (Work.Settings),
                           Files.Settings.Listing_Options_Of (Work.Settings));
                   begin
                      Done.Success := Loaded.Success;
@@ -752,7 +753,7 @@ package body Files.Refresh is
       --  per entry here, instead of the window starting a helper, a
       --  transport and four fsyncs for every timed re-read.
       Polls_Itself : Boolean := False;
-      Last_State   : Files.File_System.Directory_Signature;
+      Last_State   : Files.File_System_Types.Directory_Signature;
       Next_Scan    : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
 
       --  A second, and a second more per 20,000 entries.
@@ -787,7 +788,7 @@ package body Files.Refresh is
          end if;
          if Polls_Itself and then Ada.Real_Time.Clock >= Next_Scan then
             declare
-               State : constant Files.File_System.Directory_Signature :=
+               State : constant Files.File_System_Types.Directory_Signature :=
                  Files.File_System.Directory_State (To_String (Watched));
             begin
                --  Moved, or became readable or unreadable; a folder that
@@ -831,7 +832,7 @@ package body Files.Refresh is
    end Ensure_Selected_Item_Extra;
 
    function Load_Recent_Items (Settings : Files.Settings.Settings_Model) return Files.Items.Item_Vectors.Vector is
-      Classes : constant Files.File_Types.Classification := Files.File_Types.Classification_Of (Settings);
+      Classes : constant Files.File_Types.Classification := Files.Settings.Classification_Of (Settings);
       Items   : Files.Items.Item_Vectors.Vector;
    begin
       for Path of Files.Settings.Path_References.Recent_Paths (Settings) loop

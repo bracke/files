@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Testing;
 with Files.File_System.Permissions;
 with Files_Suite.Volumes;
@@ -51,7 +52,7 @@ separate (Files_Suite.Transfer)
          Mutation : Files.File_System.Mutation_Result;
       begin
          Plans.Append (Files.File_System.Drop_Import_Plan'
-           (To_Unbounded_String (Source), Destination, Files.File_System.Drop_Move, True, Null_Unbounded_String));
+           (To_Unbounded_String (Source), Destination, Files.File_System_Types.Drop_Move, True, Null_Unbounded_String));
          Mutation := Files.File_System.Testing.Execute_Drop_Import
            (Plans, Cancel_After_Set_Aside'Unrestricted_Access);
          Assert (not Mutation.Success, "a set-aside source fails the move");

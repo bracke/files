@@ -1,9 +1,9 @@
+with Files.File_System_Types;
 with Ada.Calendar;
 with Ada.Containers.Vectors;
 with Ada.Real_Time;
 with Ada.Strings.Unbounded;
 
-with Files.File_System;
 with Files.Jobs.Process;
 with Files.Types;
 
@@ -71,7 +71,7 @@ package Files.Folder_Size is
    --  for with (Files.Types.Unknown_Time when the caller gave none).
    type Measurement is record
       Path   : Ada.Strings.Unbounded.Unbounded_String;
-      Result : Files.File_System.Directory_Size_Result;
+      Result : Files.File_System_Types.Directory_Size_Result;
       Listed : Ada.Calendar.Time := Files.Types.Unknown_Time;
    end record;
 

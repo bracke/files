@@ -35,7 +35,7 @@ package body Files.Transfer_Jobs.Testing is
    procedure Write_Request
      (Path : String;
       Action : Files.Paste.Resolved_Action;
-      Mode : Files.File_System.Drop_Import_Mode;
+      Mode : Files.File_System_Types.Drop_Import_Mode;
       Batch_Directory : String := "")
    is
       File : Ada.Streams.Stream_IO.File_Type;
@@ -48,7 +48,7 @@ package body Files.Transfer_Jobs.Testing is
       Write_Bounded (Stream, To_String (Action.Dest_Path), Max_Path_Length);
       Boolean'Output (Stream, Action.Skip);
       Boolean'Output (Stream, Action.Replaced);
-      Files.File_System.Drop_Import_Mode'Output (Stream, Mode);
+      Files.File_System_Types.Drop_Import_Mode'Output (Stream, Mode);
       Write_Bounded (Stream, Batch_Directory, Max_Path_Length);
       Ada.Streams.Stream_IO.Close (File);
    exception
@@ -59,7 +59,7 @@ package body Files.Transfer_Jobs.Testing is
      (Path : String) return Files.Paste.Resolved_Action
    is
       Result : Files.Paste.Resolved_Action;
-      Mode : Files.File_System.Drop_Import_Mode;
+      Mode : Files.File_System_Types.Drop_Import_Mode;
       Batch_Directory : Unbounded_String;
    begin
       Read_Transport_Request

@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Listings;
 separate (Files_Suite.Info)
    procedure Test_Folder_Size_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -15,7 +16,7 @@ separate (Files_Suite.Info)
       Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
       declare
          Path      : constant String := To_String (Files.Model.Selection.Selected_Item (Model).Full_Path);
-         Reference : constant Files.File_System.Directory_Size_Result :=
+         Reference : constant Files.File_System_Types.Directory_Size_Result :=
            Files.File_System.Directory_Size (Path);
       begin
          --  Selecting a folder requests its size (so the info pane and the bottom
@@ -34,7 +35,7 @@ separate (Files_Suite.Info)
          Assert (Files.Model.Folder_Sizes.Cached_For (Model, Path),
                  "folder size is published once the background scan finishes");
          declare
-            Measured : constant Files.File_System.Directory_Size_Result :=
+            Measured : constant Files.File_System_Types.Directory_Size_Result :=
               Files.Model.Folder_Sizes.Value (Model, Path);
          begin
             Files_Suite.Support.Assert_Equal

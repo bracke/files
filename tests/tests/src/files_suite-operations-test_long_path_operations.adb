@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -87,7 +88,7 @@ separate (Files_Suite.Operations)
       end Show;
 
       --  Copy or move Source into the folder Destination.
-      procedure Import (Source : String; Destination : String; Mode : Files.File_System.Drop_Import_Mode) is
+      procedure Import (Source : String; Destination : String; Mode : Files.File_System_Types.Drop_Import_Mode) is
          Sources : Files.Types.String_Vectors.Vector;
          Plan    : Files.File_System.Drop_Import_Result;
       begin
@@ -147,12 +148,12 @@ separate (Files_Suite.Operations)
          Assert (Files.File_System.Create_Directory (Dest).Success
                  and then Files.File_System.Create_Directory (Moved).Success,
                  "the copy and move destinations are made");
-         Import (Tree, Dest, Files.File_System.Drop_Copy);
+         Import (Tree, Dest, Files.File_System_Types.Drop_Copy);
          Assert_Equal (Got (Join (Join (Join (Dest, "tree"), "sub"), "leaf.txt")), "leaf bytes",
                        "the copied tree holds its deepest file");
          Assert (Files.IO.Fs_Primitives.File_Exists (Join (Join (Tree, "sub"), "leaf.txt")),
                  "the copy leaves its source");
-         Import (Join (Dest, "tree"), Moved, Files.File_System.Drop_Move);
+         Import (Join (Dest, "tree"), Moved, Files.File_System_Types.Drop_Move);
          Assert (not Files.IO.Fs_Primitives.Entry_Exists (Join (Dest, "tree")), "the move leaves no source");
          Assert_Equal (Got (Join (Join (Moved, "tree"), "inner.txt")), "inner bytes", "the moved tree holds its files");
 
@@ -190,7 +191,7 @@ separate (Files_Suite.Operations)
 
          --  Measured.
          declare
-            Size : constant Files.File_System.Directory_Size_Result := Files.File_System.Directory_Size (Moved);
+            Size : constant Files.File_System_Types.Directory_Size_Result := Files.File_System.Directory_Size (Moved);
          begin
             Assert (Size.Available and then not Size.Capped, "the deep folder is measured");
             Assert_Equal (Size.File_Count, 2, "the deep folder holds two files");

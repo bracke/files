@@ -1,4 +1,4 @@
-with Files.File_System;
+with Files.File_System_Types;
 with Files.Paste;
 
 package Files.Transfer_Jobs.Testing is
@@ -10,7 +10,7 @@ package Files.Transfer_Jobs.Testing is
    procedure Write_Request
      (Path : String;
       Action : Files.Paste.Resolved_Action;
-      Mode : Files.File_System.Drop_Import_Mode;
+      Mode : Files.File_System_Types.Drop_Import_Mode;
       Batch_Directory : String := "");
 
    --  Read the action prefix of a production transfer request.

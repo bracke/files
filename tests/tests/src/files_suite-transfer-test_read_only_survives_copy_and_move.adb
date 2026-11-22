@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files.File_System.Testing;
 with Files_Suite.Volumes;
@@ -64,7 +65,7 @@ separate (Files_Suite.Transfer)
       end if;
       Paths.Append (Files.File_System.Drop_Import_Plan'
         (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "moved.txt")),
-         Files.File_System.Drop_Move, True, Null_Unbounded_String));
+         Files.File_System_Types.Drop_Move, True, Null_Unbounded_String));
       Mutation := Files.File_System.Testing.Execute_Drop_Import (Paths);
       if Ada.Directories.Exists (Source) then
          GNAT.OS_Lib.Set_Writable (Source);

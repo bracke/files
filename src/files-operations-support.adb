@@ -1,5 +1,4 @@
 with Files.Model.Recent;
-with Files.File_Types;
 with Files.Command_Reasons;
 with Files.Jobs.Context;
 with Ada.Directories;
@@ -136,7 +135,7 @@ package body Files.Operations.Support is
          declare
             Load : constant Files.File_System.Directory_Load_Result :=
               Files.File_System.Load_Directory_Deferring_Thumbnails
-                (Files.Model.Current_Path (Model), Files.File_Types.Classification_Of (Settings),
+                (Files.Model.Current_Path (Model), Files.Settings.Classification_Of (Settings),
                  Files.Settings.Listing_Options_Of (Settings));
          begin
             if not Load.Success then

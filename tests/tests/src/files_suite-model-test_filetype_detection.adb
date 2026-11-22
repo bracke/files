@@ -29,7 +29,7 @@ separate (Files_Suite.Model)
       Files.Settings.Testing.Add_Extension_Mapping (Settings, "adb", "text/x-ada");
       Files.Settings.Testing.Add_Extension_Mapping (Settings, "profile", "text/x-profile");
       Files.Settings.Testing.Add_Icon_Mapping (Settings, "text/x-ada", "ada");
-      Classes := Files.File_Types.Classification_Of (Settings);
+      Classes := Files.Settings.Classification_Of (Settings);
       Ada_Item := Files.File_System.Make_Item (Root, "main.adb", Files.Types.Regular_File_Item, Classes);
       Executable_Ada_Item := Files.File_System.Make_Item (Root, "tool.adb", Files.Types.Executable_Item, Classes);
       Symlink_Ada_Item := Files.File_System.Make_Item (Root, "link.adb", Files.Types.Symlink_Item, Classes);
@@ -94,27 +94,27 @@ separate (Files_Suite.Model)
          "loose.txt",
          "helper item with empty parent uses simple path");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Directory_Item, "src"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Directory_Item, "src"),
          "inode/directory",
          "directory filetype wins before extension mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Executable_Item, "tool.adb"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Executable_Item, "tool.adb"),
          "application/x-executable",
          "executable filetype wins before extension mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Symlink_Item, "link.adb"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Symlink_Item, "link.adb"),
          "inode/symlink",
          "symlink filetype wins before extension mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "main.adb"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, "main.adb"),
          "text/x-ada",
          "extension mapping is used for regular files");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "MAIN.ADB"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, "MAIN.ADB"),
          "text/x-ada",
          "filetype detection normalizes filename extension case before mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "archive.tar.gz"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, "archive.tar.gz"),
          "application/gzip-tar",
          "compound extension mapping wins over final suffix mapping");
       Files_Suite.Support.Assert_Equal
@@ -200,94 +200,95 @@ separate (Files_Suite.Model)
          "",
          "extension extraction ignores dotted directory names");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, ".profile"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, ".profile"),
          "application/octet-stream",
          "leading-dot file does not match an extension mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "/tmp/dir.with.dots/main.adb"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, "/tmp/dir.with.dots/main.adb"),
          "text/x-ada",
          "filetype detection uses the Unix path leaf name");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "C:\tmp\dir.with.dots\main.adb"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, "C:\tmp\dir.with.dots\main.adb"),
          "text/x-ada",
          "filetype detection uses the Windows path leaf name");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "/tmp/dir.with.dots/file"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, "/tmp/dir.with.dots/file"),
          "application/octet-stream",
          "filetype detection ignores dotted directory names");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, " main.adb "),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, " main.adb "),
          "text/x-ada",
          "filetype detection trims filename whitespace before mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Unknown_Item, "mystery.adb"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Unknown_Item, "mystery.adb"),
          "text/x-ada",
          "unknown item filetype still uses configured extension mappings");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Other_Item, "socket"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Other_Item, "socket"),
          "application/octet-stream",
          "other item filetype falls back deterministically without mapping");
       Files.Settings.Testing.Add_Extension_Mapping (Settings, "backup.tar.gz", "application/x-backup");
+      Classes := Files.Settings.Classification_Of (Settings);
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "weekly.backup.tar.gz"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, "weekly.backup.tar.gz"),
          "application/x-backup",
          "custom compound extension mapping uses the longest configured suffix");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, ASCII.LF & "main.adb" & ASCII.LF),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, ASCII.LF & "main.adb" & ASCII.LF),
          "text/x-ada",
          "filetype detection trims line-feed filename whitespace before mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, ASCII.VT & "main.adb" & ASCII.FF),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, ASCII.VT & "main.adb" & ASCII.FF),
          "text/x-ada",
          "filetype detection trims vertical-tab and form-feed filename whitespace before mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, C1_Break & "main.adb" & C1_Break),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, C1_Break & "main.adb" & C1_Break),
          "text/x-ada",
          "filetype detection trims C1 line-break filename whitespace before mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, NBSP & "main.adb" & NBSP),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, NBSP & "main.adb" & NBSP),
          "text/x-ada",
          "filetype detection trims UTF-8 NBSP filename whitespace before mapping");
       Assert
         (Files.File_Types.Detect_Filetype
-           (Settings,
+           (Classes,
             Files.Types.Regular_File_Item,
             Line_Separator & "main.adb" & Line_Separator) = "text/x-ada",
          "filetype detection trims UTF-8 line-separator filename whitespace before mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "blob.bin"),
+        (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, "blob.bin"),
          "application/octet-stream",
          "unknown extension falls back deterministically");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Symlink_Item, "inode/symlink"),
+        (Files.File_Types.Icon_Id_For (Classes, Files.Types.Symlink_Item, "inode/symlink"),
          "link",
          "symlink icon mapping is used");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Symlink_Item, " inode/symlink "),
+        (Files.File_Types.Icon_Id_For (Classes, Files.Types.Symlink_Item, " inode/symlink "),
          "link",
          "icon classification trims filetype whitespace before mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Regular_File_Item, " text/x-ada "),
+        (Files.File_Types.Icon_Id_For (Classes, Files.Types.Regular_File_Item, " text/x-ada "),
          "ada",
          "mapped regular-file icon classification trims filetype whitespace");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Regular_File_Item, "application/x-custom"),
+        (Files.File_Types.Icon_Id_For (Classes, Files.Types.Regular_File_Item, "application/x-custom"),
          "unknown",
          "unmapped regular-file icon falls back deterministically");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Directory_Item, ""),
+        (Files.File_Types.Icon_Id_For (Classes, Files.Types.Directory_Item, ""),
          "folder",
          "directory icon falls back by item kind without mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Symlink_Item, ""),
+        (Files.File_Types.Icon_Id_For (Classes, Files.Types.Symlink_Item, ""),
          "link",
          "symlink icon falls back by item kind without mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Executable_Item, ""),
+        (Files.File_Types.Icon_Id_For (Classes, Files.Types.Executable_Item, ""),
          "executable",
          "executable icon falls back by item kind without mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Other_Item, ""),
+        (Files.File_Types.Icon_Id_For (Classes, Files.Types.Other_Item, ""),
          "unknown",
          "other item icon falls back deterministically without mapping");
    end Test_Filetype_Detection;

@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -128,7 +129,7 @@ separate (Files_Suite.Transfer)
          Paths.Append (To_Unbounded_String (Source));
          Step := Complete_Operation
            (Model, Settings, Files.Operations.Begin_Paste_To
-              (Model, Settings, Paths, Remote.Path, Files.File_System.Drop_Move));
+              (Model, Settings, Paths, Remote.Path, Files.File_System_Types.Drop_Move));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Ada.Directories.Exists (Source),
                  "move a read-only root across filesystems");

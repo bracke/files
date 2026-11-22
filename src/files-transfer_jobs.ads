@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Ada.Streams;
 with Files.Jobs.Copy_Context;
 with Files.Jobs.Process;
@@ -34,7 +35,7 @@ package Files.Transfer_Jobs is
    procedure Start
      (Job    : in out Session;
       Action : Files.Paste.Resolved_Action;
-      Mode   : Files.File_System.Drop_Import_Mode;
+      Mode   : Files.File_System_Types.Drop_Import_Mode;
       Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session);
 
    --  Collect a completed helper without waiting for filesystem I/O.
@@ -78,7 +79,7 @@ private
    procedure Read_Transport_Request
      (Path : String;
       Action : out Files.Paste.Resolved_Action;
-      Mode : out Files.File_System.Drop_Import_Mode;
+      Mode : out Files.File_System_Types.Drop_Import_Mode;
       Batch_Directory : out Files.Types.UString);
 
    --  Decode one complete result through a validated, pinned file lease.

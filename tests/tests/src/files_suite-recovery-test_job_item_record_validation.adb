@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.IO.Record_Fields;
 with Files.Extra_Info;
 separate (Files_Suite.Recovery)
@@ -7,7 +8,7 @@ separate (Files_Suite.Recovery)
       File      : Ada.Streams.Stream_IO.File_Type;
       Items     : Files.Items.Item_Vectors.Vector;
       Item      : Files.Items.Directory_Item;
-      Signature : Files.File_System.Directory_Signature;
+      Signature : Files.File_System_Types.Directory_Signature;
       Rejected  : Boolean := False;
 
       procedure Write_Raw_Items
@@ -71,7 +72,7 @@ separate (Files_Suite.Recovery)
 
       procedure Write_Raw_Signature
         (Record_Path : String;
-         Value       : Files.File_System.Directory_Signature)
+         Value       : Files.File_System_Types.Directory_Signature)
       is
          Stream : Ada.Streams.Stream_IO.Stream_Access;
       begin

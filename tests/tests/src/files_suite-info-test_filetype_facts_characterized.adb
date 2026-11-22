@@ -128,10 +128,11 @@ separate (Files_Suite.Info)
 
       --  The default settings' mappings, as loaded items carry them.
       declare
-         Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Classes : constant Files.File_Types.Classification :=
+           Files.Settings.Classification_Of (Files.Settings.Default_Settings);
 
          function Loaded (Kind : Files.Types.Item_Kind; Mime : String) return Files.File_Types.Icon_Kind is
-           (Files.File_Types.Resolve_Icon (Kind, Mime, Files.File_Types.Icon_Id_For (Settings, Kind, Mime)));
+           (Files.File_Types.Resolve_Icon (Kind, Mime, Files.File_Types.Icon_Id_For (Classes, Kind, Mime)));
       begin
          Assert (Loaded (Files.Types.Directory_Item, "inode/directory") = Files.File_Types.Folder_Icon,
                  "a loaded folder shows the folder icon");

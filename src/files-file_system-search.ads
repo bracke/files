@@ -9,7 +9,7 @@ package Files.File_System.Search is
    --  @param Root_Path Directory where recursive search starts.
    --  @param Query Case-insensitive name fragment to match.
    --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
+   --    (Files.Settings.Classification_Of the settings).
    --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
    --  @param Max_Items Maximum number of matching items to return.
    --  @return Deterministic recursive search result or recoverable error.
@@ -44,7 +44,7 @@ package Files.File_System.Search is
    --  @param Root_Path Directory where the search starts.
    --  @param Query Text to look for.
    --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.File_Types.Classification_Of the settings).
+   --    (Files.Settings.Classification_Of the settings).
    --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
    --  @return The matching files, or why the search failed.
    function Search_Contents

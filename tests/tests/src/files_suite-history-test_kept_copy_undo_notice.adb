@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Operation_Results;
 with Files.Items;
 with Files.Model.Pasting;
@@ -26,7 +27,7 @@ separate (Files_Suite.History)
          Write_Binary_File (Dest, "the bytes");
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.Clear_Undo (Model);
-         Files.Model.Pasting.Begin_Execution (Model, Actions, Files.File_System.Drop_Move);
+         Files.Model.Pasting.Begin_Execution (Model, Actions, Files.File_System_Types.Drop_Move);
          --  The original the copy replaced went to the trash.
          Files.Model.Pasting.Record_Replaced_Trash
            (Model, To_Unbounded_String (Join (Root, "trashed-original")), "0:none", Dest, Verified => False);

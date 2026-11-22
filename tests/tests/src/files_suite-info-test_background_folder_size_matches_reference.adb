@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 separate (Files_Suite.Info)
    procedure Test_Background_Folder_Size_Matches_Reference
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -7,9 +8,9 @@ separate (Files_Suite.Info)
       Scan : Files.Folder_Size.Session;
       Tree      : constant String := Join (Root, "tree");
       Deep      : constant String := Join (Join (Tree, "a"), "b");
-      Reference : Files.File_System.Directory_Size_Result;
+      Reference : Files.File_System_Types.Directory_Size_Result;
       Path      : Ada.Strings.Unbounded.Unbounded_String;
-      Result    : Files.File_System.Directory_Size_Result;
+      Result    : Files.File_System_Types.Directory_Size_Result;
       Available : Boolean := False;
       Taken     : Files.Folder_Size.Measurement_Vectors.Vector;
    begin

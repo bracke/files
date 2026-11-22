@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Info)
@@ -9,7 +10,7 @@ separate (Files_Suite.Info)
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
       Started, Previous, Path : Unbounded_String;
-      Result : Files.File_System.Directory_Size_Result;
+      Result : Files.File_System_Types.Directory_Size_Result;
       Available, Finished, Cancelled : Boolean;
       Empty : Files.Jobs.Process.Session;
       Before : Instant;
@@ -21,7 +22,7 @@ separate (Files_Suite.Info)
       procedure Take
         (Scan      : in out Files.Folder_Size.Session;
          Path      : out Unbounded_String;
-         Result    : out Files.File_System.Directory_Size_Result;
+         Result    : out Files.File_System_Types.Directory_Size_Result;
          Available : out Boolean) is
       begin
          if Pending.Is_Empty then

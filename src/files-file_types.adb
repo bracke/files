@@ -4,6 +4,7 @@ with Ada.Strings.Unbounded;
 with Guikit.Utf8.Editing;
 with Files.Name_Parts;
 with Files.Text_Basics;
+with Files.Text_Case;
 
 package body Files.File_Types is
 
@@ -63,6 +64,102 @@ package body Files.File_Types is
    --  else a leaf is taken.
    function Leaf_Name (Name : String) return String is (Files.Name_Parts.Leaf_Of (Trim_Name (Name)));
 
+   function Normalize_Extension (Extension : String) return String is
+      Clean : constant String := Files.Text_Basics.Trim_Blanks (Extension);
+   begin
+      if Clean = "" then
+         return "";
+      elsif Clean (Clean'First) = '.' then
+         if Clean'Length = 1 then
+            return "";
+         end if;
+         return Files.Text_Case.To_Lower_Unicode
+           (Files.Text_Basics.Trim_Blanks (Clean (Clean'First + 1 .. Clean'Last)));
+      else
+         return Files.Text_Case.To_Lower_Unicode (Clean);
+      end if;
+   end Normalize_Extension;
+
+   function Filetype_For_Extension
+     (Mapping   : String_Maps.Map;
+      Extension : String)
+      return String
+   is
+      Position : constant String_Maps.Cursor := Mapping.Find (Normalize_Extension (Extension));
+   begin
+      return (if String_Maps.Has_Element (Position) then String_Maps.Element (Position) else "");
+   end Filetype_For_Extension;
+
+   function Icon_For_Filetype
+     (Mapping  : String_Maps.Map;
+      Filetype : String)
+      return String
+   is
+      Position : constant String_Maps.Cursor := Mapping.Find (Files.Text_Basics.Trim_Blanks (Filetype));
+   begin
+      return (if String_Maps.Has_Element (Position) then String_Maps.Element (Position) else "");
+   end Icon_For_Filetype;
+
+   function Default_Classification return Classification is
+      Result : Classification;
+
+      procedure Extension (Name, Filetype : String) is
+      begin
+         Result.Extension_Filetypes.Include (Normalize_Extension (Name), Filetype);
+      end Extension;
+
+      procedure Icon (Filetype, Icon_Id : String) is
+      begin
+         Result.Icon_Mappings.Include (Filetype, Icon_Id);
+      end Icon;
+
+      Word_Document : constant String := "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      Spreadsheet   : constant String := "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+   begin
+      Extension ("txt", "text/plain");
+      Extension ("adb", "text/x-ada");
+      Extension ("ads", "text/x-ada");
+      Extension ("md", "text/markdown");
+      Extension ("json", "application/json");
+      Extension ("xml", "application/xml");
+      Extension ("png", "image/png");
+      Extension ("jpg", "image/jpeg");
+      Extension ("jpeg", "image/jpeg");
+      Extension ("pdf", "application/pdf");
+      Extension ("zip", "application/zip");
+      Extension ("docx", Word_Document);
+      Extension ("xlsx", Spreadsheet);
+      Extension ("tar", "application/x-tar");
+      Extension ("tar.gz", "application/gzip-tar");
+      Extension ("gz", "application/gzip");
+      Extension ("mp3", "audio/mpeg");
+      Extension ("wav", "audio/wav");
+      Extension ("mp4", "video/mp4");
+
+      Icon ("inode/directory", "folder");
+      Icon ("inode/symlink", "link");
+      Icon ("application/x-executable", "executable");
+      Icon ("text/plain", "text");
+      Icon ("text/x-ada", "ada");
+      Icon ("text/markdown", "text");
+      Icon ("application/json", "text");
+      Icon ("application/xml", "text");
+      Icon ("image/png", "image");
+      Icon ("image/jpeg", "image");
+      Icon ("application/pdf", "text");
+      Icon ("application/zip", "unknown");
+      Icon (Word_Document, "text");
+      Icon (Spreadsheet, "text");
+      Icon ("application/x-tar", "unknown");
+      Icon ("application/gzip-tar", "unknown");
+      Icon ("application/gzip", "unknown");
+      Icon ("audio/mpeg", "unknown");
+      Icon ("audio/wav", "unknown");
+      Icon ("video/mp4", "unknown");
+      Icon ("application/octet-stream", "unknown");
+      return Result;
+   end Default_Classification;
+
    function Normalized_Extension_Of
      (Name     : String;
       Dotfiles : Boolean := False)
@@ -73,20 +170,20 @@ package body Files.File_Types is
       Dot   : constant Natural := Files.Name_Parts.Extension_Start (Clean);
    begin
       if Dot /= 0 then
-         return Files.Settings.Normalize_Extension (Clean (Dot + 1 .. Clean'Last));
+         return Normalize_Extension (Clean (Dot + 1 .. Clean'Last));
       elsif Dotfiles
         and then Clean'Length > 1
         and then Clean (Clean'First) = '.'
         and then Ada.Strings.Fixed.Index (Clean (Clean'First + 1 .. Clean'Last), ".") = 0
       then
          --  ".gitignore": its only dot leads, which the rule counts as name.
-         return Files.Settings.Normalize_Extension (Clean (Clean'First + 1 .. Clean'Last));
+         return Normalize_Extension (Clean (Clean'First + 1 .. Clean'Last));
       end if;
       return "";
    end Normalized_Extension_Of;
 
    function Filetype_For_Name
-     (Extensions : Files.Settings.String_Maps.Map;
+     (Extensions : String_Maps.Map;
       Name       : String)
       return String
    is
@@ -102,9 +199,9 @@ package body Files.File_Types is
          then
             declare
                Candidate : constant String :=
-                 Files.Settings.Normalize_Extension (Clean (Index + 1 .. Clean'Last));
+                 Normalize_Extension (Clean (Index + 1 .. Clean'Last));
                Mapped    : constant String :=
-                 Files.Settings.Filetype_For_Extension (Extensions, Candidate);
+                 Filetype_For_Extension (Extensions, Candidate);
             begin
                if Mapped /= "" then
                   return Mapped;
@@ -121,7 +218,7 @@ package body Files.File_Types is
 
    --  Detect_Filetype by the extension map alone.
    function Filetype_By
-     (Extensions : Files.Settings.String_Maps.Map;
+     (Extensions : String_Maps.Map;
       Kind       : Files.Types.Item_Kind;
       Name       : String)
       return String
@@ -148,12 +245,6 @@ package body Files.File_Types is
    end Filetype_By;
 
    function Detect_Filetype
-     (Settings : Files.Settings.Settings_Model;
-      Kind     : Files.Types.Item_Kind;
-      Name     : String)
-      return String is (Filetype_By (Settings.Extension_Filetypes, Kind, Name));
-
-   function Detect_Filetype
      (Classes : Classification;
       Kind    : Files.Types.Item_Kind;
       Name    : String)
@@ -161,12 +252,12 @@ package body Files.File_Types is
 
    --  Icon_Id_For by the icon map alone.
    function Icon_By
-     (Icons    : Files.Settings.String_Maps.Map;
+     (Icons    : String_Maps.Map;
       Kind     : Files.Types.Item_Kind;
       Filetype : String)
       return String
    is
-      Mapped : constant String := Files.Settings.Icon_For_Filetype (Icons, Filetype);
+      Mapped : constant String := Icon_For_Filetype (Icons, Filetype);
    begin
       if Mapped /= "" then
          return Mapped;
@@ -183,12 +274,6 @@ package body Files.File_Types is
             return "unknown";
       end case;
    end Icon_By;
-
-   function Icon_Id_For
-     (Settings : Files.Settings.Settings_Model;
-      Kind     : Files.Types.Item_Kind;
-      Filetype : String)
-      return String is (Icon_By (Settings.Icon_Mappings, Kind, Filetype));
 
    function Icon_Id_For
      (Classes  : Classification;

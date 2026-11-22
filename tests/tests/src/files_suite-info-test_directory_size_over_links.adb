@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Info)
    procedure Test_Directory_Size_Over_Links (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -5,7 +6,7 @@ separate (Files_Suite.Info)
       Tree    : constant String := Join (Root, "sized");
       Nested  : constant String := Join (Tree, "nested");
       Outside : constant String := Join (Root, "outside");
-      Size    : Files.File_System.Directory_Size_Result;
+      Size    : Files.File_System_Types.Directory_Size_Result;
       Linked  : Boolean;
    begin
       Reset_Root;

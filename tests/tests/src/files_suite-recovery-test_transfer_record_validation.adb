@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Recovery)
    procedure Test_Transfer_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -97,7 +98,7 @@ separate (Files_Suite.Recovery)
          Replaced    => False);
       Files.Transfer_Jobs.Testing.Write_Request
         (Transfer_Request_Path, Transfer_Action,
-         Files.File_System.Drop_Copy);
+         Files.File_System_Types.Drop_Copy);
       Rejected := False;
       begin
          Transfer_Action :=
@@ -113,7 +114,7 @@ separate (Files_Suite.Recovery)
       Transfer_Action.Source_Path := To_Unbounded_String (Join (Root, "source"));
       Files.Transfer_Jobs.Testing.Write_Request
         (Transfer_Request_Path, Transfer_Action,
-         Files.File_System.Drop_Copy,
+         Files.File_System_Types.Drop_Copy,
          Batch_Directory => "/tmp/batch" & Character'Val (0) & "suffix");
       Rejected := False;
       begin
@@ -129,7 +130,7 @@ separate (Files_Suite.Recovery)
 
       Files.Transfer_Jobs.Testing.Write_Request
         (Transfer_Request_Target, Transfer_Action,
-         Files.File_System.Drop_Copy);
+         Files.File_System_Types.Drop_Copy);
       Ada.Directories.Delete_File (Transfer_Request_Path);
       if Hostkit.Fs.Create_Hard_Link
         (Transfer_Request_Target, Transfer_Request_Path)

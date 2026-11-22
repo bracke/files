@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Testing;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
@@ -59,7 +60,7 @@ separate (Files_Suite.Transfer)
          Paths.Clear;
          Paths.Append (Files.File_System.Drop_Import_Plan'
            (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "destination")),
-            Files.File_System.Drop_Move, True, Null_Unbounded_String));
+            Files.File_System_Types.Drop_Move, True, Null_Unbounded_String));
          Mutation := Files.File_System.Testing.Execute_Drop_Import (Paths, Change_Source'Unrestricted_Access);
          Assert (not Mutation.Success,
                  "a changed move source is kept and only the owned destination copy is rolled back: refused");

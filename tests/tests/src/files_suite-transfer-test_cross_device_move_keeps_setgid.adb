@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Testing;
 with Files.File_System.Permissions;
 with Files_Suite.Volumes;
@@ -33,7 +34,7 @@ separate (Files_Suite.Transfer)
       Files_Suite.Support.Assert_Equal (Mode, 8#2775#, "the source folder is setgid");
       Paths.Append (Files.File_System.Drop_Import_Plan'
         (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "shared-project")),
-         Files.File_System.Drop_Move, True, Null_Unbounded_String));
+         Files.File_System_Types.Drop_Move, True, Null_Unbounded_String));
       Mutation := Files.File_System.Testing.Execute_Drop_Import (Paths);
       Assert (Mutation.Success, "the folder moves to the other volume");
       Mode := Files.File_System.Permissions.Permission_Bits_Of (Join (Remote.Path, "shared-project"), Available);

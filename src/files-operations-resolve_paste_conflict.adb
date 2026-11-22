@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Paste_States;
 separate (Files.Operations)
 function Resolve_Paste_Conflict
@@ -49,7 +50,7 @@ begin
       Policy   : constant Files.Paste.Conflict_Policy := Conflict.Policy;
       Overrides : constant Files.Paste.Item_Decision_Vectors.Vector :=
         Conflict.Overrides;
-      Mode     : constant Files.File_System.Drop_Import_Mode :=
+      Mode     : constant Files.File_System_Types.Drop_Import_Mode :=
         Conflict.Mode;
       Rules    : constant Files.Paste.Name_Rules :=
         Files.Paste.Name_Rules_Of (if Work.Is_Empty then "" else To_String (Work.First_Element.Dest_Dir));

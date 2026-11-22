@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Rendering.Layouts.Tree;
 with Files.Input_Actions;
 with Files.Model.Context_Menu;
@@ -30,7 +31,7 @@ separate (Files_Suite.Tree)
          Rows     : constant Files.Rendering.Layouts.Tree.Tree_Row_Layout_Vectors.Vector :=
            Files.Rendering.Layouts.Tree.Calculate_Tree_Row_Layout (Snapshot, Panel, Line);
          Target   : constant String := Files.Model.Tree_Panel.Node_Path (Model, 1);
-         Expected : constant Files.File_System.Path_Result :=
+         Expected : constant Files.File_System_Types.Path_Result :=
            Files.File_System.Normalize_Path (Target);
          Action   : Files.Input_Actions.Input_Action;
          X, Y     : Natural := 0;
@@ -80,7 +81,7 @@ separate (Files_Suite.Tree)
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
          Assert
-           (Expected.Status = Files.File_System.Path_Valid
+           (Expected.Status = Files.File_System_Types.Path_Valid
               and then Files.Model.Current_Path (Model) = To_String (Expected.Directory_Path),
             "clicking a tree label navigates to that directory; node 1 was """
             & Target & """, which normalized to """

@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Model.Creation;
 with Files.File_System.Transfer;
 with Files.IO.Fs_Primitives;
@@ -7,7 +8,7 @@ function Begin_Paste_To
    Settings       : Files.Settings.Settings_Model;
    Source_Paths   : Files.Types.String_Vectors.Vector;
    Destination    : String;
-   Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+   Mode           : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy;
    From_Clipboard : Boolean := True)
    return Operation_Result
 is
@@ -54,7 +55,7 @@ begin
    if Files.Model.Creation.Temporary_Item_Is_Active (Model) then
       return Disabled (Model, "error.create.pending");
    end if;
-   if Mode = Files.File_System.Drop_Move then
+   if Mode = Files.File_System_Types.Drop_Move then
       for Source of Source_Paths loop
          if Is_Trash_Child (To_String (Source)) then
             return Disabled (Model, "error.drop.invalid_source");

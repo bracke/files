@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Controller.Testing;
 with Files.Items;
 with Ada.Directories;
@@ -33,7 +34,7 @@ package body Files_Suite.Tree is
 
    use AUnit.Assertions;
    use type Files.Controller.Controller_Status;
-   use type Files.File_System.Path_Status;
+   use type Files.File_System_Types.Path_Status;
    use type Files.UI_Types.Focus_Target;
    use Files_Suite.Interaction_Support;
 

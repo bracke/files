@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Interfaces;
@@ -47,8 +48,8 @@ package body Files_Suite.Startup is
    use type Hostkit.Host.Kind;
    use type Ada.Directories.File_Kind;
    use type Interfaces.Unsigned_32;
-   use type Files.File_System.Path_Status;
-   use type Files.File_System.Drop_Import_Mode;
+   use type Files.File_System_Types.Path_Status;
+   use type Files.File_System_Types.Drop_Import_Mode;
    use type Files.Application.Run_Mode;
    use Files_Suite.Support;
    use Files_Suite.Support.Disk;

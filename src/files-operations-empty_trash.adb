@@ -1,5 +1,4 @@
 with Files.Model.Recent;
-with Files.File_Types;
 separate (Files.Operations)
 function Empty_Trash
   (Model    : in out Files.Model.Window_Model;
@@ -21,7 +20,7 @@ begin
    Load :=
      Files.File_System.Load_Directory_Filtered
        (Trash_Dir,
-        Files.File_Types.Classification_Of (Settings),
+        Files.Settings.Classification_Of (Settings),
         (Files.Settings.Listing_Options_Of (Settings) with delta Show_Hidden => True),
         Include => null);
    if not Load.Success then

@@ -1,4 +1,3 @@
-with Files.File_Types;
 with Files.Preference_Types;
 with Files.IO.Fs_Primitives;
 with Guikit.Settings_Panel;
@@ -299,7 +298,7 @@ separate (Files.Application.Windows.Smoke)
          procedure Show (Path : String) is
             Load : constant Files.File_System.Directory_Load_Result :=
               Files.File_System.Load_Directory
-                (Path, Files.File_Types.Classification_Of (Runtime.Settings),
+                (Path, Files.Settings.Classification_Of (Runtime.Settings),
                  Files.Settings.Listing_Options_Of (Runtime.Settings));
          begin
             Files.Model.Navigate_To (Runtime.Model, Path, Load.Items);

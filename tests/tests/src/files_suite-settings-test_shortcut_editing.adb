@@ -1,3 +1,4 @@
+with Files.Commands.Keymap_Settings;
 with Files.Overlays.Settings_Form;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Guards;
@@ -115,7 +116,7 @@ separate (Files_Suite.Settings)
       declare
          With_Override : Files.Settings.Settings_Model := Base;
       begin
-         Files.Overlays.Settings_Form.Store_Shortcut_Overrides (With_Override);
+         Files.Commands.Keymap_Settings.Store_Shortcut_Overrides (With_Override);
          Files.Overlays.Settings_Form.Mark_Saved (Model, With_Override);
       end;
       Saved := Files.Overlays.Settings_Form.Apply_Change

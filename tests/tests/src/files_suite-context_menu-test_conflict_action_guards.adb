@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Input_Actions;
 with Files.Model.Pasting;
 with Files_Suite.Support.Models;
@@ -54,7 +55,7 @@ separate (Files_Suite.Context_Menu)
       Existing.Append
         (Ada.Strings.Unbounded.To_Unbounded_String (Files.Paste.Desired_Path ("/dest", "a.txt")));
       Files.Model.Pasting.Begin_Conflict
-        (Model, Items, Existing, Files.File_System.Drop_Copy, 1);
+        (Model, Items, Existing, Files.File_System_Types.Drop_Copy, 1);
 
       --  The button is typed now, so no unknown value can be sent; an action
       --  naming no button must still not take the destructive fallback path

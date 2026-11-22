@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Operation_Results;
 with Files.Items;
 with Files.Commands.Status;
@@ -9,7 +10,7 @@ separate (Files_Suite.Model)
       Target   : constant String := Join (Root, "selected-root");
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
-      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Entries  : Files.File_System_Types.Root_Entry_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
    begin
       Reset_Root;
@@ -17,12 +18,12 @@ separate (Files_Suite.Model)
       Write_File (Join (Target, "inside.txt"));
       Entries.Clear;
       Entries.Append
-        (Files.File_System.Root_Entry'
+        (Files.File_System_Types.Root_Entry'
            (Path  => To_Unbounded_String ("/tmp/example-mount"),
             Label => To_Unbounded_String ("root.mount"),
             Name  => To_Unbounded_String ("example-mount"),
             Detail => To_Unbounded_String ("ext4"),
-            Kind  => Files.File_System.Root_Mount,
+            Kind  => Files.File_System_Types.Root_Mount,
             Volume_Name => To_Unbounded_String ("example-mount"),
             Removable => True));
       Files.Model.Root_Selector.Open (Model, Entries);
@@ -49,12 +50,12 @@ separate (Files_Suite.Model)
          "eject command reports selected root path");
       Entries.Clear;
       Entries.Append
-        (Files.File_System.Root_Entry'
+        (Files.File_System_Types.Root_Entry'
            (Path  => To_Unbounded_String (Target),
             Label => To_Unbounded_String ("root.mount"),
             Name  => To_Unbounded_String ("selected-root"),
             Detail => Null_Unbounded_String,
-            Kind  => Files.File_System.Root_Mount,
+            Kind  => Files.File_System_Types.Root_Mount,
             Volume_Name => To_Unbounded_String ("selected-root"),
             Removable => False));
       Files.Model.Root_Selector.Open (Model, Entries);

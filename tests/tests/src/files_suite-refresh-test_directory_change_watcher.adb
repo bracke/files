@@ -1,11 +1,12 @@
+with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Refresh)
    procedure Test_Directory_Change_Watcher (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.File_System.Directory_Signature;
+      use type Files.File_System_Types.Directory_Signature;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Before   : Files.File_System.Directory_Signature;
+      Before   : Files.File_System_Types.Directory_Signature;
       Change   : Files.File_System.Directory_Change_Result;
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;

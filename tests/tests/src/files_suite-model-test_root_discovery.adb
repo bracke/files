@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Roots;
 with Hostkit.Mounts;
 with Files.File_System.Testing;
@@ -8,7 +9,7 @@ separate (Files_Suite.Model)
       Target   : constant String := Join (Root, "selected-root");
       Roots_A  : Files.Types.String_Vectors.Vector;
       Roots_B  : Files.Types.String_Vectors.Vector;
-      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Entries  : Files.File_System_Types.Root_Entry_Vectors.Vector;
       Root_Status : Files.File_System.Testing.Root_Discovery_Diagnostics;
 
       function Starts_With
@@ -59,7 +60,7 @@ separate (Files_Suite.Model)
             Path : constant String := To_String (Item.Path);
          begin
             Assert
-              (Item.Kind /= Files.File_System.Root_Mount
+              (Item.Kind /= Files.File_System_Types.Root_Mount
                or else Path not in "/mnt" | "/media" | "/run/media" | "/Volumes" | "/System/Volumes",
                "root discovery excludes mount container rows: " & Path);
          end;
@@ -77,17 +78,17 @@ separate (Files_Suite.Model)
          Assert (To_String (Entries.Element (Index).Label) /= "", "root metadata label is non-empty");
          Assert (To_String (Entries.Element (Index).Volume_Name) /= "", "root metadata volume name is non-empty");
          case Entries.Element (Index).Kind is
-            when Files.File_System.Root_Filesystem
-               | Files.File_System.Root_Home
-               | Files.File_System.Root_Current
-               | Files.File_System.Root_Mount
-               | Files.File_System.Root_User_Mount
-               | Files.File_System.Root_Network_Mount
-               | Files.File_System.Root_Windows_Drive
-               | Files.File_System.Root_Favorite =>
+            when Files.File_System_Types.Root_Filesystem
+               | Files.File_System_Types.Root_Home
+               | Files.File_System_Types.Root_Current
+               | Files.File_System_Types.Root_Mount
+               | Files.File_System_Types.Root_User_Mount
+               | Files.File_System_Types.Root_Network_Mount
+               | Files.File_System_Types.Root_Windows_Drive
+               | Files.File_System_Types.Root_Favorite =>
                null;
          end case;
-         if Entries.Element (Index).Kind = Files.File_System.Root_Mount then
+         if Entries.Element (Index).Kind = Files.File_System_Types.Root_Mount then
             Assert
               (Is_User_Visible_Mount_Point (To_String (Entries.Element (Index).Path)),
                "root selector excludes system implementation mounts");

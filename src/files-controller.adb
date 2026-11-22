@@ -25,6 +25,7 @@ with Files.Model.Rename;
 with Files.Model.Selection;
 with Files.Settings.Open_Actions;
 with Files.Settings.Path_References;
+with Files.Settings.Storage;
 
 package body Files.Controller is
    use Ada.Strings.Unbounded;
@@ -32,7 +33,7 @@ package body Files.Controller is
    use type Files.Input_Actions.Grid_Move;
    use type Files.Input_Actions.Input_Action_Kind;
    use type Files.Input_Actions.Scroll_Target;
-   use type Files.File_System.Root_Kind;
+   use type Files.File_System_Types.Root_Kind;
    use type Files.Model.Palette_Mode;
    use type Files.Model.Tree_Pick_Mode;
    use type Files.Operation_Results.Operation_Status;
@@ -148,108 +149,44 @@ package body Files.Controller is
       end if;
    end Take_In_Settings;
 
-   --  The result of a settings write refused because the settings would be
-   --  too big to load again.
-   function Settings_Full_Result (Settings_Path : String) return Files.Settings.Settings_Write_Result is
-     (Success   => False,
-      Durable   => False,
-      Path      => To_Unbounded_String (Settings_Path),
-      Error_Key => To_Unbounded_String ("error.settings.full"));
-
-   --  Settings_Full_Result, also said in the window's error line.
+   --  The settings refused as too big to load again, also said in the
+   --  window's error line.
    function Settings_Full
      (Model         : in out Files.Model.Window_Model;
       Settings_Path : String)
       return Files.Settings.Settings_Write_Result is
    begin
       Files.Model.Set_Error (Model, "error.settings.full");
-      return Settings_Full_Result (Settings_Path);
+      return Files.Settings.Storage.Full_Result (Settings_Path);
    end Settings_Full;
 
-   --  The one place settings are written. An empty path turns persistence
-   --  off (smoke runs, tests): the settings apply in memory and count as saved.
-   --  A session whose settings file could not be loaded refuses to write it:
-   --  the change applies in memory and the result says it was not saved.
-   --  The shortcut overrides written are the live keymap's, a rebind not
-   --  saved yet included (Store_Shortcut_Overrides). What another process
-   --  wrote to the file since this one saw it is taken into Settings first
-   --  (Files.Settings.Merge_From_File), its shortcuts made the live keymap
-   --  and held as a save writes them; a file changed into one this build
-   --  cannot load is not written over, nor is a merge that would make it
-   --  too big to load (Settings then stay as they were).
-   function Write_Settings
-     (Settings_Path : String;
-      Settings      : in out Files.Settings.Settings_Model)
-      return Files.Settings.Settings_Write_Result
-   is
-      use type Files.Settings.Shortcut_Override_Vectors.Vector;
-      Merged, Refused : Boolean;
-   begin
-      if Settings.Persistence_Refused then
-         return
-           (Success   => True,
-            Durable   => False,
-            Path      => To_Unbounded_String (Settings_Path),
-            Error_Key => To_Unbounded_String ("error.settings.not_persisted"));
-      elsif Settings_Path = "" then
-         return (Success => True, Durable => True, Path => Null_Unbounded_String, Error_Key => Null_Unbounded_String);
-      end if;
-      Files.Overlays.Settings_Form.Store_Shortcut_Overrides (Settings);
-      declare
-         Own : constant Files.Settings.Settings_Model := Settings;
-      begin
-         Files.Settings.Merge_From_File (Settings_Path, Settings, Merged, Refused);
-         if Refused then
-            return
-              (Success   => True,
-               Durable   => False,
-               Path      => To_Unbounded_String (Settings_Path),
-               Error_Key => To_Unbounded_String ("error.settings.changed_elsewhere"));
-         elsif Merged then
-            if not Files.Settings.Loadable (Settings) then
-               Settings := Own;
-               return Settings_Full_Result (Settings_Path);
-            elsif Settings.Shortcut_Overrides /= Own.Shortcut_Overrides then
-               Files.Overlays.Settings_Form.Apply_Shortcut_Overrides (Settings);
-            end if;
-         end if;
-      end;
-      return Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Settings));
-   end Write_Settings;
-
-   --  The one save policy for a settings change, wherever it came from: the
-   --  change is applied already and kept for the session; a file that would
-   --  not load again (Loadable) is not written; a write that fails or is not
-   --  durable is reported in the window's error line. (A settings command's
-   --  own durable save clears that line; a save following another operation
-   --  leaves that operation's message.)
+   --  Save already-applied settings (Files.Settings.Storage.Persist) and
+   --  apply the outcome to this window: settings the save took in (another
+   --  process's change, or a rebind not saved before) are made in force
+   --  here as in the other windows, which take them from here; a write
+   --  that fails or is not durable is reported in the error line while the
+   --  change stays applied. (A settings command's own durable save clears
+   --  that line; a save following another operation leaves that
+   --  operation's message.)
    function Persisted
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String)
       return Files.Settings.Settings_Write_Result
    is
-      Before : constant Files.Settings.Settings_Model := Settings;
+      Before   : constant Files.Settings.Settings_Model := Settings;
+      Taken_In : Boolean;
+      Saved    : constant Files.Settings.Settings_Write_Result :=
+        Files.Settings.Storage.Persist (Settings_Path, Settings, Taken_In);
    begin
-      if not Files.Settings.Loadable (Settings) then
-         return Settings_Full (Model, Settings_Path);
+      if Taken_In then
+         Take_In_Settings (Model, Before, Settings);
+         Files.Model.Note_Settings_Changed (Model);
       end if;
-      declare
-         Saved : constant Files.Settings.Settings_Write_Result := Write_Settings (Settings_Path, Settings);
-      begin
-         if not Files.Settings.Same_Content (Settings, Before) then
-            --  Another process's change (or a rebind not saved before),
-            --  taken in: in force in this window as in the others, which
-            --  take it from here.
-            Take_In_Settings (Model, Before, Settings);
-            Files.Model.Note_Settings_Changed (Model);
-         end if;
-         if not Saved.Success or else not Saved.Durable then
-            --  Applied, but not saved (or not safely): say so.
-            Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
-         end if;
-         return Saved;
-      end;
+      if not Saved.Success or else not Saved.Durable then
+         Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
+      end if;
+      return Saved;
    end Persisted;
 
    --  What a settings commit did: the write's result, and whether Updated
@@ -259,10 +196,10 @@ package body Files.Controller is
       Accepted : Boolean := False;
    end record;
 
-   --  The one settings commit, comparing Updated with Settings once: an
-   --  unchanged one counts as saved, one that would make loadable settings
-   --  unloadable is refused, and any other replaces Settings, is noted on
-   --  the window's settings revision, and is persisted.
+   --  The one settings commit (Files.Settings.Storage.Decide_Commit): an
+   --  unchanged one counts as saved, a refused one is said in the error
+   --  line, and any other replaces Settings, is noted on the window's
+   --  settings revision, and is persisted.
    function Commit
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
@@ -270,26 +207,21 @@ package body Files.Controller is
       Settings_Path : String)
       return Commit_Outcome is
    begin
-      if Files.Settings.Same_Content (Updated, Settings) then
-         return
-           (Saved    =>
-              (Success => True, Durable => True, Path => To_Unbounded_String (Settings_Path),
-               Error_Key => Null_Unbounded_String),
-            Accepted => False);
-      --  Refused when it is this change that makes them unloadable: if they
-      --  already were, refusing every later change (a zoom, a toggle) would
-      --  only lock the user out; Persisted then still writes nothing.
-      elsif not Files.Settings.Loadable (Updated) and then Files.Settings.Loadable (Settings) then
-         return (Saved => Settings_Full (Model, Settings_Path), Accepted => False);
-      end if;
-      declare
-         Before : constant Files.Settings.Settings_Model := Settings;
-      begin
-         Settings := Updated;
-         Files.Model.Note_Settings_Changed (Model);
-         Follow_Favorites (Model, Before, Settings);
-      end;
-      return (Saved => Persisted (Model, Settings, Settings_Path), Accepted => True);
+      case Files.Settings.Storage.Decide_Commit (Settings, Updated) is
+         when Files.Settings.Storage.Commit_Unchanged =>
+            return (Saved => Files.Settings.Storage.Unchanged_Result (Settings_Path), Accepted => False);
+         when Files.Settings.Storage.Commit_Refused =>
+            return (Saved => Settings_Full (Model, Settings_Path), Accepted => False);
+         when Files.Settings.Storage.Commit_Accepted =>
+            declare
+               Before : constant Files.Settings.Settings_Model := Settings;
+            begin
+               Settings := Updated;
+               Files.Model.Note_Settings_Changed (Model);
+               Follow_Favorites (Model, Before, Settings);
+            end;
+            return (Saved => Persisted (Model, Settings, Settings_Path), Accepted => True);
+      end case;
    end Commit;
 
    function Commit_Settings
@@ -403,7 +335,9 @@ package body Files.Controller is
            Files.Operations.Begin_Paste_To
              (Model, Settings, Files.Model.Tree_Panel.Pick_Sources (Model),
               Files.Model.Tree_Panel.Pick_Target (Model),
-              (if Mode = Files.Model.Pick_Move then Files.File_System.Drop_Move else Files.File_System.Drop_Copy));
+              (if Mode = Files.Model.Pick_Move
+                then Files.File_System_Types.Drop_Move
+                else Files.File_System_Types.Drop_Copy));
       begin
          if Op.Status /= Files.Operation_Results.Operation_Success then
             return Make_Result (Controller_Ignored, Command, Op);
@@ -764,12 +698,12 @@ package body Files.Controller is
       Files.Model.Root_Selector.Set_Selected_Index (Model, Root_Index);
       declare
          Path : constant String := Files.Model.Root_Selector.Path (Model, Root_Index);
-         Kind : constant Files.File_System.Root_Kind :=
+         Kind : constant Files.File_System_Types.Root_Kind :=
            Files.Model.Root_Selector.Kind (Model, Root_Index);
       begin
          --  A favorite may target a file or a stale path; ordinary roots are
          --  always directories and take the direct navigation path.
-         if Kind = Files.File_System.Root_Favorite then
+         if Kind = Files.File_System_Types.Root_Favorite then
             case Files.Operations.Classify_Favorite (Path) is
                when Files.Operations.Favorite_Stale =>
                   --  Broken favorite: skip the click without raising so a stale
@@ -973,7 +907,7 @@ package body Files.Controller is
      (Model        : in out Files.Model.Window_Model;
       Settings     : Files.Settings.Settings_Model;
       Source_Paths : Files.Types.String_Vectors.Vector;
-      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+      Mode         : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy)
       return Controller_Result
    is
       --  Route drops through the paste engine so a drag-and-drop import gets the
@@ -996,7 +930,7 @@ package body Files.Controller is
       Source   : in out Files.Drop_Events.Drop_Event_Source)
    is
       Drops : Files.Types.String_Vectors.Vector;
-      Mode  : Files.File_System.Drop_Import_Mode;
+      Mode  : Files.File_System_Types.Drop_Import_Mode;
    begin
       if Files.Drop_Events.Has_Pending (Source) and then Accepts_Drop_Import (Model) then
          Files.Drop_Events.Take (Source, Drops, Mode);

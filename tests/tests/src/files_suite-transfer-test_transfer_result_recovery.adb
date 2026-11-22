@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -17,7 +18,7 @@ separate (Files_Suite.Transfer)
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
-      for Mode in Files.File_System.Drop_Import_Mode loop
+      for Mode in Files.File_System_Types.Drop_Import_Mode loop
          for Replaced in Boolean loop
             for Fault in 1 .. 4 loop
                Reset_Root;
@@ -45,14 +46,14 @@ separate (Files_Suite.Transfer)
                  (Step.Status = Files.Operation_Results.Operation_Failed
                   and then Files.Model.History.Undo_Available (Model),
                        "an unavailable helper result reports failure but retains committed paste history: "
-                       & Files.File_System.Drop_Import_Mode'Image (Mode) & Boolean'Image (Replaced)
+                       & Files.File_System_Types.Drop_Import_Mode'Image (Mode) & Boolean'Image (Replaced)
                        & Integer'Image (Fault)
                        & " status=" & Files.Operation_Results.Operation_Status'Image (Step.Status)
                        & " error=" & To_String (Step.Error_Key)
                        & " undo=" & Boolean'Image (Files.Model.History.Undo_Available (Model)));
                Files_Suite.Support.Assert_Equal
                  (Ada.Directories.Exists (Source),
-                  (Mode = Files.File_System.Drop_Copy),
+                  (Mode = Files.File_System_Types.Drop_Copy),
                   "recovery recognizes whether the source move committed");
                if Fault = 4 then
                   Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Items.First_Element.Identity

@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -48,7 +49,7 @@ separate (Files_Suite.Transfer)
             --  the item keeps DELETE through the ACE it inherited.
             Files_Suite.Support.Disk.Forbid_Deletion (Join (Source_Parent, "item.txt"));
             Step := Files.Operations.Begin_Paste
-              (Model, Settings, Sources, Files.File_System.Drop_Move, False);
+              (Model, Settings, Sources, Files.File_System_Types.Drop_Move, False);
             if Replace then
                Step := Files.Operations.Resolve_Paste_Conflict
                  (Model, Settings, Files.Operations.Choice_Replace, True);

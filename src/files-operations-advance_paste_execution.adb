@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files.Name_Parts;
 
@@ -15,7 +16,7 @@ is
    --  source went to a recovery stage. Only a vacated source makes the copy
    --  a move; otherwise undo must delete the copy, not move it back.
    function Source_Remains (Action : Files.Paste.Resolved_Action) return Boolean is
-     (Files.Model.Pasting.Execution_Mode (Model) = Files.File_System.Drop_Move
+     (Files.Model.Pasting.Execution_Mode (Model) = Files.File_System_Types.Drop_Move
       --  refusal-safe: a refused source counts as vacated, so undo moves the copy back
       --  without replacing anything and never deletes what may be the only copy
       and then Files.IO.Fs_Primitives.Entry_Exists (To_String (Action.Source_Path)));

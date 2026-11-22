@@ -3,7 +3,7 @@ with Files.Settings;
 
 --  The listings and searches as the suite calls them, by a whole settings
 --  record: Files.File_System takes only the classification maps and the
---  listing options (Files.File_Types.Classification_Of,
+--  listing options (Files.Settings.Classification_Of,
 --  Files.Settings.Listing_Options_Of), which these derive from Settings as
 --  the application's callers do.
 package Files_Suite.Listings is

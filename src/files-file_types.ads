@@ -1,4 +1,6 @@
-with Files.Settings;
+with Ada.Containers.Indefinite_Hashed_Maps;
+with Ada.Strings.Hash;
+
 with Files.Types;
 
 --  Filetype detection and icon classification.
@@ -27,24 +29,61 @@ package Files.File_Types is
    --  @return True for a .zip or .7z name.
    function Is_Extractable_Archive (Name : String) return Boolean;
 
+   --  A text-to-text map: what an item's filetype and icon are classified
+   --  by (Files.Settings.Settings_Model keeps its mappings in this type).
+   package String_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => String,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
+   --  Return a normalized extension without a leading dot.
+   --
+   --  @param Extension Extension text to normalize.
+   --  @return Lower-case extension without a leading dot.
+   function Normalize_Extension (Extension : String) return String;
+
+   --  Return the filetype Mapping (an extension-to-filetype map such as
+   --  Classification.Extension_Filetypes) gives Extension.
+   --
+   --  @param Mapping Extension-to-filetype map.
+   --  @param Extension File extension with or without a leading dot.
+   --  @return Mapped filetype, or an empty string when no mapping exists.
+   function Filetype_For_Extension
+     (Mapping   : String_Maps.Map;
+      Extension : String)
+      return String;
+
+   --  Return the icon Mapping (a filetype-to-icon map such as
+   --  Classification.Icon_Mappings) gives Filetype.
+   --
+   --  @param Mapping Filetype-to-icon map.
+   --  @param Filetype Filetype identifier.
+   --  @return Mapped icon identifier, or an empty string when no mapping exists.
+   function Icon_For_Filetype
+     (Mapping  : String_Maps.Map;
+      Filetype : String)
+      return String;
+
    --  The two maps an item's filetype and icon are classified by, and nothing
    --  else of the settings: what Files.File_System's listings and searches
-   --  take, so the filesystem layer does not see the whole settings record.
+   --  take, so the filesystem layer does not see the settings at all
+   --  (Files.Settings.Classification_Of builds one from a settings model).
    type Classification is record
-      --  Extension to filetype (Files.Settings.Settings_Model.Extension_Filetypes).
-      Extension_Filetypes : Files.Settings.String_Maps.Map;
-      --  Filetype to icon (Files.Settings.Settings_Model.Icon_Mappings).
-      Icon_Mappings       : Files.Settings.String_Maps.Map;
+      --  Extension to filetype, keys normalized (Normalize_Extension).
+      Extension_Filetypes : String_Maps.Map;
+      --  Filetype to icon identifier, keys trimmed.
+      Icon_Mappings       : String_Maps.Map;
    end record;
 
-   --  The classification Settings maps items by.
+   --  The built-in classification: the extension and icon maps a fresh
+   --  settings model starts with (Files.Settings.Default_Settings copies
+   --  them), and what an item made without settings is classified by.
    --
-   --  @param Settings Settings holding the extension and icon maps.
-   --  @return A copy of those two maps.
-   function Classification_Of (Settings : Files.Settings.Settings_Model) return Classification is
-     ((Extension_Filetypes => Settings.Extension_Filetypes, Icon_Mappings => Settings.Icon_Mappings));
+   --  @return The default extension and icon maps.
+   function Default_Classification return Classification;
 
-   --  Detect_Filetype by a classification rather than the whole settings.
+   --  Determine a filetype from item kind, file name and the extension map.
    --
    --  @param Classes Extension and icon maps.
    --  @param Kind Filesystem item kind.
@@ -56,7 +95,7 @@ package Files.File_Types is
       Name    : String)
       return String;
 
-   --  Icon_Id_For by a classification rather than the whole settings.
+   --  Determine an icon identifier from item kind, filetype and the icon map.
    --
    --  @param Classes Extension and icon maps.
    --  @param Kind Filesystem item kind.
@@ -64,30 +103,6 @@ package Files.File_Types is
    --  @return Icon identifier.
    function Icon_Id_For
      (Classes  : Classification;
-      Kind     : Files.Types.Item_Kind;
-      Filetype : String)
-      return String;
-
-   --  Determine a filetype from item kind, file name, and settings mappings.
-   --
-   --  @param Settings Settings model containing extension mappings.
-   --  @param Kind Filesystem item kind.
-   --  @param Name File name to inspect.
-   --  @return Filetype identifier.
-   function Detect_Filetype
-     (Settings : Files.Settings.Settings_Model;
-      Kind     : Files.Types.Item_Kind;
-      Name     : String)
-      return String;
-
-   --  Determine an icon identifier from item kind, filetype, and settings mappings.
-   --
-   --  @param Settings Settings model containing icon mappings.
-   --  @param Kind Filesystem item kind.
-   --  @param Filetype Filetype identifier.
-   --  @return Icon identifier.
-   function Icon_Id_For
-     (Settings : Files.Settings.Settings_Model;
       Kind     : Files.Types.Item_Kind;
       Filetype : String)
       return String;

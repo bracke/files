@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -19,7 +20,7 @@ separate (Files_Suite.Transfer)
 
       procedure Run
         (Actions    : Files.Paste.Resolved_Action_Vectors.Vector;
-         Mode       : Files.File_System.Drop_Import_Mode;
+         Mode       : Files.File_System_Types.Drop_Import_Mode;
          Background : Boolean)
       is
       begin
@@ -41,7 +42,7 @@ separate (Files_Suite.Transfer)
             --  Planned as a replace, but the target is gone before the paste runs.
             Actions.Append (Files.Paste.Resolved_Action'
                               (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, True));
-            Run (Actions, Files.File_System.Drop_Copy, Background);
+            Run (Actions, Files.File_System_Types.Drop_Copy, Background);
             Assert (Step.Status /= Files.Operation_Results.Operation_Failed,
                     Where & ": a vanished replace target does not fail the paste");
             Assert (File_Is (Dest, "new"), Where & ": the paste writes the vanished target's path");
@@ -50,7 +51,7 @@ separate (Files_Suite.Transfer)
                Actions.Clear;
                Actions.Append (Files.Paste.Resolved_Action'
                                  (To_Unbounded_String (Source), To_Unbounded_String (Source), False, Replace));
-               Run (Actions, Files.File_System.Drop_Move, Background);
+               Run (Actions, Files.File_System_Types.Drop_Move, Background);
                Assert (Step.Status /= Files.Operation_Results.Operation_Failed,
                        Where & ": a move onto its own path succeeds");
                Assert (File_Is (Source, "new"), Where & ": a move onto its own path leaves the entry alone");

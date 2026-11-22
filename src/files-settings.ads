@@ -4,6 +4,7 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Hash;
 
 with Guikit.Input;
+with Files.File_Types;
 with Files.Icon_Themes;
 with Files.Types;
 
@@ -44,11 +45,9 @@ package Files.Settings is
    --  oldest entry once this bound is reached.
    Max_Recent_Items : constant := 50;
 
-   package String_Maps is new Ada.Containers.Indefinite_Hashed_Maps
-     (Key_Type        => String,
-      Element_Type    => String,
-      Hash            => Ada.Strings.Hash,
-      Equivalent_Keys => "=");
+   --  The extension and icon maps' type, from the classification the
+   --  filesystem layer takes (Files.File_Types).
+   package String_Maps renames Files.File_Types.String_Maps;
 
    type Open_Action is record
       Executable : UString;
@@ -363,7 +362,7 @@ package Files.Settings is
    function Filetype_For_Extension
      (Mapping   : String_Maps.Map;
       Extension : String)
-      return String;
+      return String renames Files.File_Types.Filetype_For_Extension;
 
    --  Return the icon Mapping (a filetype-to-icon map such as
    --  Settings_Model.Icon_Mappings) gives Filetype.
@@ -374,7 +373,7 @@ package Files.Settings is
    function Icon_For_Filetype
      (Mapping  : String_Maps.Map;
       Filetype : String)
-      return String;
+      return String renames Files.File_Types.Icon_For_Filetype;
 
    --  Return the mapped filetype for Extension.
    --
@@ -555,7 +554,15 @@ package Files.Settings is
    --  @return Lower-case extension without a leading dot.
    function Normalize_Extension
      (Extension : String)
-      return String;
+      return String renames Files.File_Types.Normalize_Extension;
+
+   --  The classification Settings maps items by: the two maps the
+   --  filesystem layer's listings and searches take instead of the settings.
+   --
+   --  @param Settings Settings holding the extension and icon maps.
+   --  @return A copy of those two maps.
+   function Classification_Of (Settings : Settings_Model) return Files.File_Types.Classification is
+     ((Extension_Filetypes => Settings.Extension_Filetypes, Icon_Mappings => Settings.Icon_Mappings));
 
 private
 

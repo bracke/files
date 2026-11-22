@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Testing;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Transfer)
@@ -31,7 +32,7 @@ separate (Files_Suite.Transfer)
       Reset_Root;
       Write_Binary_File (Source, "source");
       Write_Binary_File (Target, "unrelated");
-      for Mode in Files.File_System.Drop_Import_Mode loop
+      for Mode in Files.File_System_Types.Drop_Import_Mode loop
          for Kind in Entry_Kind loop
             Current := Kind;
             Created := True;

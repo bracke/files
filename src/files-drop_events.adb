@@ -6,7 +6,7 @@ package body Files.Drop_Events is
    procedure Queue
      (Source : in out Drop_Event_Source;
       Paths  : Files.Types.String_Vectors.Vector;
-      Mode   : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy) is
+      Mode   : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy) is
    begin
       Source.Pending_Paths.Clear;
       Source.Pending_Mode := Mode;
@@ -48,12 +48,12 @@ package body Files.Drop_Events is
    procedure Take
      (Source : in out Drop_Event_Source;
       Paths  : out Files.Types.String_Vectors.Vector;
-      Mode   : out Files.File_System.Drop_Import_Mode) is
+      Mode   : out Files.File_System_Types.Drop_Import_Mode) is
    begin
       Paths := Source.Pending_Paths;
       Mode := Source.Pending_Mode;
       Source.Pending_Paths.Clear;
-      Source.Pending_Mode := Files.File_System.Drop_Copy;
+      Source.Pending_Mode := Files.File_System_Types.Drop_Copy;
    end Take;
 
 end Files.Drop_Events;

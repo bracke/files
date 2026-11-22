@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.File_System.Testing;
@@ -93,7 +94,7 @@ separate (Files_Suite.Rendering)
          Sources.Append (Ada.Strings.Unbounded.To_Unbounded_String (Bad_Path));
          declare
             Plan : constant Files.File_System.Drop_Import_Result :=
-              Files.File_System.Transfer.Plan_Drop_Import (Sources, Into, Files.File_System.Drop_Copy);
+              Files.File_System.Transfer.Plan_Drop_Import (Sources, Into, Files.File_System_Types.Drop_Copy);
          begin
             Assert (Plan.Plans.First_Element.Valid, "a non-UTF-8 name can be copied: "
                     & Ada.Strings.Unbounded.To_String (Plan.Error_Key));

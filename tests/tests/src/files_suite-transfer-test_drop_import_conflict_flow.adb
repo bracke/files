@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Model.Clipboard;
@@ -118,7 +119,7 @@ separate (Files_Suite.Transfer)
          Files.Model.Clipboard.Set (Model, Clip, Files.Model.Clipboard_Copy);
          Sources.Append (To_Unbounded_String (Join (Src_Dir, "m.txt")));
          Routed :=
-           Files.Controller.Handle_Drop_Import (Model, Settings, Sources, Files.File_System.Drop_Move);
+           Files.Controller.Handle_Drop_Import (Model, Settings, Sources, Files.File_System_Types.Drop_Move);
          Files_Suite.Support.Assert_Equal
            (Routed.Operation.Status,
             Files.Operation_Results.Operation_Success,

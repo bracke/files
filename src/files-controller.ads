@@ -1,9 +1,9 @@
+with Files.File_System_Types;
 with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Commands;
 with Files.Drop_Events;
 with Files.Input_Actions;
-with Files.File_System;
 with Files.Model;
 with Files.Operations;
 with Files.Settings;
@@ -401,7 +401,7 @@ package Files.Controller is
      (Model        : in out Files.Model.Window_Model;
       Settings     : Files.Settings.Settings_Model;
       Source_Paths : Files.Types.String_Vectors.Vector;
-      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+      Mode         : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy)
       return Controller_Result;
 
    --  Handle a scroll action for a specific scrollable area.

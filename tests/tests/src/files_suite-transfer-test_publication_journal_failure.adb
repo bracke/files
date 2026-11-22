@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
@@ -7,7 +8,7 @@ separate (Files_Suite.Transfer)
       File : Ada.Streams.Stream_IO.File_Type;
    begin
       for Via_Helper in Boolean loop
-         for Mode in Files.File_System.Drop_Import_Mode loop
+         for Mode in Files.File_System_Types.Drop_Import_Mode loop
             for Replaced in Boolean loop
                Reset_Root;
                declare
@@ -76,9 +77,9 @@ separate (Files_Suite.Transfer)
                   Assert (File_Has_Bytes (Dest, "source bytes"), "the completed destination retains all source bytes");
                   Files_Suite.Support.Assert_Equal
                     (Ada.Directories.Exists (Source),
-                     (Mode = Files.File_System.Drop_Copy),
+                     (Mode = Files.File_System_Types.Drop_Copy),
                      "a committed move removes its source while a copy preserves it");
-                  if Mode = Files.File_System.Drop_Copy then
+                  if Mode = Files.File_System_Types.Drop_Copy then
                      Assert (not Ada.Directories.Exists (Join (Root, Files.Protocol_Names.Work_Stage_Prefix & "1")),
                              "a journal failure does not retain copy staging or remove the published output");
                   end if;

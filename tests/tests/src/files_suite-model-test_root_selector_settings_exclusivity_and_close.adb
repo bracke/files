@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Overlays.Settings_Form;
 with Files.Operation_Results;
 with Files.Controller.Testing;
@@ -12,7 +13,7 @@ separate (Files_Suite.Model)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
       Roots_A  : Files.Types.String_Vectors.Vector;
-      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Entries  : Files.File_System_Types.Root_Entry_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
    begin
       Reset_Root;
@@ -22,12 +23,12 @@ separate (Files_Suite.Model)
       --  Open the selected root and come back to Root, so the selector starts
       --  closed over a navigated window.
       Entries.Append
-        (Files.File_System.Root_Entry'
+        (Files.File_System_Types.Root_Entry'
            (Path  => To_Unbounded_String (Target),
             Label => To_Unbounded_String ("root.mount"),
             Name  => To_Unbounded_String ("selected-root"),
             Detail => Null_Unbounded_String,
-            Kind  => Files.File_System.Root_Mount,
+            Kind  => Files.File_System_Types.Root_Mount,
             Volume_Name => To_Unbounded_String ("selected-root"),
             Removable => False));
       Files.Model.Root_Selector.Open (Model, Entries);

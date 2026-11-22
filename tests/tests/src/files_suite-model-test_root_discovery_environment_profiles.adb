@@ -1,9 +1,10 @@
+with Files.File_System_Types;
 with Files.File_System.Roots;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Model)
    procedure Test_Root_Discovery_Environment_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Entries  : Files.File_System_Types.Root_Entry_Vectors.Vector;
    begin
       Reset_Root;
       declare
@@ -23,7 +24,7 @@ separate (Files_Suite.Model)
          Entries := Files.File_System.Roots.Available_Root_Entries;
          for Root_Entry_Value of Entries loop
             if To_String (Root_Entry_Value.Path) = Ada.Directories.Full_Name (Drive_Profile_Path)
-              and then Root_Entry_Value.Kind = Files.File_System.Root_User_Mount
+              and then Root_Entry_Value.Kind = Files.File_System_Types.Root_User_Mount
             then
                Found_Drive_Profile := True;
             end if;

@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Testing;
 separate (Files_Suite.Transfer)
    procedure Test_Transfer_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -25,7 +26,7 @@ separate (Files_Suite.Transfer)
         (Files.File_System.Drop_Import_Plan'
            (Source_Path      => To_Unbounded_String (Source),
             Destination_Path => To_Unbounded_String (Dest),
-            Mode             => Files.File_System.Drop_Copy,
+            Mode             => Files.File_System_Types.Drop_Copy,
             Valid            => True,
             Error_Key        => Null_Unbounded_String));
       Result := Files.File_System.Testing.Execute_Drop_Import (Plans, Cancelled'Unrestricted_Access);
@@ -46,7 +47,7 @@ separate (Files_Suite.Transfer)
         (Files.File_System.Drop_Import_Plan'
            (Source_Path      => To_Unbounded_String (Source),
             Destination_Path => To_Unbounded_String (Source),
-            Mode             => Files.File_System.Drop_Copy,
+            Mode             => Files.File_System_Types.Drop_Copy,
             Valid            => True,
             Error_Key        => Null_Unbounded_String));
       Result := Files.File_System.Testing.Execute_Drop_Import (Plans);
@@ -59,7 +60,7 @@ separate (Files_Suite.Transfer)
         (Files.File_System.Drop_Import_Plan'
            (Source_Path      => To_Unbounded_String (Source),
             Destination_Path => To_Unbounded_String (Dest),
-            Mode             => Files.File_System.Drop_Move,
+            Mode             => Files.File_System_Types.Drop_Move,
             Valid            => True,
             Error_Key        => Null_Unbounded_String));
       Files.File_Identities.Testing.Set_Unavailable (True);

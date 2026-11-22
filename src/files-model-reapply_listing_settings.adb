@@ -17,6 +17,8 @@ is
    Preview  : Quick_Look_State;
    Scroll      : constant Natural := Model.Main_View_Scroll;
    Info_Scroll : constant Natural := Model.Info_Pane_Scroll;
+   Classes     : constant Files.File_Types.Classification :=
+     (if Reclassify then Files.Settings.Classification_Of (Settings) else (others => <>));
 begin
    --  In place, as a background refresh is held back for them: the results,
    --  a rename or a new item's name in progress, the palette, the scroll and
@@ -30,7 +32,7 @@ begin
       for Item of Model.Items loop
          declare
             Filetype : constant UString := To_Unbounded_String
-              (Files.File_Types.Detect_Filetype (Settings, Item.Kind, To_String (Item.Name)));
+              (Files.File_Types.Detect_Filetype (Classes, Item.Kind, To_String (Item.Name)));
          begin
             --  The details are read for a type: read again for the new one.
             if Filetype /= Item.Filetype then
@@ -39,7 +41,7 @@ begin
             end if;
             Item.Filetype := Filetype;
             Item.Icon_Id := To_Unbounded_String
-              (Files.File_Types.Icon_Id_For (Settings, Item.Kind, To_String (Filetype)));
+              (Files.File_Types.Icon_Id_For (Classes, Item.Kind, To_String (Filetype)));
          end;
       end loop;
       --  A type sort may order them differently now; the selection and the

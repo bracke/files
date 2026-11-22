@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Model.Creation;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
@@ -211,7 +212,7 @@ separate (Files_Suite.Refresh)
                Trash_Result :=
                  Files.Operations.Begin_Paste_To
                    (Trash_Model, Settings, Trash_Sources, Full_Child,
-                    Files.File_System.Drop_Move, From_Clipboard => False);
+                    Files.File_System_Types.Drop_Move, From_Clipboard => False);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then Files.Model.Last_Error_Key (Trash_Model) = "error.drop.invalid_source",

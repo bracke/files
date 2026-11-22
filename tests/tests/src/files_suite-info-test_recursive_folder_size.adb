@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files_Suite.Support.Disk;
@@ -9,7 +10,7 @@ separate (Files_Suite.Info)
       Nested   : constant String := Join (Tree, "nested");
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
-      Size     : Files.File_System.Directory_Size_Result;
+      Size     : Files.File_System_Types.Directory_Size_Result;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Nested);
@@ -28,7 +29,7 @@ separate (Files_Suite.Info)
       --  leave a self-referential tree that later cleanup cannot delete.
       if Files_Suite.Support.Disk.Create_Symlink (Tree, Join (Tree, "loop")) then
          declare
-            Guarded : constant Files.File_System.Directory_Size_Result :=
+            Guarded : constant Files.File_System_Types.Directory_Size_Result :=
               Files.File_System.Directory_Size (Tree);
          begin
             --  A link to a directory is a directory entry on Windows, so
@@ -47,7 +48,7 @@ separate (Files_Suite.Info)
       begin
          if Files_Suite.Support.Disk.Create_Symlink (Tree, Root_Link) then
             declare
-               Guarded : constant Files.File_System.Directory_Size_Result :=
+               Guarded : constant Files.File_System_Types.Directory_Size_Result :=
                  Files.File_System.Directory_Size (Root_Link);
             begin
                Project_Tools.Files.Delete_Tree (Root_Link);
@@ -77,7 +78,7 @@ separate (Files_Suite.Info)
          Started     : Boolean := False;
          Denied      : Boolean := False;
          Mutation    : Files.File_System.Mutation_Result;
-         Guarded     : Files.File_System.Directory_Size_Result;
+         Guarded     : Files.File_System_Types.Directory_Size_Result;
       begin
          Ada.Directories.Create_Directory (Locked);
          Write_Binary_File (Join (Locked, "hidden"), "not empty");

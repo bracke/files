@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
@@ -19,7 +20,7 @@ separate (Files_Suite.Info)
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
       Measured : Files.Folder_Size.Measurement_Vectors.Vector;
-      Stale    : constant Files.File_System.Directory_Size_Result :=
+      Stale    : constant Files.File_System_Types.Directory_Size_Result :=
         (Available => True, Total_Bytes => 999, File_Count => 1, Item_Count => 1, Capped => False);
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;

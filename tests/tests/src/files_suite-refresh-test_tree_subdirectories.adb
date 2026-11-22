@@ -1,4 +1,3 @@
-with Files.File_Types;
 separate (Files_Suite.Refresh)
    procedure Test_Tree_Subdirectories (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -27,10 +26,10 @@ separate (Files_Suite.Refresh)
                        (Show_Hidden => Hidden, Sort_Field => Field, Sort_Ascending => Ascending);
                      Full : constant Files.File_System.Directory_Load_Result :=
                        Files.File_System.Load_Directory_Filtered
-                         (Root, Files.File_Types.Classification_Of (Settings), Options, Folders'Access);
+                         (Root, Files.Settings.Classification_Of (Settings), Options, Folders'Access);
                      Lean : constant Files.File_System.Directory_Load_Result :=
                        Files.File_System.Load_Subdirectories
-                         (Root, Files.File_Types.Classification_Of (Settings), Options);
+                         (Root, Files.Settings.Classification_Of (Settings), Options);
                      Context : constant String :=
                        Hidden'Image & " " & Files.Types.Sort_Field'Image (Field) & Ascending'Image;
                   begin

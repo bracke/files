@@ -12,7 +12,7 @@ is
    use type Files.UI_Types.Search_Scope;
    Query   : constant String := Files.Model.Filtering.Filter_Text (Model);
    Root    : constant String := Files.Model.Current_Path (Model);
-   Classes : constant Files.File_Types.Classification := Files.File_Types.Classification_Of (Settings);
+   Classes : constant Files.File_Types.Classification := Files.Settings.Classification_Of (Settings);
    Options : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Settings);
 begin
    declare

@@ -1,9 +1,10 @@
+with Files.File_System_Types;
 separate (Files.Operations)
 function Begin_Paste
   (Model          : in out Files.Model.Window_Model;
    Settings       : Files.Settings.Settings_Model;
    Source_Paths   : Files.Types.String_Vectors.Vector;
-   Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+   Mode           : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy;
    From_Clipboard : Boolean := True)
    return Operation_Result is
 begin

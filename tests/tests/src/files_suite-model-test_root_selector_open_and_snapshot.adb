@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Rendering.Testing;
 with Files.Model.Root_Selector;
 with Files.Model.Settings_Pane;
@@ -6,7 +7,7 @@ separate (Files_Suite.Model)
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
-      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Entries  : Files.File_System_Types.Root_Entry_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
       Snapshot : Files.Rendering.View_Snapshot;
 
@@ -57,12 +58,12 @@ separate (Files_Suite.Model)
       Assert (To_String (Snapshot.Roots (1).Label) /= "", "root selector label is non-empty");
       Entries.Clear;
       Entries.Append
-        (Files.File_System.Root_Entry'
+        (Files.File_System_Types.Root_Entry'
            (Path  => To_Unbounded_String ("/tmp/example-mount"),
             Label => To_Unbounded_String ("root.mount"),
             Name  => To_Unbounded_String ("example-mount"),
             Detail => Null_Unbounded_String,
-            Kind  => Files.File_System.Root_Mount,
+            Kind  => Files.File_System_Types.Root_Mount,
             Volume_Name => To_Unbounded_String ("example-mount"),
             Removable => True));
       Files.Model.Root_Selector.Open (Model, Entries);
@@ -73,12 +74,12 @@ separate (Files_Suite.Model)
          "root selector renders the root kind's localized pattern");
       Entries.Clear;
       Entries.Append
-        (Files.File_System.Root_Entry'
+        (Files.File_System_Types.Root_Entry'
            (Path  => To_Unbounded_String ("/tmp/example-mount"),
             Label => To_Unbounded_String ("root.mount"),
             Name  => To_Unbounded_String ("example-mount"),
             Detail => To_Unbounded_String ("ext4"),
-            Kind  => Files.File_System.Root_Mount,
+            Kind  => Files.File_System_Types.Root_Mount,
             Volume_Name => To_Unbounded_String ("example-mount"),
             Removable => True));
       Files.Model.Root_Selector.Open (Model, Entries);
@@ -91,12 +92,12 @@ separate (Files_Suite.Model)
       --  token separator, and "a|b" with a detail showed as "a" with "b|ext4".
       Entries.Clear;
       Entries.Append
-        (Files.File_System.Root_Entry'
+        (Files.File_System_Types.Root_Entry'
            (Path  => To_Unbounded_String ("/tmp/a|b"),
             Label => To_Unbounded_String ("root.mount"),
             Name  => To_Unbounded_String ("a|b"),
             Detail => To_Unbounded_String ("ext4"),
-            Kind  => Files.File_System.Root_Mount,
+            Kind  => Files.File_System_Types.Root_Mount,
             Volume_Name => To_Unbounded_String ("a|b"),
             Removable => True));
       Files.Model.Root_Selector.Open (Model, Entries);

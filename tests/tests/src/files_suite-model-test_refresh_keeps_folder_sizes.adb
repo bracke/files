@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Ada.Calendar;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Model)
@@ -10,7 +11,7 @@ separate (Files_Suite.Model)
       Items : Files.Items.Item_Vectors.Vector;
       Big   : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "big");
       Small : constant String := Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root, "small");
-      Sized : constant Files.File_System.Directory_Size_Result :=
+      Sized : constant Files.File_System_Types.Directory_Size_Result :=
         (Available => True, Total_Bytes => 42, File_Count => 1, Item_Count => 1, Capped => False);
       type Name_Array is array (Positive range <>) of Unbounded_String;
    begin

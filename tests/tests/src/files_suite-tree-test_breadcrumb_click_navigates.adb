@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
@@ -63,7 +64,7 @@ separate (Files_Suite.Tree)
       end;
 
       declare
-         Expected : constant Files.File_System.Path_Result := Files.File_System.Normalize_Path (Deep);
+         Expected : constant Files.File_System_Types.Path_Result := Files.File_System.Normalize_Path (Deep);
       begin
          Files_Suite.Support.Assert_Equal
            (Files.Model.Current_Path (Model),

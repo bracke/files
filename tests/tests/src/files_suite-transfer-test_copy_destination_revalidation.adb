@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -57,7 +58,7 @@ separate (Files_Suite.Transfer)
          Paths.Clear;
          Paths.Append (To_Unbounded_String (Source));
          Plans := Files.File_System.Transfer.Plan_Drop_Import
-           (Paths, Parent, Files.File_System.Drop_Copy);
+           (Paths, Parent, Files.File_System_Types.Drop_Copy);
          Assert
            (not Plans.Success
             and then To_String (Plans.Error_Key) = "error.drop.into_self",
@@ -70,7 +71,7 @@ separate (Files_Suite.Transfer)
             Paths.Clear;
             Paths.Append (To_Unbounded_String (Stay));
             Plans := Files.File_System.Transfer.Plan_Drop_Import
-              (Paths, Parent, Files.File_System.Drop_Move);
+              (Paths, Parent, Files.File_System_Types.Drop_Move);
             Assert
               (Plans.Success, "a move through an alias to the same directory is planned as a no-op: planned");
             Files_Suite.Support.Assert_Equal

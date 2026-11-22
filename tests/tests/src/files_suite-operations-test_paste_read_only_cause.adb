@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -33,7 +34,7 @@ separate (Files_Suite.Operations)
          end if;
          Sources.Clear;
          Sources.Append (To_Unbounded_String (Source));
-         Step := Files.Operations.Begin_Paste (Model, Settings, Sources, Files.File_System.Drop_Copy, False);
+         Step := Files.Operations.Begin_Paste (Model, Settings, Sources, Files.File_System_Types.Drop_Copy, False);
          Step := Complete_Operation (Model, Settings, Step);
          Await_View (Model, Settings);
          Unlock_Directory (Locked);

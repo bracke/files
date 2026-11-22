@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Model.Recent;
 with Files.Paste_States;
 with Files.Model.Clipboard;
@@ -12,7 +13,7 @@ procedure Record_Paste_Execution
 is
    --  Read once: everything recorded below is what the paste gathered.
    Exec       : constant Files.Paste_States.Execution_State := Files.Model.Pasting.Execution_Of (Model);
-   Mode       : constant Files.File_System.Drop_Import_Mode :=
+   Mode       : constant Files.File_System_Types.Drop_Import_Mode :=
      Exec.Mode;
    --  Each write: destination (From) and source (To), with its provenance.
    Written    : Files.Undo.History.Recorded_Item_Vectors.Vector renames Exec.Written;
@@ -40,7 +41,7 @@ begin
       Files.Model.Recent.Note_Path_Move (Model, To_String (Given.Original.Target), To_String (Given.Original.Trash));
    end loop;
    if not Written.Is_Empty or else Has_Kept then
-      if Mode = Files.File_System.Drop_Move then
+      if Mode = Files.File_System_Types.Drop_Move then
          --  With no moved member, the kept copies alone are recorded (as the
          --  creations they are, by Try_Record_Undo) with the originals.
          Record_Undo
@@ -70,7 +71,7 @@ begin
       --  (even if it was cancelled part-way, the completed sources have
       --  already moved). A drag-and-drop move never touches the clipboard, so
       --  it must not clear an unrelated clipboard selection.
-      if Mode = Files.File_System.Drop_Move
+      if Mode = Files.File_System_Types.Drop_Move
         and then Exec.Clears_Clipboard
         and then not Written.Is_Empty
       then

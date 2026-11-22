@@ -1,15 +1,16 @@
+with Files.File_System_Types;
 with Files.Model.Command_Palette;
 separate (Files_Suite.Model)
    procedure Test_Path_Input_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model   : Files.Model.Window_Model := Sample_Model;
       Empty   : Files.Items.Item_Vectors.Vector;
-      Invalid : constant Files.File_System.Path_Result :=
-        (Status         => Files.File_System.Path_Missing,
+      Invalid : constant Files.File_System_Types.Path_Result :=
+        (Status         => Files.File_System_Types.Path_Missing,
          Directory_Path => Null_Unbounded_String,
          Error_Key      => To_Unbounded_String ("error.path.missing"));
-      Valid   : constant Files.File_System.Path_Result :=
-        (Status         => Files.File_System.Path_Valid,
+      Valid   : constant Files.File_System_Types.Path_Result :=
+        (Status         => Files.File_System_Types.Path_Valid,
          Directory_Path => To_Unbounded_String ("/tmp/files_aunit/valid"),
          Error_Key      => Null_Unbounded_String);
    begin

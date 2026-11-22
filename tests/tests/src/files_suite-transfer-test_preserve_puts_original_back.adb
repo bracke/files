@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files_Suite.Support.Disk;
 with Files.File_System.Recovery_Registry;
@@ -63,7 +64,7 @@ separate (Files_Suite.Transfer)
          Write_Binary_File (Source, "itself");
          if Files_Suite.Support.Disk.Create_Symlink (Real, Alias) then
             Result := Files.File_System.Transfer.Import_Replacing
-              (Source, Join (Alias, "self.txt"), Files.File_System.Drop_Copy, Replace => True,
+              (Source, Join (Alias, "self.txt"), Files.File_System_Types.Drop_Copy, Replace => True,
                Replaced => Replaced, Replaced_Identity => Replaced_Identity,
                Created_Identity => Created_Identity, Created_Tree_Revision => Created_Revision,
                Preserved => Note_Held'Access);

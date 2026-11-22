@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Model.Testing;
 with Files.Operation_Results;
@@ -14,7 +15,7 @@ separate (Files_Suite.History)
       Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
    begin
-      for Mode in Files.File_System.Drop_Import_Mode loop
+      for Mode in Files.File_System_Types.Drop_Import_Mode loop
          for Background in Boolean loop
             Reset_Root;
             Ada.Directories.Create_Directory (Join (Root, "inbox"));

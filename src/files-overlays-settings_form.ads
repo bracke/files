@@ -22,25 +22,6 @@ package Files.Overlays.Settings_Form is
      (Draft : Files.Settings.Settings_Draft)
       return Guikit.Settings_Panel.Field_Vectors.Vector;
 
-   --  Settings with their shortcut overrides taken from the live keymap
-   --  (Files.Commands), which the pane's shortcut rows change before any
-   --  save: what a save writes. The [shortcuts] section is thus always a
-   --  mirror of the effective overrides; an explicit unbind persists as an
-   --  empty combo (Shortcut_Text of an absent shortcut is "").
-   --
-   --  @param Settings Settings to update in place.
-   procedure Store_Shortcut_Overrides (Settings : in out Files.Settings.Settings_Model);
-
-   --  Make Settings' shortcut overrides the live keymap's (Files.Commands),
-   --  then hold them as a save writes them (Store_Shortcut_Overrides). An
-   --  override for a command this build does not know, or with a combo it
-   --  cannot read (a typo), is dropped: the command keeps its default
-   --  binding rather than losing it or taking whatever the rest names. An
-   --  empty combo is an explicit unbind.
-   --
-   --  @param Settings Settings whose overrides take effect, updated in place.
-   procedure Apply_Shortcut_Overrides (Settings : in out Files.Settings.Settings_Model);
-
    --  Whether saving Draft would change the settings as saved (Saved):
    --  Draft applied over Saved, with the live shortcut overrides, says
    --  something else (Files.Settings.Same_Content). False for a draft that

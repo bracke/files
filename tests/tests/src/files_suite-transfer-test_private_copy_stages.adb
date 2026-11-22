@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Recovery_Registry;
 with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
@@ -56,7 +57,7 @@ separate (Files_Suite.Transfer)
       Assert (Mutation.Success, "remove our collision fixture");
       Plans.Append (Files.File_System.Drop_Import_Plan'
         (To_Unbounded_String (Source), To_Unbounded_String (Join (Parent, "copy")),
-         Files.File_System.Drop_Copy, True, Null_Unbounded_String));
+         Files.File_System_Types.Drop_Copy, True, Null_Unbounded_String));
       Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans, Observe'Unrestricted_Access);
       Assert
         (Mutation.Success,

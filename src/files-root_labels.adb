@@ -4,7 +4,7 @@ with Files.Localization;
 package body Files.Root_Labels is
    use Ada.Strings.Unbounded;
 
-   function Display_Label (Root : Files.File_System.Root_Entry) return String is
+   function Display_Label (Root : Files.File_System_Types.Root_Entry) return String is
       Label : constant String := To_String (Root.Label);
       Name  : constant String := To_String (Root.Name);
 

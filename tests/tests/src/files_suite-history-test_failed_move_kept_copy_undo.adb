@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Operation_Results;
 with Files.IO.Durability.Testing;
 with Files.Items;
@@ -64,7 +65,7 @@ separate (Files_Suite.History)
             Files.IO.Durability.Testing.Fail_Stage_Sync;
             Ada.Environment_Variables.Set ("FILES_TEST_STAGE_SYNC_FAULT", "1");
             Files.Operations.Begin_Paste_Execution
-              (Model, (if Mixed then Mixed_Actions else Actions), Files.File_System.Drop_Move);
+              (Model, (if Mixed then Mixed_Actions else Actions), Files.File_System_Types.Drop_Move);
             Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
             Cleanup;
             Assert (Step.Status = Files.Operation_Results.Operation_Failed,

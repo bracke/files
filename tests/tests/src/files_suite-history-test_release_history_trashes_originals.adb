@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -38,7 +39,7 @@ separate (Files_Suite.History)
             Replaced    => True));
       Files.Model.Initialize
         (Model, Dest_Dir, Files_Suite.Listings.Load_Directory (Dest_Dir, Settings).Items, Root);
-      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                         "the replacing paste runs");

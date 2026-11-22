@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -77,7 +78,7 @@ separate (Files_Suite.Transfer)
            Settings       => Settings,
            Source_Paths   => Sources,
            Destination    => Join (Drop_Target, "nested-target"),
-           Mode           => Files.File_System.Drop_Move,
+           Mode           => Files.File_System_Types.Drop_Move,
            From_Clipboard => False);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
@@ -100,7 +101,7 @@ separate (Files_Suite.Transfer)
       Sources.Clear;
       Write_File (Join (Root, "move-source.txt"), "move");
       Sources.Append (To_Unbounded_String (Join (Root, "move-source.txt")));
-      Plans := Files.File_System.Transfer.Plan_Drop_Import (Sources, Drop_Target, Files.File_System.Drop_Move);
+      Plans := Files.File_System.Transfer.Plan_Drop_Import (Sources, Drop_Target, Files.File_System_Types.Drop_Move);
       Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
       Assert (Mutation.Success, "drop import move executes");
       Assert (Ada.Directories.Exists (Join (Drop_Target, "move-source.txt")), "drop move creates destination");

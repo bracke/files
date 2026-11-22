@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Testing;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
@@ -38,7 +39,7 @@ separate (Files_Suite.Transfer)
          Mutation : Files.File_System.Mutation_Result;
       begin
          Plans.Append (Files.File_System.Drop_Import_Plan'
-           (Source, To_Unbounded_String (Join (Root, "moved")), Files.File_System.Drop_Move, True,
+           (Source, To_Unbounded_String (Join (Root, "moved")), Files.File_System_Types.Drop_Move, True,
             Null_Unbounded_String));
          Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans, Edit_Child'Unrestricted_Access);
          Assert (Checks >= 5, "the copy reached the point where the child changes");

@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.File_System.Testing;
 with Files.IO.Durability.Testing;
 with Files_Suite.Volumes;
@@ -28,7 +29,7 @@ separate (Files_Suite.Transfer)
          Paths.Clear;
          Paths.Append (Files.File_System.Drop_Import_Plan'
            (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "durable-destination")),
-            Files.File_System.Drop_Move, True, Null_Unbounded_String));
+            Files.File_System_Types.Drop_Move, True, Null_Unbounded_String));
          --  A file is flushed as it is written, while still staged under the
          --  name "payload"; a folder's file keeps its own name there.
          Files.IO.Durability.Testing.Fail_Syncs_Ending_With (if Folder then "/durable-child" else "/payload");

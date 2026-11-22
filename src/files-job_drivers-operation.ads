@@ -1,7 +1,7 @@
+with Files.File_System_Types;
 with Files.Model;
 with Files.Operation_Results;
 with Files.Settings;
-private with Files.File_System;
 private with Files.Items;
 private with Files.Types;
 private with Ada.Streams;
@@ -64,7 +64,7 @@ private
       Items     : Files.Items.Item_Vectors.Vector;
       Selection : Files.Types.UString;
       Visible_Error : Files.Types.UString;
-      Signature : Files.File_System.Directory_Signature;
+      Signature : Files.File_System_Types.Directory_Signature;
       --  The renames, moves and removals the helper made (Note_Path_Move),
       --  for the window's labels and favorites to follow.
       Moves     : Files.Types.Path_Move_Vectors.Vector;

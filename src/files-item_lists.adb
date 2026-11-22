@@ -6,7 +6,6 @@ with Ada.Strings.Unbounded;
 with Hostkit.Fs;
 
 with Files.File_Types;
-with Files.Settings;
 with Files.Text_Case;
 
 package body Files.Item_Lists is
@@ -21,7 +20,7 @@ package body Files.Item_Lists is
    --  The built-in type and icon tables Make_Item reads, built once when the
    --  program starts and only read after: building them per item cost a
    --  hundred map inserts for each row a snapshot rebuild asked about.
-   Default_Item_Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+   Default_Classes : constant Files.File_Types.Classification := Files.File_Types.Default_Classification;
 
    function Make_Item
      (Parent_Path : String;
@@ -30,9 +29,8 @@ package body Files.Item_Lists is
       Filetype    : String := "")
       return Directory_Item
    is
-      Settings  : Files.Settings.Settings_Model renames Default_Item_Settings;
       Type_Name : constant String :=
-        (if Filetype /= "" then Filetype else Files.File_Types.Detect_Filetype (Settings, Kind, Name));
+        (if Filetype /= "" then Filetype else Files.File_Types.Detect_Filetype (Default_Classes, Kind, Name));
       --  Hostkit.Fs.Join only joins the text.
       Full      : constant String := Hostkit.Fs.Join (Parent_Path, Name);
    begin
@@ -43,7 +41,7 @@ package body Files.Item_Lists is
          Hidden      => Name'Length > 0 and then Name (Name'First) = '.',
          Kind        => Kind,
          Filetype    => To_Unbounded_String (Type_Name),
-         Icon_Id     => To_Unbounded_String (Files.File_Types.Icon_Id_For (Settings, Kind, Type_Name)),
+         Icon_Id     => To_Unbounded_String (Files.File_Types.Icon_Id_For (Default_Classes, Kind, Type_Name)),
          others      => <>);
    end Make_Item;
 

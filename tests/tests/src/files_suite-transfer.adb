@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Controller.Operation_Commands;
 with Files.Operations;
 with Files.Operation_Results;
@@ -64,7 +65,7 @@ package body Files_Suite.Transfer is
    use type Ada.Directories.File_Size;
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
-   use type Files.File_System.Drop_Import_Mode;
+   use type Files.File_System_Types.Drop_Import_Mode;
    use type Files.Operation_Results.Operation_Status;
    use type Interfaces.C.int;
    use type Interfaces.C.long_long;

@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Operation_Results;
 with Files.File_System.Permissions;
 with Files.Items;
@@ -48,7 +49,7 @@ separate (Files_Suite.Transfer)
          Files.Model.Initialize (Model, Remote.Path, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
-         Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
+         Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Move);
          Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
          Result := Files.File_System.Permissions.Set_Permissions (Root, 8#755#);
          Assert (not Files.Model.Foreground_Job_Is_Active (Model)

@@ -1,3 +1,4 @@
+with Files.File_System_Types;
 with Files.Model.Recent;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -11,7 +12,7 @@ separate (Files_Suite.Refresh)
       Step : Files.Operation_Results.Operation_Result;
       View : constant String := Join (Root, "view");
       Held : constant String := Join (Root, "held");
-      Signature : Files.File_System.Directory_Signature;
+      Signature : Files.File_System_Types.Directory_Signature;
 
       procedure Await_Refresh (Expected_Reload : Boolean) is
       begin
