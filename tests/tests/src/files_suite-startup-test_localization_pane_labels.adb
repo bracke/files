@@ -51,10 +51,6 @@ separate (Files_Suite.Startup)
          "Information pane",
          "info-pane landmark is localized");
       Files_Suite.Support.Assert_Equal
-        (Files.Localization.Text ("accessibility.command_palette_search"),
-         "Command search",
-         "command-palette search label is localized");
-      Files_Suite.Support.Assert_Equal
         (Files.Localization.Text ("accessibility.quick_look"),
          "Quick Look preview",
          "Quick Look landmark is localized");

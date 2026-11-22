@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Operations.Navigation;
 with Files.Model.Recent;
 with Files.Operation_Results;
@@ -35,7 +36,7 @@ separate (Files_Suite.Operations)
       Files.Settings.Path_References.Note_Recent (Settings, Missing);
 
       --  Start from an ordinary directory so entering the view records history.
-      Items.Append (Files.File_System.Make_Item (Root, "recent-dir", Files.Types.Directory_Item, "inode/directory"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "recent-dir", Files.Types.Directory_Item, "inode/directory"));
       Files.Model.Initialize (Model, Root, Items, Root);
 
       Result := Files.Operations.Navigation.Navigate_Recent (Model, Settings);

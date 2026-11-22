@@ -1,3 +1,4 @@
+with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files.Operation_Results;
@@ -59,7 +60,7 @@ separate (Files_Suite.Transfer)
                   else
                      Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
                      Actions.Append (Action);
-                     Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Mode);
+                     Files.Operations.Paste.Testing.Begin_Paste_Execution (Model, Actions, Mode);
                      Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
                      Files_Suite.Support.Assert_Equal
                        (Step.Status,

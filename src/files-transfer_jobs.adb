@@ -23,18 +23,15 @@ package body Files.Transfer_Jobs is
    Request_Header : constant String := "files-transfer-request-1";
    Result_Header : constant String := "files-transfer-result-1";
 
-   function Valid_Absolute_Path (Path : String; Max_Length : Natural := Natural'Last) return Boolean
-     renames Files.Path_Checks.Valid_Absolute_Path;
-
    function Request_Is_Consistent
      (Action : Files.Paste.Resolved_Action;
       Batch_Directory : String) return Boolean is
    begin
-      return Valid_Absolute_Path (To_String (Action.Source_Path))
-        and then Valid_Absolute_Path (To_String (Action.Dest_Path))
+      return Files.Path_Checks.Valid_Absolute_Path (To_String (Action.Source_Path))
+        and then Files.Path_Checks.Valid_Absolute_Path (To_String (Action.Dest_Path))
         and then
           (Batch_Directory = ""
-           or else Valid_Absolute_Path (Batch_Directory));
+           or else Files.Path_Checks.Valid_Absolute_Path (Batch_Directory));
    end Request_Is_Consistent;
 
    function Result_Is_Consistent (Result : Job_Result) return Boolean is
@@ -46,7 +43,7 @@ package body Files.Transfer_Jobs is
    begin
       return Has_Trash = Has_Trash_Identity
         and then (not Has_Trash
-          or else Valid_Absolute_Path (To_String (Result.Trashed)))
+          or else Files.Path_Checks.Valid_Absolute_Path (To_String (Result.Trashed)))
         and then not Result.Recovered
         and then
           (if Success then
@@ -224,7 +221,7 @@ package body Files.Transfer_Jobs is
    end Read_Checkpoint_Body;
 
    function Checkpoint_Is_Consistent (Saved : Replacement_Checkpoint) return Boolean is
-     (Valid_Absolute_Path (To_String (Saved.Backup))
+     (Files.Path_Checks.Valid_Absolute_Path (To_String (Saved.Backup))
       and then Length (Saved.Backup_Identity) > 0
       and then Files.File_Identities.Token (To_String (Saved.Backup)) = To_String (Saved.Backup_Identity));
 

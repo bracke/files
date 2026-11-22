@@ -1,3 +1,5 @@
+with Files.Item_Lists;
+with Files.Text_Case.Testing;
 with Files.Model.Filtering;
 with Files.Model.Rename;
 with Guikit.Item_Grid;
@@ -155,7 +157,7 @@ separate (Files_Suite.Rendering)
       begin
          for Index in 1 .. Count loop
             Items.Append
-              (Files.File_System.Make_Item
+              (Files.Item_Lists.Make_Item
                  ("/probe", "item" & Integer'Image (Index), Files.Types.Regular_File_Item, "text/plain"));
          end loop;
          Files.Model.Initialize
@@ -254,7 +256,7 @@ separate (Files_Suite.Rendering)
       begin
          for Index in 1 .. Count loop
             Items.Append
-              (Files.File_System.Make_Item
+              (Files.Item_Lists.Make_Item
                  ("/probe", "item" & Integer'Image (Index), Files.Types.Regular_File_Item, "text/plain"));
          end loop;
          Files.Model.Initialize
@@ -345,7 +347,7 @@ separate (Files_Suite.Rendering)
             Start := Ada.Real_Time.Clock;
             for Round in 1 .. Rounds loop
                for Item of Items loop
-                  if Files.Text_Case.Contains_Case_Insensitive (To_String (Item.Name), "Item12") then
+                  if Files.Text_Case.Testing.Contains_Case_Insensitive (To_String (Item.Name), "Item12") then
                      Matches := Matches + 1;
                   end if;
                end loop;
@@ -424,7 +426,7 @@ separate (Files_Suite.Rendering)
       begin
          for Index in 1 .. Count loop
             Items.Append
-              (Files.File_System.Make_Item
+              (Files.Item_Lists.Make_Item
                  ("/probe", Upper_A & "rger" & Integer'Image (Index), Files.Types.Regular_File_Item, "text/plain"));
          end loop;
          Files.Model.Initialize

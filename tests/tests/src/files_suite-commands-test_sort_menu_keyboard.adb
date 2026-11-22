@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Model.Sort_Menu;
 separate (Files_Suite.Commands)
    procedure Test_Sort_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -9,7 +10,7 @@ separate (Files_Suite.Commands)
       pragma Unreferenced (Result);
    begin
       Reset_Root;
-      Items.Append (Files.File_System.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
       Files.Model.Initialize (Model, Root, Items, Root);
 
       --  The menu opens with the highlight on the current field (Name, row 1).

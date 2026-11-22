@@ -6,7 +6,3 @@ id.time.weekday.friday = Jumat
 id.time.weekday.saturday = Sabtu
 id.time.weekday.sunday = Minggu
 id.details.size.unit.bytes = byte
-id.details.size.unit.kib = kB
-id.details.size.unit.mib = MB
-id.details.size.unit.gib = GB
-id.details.size.unit.tib = TB

@@ -90,6 +90,27 @@ package body Files.Application.Windows.Smoke is
       end;
    end Frame_Check;
 
+   --  A startup window's snapshot as the window draws it: grouped, with
+   --  the host's samples taken.
+   function Startup_Snapshot
+     (Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Files.Rendering.View_Snapshot is
+     (Files.Rendering.Build_Snapshot (Sampled (Files.Model.Grouped (Model, Settings)), Settings));
+
+   --  Its frame at the settings' font size, with no pointer over it.
+   function Startup_Frame
+     (Snapshot : Files.Rendering.View_Snapshot;
+      Settings : Files.Settings.Settings_Model;
+      Width    : Natural;
+      Height   : Natural)
+      return Files.Rendering.Frame_Commands is
+     (Files.Rendering.Build_Frame_Commands
+        (Snapshot    => Snapshot,
+         Width       => Width,
+         Height      => Height,
+         Line_Height => Line_Height_For (Settings)));
+
    function Check_Window_Frame
      (Model    : Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
@@ -97,16 +118,9 @@ package body Files.Application.Windows.Smoke is
       Height   : Natural)
       return Window_Frame_Check
    is
-      Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Sampled (Model), Settings);
-      Frame    : constant Files.Rendering.Frame_Commands :=
-        Files.Rendering.Build_Frame_Commands
-          (Snapshot    => Snapshot,
-           Width       => Width,
-           Height      => Height,
-           Line_Height => Line_Height_For (Settings),
-           Pointer => (Hover_X => 5, Hover_Y => 5, Has_Hover => Width > 0 and then Height > 0, others => <>));
+      Snapshot : constant Files.Rendering.View_Snapshot := Startup_Snapshot (Model, Settings);
    begin
-      return Frame_Check (Snapshot, Frame, Settings, Width, Height);
+      return Frame_Check (Snapshot, Startup_Frame (Snapshot, Settings, Width, Height), Settings, Width, Height);
    end Check_Window_Frame;
 
    function Headless_Render_Quality_Report

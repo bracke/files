@@ -6,7 +6,3 @@ hy.time.weekday.friday = ուրբաթ
 hy.time.weekday.saturday = շաբաթ
 hy.time.weekday.sunday = կիրակի
 hy.details.size.unit.bytes = բայթ
-hy.details.size.unit.kib = կԲ
-hy.details.size.unit.mib = ՄԲ
-hy.details.size.unit.gib = ԳԲ
-hy.details.size.unit.tib = ՏԲ

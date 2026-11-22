@@ -6,7 +6,3 @@ zh-Hant.time.weekday.friday = 星期五
 zh-Hant.time.weekday.saturday = 星期六
 zh-Hant.time.weekday.sunday = 星期日
 zh-Hant.details.size.unit.bytes = byte
-zh-Hant.details.size.unit.kib = kB
-zh-Hant.details.size.unit.mib = MB
-zh-Hant.details.size.unit.gib = GB
-zh-Hant.details.size.unit.tib = TB

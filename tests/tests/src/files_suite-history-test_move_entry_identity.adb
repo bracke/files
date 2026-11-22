@@ -1,3 +1,4 @@
+with Files.Operations.Paste.Testing;
 with Files.Operations.Editing;
 with Files.Operations.History;
 with Files.Operations.Paste;
@@ -61,8 +62,9 @@ separate (Files_Suite.History)
                   Actions.Clear;
                   Actions.Append (Files.Paste.Resolved_Action'
                     (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, False));
-                  Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Move,
-                                                                False);
+                  Files.Operations.Paste.Testing.Begin_Paste_Execution
+                    (Model, Actions, Files.File_System_Types.Drop_Move,
+                     False);
                   Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
                else
                   Select_Name (Model, "original");

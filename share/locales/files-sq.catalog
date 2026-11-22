@@ -6,7 +6,3 @@ sq.time.weekday.friday = e premte
 sq.time.weekday.saturday = e shtunë
 sq.time.weekday.sunday = e diel
 sq.details.size.unit.bytes = bajt
-sq.details.size.unit.kib = kB
-sq.details.size.unit.mib = MB
-sq.details.size.unit.gib = GB
-sq.details.size.unit.tib = TB

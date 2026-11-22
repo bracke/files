@@ -6,7 +6,3 @@ mk.time.weekday.friday = петок
 mk.time.weekday.saturday = сабота
 mk.time.weekday.sunday = недела
 mk.details.size.unit.bytes = бајти
-mk.details.size.unit.kib = kB
-mk.details.size.unit.mib = MB
-mk.details.size.unit.gib = GB
-mk.details.size.unit.tib = TB

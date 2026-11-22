@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Preference_Types;
 separate (Files_Suite.Model)
    procedure Test_Grid_Paging_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -9,7 +10,7 @@ separate (Files_Suite.Model)
       begin
          for Index in 1 .. Count loop
             Items.Append
-              (Files.File_System.Make_Item
+              (Files.Item_Lists.Make_Item
                  (Root,
                   "Item" & Ada.Strings.Fixed.Trim (Integer'Image (Index), Ada.Strings.Both) & ".txt",
                   Files.Types.Regular_File_Item,

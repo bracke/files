@@ -6,7 +6,3 @@ gu.time.weekday.friday = શુક્રવાર
 gu.time.weekday.saturday = શનિવાર
 gu.time.weekday.sunday = રવિવાર
 gu.details.size.unit.bytes = બાઇટ
-gu.details.size.unit.kib = kB
-gu.details.size.unit.mib = MB
-gu.details.size.unit.gib = GB
-gu.details.size.unit.tib = TB

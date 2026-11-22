@@ -5,7 +5,3 @@ cy.time.weekday.thursday = Dydd Iau
 cy.time.weekday.friday = Dydd Gwener
 cy.time.weekday.saturday = Dydd Sadwrn
 cy.time.weekday.sunday = Dydd Sul
-cy.details.size.unit.kib = kB
-cy.details.size.unit.mib = MB
-cy.details.size.unit.gib = GB
-cy.details.size.unit.tib = TB

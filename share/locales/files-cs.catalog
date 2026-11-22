@@ -6,7 +6,3 @@ cs.time.weekday.friday = pátek
 cs.time.weekday.saturday = sobota
 cs.time.weekday.sunday = neděle
 cs.details.size.unit.bytes = bajtů
-cs.details.size.unit.kib = kB
-cs.details.size.unit.mib = MB
-cs.details.size.unit.gib = GB
-cs.details.size.unit.tib = TB

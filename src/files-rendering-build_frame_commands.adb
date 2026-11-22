@@ -77,16 +77,7 @@ separate (Files.Rendering)
          Y      : Natural;
          Rect_W : Natural;
          Rect_H : Natural;
-         Color  : Render_Color)
-      is
-         Draw_W : constant Natural := Clipped_Size (X, Rect_W, Layout.Width);
-         Draw_H : constant Natural := Clipped_Size (Y, Rect_H, Layout.Height);
-      begin
-         if Draw_W > 0 and then Draw_H > 0 then
-            Target.Append
-              (Rectangle_Command'(X => X, Y => Y, Width => Draw_W, Height => Draw_H, Color => Color));
-         end if;
-      end Append_Rect;
+         Color  : Render_Color) is separate;
 
       procedure Add_Rect (X, Y, Rect_W, Rect_H : Natural; Color : Render_Color) is
       begin
@@ -129,22 +120,7 @@ separate (Files.Rendering)
         (Center_X : Float;
          Center_Y : Float;
          Radius   : Float;
-         Color    : Render_Color)
-      is
-      begin
-         for K in Star_Rim'Range loop
-            declare
-               A : constant Star_Rim_Offset := Star_Rim (K);
-               B : constant Star_Rim_Offset := Star_Rim ((K + 1) mod 10);
-            begin
-               Add_Triangle
-                 (Center_X, Center_Y,
-                  Center_X + A.DX * Radius, Center_Y + A.DY * Radius,
-                  Center_X + B.DX * Radius, Center_Y + B.DY * Radius,
-                  Color);
-            end;
-         end loop;
-      end Add_Star_Fill;
+         Color    : Render_Color) is separate;
 
       --  Draw a straight segment of a given width as two triangles.
       procedure Add_Thick_Segment
@@ -153,17 +129,7 @@ separate (Files.Rendering)
          X2    : Float;
          Y2    : Float;
          Width : Float;
-         Color : Render_Color)
-      is
-         DX  : constant Float := X2 - X1;
-         DY  : constant Float := Y2 - Y1;
-         Len : constant Float := Ada.Numerics.Elementary_Functions.Sqrt (DX * DX + DY * DY);
-         NX  : constant Float := (if Len > 0.0 then -DY / Len * (Width / 2.0) else 0.0);
-         NY  : constant Float := (if Len > 0.0 then DX / Len * (Width / 2.0) else 0.0);
-      begin
-         Add_Triangle (X1 + NX, Y1 + NY, X1 - NX, Y1 - NY, X2 - NX, Y2 - NY, Color);
-         Add_Triangle (X1 + NX, Y1 + NY, X2 - NX, Y2 - NY, X2 + NX, Y2 + NY, Color);
-      end Add_Thick_Segment;
+         Color : Render_Color) is separate;
 
       --  Draw the outline of a five-pointed star by stroking its ten edges.
       procedure Add_Star_Outline
@@ -171,21 +137,7 @@ separate (Files.Rendering)
          Center_Y : Float;
          Radius   : Float;
          Width    : Float;
-         Color    : Render_Color)
-      is
-      begin
-         for K in Star_Rim'Range loop
-            declare
-               A : constant Star_Rim_Offset := Star_Rim (K);
-               B : constant Star_Rim_Offset := Star_Rim ((K + 1) mod 10);
-            begin
-               Add_Thick_Segment
-                 (Center_X + A.DX * Radius, Center_Y + A.DY * Radius,
-                  Center_X + B.DX * Radius, Center_Y + B.DY * Radius,
-                  Width, Color);
-            end;
-         end loop;
-      end Add_Star_Outline;
+         Color    : Render_Color) is separate;
 
       procedure Add_Overlay_Rect (X, Y, Rect_W, Rect_H : Natural; Color : Render_Color) is
       begin
@@ -235,11 +187,7 @@ separate (Files.Rendering)
          Scale_To_Box : Boolean := False;
          Italic : Boolean := False;
          Mirror_Glyph : Boolean := False;
-         Cut_Columns  : Natural := Guikit.Draw.Auto_Cut) is
-      begin
-         Append_Text
-           (Result.Text, X, Y, Text_W, Text_H, Text, Color, Fit, Scale_To_Box, Italic, Mirror_Glyph, Cut_Columns);
-      end Add_Text;
+         Cut_Columns  : Natural := Guikit.Draw.Auto_Cut) is separate;
 
       procedure Add_Overlay_Text
         (X      : Natural;
@@ -249,10 +197,7 @@ separate (Files.Rendering)
          Text   : UString;
          Color  : Render_Color := Text_Color;
          Fit    : Boolean := False;
-         Italic : Boolean := False) is
-      begin
-         Append_Text (Result.Overlay_Text, X, Y, Text_W, Text_H, Text, Color, Fit, False, Italic);
-      end Add_Overlay_Text;
+         Italic : Boolean := False) is separate;
 
       procedure Add_Tooltip_Text
         (X        : Natural;
@@ -271,31 +216,14 @@ separate (Files.Rendering)
          Y       : Natural;
          Tip_W   : Natural;
          Tip_H   : Natural;
-         Command : Files.Commands.Command_Id) is
-      begin
-         Add_Tooltip_Text (X, Y, Tip_W, Tip_H, Command_Tooltip_Text (Command));
-      end Add_Command_Tooltip;
+         Command : Files.Commands.Command_Id) is separate;
 
       procedure Add_Tooltip_Text
         (X        : Natural;
          Y        : Natural;
          Tip_W    : Natural;
          Tip_H    : Natural;
-         Text     : UString)
-      is
-         Draw_W : constant Natural := Clipped_Size (X, Tip_W, Layout.Width);
-         Draw_H : constant Natural := Clipped_Size (Y, Tip_H, Layout.Height);
-      begin
-         if Draw_W > 0 and then Draw_H > 0 and then Length (Text) > 0 then
-            Result.Tooltips.Append
-              (Tooltip_Command'
-                 (X      => X,
-                  Y      => Y,
-                  Width  => Draw_W,
-                  Height => Draw_H,
-                  Text   => Text));
-         end if;
-      end Add_Tooltip_Text;
+         Text     : UString) is separate;
 
       procedure Add_Tooltip (X, Y, Tip_W, Tip_H : Natural; Text_Key : String) is
       begin
@@ -320,38 +248,14 @@ separate (Files.Rendering)
          X      : Natural;
          Y      : Natural;
          Hit_W  : Natural;
-         Hit_H  : Natural)
-      is
-         Draw_W : constant Natural := Clipped_Size (X, Hit_W, Layout.Width);
-         Draw_H : constant Natural := Clipped_Size (Y, Hit_H, Layout.Height);
-      begin
-         if Draw_W > 0 and then Draw_H > 0 then
-            Result.Dialog_Hits.Append
-              (Dialog_Hit_Region'
-                 (Kind   => Kind,
-                  X      => X,
-                  Y      => Y,
-                  Width  => Draw_W,
-                  Height => Draw_H));
-         end if;
-      end Add_Dialog_Hit;
+         Hit_H  : Natural) is separate;
 
       function Localized (Key : String) return UString is
       begin
          return To_Unbounded_String (Files.Localization.Text (Key));
       end Localized;
 
-      function Path_Input_Accessible_Description return UString is
-      begin
-         if Snapshot.Path_Input_Valid or else Length (Snapshot.Path_Input_Error_Key) = 0 then
-            return Snapshot.Path_Input_Text;
-         end if;
-
-         return
-           Snapshot.Path_Input_Text
-           & To_Unbounded_String (" ")
-           & Localized (To_String (Snapshot.Path_Input_Error_Key));
-      end Path_Input_Accessible_Description;
+      function Path_Input_Accessible_Description return UString is separate;
 
       function Contains_Point
         (X        : Natural;
@@ -368,16 +272,7 @@ separate (Files.Rendering)
       function Tooltip_At
         (Point_X : Natural;
          Point_Y : Natural)
-         return UString is
-      begin
-         for Command of reverse Result.Tooltips loop
-            if Contains_Point (Command.X, Command.Y, Command.Width, Command.Height, Point_X, Point_Y) then
-               return Command.Text;
-            end if;
-         end loop;
-
-         return Null_Unbounded_String;
-      end Tooltip_At;
+         return UString is separate;
 
       --  Whether Command's button toggles the overlay on top: the one control
       --  under an open overlay whose click still reaches it (and closes it),
@@ -393,26 +288,14 @@ separate (Files.Rendering)
          Box_W : Natural;
          Box_H : Natural;
          Live  : Boolean := False)
-         return Boolean is
-      begin
-         --  Under the pointer, and where the press began: a drag (scrollbar,
-         --  column, marquee) that crosses a button does not press it.
-         return (Has_Press or else (Live and then Pointer.Pressed))
-           and then Contains_Point (X, Y, Box_W, Box_H, Hover_X, Hover_Y)
-           and then Contains_Point (X, Y, Box_W, Box_H, Press_X, Press_Y);
-      end Is_Pressed;
+         return Boolean is separate;
 
       procedure Add_Border
         (X        : Natural;
          Y        : Natural;
          Border_W : Natural;
          Border_H : Natural;
-         Color    : Render_Color) is
-      begin
-         Guikit.Widgets.Draw_Border
-           (Result.Rectangles, Layout.Width, Layout.Height,
-            X, Y, Border_W, Border_H, Color);
-      end Add_Border;
+         Color    : Render_Color) is separate;
 
       --  Add_Border for the overlay layer: the four edge rects composite on top
       --  of an opaque overlay panel rather than under the main grid content.
@@ -421,29 +304,13 @@ separate (Files.Rendering)
          Y        : Natural;
          Border_W : Natural;
          Border_H : Natural;
-         Color    : Render_Color) is
-      begin
-         Guikit.Widgets.Draw_Border
-           (Result.Overlay_Rectangles, Layout.Width, Layout.Height,
-            X, Y, Border_W, Border_H, Color);
-      end Add_Overlay_Border;
+         Color    : Render_Color) is separate;
 
       procedure Add_Focus_Ring
         (X      : Natural;
          Y      : Natural;
          Ring_W : Natural;
-         Ring_H : Natural) is
-      begin
-         Guikit.Widgets.Draw_Focus_Ring
-           (Rectangles  => Result.Rectangles,
-            Clip_Width  => Layout.Width,
-            Clip_Height => Layout.Height,
-            X           => X,
-            Y           => Y,
-            Width       => Ring_W,
-            Height      => Ring_H,
-            Color       => Snapshot.Theme_Focus_Ring);
-      end Add_Focus_Ring;
+         Ring_H : Natural) is separate;
 
       --  Draw an editable input field's box chrome (background fill plus a
       --  one-pixel border) into the base rectangle layer. The field text,
@@ -454,19 +321,7 @@ separate (Files.Rendering)
          Field_W      : Natural;
          Field_H      : Natural;
          Fill_Color   : Render_Color;
-         Border_Color : Render_Color) is
-      begin
-         Guikit.Widgets.Draw_Input_Field
-           (Rectangles   => Result.Rectangles,
-            Clip_Width   => Layout.Width,
-            Clip_Height  => Layout.Height,
-            X            => X,
-            Y            => Y,
-            Width        => Field_W,
-            Height       => Field_H,
-            Fill_Color   => Fill_Color,
-            Border_Color => Border_Color);
-      end Add_Input_Field;
+         Border_Color : Render_Color) is separate;
 
       --  A drop shadow in the overlay layer, so an overlay panel's shadow
       --  composites on top of the main grid content like the panel itself.
@@ -474,19 +329,7 @@ separate (Files.Rendering)
         (X        : Natural;
          Y        : Natural;
          Shadow_W : Natural;
-         Shadow_H : Natural) is
-      begin
-         Guikit.Widgets.Draw_Drop_Shadow
-           (Rectangles  => Result.Overlay_Rectangles,
-            Clip_Width  => Layout.Width,
-            Clip_Height => Layout.Height,
-            X           => X,
-            Y           => Y,
-            Width       => Shadow_W,
-            Height      => Shadow_H,
-            Color       => Shadow_Color,
-            Line_Height => Line_Height);
-      end Add_Overlay_Drop_Shadow;
+         Shadow_H : Natural) is separate;
 
       procedure Add_Scrollbar
         (Track_X  : Natural;
@@ -510,13 +353,7 @@ separate (Files.Rendering)
       --  The window under a modal panel, which owns input while open: the
       --  inactive view leaves the accessibility frame and the whole window
       --  is dimmed, in the overlay layer.
-      procedure Draw_Modal_Backdrop is
-      begin
-         Result.Accessibility.Clear;
-         if Width > 0 and then Height > 0 then
-            Result.Overlay_Rectangles.Append (Modal_Backdrop (Width, Height));
-         end if;
-      end Draw_Modal_Backdrop;
+      procedure Draw_Modal_Backdrop is separate;
 
       --  The chrome of a modal overlay panel, which owns input while open: the inactive view leaves the
       --  accessibility frame, a Backdrop dims the window, then its shadow, Fill, border and accessibility node.

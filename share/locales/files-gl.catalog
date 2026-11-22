@@ -6,7 +6,3 @@ gl.time.weekday.friday = venres
 gl.time.weekday.saturday = sábado
 gl.time.weekday.sunday = domingo
 gl.details.size.unit.bytes = byte
-gl.details.size.unit.kib = kB
-gl.details.size.unit.mib = MB
-gl.details.size.unit.gib = GB
-gl.details.size.unit.tib = TB

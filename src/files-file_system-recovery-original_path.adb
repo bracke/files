@@ -13,7 +13,7 @@ separate (Files.File_System.Recovery)
       end if;
       Target := Read_Original_File (Record_Path, Header => "", Max_Bytes => Original_Record_Bytes);
       return
-        (if Valid_Absolute_Path (To_String (Target)) then
+        (if Files.Path_Checks.Valid_Absolute_Path (To_String (Target)) then
             To_String (Target)
          else "");
    exception

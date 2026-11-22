@@ -6,7 +6,3 @@ sr-Latn.time.weekday.friday = petak
 sr-Latn.time.weekday.saturday = subota
 sr-Latn.time.weekday.sunday = nedelja
 sr-Latn.details.size.unit.bytes = B
-sr-Latn.details.size.unit.kib = kB
-sr-Latn.details.size.unit.mib = MB
-sr-Latn.details.size.unit.gib = GB
-sr-Latn.details.size.unit.tib = TB

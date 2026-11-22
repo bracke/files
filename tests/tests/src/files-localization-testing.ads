@@ -16,4 +16,19 @@ package Files.Localization.Testing is
       Loaded                   : out Boolean)
       return String;
 
+   --  Files.Localization.Text's answer for Key in Locale from a runtime of
+   --  the base catalog at Base with the locale shards at Language_Shard and
+   --  Region_Shard added, so the region-over-language rule can be checked
+   --  against catalogs the test writes.
+   --
+   --  @param Base The base catalog.
+   --  @param Language_Shard The language's catalog.
+   --  @param Region_Shard The region's catalog.
+   --  @param Locale The locale to render in.
+   --  @param Key The key to render.
+   --  @return The text Key renders to, or "" when the runtime cannot render it.
+   function Text_With_Shards
+     (Base, Language_Shard, Region_Shard, Locale, Key : String)
+      return String;
+
 end Files.Localization.Testing;

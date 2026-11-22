@@ -65,8 +65,9 @@ package body Files.Localization is
      (Key              : String;
       Effective_Locale : String)
       return String;
-   function Render_Text
-     (Key    : String;
+   function Render_In
+     (Item   : Messages.Runtime.Runtime;
+      Key    : String;
       Locale : String)
       return String;
    function Portable_Locale (Value : String) return Boolean;
@@ -485,27 +486,44 @@ package body Files.Localization is
       end;
    end Text;
 
-   --  Text's answer for an already normalized locale whose catalogs are
-   --  loaded: the regional message, else its language's, else Key.
-   --
-   --  Which catalog defines the key decides, never what the text says: a
-   --  regional value that happens to equal the English one (zh-Hant's "MB",
-   --  where zh names the unit) is still the region's own and must win over
-   --  the language's.
    function Uncached_Text
      (Key              : String;
       Effective_Locale : String)
+      return String is
+   begin
+      Ensure_Initialized;
+      return (if Available then Regional_Text (Runtime, Key, Effective_Locale) else Key);
+   end Uncached_Text;
+
+   function Render_In
+     (Item   : Messages.Runtime.Runtime;
+      Key    : String;
+      Locale : String)
       return String
    is
-      Rendered : constant String := Render_Text (Key, Effective_Locale);
+      Args   : Messages.Arguments.Arguments;
+      Result : constant Messages.Result.Render_Result :=
+        Messages.Runtime.Render (Item => Item, Locale => Locale, Key => Key, Arguments => Args);
    begin
-      for Index in Effective_Locale'Range loop
-         if Effective_Locale (Index) = '-' then
+      if Result.Status = Messages.Result.Success then
+         return Messages.Result.Output_Text (Result.Text);
+      end if;
+      return Key;
+   end Render_In;
+
+   function Regional_Text
+     (Item   : Messages.Runtime.Runtime;
+      Key    : String;
+      Locale : String)
+      return String
+   is
+      Rendered : constant String := Render_In (Item, Key, Locale);
+   begin
+      for Index in Locale'Range loop
+         if Locale (Index) = '-' then
             declare
-               Language : constant String := Effective_Locale (Effective_Locale'First .. Index - 1);
-               Found    : constant Messages.Runtime.Resolve_Result :=
-                 (if Available then Messages.Runtime.Resolve (Runtime, Effective_Locale, Key)
-                  else (others => <>));
+               Language : constant String := Locale (Locale'First .. Index - 1);
+               Found    : constant Messages.Runtime.Resolve_Result := Messages.Runtime.Resolve (Item, Locale, Key);
                Resolver : constant String :=
                  Files.Text_Case.To_Lower_Ascii (Messages.Runtime.Resolved_Locale (Found));
                --  A catalog more specific than the language's (the region's,
@@ -520,7 +538,7 @@ package body Files.Localization is
                   return Rendered;
                end if;
                declare
-                  Language_Rendered : constant String := Render_Text (Key, Language);
+                  Language_Rendered : constant String := Render_In (Item, Key, Language);
                begin
                   --  The language has no message either: whatever the chain
                   --  gave (the default's), or Key.
@@ -531,35 +549,7 @@ package body Files.Localization is
       end loop;
 
       return Rendered;
-   end Uncached_Text;
-
-   function Render_Text
-     (Key    : String;
-      Locale : String)
-      return String
-   is
-      Args   : Messages.Arguments.Arguments;
-      Result : Messages.Result.Render_Result;
-   begin
-      Ensure_Initialized;
-
-      if not Available then
-         return Key;
-      end if;
-
-      Result :=
-        Messages.Runtime.Render
-          (Item      => Runtime,
-           Locale    => Locale,
-           Key       => Key,
-           Arguments => Args);
-
-      if Result.Status = Messages.Result.Success then
-         return Messages.Result.Output_Text (Result.Text);
-      end if;
-
-      return Key;
-   end Render_Text;
+   end Regional_Text;
 
    function Humanize_Available return Boolean is
    begin

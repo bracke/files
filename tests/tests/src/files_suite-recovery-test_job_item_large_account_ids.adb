@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 separate (Files_Suite.Recovery)
    --  A job record carries a user or group id from 2**31 up (an idmapped
    --  mount's, NFS's nobody) unchanged, and the four bytes it writes for an id
@@ -14,7 +15,7 @@ separate (Files_Suite.Recovery)
       Mapped : constant Files.Types.Account_Id := 2**31;
    begin
       Reset_Root;
-      Item := Files.File_System.Make_Item (Root, "owned-item", Files.Types.Regular_File_Item);
+      Item := Files.Item_Lists.Make_Item (Root, "owned-item", Files.Types.Regular_File_Item);
       Item.Ownership_Available := True;
       Item.Owner_Id := Nobody;
       Item.Group_Id := Mapped;

@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 
 --  The shape a path must have before a helper is handed it or a record keeps
@@ -23,5 +24,16 @@ package Files.Path_Checks is
       and then Path'Length <= Max_Length
       and then Nul_Free (Path)
       and then GNAT.OS_Lib.Is_Absolute_Path (Path));
+
+   --  Valid_Absolute_Path for a path kept as unbounded text.
+   --
+   --  @param Path Candidate path.
+   --  @param Max_Length The record's bound.
+   --  @return True when Path is such a path.
+   function Valid_Absolute_Path
+     (Path       : Ada.Strings.Unbounded.Unbounded_String;
+      Max_Length : Natural := Natural'Last)
+      return Boolean is
+     (Valid_Absolute_Path (Ada.Strings.Unbounded.To_String (Path), Max_Length));
 
 end Files.Path_Checks;

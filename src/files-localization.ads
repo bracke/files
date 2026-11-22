@@ -131,6 +131,24 @@ package Files.Localization is
 
 private
 
+   --  Text's answer from Item for an already normalized locale whose
+   --  catalogs are loaded: the regional message, else its language's, else
+   --  Key.
+   --
+   --  Which catalog defines the key decides, never what the text says: a
+   --  regional value that happens to equal the English one is still the
+   --  region's own and must win over the language's.
+   --
+   --  @param Item The runtime holding the catalogs.
+   --  @param Key The message key.
+   --  @param Locale The normalized locale.
+   --  @return The rendered text, or Key.
+   function Regional_Text
+     (Item   : Messages.Runtime.Runtime;
+      Key    : String;
+      Locale : String)
+      return String;
+
    --  Add the locale catalog shard at Path to Item without risking it: one
    --  that does not load -- malformed, or repeating a key already loaded --
    --  is skipped with a trace (Files.Diagnostics), and Item stays as it was,

@@ -6,7 +6,3 @@ ast.time.weekday.friday = vienres
 ast.time.weekday.saturday = sábadu
 ast.time.weekday.sunday = domingu
 ast.details.size.unit.bytes = bytes
-ast.details.size.unit.kib = kB
-ast.details.size.unit.mib = MB
-ast.details.size.unit.gib = GB
-ast.details.size.unit.tib = TB

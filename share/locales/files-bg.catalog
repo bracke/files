@@ -6,7 +6,3 @@ bg.time.weekday.friday = петък
 bg.time.weekday.saturday = събота
 bg.time.weekday.sunday = неделя
 bg.details.size.unit.bytes = B
-bg.details.size.unit.kib = kB
-bg.details.size.unit.mib = MB
-bg.details.size.unit.gib = GB
-bg.details.size.unit.tib = TB

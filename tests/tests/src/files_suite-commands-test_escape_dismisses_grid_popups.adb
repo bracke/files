@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Model.Context_Menu;
 with Files.Model.Label_Picker;
 with Files.Model.Sort_Menu;
@@ -13,8 +14,8 @@ separate (Files_Suite.Commands)
       Sources  : Files.Types.String_Vectors.Vector;
    begin
       Reset_Root;
-      Items.Append (Files.File_System.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
-      Items.Append (Files.File_System.Make_Item (Root, "b.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "b.txt", Files.Types.Regular_File_Item, "text/plain"));
       Files.Model.Initialize (Model, Root, Items, Root);
 
       --  Context menu: Escape closes it; and while it is open a non-Escape key is

@@ -6,7 +6,3 @@ uk.time.weekday.friday = пʼятниця
 uk.time.weekday.saturday = субота
 uk.time.weekday.sunday = неділя
 uk.details.size.unit.bytes = Б
-uk.details.size.unit.kib = кБ
-uk.details.size.unit.mib = МБ
-uk.details.size.unit.gib = ГБ
-uk.details.size.unit.tib = ТБ

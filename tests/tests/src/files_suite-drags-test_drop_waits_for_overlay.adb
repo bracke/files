@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.Drop_Events;
 with Files.Model.Command_Palette;
 with Files.Model.Pasting;
@@ -26,7 +27,7 @@ separate (Files_Suite.Drags)
       Files.Drop_Events.Queue (Queue, Paths);
 
       Files.Model.Command_Palette.Open (Model);
-      Assert (not Files.Controller.Accepts_Drop_Import (Model), "an open palette does not accept a drop now");
+      Assert (not Files.Controller.Testing.Accepts_Drop_Import (Model), "an open palette does not accept a drop now");
       Files.Controller.Import_Pending_Drops (Model, Settings, Queue);
       Assert (Files.Drop_Events.Has_Pending (Queue), "the drop stays queued while the palette is open");
       Assert (not Files.Model.Foreground_Job_Is_Active (Model)
@@ -34,7 +35,8 @@ separate (Files_Suite.Drags)
               "nothing is imported behind the palette");
 
       Files.Model.Command_Palette.Close (Model);
-      Assert (Files.Controller.Accepts_Drop_Import (Model), "with the palette closed the window accepts a drop");
+      Assert (Files.Controller.Testing.Accepts_Drop_Import (Model),
+              "with the palette closed the window accepts a drop");
       Files.Controller.Import_Pending_Drops (Model, Settings, Queue);
       Assert (not Files.Drop_Events.Has_Pending (Queue), "the queued drop is taken once the palette closes");
       --  A small drop finishes in the same step; a larger one is still going.

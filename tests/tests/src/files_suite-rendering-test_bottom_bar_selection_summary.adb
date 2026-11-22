@@ -1,11 +1,12 @@
+with Files.Rendering.Display_Text;
 with Files.Preference_Types;
 separate (Files_Suite.Rendering)
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
 
       Selected_Word : constant String := Files.Localization.Text ("status.selected");
-      Mib_Unit      : constant String := Files.Localization.Text ("details.size.unit.mib");
       One_Mib       : constant Long_Long_Integer := 1024 * 1024;
+      Total_Text    : constant String := Files.Rendering.Display_Text.Size_Text (3 * One_Mib);
       Snapshot      : View_Snapshot := Sample_Snapshot (5, Files.Preference_Types.Small_Icons);
       Frame         : Frame_Commands;
 
@@ -27,7 +28,7 @@ separate (Files_Suite.Rendering)
       Frame := Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
       Assert (Frame_Has_Text (Frame, Selected_Word),
               "the bottom bar shows the selection label in the neutral state");
-      Assert (not Frame_Has_Text (Frame, Mib_Unit),
+      Assert (not Frame_Has_Text (Frame, Total_Text),
               "the neutral bottom bar shows no selection size total");
 
       --  Three selected items with known sizes summing to 3 MB. The bottom bar
@@ -44,6 +45,6 @@ separate (Files_Suite.Rendering)
               "the bottom bar shows the selection label when items are selected");
       Assert (Frame_Has_Text (Frame, "3"),
               "the bottom bar reflects the selection count");
-      Assert (Frame_Has_Text (Frame, Mib_Unit),
+      Assert (Frame_Has_Text (Frame, Total_Text),
               "the bottom bar shows the summed size of the selected items");
    end Test_Bottom_Bar_Selection_Summary;

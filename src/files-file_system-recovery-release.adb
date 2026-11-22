@@ -49,7 +49,8 @@ separate (Files.File_System.Recovery)
       declare
          Original : constant String := Original_Path (Path);
          Leaf     : constant String :=
-           (if Valid_Absolute_Path (Original) then Files.Name_Parts.Leaf_Of (Original) else "recovered");
+           (if Files.Path_Checks.Valid_Absolute_Path (Original) then Files.Name_Parts.Leaf_Of (Original)
+            else "recovered");
          --  A folder of its own, so the original's name cannot meet the
          --  stage's own files.
          Named    : constant String := Hostkit.Fs.Join (Holder, Leaf);
@@ -59,7 +60,9 @@ separate (Files.File_System.Recovery)
             Files.IO.Fs_Primitives.Delete_Directory (Holder);
             return Give_Up;
          end if;
-         if not To_Trash (Named, (if Valid_Absolute_Path (Original) then Original else "")).Success then
+         if not To_Trash
+                  (Named, (if Files.Path_Checks.Valid_Absolute_Path (Original) then Original else "")).Success
+         then
             if Support.Move_No_Replace (Named, Path) then
                Files.IO.Fs_Primitives.Delete_Directory (Holder);
             end if;

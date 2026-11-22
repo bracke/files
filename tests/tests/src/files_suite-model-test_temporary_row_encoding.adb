@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Model.Creation;
 separate (Files_Suite.Model)
    procedure Test_Temporary_Row_Encoding (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -34,8 +35,8 @@ separate (Files_Suite.Model)
       Reset_Root;
       Write_File (Join (Root, "a.txt"));
       Write_File (Join (Root, "b.txt"));
-      Items.Append (Files.File_System.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
-      Items.Append (Files.File_System.Make_Item (Root, "b.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "b.txt", Files.Types.Regular_File_Item, "text/plain"));
       Files.Model.Initialize (Model, Root, Items, Root);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
       Assert (Files.Model.Creation.Temporary_Item_Is_Active (Model), "create adds the pending row");

@@ -6,7 +6,3 @@ is.time.weekday.friday = föstudagur
 is.time.weekday.saturday = laugardagur
 is.time.weekday.sunday = sunnudagur
 is.details.size.unit.bytes = bæti
-is.details.size.unit.kib = kB
-is.details.size.unit.mib = MB
-is.details.size.unit.gib = GB
-is.details.size.unit.tib = TB

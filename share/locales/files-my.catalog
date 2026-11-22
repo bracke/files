@@ -6,7 +6,3 @@ my.time.weekday.friday = သောကြာ
 my.time.weekday.saturday = စနေ
 my.time.weekday.sunday = တနင်္ဂနွေ
 my.details.size.unit.bytes = ဘိုက်
-my.details.size.unit.kib = ကီလိုဘိုက်
-my.details.size.unit.mib = MB
-my.details.size.unit.gib = ဂီဂါဘိုက်
-my.details.size.unit.tib = TB

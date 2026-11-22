@@ -356,11 +356,6 @@ procedure Cldr_To_Catalog is
       end if;
 
       Add (Entries, Locale, "details.size.unit.bytes", Digital_Unit_Label (Content, "digital-byte"));
-      Add (Entries, Locale, "details.size.unit.kib", Digital_Unit_Label (Content, "digital-kilobyte"));
-      Add (Entries, Locale, "details.size.unit.mib", Digital_Unit_Label (Content, "digital-megabyte"));
-      Add (Entries, Locale, "details.size.unit.gib", Digital_Unit_Label (Content, "digital-gigabyte"));
-      Add (Entries, Locale, "details.size.unit.tib", Digital_Unit_Label (Content, "digital-terabyte"));
-      Add (Entries, Locale, "details.size.unit.pib", Digital_Unit_Label (Content, "digital-petabyte"));
 
       Add (Entries, Locale, "time.relative.now", Relative_Day (Calendar, "0"));
       Add (Entries, Locale, "time.relative.today", Relative_Day (Calendar, "0"));

@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Preference_Types;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Rendering)
@@ -44,7 +45,7 @@ separate (Files_Suite.Rendering)
       begin
          for Index in 1 .. 60 loop
             Items.Append
-              (Files.File_System.Make_Item
+              (Files.Item_Lists.Make_Item
                  (Files_Suite.Support.Disk.Root, "f" & Index'Image, Files.Types.Regular_File_Item, "text/plain"));
          end loop;
          Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);

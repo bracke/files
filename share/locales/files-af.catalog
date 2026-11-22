@@ -6,7 +6,3 @@ af.time.weekday.friday = Vrydag
 af.time.weekday.saturday = Saterdag
 af.time.weekday.sunday = Sondag
 af.details.size.unit.bytes = greep
-af.details.size.unit.kib = kB
-af.details.size.unit.mib = MB
-af.details.size.unit.gib = GB
-af.details.size.unit.tib = TB

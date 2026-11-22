@@ -58,14 +58,6 @@ package Files.Rendering.Layouts is
    function Status_Field_Padding (Line_Height : Positive) return Natural is
      (Guikit.Layout.Scaled (4, Line_Height));
 
-   --  The inset of a modal dialog's content from its frame: 12 px at
-   --  Guikit.Layout.Reference_Line_Height, scaled with the text.
-   --
-   --  @param Line_Height The line height in use.
-   --  @return The inset in pixels.
-   function Dialog_Padding (Line_Height : Positive) return Natural is
-     (Guikit.Layout.Scaled (12, Line_Height));
-
    --  Height of the font box a line of text is drawn in: four fifths of the
    --  line height, the size guikit renders glyphs at.
    --
@@ -417,23 +409,6 @@ package Files.Rendering.Layouts is
       Height  : Natural := 0;
       Visible : Boolean := False;
    end record;
-
-   --  Display columns a focused single-line input scrolls off its left edge so
-   --  the caret stays visible (Guikit.Layout.Input_Scroll_Columns, the rule
-   --  Field_View starts from). Stateless: the same text, cursor and width
-   --  always give the same offset.
-   --
-   --  @param Text Field text (UTF-8).
-   --  @param Cursor Caret byte offset within Text.
-   --  @param Text_Width Pixel width available to the text.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Columns hidden on the left; zero when the caret already fits.
-   function Input_Scroll_Columns
-     (Text        : String;
-      Cursor      : Natural;
-      Text_Width  : Natural;
-      Line_Height : Positive)
-      return Natural;
 
    --  Pixel width of the caret drawn in a single-line input field.
    Field_Caret_Width : constant := 2;
@@ -988,6 +963,14 @@ package Files.Rendering.Layouts is
       return Frame_Layout;
 
 private
+
+   --  The inset of a modal dialog's content from its frame: 12 px at
+   --  Guikit.Layout.Reference_Line_Height, scaled with the text.
+   --
+   --  @param Line_Height The line height in use.
+   --  @return The inset in pixels.
+   function Dialog_Padding (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Scaled (12, Line_Height));
 
    --  Height of the Choose/Cancel footer the tree panel reserves in pick
    --  mode; zero otherwise or when the panel is too short to spare a row.

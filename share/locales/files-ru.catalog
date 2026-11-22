@@ -6,7 +6,3 @@ ru.time.weekday.friday = пятница
 ru.time.weekday.saturday = суббота
 ru.time.weekday.sunday = воскресенье
 ru.details.size.unit.bytes = Б
-ru.details.size.unit.kib = кБ
-ru.details.size.unit.mib = МБ
-ru.details.size.unit.gib = ГБ
-ru.details.size.unit.tib = ТБ

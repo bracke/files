@@ -16,7 +16,7 @@ separate (Files.File_System.Recovery)
          return True;
       end Reclaim_Stale;
    begin
-      if Root = "" or else not Valid_Absolute_Path (Payload) then
+      if Root = "" or else not Files.Path_Checks.Valid_Absolute_Path (Payload) then
          raise Ada.Directories.Use_Error;
       end if;
       Hold_Registry (Root, Hold);

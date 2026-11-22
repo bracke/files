@@ -114,6 +114,19 @@ package Files.Operations.Paste is
    procedure Cancel_Paste_Execution
      (Model : in out Files.Model.Window_Model);
 
+   --  Record what an armed paste has done so far as its one Undo entry --
+   --  the items written and the originals a Replace preserved -- and consume
+   --  a cut's clipboard, leaving the paste armed for
+   --  Files.Model.End_Foreground_Job. A window closing mid-paste calls this
+   --  before it lets the paste go, so the originals preserved so far reach
+   --  its history, which sends them to the system trash as it ends, instead
+   --  of being dropped with the paste in hidden stages.
+   --
+   --  @param Model Window whose paste is armed; nothing without one.
+   procedure Record_Paste_So_Far (Model : in out Files.Model.Window_Model);
+
+private
+
    --  Arm a paste (Files.Model.Pasting.Begin_Execution) with the copy context
    --  its writes share when there is more than one: a batch transport, so
    --  made here and not by the model.
@@ -127,19 +140,6 @@ package Files.Operations.Paste is
       Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
       Mode            : Files.File_System_Types.Drop_Import_Mode;
       Clear_Clipboard : Boolean := True);
-
-   --  Record what an armed paste has done so far as its one Undo entry --
-   --  the items written and the originals a Replace preserved -- and consume
-   --  a cut's clipboard, leaving the paste armed for
-   --  Files.Model.End_Foreground_Job. A window closing mid-paste calls this
-   --  before it lets the paste go, so the originals preserved so far reach
-   --  its history, which sends them to the system trash as it ends, instead
-   --  of being dropped with the paste in hidden stages.
-   --
-   --  @param Model Window whose paste is armed; nothing without one.
-   procedure Record_Paste_So_Far (Model : in out Files.Model.Window_Model);
-
-private
 
    --  A failed move's copy that had to stay at its destination while its
    --  source is still where it was: nothing moved, so its undo deletes the

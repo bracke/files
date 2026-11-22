@@ -55,14 +55,11 @@ package body Files.Model.History is
       return True;
    end Unique_Nonempty_Values;
 
-   function Valid_Absolute_Path (Value : UString) return Boolean is
-     (Files.Path_Checks.Valid_Absolute_Path (To_String (Value)));
-
    function Absolute_Paths
      (Values : Files.Types.String_Vectors.Vector) return Boolean is
    begin
       for Value of Values loop
-         if not Valid_Absolute_Path (Value) then
+         if not Files.Path_Checks.Valid_Absolute_Path (Value) then
             return False;
          end if;
       end loop;

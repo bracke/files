@@ -6,7 +6,3 @@ kk.time.weekday.friday = жұма
 kk.time.weekday.saturday = сенбі
 kk.time.weekday.sunday = жексенбі
 kk.details.size.unit.bytes = байт
-kk.details.size.unit.kib = кБ
-kk.details.size.unit.mib = MБ
-kk.details.size.unit.gib = ГБ
-kk.details.size.unit.tib = TБ

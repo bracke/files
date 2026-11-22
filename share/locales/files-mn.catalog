@@ -6,7 +6,3 @@ mn.time.weekday.friday = баасан
 mn.time.weekday.saturday = бямба
 mn.time.weekday.sunday = ням
 mn.details.size.unit.bytes = байт
-mn.details.size.unit.kib = кБ
-mn.details.size.unit.mib = МБ
-mn.details.size.unit.gib = ГБ
-mn.details.size.unit.tib = ТБ

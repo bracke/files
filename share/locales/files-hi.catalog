@@ -6,7 +6,3 @@ hi.time.weekday.friday = शुक्रवार
 hi.time.weekday.saturday = शनिवार
 hi.time.weekday.sunday = रविवार
 hi.details.size.unit.bytes = बाइट
-hi.details.size.unit.kib = kB
-hi.details.size.unit.mib = MB
-hi.details.size.unit.gib = GB
-hi.details.size.unit.tib = TB

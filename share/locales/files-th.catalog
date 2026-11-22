@@ -6,7 +6,3 @@ th.time.weekday.friday = วันศุกร์
 th.time.weekday.saturday = วันเสาร์
 th.time.weekday.sunday = วันอาทิตย์
 th.details.size.unit.bytes = ไบต์
-th.details.size.unit.kib = kB
-th.details.size.unit.mib = MB
-th.details.size.unit.gib = GB
-th.details.size.unit.tib = TB

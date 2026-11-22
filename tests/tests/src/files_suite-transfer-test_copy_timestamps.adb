@@ -1,3 +1,4 @@
+with Files.Operations.Paste.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -67,7 +68,8 @@ separate (Files_Suite.Transfer)
          Actions.Clear;
          Actions.Append (Files.Paste.Resolved_Action'
            (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "source")), False, False));
-         Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Move, False);
+         Files.Operations.Paste.Testing.Begin_Paste_Execution
+           (Model, Actions, Files.File_System_Types.Drop_Move, False);
          Step := Complete_Operation (Model, Settings, Files.Job_Drivers.Foreground.Advance (Model, Settings, 1));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Ada.Directories.Exists (Source),

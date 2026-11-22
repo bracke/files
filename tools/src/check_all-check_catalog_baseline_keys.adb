@@ -36,26 +36,6 @@ separate (Check_All)
          "localization catalog must include filetype-specific metadata labels");
       Require_In_Text
         (Catalog,
-         "en.details.size.unit.kib = ",
-         "localization catalog must include scaled KB details-view size unit");
-      Require_In_Text
-        (Catalog,
-         "en.details.size.unit.mib = ",
-         "localization catalog must include scaled MB details-view size unit");
-      Require_In_Text
-        (Catalog,
-         "en.details.size.unit.gib = ",
-         "localization catalog must include scaled GB details-view size unit");
-      Require_In_Text
-        (Catalog,
-         "en.accessibility.command_palette_search = ",
-         "localization catalog must include command-palette accessibility labels");
-      Require_In_Text
-        (Catalog,
-         "en.accessibility.command_disabled = ",
-         "localization catalog must include disabled command accessibility labels");
-      Require_In_Text
-        (Catalog,
          "en.command.file.generate_thumbnails = ",
          "localization catalog must include thumbnail-generation command labels");
       Require_In_Text

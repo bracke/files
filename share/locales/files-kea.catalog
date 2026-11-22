@@ -6,7 +6,3 @@ kea.time.weekday.friday = sesta-fera
 kea.time.weekday.saturday = sabadu
 kea.time.weekday.sunday = dumingu
 kea.details.size.unit.bytes = B
-kea.details.size.unit.kib = KB
-kea.details.size.unit.mib = MB
-kea.details.size.unit.gib = GB
-kea.details.size.unit.tib = TB

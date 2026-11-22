@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
 with Files_Suite.Listings;
@@ -42,7 +43,7 @@ separate (Files_Suite.Transfer)
             end if;
             Sources.Clear;
             Sources.Append (To_Unbounded_String (Join (Join (Root, "inbox"), "incoming.txt")));
-            Outcome := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+            Outcome := Files.Controller.Testing.Handle_Drop_Import (Model, Settings, Sources);
             Step := Files.Operations.Paste.Begin_Paste (Model, Settings, Sources);
             declare
                Context : constant String :=
@@ -75,7 +76,7 @@ separate (Files_Suite.Transfer)
       declare
          Revision : constant Natural := Files.Model.Revision (Model);
       begin
-         Outcome := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+         Outcome := Files.Controller.Testing.Handle_Drop_Import (Model, Settings, Sources);
          Step := Files.Operations.Paste.Begin_Paste (Model, Settings, Sources);
          Files_Suite.Support.Assert_Equal
            (Outcome.Status,

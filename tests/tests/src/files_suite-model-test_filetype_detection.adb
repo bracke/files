@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.File_Types;
 with Ada.Strings.Fixed;
 with Files.File_System.Thumbnails;
@@ -10,13 +11,13 @@ separate (Files_Suite.Model)
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Directory_Item : constant Files.Items.Directory_Item :=
-        Files.File_System.Make_Item (Root, "src", Files.Types.Directory_Item);
+        Files.Item_Lists.Make_Item (Root, "src", Files.Types.Directory_Item);
       Symlink_Item : constant Files.Items.Directory_Item :=
-        Files.File_System.Make_Item (Root, "link.adb", Files.Types.Symlink_Item);
+        Files.Item_Lists.Make_Item (Root, "link.adb", Files.Types.Symlink_Item);
       Executable_Item : constant Files.Items.Directory_Item :=
-        Files.File_System.Make_Item (Root, "run", Files.Types.Executable_Item);
+        Files.Item_Lists.Make_Item (Root, "run", Files.Types.Executable_Item);
       Regular_Item : constant Files.Items.Directory_Item :=
-        Files.File_System.Make_Item ("", "loose.txt", Files.Types.Regular_File_Item);
+        Files.Item_Lists.Make_Item ("", "loose.txt", Files.Types.Regular_File_Item);
       Ada_Item : Files.Items.Directory_Item;
       Executable_Ada_Item : Files.Items.Directory_Item;
       Symlink_Ada_Item : Files.Items.Directory_Item;

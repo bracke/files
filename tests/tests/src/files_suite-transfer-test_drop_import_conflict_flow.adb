@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files_Suite.Listings;
@@ -47,7 +48,7 @@ separate (Files_Suite.Transfer)
       declare
          Sources : constant Files.Types.String_Vectors.Vector := Prepare;
       begin
-         Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+         Routed := Files.Controller.Testing.Handle_Drop_Import (Model, Settings, Sources);
          Files_Suite.Support.Assert_Equal
            (Routed.Operation.Status,
             Files.Operation_Results.Operation_Success,
@@ -72,7 +73,7 @@ separate (Files_Suite.Transfer)
       declare
          Sources : constant Files.Types.String_Vectors.Vector := Prepare;
       begin
-         Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+         Routed := Files.Controller.Testing.Handle_Drop_Import (Model, Settings, Sources);
          Routed.Operation :=
            Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Skip, False);
          Files_Suite.Support.Assert_Equal
@@ -86,7 +87,7 @@ separate (Files_Suite.Transfer)
       declare
          Sources : constant Files.Types.String_Vectors.Vector := Prepare;
       begin
-         Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+         Routed := Files.Controller.Testing.Handle_Drop_Import (Model, Settings, Sources);
          Routed.Operation :=
            Files.Operations.Paste.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Paste.Choice_Rename, False);
          Files_Suite.Support.Assert_Equal
@@ -121,7 +122,7 @@ separate (Files_Suite.Transfer)
          Files.Model.Clipboard.Set (Model, Clip, Files.Model.Clipboard_Copy);
          Sources.Append (To_Unbounded_String (Join (Src_Dir, "m.txt")));
          Routed :=
-           Files.Controller.Handle_Drop_Import (Model, Settings, Sources, Files.File_System_Types.Drop_Move);
+           Files.Controller.Testing.Handle_Drop_Import (Model, Settings, Sources, Files.File_System_Types.Drop_Move);
          Files_Suite.Support.Assert_Equal
            (Routed.Operation.Status,
             Files.Operation_Results.Operation_Success,

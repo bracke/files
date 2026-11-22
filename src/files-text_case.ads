@@ -70,16 +70,6 @@ package Files.Text_Case is
    --  @return Folded key; compare keys with String "<".
    function Fold_For_Sort (Text : String) return String;
 
-   --  Return whether Needle occurs in Haystack after case folding.
-   --
-   --  @param Haystack Text to search.
-   --  @param Needle Text to find.
-   --  @return True when Needle occurs in Haystack case-insensitively.
-   function Contains_Case_Insensitive
-     (Haystack : String;
-      Needle   : String)
-      return Boolean;
-
    --  Whether Folded_Needle (a needle already folded with Fold_Case) occurs
    --  in Haystack after case folding: a filter's match, its text folded once
    --  per keystroke rather than once per item. An ASCII haystack is matched

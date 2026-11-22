@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Commands)
    procedure Test_Multi_Rename_Multibyte_Edits (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -16,10 +17,10 @@ separate (Files_Suite.Commands)
         (for all Target of Files.Model.Rename.Targets (Model) =>
            Guikit.Utf8.Is_Valid (To_String (Target.New_Name)));
    begin
-      Items.Append (Files.File_System.Make_Item
+      Items.Append (Files.Item_Lists.Make_Item
                       (Files_Suite.Support.Disk.Root, U8 ("café über.txt"), Files.Types.Regular_File_Item,
                        "text/plain"));
-      Items.Append (Files.File_System.Make_Item
+      Items.Append (Files.Item_Lists.Make_Item
                       (Files_Suite.Support.Disk.Root, U8 ("naïve ölig.txt"), Files.Types.Regular_File_Item,
                        "text/plain"));
       Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);

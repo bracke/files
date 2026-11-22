@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Testing;
 with Files.Preference_Types;
 with Files.Input_Actions;
 separate (Files_Suite.Rendering)
@@ -22,7 +23,7 @@ separate (Files_Suite.Rendering)
    begin
       --  A caret whose scroll lands inside the wide character.
       for Offset in 0 .. Raw'Length loop
-         if Input_Scroll_Columns (Raw, Offset, Filter.Width, LH) = 2 then
+         if Files.Rendering.Layouts.Testing.Input_Scroll_Columns (Raw, Offset, Filter.Width, LH) = 2 then
             Caret := Offset;
             exit;
          end if;

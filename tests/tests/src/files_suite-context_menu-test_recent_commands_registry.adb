@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Operations.Navigation;
 with Files.Model.Recent;
 with Files.Input_Actions;
@@ -36,7 +37,7 @@ separate (Files_Suite.Context_Menu)
       --  Seed a recent path, then enter the recent view through the real reducer.
       Files.Settings.Path_References.Note_Recent (Settings, Ada.Directories.Full_Name (Dir));
       Items.Append
-        (Files.File_System.Make_Item
+        (Files.Item_Lists.Make_Item
            (Files_Suite.Support.Disk.Root, "reg-recent-dir", Files.Types.Directory_Item, "inode/directory"));
       Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
 

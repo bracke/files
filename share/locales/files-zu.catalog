@@ -6,7 +6,3 @@ zu.time.weekday.friday = Lwesihlanu
 zu.time.weekday.saturday = Mgqibelo
 zu.time.weekday.sunday = Sonto
 zu.details.size.unit.bytes = byte
-zu.details.size.unit.kib = kB
-zu.details.size.unit.mib = MB
-zu.details.size.unit.gib = GB
-zu.details.size.unit.tib = TB

@@ -6,7 +6,3 @@ lt.time.weekday.friday = penktadienis
 lt.time.weekday.saturday = šeštadienis
 lt.time.weekday.sunday = sekmadienis
 lt.details.size.unit.bytes = B
-lt.details.size.unit.kib = kB
-lt.details.size.unit.mib = MB
-lt.details.size.unit.gib = GB
-lt.details.size.unit.tib = TB

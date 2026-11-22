@@ -6,7 +6,3 @@ lv.time.weekday.friday = piektdiena
 lv.time.weekday.saturday = sestdiena
 lv.time.weekday.sunday = svētdiena
 lv.details.size.unit.bytes = B
-lv.details.size.unit.kib = KB
-lv.details.size.unit.mib = MB
-lv.details.size.unit.gib = GB
-lv.details.size.unit.tib = TB

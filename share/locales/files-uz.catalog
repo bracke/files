@@ -6,7 +6,3 @@ uz.time.weekday.friday = juma
 uz.time.weekday.saturday = shanba
 uz.time.weekday.sunday = yakshanba
 uz.details.size.unit.bytes = bayt
-uz.details.size.unit.kib = kB
-uz.details.size.unit.mib = MB
-uz.details.size.unit.gib = GB
-uz.details.size.unit.tib = TB

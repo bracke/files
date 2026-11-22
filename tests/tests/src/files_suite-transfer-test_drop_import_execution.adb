@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
 with Files.File_System.Transfer;
@@ -42,7 +43,7 @@ separate (Files_Suite.Transfer)
       Sources.Append (To_Unbounded_String (Source_File));
       --  Dropping onto a name that already exists now arms the paste conflict
       --  dialog (routed through the engine) instead of silently auto-renaming.
-      Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+      Routed := Files.Controller.Testing.Handle_Drop_Import (Model, Settings, Sources);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operation_Results.Operation_Success,

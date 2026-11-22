@@ -332,14 +332,6 @@ package body Files.File_System is
      (Parent_Path : String;
       Name        : String;
       Kind        : Files.Types.Item_Kind;
-      Filetype    : String := "")
-      return Directory_Item
-     renames Files.Item_Lists.Make_Item;
-
-   function Make_Item
-     (Parent_Path : String;
-      Name        : String;
-      Kind        : Files.Types.Item_Kind;
       Classes     : Files.File_Types.Classification)
       return Directory_Item
    is

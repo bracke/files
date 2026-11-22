@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 separate (Files_Suite.Commands)
    procedure Test_Tab_Focus_Ring (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,7 +10,7 @@ separate (Files_Suite.Commands)
       Shift    : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
       Reset_Root;
-      Items.Append (Files.File_System.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
       Files.Model.Initialize (Model, Root, Items, Root);
       Shift (Guikit.Input.Shift_Key) := True;
 

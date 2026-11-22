@@ -8,7 +8,6 @@ with AUnit.Assertions;
 with AUnit.Test_Cases;
 with Files.Commands;
 with Files.Controller;
-with Files.File_System;
 with Files.Interaction;
 with Files.Model;
 with Files.Model.Selection;

@@ -6,7 +6,3 @@ ta.time.weekday.friday = வெள்ளி
 ta.time.weekday.saturday = சனி
 ta.time.weekday.sunday = ஞாயிறு
 ta.details.size.unit.bytes = பை.
-ta.details.size.unit.kib = kB
-ta.details.size.unit.mib = MB
-ta.details.size.unit.gib = GB
-ta.details.size.unit.tib = TB

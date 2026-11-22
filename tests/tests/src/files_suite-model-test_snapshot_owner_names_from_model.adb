@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Model.Info_Pane;
 with Files.File_System_Types;
 with Files.File_System.Permissions;
@@ -10,7 +11,7 @@ separate (Files_Suite.Model)
    procedure Test_Snapshot_Owner_Names_From_Model (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Owned    : Files.Items.Directory_Item :=
-        Files.File_System.Make_Item (Root, "Owned.txt", Files.Types.Regular_File_Item, "text/plain");
+        Files.Item_Lists.Make_Item (Root, "Owned.txt", Files.Types.Regular_File_Item, "text/plain");
       Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;

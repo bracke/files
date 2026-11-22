@@ -823,6 +823,10 @@ procedure Check_All is
    --  it classifies items by Files.File_Types.Classification alone.
    procedure Check_File_System_Closure is separate;
 
+   --  No rendering unit calls a Files.Model subprogram that takes the
+   --  Window_Model "in out"; the mutators are read from the model's specs.
+   procedure Check_Rendering_Model_Reads is separate;
+
    --  Test hooks are environment variables named FILES_TEST_*, read only in
    --  the listed files. FILES_TRASH_BACKEND is no test hook -- production
    --  reads it, to force another host's trash layout -- but the suite leans
@@ -938,6 +942,7 @@ procedure Check_All is
       Named ("Check_Command_And_Overlay_Layers", Check_Command_And_Overlay_Layers'Access),
       Named ("Check_Job_Layer", Check_Job_Layer'Access),
       Named ("Check_File_System_Closure", Check_File_System_Closure'Access),
+      Named ("Check_Rendering_Model_Reads", Check_Rendering_Model_Reads'Access),
       Named ("Check_Crate_Structure", Check_Crate_Structure'Access),
       Named ("Check_Application_CLI_Surface", Check_Application_CLI_Surface'Access),
       Named ("Check_Rendering_Architecture", Check_Rendering_Architecture'Access),

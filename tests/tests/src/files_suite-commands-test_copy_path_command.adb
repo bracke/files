@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Controller.Clipboard_Text;
 with Hostkit.Host;
 with Files.Items;
@@ -26,8 +27,8 @@ separate (Files_Suite.Commands)
         (Files.Controller.Clipboard_Text.Joined_Full_Paths (Empty),
          "",
          "an empty selection joins to empty text");
-      Pair.Append (Files.File_System.Make_Item (Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
-      Pair.Append (Files.File_System.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Pair.Append (Files.Item_Lists.Make_Item (Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Pair.Append (Files.Item_Lists.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
       Files_Suite.Support.Assert_Equal
         (Files.Controller.Clipboard_Text.Joined_Full_Paths (Pair),
          Alpha_Path & Line_Break & Beta_Path,
@@ -42,11 +43,11 @@ separate (Files_Suite.Commands)
          Odd : Files.Items.Item_Vectors.Vector;
          Two_Lines : constant String := "a" & ASCII.LF & "b ""q"".txt";
       begin
-         Odd.Append (Files.File_System.Make_Item (Root, Two_Lines, Files.Types.Regular_File_Item, "text/plain"));
+         Odd.Append (Files.Item_Lists.Make_Item (Root, Two_Lines, Files.Types.Regular_File_Item, "text/plain"));
          Files_Suite.Support.Assert_Equal
            (Files.Controller.Clipboard_Text.Joined_Full_Paths (Odd), Join (Root, Two_Lines),
             "one path is copied exactly");
-         Odd.Append (Files.File_System.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
+         Odd.Append (Files.Item_Lists.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
          Files_Suite.Support.Assert_Equal
            (Files.Controller.Clipboard_Text.Joined_Full_Paths (Odd),
             """" & Join (Root, "a" & ASCII.LF & "b """"q"""".txt") & """" & Line_Break & Beta_Path,

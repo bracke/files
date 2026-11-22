@@ -6,7 +6,3 @@ am.time.weekday.friday = ዓርብ
 am.time.weekday.saturday = ቅዳሜ
 am.time.weekday.sunday = እሑድ
 am.details.size.unit.bytes = ባይት
-am.details.size.unit.kib = ኪባ
-am.details.size.unit.mib = ሜባይት
-am.details.size.unit.gib = ጊባ
-am.details.size.unit.tib = ቴባይት

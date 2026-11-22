@@ -157,47 +157,8 @@ separate (Check_All.Check_Rendering_Architecture)
         (Path,
          "Files.Model.Toggle_",
          Label & " must not mutate model state");
-      --  The concern children hold the same mutators under their own names:
-      --  the frame reads the selection, rename fields, history and folder
-      --  sizes, and changes none of them.
-      for Mutator of Project_Tools.Ada_Source.String_List'
-        [To_Unbounded_String ("Files.Model.Selection.Select_"),
-         To_Unbounded_String ("Files.Model.Selection.Set_"),
-         To_Unbounded_String ("Files.Model.Selection.Clear"),
-         To_Unbounded_String ("Files.Model.Selection.Toggle_"),
-         To_Unbounded_String ("Files.Model.Selection.Move"),
-         To_Unbounded_String ("Files.Model.Selection.Invert"),
-         To_Unbounded_String ("Files.Model.Selection.Deselect_"),
-         To_Unbounded_String ("Files.Model.Selection.Restore"),
-         To_Unbounded_String ("Files.Model.Selection.Reset_"),
-         To_Unbounded_String ("Files.Model.Selection.Type_Ahead_Input"),
-         To_Unbounded_String ("Files.Model.Rename.Set_"),
-         To_Unbounded_String ("Files.Model.Rename.Toggle"),
-         To_Unbounded_String ("Files.Model.Rename.Resume"),
-         To_Unbounded_String ("Files.Model.Rename.Insert_"),
-         To_Unbounded_String ("Files.Model.Rename.Delete"),
-         To_Unbounded_String ("Files.Model.Rename.Move_"),
-         To_Unbounded_String ("Files.Model.History.Set_"),
-         To_Unbounded_String ("Files.Model.History.Begin_"),
-         To_Unbounded_String ("Files.Model.History.Commit_"),
-         To_Unbounded_String ("Files.Model.History.Merge"),
-         To_Unbounded_String ("Files.Model.History.Take_"),
-         To_Unbounded_String ("Files.Model.History.Push_"),
-         To_Unbounded_String ("Files.Model.History.Release"),
-         To_Unbounded_String ("Files.Model.History.Clear_"),
-         To_Unbounded_String ("Files.Model.History.Restore"),
-         To_Unbounded_String ("Files.Model.Folder_Sizes.Update_"),
-         To_Unbounded_String ("Files.Model.Folder_Sizes.Note"),
-         To_Unbounded_String ("Files.Model.Folder_Sizes.Clear"),
-         To_Unbounded_String ("Files.Model.Folder_Sizes.Prune_"),
-         To_Unbounded_String ("Files.Model.Status_Samples.Set_"),
-         To_Unbounded_String ("Files.Model.Status_Samples.Note_")]
-      loop
-         Require_Not_Contains_In_Unit
-           (Path,
-            To_String (Mutator),
-            Label & " must not mutate model state (" & To_String (Mutator) & ")");
-      end loop;
+      --  The concern children's mutators are covered family-wide by
+      --  Check_Rendering_Model_Reads, derived from the model's specs.
       --  The snapshot and frame read nothing from disk: a stat per item
       --  there would run on every rebuild.
       for Banned of Project_Tools.Ada_Source.String_List'

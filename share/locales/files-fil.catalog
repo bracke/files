@@ -6,7 +6,3 @@ fil.time.weekday.friday = Biyernes
 fil.time.weekday.saturday = Sabado
 fil.time.weekday.sunday = Linggo
 fil.details.size.unit.bytes = byte
-fil.details.size.unit.kib = kB
-fil.details.size.unit.mib = MB
-fil.details.size.unit.gib = GB
-fil.details.size.unit.tib = TB

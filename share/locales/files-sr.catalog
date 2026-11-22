@@ -6,7 +6,3 @@ sr.time.weekday.friday = петак
 sr.time.weekday.saturday = субота
 sr.time.weekday.sunday = недеља
 sr.details.size.unit.bytes = B
-sr.details.size.unit.kib = kB
-sr.details.size.unit.mib = MB
-sr.details.size.unit.gib = GB
-sr.details.size.unit.tib = TB

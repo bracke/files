@@ -6,7 +6,3 @@ sk.time.weekday.friday = piatok
 sk.time.weekday.saturday = sobota
 sk.time.weekday.sunday = nedeľa
 sk.details.size.unit.bytes = B
-sk.details.size.unit.kib = kB
-sk.details.size.unit.mib = MB
-sk.details.size.unit.gib = GB
-sk.details.size.unit.tib = TB

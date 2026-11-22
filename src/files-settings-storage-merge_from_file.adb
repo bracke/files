@@ -39,35 +39,7 @@ separate (Files.Settings.Storage)
         (Base, Mine, Theirs : String_Vectors.Vector;
          Seed               : String_Vectors.Vector := String_Vectors.Empty_Vector;
          Cap                : Natural := Natural'Last)
-         return String_Vectors.Vector
-      is
-         In_Base : constant Item_Sets.Set := Members (Base);
-         In_Mine : constant Item_Sets.Set := Members (Mine);
-         Placed  : Item_Sets.Set := Members (Seed);
-         Result  : String_Vectors.Vector := Seed;
-
-         procedure Place (Item : Unbounded_String) is
-         begin
-            if not Placed.Contains (Item) then
-               Result.Append (Item);
-               Placed.Insert (Item);
-            end if;
-         end Place;
-      begin
-         for Item of Theirs loop
-            exit when Natural (Result.Length) >= Cap;
-            if not (In_Base.Contains (Item) and then not In_Mine.Contains (Item)) then
-               Place (Item);
-            end if;
-         end loop;
-         for Item of Mine loop
-            exit when Natural (Result.Length) >= Cap;
-            if not In_Base.Contains (Item) then
-               Place (Item);
-            end if;
-         end loop;
-         return Result;
-      end Merged_List;
+         return String_Vectors.Vector is separate;
 
       --  The recent items: those this process opened since Base (its list
       --  before Base's freshest entry, which an open moves or pushes down)
@@ -106,69 +78,7 @@ separate (Files.Settings.Storage)
          with function Key_Of (Item : Element) return String;
       function Merged_Keyed (Base, Mine, Theirs : Vectors.Vector) return Vectors.Vector;
 
-      function Merged_Keyed (Base, Mine, Theirs : Vectors.Vector) return Vectors.Vector is
-         Result : Vectors.Vector;
-         Placed : Key_Sets.Set;
-
-         --  Each key's first entry in List, read once.
-         function Index (List : Vectors.Vector) return Key_Indexes.Map is
-            Map : Key_Indexes.Map;
-         begin
-            for Position in List.First_Index .. List.Last_Index loop
-               declare
-                  Key : constant String := Key_Of (List (Position));
-               begin
-                  if not Map.Contains (Key) then
-                     Map.Insert (Key, Position);
-                  end if;
-               end;
-            end loop;
-            return Map;
-         end Index;
-
-         In_Base : constant Key_Indexes.Map := Index (Base);
-         In_Mine : constant Key_Indexes.Map := Index (Mine);
-
-         --  Whether this process changed what Key says since Base.
-         function Changed (Key : String) return Boolean is
-            Was_There : constant Boolean := In_Base.Contains (Key);
-            Is_There  : constant Boolean := In_Mine.Contains (Key);
-         begin
-            return Was_There /= Is_There
-              or else (Was_There
-                       and then Base (In_Base.Element (Key)) /= Mine (In_Mine.Element (Key)));
-         end Changed;
-
-         procedure Place (Key : String; Item : Element) is
-         begin
-            Result.Append (Item);
-            Placed.Include (Key);
-         end Place;
-      begin
-         for Item of Theirs loop
-            declare
-               Key : constant String := Key_Of (Item);
-            begin
-               if not Changed (Key) then
-                  Place (Key, Item);
-               elsif not Placed.Contains (Key) and then In_Mine.Contains (Key) then
-                  --  This process's entry in the file's place; none if it
-                  --  removed it.
-                  Place (Key, Mine (In_Mine.Element (Key)));
-               end if;
-            end;
-         end loop;
-         for Own of Mine loop
-            declare
-               Key : constant String := Key_Of (Own);
-            begin
-               if Changed (Key) and then not Placed.Contains (Key) then
-                  Place (Key, Own);
-               end if;
-            end;
-         end loop;
-         return Result;
-      end Merged_Keyed;
+      function Merged_Keyed (Base, Mine, Theirs : Vectors.Vector) return Vectors.Vector is separate;
 
       function Label_Key (Item : Path_Label) return String is (To_String (Item.Path));
       function Override_Key (Item : Shortcut_Override) return String is (To_String (Item.Command));

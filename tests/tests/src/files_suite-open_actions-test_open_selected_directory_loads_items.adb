@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Operations.Opening;
 with Files.Model.Creation;
 with Files.Operation_Results;
@@ -15,8 +16,8 @@ separate (Files_Suite.Open_Actions)
       Ada.Directories.Create_Path (Dir);
       Ada.Directories.Create_Path (Join (Root, "other-dir"));
       Write_File (Join (Dir, "child.txt"));
-      Items.Append (Files.File_System.Make_Item (Root, "open-dir", Files.Types.Directory_Item, "inode/directory"));
-      Items.Append (Files.File_System.Make_Item (Root, "other-dir", Files.Types.Directory_Item, "inode/directory"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "open-dir", Files.Types.Directory_Item, "inode/directory"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "other-dir", Files.Types.Directory_Item, "inode/directory"));
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Creation.Begin_Create_File (Model, "pending.txt");

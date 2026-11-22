@@ -6,7 +6,3 @@ hsb.time.weekday.friday = pjatk
 hsb.time.weekday.saturday = sobota
 hsb.time.weekday.sunday = njedźela
 hsb.details.size.unit.bytes = byte
-hsb.details.size.unit.kib = kB
-hsb.details.size.unit.mib = MB
-hsb.details.size.unit.gib = GB
-hsb.details.size.unit.tib = TB

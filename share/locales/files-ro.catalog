@@ -6,7 +6,3 @@ ro.time.weekday.friday = vineri
 ro.time.weekday.saturday = sâmbătă
 ro.time.weekday.sunday = duminică
 ro.details.size.unit.bytes = B
-ro.details.size.unit.kib = kB
-ro.details.size.unit.mib = MB
-ro.details.size.unit.gib = GB
-ro.details.size.unit.tib = TB

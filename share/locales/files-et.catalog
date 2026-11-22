@@ -6,7 +6,3 @@ et.time.weekday.friday = reede
 et.time.weekday.saturday = laupäev
 et.time.weekday.sunday = pühapäev
 et.details.size.unit.bytes = baiti
-et.details.size.unit.kib = kB
-et.details.size.unit.mib = MB
-et.details.size.unit.gib = GB
-et.details.size.unit.tib = TB

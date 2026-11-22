@@ -6,7 +6,3 @@ sw.time.weekday.friday = Ijumaa
 sw.time.weekday.saturday = Jumamosi
 sw.time.weekday.sunday = Jumapili
 sw.details.size.unit.bytes = baiti
-sw.details.size.unit.kib = kilobaiti
-sw.details.size.unit.mib = MB
-sw.details.size.unit.gib = GB
-sw.details.size.unit.tib = terabaiti

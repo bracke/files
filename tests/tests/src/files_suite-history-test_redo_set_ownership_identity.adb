@@ -1,3 +1,4 @@
+with Files.Operations.Metadata.Testing;
 with Files.Operations.Metadata;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -32,7 +33,7 @@ separate (Files_Suite.History)
 
       --  An identity chown to the file's own uid/gid is permitted without root
       --  and exercises the undo/redo ownership plumbing.
-      Result := Files.Operations.Metadata.Set_Ownership_For (Model, Uid, Gid, Settings);
+      Result := Files.Operations.Metadata.Testing.Set_Ownership_For (Model, Uid, Gid, Settings);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                         "identity chown succeeds");
       Assert

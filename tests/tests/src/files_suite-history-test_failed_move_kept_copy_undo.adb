@@ -1,3 +1,4 @@
+with Files.Operations.Paste.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -66,7 +67,7 @@ separate (Files_Suite.History)
             --  copy cannot be set aside for deletion either, so it stays.
             Files.IO.Durability.Testing.Fail_Stage_Sync;
             Ada.Environment_Variables.Set ("FILES_TEST_STAGE_SYNC_FAULT", "1");
-            Files.Operations.Paste.Begin_Paste_Execution
+            Files.Operations.Paste.Testing.Begin_Paste_Execution
               (Model, (if Mixed then Mixed_Actions else Actions), Files.File_System_Types.Drop_Move);
             Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
             Cleanup;

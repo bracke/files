@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Rendering.Testing;
 with Files.Model.Sort_Menu;
 separate (Files_Suite.Model)
@@ -17,7 +18,7 @@ separate (Files_Suite.Model)
          return Files.Items.Directory_Item
       is
          Value : Files.Items.Directory_Item :=
-           Files.File_System.Make_Item (Root, Name, Files.Types.Regular_File_Item, Filetype);
+           Files.Item_Lists.Make_Item (Root, Name, Files.Types.Regular_File_Item, Filetype);
       begin
          Value.Size_Available := True;
          Value.Size := Size;
@@ -56,7 +57,7 @@ separate (Files_Suite.Model)
             Ada.Calendar.Time_Of (2024, 1, 1),
             Ada.Calendar.Time_Of (2024, 1, 6)));
       Items.Append
-        (Files.File_System.Make_Item
+        (Files.Item_Lists.Make_Item
            (Root,
             "zulu",
             Files.Types.Directory_Item,

@@ -27,7 +27,7 @@ separate (Files.File_System.Recovery)
    begin
       Files.IO.Errors.Reset;
       Backup := Null_Unbounded_String;
-      if not Valid_Absolute_Path (Original) then
+      if not Files.Path_Checks.Valid_Absolute_Path (Original) then
          raise Ada.Directories.Use_Error;
       end if;
       Stage :=

@@ -1,3 +1,4 @@
+with Files.Operations.Metadata.Testing;
 with Files.Operations.History;
 with Files.Operations.Metadata;
 with Files_Suite.Listings;
@@ -74,7 +75,7 @@ separate (Files_Suite.History)
                else
                   Hostkit.Metadata.File_Ownership (Source, Uid, Gid, Available);
                   Assert (Available, "read the current owner");
-                  Step := Files.Operations.Metadata.Set_Ownership_For (Model, Uid, Gid, Settings);
+                  Step := Files.Operations.Metadata.Testing.Set_Ownership_For (Model, Uid, Gid, Settings);
                end if;
                Files_Suite.Support.Assert_Equal
                  (Step.Status,

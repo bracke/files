@@ -1,3 +1,4 @@
+with Files.Operations.Metadata.Testing;
 with Files.Operations.History;
 with Files.Operations.Metadata;
 with Files_Suite.Listings;
@@ -69,7 +70,7 @@ separate (Files_Suite.History)
             Files.Operations.History.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Select_Name (Model, "live-source");
-            Step := Files.Operations.Metadata.Set_Ownership_For (Model, Uid, Gid, Settings);
+            Step := Files.Operations.Metadata.Testing.Set_Ownership_For (Model, Uid, Gid, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Success,

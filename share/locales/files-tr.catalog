@@ -6,7 +6,3 @@ tr.time.weekday.friday = Cuma
 tr.time.weekday.saturday = Cumartesi
 tr.time.weekday.sunday = Pazar
 tr.details.size.unit.bytes = bayt
-tr.details.size.unit.kib = kB
-tr.details.size.unit.mib = MB
-tr.details.size.unit.gib = GB
-tr.details.size.unit.tib = TB

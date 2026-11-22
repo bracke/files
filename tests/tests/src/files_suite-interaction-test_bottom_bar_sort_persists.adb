@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Settings.Storage;
 with Files.Input_Actions;
 with Files_Suite.Support.Disk;
@@ -10,9 +11,9 @@ separate (Files_Suite.Interaction)
       function Items return Files.Items.Item_Vectors.Vector is
          V : Files.Items.Item_Vectors.Vector;
       begin
-         V.Append (Files.File_System.Make_Item
+         V.Append (Files.Item_Lists.Make_Item
                      (Files_Suite.Support.Disk.Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
-         V.Append (Files.File_System.Make_Item
+         V.Append (Files.Item_Lists.Make_Item
                      (Files_Suite.Support.Disk.Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
          return V;
       end Items;

@@ -1,3 +1,4 @@
+with Files.Operations.Paste.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -37,7 +38,7 @@ separate (Files_Suite.History)
                  (To_Unbounded_String (Join (Join (Root, "inbox"), "a.txt")), To_Unbounded_String (A), False, False));
                Actions.Append (Files.Paste.Resolved_Action'
                  (To_Unbounded_String (Join (Join (Root, "inbox"), "b.txt")), To_Unbounded_String (B), False, False));
-               Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Mode, False);
+               Files.Operations.Paste.Testing.Begin_Paste_Execution (Model, Actions, Mode, False);
                for Attempt in Files_Suite.Support.Timing.Polling loop
                   Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
                   exit when Files.Model.Testing.Paste_Execution_Done (Model) = 1;

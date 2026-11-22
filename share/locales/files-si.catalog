@@ -6,7 +6,3 @@ si.time.weekday.friday = සිකුරාදා
 si.time.weekday.saturday = සෙනසුරාදා
 si.time.weekday.sunday = ඉරිදා
 si.details.size.unit.bytes = බයිට්
-si.details.size.unit.kib = කිබයිට්
-si.details.size.unit.mib = මෙබයිට්
-si.details.size.unit.gib = ගිබයිට්‌
-si.details.size.unit.tib = ටෙබයිට්

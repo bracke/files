@@ -6,7 +6,3 @@ mr.time.weekday.friday = शुक्रवार
 mr.time.weekday.saturday = शनिवार
 mr.time.weekday.sunday = रविवार
 mr.details.size.unit.bytes = बाइट
-mr.details.size.unit.kib = kB
-mr.details.size.unit.mib = MB
-mr.details.size.unit.gib = GB
-mr.details.size.unit.tib = TB

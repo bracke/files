@@ -6,7 +6,3 @@ pa.time.weekday.friday = ਸ਼ੁੱਕਰਵਾਰ
 pa.time.weekday.saturday = ਸ਼ਨਿੱਚਰਵਾਰ
 pa.time.weekday.sunday = ਐਤਵਾਰ
 pa.details.size.unit.bytes = ਬਾਇਟ
-pa.details.size.unit.kib = kB
-pa.details.size.unit.mib = MB
-pa.details.size.unit.gib = GB
-pa.details.size.unit.tib = TB

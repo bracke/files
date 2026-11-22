@@ -41,23 +41,7 @@ separate (Files.Settings)
         (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String);
 
       procedure Parse_Mapping_Line
-        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
-      is
-         pragma Unreferenced (Setting_Key);
-         Read_Key : constant String := Mapping_Key (Key);
-      begin
-         Err := Null_Unbounded_String;
-         if Read_Key = ""
-           or else Value = ""
-           or else not Mapping_Key_Is_Valid (Read_Key)
-           or else not Mapping_Value_Is_Valid (Value)
-           or else not Quoted_Value_Is_Valid (Raw_Value)
-         then
-            Err := To_Unbounded_String ("error.settings.invalid_mapping");
-            return;
-         end if;
-         Add (Settings, Key, Value);
-      end Parse_Mapping_Line;
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String) is separate;
 
       function Icon_Key (Key : String) return String is (Key);
 
@@ -65,53 +49,10 @@ separate (Files.Settings)
       procedure Parse_Icons_Line is new Parse_Mapping_Line (Icon_Key, Add_Icon_Mapping);
 
       procedure Parse_Open_Actions_Line
-        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
-      is
-         pragma Unreferenced (Setting_Key, Value);
-         Normalized_Key : constant String := Normalize_Action_Token (Key);
-         Action : constant Open_Action := Parse_Action (Raw_Value);
-         Plus   : constant Natural := Modifier_Suffix_Start (Normalized_Key);
-      begin
-         Err := Null_Unbounded_String;
-         if Key = ""
-           or else Normalized_Key = ""
-           or else (Plus = Normalized_Key'First)
-           or else not Open_Action_Base_Key_Is_Valid
-             ((if Plus = 0
-               then Normalized_Key
-               else Normalized_Key (Normalized_Key'First .. Plus - 1)))
-           or else not Action_Token_Modifiers_Are_Known (Key)
-           or else To_String (Action.Executable) = ""
-           or else Open_Actions.Has_Unsafe_Placeholder_Usage (Action)
-           or else not Action_Text_Is_Serializable (Action)
-         then
-            Err := To_Unbounded_String ("error.settings.invalid_open_action");
-            return;
-         end if;
-         Add_Open_Action (Settings, Key, Action);
-      end Parse_Open_Actions_Line;
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String) is separate;
 
       procedure Parse_Bookmarks_Line
-        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
-      is
-         pragma Unreferenced (Raw_Value);
-      begin
-         Err := Null_Unbounded_String;
-         if Setting_Key = "bookmark" then
-            --  New form: bookmark = "<path>" (path may contain '=' or start with
-            --  '#'). The on-disk token stays "bookmark" so files keep loading.
-            if Persistent_Path_Is_Valid (Value) then
-               Path_References.Add_Favorite (Settings, Value);
-            elsif Value /= "" then
-               Err := To_Unbounded_String ("error.settings.invalid");
-            end if;
-         elsif Persistent_Path_Is_Valid (Key) then
-            --  Legacy form: the bare path written as the key.
-            Path_References.Add_Favorite (Settings, Key);
-         elsif Key /= "" then
-            Err := To_Unbounded_String ("error.settings.invalid");
-         end if;
-      end Parse_Bookmarks_Line;
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String) is separate;
 
       --  Find the first '|' of a "<head>|<tail>" entry. The head must not be
       --  empty; the tail may be.
@@ -126,121 +67,20 @@ separate (Files.Settings)
       end Split_At_Bar;
 
       procedure Parse_Labels_Line
-        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
-      is
-         pragma Unreferenced (Key, Raw_Value);
-      begin
-         Err := Null_Unbounded_String;
-         --  Each entry is written as label = "<color>|<path>". Split on the first
-         --  '|': the color prefix names the swatch and the remainder is the
-         --  (possibly '|'- or '='-bearing) path. An unknown color is skipped so a
-         --  hand-edited file never fails to load over one bad tag.
-         if Setting_Key = "label" and then Value /= "" then
-            declare
-               Bar   : Natural;
-               --  Left at No_Label by an unknown color, which is skipped.
-               Label : Files.Preference_Types.Color_Label := Files.Preference_Types.No_Label;
-            begin
-               --  A label needs a path after the bar.
-               if Split_At_Bar (Value, Bar) and then Bar < Value'Last then
-                  declare
-                     Color_Text : constant String :=
-                       Value (Value'First .. Bar - 1);
-                     Path_Text  : constant String :=
-                       Value (Bar + 1 .. Value'Last);
-                  begin
-                     if Color_Label_From_Name (Color_Text, Label)
-                       and then Persistent_Path_Is_Valid (Path_Text)
-                     then
-                        Path_References.Load_Label (Settings, Known_Labels, Path_Text, Label);
-                     elsif Label /= Files.Preference_Types.No_Label then
-                        Err := To_Unbounded_String ("error.settings.invalid");
-                     end if;
-                  end;
-               end if;
-            end;
-         end if;
-      end Parse_Labels_Line;
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String) is separate;
 
       procedure Parse_Recent_Line
-        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
-      is
-         pragma Unreferenced (Key, Raw_Value);
-      begin
-         Err := Null_Unbounded_String;
-         --  Each entry is written as recent = "<path>" in file order
-         --  (most-recent-first). Add_Recent keeps the cap and leaves out a
-         --  repeat, so a hand-edited file never grows the list or lists an
-         --  item twice; the quoted value survives paths with '=' or '#'.
-         if Setting_Key = "recent" and then Persistent_Path_Is_Valid (Value) then
-            Path_References.Add_Recent (Settings, Value);
-         elsif Setting_Key = "recent" and then Value /= "" then
-            Err := To_Unbounded_String ("error.settings.invalid");
-         end if;
-      end Parse_Recent_Line;
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String) is separate;
 
       procedure Parse_Shortcuts_Line
-        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
-      is
-         pragma Unreferenced (Key, Raw_Value);
-      begin
-         Err := Null_Unbounded_String;
-         --  Each entry is written as shortcut = "<command>|<combo>". Split on the
-         --  first '|': the prefix is a stable command identifier and the remainder
-         --  is the shortcut text, which may be empty to record an explicit unbind.
-         --  An entry whose identifier is empty is skipped so a hand-edited file
-         --  never fails to load over one malformed line.
-         if Setting_Key = "shortcut" and then Value /= "" then
-            declare
-               Bar : Natural;
-            begin
-               if Split_At_Bar (Value, Bar) then
-                  Settings.Shortcut_Overrides.Append
-                    (Shortcut_Override'
-                       (Command => To_Unbounded_String (Value (Value'First .. Bar - 1)),
-                        Combo   => To_Unbounded_String (Value (Bar + 1 .. Value'Last))));
-               end if;
-            end;
-         end if;
-      end Parse_Shortcuts_Line;
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String) is separate;
 
       procedure Parse_Settings_Line
-        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
-      is
-         pragma Unreferenced (Key, Raw_Value);
-         Setting : Scalar_Setting;
-         OK      : Boolean;
-      begin
-         Err := Null_Unbounded_String;
-         for Flag in Legacy_Theme_Flag loop
-            if Setting_Key = Legacy_Theme_Keys (Flag).all then
-               --  Legacy key: resolved into Settings.Theme after the loop.
-               Parse_Boolean (Files.Text_Case.To_Lower_Ascii (Value), Legacy_Theme (Flag), OK);
-               if not OK then
-                  Err := To_Unbounded_String ("error.settings.invalid_boolean");
-               end if;
-               return;
-            end if;
-         end loop;
-
-         if Scalar_For_Key (Setting_Key, Setting) then
-            Set_Scalar (Settings, Setting, Value, Err);
-            if Setting = Theme_Setting and then Length (Err) = 0 then
-               Theme_Explicit := True;
-            end if;
-         else
-            Err := To_Unbounded_String ("error.settings.unknown_key");
-         end if;
-      end Parse_Settings_Line;
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String) is separate;
 
       --  A key=value line before any section header.
       procedure Parse_Sectionless_Line
-        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String)
-      is
-         pragma Unreferenced (Key, Setting_Key, Value, Raw_Value);
-      begin
-         Err := To_Unbounded_String ("error.settings.missing_section");
-      end Parse_Sectionless_Line;
+        (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String) is separate;
 
       type Line_Handler is access procedure
         (Key, Setting_Key, Value, Raw_Value : String; Err : out Unbounded_String);
@@ -262,17 +102,7 @@ separate (Files.Settings)
       function Section_Named
         (Name  : String;
          Named : out Settings_Section)
-         return Boolean is
-      begin
-         for Candidate in Named_Section loop
-            if Section_Names (Candidate).all = Name then
-               Named := Candidate;
-               return True;
-            end if;
-         end loop;
-         Named := No_Section;
-         return False;
-      end Section_Named;
+         return Boolean is separate;
    begin
       if Text'Length > Max_Settings_Text_Bytes or else Contains_Nul (Text) then
          return

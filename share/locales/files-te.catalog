@@ -6,7 +6,3 @@ te.time.weekday.friday = శుక్రవారం
 te.time.weekday.saturday = శనివారం
 te.time.weekday.sunday = ఆదివారం
 te.details.size.unit.bytes = బై
-te.details.size.unit.kib = కేబీ
-te.details.size.unit.mib = ఎమ్‌బి
-te.details.size.unit.gib = జీబీ
-te.details.size.unit.tib = టీబీ

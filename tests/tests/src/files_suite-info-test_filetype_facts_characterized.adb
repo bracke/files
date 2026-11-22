@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Model.Info_Pane;
 with Files.Rendering.Testing;
 with Files.File_Types;
@@ -31,7 +32,7 @@ separate (Files_Suite.Info)
          Facts : constant Files.File_Types.Filetype_Facts := Files.File_Types.Facts_For (Mime);
          Items : Files.Items.Item_Vectors.Vector;
          Item  : Files.Items.Directory_Item :=
-           Files.File_System.Make_Item
+           Files.Item_Lists.Make_Item
              (Parent_Path => Root,
               Name        => "sample.dat",
               Kind        => Files.Types.Regular_File_Item,

@@ -6,7 +6,3 @@ bs.time.weekday.friday = petak
 bs.time.weekday.saturday = subota
 bs.time.weekday.sunday = nedjelja
 bs.details.size.unit.bytes = bajt
-bs.details.size.unit.kib = kB
-bs.details.size.unit.mib = MB
-bs.details.size.unit.gib = GB
-bs.details.size.unit.tib = TB

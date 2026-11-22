@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Model.Filtering;
 with Files.Preference_Types;
 separate (Files_Suite.Model)
@@ -39,9 +40,9 @@ separate (Files_Suite.Model)
          Grid_Model : Files.Model.Window_Model;
       begin
          Grid_Items.Append
-           (Files.File_System.Make_Item (Root, "Kappa.txt", Files.Types.Regular_File_Item, "text/plain"));
+           (Files.Item_Lists.Make_Item (Root, "Kappa.txt", Files.Types.Regular_File_Item, "text/plain"));
          Grid_Items.Append
-           (Files.File_System.Make_Item (Root, "Lambda.txt", Files.Types.Regular_File_Item, "text/plain"));
+           (Files.Item_Lists.Make_Item (Root, "Lambda.txt", Files.Types.Regular_File_Item, "text/plain"));
          Files.Model.Initialize
            (Grid_Model,
             Directory_Path    => Root,

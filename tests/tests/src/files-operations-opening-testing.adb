@@ -10,4 +10,17 @@ package body Files.Operations.Opening.Testing is
       return Operation_Result
      renames Files.Operations.Opening.Prepare_Open_Selected_Action;
 
+   function Execute_Open_Action
+     (Action      : Files.Settings.Open_Action;
+      Exit_Status : out Integer;
+      Failure_Key : out UString;
+      Detach      : Boolean := False)
+      return Boolean
+     renames Files.Operations.Opening.Execute_Open_Action;
+
+   function Open_Action_Executable_Is_Available
+     (Action : Files.Settings.Open_Action)
+      return Boolean
+     renames Files.Operations.Opening.Open_Action_Executable_Is_Available;
+
 end Files.Operations.Opening.Testing;

@@ -1,3 +1,5 @@
+with Files.Item_Lists;
+with Files.Operations.Paste.Testing;
 with Files.File_System_Types;
 with Files.Operations.Paste;
 with Files_Suite.Listings;
@@ -59,9 +61,9 @@ package body Files_Suite.Support.Models is
    function Sample_Items return Files.Items.Item_Vectors.Vector is
       Items : Files.Items.Item_Vectors.Vector;
    begin
-      Items.Append (Files.File_System.Make_Item (Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
-      Items.Append (Files.File_System.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
-      Items.Append (Files.File_System.Make_Item (Root, "Gamma.md", Files.Types.Regular_File_Item, "text/markdown"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "Gamma.md", Files.Types.Regular_File_Item, "text/markdown"));
       return Items;
    end Sample_Items;
 
@@ -159,7 +161,7 @@ package body Files_Suite.Support.Models is
 
       Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
-      Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
+      Files.Operations.Paste.Testing.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
    end Arm_Numbered_Paste;
 
    function Undo_Items

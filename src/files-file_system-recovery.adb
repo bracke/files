@@ -98,9 +98,6 @@ package body Files.File_System.Recovery is
          return False;
    end Record_Is_Regular;
 
-   function Valid_Absolute_Path (Path : String; Max_Length : Natural := Natural'Last) return Boolean
-     renames Files.Path_Checks.Valid_Absolute_Path;
-
    procedure Write_Bounded
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value : String;
@@ -158,7 +155,7 @@ package body Files.File_System.Recovery is
    end Read_Path_Record_Body;
 
    function Records_Absolute_Path (Value : Path_Record) return Boolean is
-     (Valid_Absolute_Path (To_String (Value.Path)));
+     (Files.Path_Checks.Valid_Absolute_Path (To_String (Value.Path)));
 
    function Read_Path_Record_File is new Files.IO.Lease_Streams.Read_Record
      (Item => Path_Record, Read_Body => Read_Path_Record_Body, Is_Consistent => Records_Absolute_Path);
@@ -255,7 +252,7 @@ package body Files.File_System.Recovery is
    procedure Write_Owner (Stage, Original : String) is
       File : aliased Files.IO.Exclusive_Streams.Output_Stream;
    begin
-      if not Valid_Absolute_Path (Original) then
+      if not Files.Path_Checks.Valid_Absolute_Path (Original) then
          raise Ada.Directories.Use_Error;
       end if;
       Files.IO.Exclusive_Streams.Create (File, Hostkit.Fs.Join (Stage, Owner_Name));

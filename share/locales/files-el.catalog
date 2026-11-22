@@ -6,7 +6,3 @@ el.time.weekday.friday = Παρασκευή
 el.time.weekday.saturday = Σάββατο
 el.time.weekday.sunday = Κυριακή
 el.details.size.unit.bytes = byte
-el.details.size.unit.kib = kB
-el.details.size.unit.mib = MB
-el.details.size.unit.gib = GB
-el.details.size.unit.tib = TB

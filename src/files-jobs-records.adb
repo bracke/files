@@ -11,15 +11,11 @@ with Files.Path_Checks;
 package body Files.Jobs.Records is
    use Ada.Strings.Unbounded;
 
-   function Valid_Absolute_Path
-     (Value : Files.Types.UString) return Boolean is
-       (Files.Path_Checks.Valid_Absolute_Path (To_String (Value)));
-
    function Signature_Is_Consistent
      (Value : Files.File_System_Types.Directory_Signature) return Boolean is
    begin
       return Length (Value.Path) = 0
-        or else Valid_Absolute_Path (Value.Path);
+        or else Files.Path_Checks.Valid_Absolute_Path (Value.Path);
    end Signature_Is_Consistent;
 
    procedure Validate_Size (Size : Long_Long_Integer) is

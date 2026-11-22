@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Model.Clipboard;
 with Files.Model.Context_Menu;
 with Files_Suite.Support.Disk;
@@ -19,7 +20,7 @@ separate (Files_Suite.Context_Menu)
          Ada.Directories.Create_Path (Dir);
          Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "inside.txt"));
          Items.Append
-           (Files.File_System.Make_Item
+           (Files.Item_Lists.Make_Item
               (Files_Suite.Support.Disk.Root, "open-nav", Files.Types.Directory_Item, "inode/directory"));
          Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
          Files.Model.Selection.Select_Visible (Model, 1);

@@ -73,4 +73,29 @@ package Files.Controller.Testing is
       Tree_Page_Rows : Natural := 0)
       return Controller_Result;
 
+   --  Import paths dropped into the current window through the paste engine, so
+   --  a drop gets the same conflict dialog and resumable progress/cancel overlay
+   --  as clipboard paste (a name collision arms the dialog instead of silently
+   --  auto-renaming).
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used by operations.
+   --  @param Source_Paths Dropped filesystem paths.
+   --  @param Mode Copy or move mode.
+   --  @return Controller result with drop-import operation details.
+   function Handle_Drop_Import
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Source_Paths : Files.Types.String_Vectors.Vector;
+      Mode         : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy)
+      return Controller_Result;
+
+   --  Whether dropped paths may be imported now: not while an overlay owns
+   --  the input (a dialog, the palette, a paste's progress), which would turn
+   --  the import away. Until it closes the drop stays queued, not lost.
+   --
+   --  @param Model Window model to inspect.
+   --  @return True when Handle_Drop_Import would import a drop.
+   function Accepts_Drop_Import (Model : Files.Model.Window_Model) return Boolean;
+
 end Files.Controller.Testing;

@@ -6,7 +6,3 @@ to.time.weekday.friday = Falaite
 to.time.weekday.saturday = Tokonaki
 to.time.weekday.sunday = Sāpate
 to.details.size.unit.bytes = ʻū paiti
-to.details.size.unit.kib = kilopaiti
-to.details.size.unit.mib = mekapaiti
-to.details.size.unit.gib = kikapaiti
-to.details.size.unit.tib = telapaiti

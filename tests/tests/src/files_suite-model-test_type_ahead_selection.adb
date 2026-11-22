@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Preference_Types;
 separate (Files_Suite.Model)
    procedure Test_Type_Ahead_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -8,11 +9,11 @@ separate (Files_Suite.Model)
       function Grid_Items return Files.Items.Item_Vectors.Vector is
          Items : Files.Items.Item_Vectors.Vector;
       begin
-         Items.Append (Files.File_System.Make_Item (Root, "delta", Files.Types.Regular_File_Item, "text/plain"));
-         Items.Append (Files.File_System.Make_Item (Root, "Doc", Files.Types.Regular_File_Item, "text/plain"));
-         Items.Append (Files.File_System.Make_Item (Root, "dune", Files.Types.Regular_File_Item, "text/plain"));
-         Items.Append (Files.File_System.Make_Item (Root, "date", Files.Types.Regular_File_Item, "text/plain"));
-         Items.Append (Files.File_System.Make_Item (Root, "eagle", Files.Types.Regular_File_Item, "text/plain"));
+         Items.Append (Files.Item_Lists.Make_Item (Root, "delta", Files.Types.Regular_File_Item, "text/plain"));
+         Items.Append (Files.Item_Lists.Make_Item (Root, "Doc", Files.Types.Regular_File_Item, "text/plain"));
+         Items.Append (Files.Item_Lists.Make_Item (Root, "dune", Files.Types.Regular_File_Item, "text/plain"));
+         Items.Append (Files.Item_Lists.Make_Item (Root, "date", Files.Types.Regular_File_Item, "text/plain"));
+         Items.Append (Files.Item_Lists.Make_Item (Root, "eagle", Files.Types.Regular_File_Item, "text/plain"));
          return Items;
       end Grid_Items;
 
@@ -125,11 +126,11 @@ separate (Files_Suite.Model)
          Lower_Sigma : constant String := Character'Val (16#CF#) & Character'Val (16#83#);
          Items : Files.Items.Item_Vectors.Vector;
       begin
-         Items.Append (Files.File_System.Make_Item (Root, "alpha", Files.Types.Regular_File_Item, "text/plain"));
+         Items.Append (Files.Item_Lists.Make_Item (Root, "alpha", Files.Types.Regular_File_Item, "text/plain"));
          Items.Append
-           (Files.File_System.Make_Item (Root, Lower_Sigma & "ema", Files.Types.Regular_File_Item, "text/plain"));
+           (Files.Item_Lists.Make_Item (Root, Lower_Sigma & "ema", Files.Types.Regular_File_Item, "text/plain"));
          Items.Append
-           (Files.File_System.Make_Item (Root, Upper_Sigma & "akos", Files.Types.Regular_File_Item, "text/plain"));
+           (Files.Item_Lists.Make_Item (Root, Upper_Sigma & "akos", Files.Types.Regular_File_Item, "text/plain"));
          Model := New_Grid_Model;
          Files.Model.Initialize
            (Model,

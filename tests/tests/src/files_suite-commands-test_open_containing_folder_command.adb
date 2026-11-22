@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
@@ -15,7 +16,7 @@ separate (Files_Suite.Commands)
 
       --  A recursive-search-style model: the current directory is Root, but the
       --  single result item lives in Root/sub.
-      Items.Append (Files.File_System.Make_Item (Sub, "found.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.Item_Lists.Make_Item (Sub, "found.txt", Files.Types.Regular_File_Item, "text/plain"));
       Files.Model.Initialize (Model, Root, Items, Root);
 
       --  Disabled without a selection, enabled with a single result selected.

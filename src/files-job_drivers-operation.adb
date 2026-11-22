@@ -71,13 +71,10 @@ package body Files.Job_Drivers.Operation is
          when Undo                               => "error.undo.failed",
          when Redo                               => "error.redo.failed");
 
-   function Valid_Absolute_Path (Path : String; Max_Length : Natural := Natural'Last) return Boolean
-     renames Files.Path_Checks.Valid_Absolute_Path;
-
    function Request_Path_Is_Consistent
      (Root   : String;
       Recent : Boolean) return Boolean is
-     ((if Recent then Root = "" else Valid_Absolute_Path (Root)));
+     ((if Recent then Root = "" else Files.Path_Checks.Valid_Absolute_Path (Root)));
 
    procedure Write_Request
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;

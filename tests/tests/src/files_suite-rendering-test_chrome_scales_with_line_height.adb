@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Testing;
 with Files.Rendering.Layouts.Menus;
 with Files.Preference_Types;
 with Files.Rendering.Layouts;
@@ -144,9 +145,12 @@ separate (Files_Suite.Rendering)
       end;
 
       --  Dialog and status-field padding.
-      Files_Suite.Support.Assert_Equal (Dialog_Padding (Reference), 12, "a dialog's padding at the reference");
       Files_Suite.Support.Assert_Equal
-        (Files.Rendering.Layouts.Dialog_Padding (2 * Reference), 24, "a dialog's padding doubles with the line height");
+        (Files.Rendering.Layouts.Testing.Dialog_Padding (Reference), 12, "a dialog's padding at the reference");
+      Files_Suite.Support.Assert_Equal
+        (Files.Rendering.Layouts.Testing.Dialog_Padding (2 * Reference),
+         24,
+         "a dialog's padding doubles with the line height");
       Files_Suite.Support.Assert_Equal
         (Files.Rendering.Layouts.Status_Field_Padding (Reference), 4, "a status field's inset at the reference");
       Files_Suite.Support.Assert_Equal

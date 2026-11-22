@@ -85,9 +85,7 @@ separate (Check_All)
       Require_Only_Allowed_With_Clauses
         (Rendering_Body,
          "Files.",
-         [To_Unbounded_String ("Files.Application.Accessibility"),
-          To_Unbounded_String ("Files.Overlays.Command_Palette"),
-          To_Unbounded_String ("Files.Rendering.Display_Text"),
+         [To_Unbounded_String ("Files.Rendering.Display_Text"),
           To_Unbounded_String ("Files.File_System"),
           To_Unbounded_String ("Files.File_Types"),
           To_Unbounded_String ("Files.Fonts"),
@@ -129,9 +127,7 @@ separate (Check_All)
            [To_Unbounded_String ("Guikit.Command_Palette"),
             To_Unbounded_String ("Guikit.Settings_Panel")];
          Family_Allowed : constant Project_Tools.Ada_Source.String_List :=
-           [To_Unbounded_String ("Files.Application.Accessibility"),
-            To_Unbounded_String ("Files.Breadcrumbs"),
-            To_Unbounded_String ("Files.Overlays.Command_Palette"),
+           [To_Unbounded_String ("Files.Breadcrumbs"),
             To_Unbounded_String ("Files.Commands"),
             To_Unbounded_String ("Files.Commands.Context_Menus"),
             To_Unbounded_String ("Files.Commands.Status"),

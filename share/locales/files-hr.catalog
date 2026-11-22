@@ -6,7 +6,3 @@ hr.time.weekday.friday = petak
 hr.time.weekday.saturday = subota
 hr.time.weekday.sunday = nedjelja
 hr.details.size.unit.bytes = bajtova
-hr.details.size.unit.kib = kB
-hr.details.size.unit.mib = MB
-hr.details.size.unit.gib = GB
-hr.details.size.unit.tib = TB

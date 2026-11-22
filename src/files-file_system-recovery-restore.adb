@@ -14,7 +14,7 @@ separate (Files.File_System.Recovery)
       end if;
       Target := To_Unbounded_String
         (if Expected_Original /= "" then Expected_Original else Original_Path (Path));
-      if not Valid_Absolute_Path (To_String (Target)) then
+      if not Files.Path_Checks.Valid_Absolute_Path (To_String (Target)) then
          raise Ada.Directories.Use_Error;
       end if;
       --  refusal-safe: a refused target goes on to the no-replace move, which refuses an occupied one

@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Preference_Types;
 with Files.Settings.Path_References;
 with Hostkit.Fs;
@@ -32,7 +33,7 @@ separate (Files_Suite.Model)
    begin
       for Index in 1 .. Count loop
          Items.Append
-           (Files.File_System.Make_Item (Root, Name_Of (Index), Files.Types.Regular_File_Item, "text/plain"));
+           (Files.Item_Lists.Make_Item (Root, Name_Of (Index), Files.Types.Regular_File_Item, "text/plain"));
       end loop;
       Files.Model.Initialize (Model, Directory_Path => Root, Items => Items, Home_Path => "/home/test");
 

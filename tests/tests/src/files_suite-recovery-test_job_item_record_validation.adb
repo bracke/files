@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.File_System_Types;
 with Files.IO.Record_Fields;
 with Files.Extra_Info;
@@ -139,7 +140,7 @@ separate (Files_Suite.Recovery)
       Ada.Streams.Stream_IO.Close (File);
       Assert (Rejected, "invalid thumbnail dimensions are not serialized");
 
-      Item := Files.File_System.Make_Item
+      Item := Files.Item_Lists.Make_Item
         (Root, "transport-item", Files.Types.Regular_File_Item);
       Item.Full_Path := To_Unbounded_String ("relative-transport-item");
       Write_Raw_Items (Path, Item);

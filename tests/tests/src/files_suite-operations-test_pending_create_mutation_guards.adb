@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.Operations.Editing;
 with Files.Operations.History;
 with Files.Operations.Paste;
@@ -119,7 +120,7 @@ separate (Files_Suite.Operations)
             Assert (not Ada.Directories.Exists (Join (Join (Root, "view"), "incoming.txt")),
                     Context & ": nothing written");
          end;
-         Outcome := Files.Controller.Handle_Drop_Import
+         Outcome := Files.Controller.Testing.Handle_Drop_Import
            (Model, Settings, Sources);
          Files_Suite.Support.Assert_Equal
            (Outcome.Operation.Status,

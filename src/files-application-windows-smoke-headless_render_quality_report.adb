@@ -48,18 +48,13 @@ separate (Files.Application.Windows.Smoke)
          --  failed frame too rather than crashing the smoke run.
          begin
             declare
-               --  As the window draws it: grouped, with the host's samples, at
-               --  the settings' font size.
+               --  As the window draws it, and as Check_Window_Frame renders it:
+               --  grouped, with the host's samples, at the settings' font size.
                Line_Height : constant Positive := Line_Height_For (Startup.Settings);
                Snapshot : constant Files.Rendering.View_Snapshot :=
-                 Files.Rendering.Build_Snapshot
-                   (Sampled (Files.Model.Grouped (Startup_Window.Model, Startup.Settings)), Startup.Settings);
+                 Startup_Snapshot (Startup_Window.Model, Startup.Settings);
                Frame    : constant Files.Rendering.Frame_Commands :=
-                 Files.Rendering.Build_Frame_Commands
-                   (Snapshot    => Snapshot,
-                    Width       => Width,
-                    Height      => Height,
-                    Line_Height => Line_Height);
+                 Startup_Frame (Snapshot, Startup.Settings, Width, Height);
                Drag_Snapshot : Files.Rendering.View_Snapshot := Snapshot;
                Check  : constant Window_Frame_Check := Frame_Check (Snapshot, Frame, Startup.Settings, Width, Height);
             begin

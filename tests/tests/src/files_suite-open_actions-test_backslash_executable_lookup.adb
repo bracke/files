@@ -1,3 +1,4 @@
+with Files.Operations.Opening.Testing;
 with Files.Operations.Opening;
 with Files.Settings.Open_Actions;
 with Files_Suite.Support.Guards;
@@ -25,7 +26,7 @@ separate (Files_Suite.Open_Actions)
                Files_Suite.Support.Guards.Save (Environment, "PATH");
                Ada.Environment_Variables.Set ("PATH", Root);
                Available :=
-                 Files.Operations.Opening.Open_Action_Executable_Is_Available (Action);
+                 Files.Operations.Opening.Testing.Open_Action_Executable_Is_Available (Action);
             end;
             Assert
               (Available,

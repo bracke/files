@@ -6,7 +6,3 @@ ne.time.weekday.friday = शुक्रबार
 ne.time.weekday.saturday = शनिबार
 ne.time.weekday.sunday = आइतबार
 ne.details.size.unit.bytes = byte
-ne.details.size.unit.kib = kB
-ne.details.size.unit.mib = MB
-ne.details.size.unit.gib = GB
-ne.details.size.unit.tib = TB

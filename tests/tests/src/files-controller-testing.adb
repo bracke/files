@@ -37,4 +37,15 @@ package body Files.Controller.Testing is
      (Files.Controller.Handle_Key
         (Model, Settings, Key, Files.Events.Translate_Key (Key, Modifiers), Modifiers, Tree_Page_Rows));
 
+   function Handle_Drop_Import
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Source_Paths : Files.Types.String_Vectors.Vector;
+      Mode         : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy)
+      return Controller_Result
+     renames Files.Controller.Handle_Drop_Import;
+
+   function Accepts_Drop_Import (Model : Files.Model.Window_Model) return Boolean
+     renames Files.Controller.Accepts_Drop_Import;
+
 end Files.Controller.Testing;

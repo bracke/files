@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.Overlays.Settings_Form;
 with Files.Model.Testing;
 with Files.Model.Command_Palette;
@@ -31,7 +32,7 @@ separate (Files_Suite.Drags)
       procedure Assert_Contained (Name : String) is
          Revision : constant Natural := Files.Model.Revision (Model);
          Outcome  : constant Files.Controller.Controller_Result :=
-           Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+           Files.Controller.Testing.Handle_Drop_Import (Model, Settings, Sources);
       begin
          Assert
            (Files.Model.Input_Owning_Overlay_Is_Open (Model),

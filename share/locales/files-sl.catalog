@@ -6,7 +6,3 @@ sl.time.weekday.friday = petek
 sl.time.weekday.saturday = sobota
 sl.time.weekday.sunday = nedelja
 sl.details.size.unit.bytes = bajtov
-sl.details.size.unit.kib = kB
-sl.details.size.unit.mib = MB
-sl.details.size.unit.gib = GB
-sl.details.size.unit.tib = TB

@@ -9,5 +9,5 @@ separate (Check_All)
            [1 => new String'(Root & "/tools/testdata/cldr/main/zz.xml")],
          Output_Path     => Temp_Path ("cldr.out"),
          Required_First  => "zz-ZZ.time.weekday.monday = Monday Z",
-         Required_Second => "zz-ZZ.details.size.unit.mib = zmb");
+         Required_Second => "zz-ZZ.details.size.unit.bytes = zb");
    end Check_CLDR_Importer;

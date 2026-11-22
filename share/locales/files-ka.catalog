@@ -6,7 +6,3 @@ ka.time.weekday.friday = პარასკევი
 ka.time.weekday.saturday = შაბათი
 ka.time.weekday.sunday = კვირა
 ka.details.size.unit.bytes = ბაიტი
-ka.details.size.unit.kib = კბაიტი
-ka.details.size.unit.mib = მბაიტი
-ka.details.size.unit.gib = გბაიტი
-ka.details.size.unit.tib = ტბაიტი

@@ -60,9 +60,6 @@ package body Files.Refresh is
       Error_Key : Files.Types.UString;
    end record;
 
-   function Valid_Absolute_Path (Path : String; Max_Length : Natural := Natural'Last) return Boolean
-     renames Files.Path_Checks.Valid_Absolute_Path;
-
    function Request_Paths_Are_Consistent
      (Root, Previous_Path : String;
       Recent              : Boolean) return Boolean is
@@ -70,13 +67,13 @@ package body Files.Refresh is
       if Recent then
          return Root = "" and then Previous_Path = "";
       end if;
-      return Valid_Absolute_Path (Root)
-        and then Valid_Absolute_Path (Previous_Path);
+      return Files.Path_Checks.Valid_Absolute_Path (Root)
+        and then Files.Path_Checks.Valid_Absolute_Path (Previous_Path);
    end Request_Paths_Are_Consistent;
 
    function Watch_Path_Is_Consistent (Path : String) return Boolean is
      (Path'Length <= Max_Watch_Path_Length
-      and then Valid_Absolute_Path (Path));
+      and then Files.Path_Checks.Valid_Absolute_Path (Path));
 
    function Is_Consistent (Done : Outcome) return Boolean is
      (Done.Success = (Length (Done.Error_Key) = 0)
@@ -148,7 +145,7 @@ package body Files.Refresh is
    end Read_Identity_Body;
 
    function Identity_Is_Consistent (Ident : Request_Identity) return Boolean is
-     (Length (Ident.Root) = 0 or else Valid_Absolute_Path (To_String (Ident.Root)));
+     (Length (Ident.Root) = 0 or else Files.Path_Checks.Valid_Absolute_Path (To_String (Ident.Root)));
 
    function Read_Identity_Record is new Files.IO.Lease_Streams.Read_Record
      (Request_Identity, Read_Identity_Body, Identity_Is_Consistent, Whole => False);

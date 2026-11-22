@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Controller.Testing;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Commands)
@@ -43,10 +44,10 @@ separate (Files_Suite.Commands)
          pragma Unreferenced (Homed);
          Moved : Boolean;
       begin
-         Items.Append (Files.File_System.Make_Item
+         Items.Append (Files.Item_Lists.Make_Item
                          (Files_Suite.Support.Disk.Root, Hebrew & ".txt", Files.Types.Regular_File_Item,
                           "text/plain"));
-         Items.Append (Files.File_System.Make_Item
+         Items.Append (Files.Item_Lists.Make_Item
                          (Files_Suite.Support.Disk.Root, U8 ("גבא.txt"), Files.Types.Regular_File_Item,
                           "text/plain"));
          Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);

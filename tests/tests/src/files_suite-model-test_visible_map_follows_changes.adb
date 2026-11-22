@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Model.Filtering;
 with Files.UI_Types;
 with Files.Preference_Types;
@@ -19,7 +20,7 @@ separate (Files_Suite.Model)
          for Index in Names'Range loop
             if Names (Index) = ' ' or else Index = Names'Last then
                Result.Append
-                 (Files.File_System.Make_Item
+                 (Files.Item_Lists.Make_Item
                     (Files_Suite.Support.Disk.Root,
                      Names (First .. (if Names (Index) = ' ' then Index - 1 else Index)),
                      Files.Types.Regular_File_Item, "text/plain"));
@@ -90,7 +91,7 @@ separate (Files_Suite.Model)
 
       --  Grouping reorders the items under the filter.
       Mixed.Append
-        (Files.File_System.Make_Item
+        (Files.Item_Lists.Make_Item
            (Files_Suite.Support.Disk.Root, "atlas-et", Files.Types.Directory_Item, "inode/directory"));
       Files.Model.Replace_Items (Model, Mixed);
       Check ("a refresh with a folder under the filter");

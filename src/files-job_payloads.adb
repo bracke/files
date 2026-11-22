@@ -34,10 +34,6 @@ package body Files.Job_Payloads is
 
    function Nul_Free (Value : String) return Boolean renames Files.Path_Checks.Nul_Free;
 
-   function Valid_Absolute_Path
-     (Value : Files.Types.UString) return Boolean is
-       (Files.Path_Checks.Valid_Absolute_Path (To_String (Value)));
-
    function Thumbnail_Is_Valid
      (Value : Files.Items.Directory_Item) return Boolean
    is
@@ -64,13 +60,13 @@ package body Files.Job_Payloads is
    function Item_Is_Consistent
      (Value : Files.Items.Directory_Item) return Boolean is
    begin
-      return Valid_Absolute_Path (Value.Full_Path)
-        and then Valid_Absolute_Path (Value.Parent_Path)
+      return Files.Path_Checks.Valid_Absolute_Path (Value.Full_Path)
+        and then Files.Path_Checks.Valid_Absolute_Path (Value.Parent_Path)
         and then Length (Value.Name) > 0
         and then Nul_Free (To_String (Value.Name))
         and then
           (Length (Value.Thumbnail_Path) = 0
-           or else Valid_Absolute_Path (Value.Thumbnail_Path))
+           or else Files.Path_Checks.Valid_Absolute_Path (Value.Thumbnail_Path))
         and then Thumbnail_Is_Valid (Value)
         and then (not Value.Size_Available or else Value.Size >= 0);
    end Item_Is_Consistent;

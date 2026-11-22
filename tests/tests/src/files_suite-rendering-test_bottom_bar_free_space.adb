@@ -1,26 +1,18 @@
+with Files.Rendering.Display_Text;
 with Files.Preference_Types;
 with Files.File_System_Types;
 with Files.Model.Status_Samples;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Rendering)
-   --  The grouping field (index 9) is laid out as two rows: a label row and a
-   --  dedicated segment row spanning the full content width. The five option
-   --  segments (None / Type / Modified / Size / Label) therefore sit on their
-   --  own row BELOW the label and together span the whole control width (each
-   --  roughly a fifth), instead of being squeezed into a partial width shared
-   --  with the label. They render even when the field is not the focused one,
-   --  so the measured content height -- and thus the scroll bound -- always
-   --  accounts for the extra row.
-   --  A click on a grouping option segment resolves through the hit-test to that
-   --  option (field 9, the clicked option index) at the segment's new row Y --
-   --  the same field/option the events layer feeds to Settings_Pane.Click -- so
-   --  choosing a grouping mode still works after the layout split.
+   --  The bottom bar shows "<size> free" only when free space is known,
+   --  and a snapshot shows the free space the window sampled into the model
+   --  (Status_Samples) without querying the disk itself; a sample goes stale
+   --  after its refresh interval and belongs to the folder it was taken for.
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
 
       Free_Word : constant String :=
         Ada.Strings.Fixed.Trim (Files.Localization.Text ("status.free_space", "size", ""), Ada.Strings.Both);
-      Gib_Unit  : constant String := Files.Localization.Text ("details.size.unit.gib");
       Known     : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Small_Icons);
       Unknown   : View_Snapshot := Sample_Snapshot (4, Files.Preference_Types.Small_Icons);
       Frame     : Frame_Commands;
@@ -32,8 +24,8 @@ separate (Files_Suite.Rendering)
       Frame := Build_Frame_Commands (Known, Width => 1200, Height => 800, Line_Height => 20);
       Assert (Frame_Has_Text (Frame, Free_Word),
               "the bottom bar renders the localized free-space suffix when free space is known");
-      Assert (Frame_Has_Text (Frame, Gib_Unit),
-              "the free-space indicator formats the value with the shared size unit");
+      Assert (Frame_Has_Text (Frame, Files.Rendering.Display_Text.Size_Text (Known.Free_Space_Bytes)),
+              "the free-space indicator formats the value as every size is formatted");
 
       --  An unknown (unreported) value emits no free-space text at all.
       Unknown.Free_Space_Known := False;

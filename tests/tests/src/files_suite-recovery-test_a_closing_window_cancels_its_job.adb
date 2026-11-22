@@ -1,3 +1,4 @@
+with Files.Operations.Paste.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -76,7 +77,7 @@ separate (Files_Suite.Recovery)
       Actions.Append (Files.Paste.Resolved_Action'
                         (To_Unbounded_String (Join (Root, "new-two.txt")),
                          To_Unbounded_String (Join (Root, "two.txt")), False, False));
-      Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
+      Files.Operations.Paste.Testing.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy);
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
       Assert (Step.Status = Files.Operation_Results.Operation_Success
               and then Files.Model.Foreground_Job_Is_Active (Model)

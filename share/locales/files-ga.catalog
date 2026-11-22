@@ -6,7 +6,3 @@ ga.time.weekday.friday = Dé hAoine
 ga.time.weekday.saturday = Dé Sathairn
 ga.time.weekday.sunday = Dé Domhnaigh
 ga.details.size.unit.bytes = beart
-ga.details.size.unit.kib = kB
-ga.details.size.unit.mib = MB
-ga.details.size.unit.gib = GB
-ga.details.size.unit.tib = TB

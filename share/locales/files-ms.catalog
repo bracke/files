@@ -6,7 +6,3 @@ ms.time.weekday.friday = Jumaat
 ms.time.weekday.saturday = Sabtu
 ms.time.weekday.sunday = Ahad
 ms.details.size.unit.bytes = bait
-ms.details.size.unit.kib = kB
-ms.details.size.unit.mib = MB
-ms.details.size.unit.gib = GB
-ms.details.size.unit.tib = TB

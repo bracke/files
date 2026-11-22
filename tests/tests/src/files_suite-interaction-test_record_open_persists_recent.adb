@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Input_Actions;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Disk;
@@ -20,7 +21,7 @@ separate (Files_Suite.Interaction)
       Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Dir);
       Items.Append
-        (Files.File_System.Make_Item
+        (Files.Item_Lists.Make_Item
            (Files_Suite.Support.Disk.Root, "opened-dir", Files.Types.Directory_Item, "inode/directory"));
       Files.Model.Initialize (Model, Files_Suite.Support.Disk.Root, Items, Files_Suite.Support.Disk.Root);
       Files.Model.Selection.Select_Visible (Model, 1);

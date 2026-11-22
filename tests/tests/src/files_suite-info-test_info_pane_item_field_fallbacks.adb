@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Rendering.Testing;
@@ -14,7 +15,7 @@ separate (Files_Suite.Info)
       declare
          Items          : Files.Items.Item_Vectors.Vector;
          Broken_Item    : Files.Items.Directory_Item :=
-           Files.File_System.Make_Item
+           Files.Item_Lists.Make_Item
              (Parent_Path => Root,
               Name        => "broken.txt",
               Kind        => Files.Types.Regular_File_Item,
@@ -71,7 +72,7 @@ separate (Files_Suite.Info)
       declare
          Items : Files.Items.Item_Vectors.Vector;
          Exec_Item : Files.Items.Directory_Item :=
-           Files.File_System.Make_Item
+           Files.Item_Lists.Make_Item
              (Parent_Path => Root,
               Name        => "run.sh",
               Kind        => Files.Types.Executable_Item,
@@ -95,7 +96,7 @@ separate (Files_Suite.Info)
          Items : Files.Items.Item_Vectors.Vector;
       begin
          Items.Append
-           (Files.File_System.Make_Item
+           (Files.Item_Lists.Make_Item
               (Parent_Path => Join (Root, "missing-parent"),
                Name        => "ghost.bin",
                Kind        => Files.Types.Regular_File_Item,

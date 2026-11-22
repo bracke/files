@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Commands.Context_Menus;
 with Files.Items;
 with Files.Commands.Status;
@@ -14,7 +15,7 @@ separate (Files_Suite.Commands)
       Shift    : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
       Reset_Root;
-      Items.Append (Files.File_System.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
       Files.Model.Initialize (Model, Root, Items, Root);
 
       --  The Menu key opens the context menu; Escape closes it again.

@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Preference_Types;
 with Files.Overlays.Settings_Form;
 with Files.Input_Actions;
@@ -46,10 +47,10 @@ separate (Files_Suite.Interaction)
          Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Files_Suite.Support.Disk.Root,
                                                                              "Beta.txt"));
          Items.Append
-           (Files.File_System.Make_Item
+           (Files.Item_Lists.Make_Item
               (Files_Suite.Support.Disk.Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
          Items.Append
-           (Files.File_System.Make_Item
+           (Files.Item_Lists.Make_Item
               (Files_Suite.Support.Disk.Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
          Files.Model.Initialize
            (Model,

@@ -35,4 +35,26 @@ package body Files.Localization.Testing is
       end;
    end Render_With_Shard;
 
+   function Text_With_Shards
+     (Base, Language_Shard, Region_Shard, Locale, Key : String)
+      return String
+   is
+      Item : Messages.Runtime.Runtime;
+   begin
+      Messages.Runtime.Initialize (Item, Base);
+      if not Messages.Runtime.Is_Valid (Item)
+        or else not Load_Locale_Shard (Item, Language_Shard)
+        or else not Load_Locale_Shard (Item, Region_Shard)
+      then
+         Messages.Runtime.Finalize (Item);
+         return "";
+      end if;
+      declare
+         Text : constant String := Regional_Text (Item, Key, Locale);
+      begin
+         Messages.Runtime.Finalize (Item);
+         return Text;
+      end;
+   end Text_With_Shards;
+
 end Files.Localization.Testing;

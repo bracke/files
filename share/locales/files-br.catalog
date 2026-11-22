@@ -6,7 +6,3 @@ br.time.weekday.friday = Gwener
 br.time.weekday.saturday = Sadorn
 br.time.weekday.sunday = Sul
 br.details.size.unit.bytes = o
-br.details.size.unit.kib = ko
-br.details.size.unit.mib = Mo
-br.details.size.unit.gib = Go
-br.details.size.unit.tib = To

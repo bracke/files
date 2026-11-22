@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.File_System_Types;
 with Ada.Calendar;
 with Files_Suite.Support.Disk;
@@ -18,7 +19,7 @@ separate (Files_Suite.Model)
       for Name of Name_Array'(1 => To_Unbounded_String ("big"), 2 => To_Unbounded_String ("small")) loop
          declare
             Item : Files.Items.Directory_Item :=
-              Files.File_System.Make_Item
+              Files.Item_Lists.Make_Item
                 (Files_Suite.Support.Disk.Root, To_String (Name), Files.Types.Directory_Item, "inode/directory");
          begin
             Item.Modified_Time := Ada.Calendar.Time_Of (2026, 1, 1);

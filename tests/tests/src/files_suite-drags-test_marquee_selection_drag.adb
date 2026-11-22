@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Rendering.Layouts.Details;
 with Files.Preference_Types;
 with Files.Input_Actions;
@@ -17,7 +18,7 @@ separate (Files_Suite.Drags)
       --  out no scrollbar, so an empty-grid press is unambiguous.
       for Index in 1 .. 6 loop
          Items.Append
-           (Files.File_System.Make_Item
+           (Files.Item_Lists.Make_Item
               (Files_Suite.Support.Disk.Root, "item-" & Files.Text_Basics.Natural_Text (Index),
                Files.Types.Regular_File_Item, "text/plain"));
       end loop;
@@ -196,7 +197,7 @@ separate (Files_Suite.Drags)
             Refreshed : Files.Items.Item_Vectors.Vector := Items;
          begin
             Refreshed.Prepend
-              (Files.File_System.Make_Item
+              (Files.Item_Lists.Make_Item
                  (Files_Suite.Support.Disk.Root, "item-0", Files.Types.Regular_File_Item, "text/plain"));
             Files.Model.Replace_Items (Model, Refreshed);
          end;

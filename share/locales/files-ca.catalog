@@ -6,7 +6,3 @@ ca.time.weekday.friday = divendres
 ca.time.weekday.saturday = dissabte
 ca.time.weekday.sunday = diumenge
 ca.details.size.unit.bytes = B
-ca.details.size.unit.kib = kB
-ca.details.size.unit.mib = MB
-ca.details.size.unit.gib = GB
-ca.details.size.unit.tib = TB

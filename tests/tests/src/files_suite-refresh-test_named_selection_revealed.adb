@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Rendering.Testing;
@@ -22,7 +23,7 @@ separate (Files_Suite.Refresh)
       Reset_Root;
       for Index in 1 .. 60 loop
          Items.Append
-           (Files.File_System.Make_Item (Root, "f" & Index'Image, Files.Types.Regular_File_Item, "text/plain"));
+           (Files.Item_Lists.Make_Item (Root, "f" & Index'Image, Files.Types.Regular_File_Item, "text/plain"));
       end loop;
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);

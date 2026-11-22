@@ -6,7 +6,3 @@ dsb.time.weekday.friday = pětk
 dsb.time.weekday.saturday = sobota
 dsb.time.weekday.sunday = njeźela
 dsb.details.size.unit.bytes = byte
-dsb.details.size.unit.kib = kB
-dsb.details.size.unit.mib = MB
-dsb.details.size.unit.gib = GB
-dsb.details.size.unit.tib = TB

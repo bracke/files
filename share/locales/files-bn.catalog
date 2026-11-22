@@ -6,7 +6,3 @@ bn.time.weekday.friday = শুক্রবার
 bn.time.weekday.saturday = শনিবার
 bn.time.weekday.sunday = রবিবার
 bn.details.size.unit.bytes = byte
-bn.details.size.unit.kib = kB
-bn.details.size.unit.mib = MB
-bn.details.size.unit.gib = GB
-bn.details.size.unit.tib = TB

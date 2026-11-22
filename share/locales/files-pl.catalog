@@ -6,7 +6,3 @@ pl.time.weekday.friday = piątek
 pl.time.weekday.saturday = sobota
 pl.time.weekday.sunday = niedziela
 pl.details.size.unit.bytes = B
-pl.details.size.unit.kib = kB
-pl.details.size.unit.mib = MB
-pl.details.size.unit.gib = GB
-pl.details.size.unit.tib = TB

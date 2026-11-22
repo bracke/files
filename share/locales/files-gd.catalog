@@ -6,7 +6,3 @@ gd.time.weekday.friday = DihAoine
 gd.time.weekday.saturday = DiSathairne
 gd.time.weekday.sunday = DiDòmhnaich
 gd.details.size.unit.bytes = B
-gd.details.size.unit.kib = kB
-gd.details.size.unit.mib = MB
-gd.details.size.unit.gib = GB
-gd.details.size.unit.tib = TB

@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Preference_Types;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
@@ -50,7 +51,7 @@ separate (Files_Suite.Drags)
    begin
       for Index in 1 .. 4 loop
          Items.Append
-           (Files.File_System.Make_Item
+           (Files.Item_Lists.Make_Item
               (Files_Suite.Support.Disk.Root, "item-" & Files.Text_Basics.Natural_Text (Index),
                Files.Types.Regular_File_Item, "text/plain"));
       end loop;

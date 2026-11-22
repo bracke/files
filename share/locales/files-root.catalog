@@ -1,5 +1,1 @@
 root.details.size.unit.bytes = byte
-root.details.size.unit.kib = kB
-root.details.size.unit.mib = MB
-root.details.size.unit.gib = GB
-root.details.size.unit.tib = TB

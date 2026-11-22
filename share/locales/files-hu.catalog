@@ -6,7 +6,3 @@ hu.time.weekday.friday = péntek
 hu.time.weekday.saturday = szombat
 hu.time.weekday.sunday = vasárnap
 hu.details.size.unit.bytes = bájt
-hu.details.size.unit.kib = kB
-hu.details.size.unit.mib = MB
-hu.details.size.unit.gib = GB
-hu.details.size.unit.tib = TB

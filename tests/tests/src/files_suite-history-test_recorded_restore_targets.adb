@@ -1,3 +1,4 @@
+with Files.Operations.Paste.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -52,8 +53,9 @@ separate (Files_Suite.History)
                   Actions.Clear;
                   Actions.Append (Files.Paste.Resolved_Action'
                     (To_Unbounded_String (Join (Root, "inbox/entry")), To_Unbounded_String (Source), False, True));
-                  Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Files.File_System_Types.Drop_Copy,
-                                                                False);
+                  Files.Operations.Paste.Testing.Begin_Paste_Execution
+                    (Model, Actions, Files.File_System_Types.Drop_Copy,
+                     False);
                   Step := Complete_Operation
                     (Model, Settings, Files.Job_Drivers.Foreground.Advance (Model, Settings, 1));
                   Await_View (Model, Settings);

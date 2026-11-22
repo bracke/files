@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files_Suite.Listings;
 with Files.Model.Testing;
 with Files.Operation_Results;
@@ -32,7 +33,7 @@ separate (Files_Suite.Transfer)
 
       --  A collision-free drop arms the resumable executor and runs the first
       --  batch; a set larger than one batch keeps the progress state active.
-      Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+      Routed := Files.Controller.Testing.Handle_Drop_Import (Model, Settings, Sources);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operation_Results.Operation_Success,

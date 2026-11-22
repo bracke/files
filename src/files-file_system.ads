@@ -305,21 +305,6 @@ package Files.File_System is
       Path         : String)
       return Directory_Change_Result;
 
-   --  Build an item value for tests and pure model setup, reading no disk
-   --  (Files.Item_Lists.Make_Item): hidden when its name starts with a dot.
-   --
-   --  @param Parent_Path Parent directory path.
-   --  @param Name Item name.
-   --  @param Kind Filesystem item kind.
-   --  @param Filetype Filetype identifier.
-   --  @return Directory item value.
-   function Make_Item
-     (Parent_Path : String;
-      Name        : String;
-      Kind        : Files.Types.Item_Kind;
-      Filetype    : String := "")
-      return Directory_Item;
-
    --  Build an item value classified by Classes, as a listing would.
    --
    --  @param Parent_Path Parent directory path.

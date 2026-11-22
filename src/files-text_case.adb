@@ -314,15 +314,6 @@ package body Files.Text_Case is
       return Ada.Strings.Unbounded.To_String (Result);
    end Fold_Case;
 
-   function Contains_Case_Insensitive
-     (Haystack : String;
-      Needle   : String)
-      return Boolean
-   is
-   begin
-      return Contains_Folded (Haystack, Fold_Case (Needle));
-   end Contains_Case_Insensitive;
-
    function Is_Ascii (Text : String) return Boolean is
      (for all C of Text => Character'Pos (C) < 128);
 

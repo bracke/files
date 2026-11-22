@@ -168,10 +168,11 @@ package Files.Application.Windows.Smoke is
    end record;
 
    --  Render one window model through the snapshot, frame, text and Vulkan
-   --  submission stages without opening a native window, as --runtime-smoke
-   --  does for each startup window: with the host's samples (free space,
-   --  owner names) taken first, at the line height and font size the settings
-   --  give, as the window draws it.
+   --  submission stages without opening a native window, exactly as
+   --  --runtime-smoke (Headless_Render_Quality_Report) does for each startup
+   --  window: grouped, with the host's samples (free space, owner names)
+   --  taken first, at the line height and font size the settings give, with
+   --  no pointer over it -- as the window draws it.
    --
    --  @param Model Window model to render.
    --  @param Settings Settings the window is drawn with.

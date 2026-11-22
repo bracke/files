@@ -1,3 +1,4 @@
+with Files.Operations.Opening.Testing;
 with Files.Operations.Opening;
 with Files.Operation_Results;
 with Files.Settings.Testing;
@@ -62,7 +63,7 @@ separate (Files_Suite.Open_Actions)
          Exit_Status : Integer := -1;
          Failure_Key : Ada.Strings.Unbounded.Unbounded_String;
          Ran         : constant Boolean :=
-           Files.Operations.Opening.Execute_Open_Action (Result.Action, Exit_Status, Failure_Key);
+           Files.Operations.Opening.Testing.Execute_Open_Action (Result.Action, Exit_Status, Failure_Key);
       begin
          Assert (Ran, "the quoted shell action runs to completion when awaited");
          Files_Suite.Support.Assert_Equal

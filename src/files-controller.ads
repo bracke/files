@@ -368,14 +368,6 @@ package Files.Controller is
       Modifiers    : Guikit.Input.Modifier_Set)
       return Controller_Result;
 
-   --  Whether dropped paths may be imported now: not while an overlay owns
-   --  the input (a dialog, the palette, a paste's progress), which would turn
-   --  the import away. Until it closes the drop stays queued, not lost.
-   --
-   --  @param Model Window model to inspect.
-   --  @return True when Handle_Drop_Import would import a drop.
-   function Accepts_Drop_Import (Model : Files.Model.Window_Model) return Boolean;
-
    --  Import the drop Source holds (Handle_Drop_Import), once the window
    --  accepts one (Accepts_Drop_Import): while an overlay owns the input the
    --  drop stays queued in Source, to be imported when the overlay closes.
@@ -387,23 +379,6 @@ package Files.Controller is
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
       Source   : in out Files.Drop_Events.Drop_Event_Source);
-
-   --  Import paths dropped into the current window through the paste engine, so
-   --  a drop gets the same conflict dialog and resumable progress/cancel overlay
-   --  as clipboard paste (a name collision arms the dialog instead of silently
-   --  auto-renaming).
-   --
-   --  @param Model Window model to update.
-   --  @param Settings Settings model used by operations.
-   --  @param Source_Paths Dropped filesystem paths.
-   --  @param Mode Copy or move mode.
-   --  @return Controller result with drop-import operation details.
-   function Handle_Drop_Import
-     (Model        : in out Files.Model.Window_Model;
-      Settings     : Files.Settings.Settings_Model;
-      Source_Paths : Files.Types.String_Vectors.Vector;
-      Mode         : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy)
-      return Controller_Result;
 
    --  Handle a scroll action for a specific scrollable area.
    --
@@ -473,6 +448,31 @@ package Files.Controller is
       return Controller_Result;
 
 private
+
+   --  Whether dropped paths may be imported now: not while an overlay owns
+   --  the input (a dialog, the palette, a paste's progress), which would turn
+   --  the import away. Until it closes the drop stays queued, not lost.
+   --
+   --  @param Model Window model to inspect.
+   --  @return True when Handle_Drop_Import would import a drop.
+   function Accepts_Drop_Import (Model : Files.Model.Window_Model) return Boolean;
+
+   --  Import paths dropped into the current window through the paste engine, so
+   --  a drop gets the same conflict dialog and resumable progress/cancel overlay
+   --  as clipboard paste (a name collision arms the dialog instead of silently
+   --  auto-renaming).
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used by operations.
+   --  @param Source_Paths Dropped filesystem paths.
+   --  @param Mode Copy or move mode.
+   --  @return Controller result with drop-import operation details.
+   function Handle_Drop_Import
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Source_Paths : Files.Types.String_Vectors.Vector;
+      Mode         : Files.File_System_Types.Drop_Import_Mode := Files.File_System_Types.Drop_Copy)
+      return Controller_Result;
 
    --  Validate, apply, refresh, and save edited settings (Commit_Settings): a
    --  valid draft is applied even when the save then fails, and the failure

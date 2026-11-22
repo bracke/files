@@ -1,3 +1,4 @@
+with Files.Operations.Paste.Testing;
 with Files.Operations.History;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -40,7 +41,7 @@ separate (Files_Suite.Transfer)
                Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS",
                  (case Fault is when 1 => "missing", when 2 => "checkpoint", when 3 => "journal",
                   when others => "replacement"));
-               Files.Operations.Paste.Begin_Paste_Execution (Model, Actions, Mode, False);
+               Files.Operations.Paste.Testing.Begin_Paste_Execution (Model, Actions, Mode, False);
                Step := Complete_Operation
                  (Model, Settings, Files.Job_Drivers.Foreground.Advance (Model, Settings, 1));
                Await_View (Model, Settings);

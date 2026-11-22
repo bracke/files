@@ -6,7 +6,3 @@ vi.time.weekday.friday = Thứ Sáu
 vi.time.weekday.saturday = Thứ Bảy
 vi.time.weekday.sunday = Chủ Nhật
 vi.details.size.unit.bytes = byte
-vi.details.size.unit.kib = kB
-vi.details.size.unit.mib = MB
-vi.details.size.unit.gib = GB
-vi.details.size.unit.tib = TB

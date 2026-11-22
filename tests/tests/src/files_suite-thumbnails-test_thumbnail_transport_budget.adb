@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Ada.Containers;
 with Ada.Streams.Stream_IO;
 separate (Files_Suite.Thumbnails)
@@ -45,7 +46,7 @@ separate (Files_Suite.Thumbnails)
          Photo   : Files.Items.Directory_Item;
       begin
          Reset_Root;
-         Photo := Files.File_System.Make_Item (Root, "photo.png", Files.Types.Regular_File_Item);
+         Photo := Files.Item_Lists.Make_Item (Root, "photo.png", Files.Types.Regular_File_Item);
          Photo.Thumbnail_Available := Items.Last_Element.Thumbnail_Available;
          Photo.Thumbnail_Width := Items.Last_Element.Thumbnail_Width;
          Photo.Thumbnail_Height := Items.Last_Element.Thumbnail_Height;

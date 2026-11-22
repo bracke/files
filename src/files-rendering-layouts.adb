@@ -228,16 +228,6 @@ package body Files.Rendering.Layouts is
       return Tree_Panel_Layout
  is separate;
 
-   function Input_Scroll_Columns
-     (Text        : String;
-      Cursor      : Natural;
-      Text_Width  : Natural;
-      Line_Height : Positive)
-      return Natural
-   is
-     (Guikit.Layout.Input_Scroll_Columns
-        (Guikit.Utf8.Display_Units_Before (Text, Natural'Min (Cursor, Text'Length)), Text_Width, Line_Height));
-
    function Tree_Row_Capacity (Snapshot : View_Snapshot; Layout : Tree_Panel_Layout) return Natural is separate;
 
    function Main_View_Max_Scroll (Main : Main_View_Layout; Line_Height : Positive) return Natural is separate;

@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 separate (Files_Suite.Commands)
    procedure Test_Shift_Click_Range_Anchor (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,7 +15,7 @@ separate (Files_Suite.Commands)
       --  (01.txt .. 09.txt), so a visible index equals the item's number.
       for N in 1 .. 9 loop
          Items.Append
-           (Files.File_System.Make_Item
+           (Files.Item_Lists.Make_Item
               (Root,
                "0" & Character'Val (Character'Pos ('0') + N) & ".txt",
                Files.Types.Regular_File_Item,

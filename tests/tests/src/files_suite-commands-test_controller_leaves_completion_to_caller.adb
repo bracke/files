@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Commands.Context_Menus;
 with Files.Preference_Types;
 with Files.Items;
@@ -20,7 +21,7 @@ separate (Files_Suite.Commands)
       Result   : Files.Controller.Controller_Result;
    begin
       Reset_Root;
-      Items.Append (Files.File_System.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.Item_Lists.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Selection.Select_Visible (Model, 1);
 

@@ -6,7 +6,3 @@ lo.time.weekday.friday = ວັນສຸກ
 lo.time.weekday.saturday = ວັນເສົາ
 lo.time.weekday.sunday = ວັນອາທິດ
 lo.details.size.unit.bytes = byte
-lo.details.size.unit.kib = kB
-lo.details.size.unit.mib = MB
-lo.details.size.unit.gib = GB
-lo.details.size.unit.tib = TB

@@ -6,7 +6,3 @@ lb.time.weekday.friday = Freideg
 lb.time.weekday.saturday = Samschdeg
 lb.time.weekday.sunday = Sonndeg
 lb.details.size.unit.bytes = B
-lb.details.size.unit.kib = kB
-lb.details.size.unit.mib = MB
-lb.details.size.unit.gib = GB
-lb.details.size.unit.tib = TB

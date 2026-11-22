@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Model.Info_Pane;
 with Files.Rendering.Testing;
 with Files.Extra_Info;
@@ -19,7 +20,7 @@ separate (Files_Suite.Info)
       is
          Items : Files.Items.Item_Vectors.Vector;
          Item  : Files.Items.Directory_Item :=
-           Files.File_System.Make_Item
+           Files.Item_Lists.Make_Item
              (Parent_Path => Root,
               Name        => Name,
               Kind        => Kind,

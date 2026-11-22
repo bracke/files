@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Model.Filtering;
 with Files.UI_Types;
 with Files.Preference_Types;
@@ -52,7 +53,7 @@ separate (Files_Suite.Model)
            & Byte (16#C3#) & Byte (16#A9#);
       begin
          Unicode_Items.Append
-           (Files.File_System.Make_Item (Root, Upper_Name, Files.Types.Regular_File_Item, "text/plain"));
+           (Files.Item_Lists.Make_Item (Root, Upper_Name, Files.Types.Regular_File_Item, "text/plain"));
          Files.Model.Initialize (Unicode_Model, Root, Unicode_Items, Root, Files.Preference_Types.Small_Icons);
          Files.Model.Filtering.Set_Filter (Unicode_Model, Lower_Query);
          Files_Suite.Support.Assert_Equal

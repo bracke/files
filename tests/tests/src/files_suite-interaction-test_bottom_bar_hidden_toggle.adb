@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 with Files.Input_Actions;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
@@ -14,13 +15,13 @@ separate (Files_Suite.Interaction)
          Items : Files.Items.Item_Vectors.Vector;
       begin
          Items.Append
-           (Files.File_System.Make_Item
+           (Files.Item_Lists.Make_Item
               (Files_Suite.Support.Disk.Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
          Items.Append
-           (Files.File_System.Make_Item
+           (Files.Item_Lists.Make_Item
               (Files_Suite.Support.Disk.Root, ".hidden_one", Files.Types.Regular_File_Item, "text/plain"));
          Items.Append
-           (Files.File_System.Make_Item
+           (Files.Item_Lists.Make_Item
               (Files_Suite.Support.Disk.Root, ".hidden_two", Files.Types.Regular_File_Item, "text/plain"));
          return Items;
       end Items_With_Hidden;
