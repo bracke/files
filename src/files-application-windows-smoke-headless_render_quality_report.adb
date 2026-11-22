@@ -152,6 +152,10 @@ separate (Files.Application.Windows.Smoke)
          end;
       end loop;
 
+      --  A missing glyph fails this report, unlike the live window's: the
+      --  headless frames draw the shipped sample text with the bundled
+      --  fonts, so a glyph missing here is a regression, not a host lacking
+      --  a fallback font (the window layer must not reject for that).
       Result.Passed :=
         Result.Frame_Count = Result.Window_Count
         and then Result.Window_Count > 0
