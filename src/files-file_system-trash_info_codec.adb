@@ -1,7 +1,7 @@
 with Ada.Strings.Unbounded;
 with Files.Hex_Text;
 
-package body Files.Trash_Info_Codec is
+package body Files.File_System.Trash_Info_Codec is
 
    use Ada.Strings.Unbounded;
 
@@ -47,4 +47,4 @@ package body Files.Trash_Info_Codec is
       return To_String (Result);
    end Decode;
 
-end Files.Trash_Info_Codec;
+end Files.File_System.Trash_Info_Codec;

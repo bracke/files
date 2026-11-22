@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Info)
@@ -14,7 +15,7 @@ separate (Files_Suite.Info)
       Reset_Root;
       Write_Binary_File (Join (Root, "a.txt"), "a bytes");
       Write_Binary_File (Join (Root, "b.txt"), "b bytes");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "a.txt");
       Files.Model.Toggle_Info_Pane (Model);

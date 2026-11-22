@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Testing;
 separate (Files_Suite.Transfer)
@@ -32,7 +33,7 @@ separate (Files_Suite.Transfer)
          "drop import copies directories");
       Assert (Ada.Directories.Exists (Source_File), "drop copy preserves source file");
 
-      Load := Files.File_System.Load_Directory (Drop_Target, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Drop_Target, Settings);
       Files.Model.Initialize (Model, Drop_Target, Load.Items, Root);
       Sources.Clear;
       Sources.Append (To_Unbounded_String (Source_File));
@@ -63,7 +64,7 @@ separate (Files_Suite.Transfer)
 
       Ada.Directories.Create_Path (Join (Drop_Target, "nested-target"));
       Write_File (Join (Drop_Target, "drag-source.txt"), "drag");
-      Load := Files.File_System.Load_Directory (Drop_Target, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Drop_Target, Settings);
       Files.Model.Initialize (Model, Drop_Target, Load.Items, Root);
       Sources.Clear;
       Sources.Append (To_Unbounded_String (Join (Drop_Target, "drag-source.txt")));

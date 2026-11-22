@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 separate (Files_Suite.Search)
    procedure Test_Search_Result_Actions_Stay_Beside_Source (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -29,11 +29,11 @@ separate (Files_Suite.Search)
       --  Show the recursive name search for Query, with its one hit selected.
       procedure Search (Query : String) is
       begin
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, False);
          Files.Model.Set_Filter (Model, Query);
-         Result := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
+         Result := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
          Assert (Files.Model.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 1,
                  "the search finds the one deep file for " & Query);
          Files.Model.Selection.Select_Visible (Model, 1);
@@ -53,7 +53,7 @@ separate (Files_Suite.Search)
               "the renamed result stays in its own folder, not the search root");
 
       Search ("summary");
-      Result := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+      Result := Operation_Commands.Duplicate_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,
@@ -75,20 +75,20 @@ separate (Files_Suite.Search)
       --  model from its request: the results still count as results there.
       Search ("summary.txt");
       Files.Model.Set_Background_Transfers (Model, True);
-      Result := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+      Result := Operation_Commands.Duplicate_Selected (Model, Settings);
       Result := Complete_Operation (Model, Settings, Result);
       Assert (Entries (Deep) = 4 and then Entries (Root) = 1,
               "a helper's duplicate of a search result is made beside its source");
 
-      Load := Files.File_System.Load_Directory (Deep, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Deep, Settings);
       Files.Model.Initialize (Model, Deep, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, False);
       Assert (Files.Model.Selection.Select_By_Name (Model, "summary.txt"), "the file to archive is listed");
-      Result := Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive);
+      Result := Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive);
       Assert (Path_Exists (Join (Deep, "summary.zip")), "an archive is made beside the file");
       Search ("summary.zip");
       Files.Model.Set_Background_Transfers (Model, True);
-      Result := Files.Operation_Commands.Extract_Selected (Model, Settings);
+      Result := Operation_Commands.Extract_Selected (Model, Settings);
       Result := Complete_Operation (Model, Settings, Result);
       Assert (Path_Exists (Join (Join (Deep, "summary"), "summary.txt"))
               and then not Path_Exists (Join (Root, "summary")),

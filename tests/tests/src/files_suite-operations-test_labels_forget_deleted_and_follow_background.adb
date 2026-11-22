@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
    procedure Test_Labels_Forget_Deleted_And_Follow_Background (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -22,7 +22,7 @@ separate (Files_Suite.Operations)
 
       procedure Show_Root (Background : Boolean) is
       begin
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, Background);
       end Show_Root;
@@ -42,7 +42,7 @@ separate (Files_Suite.Operations)
          Show_Root (Background);
          Select_Name (Model, "gone.txt");
          Step := Complete_Operation
-           (Model, Settings, Files.Operation_Commands.Delete_Selected_Permanently (Model, Settings));
+           (Model, Settings, Operation_Commands.Delete_Selected_Permanently (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,
@@ -61,7 +61,7 @@ separate (Files_Suite.Operations)
          Show_Root (Background);
          Select_Name (Model, "folder");
          Step := Complete_Operation
-           (Model, Settings, Files.Operation_Commands.Delete_Selected_Permanently (Model, Settings));
+           (Model, Settings, Operation_Commands.Delete_Selected_Permanently (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,
@@ -90,7 +90,7 @@ separate (Files_Suite.Operations)
             Files.Preference_Types.Green,
             "the label follows the rename");
          Files.Model.Set_Background_Transfers (Model, Background);
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "undoing the rename succeeds" & Mode (Background));
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");

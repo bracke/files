@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Names)
    procedure Test_Invalid_Rename_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -9,7 +10,7 @@ separate (Files_Suite.Names)
    begin
       Reset_Root;
       Write_File (Join (Root, "old.txt"));
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "old.txt");
       Files.Model.Rename.Toggle (Model);

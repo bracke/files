@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
@@ -20,7 +21,7 @@ separate (Files_Suite.Operations)
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Root, "xdg"));
          Write_Binary_File (Source, "source bytes");
          Ada.Directories.Create_Directory (Locked);
-         Load := Files.File_System.Load_Directory (Locked, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Locked, Settings);
          Files.Model.Initialize (Model, Locked, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);

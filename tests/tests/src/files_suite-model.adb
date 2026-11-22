@@ -1,3 +1,4 @@
+with Files.Controller.Operation_Commands;
 with Files.Preference_Types;
 with Files.Controller.Testing;
 with Files.Operations;
@@ -37,7 +38,7 @@ with Files.Model.Folder_Sizes;
 with Files.Quick_Look;
 with Files.Rendering;
 with Files.Settings;
-with Files.Type_Ahead;
+with Files.Model.Selection.Type_Ahead;
 with Guikit.Input;
 with Files.Types;
 with Files.UI_Types;
@@ -48,6 +49,9 @@ with Files_Suite.Support.Models;
 with Files_Suite.Support.Disk;
 
 package body Files_Suite.Model is
+
+   --  The command entry points the tests drive, by a short name.
+   package Operation_Commands renames Files.Controller.Operation_Commands;
 
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;

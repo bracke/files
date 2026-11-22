@@ -3,7 +3,7 @@ with Files.Name_Parts;
 separate (Files.File_System)
 function Load_Directory_Filtered
   (Path     : String;
-   Settings : Files.Settings.Settings_Model;
+   Classes  : Files.File_Types.Classification;
    Options  : Files.Types.Listing_Options;
    Include  : access function
      (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
@@ -86,7 +86,7 @@ is
                   Admitted := True;
                   declare
                      Item : constant Directory_Item :=
-                       Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Settings, Cached, Hidden);
+                       Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Classes, Cached, Hidden);
                   begin
                      Items.Append (Item);
                   end;
@@ -169,7 +169,7 @@ begin
       end loop;
       Normalized_Path := To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Path));
    end if;
-   Sort_Items (Items, Options.Sort_Field, Options.Sort_Ascending);
+   Files.Item_Lists.Sort_Items (Items, Options.Sort_Field, Options.Sort_Ascending);
    return (Success => True, Path => Normalized_Path,
            Items => Items, Error_Key => Null_Unbounded_String,
            Signature =>

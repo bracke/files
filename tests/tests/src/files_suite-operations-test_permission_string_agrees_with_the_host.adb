@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 separate (Files_Suite.Operations)
    procedure Test_Permission_String_Agrees_With_The_Host (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,7 +9,7 @@ separate (Files_Suite.Operations)
 
       function Execute_Bit (Path : String) return Character is
          Loaded : constant Files.File_System.Item_Load_Result :=
-           Files.File_System.Load_Item (Path, Settings);
+           Files_Suite.Listings.Load_Item (Path, Settings);
          Text   : constant String := To_String (Loaded.Item.Permissions);
       begin
          Assert (Loaded.Success, "the item loads: " & Path);
@@ -73,7 +74,7 @@ separate (Files_Suite.Operations)
 
             declare
                Loaded : constant Files.File_System.Item_Load_Result :=
-                 Files.File_System.Load_Item (Probe, Settings);
+                 Files_Suite.Listings.Load_Item (Probe, Settings);
                Text   : constant String := To_String (Loaded.Item.Permissions);
                Label  : constant String := Natural'Image (Mode);
             begin

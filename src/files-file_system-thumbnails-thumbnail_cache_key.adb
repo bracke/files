@@ -4,7 +4,7 @@ function Thumbnail_Cache_Key
    return String
 is
 begin
-   return Files.Digests.SHA256_Hex
+   return Files.File_System.Digests.SHA256_Hex
      (Source_Path & ASCII.NUL
       & Files.File_Identities.Token (Source_Path) & ASCII.NUL
       & Files.File_Identities.Revision (Source_Path));

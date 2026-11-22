@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -24,8 +24,8 @@ separate (Files_Suite.History)
          Assert (Hostkit.Fs.Move_No_Replace (Path, Saved), "retain the owned history entry");
          Write_Binary_File (Path, "unrelated replacement");
          Step := Complete_Operation (Model, Settings,
-           (if Forward then Files.Operation_Commands.Redo_Last (Model, Settings)
-            else Files.Operation_Commands.Undo_Last (Model, Settings)));
+           (if Forward then Operation_Commands.Redo_Last (Model, Settings)
+            else Operation_Commands.Undo_Last (Model, Settings)));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operation_Results.Operation_Failed
                  and then File_Is (Path, "unrelated replacement"), "history refuses to move a replacement");
@@ -49,7 +49,7 @@ separate (Files_Suite.History)
                         return;
                      end if;
                end case;
-               Load := Files.File_System.Load_Directory (Root, Settings);
+               Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Operations.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
@@ -72,14 +72,14 @@ separate (Files_Suite.History)
                   Files.Operation_Results.Operation_Success,
                   "the initial history move succeeds");
                Replace_And_Refuse (Dest, False);
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
                   Files.Operation_Results.Operation_Success,
                   "Undo can retry the restored entry");
                Replace_And_Refuse (Source, True);
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
@@ -89,7 +89,7 @@ separate (Files_Suite.History)
                --  that the history transition already completed.
                Assert (Hostkit.Fs.Move_No_Replace (Dest, Saved), "remove the owned source pathname");
                Write_Binary_File (Source, "unrelated target");
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,

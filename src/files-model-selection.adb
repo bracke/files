@@ -1,5 +1,5 @@
 with Ada.Containers.Hashed_Sets;
-with Files.Type_Ahead;
+with Files.Model.Selection.Type_Ahead;
 with Guikit.Utf8.Editing;
 with Files.Model.Support;
 with Files.Text_Case;
@@ -156,7 +156,7 @@ package body Files.Model.Selection is
             else Null_Unbounded_String);
       begin
          Target :=
-           Files.Type_Ahead.Type_Ahead_Target
+           Files.Model.Selection.Type_Ahead.Type_Ahead_Target
              (Map_Count + (if Temporary_Is_Visible (Model) then 1 else 0),
               Name_At'Access, To_String (Prefix), Start);
       end;

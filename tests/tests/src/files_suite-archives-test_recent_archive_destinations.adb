@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Archives)
@@ -40,7 +40,7 @@ separate (Files_Suite.Archives)
          Ada.Directories.Set_Directory (Cwd);
          Step := Complete_Operation
            (Model, Settings,
-            Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,
@@ -64,13 +64,13 @@ separate (Files_Suite.Archives)
          Files.Settings.Path_References.Note_Recent (Settings, Zip);
          Files.Settings.Path_References.Note_Recent (Settings, Copy_Zip);
          Archives.Clear;
-         Loaded := Files.File_System.Load_Item (Zip, Settings);
+         Loaded := Files_Suite.Listings.Load_Item (Zip, Settings);
          Archives.Append (Loaded.Item);
-         Loaded := Files.File_System.Load_Item (Copy_Zip, Settings);
+         Loaded := Files_Suite.Listings.Load_Item (Copy_Zip, Settings);
          Archives.Append (Loaded.Item);
          Files.Model.Navigate_Recent (Model, Archives);
          Files.Model.Selection.Select_All_Visible (Model);
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Extract_Selected (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Extract_Selected (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,
@@ -103,7 +103,7 @@ separate (Files_Suite.Archives)
            (File_Has_Bytes (Join (Cwd, "keep"), "working directory bytes"),
             "each Recent archive extracts beside itself with collision handling and leaves CWD intact"
             & ": CWD file intact");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,

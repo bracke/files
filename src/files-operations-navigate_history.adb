@@ -1,4 +1,4 @@
-with Files.Commands;
+with Files.Command_Reasons;
 
 separate (Files.Operations)
 --  History navigation shared by Navigate_Back and Navigate_Forward: mirror
@@ -21,10 +21,10 @@ is
       else Files.Model.Can_Go_Forward (Model));
    --  The key the disabled Back/Forward command reports, not a copy of it.
    Error_Key      : constant String :=
-     Files.Commands.Reason_Key
+     Files.Command_Reasons.Reason_Key
        (if Direction = History_Back
-        then Files.Commands.Back_Unavailable_Reason
-        else Files.Commands.Forward_Unavailable_Reason);
+        then Files.Command_Reasons.Back_Unavailable_Reason
+        else Files.Command_Reasons.Forward_Unavailable_Reason);
 begin
    if not Available then
       return Disabled (Model, Error_Key);

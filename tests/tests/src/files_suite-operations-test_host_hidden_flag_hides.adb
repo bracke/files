@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 separate (Files_Suite.Operations)
    procedure Test_Host_Hidden_Flag_Hides (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -46,12 +47,12 @@ separate (Files_Suite.Operations)
       end if;
 
       Settings.Show_Hidden_Files := False;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Assert (Listed ("shown.txt") and then not Listed (".dotted"), "a dot file is hidden");
       Assert (not Marked or else not Listed ("flagged.txt"), "a file the host marks hidden is hidden");
 
       Settings.Show_Hidden_Files := True;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Assert (Listed (".dotted") and then Listed ("flagged.txt"), "Show Hidden Files lists both");
       Files_Suite.Support.Assert_Equal
@@ -66,8 +67,9 @@ separate (Files_Suite.Operations)
 
       --  One path loaded alone -- what Recent shows -- is hidden by the same
       --  rule as the listing.
-      Assert (Files.File_System.Load_Item (Join (Dir, ".dotted"), Settings).Item.Hidden, "a lone dot file is hidden");
       Assert
-        (not Marked or else Files.File_System.Load_Item (Flagged, Settings).Item.Hidden,
+        (Files_Suite.Listings.Load_Item (Join (Dir, ".dotted"), Settings).Item.Hidden, "a lone dot file is hidden");
+      Assert
+        (not Marked or else Files_Suite.Listings.Load_Item (Flagged, Settings).Item.Hidden,
          "a lone file the host marks hidden is hidden");
    end Test_Host_Hidden_Flag_Hides;

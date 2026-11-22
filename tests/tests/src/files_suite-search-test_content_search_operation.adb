@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Text_Encoding;
 with Files.Operation_Results;
@@ -91,7 +92,7 @@ separate (Files_Suite.Search)
         (Join (Search_Root, "binary.dat"), "needle" & Character'Val (0) & "needle");
       Big (Big'Last - 5 .. Big'Last) := "needle";
 
-      Load := Files.File_System.Load_Directory (Search_Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Search_Root, Settings);
       Files.Model.Initialize (Model, Search_Root, Load.Items, Root);
 
       --  Default scope is Filter_Here and the command is disabled without a query.

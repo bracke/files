@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Undo_Same_Size_Edits (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -19,12 +19,12 @@ separate (Files_Suite.History)
          Write_Binary_File (Source, "copied bytes");
          GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
            (Source, GNAT.OS_Lib.GM_Time_Of (2020, 1, 2, 3, 4, 5));
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Select_Name (Model, "original");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Duplicate_Selected (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Duplicate_Selected (Model, Settings));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Files.File_System.Tree_Revision (Dest) /= "",
@@ -50,7 +50,7 @@ separate (Files_Suite.History)
               (Files.File_System.Tree_Revision (Dest) /= Snapshot,
                "a same-size edit with restored mtime keeps its old metadata but changes its content digest"
                & ": content digest changed");
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
@@ -68,12 +68,12 @@ separate (Files_Suite.History)
          Write_Binary_File (Join (Source, "child"), "copied bytes");
          GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
            (Join (Source, "child"), GNAT.OS_Lib.GM_Time_Of (2020, 1, 2, 3, 4, 5));
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Select_Name (Model, "original");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Duplicate_Selected (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Duplicate_Selected (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
@@ -90,7 +90,7 @@ separate (Files_Suite.History)
             Assert (Files.File_Identities.Revision (Child, False) = Metadata
                     and then Files.File_System.Tree_Revision (Dest) /= Snapshot,
                     "a copied directory revision tracks same-size edits to a child");
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,

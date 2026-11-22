@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Controller.Testing;
 separate (Files_Suite.Operations)
@@ -16,7 +17,7 @@ separate (Files_Suite.Operations)
       Write_File (Join (Dir, ".hidden"));
 
       Settings.Show_Hidden_Files := False;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Dir);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),

@@ -2,7 +2,6 @@ with Files.Model.Jobs;
 with Files.Protocol_Names;
 with Files.Quick_Look.Preparation;
 with Files.Jobs.Helper_Modes;
-with Files.Items;
 with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
@@ -10,6 +9,8 @@ with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Files.IO.Record_Fields;
 with Files.File_System;
+with Files.File_Types;
+with Files.Settings.Path_References;
 with Files.IO.Exclusive_Streams;
 with Files.Jobs.Context;
 with Files.Job_Payloads;
@@ -518,7 +519,7 @@ package body Files.Refresh is
    begin
       Work := Read_Request (Hostkit.Fs.Join (Directory, Files.Jobs.Process.Request_File));
       if Work.Recent then
-         Done.Items := Files.File_System.Load_Recent_Items (Work.Settings);
+         Done.Items := Load_Recent_Items (Work.Settings);
          Done.Signature := Work.Previous;
          Done.Success := True;
          Done.Reloaded := True;
@@ -534,7 +535,9 @@ package body Files.Refresh is
                if Work.Force or else Change.Changed then
                   declare
                      Loaded : constant Files.File_System.Directory_Load_Result :=
-                       Files.File_System.Load_Directory_Generating_Thumbnails (To_String (Work.Root), Work.Settings);
+                       Files.File_System.Load_Directory_Generating_Thumbnails
+                         (To_String (Work.Root), Files.File_Types.Classification_Of (Work.Settings),
+                          Files.Settings.Listing_Options_Of (Work.Settings));
                   begin
                      Done.Success := Loaded.Success;
                      Done.Reloaded := Loaded.Success;
@@ -819,5 +822,22 @@ package body Files.Refresh is
          end;
       end if;
    end Ensure_Selected_Item_Extra;
+
+   function Load_Recent_Items (Settings : Files.Settings.Settings_Model) return Files.Items.Item_Vectors.Vector is
+      Classes : constant Files.File_Types.Classification := Files.File_Types.Classification_Of (Settings);
+      Items   : Files.Items.Item_Vectors.Vector;
+   begin
+      for Path of Files.Settings.Path_References.Recent_Paths (Settings) loop
+         declare
+            Loaded : constant Files.File_System.Item_Load_Result :=
+              Files.File_System.Load_Item (To_String (Path), Classes);
+         begin
+            if Loaded.Success then
+               Items.Append (Loaded.Item);
+            end if;
+         end;
+      end loop;
+      return Items;
+   end Load_Recent_Items;
 
 end Files.Refresh;

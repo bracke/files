@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Model.Command_Palette;
 separate (Files_Suite.Refresh)
@@ -12,7 +13,7 @@ separate (Files_Suite.Refresh)
       Reset_Root;
       Ada.Directories.Create_Path (First);
       Write_File (Join (First, "one.txt"));
-      Load := Files.File_System.Load_Directory (First, Settings);
+      Load := Files_Suite.Listings.Load_Directory (First, Settings);
       Files.Model.Initialize (Model, First, Load.Items, First);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Write_File (Join (First, "fresh.txt"));

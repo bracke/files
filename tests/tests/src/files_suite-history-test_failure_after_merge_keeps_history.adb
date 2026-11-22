@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files.Job_Drivers.Operation.Testing;
 separate (Files_Suite.History)
@@ -22,7 +22,7 @@ separate (Files_Suite.History)
       Reset_Root;
       Write_Binary_File (Join (Root, "a.txt"), "a bytes");
       Write_Binary_File (Extra, "made while the job finished");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Operations.Clear_Undo (Model);
       Files.Model.Set_Filter (Model, "a.txt");
@@ -30,7 +30,7 @@ separate (Files_Suite.History)
       --  A helper job, so the operation finishes through Jobs.Operation.Advance.
       Files.Model.Set_Background_Transfers (Model, True);
       Files.Job_Drivers.Operation.Testing.Fail_After_Merge (Recording => Extra);
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Duplicate_Selected (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Duplicate_Selected (Model, Settings));
       Files.Job_Drivers.Operation.Testing.Stop_Failing_After_Merge;
       pragma Unreferenced (Step);
       for Action of Files.Model.History.Undo_Entries (Model) loop

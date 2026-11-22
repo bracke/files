@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Models;
@@ -22,7 +23,7 @@ separate (Files_Suite.Transfer)
          Background : Boolean)
       is
       begin
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, Background);
          Files.Operations.Begin_Paste_Execution (Model, Actions, Mode);

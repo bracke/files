@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Text_Encoding;
 with Files.Text_Case;
 
@@ -42,7 +43,7 @@ separate (Files_Suite.Search)
       Assert (Text (Read_Cap) = Lead, "the fixture splits a character at the read's end");
       Reset_Root;
       Write_Binary_File (Join (Root, "cyrillic.txt"), Text);
-      Search := Files.File_System.Search_Contents (Root, Lower, Settings);
+      Search := Files_Suite.Listings.Search_Contents (Root, Lower, Settings);
       Assert (Search.Success, "the content search succeeds");
       Files_Suite.Support.Assert_Equal
         (Natural (Search.Items.Length), 1, "a lower-case query finds the capitalised Cyrillic word");

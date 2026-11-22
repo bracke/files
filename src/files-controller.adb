@@ -1,4 +1,4 @@
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Files.IO.Fs_Primitives;
 with Files.Job_Drivers.Foreground;
 with Files.Items;
@@ -12,7 +12,7 @@ with Files.Breadcrumbs;
 with Files.Folder_Tree;
 with Guikit.Bidi;
 with Guikit.Utf8.Editing;
-with Files.Command_Palette;
+with Files.Overlays.Command_Palette;
 with Files.Model.Command_Palette;
 with Files.Model.Root_Selector;
 with Files.Model.Settings_Pane;
@@ -80,13 +80,13 @@ package body Files.Controller is
               Files.Settings.Refresh_Draft (Shown, Before, Settings);
          begin
             if Refreshed /= Shown then
-               Files.Settings_Form.Set_Draft (Model, Refreshed);
+               Files.Overlays.Settings_Form.Set_Draft (Model, Refreshed);
             end if;
             --  A command that changed them saved Settings (another window's
             --  save is adopted the same way): the pane's next change is
             --  weighed against them.
             if not Files.Settings.Same_Content (Before, Settings) then
-               Files.Settings_Form.Mark_Saved (Model, Settings);
+               Files.Overlays.Settings_Form.Mark_Saved (Model, Settings);
             end if;
          end;
       end if;
@@ -191,7 +191,7 @@ package body Files.Controller is
       elsif Settings_Path = "" then
          return (Success => True, Durable => True, Path => Null_Unbounded_String, Error_Key => Null_Unbounded_String);
       end if;
-      Files.Settings_Form.Store_Shortcut_Overrides (Settings);
+      Files.Overlays.Settings_Form.Store_Shortcut_Overrides (Settings);
       declare
          Own : constant Files.Settings.Settings_Model := Settings;
       begin
@@ -207,7 +207,7 @@ package body Files.Controller is
                Settings := Own;
                return Settings_Full_Result (Settings_Path);
             elsif Settings.Shortcut_Overrides /= Own.Shortcut_Overrides then
-               Files.Settings_Form.Apply_Shortcut_Overrides (Settings);
+               Files.Overlays.Settings_Form.Apply_Shortcut_Overrides (Settings);
             end if;
          end if;
       end;
@@ -448,12 +448,12 @@ package body Files.Controller is
             Files.Model.Command_Palette.Set_Query (Model, Text);
             --  The query's matches are there before the next frame: a key
             --  queued behind the typing (Enter) acts on them.
-            Files.Command_Palette.Ensure_Listed (Model);
+            Files.Overlays.Command_Palette.Ensure_Listed (Model);
          when Files.UI_Types.Focus_Settings_Input =>
             Files.Model.Settings_Pane.Set_Focused_Value (Model, Text);
             declare
                Saved : constant Boolean :=
-                 Files.Settings_Form.Apply_Change (Model, Files.Model.Settings_Pane.Take_Change (Model));
+                 Files.Overlays.Settings_Form.Apply_Change (Model, Files.Model.Settings_Pane.Take_Change (Model));
                pragma Unreferenced (Saved);
             begin
                null;  --  a text edit updates the draft; Enter saves it (Commit_Focused_Text)
@@ -494,6 +494,17 @@ package body Files.Controller is
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Controller_Result;
+
+   --  Run a pure model command: one whose whole effect is window-model state.
+   --  Only Run_Command calls this, after the command entry has checked
+   --  Is_Enabled; every other command is executed there.
+   --
+   --  @param Id Pure command identifier.
+   --  @param Model Window model to mutate.
+   procedure Execute_Pure_Command
+     (Id    : Files.Commands.Pure_Command_Id;
+      Model : in out Files.Model.Window_Model)
+   is separate;
 
    --  Run an enabled command that needs no settings path: the one table
    --  of what each command does. Its callers have checked enablement.
@@ -903,7 +914,7 @@ package body Files.Controller is
       Id : Natural;
    begin
       --  Enter may come before the first frame since the palette opened.
-      Files.Command_Palette.Ensure_Listed (Model);
+      Files.Overlays.Command_Palette.Ensure_Listed (Model);
       Id := Files.Model.Command_Palette.Selected_Id (Model);
       if Files.Model.Command_Palette.Mode_Of (Model) = Files.Model.Palette_Open_With then
          declare
@@ -1054,7 +1065,7 @@ package body Files.Controller is
      (Model : in out Files.Model.Window_Model)
       return Controller_Result is
    begin
-      if Files.Settings_Form.Apply_Change (Model, Files.Model.Settings_Pane.Take_Change (Model)) then
+      if Files.Overlays.Settings_Form.Apply_Change (Model, Files.Model.Settings_Pane.Take_Change (Model)) then
          return Make_Result (Controller_Needs_Settings_Path, Files.Commands.Save_Settings_Command);
       else
          return Make_Result (Controller_Text_Updated);

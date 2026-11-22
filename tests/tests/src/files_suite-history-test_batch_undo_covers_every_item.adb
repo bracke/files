@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Batch_Undo_Covers_Every_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -31,15 +31,15 @@ separate (Files_Suite.History)
                Assert (Status = Zlib.Ok, "prepare archive " & Leaf (Index));
             end if;
          end loop;
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Filter (Model, (if Extracting then ".zip" else ".txt"));
          Files.Model.Selection.Select_All_Visible (Model);
          Files.Model.Set_Background_Transfers (Model, False);
          Step := Complete_Operation
-           (Model, Settings, (if Extracting then Files.Operation_Commands.Extract_Selected (Model, Settings)
-                              else Files.Operation_Commands.Duplicate_Selected (Model, Settings)));
+           (Model, Settings, (if Extracting then Operation_Commands.Extract_Selected (Model, Settings)
+                              else Operation_Commands.Duplicate_Selected (Model, Settings)));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "a large batch succeeds");
@@ -51,7 +51,7 @@ separate (Files_Suite.History)
          for Path of Created loop
             Assert (Ada.Directories.Exists (To_String (Path)), "every recorded output exists");
          end loop;
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "one Undo reverses a large batch");

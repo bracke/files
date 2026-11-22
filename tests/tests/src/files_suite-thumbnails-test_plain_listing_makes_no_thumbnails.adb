@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.File_System.Thumbnails;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Thumbnails)
@@ -25,7 +26,7 @@ separate (Files_Suite.Thumbnails)
 
       --  Search walks, emptying the Trash, the reload after every operation and
       --  startup all list with plain Load_Directory; none may decode the photo.
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Assert (Load.Success, "the folder lists");
       Assert (Files.File_System.Thumbnails_Missing (Load.Items),
               "a plain listing leaves the photo without a thumbnail");
@@ -33,7 +34,7 @@ separate (Files_Suite.Thumbnails)
               "a plain listing writes no thumbnail cache file");
 
       --  The background listing is the one that makes it.
-      Load := Files.File_System.Load_Directory_Generating_Thumbnails (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory_Generating_Thumbnails (Root, Settings);
       Assert (Load.Success and then not Files.File_System.Thumbnails_Missing (Load.Items),
               "the generating listing makes the photo's thumbnail");
       Assert (Ada.Directories.Exists (Cache_File), "and writes its cache file");

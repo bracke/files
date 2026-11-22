@@ -43,7 +43,7 @@ separate (Check_All.Check_Rendering_Architecture)
          Label & " must not call application startup logic");
       Require_Not_Contains_In_Unit
         (Path,
-         "Files.Commands.Execution",
+         "Execute_Pure_Command",
          Label & " must not dispatch commands");
       Require_Not_Contains_In_Unit
         (Path,

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Model.Command_Palette;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Disk;
@@ -17,7 +18,7 @@ separate (Files_Suite.Text_Input)
       Ada.Directories.Create_Path (Dir);
       Files_Suite.Support.Disk.Write_File (Victim);
       Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dir, "other.txt"));
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Files_Suite.Support.Disk.Root);
 
       for Field in 1 .. 2 loop

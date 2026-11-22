@@ -9,13 +9,13 @@ function Item_For_Path
    Name        : String;
    Parent_Path : String;
    Kind        : Files.Types.Item_Kind;
-   Settings    : Files.Settings.Settings_Model;
+   Classes     : Files.File_Types.Classification;
    Cached      : Cache_Index;
    Hidden      : Boolean)
    return Directory_Item
 is
-   Filetype : constant String := Files.File_Types.Detect_Filetype (Settings, Kind, Name);
-   Icon_Id  : constant String := Files.File_Types.Icon_Id_For (Settings, Kind, Filetype);
+   Filetype : constant String := Files.File_Types.Detect_Filetype (Classes, Kind, Name);
+   Icon_Id  : constant String := Files.File_Types.Icon_Id_For (Classes, Kind, Filetype);
    Thumbnail_Cache : constant String := Default_Thumbnail_Cache_Directory (Parent_Path);
    Thumbnail_Path  : constant String := Thumbnail_Path_For (Full, Thumbnail_Cache);
    Thumbnail : constant Cached_Thumbnail :=

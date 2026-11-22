@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Model.Context_Menu;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -46,7 +47,7 @@ separate (Files_Suite.Context_Menu)
            (Model, Settings, "", Files.Commands.Copy_Selected_Items_Command, Result, Found);
          Assert (Found, "the item menu offers the copy command");
 
-         Load := Files.File_System.Load_Directory (Sub, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Sub, Settings);
          Files.Model.Navigate_To (Model, Sub, Load.Items);
          Open_Empty_Context_Menu (Model, Settings, Result);
          Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Paste_Items_Command, Result, Found);

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
    --  The cross-window settings sync as the window layer runs it: Share_From
@@ -56,7 +57,7 @@ separate (Files_Suite.Interaction)
       for Window of Windows loop
          declare
             Load_Result : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory (Files_Suite.Support.Disk.Root, Window.Settings);
+              Files_Suite.Listings.Load_Directory (Files_Suite.Support.Disk.Root, Window.Settings);
          begin
             Files.Model.Initialize
               (Window.Model,

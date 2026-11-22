@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files.Text_Basics;
 
@@ -24,7 +24,7 @@ separate (Files_Suite.Search)
          Write_Binary_File (Join (Root, "needle-" & Files.Text_Basics.Natural_Text (Index) & ".txt"), "needle");
       end loop;
       Ada.Directories.Create_Directory (Join (Root, "empty-folder"));
-      Search := Files.File_System.Search_Names (Root, "needle", Settings);
+      Search := Files_Suite.Listings.Search_Names (Root, "needle", Settings);
       Assert (Search.Success and then not Search.Truncated and then not Search.Incomplete,
               "exactly the cap's matches, and an empty folder left to walk, is a complete answer");
       Files_Suite.Support.Assert_Equal
@@ -32,20 +32,20 @@ separate (Files_Suite.Search)
       Write_Binary_File
         (Join (Root, "needle-" & Files.Text_Basics.Natural_Text (Files.File_System.Max_Search_Results + 1) & ".txt"),
          "needle");
-      Search := Files.File_System.Search_Names (Root, "needle", Settings);
+      Search := Files_Suite.Listings.Search_Names (Root, "needle", Settings);
       Assert (Search.Success and then Search.Truncated and then not Search.Incomplete,
               "one match past the cap truncates the name search");
       Files_Suite.Support.Assert_Equal
         (Natural (Search.Items.Length), Files.File_System.Max_Search_Results, "the first matches are kept");
       for Background in Boolean loop
          for Contents in Boolean loop
-            Load := Files.File_System.Load_Directory (Root, Settings);
+            Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Model.Set_Filter (Model, "needle");
             Files.Model.Set_Background_Transfers (Model, Background);
-            Step := (if Contents then Files.Operation_Commands.Run_Search (Model, Settings,
+            Step := (if Contents then Operation_Commands.Run_Search (Model, Settings,
               Files.UI_Types.Search_Contents)
-                     else Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
+                     else Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
             Step := Complete_Operation (Model, Settings, Step);
             Assert (Step.Status = Files.Operation_Results.Operation_Success
                     and then Files.Model.Search_Results_Are_Active (Model),

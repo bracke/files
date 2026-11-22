@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Info)
    procedure Test_Recursive_Folder_Size (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -152,7 +153,7 @@ separate (Files_Suite.Info)
             raise;
       end;
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "tree");
       Files.Model.Toggle_Info_Pane (Model);

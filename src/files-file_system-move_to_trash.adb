@@ -1,4 +1,4 @@
-with Files.Trash_Info_Codec;
+with Files.File_System.Trash_Info_Codec;
 with Files.IO.Durable_Writes;
 with Files.IO.Durability;
 with Hostkit.Durability;
@@ -53,7 +53,7 @@ is
    end Unique_Trash_Name;
 
    function Trash_Info_Path_Value (Path_Value : String) return String
-     renames Files.Trash_Info_Codec.Encode;
+     renames Files.File_System.Trash_Info_Codec.Encode;
 
    Backend    : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
    Macos_Home : constant Boolean := Backend = Trash_Macos_Home;

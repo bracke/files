@@ -8,7 +8,7 @@ with Files.Model;
 --  rendering, and Files.Model.Command_Palette the palette's state, which
 --  this package hands what it lists (Ensure_Listed); the model never calls
 --  back here. The localizing stays here, outside the model.
-package Files.Command_Palette is
+package Files.Overlays.Command_Palette is
 
    --  All commands offered by the palette in a mode, unfiltered: every
    --  visible registered command (Commands mode), or every application listed
@@ -34,4 +34,4 @@ package Files.Command_Palette is
    --  @param Model Model whose palette is listed.
    procedure Ensure_Listed (Model : in out Files.Model.Window_Model);
 
-end Files.Command_Palette;
+end Files.Overlays.Command_Palette;

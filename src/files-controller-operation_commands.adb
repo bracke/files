@@ -3,7 +3,7 @@ with Files.Model.History;
 with Files.Job_Drivers.Operation;
 with Files.Undo.History;
 
-package body Files.Operation_Commands is
+package body Files.Controller.Operation_Commands is
    use type Files.Operation_Results.Operation_Status;
    use type Files.UI_Types.Search_Scope;
 
@@ -172,4 +172,4 @@ package body Files.Operation_Commands is
       return Files.Operations.Redo_Last (Model, Settings);
    end Redo_Last;
 
-end Files.Operation_Commands;
+end Files.Controller.Operation_Commands;

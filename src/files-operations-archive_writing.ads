@@ -1,7 +1,7 @@
 with Zlib;
 
 --  Archive writers that preserve selected directory entries as well as files.
-package Files.Archive_Writing is
+package Files.Operations.Archive_Writing is
    --  Whether every entry name in Entries can be extracted without escaping
    --  the destination or overwriting another entry (First_Unextractable).
    --
@@ -87,4 +87,4 @@ package Files.Archive_Writing is
       Output_Path : String;
       Entry_Names : Zlib.Text_Array;
       Status : out Zlib.Status_Code);
-end Files.Archive_Writing;
+end Files.Operations.Archive_Writing;

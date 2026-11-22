@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Rendering.Testing;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Info)
@@ -30,7 +31,7 @@ separate (Files_Suite.Info)
       Assert
         (Extra_Of ("zbinary.pdf", "application/pdf") = "document.pdf.pages|1",
          "PDF metadata scans binary bytes and does not count the Pages tree");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "meta.txt");
       Files.Model.Toggle_Info_Pane (Model);

@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Refresh)
@@ -24,14 +24,14 @@ separate (Files_Suite.Refresh)
    begin
       Reset_Root;
       Write_Binary_File (Join (Root, "a.txt"), "a");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
 
       --  An operation that finishes after an edit in the same view (here a new
       --  diagnostic) cannot apply its old snapshot, but must still relist.
       Select_Name (Model, "a.txt");
-      Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+      Step := Operation_Commands.Duplicate_Selected (Model, Settings);
       Await_Job (Files.Model.Jobs.Background_Operation (Model), "the duplicate helper finishes");
       Files.Model.Set_Error (Model, "error.undo.failed");
       Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
@@ -70,7 +70,7 @@ separate (Files_Suite.Refresh)
       Files.Model.Set_Error (Model, "");
       Applied := Files.Refresh.Advance (Model, Settings);
       Assert (Files.Model.Refresh_Is_Owed (Model), "the outdated read is owed again");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Navigate_To (Model, Root, Load.Items);
       Assert (not Files.Model.Refresh_Is_Owed (Model),
               "navigating, even to the same path, makes an owed reload moot");

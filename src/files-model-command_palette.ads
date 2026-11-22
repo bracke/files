@@ -4,7 +4,7 @@ with Guikit.Command_Palette;
 --  The command palette overlay: opening and closing it, its query and selection, the
 --  Open With listing it can show instead of the commands, the command list
 --  its guikit component holds (built, in the current language, outside the
---  model by Files.Command_Palette, which hands it over through List) and the
+--  model by Files.Overlays.Command_Palette, which hands it over through List) and the
 --  command a chosen row names, and the visit through which the window layer
 --  drives that component.
 --  Guikit.Command_Palette owns the query, selection, scroll, filtering and
@@ -22,7 +22,7 @@ package Files.Model.Command_Palette is
       return Boolean;
 
    --  Hand the palette the commands it lists, in the current mode, unfiltered
-   --  (Files.Command_Palette.Commands): the query and the selection are kept,
+   --  (Files.Overlays.Command_Palette.Commands): the query and the selection are kept,
    --  the selection clamped to the new results.
    --
    --  @param Model Model whose palette lists them; Is_Listed is True after.

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 separate (Files_Suite.Model)
    procedure Test_Document_Media_And_Source_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -71,7 +72,7 @@ separate (Files_Suite.Model)
       Write_File (Json_Path, "{""ok"":true}");
       Write_File (Xml_Path, "<root/>");
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
 
       for Item of Load.Items loop
          if To_String (Item.Name) = "picture.png" then

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.File_System.Thumbnails;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Thumbnails)
@@ -35,7 +36,7 @@ separate (Files_Suite.Thumbnails)
             Write_File (Legacy_Cache, To_String (Ascii_Pixels));
          end;
 
-         Legacy_Load := Files.File_System.Load_Directory (Root, Settings);
+         Legacy_Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          for Item of Legacy_Load.Items loop
             if To_String (Item.Name) = "legacy-cached.png" then
                Found_Legacy := True;
@@ -86,7 +87,7 @@ separate (Files_Suite.Thumbnails)
             "P6" & ASCII.LF & "1 1" & ASCII.LF & "255" & ASCII.LF
             & Byte (10) & Byte (20) & Byte (30) & Byte (40));
 
-         Cache_Load := Files.File_System.Load_Directory (Root, Settings);
+         Cache_Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          for Item of Cache_Load.Items loop
             if To_String (Item.Name) = "commented-cached.txt" then
                Found_Commented := True;
@@ -135,7 +136,7 @@ separate (Files_Suite.Thumbnails)
             "P3" & ASCII.LF & "1 1" & ASCII.LF & "255" & ASCII.LF
             & "256 0 0" & ASCII.LF);
 
-         Corrupt_Load := Files.File_System.Load_Directory (Root, Settings);
+         Corrupt_Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          for Item of Corrupt_Load.Items loop
             if To_String (Item.Name) = "corrupt-cached.txt" then
                Found_Corrupt := True;

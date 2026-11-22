@@ -5,7 +5,7 @@ with Files.Commands.Status;
 with Files.Localization;
 with Files.Model.Command_Palette;
 
-package body Files.Command_Palette is
+package body Files.Overlays.Command_Palette is
    use Ada.Strings.Unbounded;
    use type Files.Model.Palette_Mode;
 
@@ -74,4 +74,4 @@ package body Files.Command_Palette is
       end if;
    end Ensure_Listed;
 
-end Files.Command_Palette;
+end Files.Overlays.Command_Palette;

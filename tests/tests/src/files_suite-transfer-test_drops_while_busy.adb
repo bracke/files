@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Transfer)
@@ -21,12 +21,12 @@ separate (Files_Suite.Transfer)
          Ada.Directories.Create_Directory (Join (Root, "inbox"));
          Write_Binary_File (Join (Root, "original.txt"), "original");
          Write_Binary_File (Join (Join (Root, "inbox"), "incoming.txt"), "incoming");
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Select_Name (Model, "original.txt");
          Files.Model.Set_Background_Transfers (Model, True);
-         Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+         Step := Operation_Commands.Duplicate_Selected (Model, Settings);
          declare
             Job : constant Files.Jobs.Process.Session := Files.Model.Jobs.Background_Operation (Model);
             Revision : constant Natural := Files.Model.Revision (Model);
@@ -61,7 +61,7 @@ separate (Files_Suite.Transfer)
          Assert (Files.Model.History.Undo_Available (Model)
                  and then not Ada.Directories.Exists (Join (Root, "incoming.txt")),
                  "blocked drops leave the original job's committed history intact");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Assert (not Ada.Directories.Exists (Join (Root, "original (copy).txt"))
                  and then File_Has_Bytes (Join (Root, "original.txt"), "original"),

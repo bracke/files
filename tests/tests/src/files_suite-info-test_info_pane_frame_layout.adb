@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Frame_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -10,7 +11,7 @@ separate (Files_Suite.Info)
    begin
       Reset_Root;
       Write_Info_Metadata_Fixtures;
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "meta.txt");
       Files.Model.Toggle_Info_Pane (Model);

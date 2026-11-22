@@ -27,6 +27,47 @@ package Files.File_Types is
    --  @return True for a .zip or .7z name.
    function Is_Extractable_Archive (Name : String) return Boolean;
 
+   --  The two maps an item's filetype and icon are classified by, and nothing
+   --  else of the settings: what Files.File_System's listings and searches
+   --  take, so the filesystem layer does not see the whole settings record.
+   type Classification is record
+      --  Extension to filetype (Files.Settings.Settings_Model.Extension_Filetypes).
+      Extension_Filetypes : Files.Settings.String_Maps.Map;
+      --  Filetype to icon (Files.Settings.Settings_Model.Icon_Mappings).
+      Icon_Mappings       : Files.Settings.String_Maps.Map;
+   end record;
+
+   --  The classification Settings maps items by.
+   --
+   --  @param Settings Settings holding the extension and icon maps.
+   --  @return A copy of those two maps.
+   function Classification_Of (Settings : Files.Settings.Settings_Model) return Classification is
+     ((Extension_Filetypes => Settings.Extension_Filetypes, Icon_Mappings => Settings.Icon_Mappings));
+
+   --  Detect_Filetype by a classification rather than the whole settings.
+   --
+   --  @param Classes Extension and icon maps.
+   --  @param Kind Filesystem item kind.
+   --  @param Name File name to inspect.
+   --  @return Filetype identifier.
+   function Detect_Filetype
+     (Classes : Classification;
+      Kind    : Files.Types.Item_Kind;
+      Name    : String)
+      return String;
+
+   --  Icon_Id_For by a classification rather than the whole settings.
+   --
+   --  @param Classes Extension and icon maps.
+   --  @param Kind Filesystem item kind.
+   --  @param Filetype Filetype identifier.
+   --  @return Icon identifier.
+   function Icon_Id_For
+     (Classes  : Classification;
+      Kind     : Files.Types.Item_Kind;
+      Filetype : String)
+      return String;
+
    --  Determine a filetype from item kind, file name, and settings mappings.
    --
    --  @param Settings Settings model containing extension mappings.

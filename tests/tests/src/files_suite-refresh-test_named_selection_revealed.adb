@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Rendering.Testing;
 with Files.Operation_Results;
@@ -55,7 +56,7 @@ separate (Files_Suite.Refresh)
       for Index in 1 .. 60 loop
          Write_Binary_File (Join (Root, "f" & Index'Image), "x");
       end loop;
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Clear_Reveal (Model);
       Write_Binary_File (Join (Root, "z new"), "new");

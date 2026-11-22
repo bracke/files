@@ -630,32 +630,34 @@ package body Files.Settings is
  is separate;
 
    function Filetype_For_Extension
-     (Settings  : Settings_Model;
+     (Mapping   : String_Maps.Map;
       Extension : String)
       return String
    is
-      Key : constant String := Normalize_Extension (Extension);
+      Position : constant String_Maps.Cursor := Mapping.Find (Normalize_Extension (Extension));
    begin
-      if Settings.Extension_Filetypes.Contains (Key) then
-         return Settings.Extension_Filetypes.Element (Key);
-      end if;
-
-      return "";
+      return (if String_Maps.Has_Element (Position) then String_Maps.Element (Position) else "");
    end Filetype_For_Extension;
+
+   function Filetype_For_Extension
+     (Settings  : Settings_Model;
+      Extension : String)
+      return String is (Filetype_For_Extension (Settings.Extension_Filetypes, Extension));
+
+   function Icon_For_Filetype
+     (Mapping  : String_Maps.Map;
+      Filetype : String)
+      return String
+   is
+      Position : constant String_Maps.Cursor := Mapping.Find (Trim (Filetype));
+   begin
+      return (if String_Maps.Has_Element (Position) then String_Maps.Element (Position) else "");
+   end Icon_For_Filetype;
 
    function Icon_For_Filetype
      (Settings : Settings_Model;
       Filetype : String)
-      return String
-   is
-      Key : constant String := Trim (Filetype);
-   begin
-      if Settings.Icon_Mappings.Contains (Key) then
-         return Settings.Icon_Mappings.Element (Key);
-      end if;
-
-      return "";
-   end Icon_For_Filetype;
+      return String is (Icon_For_Filetype (Settings.Icon_Mappings, Filetype));
 
    function Modifier_Token
      (Modifiers : Guikit.Input.Modifier_Set)

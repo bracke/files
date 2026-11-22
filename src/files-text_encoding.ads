@@ -80,4 +80,16 @@ package Files.Text_Encoding is
    --  @return The encoding to name.
    function Classify (Sample : String; Complete : Boolean) return Encoding;
 
+   --  Whether Text (Searchable_Text) is text, not binary
+   --  (Looks_Binary), and
+   --  contains Folded_Query (a query already folded with Fold_Case),
+   --  ignoring case: content search's match, with the query folded once
+   --  per search rather than once per file.
+   --
+   --  @param Text A file's first bytes as Searchable_Text
+   --    gives them.
+   --  @param Folded_Query Files.Text_Case.Fold_Case of the text looked for; "" matches nothing.
+   --  @return True for a text match.
+   function Text_Contains (Text : String; Folded_Query : String) return Boolean;
+
 end Files.Text_Encoding;

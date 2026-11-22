@@ -1,5 +1,4 @@
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Publication_Journal_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -86,7 +85,7 @@ separate (Files_Suite.Transfer)
                   Files.Jobs.Context.Initialize ("");
                   if not Via_Helper then
                      Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                      Assert (Step.Status = Files.Operation_Results.Operation_Success
                              and then File_Is (Source, "source bytes"),
                              "Undo reverses the committed operation without losing the source bytes");

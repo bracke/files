@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.File_System.Permissions;
 with Hostkit.Metadata;
 separate (Files_Suite.History)
@@ -25,7 +25,7 @@ separate (Files_Suite.History)
       Hostkit.Metadata.File_Ownership (Target, Uid, Gid, Avail);
       Assert (Avail, "ownership of the temp file is readable");
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "redo-owner.txt");
 
@@ -38,12 +38,12 @@ separate (Files_Suite.History)
         (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Undo.History.Undo_Set_Ownership,
          "set-ownership records an ownership undo");
 
-      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                         "undo of chown succeeds");
       Assert (Files.Model.History.Redo_Available (Model), "chown is redoable");
 
-      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                         "redo of chown succeeds");
       Assert (not Files.Model.History.Redo_Available (Model), "the redo stack empties after re-applying chown");

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Trash)
    procedure Test_Trash_Backspace_And_Encoding (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -15,7 +16,7 @@ separate (Files_Suite.Trash)
          Ada.Environment_Variables.Clear ("HOME");
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
 
          Write_File (Join (Root, "doomed2.txt"));

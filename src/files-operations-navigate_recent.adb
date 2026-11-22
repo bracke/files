@@ -5,7 +5,7 @@ function Navigate_Recent
    return Operation_Result
 is
 begin
-   Files.Model.Navigate_Recent (Model, Files.File_System.Load_Recent_Items (Settings));
+   Files.Model.Navigate_Recent (Model, Files.Refresh.Load_Recent_Items (Settings));
    Files.Model.Set_Error (Model, "");
    return Make_Result (Operation_Navigated);
 end Navigate_Recent;

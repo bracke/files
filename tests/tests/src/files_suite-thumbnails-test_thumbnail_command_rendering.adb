@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Rendering.Text;
@@ -24,7 +25,7 @@ separate (Files_Suite.Thumbnails)
          & "255" & ASCII.LF
          & "255 0 0 255 0 0" & ASCII.LF
          & "255 0 0 255 0 0" & ASCII.LF);
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "command-thumbnail.ppm");
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);

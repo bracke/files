@@ -32,7 +32,7 @@ with Ada.Unchecked_Deallocation;
 with Files.File_Identities;
 with Files.Undo.Journal;
 with Files.Operations.Undo_Recording;
-with Files.Archive_Writing;
+with Files.Operations.Archive_Writing;
 with Files.IO.Errors;
 with Files.Model.Pasting;
 with Files.Model.Folder_Sizes;

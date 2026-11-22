@@ -86,8 +86,8 @@ package body Files.File_Types is
    end Normalized_Extension_Of;
 
    function Filetype_For_Name
-     (Settings : Files.Settings.Settings_Model;
-      Name     : String)
+     (Extensions : Files.Settings.String_Maps.Map;
+      Name       : String)
       return String
    is
       Clean : constant String := Leaf_Name (Name);
@@ -104,7 +104,7 @@ package body Files.File_Types is
                Candidate : constant String :=
                  Files.Settings.Normalize_Extension (Clean (Index + 1 .. Clean'Last));
                Mapped    : constant String :=
-                 Files.Settings.Filetype_For_Extension (Settings, Candidate);
+                 Files.Settings.Filetype_For_Extension (Extensions, Candidate);
             begin
                if Mapped /= "" then
                   return Mapped;
@@ -119,10 +119,11 @@ package body Files.File_Types is
    function Is_Extractable_Archive (Name : String) return Boolean is
      (Normalized_Extension_Of (Name) in "zip" | "7z");
 
-   function Detect_Filetype
-     (Settings : Files.Settings.Settings_Model;
-      Kind     : Files.Types.Item_Kind;
-      Name     : String)
+   --  Detect_Filetype by the extension map alone.
+   function Filetype_By
+     (Extensions : Files.Settings.String_Maps.Map;
+      Kind       : Files.Types.Item_Kind;
+      Name       : String)
       return String
    is
    begin
@@ -135,7 +136,7 @@ package body Files.File_Types is
             return "application/x-executable";
          when others =>
             declare
-               Mapped : constant String := Filetype_For_Name (Settings, Name);
+               Mapped : constant String := Filetype_For_Name (Extensions, Name);
             begin
                if Mapped /= "" then
                   return Mapped;
@@ -144,15 +145,28 @@ package body Files.File_Types is
       end case;
 
       return "application/octet-stream";
-   end Detect_Filetype;
+   end Filetype_By;
 
-   function Icon_Id_For
+   function Detect_Filetype
      (Settings : Files.Settings.Settings_Model;
+      Kind     : Files.Types.Item_Kind;
+      Name     : String)
+      return String is (Filetype_By (Settings.Extension_Filetypes, Kind, Name));
+
+   function Detect_Filetype
+     (Classes : Classification;
+      Kind    : Files.Types.Item_Kind;
+      Name    : String)
+      return String is (Filetype_By (Classes.Extension_Filetypes, Kind, Name));
+
+   --  Icon_Id_For by the icon map alone.
+   function Icon_By
+     (Icons    : Files.Settings.String_Maps.Map;
       Kind     : Files.Types.Item_Kind;
       Filetype : String)
       return String
    is
-      Mapped : constant String := Files.Settings.Icon_For_Filetype (Settings, Filetype);
+      Mapped : constant String := Files.Settings.Icon_For_Filetype (Icons, Filetype);
    begin
       if Mapped /= "" then
          return Mapped;
@@ -168,7 +182,19 @@ package body Files.File_Types is
          when others =>
             return "unknown";
       end case;
-   end Icon_Id_For;
+   end Icon_By;
+
+   function Icon_Id_For
+     (Settings : Files.Settings.Settings_Model;
+      Kind     : Files.Types.Item_Kind;
+      Filetype : String)
+      return String is (Icon_By (Settings.Icon_Mappings, Kind, Filetype));
+
+   function Icon_Id_For
+     (Classes  : Classification;
+      Kind     : Files.Types.Item_Kind;
+      Filetype : String)
+      return String is (Icon_By (Classes.Icon_Mappings, Kind, Filetype));
 
    function Icon_Name (Icon : Icon_Kind) return String is
    begin

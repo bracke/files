@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Info)
@@ -62,7 +63,7 @@ separate (Files_Suite.Info)
 
       --  A finished result for an older listing is not cached: the folder is
       --  measured again, as it is now.
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "folder");
       Measured.Append

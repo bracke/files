@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Events;
 with Files.Operations;
@@ -154,7 +155,7 @@ package body Files_Suite.Support.Models is
                Replaced    => False));
       end loop;
 
-      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
    end Arm_Numbered_Paste;

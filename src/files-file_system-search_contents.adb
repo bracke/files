@@ -5,7 +5,8 @@ separate (Files.File_System)
 function Search_Contents
   (Root_Path : String;
    Query     : String;
-   Settings  : Files.Settings.Settings_Model)
+   Classes   : Files.File_Types.Classification;
+   Options   : Files.Types.Listing_Options)
    return Recursive_Search_Result
 is
    Max_Bytes  : constant := 64 * 1024;
@@ -41,7 +42,7 @@ is
       begin
          if not Read_Ok then
             return Undecided;
-         elsif Files.Text_Case.Text_Contains (Text, Folded_Query) then
+         elsif Files.Text_Encoding.Text_Contains (Text, Folded_Query) then
             return Found;
          elsif Bytes'Length > Max_Bytes and then not Files.Text_Encoding.Looks_Binary (Text) then
             --  A text file longer than is read and no match in what was:
@@ -52,5 +53,5 @@ is
       end;
    end Judge;
 begin
-   return Search_Tree (Root_Path, Settings, Wanted'Access, Judge'Access, Max_Search_Results);
+   return Search_Tree (Root_Path, Classes, Options, Wanted'Access, Judge'Access, Max_Search_Results);
 end Search_Contents;

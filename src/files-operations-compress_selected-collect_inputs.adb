@@ -35,7 +35,7 @@ begin
    --  Both writers refuse such names; the caller says why rather than
    --  failing the archive with the generic error.
    for Name of Entry_Names loop
-      if not Files.Archive_Writing.Portable_Entry_Name (To_String (Name)) then
+      if not Files.Operations.Archive_Writing.Portable_Entry_Name (To_String (Name)) then
          return Unportable_Name;
       end if;
    end loop;

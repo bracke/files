@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Input_Actions;
 with Files_Suite.Interaction_Support;
@@ -32,7 +33,7 @@ separate (Files_Suite.Refresh)
       Ada.Environment_Variables.Clear (Fault_Name);
       Reset_Root;
       Write_Binary_File (Join (Root, "alpha"), "alpha");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Files.Model.Set_Directory_Signature (Model, Files.File_System.Directory_State (Root));
@@ -127,7 +128,7 @@ separate (Files_Suite.Refresh)
       Ada.Directories.Create_Directory (Join (Root, "other"));
       Step := Files.Operations.Refresh (Model, Settings);
       Await_Ready;
-      Load := Files.File_System.Load_Directory (Join (Root, "other"), Settings);
+      Load := Files_Suite.Listings.Load_Directory (Join (Root, "other"), Settings);
       Files.Model.Navigate_To (Model, Join (Root, "other"), Load.Items);
       Await_Refresh (False);
       Assert (Files.Model.Item_Count (Model) = 0

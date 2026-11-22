@@ -1,4 +1,4 @@
-with Files.Trash_Info_Codec;
+with Files.File_System.Trash_Info_Codec;
 with Files.Name_Parts;
 
 separate (Files.File_System)
@@ -50,7 +50,7 @@ function Original_Path (Trashed_Path : String) return String is
                then
                   declare
                      Decoded : constant String :=
-                       Files.Trash_Info_Codec.Decode (Line (Line'First + 5 .. Line'Last));
+                       Files.File_System.Trash_Info_Codec.Decode (Line (Line'First + 5 .. Line'Last));
                   begin
                      --  Relative is resolved, and checked, by the caller.
                      if Decoded = "" or else (for some Item of Decoded => Item = ASCII.NUL) then

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 separate (Files_Suite.Model)
    procedure Test_Directory_Sorting (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,7 +24,7 @@ separate (Files_Suite.Model)
       end if;
 
       Write_File (Join (Root, "not-a-directory.txt"));
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
 
       Assert (Load.Success, "directory load succeeds");
       Files_Suite.Support.Assert_Equal
@@ -34,7 +35,7 @@ separate (Files_Suite.Model)
         (To_String (Load.Items.Element (1).Name),
          "A.txt",
          "directory items sort by name with files");
-      Load := Files.File_System.Load_Directory (Dir & "/.", Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir & "/.", Settings);
       Assert (Load.Success, "non-normal directory path loads");
       Files_Suite.Support.Assert_Equal
         (To_String (Load.Items.Element (1).Parent_Path),
@@ -65,13 +66,13 @@ separate (Files_Suite.Model)
             "directories remain in normal name order");
       end if;
 
-      Load := Files.File_System.Load_Directory (Join (Root, "missing-directory"), Settings);
+      Load := Files_Suite.Listings.Load_Directory (Join (Root, "missing-directory"), Settings);
       Assert (not Load.Success, "missing directory load reports failure");
       Files_Suite.Support.Assert_Equal
         (To_String (Load.Error_Key),
          "error.directory.load",
          "missing directory load reports error key");
-      Load := Files.File_System.Load_Directory (Join (Root, "not-a-directory.txt"), Settings);
+      Load := Files_Suite.Listings.Load_Directory (Join (Root, "not-a-directory.txt"), Settings);
       Assert (not Load.Success, "file path directory load reports failure");
       Files_Suite.Support.Assert_Equal
         (To_String (Load.Error_Key),

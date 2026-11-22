@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
@@ -54,7 +55,7 @@ separate (Files_Suite.Trash)
         (Files.File_System.Permissions.Set_Permissions (Trashed_Lock, 8#000#).Success,
          "partial-empty setup locks the trashed directory");
 
-      Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Assert (Load.Success, "partial-empty setup loads the trash view");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Files.Operations.Settle_Current_Is_Trash (Model);

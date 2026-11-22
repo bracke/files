@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 separate (Files_Suite.History)
    procedure Test_Redo_Set_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,7 +20,7 @@ separate (Files_Suite.History)
         (Files.File_System.Permissions.Set_Permissions (Target, 8#644#).Success,
          "baseline chmod to 0644 succeeds");
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "redo-mode.txt");
 
@@ -29,13 +29,13 @@ separate (Files_Suite.History)
                                         "chmod to 0600 succeeds");
       Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#600#, "mode reads back as 0600 after chmod");
 
-      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                         "undo of chmod succeeds");
       Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#644#, "undo restores the previous 0644 mode");
       Assert (Files.Model.History.Redo_Available (Model), "chmod is redoable");
 
-      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                         "redo of chmod succeeds");
       Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#600#, "redo re-applies the new 0600 mode");

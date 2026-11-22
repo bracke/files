@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Models;
 separate (Files_Suite.History)
@@ -65,7 +65,7 @@ separate (Files_Suite.History)
                   if Blocked then
                      Write_Binary_File (Source_B, "unrelated source collision");
                   end if;
-                  Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+                  Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
                   Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
                   if Recent then
                      Files.Settings.Path_References.Note_Recent (Settings, Source_A);
@@ -81,7 +81,7 @@ separate (Files_Suite.History)
                      Files_Suite.Support.Models.Undo_Items (Destinations, To => Sources));
                   Files.Model.Set_Background_Transfers (Model, Background);
                   Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                   if Blocked then
                      Files_Suite.Support.Assert_Equal
                        (Step.Status,
@@ -95,7 +95,7 @@ separate (Files_Suite.History)
                              "the blocked Undo preserves the occupying source");
                      Ada.Directories.Delete_File (Source_B);
                      Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                   end if;
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
@@ -109,7 +109,7 @@ separate (Files_Suite.History)
                      Write_Binary_File (Dest_B, "unrelated destination collision");
                   end if;
                   Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
                   if Blocked then
                      Files_Suite.Support.Assert_Equal
                        (Step.Status,
@@ -123,7 +123,7 @@ separate (Files_Suite.History)
                              "the blocked Redo preserves the occupying destination");
                      Ada.Directories.Delete_File (Dest_B);
                      Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
                   end if;
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
@@ -134,7 +134,7 @@ separate (Files_Suite.History)
                            else Listed (Dest_A) and then Listed (Dest_B)),
                           "Redo removes moved Recent paths or relists the full destination directory");
                   Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
                      Files.Operation_Results.Operation_Success,

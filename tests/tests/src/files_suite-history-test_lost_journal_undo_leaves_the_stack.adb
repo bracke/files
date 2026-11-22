@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Undo.Journal.Testing;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    --  A background Undo that did its step but whose helper's journal is
@@ -21,28 +21,28 @@ separate (Files_Suite.History)
    begin
       Reset_Root;
       Write_Binary_File (Join (Root, "a.txt"), "a bytes");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Operations.Clear_Undo (Model);
       Assert (Files.Model.Selection.Select_By_Name (Model, "a.txt"), "the file is listed");
       Files.Model.Set_Background_Transfers (Model, True);
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Duplicate_Selected (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Duplicate_Selected (Model, Settings));
       Await_View (Model, Settings);
       Assert (Ada.Directories.Exists (Copy), "the duplicate is made");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "and recorded for Undo");
       Assert (Files.Model.Selection.Select_By_Name (Model, "a.txt"), "the file is listed again");
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Duplicate_Selected (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Duplicate_Selected (Model, Settings));
       Await_View (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 2, "a second duplicate is recorded");
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Await_View (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Redo_Entries (Model).Length), 1, "the newer duplicate is undone, for Redo");
       Assert (Ada.Directories.Exists (Copy), "the older duplicate is still there");
 
-      Step := Files.Operation_Commands.Undo_Last (Model, Settings);
+      Step := Operation_Commands.Undo_Last (Model, Settings);
       Files.Undo.Journal.Testing.Refuse_Reads (10_000);
       Step := Complete_Operation (Model, Settings, Step);
       Files.Undo.Journal.Testing.Refuse_Reads (0);

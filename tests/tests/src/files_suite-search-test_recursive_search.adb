@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Commands.Status;
 separate (Files_Suite.Search)
@@ -16,7 +17,7 @@ separate (Files_Suite.Search)
       Write_File (Join (Join (Join (Root, "search"), "nested"), "beta-match.txt"), "beta");
       Write_File (Join (Join (Root, "search"), "skip.txt"), "skip");
 
-      Search := Files.File_System.Search_Names (Join (Root, "search"), "MATCH", Settings);
+      Search := Files_Suite.Listings.Search_Names (Join (Root, "search"), "MATCH", Settings);
       Assert (Search.Success, "recursive search succeeds");
       Files_Suite.Support.Assert_Equal (Natural (Search.Items.Length), 2, "recursive search finds nested matches");
       Files_Suite.Support.Assert_Equal
@@ -28,10 +29,10 @@ separate (Files_Suite.Search)
          "beta-match.txt",
          "recursive search descends into child directories");
 
-      Search := Files.File_System.Search_Names (Join (Root, "search"), "match", Settings, Max_Items => 1);
+      Search := Files_Suite.Listings.Search_Names (Join (Root, "search"), "match", Settings, Max_Items => 1);
       Files_Suite.Support.Assert_Equal (Natural (Search.Items.Length), 1, "recursive search respects result limits");
 
-      Load := Files.File_System.Load_Directory (Join (Root, "search"), Settings);
+      Load := Files_Suite.Listings.Load_Directory (Join (Root, "search"), Settings);
       Files.Model.Initialize (Model, Join (Root, "search"), Load.Items, Root);
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Search_Recursive_Command, Model),

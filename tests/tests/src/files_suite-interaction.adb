@@ -1,3 +1,4 @@
+with Files.Controller.Operation_Commands;
 with Files.Preference_Types;
 with Files.Events;
 with Files.Input_Actions;
@@ -35,6 +36,9 @@ with Files_Suite.Interaction_Support;
 --  remaining reducer paths, through the real input pipeline (the rules in
 --  Files_Suite.Interaction_Support).
 package body Files_Suite.Interaction is
+
+   --  The command entry points the tests drive, by a short name.
+   package Operation_Commands renames Files.Controller.Operation_Commands;
 
    use AUnit.Assertions;
    use type Files.Commands.Command_Id;

@@ -14,7 +14,6 @@ with System;
 
 with GNAT.OS_Lib;
 
-with Files.File_Types;
 with Files.Item_Lists;
 
 with Hostkit.Metadata;
@@ -123,16 +122,10 @@ package body Files.File_System is
       Name        : String;
       Parent_Path : String;
       Kind        : Files.Types.Item_Kind;
-      Settings    : Files.Settings.Settings_Model;
+      Classes     : Files.File_Types.Classification;
       Cached      : Cache_Index;
       Hidden      : Boolean)
       return Directory_Item;
-
-   procedure Sort_Items
-     (Items     : in out Item_Vectors.Vector;
-      Field     : Files.Types.Sort_Field;
-      Ascending : Boolean)
-     renames Files.Item_Lists.Sort_Items;
 
    function Permission_String
      (Path       : String;
@@ -159,7 +152,7 @@ package body Files.File_System is
       Name        : String;
       Parent_Path : String;
       Kind        : Files.Types.Item_Kind;
-      Settings    : Files.Settings.Settings_Model;
+      Classes     : Files.File_Types.Classification;
       Cached      : Cache_Index;
       Hidden      : Boolean)
       return Directory_Item
@@ -266,7 +259,7 @@ package body Files.File_System is
 
    function Load_Directory_Filtered
      (Path     : String;
-      Settings : Files.Settings.Settings_Model;
+      Classes  : Files.File_Types.Classification;
       Options  : Files.Types.Listing_Options;
       Include  : access function
         (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
@@ -276,23 +269,26 @@ package body Files.File_System is
    is separate;
 
    function Load_Directory
-     (Path     : String;
-      Settings : Files.Settings.Settings_Model)
+     (Path    : String;
+      Classes : Files.File_Types.Classification;
+      Options : Files.Types.Listing_Options)
       return Directory_Load_Result is separate;
 
    function Load_Directory_Deferring_Thumbnails
-     (Path     : String;
-      Settings : Files.Settings.Settings_Model)
+     (Path    : String;
+      Classes : Files.File_Types.Classification;
+      Options : Files.Types.Listing_Options)
       return Directory_Load_Result is separate;
 
    function Load_Directory_Generating_Thumbnails
-     (Path     : String;
-      Settings : Files.Settings.Settings_Model)
+     (Path    : String;
+      Classes : Files.File_Types.Classification;
+      Options : Files.Types.Listing_Options)
       return Directory_Load_Result is separate;
 
    function Load_Subdirectories
      (Path     : String;
-      Settings : Files.Settings.Settings_Model;
+      Classes  : Files.File_Types.Classification;
       Options  : Files.Types.Listing_Options)
       return Directory_Load_Result is separate;
 
@@ -300,11 +296,9 @@ package body Files.File_System is
 
    function Load_Item
      (Full_Path : String;
-      Settings  : Files.Settings.Settings_Model)
+      Classes   : Files.File_Types.Classification)
       return Item_Load_Result
    is separate;
-
-   function Load_Recent_Items (Settings : Files.Settings.Settings_Model) return Item_Vectors.Vector is separate;
 
    function Unknown_Signature (Path : String := "") return Directory_Signature
      renames Files.File_System_Types.Unknown_Signature;
@@ -345,10 +339,10 @@ package body Files.File_System is
      (Parent_Path : String;
       Name        : String;
       Kind        : Files.Types.Item_Kind;
-      Settings    : Files.Settings.Settings_Model)
+      Classes     : Files.File_Types.Classification)
       return Directory_Item
    is
-      Filetype : constant String := Files.File_Types.Detect_Filetype (Settings, Kind, Name);
+      Filetype : constant String := Files.File_Types.Detect_Filetype (Classes, Kind, Name);
    begin
       return
         (Name        => To_Unbounded_String (Name),
@@ -357,7 +351,7 @@ package body Files.File_System is
          Hidden      => Entry_Is_Hidden (Name, Hostkit.Fs.Join (Parent_Path, Name)),
          Kind        => Kind,
          Filetype    => To_Unbounded_String (Filetype),
-         Icon_Id     => To_Unbounded_String (Files.File_Types.Icon_Id_For (Settings, Kind, Filetype)),
+         Icon_Id     => To_Unbounded_String (Files.File_Types.Icon_Id_For (Classes, Kind, Filetype)),
          others      => <>);
    end Make_Item;
 
@@ -758,7 +752,8 @@ package body Files.File_System is
    --  @return The matches in walk order, and whether the walk was cut short.
    function Search_Tree
      (Root_Path : String;
-      Settings  : Files.Settings.Settings_Model;
+      Classes   : Files.File_Types.Classification;
+      Options   : Files.Types.Listing_Options;
       Wanted    : not null access function (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
       Judge     : not null access function (Item : Directory_Item) return Search_Verdict;
       Max_Items : Natural)
@@ -767,13 +762,15 @@ package body Files.File_System is
    function Search_Contents
      (Root_Path : String;
       Query     : String;
-      Settings  : Files.Settings.Settings_Model)
+      Classes   : Files.File_Types.Classification;
+      Options   : Files.Types.Listing_Options)
       return Recursive_Search_Result is separate;
 
    function Search_Names
      (Root_Path : String;
       Query     : String;
-      Settings  : Files.Settings.Settings_Model;
+      Classes   : Files.File_Types.Classification;
+      Options   : Files.Types.Listing_Options;
       Max_Items : Natural := Max_Search_Results)
       return Recursive_Search_Result
    is separate;

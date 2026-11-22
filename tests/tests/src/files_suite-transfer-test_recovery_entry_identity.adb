@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Disk;
@@ -25,26 +25,26 @@ separate (Files_Suite.Transfer)
       for Redo_Recovery in Boolean loop
          Reset_Root;
          Write_Binary_File (Source, "owned bytes");
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, False);
          Select_Name (Model, "original");
          if Redo_Recovery then
-            Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+            Step := Operation_Commands.Duplicate_Selected (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Success,
                "prepare redoable creation");
-            Step := Files.Operation_Commands.Undo_Last (Model, Settings);
+            Step := Operation_Commands.Undo_Last (Model, Settings);
             Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                               "prepare Redo recovery");
          end if;
          Files.Model.Set_Background_Transfers (Model, True);
          Files_Suite.Support.Guards.Save (Environment, "FILES_TEST_LOST_CREATION_METADATA");
          Ada.Environment_Variables.Set ("FILES_TEST_LOST_CREATION_METADATA", "1");
-         Step := (if Redo_Recovery then Files.Operation_Commands.Redo_Last (Model, Settings)
-                  else Files.Operation_Commands.Duplicate_Selected (Model, Settings));
+         Step := (if Redo_Recovery then Operation_Commands.Redo_Last (Model, Settings)
+                  else Operation_Commands.Duplicate_Selected (Model, Settings));
          declare
             Job : constant Files.Jobs.Process.Session := Files.Model.Jobs.Background_Operation (Model);
          begin
@@ -69,7 +69,7 @@ separate (Files_Suite.Transfer)
                "lost final metadata reports failure");
             if Redo_Recovery then
                Assert (Files.Model.History.Redo_Available (Model), "the interrupted Redo is retryable");
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
@@ -84,7 +84,7 @@ separate (Files_Suite.Transfer)
                Mutation := Files.File_System.Delete_Permanently (Dest);
                Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved, Dest),
                        "restore the helper's completed publication for retry");
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
@@ -109,14 +109,14 @@ separate (Files_Suite.Transfer)
                        & "] saved=[" & Files.File_Identities.Token (Saved) & "]");
             end;
          end;
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operation_Results.Operation_Failed
                  and then File_Is (Dest, "unrelated replacement"),
                  "recovered Undo refuses to delete the replacement");
          Mutation := Files.File_System.Delete_Permanently (Dest);
          Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved, Dest), "restore the owned output");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,

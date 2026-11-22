@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.File_System.Permissions;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
@@ -89,7 +89,7 @@ separate (Files_Suite.Transfer)
       end Check;
       procedure Check_Backups (Parent : String) is
          Listing : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Parent, Settings);
+           Files_Suite.Listings.Load_Directory (Parent, Settings);
       begin
          for Item of Listing.Items loop
             declare
@@ -119,7 +119,7 @@ separate (Files_Suite.Transfer)
          Check (Source);
          Check (Join (Root, "copy"));
          Remove (Join (Root, "copy"));
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
@@ -134,7 +134,7 @@ separate (Files_Suite.Transfer)
          for Cycle in 1 .. 2 loop
             Check (Join (Remote.Path, "source"));
             Check_Backups (Root);
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
@@ -142,7 +142,7 @@ separate (Files_Suite.Transfer)
                "Undo a read-only directory move");
             Check (Source);
             Check_Backups (Remote.Path);
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,

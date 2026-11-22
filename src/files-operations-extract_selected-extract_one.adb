@@ -50,7 +50,7 @@ begin
          if Catalog_Status = Zlib.Ok then
             declare
                Refused : constant String :=
-                 Files.Archive_Writing.First_Unextractable_At (Entries, Destination);
+                 Files.Operations.Archive_Writing.First_Unextractable_At (Entries, Destination);
             begin
                if Refused /= "" then
                   Discard_Stage (Stage);
@@ -72,7 +72,7 @@ begin
             Stop := True;
             Result := Failed (Full_Path, Catalog_Status);
             return;
-         elsif not Files.Archive_Writing.Extraction_Is_Within_Limits
+         elsif not Files.Operations.Archive_Writing.Extraction_Is_Within_Limits
              (Entries,
               Free_Bytes        => Capacity.Free_Bytes,
               Free_Bytes_Known  => Capacity.Available,

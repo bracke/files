@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 separate (Files_Suite.Archives)
    procedure Test_Compress_Same_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,21 +17,21 @@ separate (Files_Suite.Archives)
 
       --  A search finds both: one archive of the two keeps both, the second
       --  under a numbered name, rather than failing on the shared name.
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Filter (Model, "readme");
-      Result := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
+      Result := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success, "the search runs");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the search finds both files");
       Files.Model.Selection.Select_All_Visible (Model);
-      Result := Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive);
+      Result := Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive);
       Files_Suite.Support.Assert_Equal
         (Result.Status, Files.Operation_Results.Operation_Success, "two same-named files compress together");
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Assert (Files.Model.Selection.Select_By_Name (Model, "readme.zip"), "the archive is made in the search root");
-      Result := Files.Operation_Commands.Extract_Selected (Model, Settings);
+      Result := Operation_Commands.Extract_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status, Files.Operation_Results.Operation_Success, "the archive extracts");
       Assert (Path_Exists (Join (Join (Root, "readme"), "readme.txt"))

@@ -104,7 +104,7 @@ separate (Check_All)
          "event translation's spec must not name operation execution");
       Require_Not_Contains_In_Unit
         (Events_Body,
-         "Files.Commands.Execution",
+         "Execute_Pure_Command",
          "event translation must not directly execute commands");
       Require_Not_Contains_In_Unit
         (Events_Body,
@@ -199,7 +199,7 @@ separate (Check_All)
          "the model makes no transport; Operations.Begin_Paste_Execution does");
       declare
          Allowed : constant String_List :=
-           [To_Unbounded_String ("Files.Command_Palette"),
+           [To_Unbounded_String ("Files.Overlays.Command_Palette"),
             --  The command a palette row names: the registry's ids, read.
             To_Unbounded_String ("Files.Commands"),
             To_Unbounded_String ("Files.Desktop_Applications"),
@@ -235,7 +235,7 @@ separate (Check_All)
             --  Text helpers (counts, prefixes, case folding), no I/O.
             To_Unbounded_String ("Files.Text_Basics"),
             To_Unbounded_String ("Files.Text_Case"),
-            To_Unbounded_String ("Files.Type_Ahead"),
+            To_Unbounded_String ("Files.Model.Selection.Type_Ahead"),
             To_Unbounded_String ("Files.Types"),
             To_Unbounded_String ("Files.UI_Types"),
             --  The undo history's values (no I/O): the model holds a history.

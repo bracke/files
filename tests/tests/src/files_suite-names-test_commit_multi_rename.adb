@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 separate (Files_Suite.Names)
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,7 +14,7 @@ separate (Files_Suite.Names)
       Reset_Root;
       Write_File (Join (Root, "aaa.txt"));
       Write_File (Join (Root, "bbb.txt"));
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
@@ -40,7 +40,7 @@ separate (Files_Suite.Names)
          2,
          "committing two renames records a two-entry undo");
 
-      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,
@@ -56,7 +56,7 @@ separate (Files_Suite.Names)
       Write_File (Join (Root, "one.txt"));
       Write_File (Join (Root, "two.txt"));
       Write_File (Join (Root, "oneZ.txt"), "occupied");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       --  Select only one.txt and two.txt (leave the colliding oneZ.txt out).
       Select_Name (Model, "one.txt");

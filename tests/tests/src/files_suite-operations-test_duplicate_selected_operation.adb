@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Commands.Status;
 separate (Files_Suite.Operations)
@@ -16,7 +17,7 @@ separate (Files_Suite.Operations)
       Ada.Directories.Create_Path (Dir);
       Write_File (Source, Payload);
 
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "report.txt");
 
@@ -43,7 +44,7 @@ separate (Files_Suite.Operations)
          Hidden : Files.Settings.Settings_Model := Settings;
       begin
          Hidden.Show_Hidden_Files := True;
-         Load := Files.File_System.Load_Directory (Dir, Hidden);
+         Load := Files_Suite.Listings.Load_Directory (Dir, Hidden);
          Files.Model.Initialize (Model, Dir, Load.Items, Root);
          Select_Name (Model, ".bashrc");
          Routed := Files.Controller.Execute_Non_Settings_Command

@@ -5,7 +5,7 @@ with Files.Types;
 --  path it ended on, and for an open action what ran. Its own unit so the
 --  operations (Files.Operations) and the helper jobs that run them
 --  (Files.Job_Drivers.Operation) share it: the operations never start a job
---  (Files.Operation_Commands does), and only the helper side
+--  (Files.Controller.Operation_Commands does), and only the helper side
 --  (Files.Job_Drivers.Operation.Helper) runs an operation.
 package Files.Operation_Results is
 

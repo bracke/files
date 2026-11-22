@@ -1,5 +1,5 @@
 with Files.Preference_Types;
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Files.Folder_Tree;
 with Files.Quick_Look;
 with Guikit.Shared_Bytes;
@@ -79,11 +79,11 @@ separate (Files.Application.Windows.Smoke)
             end;
 
          when Scenario_Settings =>
-            Files.Settings_Form.Begin_Edit
+            Files.Overlays.Settings_Form.Begin_Edit
               (Runtime.Model, Runtime.Settings);
 
          when Scenario_Settings_Tab_2 .. Scenario_Settings_Tab_7 =>
-            Files.Settings_Form.Begin_Edit
+            Files.Overlays.Settings_Form.Begin_Edit
               (Runtime.Model, Runtime.Settings);
             Files.Model.Settings_Pane.Set_Active_Section
               (Runtime.Model,
@@ -92,13 +92,13 @@ separate (Files.Application.Windows.Smoke)
          when Scenario_Settings_Light =>
             Runtime.Settings.Theme := Files.Settings.Theme_Light;
             Files.Model.Note_Settings_Changed (Runtime.Model);
-            Files.Settings_Form.Begin_Edit
+            Files.Overlays.Settings_Form.Begin_Edit
               (Runtime.Model, Runtime.Settings);
 
          when Scenario_Settings_Large_Font =>
             Runtime.Settings.Font_Pixel_Size := Large_Font;
             Files.Model.Note_Settings_Changed (Runtime.Model);
-            Files.Settings_Form.Begin_Edit
+            Files.Overlays.Settings_Form.Begin_Edit
               (Runtime.Model, Runtime.Settings);
 
          when Scenario_Settings_Keyboard =>

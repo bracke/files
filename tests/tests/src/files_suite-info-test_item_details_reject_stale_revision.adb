@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Extra_Info;
 with Files.Application.Extra_Info_Reader;
 with Files_Suite.Support.Timing;
@@ -14,7 +15,8 @@ separate (Files_Suite.Info)
       Asked    : Boolean;
 
       function Item_Named (Name : String) return Files.Items.Directory_Item is
-         Load : constant Files.File_System.Directory_Load_Result := Files.File_System.Load_Directory (Root, Settings);
+         Load : constant Files.File_System.Directory_Load_Result :=
+           Files_Suite.Listings.Load_Directory (Root, Settings);
       begin
          for Item of Load.Items loop
             if To_String (Item.Name) = Name then

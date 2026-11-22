@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Transfer_Result_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -26,7 +26,7 @@ separate (Files_Suite.Transfer)
                if Replaced then
                   Write_Binary_File (Dest, "original destination");
                end if;
-               Load := Files.File_System.Load_Directory (Root, Settings);
+               Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Operations.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, True);
@@ -58,7 +58,7 @@ separate (Files_Suite.Transfer)
                   Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Items.First_Element.Identity
                           = Files.File_Identities.Token (Dest & "-saved"),
                           "recovery retains the published identity without recapturing a replacement");
-                  Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                  Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
                   Assert (Step.Status = Files.Operation_Results.Operation_Failed
                           and then File_Has_Bytes (Dest, "unrelated replacement"),
@@ -69,7 +69,7 @@ separate (Files_Suite.Transfer)
                end if;
                --  The fault is over: put the variable back now, not at scope exit.
                Files_Suite.Support.Guards.Finalize (Environment);
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Assert (Step.Status = Files.Operation_Results.Operation_Success
                        and then File_Is (Source, "source bytes"),

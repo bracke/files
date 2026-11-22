@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.File_System.Permissions;
 with Hostkit.Metadata;
 separate (Files_Suite.Operations)
@@ -25,7 +25,7 @@ separate (Files_Suite.Operations)
       Hostkit.Metadata.File_Ownership (Target, Uid, Gid, Avail);
       Assert (Avail, "ownership of the temp file is readable");
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "ownable.txt");
 
@@ -60,7 +60,7 @@ separate (Files_Suite.Operations)
             "ownership history retains names for a later helper process");
       end;
 
-      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                         "undo of chown succeeds");
       Assert (not Files.Model.History.Undo_Available (Model), "undo record is cleared after chown undo");

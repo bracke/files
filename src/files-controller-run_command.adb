@@ -1,8 +1,7 @@
 with Files.UI_Types;
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Files.Operation_Results;
-with Files.Operation_Commands;
-with Files.Commands.Execution;
+with Files.Controller.Operation_Commands;
 with Files.Model.Clipboard;
 with Files.Model.Quick_Look;
 separate (Files.Controller)
@@ -38,13 +37,13 @@ separate (Files.Controller)
          when Files.Commands.Navigate_Recent_Command =>
             Operation := Files.Operations.Navigate_Recent (Model, Settings);
          when Files.Commands.Restore_From_Trash_Command =>
-            Operation := Files.Operation_Commands.Restore_Selected_From_Trash (Model, Settings);
+            Operation := Operation_Commands.Restore_Selected_From_Trash (Model, Settings);
          when Files.Commands.Empty_Trash_Command =>
-            Operation := Files.Operation_Commands.Empty_Trash (Model, Settings);
+            Operation := Operation_Commands.Empty_Trash (Model, Settings);
          when Files.Commands.Undo_Command =>
-            Operation := Files.Operation_Commands.Undo_Last (Model, Settings);
+            Operation := Operation_Commands.Undo_Last (Model, Settings);
          when Files.Commands.Redo_Command =>
-            Operation := Files.Operation_Commands.Redo_Last (Model, Settings);
+            Operation := Operation_Commands.Redo_Last (Model, Settings);
          when Files.Commands.Navigate_Back_Command =>
             Operation := Files.Operations.Navigate_Back (Model, Settings);
          when Files.Commands.Navigate_Forward_Command =>
@@ -55,9 +54,9 @@ separate (Files.Controller)
             Files.Operations.Begin_Open_With (Model);
             Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Delete_Selected_Items_Command =>
-            Operation := Files.Operation_Commands.Delete_Selected (Model, Settings);
+            Operation := Operation_Commands.Delete_Selected (Model, Settings);
          when Files.Commands.Delete_Selected_Permanently_Command =>
-            Operation := Files.Operation_Commands.Delete_Selected_Permanently (Model, Settings);
+            Operation := Operation_Commands.Delete_Selected_Permanently (Model, Settings);
          when Files.Commands.Copy_Selected_Items_Command =>
             Files.Model.Clipboard.Set (Model, Selected_Paths, Files.Model.Clipboard_Copy);
             Files.Model.Set_Error (Model, "");
@@ -67,7 +66,7 @@ separate (Files.Controller)
             Files.Model.Set_Error (Model, "");
             Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Duplicate_Selected_Command =>
-            Operation := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+            Operation := Operation_Commands.Duplicate_Selected (Model, Settings);
          when Files.Commands.Create_Symlink_Command =>
             Operation := Files.Operations.Create_Symlink_Selected (Model, Settings);
          when Files.Commands.Create_Hardlink_Command =>
@@ -76,14 +75,14 @@ separate (Files.Controller)
             Operation := Files.Operations.Open_Terminal (Model);
          when Files.Commands.Compress_Zip_Command =>
             Operation :=
-              Files.Operation_Commands.Compress_Selected
+              Operation_Commands.Compress_Selected
                 (Model, Settings, Files.Operations.Zip_Archive);
          when Files.Commands.Compress_7z_Command =>
             Operation :=
-              Files.Operation_Commands.Compress_Selected
+              Operation_Commands.Compress_Selected
                 (Model, Settings, Files.Operations.Seven_Zip_Archive);
          when Files.Commands.Extract_Archive_Command =>
-            Operation := Files.Operation_Commands.Extract_Selected (Model, Settings);
+            Operation := Operation_Commands.Extract_Selected (Model, Settings);
          when Files.Commands.Paste_Items_Command =>
             declare
                use type Files.Model.Clipboard_Mode;
@@ -106,9 +105,9 @@ separate (Files.Controller)
          when Files.Commands.Generate_Thumbnails_Command =>
             Operation := Files.Operations.Generate_Selected_Thumbnails (Model, Settings);
          when Files.Commands.Search_Recursive_Command =>
-            Operation := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
+            Operation := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
          when Files.Commands.Search_Contents_Command =>
-            Operation := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents);
+            Operation := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents);
          when Files.Commands.Refresh_Directory_Command =>
             Operation := Files.Operations.Refresh (Model, Settings);
          when Files.Commands.Open_Containing_Folder_Command =>
@@ -183,14 +182,14 @@ separate (Files.Controller)
             if Files.Model.Settings_Pane.Is_Open (Model) then
                Files.Model.Settings_Pane.Close (Model);
             else
-               Files.Settings_Form.Begin_Edit (Model, Settings);
+               Files.Overlays.Settings_Form.Begin_Edit (Model, Settings);
             end if;
             Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Pure_Command_Id =>
             declare
                Had_Results : constant Boolean := Files.Model.Search_Results_Are_Active (Model);
             begin
-               Files.Commands.Execution.Execute (Id, Model);
+               Execute_Pure_Command (Id, Model);
                Operation.Status := Files.Operation_Results.Operation_Success;
                --  Clearing the filter ends a search: the folder's own listing
                --  replaces the results, as when the scope chip goes back.

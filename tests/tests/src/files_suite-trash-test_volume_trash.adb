@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.File_System.Trash;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
@@ -151,7 +152,7 @@ separate (Files_Suite.Trash)
 
          declare
             Load  : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
+              Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
             Found_Home, Found_Volume : Boolean := False;
          begin
             Assert (Load.Success, "the trash view lists");

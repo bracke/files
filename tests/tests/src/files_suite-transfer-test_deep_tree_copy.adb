@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.File_System.Testing;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
@@ -51,7 +52,7 @@ separate (Files_Suite.Transfer)
          end if;
          Assert (File_Is (Join (To_String (Leaf), "child"), "deep bytes"),
                  "deep copies preserve their source");
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          for Item of Load.Items loop
             Assert (Ada.Strings.Fixed.Index (To_String (Item.Name), Files.Protocol_Names.Work_Stage_Prefix) /= 1,
                     "deep copy success or refusal leaves no private staging tree");

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Input_Actions;
 separate (Files_Suite.Refresh)
@@ -16,7 +17,7 @@ separate (Files_Suite.Refresh)
       Settings.Persistence_Refused := True;
       Reset_Root;
       Write_Binary_File (Join (Root, "first.txt"), "first");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Write_Binary_File (Join (Root, "second.txt"), "second");

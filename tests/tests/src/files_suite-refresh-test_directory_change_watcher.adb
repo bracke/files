@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Refresh)
    procedure Test_Directory_Change_Watcher (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -42,7 +43,7 @@ separate (Files_Suite.Refresh)
          Before.Entry_Count + 1,
          "directory watcher reports updated entry count");
 
-      Load := Files.File_System.Load_Directory (Join (Root, "search"), Settings);
+      Load := Files_Suite.Listings.Load_Directory (Join (Root, "search"), Settings);
       Files.Model.Initialize (Model, Join (Root, "search"), Load.Items, Root);
       Files.Model.Set_Directory_Signature
         (Model,
@@ -123,7 +124,7 @@ separate (Files_Suite.Refresh)
       --  it agrees with a separate read of the unchanged folder -- hidden
       --  entries included, though the listing leaves them out.
       Write_File (Join (Join (Root, "search"), ".hidden"), "h");
-      Load := Files.File_System.Load_Directory_Deferring_Thumbnails (Join (Root, "search"), Settings);
+      Load := Files_Suite.Listings.Load_Directory_Deferring_Thumbnails (Join (Root, "search"), Settings);
       Assert (Load.Signature = Files.File_System.Directory_State (Join (Root, "search")),
               "the listing's own signature is the folder's signature");
       Assert (not Files.File_System.Detect_Directory_Change (Load.Signature, Join (Root, "search")).Changed,

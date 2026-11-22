@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Total_In_Contents (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -11,7 +12,7 @@ separate (Files_Suite.Info)
       Reset_Root;
       Ada.Directories.Create_Path (Join (Root, "fa"));
       Ada.Directories.Create_Path (Join (Root, "fb"));
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Selection.Select_All_Visible (Model);
       Files.Model.Toggle_Info_Pane (Model);

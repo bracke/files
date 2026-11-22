@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Selection_Total_Counts_Folders (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -11,7 +12,7 @@ separate (Files_Suite.Info)
       Reset_Root;
       Ada.Directories.Create_Path (Dir_Path);
       Write_Binary_File (Join (Root, "afile.bin"), "0123456789");   --  10-byte file
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Selection.Select_All_Visible (Model);                       --  folder + file
       Files_Suite.Support.Assert_Equal

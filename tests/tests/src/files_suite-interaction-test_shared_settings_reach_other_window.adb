@@ -1,4 +1,5 @@
-with Files.Settings_Form;
+with Files_Suite.Listings;
+with Files.Overlays.Settings_Form;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Interaction)
@@ -20,7 +21,7 @@ separate (Files_Suite.Interaction)
 
       procedure Load (Model : in out Files.Model.Window_Model; Settings : Files.Settings.Settings_Model) is
          Load_Result : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Files_Suite.Support.Disk.Root, Settings);
+           Files_Suite.Listings.Load_Directory (Files_Suite.Support.Disk.Root, Settings);
       begin
          Files.Model.Initialize
            (Model,
@@ -47,7 +48,7 @@ separate (Files_Suite.Interaction)
       begin
          Edited.Scalars (Files.Settings.Default_View_Mode_Setting) :=
            Ada.Strings.Unbounded.To_Unbounded_String ("details");
-         Files.Settings_Form.Set_Draft (Second_Window, Edited);
+         Files.Overlays.Settings_Form.Set_Draft (Second_Window, Edited);
       end;
 
       --  The first window turns hidden files on; the second adopts its settings.

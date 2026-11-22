@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.File_System.Trash;
 with Files.Items;
 with Files.Commands.Status;
@@ -31,7 +31,7 @@ separate (Files_Suite.Refresh)
       Ada.Directories.Create_Path (Child_Dir);
       Write_File (Join (Child_Dir, "leaf.txt"));
       Write_File (Join (Parent_Dir, "sibling.txt"));
-      Load := Files.File_System.Load_Directory (Full_Child, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Full_Child, Settings);
       Files.Model.Initialize (Model, Full_Child, Load.Items, Full_Child);
 
       Assert
@@ -99,10 +99,10 @@ separate (Files_Suite.Refresh)
          declare
             Trash_Dir   : constant String := Files.File_System.Trash.Trash_Files_Directory;
             Trash_Load  : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory (Trash_Dir, Settings);
+              Files_Suite.Listings.Load_Directory (Trash_Dir, Settings);
             Trash_Model : Files.Model.Window_Model;
             Source_Load : constant Files.File_System.Item_Load_Result :=
-              Files.File_System.Load_Item (Join (Full_Child, "leaf.txt"), Settings);
+              Files_Suite.Listings.Load_Item (Join (Full_Child, "leaf.txt"), Settings);
             Trash_Items : Files.Items.Item_Vectors.Vector;
             Trash_Sources : Files.Types.String_Vectors.Vector;
             Trash_Result  : Files.Operation_Results.Operation_Result;
@@ -159,27 +159,27 @@ separate (Files_Suite.Refresh)
                  (not Files.Commands.Status.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Trash_Model),
                   "commands that would desynchronize trash metadata are disabled: rename disabled");
                Files.Model.Set_Background_Transfers (Trash_Model, True);
-               Trash_Result := Files.Operation_Commands.Delete_Selected (Trash_Model, Settings);
+               Trash_Result := Operation_Commands.Delete_Selected (Trash_Model, Settings);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then not Files.Jobs.Process.Active
                     (Files.Model.Jobs.Background_Operation (Trash_Model)),
                   "direct delete cannot re-trash a trash payload or launch a helper");
-               Trash_Result := Files.Operation_Commands.Duplicate_Selected (Trash_Model, Settings);
+               Trash_Result := Operation_Commands.Duplicate_Selected (Trash_Model, Settings);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then not Files.Jobs.Process.Active
                     (Files.Model.Jobs.Background_Operation (Trash_Model)),
                   "direct duplicate cannot create an orphaned trash payload");
                Trash_Result :=
-                 Files.Operation_Commands.Compress_Selected
+                 Operation_Commands.Compress_Selected
                    (Trash_Model, Settings, Files.Operations.Zip_Archive);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then not Files.Jobs.Process.Active
                     (Files.Model.Jobs.Background_Operation (Trash_Model)),
                   "direct compression cannot create an orphaned trash payload");
-               Trash_Result := Files.Operation_Commands.Extract_Selected (Trash_Model, Settings);
+               Trash_Result := Operation_Commands.Extract_Selected (Trash_Model, Settings);
                Assert
                  (Trash_Result.Status = Files.Operation_Results.Operation_Disabled
                   and then not Files.Jobs.Process.Active

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 separate (Files_Suite.Info)
    procedure Test_Folder_Size_Multi_Selection
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -14,7 +15,7 @@ separate (Files_Suite.Info)
       Ada.Directories.Create_Path (Dir_B);
       Write_Binary_File (Join (Dir_A, "one.bin"), "12345");         --  5 bytes
       Write_Binary_File (Join (Dir_B, "two.bin"), "0123456789");    --  10 bytes
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Application.Window_Polls.Cancel_Folder_Scan (Model);
 

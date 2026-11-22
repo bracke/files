@@ -1,3 +1,4 @@
+with Files.Controller.Operation_Commands;
 with Files.UI_Types;
 with Files.Operation_Results;
 with Files.File_System.Permissions;
@@ -23,6 +24,9 @@ with Files_Suite.Operations_Support;
 with Files_Suite.Support.Disk;
 
 package body Files_Suite.Search is
+
+   --  The command entry points the tests drive, by a short name.
+   package Operation_Commands renames Files.Controller.Operation_Commands;
 
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;

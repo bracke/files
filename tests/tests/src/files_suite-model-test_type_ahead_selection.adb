@@ -47,28 +47,28 @@ separate (Files_Suite.Model)
    begin
       --  Pure matcher: first item starting with the prefix, case-insensitive.
       Files_Suite.Support.Assert_Equal
-        (Files.Type_Ahead.Type_Ahead_Target (Grid_Names, "do", 1),
+        (Files.Model.Selection.Type_Ahead.Type_Ahead_Target (Grid_Names, "do", 1),
          2,
          "matcher returns the first item starting with the prefix");
       Files_Suite.Support.Assert_Equal
-        (Files.Type_Ahead.Type_Ahead_Target (Grid_Names, "DO", 1),
+        (Files.Model.Selection.Type_Ahead.Type_Ahead_Target (Grid_Names, "DO", 1),
          2,
          "matcher is case-insensitive");
       Files_Suite.Support.Assert_Equal
-        (Files.Type_Ahead.Type_Ahead_Target (Grid_Names, "z", 1),
+        (Files.Model.Selection.Type_Ahead.Type_Ahead_Target (Grid_Names, "z", 1),
          0,
          "matcher returns zero when nothing matches");
       Files_Suite.Support.Assert_Equal
-        (Files.Type_Ahead.Type_Ahead_Target (Grid_Names, "", 1),
+        (Files.Model.Selection.Type_Ahead.Type_Ahead_Target (Grid_Names, "", 1),
          0,
          "matcher returns zero for an empty prefix");
       --  Start-index respected: "d" items sit at 1, 3, 4; scanning from 3 finds 3.
       Files_Suite.Support.Assert_Equal
-        (Files.Type_Ahead.Type_Ahead_Target (Grid_Names, "d", 3),
+        (Files.Model.Selection.Type_Ahead.Type_Ahead_Target (Grid_Names, "d", 3),
          3,
          "matcher honours the start index inclusively");
       Files_Suite.Support.Assert_Equal
-        (Files.Type_Ahead.Type_Ahead_Target (Grid_Names, "d", 5),
+        (Files.Model.Selection.Type_Ahead.Type_Ahead_Target (Grid_Names, "d", 5),
          1,
          "matcher wraps around past the end of the projection");
 

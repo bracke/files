@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 separate (Files_Suite.History)
    procedure Test_Set_Permissions_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,7 +20,7 @@ separate (Files_Suite.History)
         (Files.File_System.Permissions.Set_Permissions (Target, 8#644#).Success,
          "baseline chmod to 0644 succeeds");
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "modeable.txt");
       Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#644#, "baseline permission bits are 0644");
@@ -49,7 +49,7 @@ separate (Files_Suite.History)
         (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Undo.History.Undo_Set_Permissions,
          "set-permissions records a permission undo");
 
-      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                         "undo of chmod succeeds");
       Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#644#, "undo restores the previous 0644 mode");

@@ -55,7 +55,7 @@ package Files.Model.Settings_Pane is
    --  Replace the active settings draft and the panel's fields for it, so
    --  the panel never holds another draft's values (a key typed straight
    --  after a change lands on the entry the draft now shows). The caller
-   --  normalizes the draft and builds the fields (Files.Settings_Form).
+   --  normalizes the draft and builds the fields (Files.Overlays.Settings_Form).
    --
    --  @param Model Model to update.
    --  @param Draft Draft values to store, normalized.

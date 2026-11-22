@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Folder_Tree;
 with Files.Model.Clipboard;
 with Files.Model.Pasting;
@@ -79,7 +80,7 @@ separate (Files_Suite.Commands)
          Ada.Directories.Create_Path (Dest_Dir);
          Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Src_Dir, "a.txt"), "SRC");
          Files_Suite.Support.Disk.Write_File (Files_Suite.Support.Disk.Join (Dest_Dir, "a.txt"), "DEST");
-         Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
          Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
          Paths.Append (To_Unbounded_String (Files_Suite.Support.Disk.Join (Src_Dir, "a.txt")));
          Files.Model.Clipboard.Set (Model, Paths, Files.Model.Clipboard_Copy);

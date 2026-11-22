@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Events;
 with Files.Controller.Testing;
@@ -173,7 +174,7 @@ package body Files_Suite.Interaction_Support is
    --  genuine items.
    function Loaded_Model (Directory : String) return Files.Model.Window_Model is
       Load  : constant Files.File_System.Directory_Load_Result :=
-        Files.File_System.Load_Directory (Directory, Files.Settings.Default_Settings);
+        Files_Suite.Listings.Load_Directory (Directory, Files.Settings.Default_Settings);
       Model : Files.Model.Window_Model;
    begin
       Files.Model.Initialize (Model, Directory, Load.Items, Files_Suite.Support.Disk.Root);

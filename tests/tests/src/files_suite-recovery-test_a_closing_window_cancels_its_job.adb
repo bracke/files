@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
-with Files.Operation_Commands;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
@@ -33,13 +33,13 @@ separate (Files_Suite.Recovery)
       --  An operation helper, stalled in its work, sees the window's cancel.
       Reset_Root;
       Write_Binary_File (Join (Root, "victim.txt"), "victim bytes");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Select_Name (Model, "victim.txt");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
       Ada.Environment_Variables.Set ("FILES_TEST_CANCEL_SEEN", Seen);
-      Step := Files.Operation_Commands.Delete_Selected_Permanently (Model, Settings);
+      Step := Operation_Commands.Delete_Selected_Permanently (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success
               and then Files.Model.Foreground_Job_Is_Active (Model), "the delete runs in a helper");
       Started := To_Unbounded_String (Files.Jobs.Process.Path (Files.Model.Jobs.Background_Operation (Model),
@@ -63,7 +63,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Join (Root, "new-one.txt"), "new");
       Write_Binary_File (Join (Root, "one.txt"), "old");
       Write_Binary_File (Join (Root, "new-two.txt"), "two");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, False);
       Files.Operations.Clear_Undo (Model);

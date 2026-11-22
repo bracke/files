@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Folder_Size;
 with Files_Suite.Support.Disk;
@@ -24,7 +25,7 @@ separate (Files_Suite.Interaction)
 
       procedure Load is
          Load_Result : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Root, Settings);
+           Files_Suite.Listings.Load_Directory (Root, Settings);
       begin
          Files.Model.Initialize (Model, Directory_Path => Root, Items => Load_Result.Items, Home_Path => "/home/test");
       end Load;

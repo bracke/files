@@ -2,8 +2,6 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Wide_Wide_Characters.Handling;
-with Files.Diagnostics;
-with Files.Text_Encoding;
 with Guikit.Utf8;
 with I18N.Normalization;
 
@@ -290,8 +288,10 @@ package body Files.Text_Case is
                  (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode (Composed)));
          end;
       exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Text_Case");
+         --  Text Guikit decodes but Ada's codec refuses (a surrogate, an
+         --  overlong form) or normalization data that does not parse: the
+         --  run is still matched, case-folded as ASCII.
+         when Ada.Strings.UTF_Encoding.Encoding_Error | Constraint_Error =>
             return To_Lower_Ascii (Run_Text);
       end Fold_Run;
    begin
@@ -315,10 +315,6 @@ package body Files.Text_Case is
       Ada.Strings.Unbounded.Append (Result, Fold_Run (Text (Run .. Text'Last)));
       return Ada.Strings.Unbounded.To_String (Result);
    end Fold_Case;
-
-   function Text_Contains (Text : String; Folded_Query : String) return Boolean is
-     (Folded_Query /= "" and then Text'Length > 0 and then not Files.Text_Encoding.Looks_Binary (Text)
-      and then Ada.Strings.Fixed.Index (Fold_Case (Text), Folded_Query) > 0);
 
    function Contains_Case_Insensitive
      (Haystack : String;

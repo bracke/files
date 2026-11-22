@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Controller.Testing;
 separate (Files_Suite.Commands)
@@ -10,7 +11,7 @@ separate (Files_Suite.Commands)
    begin
       Reset_Root;
       Write_File (Join (Root, "old.txt"));
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "old.txt");
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_F2);

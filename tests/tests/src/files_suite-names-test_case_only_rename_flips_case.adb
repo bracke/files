@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Names)
    procedure Test_Case_Only_Rename_Flips_Case (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -90,7 +91,7 @@ separate (Files_Suite.Names)
          Assert (Hostkit.Host.Current /= Hostkit.Host.MacOS or else Folding,
                  "macOS runs the rename on a case-insensitive volume");
          Write_Binary_File (Join (Folder, "report.txt"), "the report");
-         Load := Files.File_System.Load_Directory (Folder, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Folder, Settings);
          Files.Model.Initialize (Model, Folder, Load.Items, Root);
          Select_Name (Model, "report.txt");
          Files.Model.Rename.Toggle (Model);
@@ -100,7 +101,7 @@ separate (Files_Suite.Names)
            (Step.Status,
             Files.Operation_Results.Operation_Success,
             "the case-only rename succeeds" & (if Folding then " (case-insensitive volume)" else ""));
-         Load := Files.File_System.Load_Directory (Folder, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Folder, Settings);
          for Item of Load.Items loop
             Names.Append (Item.Name);
          end loop;
@@ -114,7 +115,7 @@ separate (Files_Suite.Names)
          Ada.Directories.Delete_File (Join (Folder, "Report.txt"));
          --  Outside Latin-1 too: the leaves are compared folded in every script.
          Write_Binary_File (Join (Folder, Lower_Cyrillic), "hello");
-         Load := Files.File_System.Load_Directory (Folder, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Folder, Settings);
          Files.Model.Initialize (Model, Folder, Load.Items, Root);
          Select_Name (Model, Lower_Cyrillic);
          Files.Model.Rename.Toggle (Model);
@@ -125,7 +126,7 @@ separate (Files_Suite.Names)
             Files.Operation_Results.Operation_Success,
             "the Cyrillic case-only rename succeeds" & (if Folding then " (case-insensitive volume)" else ""));
          Names.Clear;
-         Load := Files.File_System.Load_Directory (Folder, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Folder, Settings);
          for Item of Load.Items loop
             Names.Append (Item.Name);
          end loop;

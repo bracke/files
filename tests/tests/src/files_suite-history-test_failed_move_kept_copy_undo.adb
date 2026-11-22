@@ -1,5 +1,4 @@
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.IO.Durability.Testing;
 with Files.Items;
 with Files_Suite.Volumes;
@@ -83,7 +82,7 @@ separate (Files_Suite.History)
                        "the first item moved, background " & Background'Image);
             end if;
 
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Assert (Step.Status = Files.Operation_Results.Operation_Success,
                     "undoing the kept copy succeeds, background " & Background'Image);
             Assert (not Ada.Directories.Exists (Dest), "undo deletes the copy, background " & Background'Image);

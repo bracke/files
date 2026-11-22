@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Input_Actions;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Operations)
@@ -25,7 +26,7 @@ separate (Files_Suite.Operations)
       Ada.Directories.Create_Path (Sub);
       Assert (Files.File_System.Permissions.Set_Permissions (Sub, 8#755#).Success, "baseline dir mode 0755");
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "perm_dir");
       Files.Model.Toggle_Info_Pane (Model);

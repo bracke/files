@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Model.Command_Palette;
@@ -26,7 +27,7 @@ separate (Files_Suite.Refresh)
       for Index in 1 .. 40 loop
          Write_Binary_File (Join (Root, "item" & Index'Image), "x");
       end loop;
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "item 20");
       Files.Model.Set_Main_View_Scroll_Lines (Model, 15);

@@ -46,18 +46,6 @@ package Files.Text_Case is
    --  @return Folded text.
    function Fold_Case (Text : String) return String;
 
-   --  Whether Text (Files.Text_Encoding.Searchable_Text) is text, not binary
-   --  (Files.Text_Encoding.Looks_Binary), and
-   --  contains Folded_Query (a query already folded with Fold_Case),
-   --  ignoring case: content search's match, with the query folded once
-   --  per search rather than once per file.
-   --
-   --  @param Text A file's first bytes as Files.Text_Encoding.Searchable_Text
-   --    gives them.
-   --  @param Folded_Query Fold_Case of the text looked for; "" matches nothing.
-   --  @return True for a text match.
-   function Text_Contains (Text : String; Folded_Query : String) return Boolean;
-
    --  Return a case-insensitive, accent-folded sort key for Text, the one key
    --  every name list sorts by (listings, the application picker). Every
    --  script's letters fold to lower case (Ada's own Unicode tables), and an

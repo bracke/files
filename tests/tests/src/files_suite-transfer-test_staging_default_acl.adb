@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Job_Drivers.Foreground;
 with Files.IO.Fs_Primitives;
 with Files_Suite.Support.Guards;
@@ -119,7 +119,7 @@ separate (Files_Suite.Transfer)
            (Inherits (Dest),
             "the published copy holds the folder's ACE and no OWNER RIGHTS ACE from its stage"
             & (if Inherits (Dest) then "" else Files_Suite.Support.Disk.Access_Report (Dest)));
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, True);
@@ -133,7 +133,7 @@ separate (Files_Suite.Transfer)
            (Inherits (Join (Parent, "folder")) and then Inherits (Join (Parent, "folder/child"))
               and then File_Has_Bytes (Join (Parent, "folder/child"), "child bytes"),
             "the copied folder and what it holds take the folder's ACE, not the stage's");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success,
@@ -209,7 +209,7 @@ separate (Files_Suite.Transfer)
                Assert (Files.Jobs.Context.Discard_Stage (To_String (Stage)), "remove the private staging probe");
             end;
             if Background then
-               Load := Files.File_System.Load_Directory (Parent, Settings);
+               Load := Files_Suite.Listings.Load_Directory (Parent, Settings);
                Files.Model.Initialize (Model, Parent, Load.Items, Parent);
                Files.Operations.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, True);

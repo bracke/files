@@ -1,3 +1,4 @@
+with Files.Command_Reasons;
 with Files.Items;
 with Guikit.Input;
 with Files.Types;
@@ -94,7 +95,7 @@ package Files.Commands is
    --  no others choice, so the compiler checks that every id is handled once.
    --
    --  Commands whose whole effect is window-model state, run by
-   --  Files.Commands.Execution.Execute.
+   --  the controller's Execute_Pure_Command.
    subtype Pure_Command_Id is Command_Id
      with Static_Predicate =>
        Pure_Command_Id in No_Command
@@ -334,40 +335,16 @@ package Files.Commands is
      (Identifier_Text : String)
       return Command_Id;
 
-   --  Why a command cannot run now. No_Reason is used both for an enabled
-   --  command and for a disabled one with nothing worth telling the user (no
-   --  undo history, a modal overlay that silently owns the keyboard).
-   type Disabled_Reason is
-     (No_Reason,
-      Selection_Empty_Reason,
-      Create_Pending_Reason,
-      Trash_View_Reason,
-      Recent_View_Reason,
-      Not_Archive_Reason,
-      Clipboard_Empty_Reason,
-      Settings_Closed_Reason,
-      Back_Unavailable_Reason,
-      Forward_Unavailable_Reason,
-      Rename_Unavailable_Reason,
-      Filter_Empty_Reason,
-      Root_Unselected_Reason,
-      Eject_Unavailable_Reason,
-      Trash_Unavailable_Reason);
+   --  Why a command cannot run now (Files.Command_Reasons, a leaf that
+   --  Files.Operations reports the same keys from).
+   subtype Disabled_Reason is Files.Command_Reasons.Disabled_Reason;
 
    --  Whether a command can run, and if not, why.
    type Command_Status is record
       Enabled : Boolean := True;
       --  Meaningful only when Enabled is False.
-      Reason  : Disabled_Reason := No_Reason;
+      Reason  : Disabled_Reason := Files.Command_Reasons.No_Reason;
    end record;
-
-   --  The localization key of the message a disabled command reports.
-   --
-   --  @param Reason Why the command is disabled.
-   --  @return Error catalog key, or an empty string for No_Reason.
-   function Reason_Key
-     (Reason : Disabled_Reason)
-      return String;
 
    --  The rows the right-click context menu shows for a target, in order --
    --  command rows interleaved with separator dividers. Shared by the renderer

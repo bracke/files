@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.IO.Fs_Primitives.Testing;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Models;
 separate (Files_Suite.History)
@@ -21,7 +21,7 @@ separate (Files_Suite.History)
    begin
       Reset_Root;
       Write_Binary_File (Made, "made bytes");
-      Files.Model.Initialize (Model, Root, Files.File_System.Load_Directory (Root, Settings).Items, Root);
+      Files.Model.Initialize (Model, Root, Files_Suite.Listings.Load_Directory (Root, Settings).Items, Root);
       Files.Operations.Clear_Undo (Model);
       Files.Model.Set_Background_Transfers (Model, False);
       Created.Append (To_Unbounded_String (Made));
@@ -30,13 +30,13 @@ separate (Files_Suite.History)
          Files_Suite.Support.Models.Undo_Items (Created), Redoable => False);
 
       Files.IO.Fs_Primitives.Testing.Refuse_Lookups (Made);
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files.IO.Fs_Primitives.Testing.Stop_Refusing_Lookups;
       Assert (not Ada.Directories.Exists (Made)
               or else Natural (Files.Model.History.Undo_Entries (Model).Length) = 1,
               "a copy the host would not answer for is removed, or its Undo stays owed -- never forgotten");
 
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Assert (not Ada.Directories.Exists (Made), "once the host answers, Undo removes the copy");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 0, "and the Undo is done");

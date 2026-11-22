@@ -1,8 +1,8 @@
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Settings)
-   --  Files.Settings_Form maps a draft to typed panel fields and applies the
+   --  Files.Overlays.Settings_Form maps a draft to typed panel fields and applies the
    --  panel's emitted changes: paging (Prev/Next) moves the selected mapping
    --  entry without saving, Add/Remove edit the list and save, and the key
    --  field's label carries the "i/n" entry counter.
@@ -33,7 +33,7 @@ separate (Files_Suite.Settings)
 
       function Row_Value (Key : String) return String is
          Fields : constant SP.Field_Vectors.Vector :=
-           Files.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model));
+           Files.Overlays.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model));
       begin
          for F of Fields loop
             if To_String (F.Key) = Key then
@@ -48,8 +48,8 @@ separate (Files_Suite.Settings)
           (Files.Commands.Default_Shortcut_For (Files.Commands.Select_Small_Icons_Command));
    begin
       Files.Commands.Reset_Shortcut_Overrides;
-      Files.Settings_Form.Begin_Edit (Model, Base);
-      Files.Settings_Form.Set_Draft (Model, Draft);
+      Files.Overlays.Settings_Form.Begin_Edit (Model, Base);
+      Files.Overlays.Settings_Form.Set_Draft (Model, Draft);
 
       --  The form emits a row per command, keyed by "shortcut.<identifier>",
       --  showing the command's current shortcut.
@@ -59,7 +59,7 @@ separate (Files_Suite.Settings)
          "the shortcut row shows the command's current binding");
 
       --  Rebind Small Icons to a fresh chord (a key added by the expansion).
-      Saved := Files.Settings_Form.Apply_Change (Model, Change ("shortcut.view.small", New_Chord));
+      Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Change ("shortcut.view.small", New_Chord));
       Assert (Saved, "rebinding a shortcut saves");
       declare
          SC : constant Files.Commands.Shortcut :=
@@ -81,7 +81,7 @@ separate (Files_Suite.Settings)
       end;
 
       --  Binding the same chord to a different command is rejected as a conflict.
-      Saved := Files.Settings_Form.Apply_Change (Model, Change ("shortcut.view.large", New_Chord));
+      Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Change ("shortcut.view.large", New_Chord));
       Assert (not Saved, "a conflicting rebind does not save");
       Assert (Files.Commands.Find_By_Shortcut
                 (Guikit.Input.Key_5,
@@ -90,13 +90,13 @@ separate (Files_Suite.Settings)
               "the chord still resolves to its original command after a rejected clash");
 
       --  An empty chord unbinds the command.
-      Saved := Files.Settings_Form.Apply_Change (Model, Change ("shortcut.view.small", ""));
+      Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Change ("shortcut.view.small", ""));
       Assert (Saved, "unbinding saves");
       Assert (not Files.Commands.Shortcut_For (Files.Commands.Select_Small_Icons_Command).Present,
               "the command has no shortcut after an empty-chord unbind");
 
       --  Setting a command back to its built-in default clears the override.
-      Saved := Files.Settings_Form.Apply_Change (Model, Change ("shortcut.view.small", Small_Text));
+      Saved := Files.Overlays.Settings_Form.Apply_Change (Model, Change ("shortcut.view.small", Small_Text));
       Assert (Saved, "restoring the default saves");
       declare
          Is_Set : Boolean;
@@ -115,10 +115,10 @@ separate (Files_Suite.Settings)
       declare
          With_Override : Files.Settings.Settings_Model := Base;
       begin
-         Files.Settings_Form.Store_Shortcut_Overrides (With_Override);
-         Files.Settings_Form.Mark_Saved (Model, With_Override);
+         Files.Overlays.Settings_Form.Store_Shortcut_Overrides (With_Override);
+         Files.Overlays.Settings_Form.Mark_Saved (Model, With_Override);
       end;
-      Saved := Files.Settings_Form.Apply_Change
+      Saved := Files.Overlays.Settings_Form.Apply_Change
         (Model,
          (Kind  => SP.Button_Pressed,
           Key   => To_Unbounded_String ("form.actions"),
@@ -137,7 +137,7 @@ separate (Files_Suite.Settings)
       --  its row help, so an "already used" rejection is explicable.
       declare
          Fields   : constant SP.Field_Vectors.Vector :=
-           Files.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model));
+           Files.Overlays.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model));
          Sec_Cmd  : constant Files.Commands.Command_Id := Files.Commands.Refresh_Directory_Command;
          Sec_Key  : constant String := "shortcut." & Files.Commands.Identifier (Sec_Cmd);
          Sec_Text : constant String :=

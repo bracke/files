@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Commands.Status;
 with Files_Suite.Support.Guards;
@@ -26,7 +27,7 @@ separate (Files_Suite.Trash)
       --  Trashing a selected item records an undo-only Undo_Restore_Trash entry
       --  whose source is the payload's new location inside the trash.
       Write_File (Source_Path, "payload");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Assert (Load.Success, "undo-safe setup loads the ordinary directory");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Select_Name (Model, "empty-undo.txt");

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Commands.Status;
 with Files_Suite.Support.Guards;
@@ -130,7 +131,7 @@ separate (Files_Suite.Operations)
       --  Directory listings read the thumbnail cache, so keep it inside the fixture.
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
       Write_File (Join (Root, "command-delete.txt"), "delete");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "command-delete.txt");
       Assert

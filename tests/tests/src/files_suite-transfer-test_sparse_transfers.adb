@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
@@ -50,7 +50,7 @@ separate (Files_Suite.Transfer)
                Assert (Prepare (Name'Address, Mixed) = 1, "prepare an all-hole or mixed sparse file");
             end;
             Check (Source, Mixed);
-            Load := Files.File_System.Load_Directory (Root, Settings);
+            Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
@@ -62,11 +62,11 @@ separate (Files_Suite.Transfer)
             Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                               "copy a sparse file");
             Check (Dest, Mixed);
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                               "Undo a sparse copy");
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                               "Redo a sparse copy");

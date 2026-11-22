@@ -5,7 +5,7 @@ with Ada.Calendar;
 --  be tested on their own, under several time zones (a day is 23 or 25 hours
 --  across a daylight-saving change). Used from the render only: the date
 --  bundle is cached here unguarded.
-package Files.Display_Text is
+package Files.Rendering.Display_Text is
 
    --  @param Value The time.
    --  @return Its clock time ("14:30", "2:30 PM").
@@ -59,4 +59,4 @@ package Files.Display_Text is
    --  @return The readable, writable and executable words, or "none".
    function Permission_Text (Permissions : String; Inline : Boolean := False) return String;
 
-end Files.Display_Text;
+end Files.Rendering.Display_Text;

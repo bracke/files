@@ -1,8 +1,8 @@
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 
 with Guikit.Command_Palette;
 
-with Files.Command_Palette;
+with Files.Overlays.Command_Palette;
 with Files.Localization;
 with Files.Settings;
 with Files.Model.Command_Palette;
@@ -49,7 +49,7 @@ package body Files.Overlays is
       Accessibility.Clear;
       --  The commands in the current language, listed here: the model does
       --  not localize.
-      Files.Command_Palette.Ensure_Listed (Model);
+      Files.Overlays.Command_Palette.Ensure_Listed (Model);
       Files.Model.Command_Palette.With_Panel
         (Model,
          Region.Line_Height,
@@ -129,7 +129,7 @@ package body Files.Overlays is
    begin
       Draw_Settings_Frame
         (Model, Region, Focused, Hover_X, Hover_Y,
-         Files.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model)),
+         Files.Overlays.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model)),
          Rectangles, Text, Accessibility);
    end Build_Settings_Frame;
 
@@ -153,7 +153,7 @@ package body Files.Overlays is
         or else Fields.Settings_Revision /= Settings_Revision
         or else To_String (Fields.Locale) /= Locale
       then
-         Fields.Fields := Files.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model));
+         Fields.Fields := Files.Overlays.Settings_Form.Fields (Files.Model.Settings_Pane.Draft_Of (Model));
          Fields.Model_Revision := Model_Revision;
          Fields.Settings_Revision := Settings_Revision;
          Fields.Locale := To_Unbounded_String (Locale);

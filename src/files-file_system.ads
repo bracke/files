@@ -3,7 +3,7 @@ with Files.Extra_Info;
 with Ada.Calendar;
 with Ada.Containers.Vectors;
 
-with Files.Settings;
+with Files.File_Types;
 with Files.Items;
 with Files.Types;
 with Files.File_System_Types;
@@ -186,11 +186,14 @@ package Files.File_System is
    --  them. Load_Directory_Generating_Thumbnails is the variant that makes them.
    --
    --  @param Path Directory path to load.
-   --  @param Settings Settings used for filetype and icon classification.
+   --  @param Classes Filetype and icon maps items are classified by
+   --    (Files.File_Types.Classification_Of the settings).
+   --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
    --  @return Loaded directory model or a recoverable error result.
    function Load_Directory
-     (Path     : String;
-      Settings : Files.Settings.Settings_Model)
+     (Path    : String;
+      Classes : Files.File_Types.Classification;
+      Options : Files.Types.Listing_Options)
       return Directory_Load_Result;
 
    --  Load_Directory that also decodes each image lacking a cached thumbnail
@@ -198,11 +201,14 @@ package Files.File_System is
    --  the background listing (Files.Refresh), not a read the UI waits on.
    --
    --  @param Path Directory path to load.
-   --  @param Settings Settings used for filetype and icon classification.
+   --  @param Classes Filetype and icon maps items are classified by
+   --    (Files.File_Types.Classification_Of the settings).
+   --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
    --  @return Loaded directory model or a recoverable error result.
    function Load_Directory_Generating_Thumbnails
-     (Path     : String;
-      Settings : Files.Settings.Settings_Model)
+     (Path    : String;
+      Classes : Files.File_Types.Classification;
+      Options : Files.Types.Listing_Options)
       return Directory_Load_Result;
 
    --  Load only the entries Include accepts (null accepts all); the others
@@ -210,13 +216,12 @@ package Files.File_System is
    --  such as the folder tree's subdirectories, does not stat, classify and
    --  thumbnail every file it passes.
    --
-   --  This is the one load that applies the listing policy; it takes it as
-   --  Options rather than reading it from Settings, which it consults only for
-   --  filetype and icon classification. The Settings-only loads above and
-   --  below pass Files.Settings.Listing_Options_Of (Settings).
+   --  Every load applies the listing policy it is given as Options and
+   --  classifies items by Classes; none reads the settings record itself.
    --
    --  @param Path Directory path to load.
-   --  @param Settings Settings used for filetype and icon classification.
+   --  @param Classes Filetype and icon maps items are classified by
+   --    (Files.File_Types.Classification_Of the settings).
    --  @param Options Hidden-entry and sort policy for the listing.
    --  @param Include Entry filter, or null for every entry.
    --  @param Name Entry name Include is asked about.
@@ -227,7 +232,7 @@ package Files.File_System is
    --  @return Loaded directory model or a recoverable error result.
    function Load_Directory_Filtered
      (Path     : String;
-      Settings : Files.Settings.Settings_Model;
+      Classes  : Files.File_Types.Classification;
       Options  : Files.Types.Listing_Options;
       Include  : access function
         (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
@@ -242,11 +247,14 @@ package Files.File_System is
    --  created during the load is either listed or seen as a change.
    --
    --  @param Path Directory path to load.
-   --  @param Settings Settings model used for filtering and item metadata.
+   --  @param Classes Filetype and icon maps items are classified by
+   --    (Files.File_Types.Classification_Of the settings).
+   --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
    --  @return Directory load result.
    function Load_Directory_Deferring_Thumbnails
-     (Path     : String;
-      Settings : Files.Settings.Settings_Model)
+     (Path    : String;
+      Classes : Files.File_Types.Classification;
+      Options : Files.Types.Listing_Options)
       return Directory_Load_Result;
 
    --  Path's subdirectories, for the folder tree: named, dated and classified
@@ -257,12 +265,13 @@ package Files.File_System is
    --  where mode bits are native. A link to a folder is not a subdirectory.
    --
    --  @param Path Directory whose subdirectories are listed.
-   --  @param Settings Settings used for filetype and icon classification.
+   --  @param Classes Filetype and icon maps items are classified by
+   --    (Files.File_Types.Classification_Of the settings).
    --  @param Options Hidden-entry and sort policy.
    --  @return The subdirectories, or a recoverable error result.
    function Load_Subdirectories
      (Path     : String;
-      Settings : Files.Settings.Settings_Model;
+      Classes  : Files.File_Types.Classification;
       Options  : Files.Types.Listing_Options)
       return Directory_Load_Result;
 
@@ -284,22 +293,14 @@ package Files.File_System is
    --  of stored paths.
    --
    --  @param Full_Path Absolute or relative path to describe.
-   --  @param Settings Settings used for filetype and icon classification.
+   --  @param Classes Filetype and icon maps items are classified by
+   --    (Files.File_Types.Classification_Of the settings).
    --  @return Loaded item, or a failure result when the path is missing or
    --  cannot be described.
    function Load_Item
      (Full_Path : String;
-      Settings  : Files.Settings.Settings_Model)
+      Classes   : Files.File_Types.Classification)
       return Item_Load_Result;
-
-   --  The Recent view's items: each recorded recent path loaded (Load_Item)
-   --  in most-recent-first order, one that no longer resolves left out. The
-   --  one way the view is built, whether navigated to, refreshed after a
-   --  change, or reloaded by a background refresh.
-   --
-   --  @param Settings Settings holding the recent paths and used to classify.
-   --  @return The loaded items.
-   function Load_Recent_Items (Settings : Files.Settings.Settings_Model) return Item_Vectors.Vector;
 
    --  Compute the extra info for an item: a folder's child count, a
    --  document's page/entry/line count, or a symlink's target. This opens the
@@ -320,19 +321,6 @@ package Files.File_System is
       Show_Hidden : Boolean := True)
       return Files.Extra_Info.Info;
 
-   --  Sort Items in place into the display order for the given sort field and
-   --  direction (Files.Item_Lists.Sort_Items). Shared by directory loading and by the window model so that
-   --  keyboard navigation follows exactly the order shown on screen, in either
-   --  sort direction.
-   --
-   --  @param Items Item vector reordered in place.
-   --  @param Field Sort field to order by.
-   --  @param Ascending Ascending order when True, descending when False.
-   procedure Sort_Items
-     (Items     : in out Item_Vectors.Vector;
-      Field     : Files.Types.Sort_Field;
-      Ascending : Boolean);
-
    --  How many matches either search returns; one more found makes the
    --  answer Truncated.
    Max_Search_Results : constant := 1_000;
@@ -347,13 +335,16 @@ package Files.File_System is
    --
    --  @param Root_Path Directory where recursive search starts.
    --  @param Query Case-insensitive name fragment to match.
-   --  @param Settings Settings used for filetype, icon, and hidden-file policy.
+   --  @param Classes Filetype and icon maps items are classified by
+   --    (Files.File_Types.Classification_Of the settings).
+   --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
    --  @param Max_Items Maximum number of matching items to return.
    --  @return Deterministic recursive search result or recoverable error.
    function Search_Names
      (Root_Path : String;
       Query     : String;
-      Settings  : Files.Settings.Settings_Model;
+      Classes   : Files.File_Types.Classification;
+      Options   : Files.Types.Listing_Options;
       Max_Items : Natural := Max_Search_Results)
       return Recursive_Search_Result;
 
@@ -379,12 +370,15 @@ package Files.File_System is
    --
    --  @param Root_Path Directory where the search starts.
    --  @param Query Text to look for.
-   --  @param Settings Settings used for filetype, icon, and hidden-file policy.
+   --  @param Classes Filetype and icon maps items are classified by
+   --    (Files.File_Types.Classification_Of the settings).
+   --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
    --  @return The matching files, or why the search failed.
    function Search_Contents
      (Root_Path : String;
       Query     : String;
-      Settings  : Files.Settings.Settings_Model)
+      Classes   : Files.File_Types.Classification;
+      Options   : Files.Types.Listing_Options)
       return Recursive_Search_Result;
 
    --  Compute a shallow signature for polling-based directory change detection.
@@ -442,18 +436,19 @@ package Files.File_System is
       Filetype    : String := "")
       return Directory_Item;
 
-   --  Build an item value using settings-driven filetype and icon classification.
+   --  Build an item value classified by Classes, as a listing would.
    --
    --  @param Parent_Path Parent directory path.
    --  @param Name Item name.
    --  @param Kind Filesystem item kind.
-   --  @param Settings Settings used for filetype and icon classification.
+   --  @param Classes Filetype and icon maps items are classified by
+   --    (Files.File_Types.Classification_Of the settings).
    --  @return Directory item value.
    function Make_Item
      (Parent_Path : String;
       Name        : String;
       Kind        : Files.Types.Item_Kind;
-      Settings    : Files.Settings.Settings_Model)
+      Classes     : Files.File_Types.Classification)
       return Directory_Item;
 
    --  Which host's filesystem naming rules Valid_Leaf_Name enforces. Host_Rules

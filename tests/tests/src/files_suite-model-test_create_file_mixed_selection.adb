@@ -1,5 +1,4 @@
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Model)
@@ -45,7 +44,7 @@ separate (Files_Suite.Model)
         (Files.Model.Last_Error_Key (Mixed_Model),
          "error.create.pending",
          "mixed temporary open records disabled state");
-      Operation := Files.Operation_Commands.Delete_Selected (Mixed_Model, Settings);
+      Operation := Operation_Commands.Delete_Selected (Mixed_Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Operation.Status,
          Files.Operation_Results.Operation_Disabled,

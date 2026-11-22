@@ -19,7 +19,7 @@ with Files.File_Identities;
 with Files.IO.Private_Directories;
 with Ada.Characters;
 with Ada.Containers.Ordered_Sets;
-with Files.Digests;
+with Files.File_System.Digests;
 
 package body Files.File_System.Thumbnails is
 

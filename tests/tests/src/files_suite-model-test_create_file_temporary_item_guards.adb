@@ -1,5 +1,4 @@
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Model)
@@ -64,7 +63,7 @@ separate (Files_Suite.Model)
         (Files.Model.Last_Error_Key (Model),
          "error.create.pending",
          "temporary open records disabled state");
-      Operation := Files.Operation_Commands.Delete_Selected (Model, Settings);
+      Operation := Operation_Commands.Delete_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Operation.Status,
          Files.Operation_Results.Operation_Disabled,

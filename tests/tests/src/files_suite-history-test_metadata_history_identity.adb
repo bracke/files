@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.File_System.Permissions;
 with Hostkit.Metadata;
 with Files_Suite.Support.Guards;
@@ -29,8 +29,8 @@ separate (Files_Suite.History)
          Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#640#);
          Assert (Mutation.Success, "give the replacement independent permissions");
          Step := Complete_Operation (Model, Settings,
-           (if Forward then Files.Operation_Commands.Redo_Last (Model, Settings)
-            else Files.Operation_Commands.Undo_Last (Model, Settings)));
+           (if Forward then Operation_Commands.Redo_Last (Model, Settings)
+            else Operation_Commands.Undo_Last (Model, Settings)));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
@@ -61,7 +61,7 @@ separate (Files_Suite.History)
                Write_Binary_File (Source, "owned bytes");
                Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#644#);
                Assert (Mutation.Success, "prepare metadata source");
-               Load := Files.File_System.Load_Directory (Root, Settings);
+               Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Operations.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
@@ -79,13 +79,13 @@ separate (Files_Suite.History)
                   Files.Operation_Results.Operation_Success,
                   "the live metadata change succeeds: " & To_String (Step.Error_Key));
                Replace_And_Refuse (False);
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Assert (Step.Status = Files.Operation_Results.Operation_Success
                        and then Mode_Of (Source, With_Special_Bits => True) = 8#644#,
                        "metadata Undo can retry the restored inode, even from mode 000");
                Replace_And_Refuse (True);
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,

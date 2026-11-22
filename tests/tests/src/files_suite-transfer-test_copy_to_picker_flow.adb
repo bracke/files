@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Input_Actions;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Interaction;
 with Guikit.Input;
 with Files.Commands.Status;
@@ -26,7 +26,7 @@ separate (Files_Suite.Transfer)
       Write_File (A_Src, "AAA");
       Write_File (B_Src, "BBB");
 
-      Load := Files.File_System.Load_Directory (Src_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Src_Dir, Settings);
       Files.Model.Initialize (Model, Src_Dir, Load.Items, Root);
       Files.Model.Selection.Select_All_Visible (Model);
 
@@ -69,7 +69,7 @@ separate (Files_Suite.Transfer)
       Assert (not Files.Model.Tree_Panel.Pick_Is_Active (Model), "confirming clears the picker");
       Assert (not Files.Model.Tree_Panel.Is_Open (Model), "confirming closes the folder tree");
 
-      Undone := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Undone := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal (Undone.Status, Files.Operation_Results.Operation_Success,
                                         "the copy is undoable");
       Assert (not Ada.Directories.Exists (A_Dest), "undo removes the a.txt copy");

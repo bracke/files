@@ -1,5 +1,7 @@
 with Ada.Strings.Unbounded;
+with Ada.Strings.Fixed;
 with Guikit.Utf8;
+with Files.Text_Case;
 
 package body Files.Text_Encoding is
 
@@ -305,5 +307,9 @@ package body Files.Text_Encoding is
          return (if Ascii_Only then Ascii_Text else Utf8);
       end;
    end Classify;
+
+   function Text_Contains (Text : String; Folded_Query : String) return Boolean is
+     (Folded_Query /= "" and then Text'Length > 0 and then not Looks_Binary (Text)
+      and then Ada.Strings.Fixed.Index (Files.Text_Case.Fold_Case (Text), Folded_Query) > 0);
 
 end Files.Text_Encoding;

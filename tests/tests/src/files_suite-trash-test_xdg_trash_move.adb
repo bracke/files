@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
@@ -46,7 +47,7 @@ separate (Files_Suite.Trash)
                "XDG trash execution has no error key");
          end;
          Write_File (Join (Root, "doomed.txt"));
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Select_Name (Model, "doomed.txt");
          Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);

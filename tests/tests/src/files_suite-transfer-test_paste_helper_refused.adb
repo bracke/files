@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Job_Drivers.Foreground;
 with Files.Jobs.Process.Testing;
@@ -24,7 +25,7 @@ separate (Files_Suite.Transfer)
       Actions.Append
         (Files.Paste.Resolved_Action'
            (To_Unbounded_String (Source), To_Unbounded_String (Join (Dest_Dir, "refused-source")), False, False));
-      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);

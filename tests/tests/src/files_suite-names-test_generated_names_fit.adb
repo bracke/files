@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 separate (Files_Suite.Names)
    --  A duplicate of a name already at the filesystem's 255-byte limit is
    --  cut to fit, its "(copy)" marker and extension kept whole, rather than
@@ -21,15 +21,15 @@ separate (Files_Suite.Names)
       Write_Binary_File (Join (Root, "short.txt"), "bytes");
       Assert (Hostkit.Fs.Move_No_Replace (Join (Root, "short.txt"), Join (Root, Name)),
               "the fixture takes its 255-byte name");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Operations.Clear_Undo (Model);
       Files.Model.Set_Background_Transfers (Model, False);
       Select_Name (Model, Name);
-      Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+      Step := Operation_Commands.Duplicate_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "a 255-byte name can be duplicated");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       for Item of Load.Items loop
          declare
             Copy : constant String := To_String (Item.Name);

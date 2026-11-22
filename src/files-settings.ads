@@ -354,6 +354,28 @@ package Files.Settings is
    --  @return True when To_Text (Settings) parses successfully.
    function Loadable (Settings : Settings_Model) return Boolean;
 
+   --  Return the filetype Mapping (an extension-to-filetype map such as
+   --  Settings_Model.Extension_Filetypes) gives Extension.
+   --
+   --  @param Mapping Extension-to-filetype map.
+   --  @param Extension File extension with or without a leading dot.
+   --  @return Mapped filetype, or an empty string when no mapping exists.
+   function Filetype_For_Extension
+     (Mapping   : String_Maps.Map;
+      Extension : String)
+      return String;
+
+   --  Return the icon Mapping (a filetype-to-icon map such as
+   --  Settings_Model.Icon_Mappings) gives Filetype.
+   --
+   --  @param Mapping Filetype-to-icon map.
+   --  @param Filetype Filetype identifier.
+   --  @return Mapped icon identifier, or an empty string when no mapping exists.
+   function Icon_For_Filetype
+     (Mapping  : String_Maps.Map;
+      Filetype : String)
+      return String;
+
    --  Return the mapped filetype for Extension.
    --
    --  @param Settings Settings model to inspect.

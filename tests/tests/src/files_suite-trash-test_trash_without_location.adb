@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Testing;
 separate (Files_Suite.Trash)
@@ -17,7 +18,7 @@ separate (Files_Suite.Trash)
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Write_File (Join (Root, "nowhere-a.txt"));
          Write_File (Join (Root, "nowhere-b.txt"));
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Filter (Model, "nowhere-");
          Files.Model.Selection.Select_Visible (Model, 1);

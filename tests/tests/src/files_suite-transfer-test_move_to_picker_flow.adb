@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Model.Tree_Panel;
 separate (Files_Suite.Transfer)
    procedure Test_Move_To_Picker_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -19,7 +19,7 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Create_Path (Dest_Dir);
       Write_File (A_Src, "AAA");
 
-      Load := Files.File_System.Load_Directory (Src_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Src_Dir, Settings);
       Files.Model.Initialize (Model, Src_Dir, Load.Items, Root);
       Select_Name (Model, "a.txt");
 
@@ -38,7 +38,7 @@ separate (Files_Suite.Transfer)
       Assert (Ada.Directories.Exists (A_Dest), "a.txt is moved to the destination");
       Assert (not Ada.Directories.Exists (A_Src), "a.txt is removed from the source");
 
-      Undone := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Undone := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal (Undone.Status, Files.Operation_Results.Operation_Success,
                                         "the move is undoable");
       Assert (Ada.Directories.Exists (A_Src), "undo returns a.txt to the source");

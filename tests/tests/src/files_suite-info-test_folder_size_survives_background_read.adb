@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files.Application.Window_Polls;
@@ -26,7 +27,7 @@ separate (Files_Suite.Info)
       Reset_Root;
       Ada.Directories.Create_Path (Folder);
       Write_Binary_File (Join (Folder, "data"), "one");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Files.Model.Set_Directory_Signature (Model, Files.File_System.Directory_State (Root));

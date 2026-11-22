@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Operations)
@@ -163,7 +163,7 @@ separate (Files_Suite.Operations)
       declare
          Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Load       : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Root, Settings);
+           Files_Suite.Listings.Load_Directory (Root, Settings);
          Job_Window : aliased Files.Model.Window_Model;
          --  Ends the job when the block is left, on failure too.
          Paste      : Files_Suite.Support.Guards.Paste_Guard (Job_Window'Access);
@@ -174,7 +174,7 @@ separate (Files_Suite.Operations)
          Files.Model.History.Restore (Job_Window, Stack (Item ("a", Large => True), Item ("b")), Empty);
          Files.Model.Set_Background_Transfers (Job_Window, True);
          Files.Model.Selection.Select_All_Visible (Job_Window);
-         Step := Files.Operation_Commands.Duplicate_Selected (Job_Window, Settings);
+         Step := Operation_Commands.Duplicate_Selected (Job_Window, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "the background duplicate starts");
          Assert (Files.Model.Foreground_Job_Is_Active (Job_Window), "the duplicate runs as a background job");

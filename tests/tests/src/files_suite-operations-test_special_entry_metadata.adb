@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 separate (Files_Suite.Operations)
    procedure Test_Special_Entry_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,7 +10,7 @@ separate (Files_Suite.Operations)
       Ada.Directories.Create_Path (Join (Dir, "folder"));
       Assert (Hostkit.Fs.Create_Link ("folder", Join (Dir, "to-folder")), "prepare a link to a folder");
       Assert (Hostkit.Fs.Create_Link ("missing", Join (Dir, "dangling")), "prepare a dangling link");
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       for Item of Load.Items loop
          if To_String (Item.Name) in "to-folder" | "dangling" then
             Assert (not Item.Metadata_Error,

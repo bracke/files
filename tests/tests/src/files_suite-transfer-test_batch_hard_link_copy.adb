@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Batch_Hard_Link_Copy (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -42,7 +42,7 @@ separate (Files_Suite.Transfer)
          Paths.Append (To_Unbounded_String (Join (Source, "first")));
          Paths.Append (To_Unbounded_String (Join (Source, "second")));
          Paths.Append (To_Unbounded_String (Join (Source, "third")));
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
@@ -60,7 +60,7 @@ separate (Files_Suite.Transfer)
                  "editing a copied alias affects only its copied family: the source is untouched");
          Assert (File_Has_Bytes (Join (Parent, "third"), "shared bytes"),
                  "editing a copied alias affects only its copied family: the other copied family is untouched");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Failed,
@@ -72,39 +72,39 @@ separate (Files_Suite.Transfer)
          Write_Binary_File (Join (Parent, "first"), "shared bytes");
          GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
            (Join (Parent, "first"), GNAT.OS_Lib.File_Time_Stamp (Join (Source, "first")));
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,
             "restoring copied bytes permits the hard-link batch Undo");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,
             "Redo the copied hard-link batch");
          Check;
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Write_Binary_File (Join (Parent, "second"), "unrelated replacement");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operation_Results.Operation_Failed
                  and then File_Has_Bytes (Join (Parent, "second"), "unrelated replacement"),
                  "partial Redo retains completed copies and refuses unrelated replacements");
          Ada.Directories.Delete_File (Join (Parent, "second"));
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,
             "retry a partially completed hard-link Redo");
          Check;
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Write_Binary_File (Join (Parent, "second"), "retry obstruction");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
@@ -120,7 +120,7 @@ separate (Files_Suite.Transfer)
             To_String (First_Revision),
             "the regression edit preserves every field in the metadata-only revision");
          Ada.Directories.Delete_File (Join (Parent, "second"));
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,

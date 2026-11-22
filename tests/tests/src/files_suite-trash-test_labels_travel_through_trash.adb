@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
@@ -22,11 +22,11 @@ separate (Files_Suite.Trash)
 
       procedure Trash_Photo (Background : Boolean) is
       begin
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, Background);
          Select_Name (Model, "photo.txt");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,
@@ -64,7 +64,7 @@ separate (Files_Suite.Trash)
             "a new file at the old path inherits no label");
          Ada.Directories.Delete_File (Photo);
 
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "undoing the trash succeeds" & Mode (Background));
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
@@ -75,7 +75,7 @@ separate (Files_Suite.Trash)
             "restoring brings the label back" & Mode (Background));
 
          Trash_Photo (Background);
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Empty_Trash (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Empty_Trash (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "emptying the trash succeeds" & Mode (Background));
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");

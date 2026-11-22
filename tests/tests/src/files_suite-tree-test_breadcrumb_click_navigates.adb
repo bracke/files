@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Input_Actions;
 with Files.Rendering.Layouts;
 with Files_Suite.Support.Disk;
@@ -15,7 +16,7 @@ separate (Files_Suite.Tree)
       Ada.Directories.Create_Path (Leaf);
       declare
          Load : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Leaf, Settings);
+           Files_Suite.Listings.Load_Directory (Leaf, Settings);
       begin
          Files.Model.Initialize
            (Model,

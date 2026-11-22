@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Model.Clipboard;
 with Files.Settings.Path_References;
@@ -33,7 +34,7 @@ separate (Files_Suite.Context_Menu)
          "cut records a cut clipboard intent");
 
       --  Step 2: navigate into the subdirectory and paste via the empty-area menu.
-      Load := Files.File_System.Load_Directory (Sub, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Sub, Settings);
       Files.Model.Navigate_To (Model, Sub, Load.Items);
       Open_Empty_Context_Menu (Model, Settings, Result);
       Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Paste_Items_Command, Result, Found);
@@ -45,7 +46,7 @@ separate (Files_Suite.Context_Menu)
       declare
          Kept : Boolean := False;
       begin
-         Load := Files.File_System.Load_Directory (Sub, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Sub, Settings);
          for Item of Load.Items loop
             if Ada.Strings.Unbounded.To_String (Item.Name) = "movable.txt" then
                Kept := Files.Preference_Types."="

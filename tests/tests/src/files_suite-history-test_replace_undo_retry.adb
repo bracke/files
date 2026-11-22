@@ -1,5 +1,4 @@
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Models;
 separate (Files_Suite.History)
@@ -69,7 +68,7 @@ separate (Files_Suite.History)
                   Assert (Hostkit.Fs.Move_No_Replace (To_String (Back_B), Held), "temporarily block one restore");
                   for Attempt in 1 .. 2 loop
                      Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                      Assert (Step.Status = Files.Operation_Results.Operation_Failed
                              and then Files.Model.History.Undo_Available (Model),
                              "an unfinished restore stays available for another Undo attempt");
@@ -83,7 +82,7 @@ separate (Files_Suite.History)
                   end loop;
                   Assert (Hostkit.Fs.Move_No_Replace (Held, To_String (Back_B)), "unblock the remaining restore");
                   Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
                      Files.Operation_Results.Operation_Success,

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Trash;
 with Files.Commands.Status;
@@ -32,7 +33,7 @@ separate (Files_Suite.Trash)
       --  Enablement: an ordinary directory never offers Empty Trash.
       Write_File (Source_A, "aaa");
       Write_File (Source_B, "bbb");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Assert (Load.Success, "empty-trash setup loads the ordinary directory");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Assert
@@ -53,7 +54,7 @@ separate (Files_Suite.Trash)
       Assert (Ada.Directories.Exists (Join (Trash_Info, "empty-b.txt.trashinfo")), "sidecar b is written");
 
       --  Enablement: the non-empty trash view offers Empty Trash.
-      Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Assert (Load.Success, "empty-trash setup loads the trash view");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Files.Operations.Settle_Current_Is_Trash (Model);
@@ -96,7 +97,7 @@ separate (Files_Suite.Trash)
                  "the old orphan is dated an hour back");
          Write_File (Source_A, "aaa");
          Assert (Files.File_System.Trash.Move_To_Trash (Source_A).Success, "an item is trashed beside them");
-         Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
          Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
          Files.Operations.Settle_Current_Is_Trash (Model);
          Result :=

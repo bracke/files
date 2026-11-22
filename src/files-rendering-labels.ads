@@ -3,7 +3,7 @@ with Ada.Calendar;
 with Ada.Strings.Unbounded;
 
 with Files.Commands;
-with Files.Display_Text;
+with Files.Rendering.Display_Text;
 with Files.Types;
 with Guikit.Draw;
 
@@ -40,15 +40,15 @@ private package Files.Rendering.Labels is
 
    --  @param Value A time.
    --  @return Its clock time in the locale's hour cycle.
-   function Clock_Time_Text (Value : Ada.Calendar.Time) return String renames Files.Display_Text.Clock_Time_Text;
+   function Clock_Time_Text (Value : Ada.Calendar.Time) return String renames Display_Text.Clock_Time_Text;
 
    --  @param Value A time.
    --  @return Its full date and clock time.
-   function Full_Time_Text (Value : Ada.Calendar.Time) return String renames Files.Display_Text.Full_Time_Text;
+   function Full_Time_Text (Value : Ada.Calendar.Time) return String renames Display_Text.Full_Time_Text;
 
    --  @param Value A time.
    --  @return The localization key of its weekday's name.
-   function Weekday_Key (Value : Ada.Calendar.Time) return String renames Files.Display_Text.Weekday_Key;
+   function Weekday_Key (Value : Ada.Calendar.Time) return String renames Display_Text.Weekday_Key;
 
    --  @param Value The time to show.
    --  @param Now The time it is shown at (the snapshot's).
@@ -56,21 +56,21 @@ private package Files.Rendering.Labels is
    function Humanized_Time_Text
      (Value : Ada.Calendar.Time;
       Now   : Ada.Calendar.Time)
-      return String renames Files.Display_Text.Humanized_Time_Text;
+      return String renames Display_Text.Humanized_Time_Text;
 
    --  @param Value A number.
    --  @return It with the locale's digit grouping.
    function Grouped_Integer_Text (Value : Long_Long_Integer) return String
-     renames Files.Display_Text.Grouped_Integer_Text;
+     renames Display_Text.Grouped_Integer_Text;
 
    --  @param Value A measure, such as an image's width.
    --  @return It in the locale's digits, ungrouped.
    function Digits_Text (Value : Natural) return String
-     renames Files.Display_Text.Digits_Text;
+     renames Display_Text.Digits_Text;
 
    --  @param Value A byte count.
    --  @return It as a size ("1.2 MB").
-   function Size_Text (Value : Long_Long_Integer) return String renames Files.Display_Text.Size_Text;
+   function Size_Text (Value : Long_Long_Integer) return String renames Display_Text.Size_Text;
 
    --  @param Id A command.
    --  @return Its localized name.
@@ -188,7 +188,7 @@ private package Files.Rendering.Labels is
    --  @param Inline True to join the parts on one line.
    --  @return The readable, writable and executable words, or "none".
    function Permission_Text (Permissions : String; Inline : Boolean := False) return String
-     renames Files.Display_Text.Permission_Text;
+     renames Display_Text.Permission_Text;
 
    --  Build the ordered coalesced sections for the current multi-item selection.
    --  Each section carries one value per selected item so the layout and the

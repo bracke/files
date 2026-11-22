@@ -1,6 +1,6 @@
 with Files_Suite.Support.Guards;
 with Guikit.Input;
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 separate (Files_Suite.Startup)
    --  Hand-edited settings: a misspelt shortcut combo is skipped, so the
    --  command keeps its default binding (secondary included) instead of
@@ -63,7 +63,7 @@ separate (Files_Suite.Startup)
         (To_String (Startup.Settings.Shortcut_Overrides.First_Element.Command), "view.small",
          "the held override names its command");
       Assert
-        (not Files.Settings_Form.Needs_Save
+        (not Files.Overlays.Settings_Form.Needs_Save
            (Startup.Settings, Files.Settings.Make_Draft (Startup.Settings)),
          "an unchanged draft of hand-edited settings needs no save");
    end Test_Settings_File_Typos_Keep_Defaults;

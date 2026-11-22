@@ -16,7 +16,7 @@ with Humanize.Datetimes;
 with Humanize.Status;
 with Files.Text_Basics;
 
-package body Files.Display_Text is
+package body Files.Rendering.Display_Text is
 
    --  @param Value The time.
    --  @param Format A Util.Dates.Formats pattern.
@@ -383,4 +383,4 @@ package body Files.Display_Text is
       return To_String (Result);
    end Permission_Text;
 
-end Files.Display_Text;
+end Files.Rendering.Display_Text;

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Application.Window_Polls;
 with Files.Images;
 with Files.Application.Preview_Decoder;
@@ -102,7 +103,7 @@ separate (Files_Suite.Thumbnails)
       --  and Poll_Quick_Look asks for it and completes it.
       declare
          Load : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Root, Files.Settings.Default_Settings);
+           Files_Suite.Listings.Load_Directory (Root, Files.Settings.Default_Settings);
       begin
          Files.Model.Initialize (Model, Root, Load.Items, Root);
       end;

@@ -1,5 +1,5 @@
 with Files.Preference_Types;
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Model.Settings_Pane;
@@ -24,7 +24,7 @@ separate (Files_Suite.Settings)
          --  replace it atomically, so only its presence matters here.
          Ada.Directories.Create_Path (Join (Root, "draft-config"));
          Write_File (Draft_Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
-         Files.Settings_Form.Begin_Edit (Draft_Model, Draft_Settings);
+         Files.Overlays.Settings_Form.Begin_Edit (Draft_Model, Draft_Settings);
          --  Parse no longer injects the built-in mappings (the file is now
          --  authoritative), so seed this draft-editing test's mapping set from
          --  the defaults directly, keeping the same populated set it relies on.
@@ -65,7 +65,7 @@ separate (Files_Suite.Settings)
             Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Draft_Model);
          begin
             Bad.Scalars (Files.Settings.Default_View_Mode_Setting) := To_Unbounded_String ("bad-view");
-            Files.Settings_Form.Set_Draft (Draft_Model, Bad);
+            Files.Overlays.Settings_Form.Set_Draft (Draft_Model, Bad);
          end;
          Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files_Suite.Support.Assert_Equal
@@ -101,7 +101,7 @@ separate (Files_Suite.Settings)
             Good.Open_Action_Commands.Clear;
             Good.Open_Action_Keys.Append (To_Unbounded_String ("text/markdown"));
             Good.Open_Action_Commands.Append (To_Unbounded_String ("reader {path}"));
-            Files.Settings_Form.Set_Draft (Draft_Model, Good);
+            Files.Overlays.Settings_Form.Set_Draft (Draft_Model, Good);
          end;
          Controller_Result :=
            Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Join (Root, "settings-dir"));

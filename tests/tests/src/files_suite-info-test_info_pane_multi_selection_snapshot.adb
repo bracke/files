@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Rendering.Testing;
 with Files.Rendering.Layouts;
 separate (Files_Suite.Info)
@@ -12,7 +13,7 @@ separate (Files_Suite.Info)
       Reset_Root;
       Write_Info_Metadata_Fixtures;
       Write_File (Join (Root, "more.txt"), "efgh");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Filter (Model, ".txt");
       Files.Model.Selection.Select_Visible (Model, 1);

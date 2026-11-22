@@ -3,7 +3,7 @@ with Files.Name_Parts;
 separate (Files.File_System)
 function Load_Item
   (Full_Path : String;
-   Settings  : Files.Settings.Settings_Model)
+   Classes   : Files.File_Types.Classification)
    return Item_Load_Result
 is
    Empty : Directory_Item;
@@ -37,7 +37,7 @@ begin
 
       return
         (Success   => True,
-         Item      => Item_For_Path (Full, Name, Parent, Kind, Settings, (others => <>), Entry_Is_Hidden (Name, Full)),
+         Item      => Item_For_Path (Full, Name, Parent, Kind, Classes, (others => <>), Entry_Is_Hidden (Name, Full)),
          Error_Key => Null_Unbounded_String);
    end;
 exception

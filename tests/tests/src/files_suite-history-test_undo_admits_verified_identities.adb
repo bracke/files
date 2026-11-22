@@ -1,5 +1,4 @@
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Models;
 separate (Files_Suite.History)
@@ -181,7 +180,7 @@ separate (Files_Suite.History)
          Assert
            (Files.Model.History.Undo_From_Paths (Model).First_Element = Verifiable,
             "mixed history retains only members with verifiable publication identities: verifiable member kept");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operation_Results.Operation_Success,
@@ -195,7 +194,7 @@ separate (Files_Suite.History)
          Assert
            (Files.Model.History.Undo_Available (Model),
             "filtered Undo removes its verified member and leaves untracked data intact: undo available");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then not Ada.Directories.Exists (Older),
                  "identity filtering leaves earlier usable history reachable");

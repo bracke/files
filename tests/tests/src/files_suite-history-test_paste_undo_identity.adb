@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Model.Testing;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.History)
@@ -20,7 +20,7 @@ separate (Files_Suite.History)
             Ada.Directories.Create_Directory (Join (Root, "inbox"));
             Write_Binary_File (Join (Join (Root, "inbox"), "a.txt"), "a bytes");
             Write_Binary_File (Join (Join (Root, "inbox"), "b.txt"), "b bytes");
-            Load := Files.File_System.Load_Directory (Root, Settings);
+            Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
@@ -47,7 +47,7 @@ separate (Files_Suite.History)
                Write_Binary_File (A, "unrelated a");
                Step := Complete_Operation (Model, Settings, Step);
                Await_View (Model, Settings);
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
@@ -63,7 +63,7 @@ separate (Files_Suite.History)
                Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved_A, A),
                        "restore the owned first entry");
                Write_Binary_File (B, "unrelated b");
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,

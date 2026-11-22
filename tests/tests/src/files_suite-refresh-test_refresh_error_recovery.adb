@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
 separate (Files_Suite.Refresh)
@@ -33,7 +34,7 @@ separate (Files_Suite.Refresh)
             Reset_Root;
             Ada.Directories.Create_Path (View);
             Write_Binary_File (Join (View, "alpha"), "alpha");
-            Load := Files.File_System.Load_Directory (View, Settings);
+            Load := Files_Suite.Listings.Load_Directory (View, Settings);
             Files.Model.Initialize (Model, View, Load.Items, Root);
             Files.Model.Set_Background_Transfers (Model, Background);
             Signature := Files.File_System.Directory_State (View);

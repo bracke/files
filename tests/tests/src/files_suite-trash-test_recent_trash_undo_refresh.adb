@@ -1,6 +1,5 @@
 with Files.Model.Jobs;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Settings.Path_References;
 separate (Files_Suite.Trash)
    procedure Test_Recent_Trash_Undo_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -18,7 +17,7 @@ separate (Files_Suite.Trash)
       Step := Files.Operations.Navigate_Recent (Model, Settings);
       Files.Model.Selection.Select_All_Visible (Model);
       Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
+                       (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,
@@ -30,7 +29,7 @@ separate (Files_Suite.Trash)
       Assert (not Ada.Directories.Exists (Path), "trashing the Recent item removes it from the view: path trashed");
       Files.Model.Set_Background_Transfers (Model, True);
       Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Assert (Step.Status = Files.Operation_Results.Operation_Success and then File_Is (Path, "original recent bytes"),
               "Undo restores the trashed bytes before the asynchronous listing is ready");
       Await_View (Model, Settings, Applied);

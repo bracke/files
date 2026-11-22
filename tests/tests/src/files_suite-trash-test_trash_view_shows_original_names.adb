@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.IO.Fs_Primitives;
 with Files.File_System.Trash;
 with Files_Suite.Support.Guards;
@@ -33,7 +34,7 @@ separate (Files_Suite.Trash)
       Assert (Files.Name_Parts.Leaf_Of (To_String (Second)) /= "notes.txt",
               "the trash names the second payload for itself");
 
-      Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Assert (Load.Success, "the trash view loads");
       for Item of Load.Items loop
          Assert (To_String (Item.Name) = "notes.txt",

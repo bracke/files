@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Item_Field_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -54,7 +55,7 @@ separate (Files_Suite.Info)
       end;
 
       Write_File (Join (Root, "blob.bin"), "binary");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "blob.bin");
       Files.Model.Toggle_Info_Pane (Model);

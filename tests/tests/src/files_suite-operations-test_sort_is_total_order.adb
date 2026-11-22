@@ -1,3 +1,4 @@
+with Files.Item_Lists;
 separate (Files_Suite.Operations)
    --  Items with one name (search results from several folders) come out in
    --  one order whatever order they went in: the sort is not stable, so its
@@ -27,8 +28,8 @@ separate (Files_Suite.Operations)
                A : Files.Items.Item_Vectors.Vector := Forward;
                B : Files.Items.Item_Vectors.Vector := Backward;
             begin
-               Files.File_System.Sort_Items (A, Field, Ascending);
-               Files.File_System.Sort_Items (B, Field, Ascending);
+               Files.Item_Lists.Sort_Items (A, Field, Ascending);
+               Files.Item_Lists.Sort_Items (B, Field, Ascending);
                for Index in 1 .. 40 loop
                   Assert (A (Index).Full_Path = B (Index).Full_Path,
                           "equal names sort the same whatever their input order: "

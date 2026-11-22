@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Model.Tree_Panel;
 separate (Files_Suite.Transfer)
@@ -16,7 +17,7 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Create_Path (Dest_Dir);
       Write_File (A_Src, "AAA");
 
-      Load := Files.File_System.Load_Directory (Src_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Src_Dir, Settings);
       Files.Model.Initialize (Model, Src_Dir, Load.Items, Root);
       Select_Name (Model, "a.txt");
 

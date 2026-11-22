@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Input_Actions;
 with Files_Suite.Support.Disk;
@@ -36,7 +37,7 @@ separate (Files_Suite.Text_Input)
         (Files_Suite.Support.Disk.Join (Dir, "needle-name.txt"), "irrelevant body");
       Files_Suite.Support.Disk.Write_File
         (Files_Suite.Support.Disk.Join (Dir, "plain.txt"), "has a needle inside the body");
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Files_Suite.Support.Disk.Root);
       Full_Count := Files.Model.Item_Count (Model);
       Files.Model.Set_Filter (Model, "needle");

@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Models;
 separate (Files_Suite.History)
@@ -29,7 +29,7 @@ separate (Files_Suite.History)
                   Zlib.ZIP_File (Join (Root, "b.txt"), Join (Root, "b.zip"), "b.txt", Status => Status);
                   Assert (Status = Zlib.Ok, "prepare second archive");
                end if;
-               Load := Files.File_System.Load_Directory (Root, Settings);
+               Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Operations.Clear_Undo (Model);
                Prior.Clear;
@@ -48,8 +48,8 @@ separate (Files_Suite.History)
                   end if;
                end if;
                Step := Complete_Operation
-                 (Model, Settings, (if Extracting then Files.Operation_Commands.Extract_Selected (Model, Settings)
-                                    else Files.Operation_Commands.Duplicate_Selected (Model, Settings)));
+                 (Model, Settings, (if Extracting then Operation_Commands.Extract_Selected (Model, Settings)
+                                    else Operation_Commands.Duplicate_Selected (Model, Settings)));
                Await_View (Model, Settings);
                Created := Files.Model.History.Undo_From_Paths (Model);
                Files_Suite.Support.Assert_Equal
@@ -86,7 +86,7 @@ separate (Files_Suite.History)
                         "partial batches refresh committed outputs and retain their diagnostic");
                   end;
                end if;
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                for Path of Created loop
                   Assert (not Ada.Directories.Exists (To_String (Path)),
@@ -100,7 +100,7 @@ separate (Files_Suite.History)
                      Ada.Directories.Create_Directory (Replacement);
                   end if;
                   Write_Binary_File (Keep, "unrelated replacement");
-                  Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                  Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,

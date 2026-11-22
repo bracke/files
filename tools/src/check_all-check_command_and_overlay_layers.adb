@@ -18,14 +18,14 @@ separate (Check_All)
             Check (To_String (Item));
          end if;
       end loop;
-      --  Files.Command_Palette builds the palette's rows in the current
-      --  language, and Files.Settings_Form the settings panel's fields: the
+      --  Files.Overlays.Command_Palette builds the palette's rows in the current
+      --  language, and Files.Overlays.Settings_Form the settings panel's fields: the
       --  window layer and the controller list and hand them in, not the model.
       for Pattern of String_List'
         [To_Unbounded_String ("Build_Frame"),
          To_Unbounded_String ("Files.Localization"),
-         To_Unbounded_String ("Files.Command_Palette"),
-         To_Unbounded_String ("Files.Settings_Form")]
+         To_Unbounded_String ("Files.Overlays.Command_Palette"),
+         To_Unbounded_String ("Files.Overlays.Settings_Form")]
       loop
          Require_Not_Contains_In_Unit
            (Root & "/src/files-model.adb", To_String (Pattern),

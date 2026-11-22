@@ -1,5 +1,4 @@
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Job_Drivers.Foreground;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
@@ -138,7 +137,7 @@ separate (Files_Suite.Transfer)
             Ada.Environment_Variables.Clear ("FILES_TEST_DIRECTORY_RESTORE_FAULT");
             Ada.Environment_Variables.Clear ("FILES_TEST_DIRECTORY_RESTORE_BLOCK");
             Assert (Files.File_System.Delete_Permanently (Source).Success, "remove the test rollback obstruction");
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,

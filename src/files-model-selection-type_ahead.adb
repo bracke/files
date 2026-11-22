@@ -1,7 +1,7 @@
 with Files.Text_Basics;
 with Files.Text_Case;
 
-package body Files.Type_Ahead is
+package body Files.Model.Selection.Type_Ahead is
 
    use Ada.Strings.Unbounded;
 
@@ -78,4 +78,4 @@ package body Files.Type_Ahead is
       return Type_Ahead_Target (Natural (Names.Length), Name_At'Access, Prefix, Start_Index);
    end Type_Ahead_Target;
 
-end Files.Type_Ahead;
+end Files.Model.Selection.Type_Ahead;

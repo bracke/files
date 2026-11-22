@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Folder_Tree;
 with Files.Model.Tree_Panel;
 
@@ -10,7 +11,8 @@ is
    --  The tree shows folders only, read lean: this runs on the UI thread.
    Load     : constant Files.File_System.Directory_Load_Result :=
      Files.File_System.Load_Subdirectories
-       (Files.Model.Tree_Panel.Node_Path (Model, Node_Index), Settings, Files.Settings.Listing_Options_Of (Settings));
+       (Files.Model.Tree_Panel.Node_Path (Model, Node_Index),
+        Files.File_Types.Classification_Of (Settings), Files.Settings.Listing_Options_Of (Settings));
    Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
 begin
    if not Load.Success then

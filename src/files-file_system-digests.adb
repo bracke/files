@@ -1,6 +1,6 @@
 with Files.Hex_Text;
 
-package body Files.Digests is
+package body Files.File_System.Digests is
 
    use Ada.Streams;
 
@@ -37,4 +37,4 @@ package body Files.Digests is
       Update (Context, Text);
       return Hex (CryptoLib.Hashes.Finalize (Context));
    end SHA256_Hex;
-end Files.Digests;
+end Files.File_System.Digests;

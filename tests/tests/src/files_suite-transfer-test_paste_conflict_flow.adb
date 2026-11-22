@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Model.Clipboard;
 with Files_Suite.Support.Disk;
@@ -32,7 +33,7 @@ separate (Files_Suite.Transfer)
          Load  : Files.File_System.Directory_Load_Result;
          Paths : Files.Types.String_Vectors.Vector;
       begin
-         Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
          Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
          for Name of Names loop
             Paths.Append (To_Unbounded_String (Join (Src_Dir, To_String (Name))));

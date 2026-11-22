@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -30,7 +31,7 @@ separate (Files_Suite.Info)
       Ada.Directories.Create_Path (Folder);
       Write_Binary_File (Join (Folder, "data"), "one");
       Write_Binary_File (Join (Root, "ordinary.txt"), "ordinary");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Initialize (Other, Root, Load.Items, Root);
       Select_Name (Model, "folder");

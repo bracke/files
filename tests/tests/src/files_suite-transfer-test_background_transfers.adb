@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Models;
@@ -42,7 +42,7 @@ separate (Files_Suite.Transfer)
          "the worker copies every byte");
 
       Ada.Directories.Delete_File (Dest);
-      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Actions.Append (Action);
@@ -55,7 +55,7 @@ separate (Files_Suite.Transfer)
          "background completion reports success");
       Assert (Files.Model.History.Undo_Available (Model), "background writes record undo on the UI thread");
       Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Assert (not Ada.Directories.Exists (Dest), "undo removes a background copy");
 
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);

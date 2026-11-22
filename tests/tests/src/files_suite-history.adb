@@ -1,3 +1,4 @@
+with Files.Controller.Operation_Commands;
 with Files.Operations;
 with Files.Operation_Results;
 with Files.Operations.Undo_Recording;
@@ -43,6 +44,9 @@ with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
 
 package body Files_Suite.History is
+
+   --  The command entry points the tests drive, by a short name.
+   package Operation_Commands renames Files.Controller.Operation_Commands;
 
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;

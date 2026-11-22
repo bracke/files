@@ -1,5 +1,5 @@
 with Files.Preference_Types;
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Model.Settings_Pane;
@@ -40,7 +40,7 @@ separate (Files_Suite.Commands)
          Draft.Scalars (Files.Settings.Sort_Field_Setting) := Ada.Strings.Unbounded.To_Unbounded_String ("size");
          Draft.Scalars (Files.Settings.Sort_Ascending_Setting) :=
            Ada.Strings.Unbounded.To_Unbounded_String ("false");
-         Files.Settings_Form.Set_Draft (Model, Draft);
+         Files.Overlays.Settings_Form.Set_Draft (Model, Draft);
       end;
 
       Result := Files.Controller.Testing.Save_Settings (Model, Settings, Path);

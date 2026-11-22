@@ -1,3 +1,5 @@
+with Files.File_Types;
+with Files.Command_Reasons;
 with Files.Jobs.Context;
 with Ada.Directories;
 with Files.Operations.Undo_Recording;
@@ -81,9 +83,15 @@ package body Files.Operations.Support is
    end Disabled;
 
    function Real_Selection_Refusal (Model : in out Files.Model.Window_Model) return Operation_Result is
-     (if Files.Model.Selection.Selected_Count (Model) = 0 then Disabled (Model, "error.selection.empty")
-      elsif Files.Model.Selection.Includes_Temporary (Model) then Disabled (Model, "error.create.pending")
-      else (Status => Operation_Success, others => <>));
+      package Reasons renames Files.Command_Reasons;
+   begin
+      if Files.Model.Selection.Selected_Count (Model) = 0 then
+         return Disabled (Model, Reasons.Reason_Key (Reasons.Selection_Empty_Reason));
+      elsif Files.Model.Selection.Includes_Temporary (Model) then
+         return Disabled (Model, Reasons.Reason_Key (Reasons.Create_Pending_Reason));
+      end if;
+      return (Status => Operation_Success, others => <>);
+   end Real_Selection_Refusal;
 
    function Executable_Is_Available
      (Executable : String)
@@ -114,7 +122,7 @@ package body Files.Operations.Support is
          --  Recent would be reported as failed with the view left stale. Rebuild it
          --  from the recorded recent paths instead (Load_Recent_Items).
          if Files.Model.In_Recent_View (Model) then
-            Files.Model.Navigate_Recent (Model, Files.File_System.Load_Recent_Items (Settings));
+            Files.Model.Navigate_Recent (Model, Files.Refresh.Load_Recent_Items (Settings));
             if Preserve_Selection and then Select_Name = "" then
                Files.Model.Selection.Restore
                  (Model, Previous_Selection, Previous_Primary);
@@ -125,7 +133,9 @@ package body Files.Operations.Support is
 
          declare
             Load : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory_Deferring_Thumbnails (Files.Model.Current_Path (Model), Settings);
+              Files.File_System.Load_Directory_Deferring_Thumbnails
+                (Files.Model.Current_Path (Model), Files.File_Types.Classification_Of (Settings),
+                 Files.Settings.Listing_Options_Of (Settings));
          begin
             if not Load.Success then
                Files.Model.Set_Error (Model, To_String (Load.Error_Key));

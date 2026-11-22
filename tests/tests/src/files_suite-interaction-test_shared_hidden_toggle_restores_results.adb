@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -26,7 +27,7 @@ separate (Files_Suite.Interaction)
       Settings.Show_Hidden_Files := True;
       declare
          Load_Result : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Root, Settings);
+           Files_Suite.Listings.Load_Directory (Root, Settings);
       begin
          Files.Model.Initialize (Model, Directory_Path => Root, Items => Load_Result.Items, Home_Path => "/home/test");
       end;

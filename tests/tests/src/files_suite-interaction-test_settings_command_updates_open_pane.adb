@@ -1,4 +1,4 @@
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Files.Settings.Testing;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Models;
@@ -33,7 +33,7 @@ separate (Files_Suite.Interaction)
       begin
          Edited.Scalars (Files.Settings.Default_View_Mode_Setting) :=
            Ada.Strings.Unbounded.To_Unbounded_String ("details");
-         Files.Settings_Form.Set_Draft (Model, Edited);
+         Files.Overlays.Settings_Form.Set_Draft (Model, Edited);
       end;
       Run (Files.Commands.Toggle_Hidden_Files_Command);
       Files_Suite.Support.Assert_Equal

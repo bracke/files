@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
@@ -26,7 +27,7 @@ separate (Files_Suite.Transfer)
             Skip        => False,
             Replaced    => False));
 
-      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
 

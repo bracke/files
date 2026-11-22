@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Model.Command_Palette;
 separate (Files_Suite.Refresh)
@@ -13,7 +14,7 @@ separate (Files_Suite.Refresh)
       Reset_Root;
       Ada.Directories.Create_Path (First);
       Write_File (Join (First, "one.txt"));
-      Load := Files.File_System.Load_Directory (First, Settings);
+      Load := Files_Suite.Listings.Load_Directory (First, Settings);
       Files.Model.Initialize (Model, First, Load.Items, Missing_Home);
       Files.Model.Begin_Create_File (Model, "failed-home-pending.txt");
       Files.Model.Command_Palette.Open (Model);

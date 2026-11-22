@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Input_Actions;
 with Files.Operation_Results;
 with Files.File_System.Permissions;
@@ -31,7 +32,7 @@ separate (Files_Suite.Operations)
       Hostkit.Metadata.File_Ownership (Target, Uid, Gid, Avail);
       Assert (Avail, "ownership of the temp file is readable");
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "reducer_own.txt");
       Files.Model.Toggle_Info_Pane (Model);

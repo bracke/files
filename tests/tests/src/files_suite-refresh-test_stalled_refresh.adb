@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -86,7 +87,7 @@ separate (Files_Suite.Refresh)
          Ada.Directories.Delete_Directory (Directory);
       end;
       Write_Binary_File (Join (Root, "source"), "source");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_READS", "1");

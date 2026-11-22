@@ -2,7 +2,7 @@ with Ada.Strings.Unbounded;
 with Files.Types;
 
 --  Pure type-to-select (type-ahead) matching over a visible item projection.
-package Files.Type_Ahead is
+package Files.Model.Selection.Type_Ahead is
 
    --  Return the visible index of the first item whose name starts with Prefix.
    --
@@ -39,4 +39,4 @@ package Files.Type_Ahead is
       Start_Index : Natural)
       return Natural;
 
-end Files.Type_Ahead;
+end Files.Model.Selection.Type_Ahead;

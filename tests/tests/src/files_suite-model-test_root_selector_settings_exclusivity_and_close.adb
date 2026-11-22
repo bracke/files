@@ -1,4 +1,4 @@
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.File_System.Testing;
@@ -34,14 +34,14 @@ separate (Files_Suite.Model)
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Open_Selected_Root_Command, Model, Settings);
       Files.Model.Navigate_To (Model, Root, Files.Items.Item_Vectors.Empty_Vector);
-      Files.Settings_Form.Begin_Edit (Model, Settings);
+      Files.Overlays.Settings_Form.Begin_Edit (Model, Settings);
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane opens before direct root selector call");
       Files.Model.Root_Selector.Open (Model, Entries);
       Assert (Files.Model.Root_Selector.Is_Open (Model), "direct root selector call opens root selector");
       Assert
         (not Files.Model.Settings_Pane.Is_Open (Model),
          "metadata root selector overload closes settings pane");
-      Files.Settings_Form.Begin_Edit (Model, Settings);
+      Files.Overlays.Settings_Form.Begin_Edit (Model, Settings);
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane reopens before string root selector call");
       Files.Model.Root_Selector.Open (Model, Roots_A);
       Assert (Files.Model.Root_Selector.Is_Open (Model), "string root selector overload opens root selector");

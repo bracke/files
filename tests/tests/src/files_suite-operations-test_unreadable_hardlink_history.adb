@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 separate (Files_Suite.Operations)
    procedure Test_Unreadable_Hardlink_History
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -20,7 +20,7 @@ separate (Files_Suite.Operations)
       Reset_Root;
       Ada.Directories.Create_Path (Dir);
       Write_File (Source, "hard link contents");
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "report.txt");
       Routed := Files.Controller.Execute_Non_Settings_Command
@@ -29,7 +29,7 @@ separate (Files_Suite.Operations)
         (Routed.Operation.Status,
          Files.Operation_Results.Operation_Success,
          "readable hard link is created");
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,
@@ -37,7 +37,7 @@ separate (Files_Suite.Operations)
       Assert (Files.File_System.Permissions.Set_Permissions (Source, 0).Success,
               "source permissions can be removed");
 
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Failed,
@@ -46,7 +46,7 @@ separate (Files_Suite.Operations)
               "failed Redo leaves no hard link behind");
       Assert (Files.File_System.Permissions.Set_Permissions (Source, 8#644#).Success,
               "source permissions can be restored");
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,
@@ -59,7 +59,7 @@ separate (Files_Suite.Operations)
       Write_File (Source, "hard link contents");
       Assert (Files.File_System.Permissions.Set_Permissions (Source, 0).Success,
               "new source permissions can be removed");
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "report.txt");
       Routed := Files.Controller.Execute_Non_Settings_Command

@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.History)
    --  A permission edit through the editor's path changes only what its bits
@@ -60,7 +60,7 @@ separate (Files_Suite.History)
             Assert (Original = "", "a POSIX host keeps no access record beside the mode");
          end if;
 
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Select_Name (Model, "access-mode.txt");
 
@@ -88,13 +88,13 @@ separate (Files_Suite.History)
                   & Original & " became " & Changed);
             end if;
 
-            Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Result := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                               "the undo succeeds");
             Files_Suite.Support.Assert_Equal (Mode_Of (Target), Before, "the undo restores the mode");
             Assert (Access_Of (Target) = Original, "and the access the edit replaced, exactly: " & Access_Of (Target));
 
-            Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+            Result := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
                                               "the redo succeeds");
             Files_Suite.Support.Assert_Equal (Mode_Of (Target), Edited, "the redo re-applies the mode");

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Rendering.Testing;
 separate (Files_Suite.Info)
    procedure Test_Info_Pane_Section_Tooltips (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -20,7 +21,7 @@ separate (Files_Suite.Info)
    begin
       Reset_Root;
       Write_File (Join (Root, "tip.txt"), "hello");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "tip.txt");
       Files.Model.Toggle_Info_Pane (Model);

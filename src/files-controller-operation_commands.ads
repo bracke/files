@@ -11,7 +11,7 @@ with Files.Settings;
 --  starts a job, and a helper job (Files.Job_Drivers.Operation.Helper) runs the
 --  in-process work. Each asks the command's refusal checks before it starts
 --  a job, as the in-process command does before it runs.
-package Files.Operation_Commands is
+package Files.Controller.Operation_Commands is
 
    --  @param Model Window model to update.
    --  @param Settings Settings model used for directory reloads.
@@ -102,4 +102,4 @@ package Files.Operation_Commands is
       Settings : Files.Settings.Settings_Model)
       return Files.Operation_Results.Operation_Result;
 
-end Files.Operation_Commands;
+end Files.Controller.Operation_Commands;

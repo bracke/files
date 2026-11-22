@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Recovery)
@@ -16,7 +16,7 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Join (Root, "a.txt"), "needle");
       Ada.Directories.Create_Directory (Join (Root, "nested"));
       Write_Binary_File (Join (Join (Root, "nested"), "needle-name.txt"), "needle");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Step := Files.Operations.Refresh (Model, Settings);
@@ -30,7 +30,7 @@ separate (Files_Suite.Recovery)
          Files_Suite.Support.Guards.Save (Fault, "FILES_TEST_OPERATION_RESULT_KIND_MISMATCH");
          Ada.Environment_Variables.Set
            ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "1");
-         Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+         Step := Operation_Commands.Duplicate_Selected (Model, Settings);
          Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
       end;
       Assert
@@ -48,7 +48,7 @@ separate (Files_Suite.Recovery)
          and then Files.Model.History.Undo_Available (Model),
          "kind-mismatch recovery retains the committed duplicate and its Undo");
       Step := Complete_Operation
-        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+        (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       --  Flaked once on macOS Intel CI with nothing beside it: name what failed.
       Assert
         (Step.Status = Files.Operation_Results.Operation_Success
@@ -66,7 +66,7 @@ separate (Files_Suite.Recovery)
          Files_Suite.Support.Guards.Save (Fault, "FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH");
          Ada.Environment_Variables.Set
            ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "1");
-         Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+         Step := Operation_Commands.Duplicate_Selected (Model, Settings);
          Step := Files_Suite.Support.Models.Finish_Paste (Model, Settings);
       end;
       Assert
@@ -84,7 +84,7 @@ separate (Files_Suite.Recovery)
          and then Files.Model.History.Undo_Available (Model),
          "Recent-mismatch recovery retains the committed duplicate and its Undo");
       Step := Complete_Operation
-        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+        (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Assert
         (Step.Status = Files.Operation_Results.Operation_Success
          and then not Ada.Directories.Exists (Join (Root, "a (copy).txt")),

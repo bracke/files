@@ -1,5 +1,5 @@
 with Files.Preference_Types;
-with Files.Display_Text;
+with Files.Rendering.Display_Text;
 separate (Files_Suite.Rendering)
    --  A frame is a function of its snapshot: the relative times it draws are
    --  against the snapshot's minute, so the same snapshot draws the same
@@ -24,8 +24,8 @@ separate (Files_Suite.Rendering)
       First  : constant Frame_Commands := Frame_At (Same_Day);
       Again  : constant Frame_Commands := Frame_At (Same_Day);
       Moved  : constant Frame_Commands := Frame_At (Later);
-      Today  : constant String := Files.Display_Text.Humanized_Time_Text (Stamp, Same_Day);
-      Dated  : constant String := Files.Display_Text.Humanized_Time_Text (Stamp, Later);
+      Today  : constant String := Files.Rendering.Display_Text.Humanized_Time_Text (Stamp, Same_Day);
+      Dated  : constant String := Files.Rendering.Display_Text.Humanized_Time_Text (Stamp, Later);
       --  The date's start: the column can clip the clock time after it.
       Date   : constant String := Dated (Dated'First .. Dated'First + Natural'Min (9, Dated'Length - 1));
    begin

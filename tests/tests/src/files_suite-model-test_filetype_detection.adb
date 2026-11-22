@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Ada.Strings.Fixed;
 with Files.File_System.Thumbnails;
 with Files.Settings.Testing;
@@ -19,6 +20,7 @@ separate (Files_Suite.Model)
       Ada_Item : Files.Items.Directory_Item;
       Executable_Ada_Item : Files.Items.Directory_Item;
       Symlink_Ada_Item : Files.Items.Directory_Item;
+      Classes : Files.File_Types.Classification;
       C1_Break : constant Character := Character'Val (133);
       NBSP : constant String := Files.Application.Window_Policy.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#));
       Line_Separator : constant String :=
@@ -27,9 +29,10 @@ separate (Files_Suite.Model)
       Files.Settings.Testing.Add_Extension_Mapping (Settings, "adb", "text/x-ada");
       Files.Settings.Testing.Add_Extension_Mapping (Settings, "profile", "text/x-profile");
       Files.Settings.Testing.Add_Icon_Mapping (Settings, "text/x-ada", "ada");
-      Ada_Item := Files.File_System.Make_Item (Root, "main.adb", Files.Types.Regular_File_Item, Settings);
-      Executable_Ada_Item := Files.File_System.Make_Item (Root, "tool.adb", Files.Types.Executable_Item, Settings);
-      Symlink_Ada_Item := Files.File_System.Make_Item (Root, "link.adb", Files.Types.Symlink_Item, Settings);
+      Classes := Files.File_Types.Classification_Of (Settings);
+      Ada_Item := Files.File_System.Make_Item (Root, "main.adb", Files.Types.Regular_File_Item, Classes);
+      Executable_Ada_Item := Files.File_System.Make_Item (Root, "tool.adb", Files.Types.Executable_Item, Classes);
+      Symlink_Ada_Item := Files.File_System.Make_Item (Root, "link.adb", Files.Types.Symlink_Item, Classes);
       Files_Suite.Support.Assert_Equal
         (To_String (Directory_Item.Filetype),
          "inode/directory",

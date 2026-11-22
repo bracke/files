@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Leaf_Names;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Name_Parts;
 
 separate (Files_Suite.Names)
@@ -78,21 +78,21 @@ separate (Files_Suite.Names)
       Files_Suite.Support.Assert_Equal
         (Files.File_System.Next_Untitled_Name (Root), "untitled 2.txt", "the next untitled name is numbered");
       Ada.Directories.Create_Directory (Join (Root, "v1.2"));
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Operations.Clear_Undo (Model);
       Files.Model.Set_Background_Transfers (Model, False);
       Select_Name (Model, "v1.2");
-      Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+      Step := Operation_Commands.Duplicate_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "the folder is duplicated");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Assert (Listed ("v1.2 (copy)"), "a folder's copy keeps its dots in its name");
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "v1.2");
-      Step := Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive);
+      Step := Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "the folder is compressed");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Assert (Listed ("v1.2.zip"), "a folder's archive is named for all of its name");
    end Test_One_Free_Name_Rule;

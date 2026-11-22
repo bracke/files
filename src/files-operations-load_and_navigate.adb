@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Model.Root_Selector;
 separate (Files.Operations)
 --  Shared normalize -> load -> navigate tail for the absolute-destination
@@ -23,7 +24,9 @@ begin
 
    declare
       Load : constant Files.File_System.Directory_Load_Result :=
-        Files.File_System.Load_Directory_Deferring_Thumbnails (To_String (Path_Result.Directory_Path), Settings);
+        Files.File_System.Load_Directory_Deferring_Thumbnails
+          (To_String (Path_Result.Directory_Path), Files.File_Types.Classification_Of (Settings),
+           Files.Settings.Listing_Options_Of (Settings));
    begin
       if not Load.Success then
          Files.Model.Set_Error (Model, To_String (Load.Error_Key));

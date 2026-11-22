@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Rendering.Testing;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Info)
@@ -22,7 +23,7 @@ separate (Files_Suite.Info)
       Reset_Root;
       Ada.Directories.Create_Path (Join (Root, "sub"));
       Write_File (Join (Join (Root, "sub"), "x.txt"), "hi");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "sub");
 

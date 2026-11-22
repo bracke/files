@@ -1,5 +1,5 @@
 with Files.Preference_Types;
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Files.Input_Actions;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Disk;
@@ -67,7 +67,7 @@ separate (Files_Suite.Interaction)
                begin
                   Edited.Scalars (Files.Settings.Default_View_Mode_Setting) :=
                     Ada.Strings.Unbounded.To_Unbounded_String ("details");
-                  Files.Settings_Form.Set_Draft (Model, Edited);
+                  Files.Overlays.Settings_Form.Set_Draft (Model, Edited);
                end;
             when Zoom_Reset =>
                Settings.Font_Pixel_Size := Files.Settings.Default_Font_Pixel_Size + 4;

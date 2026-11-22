@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Guikit.Input;
 with Files.Operation_Results;
 separate (Files_Suite.Transfer)
@@ -14,7 +15,7 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Create_Path (Join (Folder, "target"));
       Write_File (Join (Folder, "moved.txt"), "moved");
       Write_File (Join (Folder, "other.txt"), "other");
-      Load := Files.File_System.Load_Directory (Folder, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Folder, Settings);
       Files.Model.Initialize (Model, Folder, Load.Items, Root);
       Files.Model.Selection.Select_Visible (Model, Files.Model.Visible_Index_Of (Model, Join (Folder, "moved.txt")));
 

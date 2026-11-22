@@ -4,7 +4,8 @@ separate (Files.File_System)
 function Search_Names
   (Root_Path : String;
    Query     : String;
-   Settings  : Files.Settings.Settings_Model;
+   Classes   : Files.File_Types.Classification;
+   Options   : Files.Types.Listing_Options;
    Max_Items : Natural := Max_Search_Results)
    return Recursive_Search_Result
 is
@@ -29,5 +30,5 @@ is
       return (if Matches (To_String (Item.Name)) then Found else Passed);
    end Judge;
 begin
-   return Search_Tree (Root_Path, Settings, Wanted'Access, Judge'Access, Max_Items);
+   return Search_Tree (Root_Path, Classes, Options, Wanted'Access, Judge'Access, Max_Items);
 end Search_Names;

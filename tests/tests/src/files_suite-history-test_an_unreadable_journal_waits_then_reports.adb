@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Undo.Journal.Testing;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.History)
@@ -31,12 +31,12 @@ separate (Files_Suite.History)
       begin
          Reset_Root;
          Write_Binary_File (Join (Root, "a.txt"), "a bytes");
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Assert (Files.Model.Selection.Select_By_Name (Model, "a.txt"), "the file is listed");
          Files.Model.Set_Background_Transfers (Model, True);
-         Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+         Step := Operation_Commands.Duplicate_Selected (Model, Settings);
          Files.Undo.Journal.Testing.Refuse_Reads (Refused);
          Started := Files_Suite.Support.Timing.Now;
          for Attempt in Files_Suite.Support.Timing.Polling loop

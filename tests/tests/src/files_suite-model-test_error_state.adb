@@ -1,5 +1,4 @@
 with Files.Operation_Results;
-with Files.Operation_Commands;
 separate (Files_Suite.Model)
    procedure Test_Error_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -54,7 +53,7 @@ separate (Files_Suite.Model)
          "disabled rename records an error");
 
       Files.Model.Selection.Select_Visible (Model, 1);
-      Result := Files.Operation_Commands.Delete_Selected (Model, Settings);
+      Result := Operation_Commands.Delete_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Failed,

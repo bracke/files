@@ -1,5 +1,4 @@
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_Partial_Redo_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -33,14 +32,14 @@ separate (Files_Suite.History)
                    when Rename_Action => Files.Undo.History.Undo_Rename),
                Files_Suite.Support.Models.Undo_Items (Destinations, To => Sources));
             Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Success,
                "prepare a two-item move or rename Redo");
             Write_Binary_File (Dest_B, "unrelated collision");
             Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Failed,
@@ -51,7 +50,7 @@ separate (Files_Suite.History)
                "the first forward move completes before B fails: A source vacated");
             Write_Binary_File (Source_A, "unrelated new source");
             Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Failed,
@@ -67,7 +66,7 @@ separate (Files_Suite.History)
                "repeated partial Redo leaves completed moves and unrelated paths intact: B collision intact");
             Ada.Directories.Rename (Dest_A, Saved_A);
             Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Failed,
@@ -85,7 +84,7 @@ separate (Files_Suite.History)
                "a missing completed move invalidates its marker without moving a replacement source: redo available");
             Ada.Directories.Rename (Saved_A, Dest_A);
             Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Failed,
@@ -98,7 +97,7 @@ separate (Files_Suite.History)
                "restoring the moved entry makes its invalidated marker retryable: redo available");
             Ada.Directories.Delete_File (Dest_B);
             Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Success,
@@ -117,7 +116,7 @@ separate (Files_Suite.History)
                "unblocking B completes Redo without moving the unrelated recreated source A: B moved");
             Ada.Directories.Delete_File (Source_A);
             Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Success,
@@ -125,7 +124,7 @@ separate (Files_Suite.History)
             Assert (File_Has_Bytes (Source_A, "original a"), "Undo reverses both moves after a recovered Redo: A back");
             Assert (File_Has_Bytes (Source_B, "original b"), "Undo reverses both moves after a recovered Redo: B back");
             Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Success,

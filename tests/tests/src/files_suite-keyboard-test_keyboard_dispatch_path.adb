@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Model.Settings_Pane;
 with Files_Suite.Support.Disk;
@@ -129,7 +130,7 @@ separate (Files_Suite.Keyboard)
          Ada.Directories.Create_Path (Child);
          declare
             Load : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory (Child, Settings);
+              Files_Suite.Listings.Load_Directory (Child, Settings);
          begin
             Files.Model.Initialize
               (Model, Child, Load.Items, Files_Suite.Support.Disk.Root);

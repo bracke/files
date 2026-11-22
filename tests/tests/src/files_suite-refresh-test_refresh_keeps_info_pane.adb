@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Extra_Info;
 separate (Files_Suite.Refresh)
@@ -46,7 +47,7 @@ separate (Files_Suite.Refresh)
       Reset_Root;
       Write_Binary_File (Join (Root, "notes.txt"), "one" & ASCII.LF & "two" & ASCII.LF);
       Write_Binary_File (Join (Root, "other.txt"), "x");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "notes.txt");
       Files.Model.Toggle_Info_Pane (Model);

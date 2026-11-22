@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Input_Actions;
 separate (Files_Suite.Info)
@@ -14,7 +15,7 @@ separate (Files_Suite.Info)
          Reset_Root;
          Write_Binary_File (Join (Root, "selected.bin"), "binary data");
          Write_Binary_File (Join (Root, "selected.txt"), "text data");
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, True);
          Select_Name (Model, (if Unsupported then "selected.bin" else "selected.txt"));

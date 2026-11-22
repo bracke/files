@@ -1,5 +1,5 @@
 with Files.Operation_Results;
-with Files.Command_Palette;
+with Files.Overlays.Command_Palette;
 with Files.Model.Command_Palette;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Open_Actions)
@@ -23,7 +23,7 @@ separate (Files_Suite.Open_Actions)
             Files.Model.Command_Palette.Open_With
               (Model, Targets, Files.Desktop_Applications.Available_Applications);
             --  As the frame drawn next does.
-            Files.Command_Palette.Ensure_Listed (Model);
+            Files.Overlays.Command_Palette.Ensure_Listed (Model);
             Files.Model.Command_Palette.Set_Query (Model, "Multi Target Marker");
             Files.Model.Command_Palette.Select_First (Model);
 
@@ -98,7 +98,7 @@ separate (Files_Suite.Open_Actions)
             Files.Model.Command_Palette.Open_With
               (Model, Targets, Files.Desktop_Applications.Available_Applications);
             --  As the frame drawn next does.
-            Files.Command_Palette.Ensure_Listed (Model);
+            Files.Overlays.Command_Palette.Ensure_Listed (Model);
             Files.Model.Command_Palette.Select_Last (Model);
             Files_Suite.Support.Assert_Equal
               (Files.Model.Command_Palette.Selected_Id (Model),

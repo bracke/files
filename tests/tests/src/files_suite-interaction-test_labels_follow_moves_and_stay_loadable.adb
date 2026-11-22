@@ -1,7 +1,6 @@
 with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Model.Label_Picker;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Disk;
@@ -66,7 +65,7 @@ separate (Files_Suite.Interaction)
          Files.Preference_Types.Red,
          "a path that only shares the folder's name as a prefix is left alone");
 
-      Op := Files.Operation_Commands.Undo_Last (Model, Settings);
+      Op := Operation_Commands.Undo_Last (Model, Settings);
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       Assert (Files.Settings.Path_References.Label_Of (Settings, Inner) = Files.Preference_Types.Blue
               and then Files.Settings.Path_References.Is_Favorite (Settings, Sub),

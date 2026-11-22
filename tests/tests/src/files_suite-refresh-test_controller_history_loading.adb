@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.File_System.Testing;
@@ -24,11 +25,11 @@ separate (Files_Suite.Refresh)
       Write_File (Join (Branch, "branch.txt"));
       Write_File (Join (First, "fresh.txt"));
       Write_File (Join (First, "later.txt"));
-      Load := Files.File_System.Load_Directory (First, Settings);
+      Load := Files_Suite.Listings.Load_Directory (First, Settings);
       Files.Model.Initialize (Model, First, Load.Items, First);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
 
-      Load := Files.File_System.Load_Directory (Second, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Second, Settings);
       Files.Model.Root_Selector.Open (Model, Files.File_System.Testing.Available_Roots);
       Files.Model.Navigate_To (Model, Second, Load.Items);
       Files_Suite.Support.Assert_Equal

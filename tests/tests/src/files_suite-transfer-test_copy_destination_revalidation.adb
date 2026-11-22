@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
@@ -20,7 +20,7 @@ separate (Files_Suite.Transfer)
       Plans : Files.File_System.Drop_Import_Result;
       procedure Check_Source is
       begin
-         Load := Files.File_System.Load_Directory (Child, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Child, Settings);
          Assert (Load.Success and then Load.Items.Is_Empty,
                  "refusing a descendant copy leaves no staging or recursive copies");
          Assert (File_Has_Bytes (Join (Source, "original"), "original bytes"), "the source is unchanged");
@@ -37,7 +37,7 @@ separate (Files_Suite.Transfer)
          Mutation := Files.File_System.Copy_Tree (Source, Join (Child, "copy"));
          Assert (not Mutation.Success, "the copy operation itself refuses its own descendants");
          Check_Source;
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
@@ -48,7 +48,7 @@ separate (Files_Suite.Transfer)
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                            "make the original copy");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success, "Undo the copy");
          Ada.Directories.Delete_Directory (Parent);
@@ -93,7 +93,7 @@ separate (Files_Suite.Transfer)
          end;
          Mutation := Files.File_System.Copy_Tree (Source, Dest);
          Assert (not Mutation.Success, "direct copies resolve destination-parent aliases");
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operation_Results.Operation_Failed
                  and then Files.Model.History.Redo_Available (Model),
@@ -101,7 +101,7 @@ separate (Files_Suite.Transfer)
          Check_Source;
          Assert (Hostkit.Fs.Delete_Link (Parent), "remove the destination alias");
          Ada.Directories.Create_Directory (Parent);
-         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then File_Has_Bytes (Join (Dest, "original"), "original bytes"),

@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;
@@ -83,9 +83,9 @@ separate (Files_Suite.Trash)
                     "a dropped dangling link is copied as a link");
             declare
                Listing : constant Files.File_System.Directory_Load_Result :=
-                 Files.File_System.Load_Directory (Output, Settings);
+                 Files_Suite.Listings.Load_Directory (Output, Settings);
                Single : constant Files.File_System.Item_Load_Result :=
-                 Files.File_System.Load_Item (Join (Output, "trash-link"), Settings);
+                 Files_Suite.Listings.Load_Item (Join (Output, "trash-link"), Settings);
             begin
                Assert (Listing.Success, "folder listings show dangling links as links: listed");
                Files_Suite.Support.Assert_Equal
@@ -130,7 +130,7 @@ separate (Files_Suite.Trash)
            (Model, Files.Undo.History.Undo_Delete_Created,
             Files_Suite.Support.Models.Undo_Items (Paths), Redoable => False);
          Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Hostkit.Fs.Is_Link (Link),
                  "Undo removes a created dangling link");
       else

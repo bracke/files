@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 separate (Files_Suite.History)
    procedure Test_Undo_Operations (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,7 +14,7 @@ separate (Files_Suite.History)
       Reset_Root;
       Write_File (Original, "undo me");
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "orig.txt");
       Files.Model.Rename.Toggle (Model);
@@ -39,13 +39,13 @@ separate (Files_Suite.History)
 
       Files.Operations.Clear_Undo (Model);
       Files.Model.Set_Error (Model, "error.directory.load");
-      Result := Files.Operation_Commands.Undo_Last (Model, Settings);
+      Result := Operation_Commands.Undo_Last (Model, Settings);
       Assert
         (Result.Status = Files.Operation_Results.Operation_Failed
          and then Files.Model.Last_Error_Key (Model) = "error.undo.failed",
          "a direct empty Undo replaces a stale diagnostic with its failure");
       Files.Model.Set_Error (Model, "error.directory.load");
-      Result := Files.Operation_Commands.Redo_Last (Model, Settings);
+      Result := Operation_Commands.Redo_Last (Model, Settings);
       Assert
         (Result.Status = Files.Operation_Results.Operation_Failed
          and then Files.Model.Last_Error_Key (Model) = "error.undo.failed",

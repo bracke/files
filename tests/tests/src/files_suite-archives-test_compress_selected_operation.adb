@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Commands.Status;
 separate (Files_Suite.Archives)
@@ -31,7 +32,7 @@ separate (Files_Suite.Archives)
       Write_File (Join (Dir, "report.txt"), "hello compression payload");
       Write_File (Join (Dir, "notes.txt"), "second file payload");
 
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "report.txt");
 

@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Recorded_Restore_Targets (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -30,7 +30,7 @@ separate (Files_Suite.History)
                Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Root, "xdg"));
                Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", (if Scenario = 3 then "windows" else "xdg"));
                Write_Binary_File (Source, "original bytes");
-               Load := Files.File_System.Load_Directory (Root, Settings);
+               Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Operations.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
@@ -38,7 +38,7 @@ separate (Files_Suite.History)
                   Selected := Files.Model.Selection.Select_By_Name (Model, "entry");
                   Assert (Selected, "select the trash restore fixture");
                   Step := Complete_Operation
-                    (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
+                    (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
                   Await_View (Model, Settings);
                   Paths := Files.Model.History.Undo_From_Paths (Model);
                   Assert (Files.Model.Testing.Undo_To_Paths (Model).First_Element = To_Unbounded_String (Source),
@@ -80,7 +80,7 @@ separate (Files_Suite.History)
                   else
                      Ada.Directories.Delete_File (Sidecar);
                   end if;
-                  Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                  Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,

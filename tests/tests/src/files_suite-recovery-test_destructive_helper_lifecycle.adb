@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 with Files_Suite.Support.Models;
@@ -32,7 +32,7 @@ separate (Files_Suite.Recovery)
       for Job_Kind in Kind loop
          Reset_Root;
          Write_Binary_File (Join (Root, "victim.txt"), "victim bytes");
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, True);
@@ -62,12 +62,12 @@ separate (Files_Suite.Recovery)
          Before := Now;
          Step :=
            (case Job_Kind is
-               when Trash_Job => Files.Operation_Commands.Delete_Selected (Model, Settings),
-               when Delete_Job => Files.Operation_Commands.Delete_Selected_Permanently (Model, Settings),
-               when Restore_Job => Files.Operation_Commands.Restore_Selected_From_Trash (Model, Settings),
-               when Empty_Job => Files.Operation_Commands.Empty_Trash (Model, Settings),
-               when Undo_Job => Files.Operation_Commands.Undo_Last (Model, Settings),
-               when Redo_Job => Files.Operation_Commands.Redo_Last (Model, Settings));
+               when Trash_Job => Operation_Commands.Delete_Selected (Model, Settings),
+               when Delete_Job => Operation_Commands.Delete_Selected_Permanently (Model, Settings),
+               when Restore_Job => Operation_Commands.Restore_Selected_From_Trash (Model, Settings),
+               when Empty_Job => Operation_Commands.Empty_Trash (Model, Settings),
+               when Undo_Job => Operation_Commands.Undo_Last (Model, Settings),
+               when Redo_Job => Operation_Commands.Redo_Last (Model, Settings));
          --  Three checks, each naming itself: a failure on a slow runner
          --  has to say which one it was and how long the launch took.
          declare
@@ -118,26 +118,26 @@ separate (Files_Suite.Recovery)
       Reset_Root;
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Root, "private-trash"));
       Write_Binary_File (Join (Root, "victim.txt"), "victim bytes");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Operations.Clear_Undo (Model);
       Files.Model.Set_Background_Transfers (Model, True);
       Select_Name (Model, "victim.txt");
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
       Await_View (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "background trash records complete Undo: status");
       Assert (Files.Model.History.Undo_Available (Model), "background trash records complete Undo: Undo recorded");
       Assert (not Ada.Directories.Exists (Join (Root, "victim.txt")),
               "background trash records complete Undo: source trashed");
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Await_View (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success
               and then File_Has_Bytes (Join (Root, "victim.txt"), "victim bytes"),
               "background Undo restores trash bytes");
       Select_Name (Model, "victim.txt");
       Ada.Directories.Delete_File (Join (Root, "victim.txt"));
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
       Await_View (Model, Settings);
       for Index in 1 .. Files.Model.Item_Count (Model) loop
          Assert (Files.Model.Visible_Item (Model, Index).Name /= To_Unbounded_String ("victim.txt"),
@@ -149,24 +149,24 @@ separate (Files_Suite.Recovery)
       Step := Files.Operations.Refresh (Model, Settings);
       Await_View (Model, Settings);
       Select_Name (Model, "victim.txt");
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
       Await_View (Model, Settings);
       Paths := Files.Model.History.Undo_From_Paths (Model);
-      Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Files.Model.Navigate_To (Model, Files.File_System.Trash.Trash_Files_Directory, Load.Items);
       Files.Operations.Settle_Current_Is_Trash (Model);
       Select_Name (Model, Ada.Directories.Simple_Name (To_String (Paths.First_Element)));
       Step := Complete_Operation
-        (Model, Settings, Files.Operation_Commands.Restore_Selected_From_Trash (Model, Settings));
+        (Model, Settings, Operation_Commands.Restore_Selected_From_Trash (Model, Settings));
       Await_View (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success
               and then File_Has_Bytes (Join (Root, "victim.txt"), "restorable bytes"),
               "the background restore command restores the complete original");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Navigate_To (Model, Root, Load.Items);
       Select_Name (Model, "victim.txt");
       Step := Complete_Operation
-        (Model, Settings, Files.Operation_Commands.Delete_Selected_Permanently (Model, Settings));
+        (Model, Settings, Operation_Commands.Delete_Selected_Permanently (Model, Settings));
       Await_View (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success
               and then not Ada.Directories.Exists (Join (Root, "victim.txt")),
@@ -175,10 +175,10 @@ separate (Files_Suite.Recovery)
       Step := Files.Operations.Refresh (Model, Settings);
       Await_View (Model, Settings);
       Select_Name (Model, "victim.txt");
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
       Await_View (Model, Settings);
       Paths := Files.Model.History.Undo_From_Paths (Model);
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Empty_Trash (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Empty_Trash (Model, Settings));
       Await_View (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success
               and then not Ada.Directories.Exists (To_String (Paths.First_Element)),
@@ -195,7 +195,7 @@ separate (Files_Suite.Recovery)
          Redoable => False);
       Write_Binary_File (Join (Root, "blocked-transport"), "a file cannot hold a checkpoint");
       Files.Jobs.Context.Initialize (Join (Root, "blocked-transport"));
-      Step := Files.Operation_Commands.Undo_Last (Model, Settings);
+      Step := Operation_Commands.Undo_Last (Model, Settings);
       Files.Jobs.Context.Initialize ("");
       Files_Suite.Support.Assert_Equal
         (Step.Status,
@@ -207,7 +207,7 @@ separate (Files_Suite.Recovery)
       Assert (File_Has_Bytes (Join (Root, "checkpoint-target"), "preserve original bytes"),
               "a checkpoint failure before mutation retains both the original and its retriable Undo action: "
               & "original kept");
-      Step := Files.Operation_Commands.Undo_Last (Model, Settings);
+      Step := Operation_Commands.Undo_Last (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success
               and then not Ada.Directories.Exists (Join (Root, "checkpoint-target")),
               "Undo retries successfully once checkpoint transport is available");

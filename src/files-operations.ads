@@ -94,7 +94,7 @@ package Files.Operations is
       return Operation_Result;
 
    --  What a command checks before it runs anywhere -- in process here, or
-   --  in a helper job (Files.Operation_Commands, which asks these first):
+   --  in a helper job (Files.Controller.Operation_Commands, which asks these first):
    --  Disabled, with its error noted on Model, when the window refuses it;
    --  otherwise Operation_Success.
 
@@ -215,7 +215,7 @@ package Files.Operations is
    --  a text file longer than is read with no match in what was); no match
    --  shows the "search.no_matches" notice. Only a root that cannot be
    --  searched fails, keeping the listing. This runs the search in process;
-   --  Files.Operation_Commands.Run_Search runs it in a helper instead when
+   --  Files.Controller.Operation_Commands.Run_Search runs it in a helper instead when
    --  the window has background transfers on, applied the same way.
    --
    --  @param Model Window model containing the current path and filter query.

@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Trash_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -20,7 +20,7 @@ separate (Files_Suite.History)
          for Replace in Boolean loop
             Reset_Root;
             Write_Binary_File (Source, "original destination");
-            Load := Files.File_System.Load_Directory (Root, Settings);
+            Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
@@ -38,7 +38,7 @@ separate (Files_Suite.History)
             else
                Selected := Files.Model.Selection.Select_By_Name (Model, "entry");
                Assert (Selected, "select the trash fixture");
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Delete_Selected (Model, Settings));
                Await_View (Model, Settings);
                Paths := Files.Model.History.Undo_From_Paths (Model);
             end if;
@@ -50,7 +50,7 @@ separate (Files_Suite.History)
             begin
                Assert (Hostkit.Fs.Move_No_Replace (Payload, Saved), "hold the owned trash payload");
                Write_Binary_File (Payload, "unrelated replacement");
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
@@ -69,7 +69,7 @@ separate (Files_Suite.History)
                Mutation := Files.File_System.Delete_Permanently (Payload);
                Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved, Payload),
                        "put the original trash payload back");
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Assert (Step.Status = Files.Operation_Results.Operation_Success
                        and then File_Is (Source, "original destination"),

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operations.Undo_Recording;
 with Files.File_System.Trash;
 with Project_Tools.Files;
@@ -81,7 +82,7 @@ separate (Files_Suite.Model)
          Found_Original, Found_Rejected : Boolean := False;
       begin
          for Item of
-           Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings).Items
+           Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings).Items
          loop
             Found_Original := Found_Original or else File_Has_Bytes (To_String (Item.Full_Path), "original");
             Found_Rejected := Found_Rejected or else File_Has_Bytes (To_String (Item.Full_Path), "rejected");

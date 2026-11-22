@@ -14,7 +14,7 @@ with Hostkit.Directory_Write_Access;
 with Files.File_Identities;
 with Files.IO.Errors;
 with CryptoLib.Hashes;
-with Files.Digests;
+with Files.File_System.Digests;
 
 with Files.IO.Durability;
 with Hostkit.Durability;
@@ -385,7 +385,7 @@ package body Files.File_System.Support is
          Descriptor := GNAT.OS_Lib.Invalid_FD;
       end;
       Digest := CryptoLib.Hashes.Finalize (Context);
-      return Files.Digests.Hex (Digest);
+      return Files.File_System.Digests.Hex (Digest);
    exception
       when others =>
          if Descriptor /= GNAT.OS_Lib.Invalid_FD then
@@ -403,7 +403,7 @@ package body Files.File_System.Support is
 
       procedure Add (Text : String) is
       begin
-         Files.Digests.Update (Context, Text);
+         Files.File_System.Digests.Update (Context, Text);
       end Add;
 
       --  Listing a directory may advance its access time, which would undo a
@@ -478,7 +478,7 @@ package body Files.File_System.Support is
       end loop;
       Restore_Directory_Times;
       Digest := CryptoLib.Hashes.Finalize (Context);
-      return Files.Digests.Hex (Digest);
+      return Files.File_System.Digests.Hex (Digest);
    end Tree_Revision_Of;
 
    function Move_No_Replace (Source, Destination : String) return Boolean is
@@ -907,7 +907,7 @@ package body Files.File_System.Support is
             if not Hostkit.Fs.Read_Link_Target (Path, Target) then
                raise Ada.Directories.Use_Error;
             end if;
-            Add (Files.Digests.To_Bytes (To_String (Target)));
+            Add (Files.File_System.Digests.To_Bytes (To_String (Target)));
          end;
       else
          --  Use the descriptor-pinned, no-follow regular-file reader.  A
@@ -917,7 +917,7 @@ package body Files.File_System.Support is
            (Path, Walk.Cancel);
       end if;
       Digest := CryptoLib.Hashes.Finalize (Context);
-      return Files.Digests.Hex (Digest);
+      return Files.File_System.Digests.Hex (Digest);
    end Content_Digest;
 
    --  Make Destination a hard link to the copy of Source's inode already made
@@ -1116,7 +1116,7 @@ package body Files.File_System.Support is
       end if;
       if Wants_Digest or else Track_Hard_Link then
          Digest := CryptoLib.Hashes.Finalize (Digest_Context);
-         Copied_Bytes_Digest := To_Unbounded_String (Files.Digests.Hex (Digest));
+         Copied_Bytes_Digest := To_Unbounded_String (Files.File_System.Digests.Hex (Digest));
          if Wants_Digest then
             Walk.Root_Digest := Copied_Bytes_Digest;
          end if;

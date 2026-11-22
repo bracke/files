@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 separate (Files_Suite.Operations)
    --  Selecting a set of visible rows at once (a marquee drag): exactly those,
    --  repeats once, past-the-end ones skipped, the last one primary, and the
@@ -14,7 +15,7 @@ separate (Files_Suite.Operations)
       loop
          Write_File (Join (Root, To_String (Name)), "x");
       end loop;
-      Files.Model.Initialize (Model, Root, Files.File_System.Load_Directory (Root, Settings).Items, Root);
+      Files.Model.Initialize (Model, Root, Files_Suite.Listings.Load_Directory (Root, Settings).Items, Root);
       Files.Model.Selection.Select_Visible (Model, 4);
       Files.Model.Selection.Select_Visible_Set (Model, [3, 1, 3, 9]);
       Files_Suite.Support.Assert_Equal (Files.Model.Selection.Selected_Count (Model), 2, "exactly the two rows named");

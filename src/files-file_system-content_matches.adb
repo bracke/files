@@ -7,6 +7,6 @@ function Content_Matches
    Query : String)
    return Boolean is
 begin
-   return Files.Text_Case.Text_Contains (Files.Text_Encoding.Searchable_Text (Bytes),
+   return Files.Text_Encoding.Text_Contains (Files.Text_Encoding.Searchable_Text (Bytes),
                                          Files.Text_Case.Fold_Case (Query));
 end Content_Matches;

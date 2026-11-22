@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Names)
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -111,7 +112,7 @@ separate (Files_Suite.Names)
          "",
          "direct normalized same-path rename has no error key");
       Assert (Ada.Directories.Exists (Direct_Target), "direct normalized same-path rename keeps source path");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "old.txt");
       Files.Model.Rename.Toggle (Model);
@@ -205,7 +206,7 @@ separate (Files_Suite.Names)
 
       Reset_Root;
       Write_File (Join (Root, "same-missing.txt"));
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "same-missing.txt");
       Files.Model.Rename.Toggle (Model);
@@ -229,7 +230,7 @@ separate (Files_Suite.Names)
          "same-name disappeared source clears stale rename mode");
 
       Write_File (Join (Root, "missing-parent-source.txt"));
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "missing-parent-source.txt");
       Files.Model.Rename.Toggle (Model);

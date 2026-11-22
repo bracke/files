@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_Chained_Rename_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -17,14 +17,14 @@ separate (Files_Suite.History)
       Write_Binary_File (B, "B");
       Assert (Files.File_System.Rename_Item (B, C).Success and then Files.File_System.Rename_Item (A, B).Success,
               "rename b to c, then a to b");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Operations.Undo_Recording.Record_Undo
         (Model, Files.Undo.History.Undo_Rename,
          Files_Suite.Support.Models.Undo_Items
            (From => [To_Unbounded_String (C), To_Unbounded_String (B)],
             To   => [To_Unbounded_String (B), To_Unbounded_String (A)]));
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,
@@ -32,7 +32,7 @@ separate (Files_Suite.History)
       Files_Suite.Support.Assert_Equal (Project_Tools.Files.Read_Raw_File (A), "A", "both renames are undone: a");
       Files_Suite.Support.Assert_Equal (Project_Tools.Files.Read_Raw_File (B), "B", "both renames are undone: b");
       Assert (not Path_Exists (C), "both renames are undone: c is gone");
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "Redo replays the batch in its own order: status");
       Files_Suite.Support.Assert_Equal

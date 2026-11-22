@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.History)
@@ -35,18 +35,18 @@ separate (Files_Suite.History)
                      return;
                   end if;
             end case;
-            Load := Files.File_System.Load_Directory (Root, Settings);
+            Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Select_Name (Model, "original");
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Duplicate_Selected (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Duplicate_Selected (Model, Settings));
             Await_View (Model, Settings);
             Old_Token := To_Unbounded_String (Files.File_Identities.Token (Dest));
             Assert (Length (Old_Token) > 0, "record a non-following entry identity");
             if Kind = 2 then
                Write_Binary_File (Join (Dest, "user-added"), "new user bytes");
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                declare
                   Context : constant String :=
@@ -62,29 +62,29 @@ separate (Files_Suite.History)
                GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
                  (Dest, GNAT.OS_Lib.GM_Time_Of (2022, 3, 4, 5, 6, 8));
             end if;
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Assert (Step.Status = Files.Operation_Results.Operation_Success
                     and then not (Ada.Directories.Exists (Dest) or else Hostkit.Fs.Is_Link (Dest)),
                     "Undo removes the entry it created");
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Success,
                "Redo republishes the entry");
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Success,
                "Undo uses the new identity recorded by Redo");
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
             Assert (Hostkit.Fs.Move_No_Replace (Dest, Old_Dest), "retain the original inode at another path");
             Mutation := Files.File_System.Copy_Tree (Source, Dest);
             Assert (Mutation.Success, "replace the pathname with an identical but unrelated entry");
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
@@ -98,7 +98,7 @@ separate (Files_Suite.History)
             Mutation := Files.File_System.Delete_Permanently (Dest);
             Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Old_Dest, Dest),
                     "put the owned entry back so the action can be retried");
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Assert
               (Step.Status = Files.Operation_Results.Operation_Success

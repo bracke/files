@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    procedure Test_Pending_Create_Mutation_Guards
@@ -22,7 +22,7 @@ separate (Files_Suite.Operations)
          for Kind in Mutation_Kind loop
             Reset_Root;
             Write_Binary_File (Join (Root, "source.zip"), "not an archive");
-            Load := Files.File_System.Load_Directory (Root, Settings);
+            Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
@@ -36,12 +36,12 @@ separate (Files_Suite.Operations)
             Step :=
               (case Kind is
                   when Duplicate_Item =>
-                    Files.Operation_Commands.Duplicate_Selected (Model, Settings),
+                    Operation_Commands.Duplicate_Selected (Model, Settings),
                   when Compress_Item =>
-                    Files.Operation_Commands.Compress_Selected
+                    Operation_Commands.Compress_Selected
                       (Model, Settings, Files.Operations.Zip_Archive),
                   when Extract_Item =>
-                    Files.Operation_Commands.Extract_Selected (Model, Settings),
+                    Operation_Commands.Extract_Selected (Model, Settings),
                   when Create_Symbolic_Link =>
                     Files.Operations.Create_Symlink_Selected (Model, Settings),
                   when Create_Hard_Link =>
@@ -89,7 +89,7 @@ separate (Files_Suite.Operations)
       Ada.Directories.Create_Directory (Join (Root, "inbox"));
       Ada.Directories.Create_Directory (Join (Root, "view"));
       Write_Binary_File (Join (Join (Root, "inbox"), "incoming.txt"), "incoming");
-      Load := Files.File_System.Load_Directory (Join (Root, "view"), Settings);
+      Load := Files_Suite.Listings.Load_Directory (Join (Root, "view"), Settings);
       Files.Model.Initialize (Model, Join (Root, "view"), Load.Items, Root);
       Files.Model.Begin_Create_File (Model, "pending.txt");
       declare

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.Commands.Status;
 separate (Files_Suite.Operations)
@@ -16,7 +17,7 @@ separate (Files_Suite.Operations)
       Ada.Directories.Create_Path (Dir);
       Write_File (Source, Payload);
 
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "report.txt");
 

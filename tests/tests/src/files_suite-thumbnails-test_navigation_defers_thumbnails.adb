@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
@@ -33,11 +34,11 @@ separate (Files_Suite.Thumbnails)
             Byte (0) & Byte (255) & Byte (0) & Byte (0) & Byte (0) & Byte (255) & Byte (0) &
             Byte (0) & Byte (0) & Byte (0) & Byte (255) & Byte (255) & Byte (255) & Byte (255)));
 
-      Load := Files.File_System.Load_Directory_Deferring_Thumbnails (Photos, Settings);
+      Load := Files_Suite.Listings.Load_Directory_Deferring_Thumbnails (Photos, Settings);
       Assert (Load.Success and then Files.File_System.Thumbnails_Missing (Load.Items),
               "a listing the UI waits on does not decode the new photo");
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "photos");
       Step := Files.Operations.Open_Selected (Model, Settings);

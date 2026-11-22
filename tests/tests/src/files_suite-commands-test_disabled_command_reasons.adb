@@ -1,3 +1,4 @@
+with Files.Command_Reasons;
 with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
@@ -15,7 +16,7 @@ separate (Files_Suite.Commands)
       begin
          Assert (not Status.Enabled, Context & ": the command is disabled");
          Assert (Status.Enabled = Files.Commands.Status.Is_Enabled (Id, Model), Context & ": Is_Enabled agrees");
-         Files_Suite.Support.Assert_Equal (Files.Commands.Reason_Key (Status.Reason), Key, Context & ": reason");
+         Files_Suite.Support.Assert_Equal (Files.Command_Reasons.Reason_Key (Status.Reason), Key, Context & ": reason");
          Files.Model.Set_Error (Model, "");
          Result := Files.Controller.Execute_Non_Settings_Command (Id, Model, Settings);
          Files_Suite.Support.Assert_Equal
@@ -46,7 +47,7 @@ separate (Files_Suite.Commands)
       begin
          Assert (not Status.Enabled, "undo is disabled without history");
          Files_Suite.Support.Assert_Equal
-           (Files.Commands.Reason_Key (Status.Reason), "", "a disabled undo has nothing to report");
+           (Files.Command_Reasons.Reason_Key (Status.Reason), "", "a disabled undo has nothing to report");
       end;
 
       --  The recent view: a search names the view, not a directory load error.

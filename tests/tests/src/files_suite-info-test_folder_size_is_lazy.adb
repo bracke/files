@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 separate (Files_Suite.Info)
    procedure Test_Folder_Size_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,7 +9,7 @@ separate (Files_Suite.Info)
       Reset_Root;
       Ada.Directories.Create_Path (Join (Root, "sub"));
       Write_File (Join (Join (Root, "sub"), "x.txt"), "hi");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "sub");
       Files.Application.Window_Polls.Cancel_Folder_Scan (Model);

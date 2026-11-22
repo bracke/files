@@ -1,5 +1,4 @@
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Models;
 separate (Files_Suite.History)
    procedure Test_Partial_Redo_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -46,7 +45,7 @@ separate (Files_Suite.History)
                   Files_Suite.Support.Models.Undo_Items (Destinations, Forward => Sources),
                   Create_Kind => Kind);
                Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
                   Files.Operation_Results.Operation_Success,
@@ -58,7 +57,7 @@ separate (Files_Suite.History)
                end if;
                for Attempt in 1 .. 2 loop
                   Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
                      Files.Operation_Results.Operation_Failed,
@@ -81,7 +80,7 @@ separate (Files_Suite.History)
                end loop;
                Ada.Directories.Delete_File (Dest_A);
                Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
                   Files.Operation_Results.Operation_Failed,
@@ -102,7 +101,7 @@ separate (Files_Suite.History)
                end if;
                Write_Binary_File (Dest_A, "unrelated replacement");
                Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
                   Files.Operation_Results.Operation_Failed,
@@ -123,7 +122,7 @@ separate (Files_Suite.History)
                      "restoring a completed symbolic link preserves the link");
                end if;
                Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
                   Files.Operation_Results.Operation_Failed,
@@ -142,7 +141,7 @@ separate (Files_Suite.History)
                --  Completed A no longer needs its source to finish B.
                Ada.Directories.Rename (Source_A, Held_A);
                Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
                   Files.Operation_Results.Operation_Success,
@@ -183,7 +182,7 @@ separate (Files_Suite.History)
                Ada.Directories.Rename (Held_A, Source_A);
                Assert (File_Has_Bytes (Dest_A, "original a"), "completed A retains its original bytes");
                Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
                   Files.Operation_Results.Operation_Success,
@@ -195,7 +194,7 @@ separate (Files_Suite.History)
                  (not Ada.Directories.Exists (Dest_B) and then not Hostkit.Fs.Is_Link (Dest_B),
                   "Undo reverses the entire recovered action: B removed");
                Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
                   Files.Operation_Results.Operation_Success,
@@ -207,7 +206,7 @@ separate (Files_Suite.History)
                  (File_Has_Bytes (Dest_B, "original b"),
                   "a new Redo cycle re-creates both items instead of reusing stale progress: B created");
                Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
                   Files.Operation_Results.Operation_Success,

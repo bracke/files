@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
-with Files.Operation_Commands;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
@@ -21,13 +21,13 @@ separate (Files_Suite.Recovery)
       Write_Binary_File (Join (Root, "a.txt"), "needle");
       Write_Binary_File (Join (Root, "needle.txt"), "x");
       Write_Binary_File (Join (Root, ".needle-hidden"), "x");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
 
       --  Another window zooms and opens a file while the search runs.
       Files.Model.Set_Filter (Model, "needle");
-      Step := Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
+      Step := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
       Assert (Files.Model.Foreground_Job_Is_Active (Model), "the search runs as the window's job");
       Changed.Font_Pixel_Size := Settings.Font_Pixel_Size + 4;
       Files.Settings.Path_References.Note_Recent (Changed, Join (Root, "a.txt"));
@@ -39,10 +39,10 @@ separate (Files_Suite.Recovery)
       --  Back to the folder; a job runs while hidden files are shown elsewhere.
       Files.Model.Set_Filter (Model, "");
       Files.Model.Clear_Search_Results (Model);
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Replace_Items (Model, Load.Items);
       Select_Name (Model, "a.txt");
-      Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+      Step := Operation_Commands.Duplicate_Selected (Model, Settings);
       Assert (Files.Model.Foreground_Job_Is_Active (Model), "the duplicate runs as the window's job");
       Changed := Settings;
       Changed.Show_Hidden_Files := True;

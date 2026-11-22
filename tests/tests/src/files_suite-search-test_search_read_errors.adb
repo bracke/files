@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Search)
@@ -25,7 +25,7 @@ separate (Files_Suite.Search)
                Ada.Directories.Create_Directory (Join (Root, "sub"));
                Write_Binary_File (Join (Root, "needle.txt"), "needle bytes");
                Write_Binary_File (Join (Join (Root, "sub"), "needle.txt"), "needle bytes");
-               Load := Files.File_System.Load_Directory (Root, Settings);
+               Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Model.Set_Background_Transfers (Model, Background);
                Files.Model.Set_Filter (Model, "needle");
@@ -35,8 +35,8 @@ separate (Files_Suite.Search)
                Mutation := Files.File_System.Permissions.Set_Permissions (To_String (Denied), 0);
                Assert (Mutation.Success, "make the search input unreadable");
                Step :=
-                 (if Contents then Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents)
-                  else Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
+                 (if Contents then Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents)
+                  else Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
                Step := Complete_Operation (Model, Settings, Step);
                Mutation := Files.File_System.Permissions.Set_Permissions (To_String (Denied), 8#755#);
                if Case_Id = 1 then

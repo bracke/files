@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Model)
    procedure Test_Executable_And_Symlink_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -25,7 +26,7 @@ separate (Files_Suite.Model)
       Symlink_Created := Create_Symlink ("plain.txt", Symlink_Path);
       Executable_Symlink_Created := Create_Symlink ("run.sh", Executable_Symlink_Path);
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Assert (Load.Success, "directory metadata load succeeds");
 
       for Item of Load.Items loop

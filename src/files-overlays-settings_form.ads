@@ -11,8 +11,8 @@ with Files.Settings;
 --  descriptor mapping only. Files.Model.Settings_Pane holds the draft and
 --  the panel and never calls back here: Begin_Edit and Apply_Change, used by
 --  the controller, build the (localized) fields and the mapped draft and hand
---  them to the model, as Files.Command_Palette lists the palette's rows.
-package Files.Settings_Form is
+--  them to the model, as Files.Overlays.Command_Palette lists the palette's rows.
+package Files.Overlays.Settings_Form is
 
    --  The field descriptors for the settings panel, built from a draft.
    --
@@ -139,4 +139,4 @@ package Files.Settings_Form is
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model);
 
-end Files.Settings_Form;
+end Files.Overlays.Settings_Form;

@@ -22,7 +22,7 @@ separate (Files.Controller)
          begin
             Draft.Valid := False;
             Draft.Error_Key := Applied.Error_Key;
-            Files.Settings_Form.Set_Draft (Model, Draft);
+            Files.Overlays.Settings_Form.Set_Draft (Model, Draft);
          end;
          Files.Model.Set_Error (Model, To_String (Applied.Error_Key));
          Operation.Status := Files.Operation_Results.Operation_Failed;
@@ -36,7 +36,7 @@ separate (Files.Controller)
       --  reported, not undone; a draft the file could not hold is refused and
       --  stays open for editing.
       Final := Applied.Settings;
-      Files.Settings_Form.Store_Shortcut_Overrides (Final);
+      Files.Overlays.Settings_Form.Store_Shortcut_Overrides (Final);
       --  Save writes even an unchanged draft: it is how a save that failed
       --  earlier is tried again.
       if Files.Settings.Same_Content (Settings, Final) then
@@ -67,11 +67,11 @@ separate (Files.Controller)
       --  and a row just added and not yet filled in kept. Rebuilding the
       --  draft from the saved settings alone would send every group back to
       --  its first entry.
-      Files.Settings_Form.Set_Draft
+      Files.Overlays.Settings_Form.Set_Draft
         (Model, Files.Settings.Draft_After_Save (Files.Model.Settings_Pane.Draft_Of (Model), Settings));
       --  The settings now applied, for the pane's next change. A write that
       --  failed was reported; Save (which always writes) tries it again.
-      Files.Settings_Form.Mark_Saved (Model, Settings);
+      Files.Overlays.Settings_Form.Mark_Saved (Model, Settings);
       if Operation.Status = Files.Operation_Results.Operation_Failed then
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
       end if;

@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.File_System.Thumbnails;
 separate (Files_Suite.Operations)
    procedure Test_Fifo_Never_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -34,7 +34,7 @@ separate (Files_Suite.Operations)
          return;
       end if;
 
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Assert (Load.Success and then Natural (Load.Items.Length) = 2, "a folder holding a FIFO lists both entries");
       for Item of Load.Items loop
          if To_String (Item.Name) = "pipe" then
@@ -50,7 +50,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Files.Model.Set_Filter (Model, "needle");
       Step := Complete_Operation
-        (Model, Settings, Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents));
+        (Model, Settings, Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents));
       Assert (Step.Status = Files.Operation_Results.Operation_Success and then Files.Model.Item_Count (Model) = 1,
               "content search reads the file and passes the FIFO by");
 
@@ -64,13 +64,14 @@ separate (Files_Suite.Operations)
       --  the user is told what was left out.
       declare
          Parent : Files.Model.Window_Model;
-         Listed : constant Files.File_System.Directory_Load_Result := Files.File_System.Load_Directory (Root, Settings);
+         Listed : constant Files.File_System.Directory_Load_Result :=
+           Files_Suite.Listings.Load_Directory (Root, Settings);
       begin
          Files.Model.Initialize (Parent, Root, Listed.Items, Root);
          Select_Name (Parent, "with-fifo");
          Step := Complete_Operation
            (Parent, Settings,
-            Files.Operation_Commands.Compress_Selected (Parent, Settings, Files.Operations.Zip_Archive));
+            Operation_Commands.Compress_Selected (Parent, Settings, Files.Operations.Zip_Archive));
          Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Ada.Directories.Exists (Join (Root, "with-fifo.zip")),
                  "a folder holding a FIFO still compresses");

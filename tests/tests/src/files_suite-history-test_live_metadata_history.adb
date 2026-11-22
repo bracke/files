@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.File_System.Permissions;
 with Hostkit.Metadata;
 with Files_Suite.Support.Guards;
@@ -28,7 +28,7 @@ separate (Files_Suite.History)
             Write_Binary_File (Source, "owned bytes");
             Mutation := Files.File_System.Permissions.Set_Permissions (Source, 8#644#);
             Assert (Mutation.Success, "prepare cached permissions");
-            Load := Files.File_System.Load_Directory (Root, Settings);
+            Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
@@ -43,7 +43,7 @@ separate (Files_Suite.History)
                        then (if Toggle then 8#601# else 8#750#)
                        else (if Toggle then 8#600# else 8#640#)),
                     "permission changes and toggles use current mode bits");
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Assert
               (Step.Status = Files.Operation_Results.Operation_Success
@@ -55,7 +55,7 @@ separate (Files_Suite.History)
             Write_Binary_File (Source, "owned bytes");
             Hostkit.Metadata.File_Ownership (Source, Uid, Gid, Available);
             Assert (Available, "read actual ownership");
-            Load := Files.File_System.Load_Directory (Root, Settings);
+            Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             declare
                Item : Files.Items.Directory_Item := Load.Items.First_Element;
             begin
@@ -79,7 +79,7 @@ separate (Files_Suite.History)
                   & Files.Types.Account_Image (Gid)
                   & String'(1 => Ada.Characters.Latin_1.NUL)) = 1,
                     "ownership history records the live ids rather than the stale item");
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,

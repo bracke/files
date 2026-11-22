@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Permissions;
 with Files.Controller.Testing;
@@ -44,7 +45,7 @@ separate (Files_Suite.Operations)
       Write_File (Target, "own me");
       Hostkit.Metadata.File_Ownership (Target, Uid, Gid, Avail);
       Assert (Avail, "ownership of the temp file is readable");
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "enter_own.txt");
       Files.File_System.Testing.Watch_Ownership_Changes;

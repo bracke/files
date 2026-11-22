@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Model.Clipboard;
 separate (Files_Suite.Transfer)
    procedure Test_Drop_Import_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -35,7 +35,7 @@ separate (Files_Suite.Transfer)
          Ada.Directories.Create_Path (Dest_Dir);
          Write_File (Join (Src_Dir, "a.txt"), "SRC");
          Write_File (Join (Dest_Dir, "a.txt"), "DEST");
-         Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
          Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
          Sources.Append (To_Unbounded_String (Join (Src_Dir, "a.txt")));
          return Sources;
@@ -94,7 +94,7 @@ separate (Files_Suite.Transfer)
            (Read (Join (Dest_Dir, "a 2.txt")),
             "SRC",
             "rename writes the dropped source under a unique name");
-         Routed.Operation := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Routed.Operation := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Assert
            (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")),
             "undo reverses a completed drag-and-drop import");
@@ -112,7 +112,7 @@ separate (Files_Suite.Transfer)
          Ada.Directories.Create_Path (Dest_Dir);
          Write_File (Join (Src_Dir, "m.txt"), "MOVE");
          Write_File (Join (Dest_Dir, "clip.txt"), "CLIP");
-         Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
          Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
          Clip.Append (To_Unbounded_String (Join (Dest_Dir, "clip.txt")));
          Files.Model.Clipboard.Set (Model, Clip, Files.Model.Clipboard_Copy);

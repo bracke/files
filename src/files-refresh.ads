@@ -3,6 +3,7 @@ with Files.Model;
 with Files.Settings;
 with Files.Jobs.Process;
 with Files.Types;
+with Files.Items;
 
 with Ada.Real_Time;
 
@@ -157,6 +158,16 @@ package Files.Refresh is
    procedure Ensure_Selected_Item_Extra
      (Model       : in out Files.Model.Window_Model;
       Show_Hidden : Boolean);
+
+   --  The Recent view's items: each recorded recent path loaded
+   --  (Files.File_System.Load_Item) in most-recent-first order, one that no
+   --  longer resolves left out. The one way the view is built, whether
+   --  navigated to, refreshed after a change, or reloaded by a background
+   --  refresh.
+   --
+   --  @param Settings Settings holding the recent paths and used to classify.
+   --  @return The loaded items.
+   function Load_Recent_Items (Settings : Files.Settings.Settings_Model) return Files.Items.Item_Vectors.Vector;
 
 private
    --  A real directory request carries absolute filesystem paths. The Recent

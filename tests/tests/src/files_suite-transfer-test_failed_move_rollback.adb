@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;
@@ -35,7 +36,7 @@ separate (Files_Suite.Transfer)
             if Replace then
                Write_Binary_File (Join (Destination, "item.txt"), "original bytes");
             end if;
-            Load := Files.File_System.Load_Directory (Destination, Settings);
+            Load := Files_Suite.Listings.Load_Directory (Destination, Settings);
             Files.Model.Initialize (Model, Destination, Load.Items, Root);
             Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);

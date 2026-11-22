@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.File_System.Testing;
 with Files.File_System.Trash;
@@ -65,7 +66,7 @@ separate (Files_Suite.Operations)
       --  Whether Load_Directory lists Directory with Name in it.
       function Listed (Directory : String; Name : String) return Boolean is
          Load : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Directory, Settings);
+           Files_Suite.Listings.Load_Directory (Directory, Settings);
       begin
          return Load.Success and then (for some Item of Load.Items => To_String (Item.Name) = Name);
       end Listed;
@@ -77,7 +78,7 @@ separate (Files_Suite.Operations)
       --  A model of Deep with Name selected, as a window shows it.
       procedure Show (Model : in out Files.Model.Window_Model; Name : String) is
          Load : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Deep, Settings);
+           Files_Suite.Listings.Load_Directory (Deep, Settings);
       begin
          Assert (Load.Success, "the deep folder loads for the window");
          Files.Model.Initialize (Model, Deep, Load.Items, Root);
@@ -125,7 +126,7 @@ separate (Files_Suite.Operations)
          --  Listed, empty.
          declare
             Load : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory (Deep, Settings);
+              Files_Suite.Listings.Load_Directory (Deep, Settings);
          begin
             Assert (Load.Success and then Load.Items.Is_Empty, "the empty deep folder is listed");
          end;
@@ -196,9 +197,9 @@ separate (Files_Suite.Operations)
          end;
 
          --  Searched by name and by content.
-         Assert (Found (Files.File_System.Search_Names (Deep, "leaf", Settings), "leaf.txt"),
+         Assert (Found (Files_Suite.Listings.Search_Names (Deep, "leaf", Settings), "leaf.txt"),
                  "a name search finds the deepest file");
-         Assert (Found (Files.File_System.Search_Contents (Deep, "inner bytes", Settings), "inner.txt"),
+         Assert (Found (Files_Suite.Listings.Search_Contents (Deep, "inner bytes", Settings), "inner.txt"),
                  "a content search reads the deep files");
 
          --  Compressed through the window's command, the original deleted for

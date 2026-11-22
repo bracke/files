@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.File_System.Testing;
 with Ada.Text_IO;
 with Hostkit.Fs;
@@ -51,7 +52,7 @@ separate (Files_Suite.Rendering)
 
       declare
          Load   : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Files_Suite.Support.Disk.Root, Settings);
+           Files_Suite.Listings.Load_Directory (Files_Suite.Support.Disk.Root, Settings);
          Listed : Boolean := False;
          Model  : Files.Model.Window_Model;
       begin

@@ -1,11 +1,14 @@
+with Files.Commands; use Files.Commands;
+with Files.Model.Rename;
+with Files.Model.Selection;
 with Files.Preference_Types;
 with Files.Model.Clipboard;
 with Files.Model.Command_Palette;
 with Files.Model.Label_Picker;
 with Files.Model.Sort_Menu;
-separate (Files.Commands.Execution)
-   procedure Execute
-     (Id    : Pure_Command_Id;
+separate (Files.Controller)
+   procedure Execute_Pure_Command
+     (Id    : Files.Commands.Pure_Command_Id;
       Model : in out Files.Model.Window_Model)
    is
    begin
@@ -56,4 +59,4 @@ separate (Files.Commands.Execution)
             Files.Model.Label_Picker.Open (Model);
             Files.Model.Set_Error (Model, "");
       end case;
-   end Execute;
+   end Execute_Pure_Command;

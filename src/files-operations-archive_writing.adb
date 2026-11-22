@@ -12,7 +12,7 @@ with Files.IO.Fs_Primitives;
 with Files.Types;
 with Files.Text_Case;
 
-package body Files.Archive_Writing is
+package body Files.Operations.Archive_Writing is
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
    use type Interfaces.Unsigned_64;
@@ -254,7 +254,7 @@ package body Files.Archive_Writing is
          end if;
       exception
          when Failed : Ada.IO_Exceptions.Name_Error | Ada.IO_Exceptions.Use_Error =>
-            Files.Diagnostics.Note (Failed, "Files.Archive_Writing");
+            Files.Diagnostics.Note (Failed, "Files.Operations.Archive_Writing");
       end Remove_Partial_Output;
    begin
       Status := Zlib.Unsupported_Method;
@@ -304,8 +304,8 @@ package body Files.Archive_Writing is
       end if;
    exception
       when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Archive_Writing");
+         Files.Diagnostics.Note (Swallowed, "Files.Operations.Archive_Writing");
          Free;
          Remove_Partial_Output;
    end ZIP_Files;
-end Files.Archive_Writing;
+end Files.Operations.Archive_Writing;

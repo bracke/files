@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Trash)
    procedure Test_Nested_Trash_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -36,7 +37,7 @@ separate (Files_Suite.Trash)
             Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Guard_Directory, "xdg-data"));
             Write_File (First_File);
             Ada.Directories.Create_Path (Guard_Directory);
-            Guard_Load := Files.File_System.Load_Directory (Root, Guard_Settings);
+            Guard_Load := Files_Suite.Listings.Load_Directory (Root, Guard_Settings);
             Assert (Guard_Load.Success, "guarded multi-delete setup loads");
             Files.Model.Initialize (Guard_Model, Root, Guard_Load.Items, Root);
             Files.Model.Set_Filter (Guard_Model, "guard-preflight-");

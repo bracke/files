@@ -91,7 +91,7 @@ package Files.Controller is
    --  from a click, a shortcut or the palette, another window's or another
    --  process's change): the pane shows the new values, its next save
    --  cannot write the old ones back, and it takes the file to hold
-   --  Settings now (Files.Settings_Form.Mark_Saved). Nothing when the pane
+   --  Settings now (Files.Overlays.Settings_Form.Mark_Saved). Nothing when the pane
    --  is closed.
    --
    --  @param Model Window whose pane follows.

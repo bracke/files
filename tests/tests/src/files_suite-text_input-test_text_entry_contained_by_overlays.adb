@@ -1,6 +1,6 @@
 with Files.UI_Types;
 with Files.Input_Actions;
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Files.Model.Testing;
 with Files.Model.Command_Palette;
 with Files.Model.Context_Menu;
@@ -105,7 +105,7 @@ separate (Files_Suite.Text_Input)
       Sources.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/tmp/source"));
 
       Prepare_Background;
-      Files.Settings_Form.Begin_Edit (Model, Settings);
+      Files.Overlays.Settings_Form.Begin_Edit (Model, Settings);
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
@@ -124,7 +124,7 @@ separate (Files_Suite.Text_Input)
       Assert_Contained ("an unfocused command palette");
       Files.Model.Command_Palette.Close (Model);
 
-      Files.Settings_Form.Begin_Edit (Model, Settings);
+      Files.Overlays.Settings_Form.Begin_Edit (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.UI_Types.Focus_Settings_Input,

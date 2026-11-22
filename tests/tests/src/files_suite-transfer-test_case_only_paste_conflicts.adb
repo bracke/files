@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Job_Drivers.Foreground;
 with Files.Model.Clipboard;
 separate (Files_Suite.Transfer)
@@ -41,7 +41,7 @@ separate (Files_Suite.Transfer)
          Ada.Directories.Create_Path (Dest_Dir);
          Write_File (Join (Src_Dir, Incoming), "SRC");
          Write_File (Join (Dest_Dir, Present), "DEST");
-         Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
          Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
          Paths.Append (To_Unbounded_String (Join (Src_Dir, Incoming)));
          Files.Model.Clipboard.Set (Model, Paths, Files.Model.Clipboard_Copy);
@@ -65,7 +65,7 @@ separate (Files_Suite.Transfer)
             --  The folder's one entry, by name and content.
             procedure Expect (Content : String; What : String) is
                Listed : constant Files.File_System.Directory_Load_Result :=
-                 Files.File_System.Load_Directory (Dest_Dir, Settings);
+                 Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
             begin
                Files_Suite.Support.Assert_Equal (Natural (Listed.Items.Length), 1, What & ": one entry");
                Files_Suite.Support.Assert_Equal
@@ -78,7 +78,7 @@ separate (Files_Suite.Transfer)
                Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
             end loop;
             Expect ("SRC", Script & " replace");
-            Step := Files.Operation_Commands.Undo_Last (Model, Settings);
+            Step := Operation_Commands.Undo_Last (Model, Settings);
             Expect ("DEST", Script & " undo");
          end;
       end Check;

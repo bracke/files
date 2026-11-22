@@ -1,3 +1,4 @@
+with Files.Command_Reasons;
 with Files.Operation_Results;
 with Files.Commands.Status;
 with Files.Settings.Open_Actions;
@@ -10,7 +11,7 @@ separate (Files.Controller)
       --  The reason comes from the enablement rules themselves, so the message
       --  always names the check that actually failed.
       Error_Key : constant String :=
-        Files.Commands.Reason_Key (Files.Commands.Status.Status_Of (Id, Model).Reason);
+        Files.Command_Reasons.Reason_Key (Files.Commands.Status.Status_Of (Id, Model).Reason);
    begin
       if Error_Key = "" then
          --  Nothing worth saying (no history to undo, nothing to close).

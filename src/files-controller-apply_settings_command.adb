@@ -1,5 +1,5 @@
 with Files.Preference_Types;
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Files.Operation_Results;
 with Files.Settings.Path_References;
 separate (Files.Controller)
@@ -19,7 +19,7 @@ begin
          --  shortcuts included, saved when that changes anything -- the rule
          --  the pane's own Reset button follows (Settings_Form.Reset_Draft).
          --  Status_Of disables it while the pane is closed.
-         if Files.Settings_Form.Reset_Draft (Model) then
+         if Files.Overlays.Settings_Form.Reset_Draft (Model) then
             declare
                Saved : Controller_Result := Save_Settings (Model, Settings, Settings_Path);
             begin

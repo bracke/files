@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 separate (Files_Suite.Model)
    procedure Test_Text_Encoding_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -80,7 +81,7 @@ separate (Files_Suite.Model)
          Character'Val (16#FE#) & Character'Val (16#FF#) & NUL & "a"
          & ASCII.LF & ASCII.LF & NUL & ASCII.LF & NUL & "b" & NUL & ASCII.LF);
 
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
 
       for Item of Load.Items loop
          if To_String (Item.Name) = "long-line.txt" then

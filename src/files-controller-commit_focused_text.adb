@@ -41,8 +41,8 @@ separate (Files.Controller)
                   --  A committed edit is saved, as every other control's
                   --  change is, when the file would hold something new;
                   --  Save_Settings reports how that went.
-                  if Files.Settings_Form.Needs_Save (Saved, Parsed.Settings) then
-                     Files.Settings_Form.Set_Draft (Model, Draft);
+                  if Files.Overlays.Settings_Form.Needs_Save (Saved, Parsed.Settings) then
+                     Files.Overlays.Settings_Form.Set_Draft (Model, Draft);
                      return Make_Result (Controller_Needs_Settings_Path, Files.Commands.Save_Settings_Command);
                   end if;
                else
@@ -52,7 +52,7 @@ separate (Files.Controller)
                   Operation.Status := Files.Operation_Results.Operation_Failed;
                   Operation.Error_Key := Parsed.Error_Key;
                end if;
-               Files.Settings_Form.Set_Draft (Model, Draft);
+               Files.Overlays.Settings_Form.Set_Draft (Model, Draft);
             end;
             return
               Make_Result

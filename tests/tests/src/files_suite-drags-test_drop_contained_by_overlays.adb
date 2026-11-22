@@ -1,4 +1,4 @@
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Files.Model.Testing;
 with Files.Model.Command_Palette;
 with Files.Model.Context_Menu;
@@ -61,7 +61,7 @@ separate (Files_Suite.Drags)
       Sources.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/tmp/files-overlay-drop-source"));
 
       Seed_Type_Ahead;
-      Files.Settings_Form.Begin_Edit (Model, Settings);
+      Files.Overlays.Settings_Form.Begin_Edit (Model, Settings);
       Assert_Contained ("the settings pane");
       Files.Model.Settings_Pane.Close (Model);
 

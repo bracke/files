@@ -4,7 +4,7 @@ with Interfaces;
 separate (Files.File_System)
 function Load_Subdirectories
   (Path     : String;
-   Settings : Files.Settings.Settings_Model;
+   Classes  : Files.File_Types.Classification;
    Options  : Files.Types.Listing_Options)
    return Directory_Load_Result
 is
@@ -38,7 +38,7 @@ is
          declare
             Hidden   : constant Boolean := Entry_Is_Hidden (Name, Full);
             Filetype : constant String :=
-              Files.File_Types.Detect_Filetype (Settings, Files.Types.Directory_Item, Name);
+              Files.File_Types.Detect_Filetype (Classes, Files.Types.Directory_Item, Name);
             Item     : Directory_Item :=
               (Name        => To_Unbounded_String (Name),
                Full_Path   => To_Unbounded_String (Full),
@@ -47,7 +47,7 @@ is
                Kind        => Files.Types.Directory_Item,
                Filetype    => To_Unbounded_String (Filetype),
                Icon_Id     =>
-                 To_Unbounded_String (Files.File_Types.Icon_Id_For (Settings, Files.Types.Directory_Item, Filetype)),
+                 To_Unbounded_String (Files.File_Types.Icon_Id_For (Classes, Files.Types.Directory_Item, Filetype)),
                others      => <>);
          begin
             if Options.Show_Hidden or else not Hidden then
@@ -76,7 +76,7 @@ begin
    end if;
    Normalized := To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Path));
    Support.For_Each_Entry (Path, Add_Entry'Access);
-   Sort_Items (Items, Options.Sort_Field, Options.Sort_Ascending);
+   Files.Item_Lists.Sort_Items (Items, Options.Sort_Field, Options.Sort_Ascending);
    return (Success => True, Path => Normalized, Items => Items, Error_Key => Null_Unbounded_String,
            Signature => <>);
 exception

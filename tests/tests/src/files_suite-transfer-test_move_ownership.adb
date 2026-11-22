@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Job_Drivers.Foreground;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
@@ -62,7 +62,7 @@ separate (Files_Suite.Transfer)
          Prepare (Source);
          Prepare (Join (Source, "child"));
          Prepare (Join (Source, "link"));
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
@@ -80,7 +80,7 @@ separate (Files_Suite.Transfer)
             Check (Join (Remote.Path, "source"));
             Check (Join (Remote.Path, "source/child"));
             Check (Join (Remote.Path, "source/link"));
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
@@ -89,7 +89,7 @@ separate (Files_Suite.Transfer)
             Check (Source);
             Check (Join (Source, "child"));
             Check (Join (Source, "link"));
-            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,

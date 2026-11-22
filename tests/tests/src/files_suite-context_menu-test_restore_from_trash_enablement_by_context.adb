@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.File_System.Trash;
 with Files.Commands.Status;
 with Files_Suite.Support.Guards;
@@ -41,7 +42,7 @@ separate (Files_Suite.Context_Menu)
       --  trashed item enables Restore From Trash.
       Mutation := Files.File_System.Trash.Move_To_Trash (Doomed);
       Assert (Mutation.Success, "the setup moves the file into the trash");
-      Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Files.Model.Initialize
         (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Disk.Root);
       Files.Operations.Settle_Current_Is_Trash (Model);

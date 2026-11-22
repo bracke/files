@@ -1,4 +1,5 @@
-with Files.Settings_Form;
+with Files_Suite.Listings;
+with Files.Overlays.Settings_Form;
 with Files.Model.Command_Palette;
 with Files.Model.Quick_Look;
 with Files.Model.Settings_Pane;
@@ -16,7 +17,7 @@ separate (Files_Suite.Operations)
    begin
       Reset_Root;
       Write_File (Item, "look");
-      Files.Model.Initialize (Model, Root, Files.File_System.Load_Directory (Root, Settings).Items, Root);
+      Files.Model.Initialize (Model, Root, Files_Suite.Listings.Load_Directory (Root, Settings).Items, Root);
       Assert (Files.Model.Selection.Select_By_Name (Model, "look.txt"), "an item to look at");
       Files.Model.Quick_Look.Open
         (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
@@ -34,7 +35,7 @@ separate (Files_Suite.Operations)
               "the window layer draws it");
       --  The pane under the palette is not drawn, and the frame leaves no
       --  hole for it.
-      Files.Settings_Form.Begin_Edit (Model, Settings);
+      Files.Overlays.Settings_Form.Begin_Edit (Model, Settings);
       Files.Model.Command_Palette.Open (Model);
       Assert (Files.Model.Settings_Pane.Is_Open (Model) and then Files.Model.Command_Palette.Is_Open (Model),
               "the palette is opened over the settings pane");

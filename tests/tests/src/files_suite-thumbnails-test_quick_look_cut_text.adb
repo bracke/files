@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Guikit.Utf8;
 separate (Files_Suite.Thumbnails)
    --  A text file longer than the preview's byte cap shows as truncated even
@@ -20,7 +21,8 @@ separate (Files_Suite.Thumbnails)
       end Euros;
 
       function Preview (Name : String) return Files.Quick_Look.Quick_Look_Content is
-         Load : constant Files.File_System.Directory_Load_Result := Files.File_System.Load_Directory (Root, Settings);
+         Load : constant Files.File_System.Directory_Load_Result :=
+           Files_Suite.Listings.Load_Directory (Root, Settings);
       begin
          for Item of Load.Items loop
             if To_String (Item.Name) = Name then

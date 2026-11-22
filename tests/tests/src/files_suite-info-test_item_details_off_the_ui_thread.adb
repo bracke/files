@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Application.Window_Polls;
 with Files.Application.Extra_Info_Reader;
 with Files_Suite.Support.Timing;
@@ -12,7 +13,7 @@ separate (Files_Suite.Info)
    begin
       Reset_Root;
       Write_File (Text, "one" & ASCII.LF & "two" & ASCII.LF & "three" & ASCII.LF);
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Toggle_Info_Pane (Model);
       Assert (Files.Model.Selection.Select_By_Name (Model, "notes.txt"), "the text file is listed");
@@ -36,7 +37,7 @@ separate (Files_Suite.Info)
          "the details are those read on the spot");
 
       --  Without a window (a helper, a test) they are read at once.
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, False);
       Files.Model.Toggle_Info_Pane (Model);

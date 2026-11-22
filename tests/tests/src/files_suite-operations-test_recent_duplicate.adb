@@ -1,6 +1,5 @@
 with Files.Model.Jobs;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Models;
@@ -109,7 +108,7 @@ separate (Files_Suite.Operations)
                "select files from two folders and one directory");
             Files.Model.Set_Background_Transfers (Model, Background);
             Ada.Directories.Set_Directory (Cwd);
-            Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+            Step := Operation_Commands.Duplicate_Selected (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Success,
@@ -134,7 +133,7 @@ separate (Files_Suite.Operations)
             Check_Recent;
             Check_Copies;
             Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Success,
@@ -152,7 +151,7 @@ separate (Files_Suite.Operations)
             Check_Recent;
             Assert (File_Is (Existing, "existing copy bytes"), "Undo preserves the pre-existing copy collision");
             Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operation_Results.Operation_Success,

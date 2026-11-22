@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 separate (Files_Suite.History)
    procedure Test_Redo_Symlink_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -16,7 +16,7 @@ separate (Files_Suite.History)
       Ada.Directories.Create_Path (Dir);
       Write_File (Source, "payload");
 
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "report.txt");
 
@@ -27,7 +27,7 @@ separate (Files_Suite.History)
          "create-symlink succeeds");
       Assert (Hostkit.Fs.Is_Link (Link_Path), "the symbolic link is created");
 
-      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,
@@ -35,7 +35,7 @@ separate (Files_Suite.History)
       Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created link");
       Assert (Files.Model.History.Redo_Available (Model), "a created link is redoable");
 
-      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operation_Results.Operation_Success,

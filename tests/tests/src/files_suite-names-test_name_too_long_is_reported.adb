@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files.IO.Fs_Primitives;
 separate (Files_Suite.Names)
@@ -41,7 +42,7 @@ separate (Files_Suite.Names)
       Assert (File_Has_Bytes (Source, "kept"), "rename: the source keeps its name and content");
 
       --  The inline rename a user types into goes the same way.
-      Files.Model.Initialize (Model, Root, Files.File_System.Load_Directory (Root, Settings).Items, Root);
+      Files.Model.Initialize (Model, Root, Files_Suite.Listings.Load_Directory (Root, Settings).Items, Root);
       Select_Name (Model, "source.txt");
       Files.Model.Rename.Toggle (Model);
       Assert (Files.Model.Rename.Insert_At_Carets (Model, [1 .. 300 => 'n']), "the typed name is entered");

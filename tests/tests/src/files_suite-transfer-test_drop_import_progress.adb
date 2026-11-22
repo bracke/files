@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Model.Testing;
 with Files.Operation_Results;
 with Files.Text_Basics;
@@ -26,7 +27,7 @@ separate (Files_Suite.Transfer)
          Sources.Append (To_Unbounded_String (Src (N)));
       end loop;
 
-      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
 
       --  A collision-free drop arms the resumable executor and runs the first

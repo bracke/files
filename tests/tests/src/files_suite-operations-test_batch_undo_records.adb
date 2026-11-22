@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Operations.Undo_Recording;
 with Files.Operations.Undo_Recording.Testing;
 with Ada.Exceptions;
@@ -61,7 +61,7 @@ separate (Files_Suite.Operations)
          for Index in 1 .. Count loop
             Write_Binary_File (Join (Root, Name (Index)), "bytes");
          end loop;
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Selection.Select_All_Visible (Model);
@@ -89,7 +89,7 @@ separate (Files_Suite.Operations)
       --  clock are recorded exactly twice -- at the first copy, so an Undo
       --  exists from the start, and at the end, for the rest.
       Prepare;
-      Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+      Step := Operation_Commands.Duplicate_Selected (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success, "the duplicate succeeds");
       Files_Suite.Support.Assert_Equal (Copies_Present, Count, "every item is duplicated");
       Assert_Clock_Read ("the duplicate");
@@ -101,14 +101,14 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_From_Paths (Model).Length), Count, "the entry covers every copy");
       Assert (Files.Model.Last_Error_Key (Model) = "", "a recorded Undo shows no notice");
-      Step := Files.Operation_Commands.Undo_Last (Model, Settings);
+      Step := Operation_Commands.Undo_Last (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success, "the duplicate undoes");
       Files_Suite.Support.Assert_Equal (Copies_Present, 0, "Undo removes every copy");
 
       --  A second passing mid-batch (at the sixth copy) adds exactly one
       --  record there; the entry still ends up one, covering every copy.
       Prepare (Advance_At => 6);
-      Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+      Step := Operation_Commands.Duplicate_Selected (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success, "the slower duplicate succeeds");
       Files_Suite.Support.Assert_Equal (Copies_Present, Count, "every item is duplicated again");
       Assert_Clock_Read ("the slower duplicate");
@@ -119,7 +119,7 @@ separate (Files_Suite.Operations)
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "the slower duplicate is one Undo entry");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_From_Paths (Model).Length), Count, "that entry covers every copy");
-      Step := Files.Operation_Commands.Undo_Last (Model, Settings);
+      Step := Operation_Commands.Undo_Last (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success, "the slower duplicate undoes");
       Files_Suite.Support.Assert_Equal (Copies_Present, 0, "Undo removes every copy again");
 
@@ -128,7 +128,7 @@ separate (Files_Suite.Operations)
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-      Step := Files.Operation_Commands.Delete_Selected (Model, Settings);
+      Step := Operation_Commands.Delete_Selected (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success, "the trash batch succeeds");
       for Index in 1 .. Count loop
          Assert (not Ada.Directories.Exists (Join (Root, Name (Index))), "item" & Index'Image & " is trashed");
@@ -139,7 +139,7 @@ separate (Files_Suite.Operations)
          "the trash batch records its entry at its first item and at its end");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "the trash batch is one Undo entry");
-      Step := Files.Operation_Commands.Undo_Last (Model, Settings);
+      Step := Operation_Commands.Undo_Last (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success, "the trash batch undoes");
       for Index in 1 .. Count loop
          Assert (File_Has_Bytes (Join (Root, Name (Index)), "bytes"), "item" & Index'Image & " is restored");
@@ -151,7 +151,7 @@ separate (Files_Suite.Operations)
       --  says so; the refused record is not retried on every item.
       Prepare;
       Files.File_System.Testing.Refuse_Creation_Matches (True);
-      Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
+      Step := Operation_Commands.Duplicate_Selected (Model, Settings);
       Assert (Step.Status = Files.Operation_Results.Operation_Success, "an unverifiable duplicate still succeeds");
       Files_Suite.Support.Assert_Equal (Copies_Present, Count, "every unverifiable copy stays");
       Assert (not Files.Model.History.Undo_Available (Model), "no Undo is recorded for unverifiable copies");

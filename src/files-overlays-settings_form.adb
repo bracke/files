@@ -10,7 +10,7 @@ with Files.Model.Settings_Pane;
 with Files.Types;
 with Files.Text_Basics;
 
-package body Files.Settings_Form is
+package body Files.Overlays.Settings_Form is
 
    use Ada.Strings.Unbounded;
    subtype UString is Ada.Strings.Unbounded.Unbounded_String;
@@ -591,7 +591,7 @@ package body Files.Settings_Form is
             else
                --  Every value field Fields builds is handled above; one that
                --  is not is a form out of step with this, so it is traced.
-               Files.Diagnostics.Trace ("Files.Settings_Form", "unhandled_field=" & Key);
+               Files.Diagnostics.Trace ("Files.Overlays.Settings_Form", "unhandled_field=" & Key);
             end if;
             --  A change that is saved is checked by that save, which reports
             --  what it finds; a text edit is checked when Enter commits it,
@@ -707,4 +707,4 @@ package body Files.Settings_Form is
       Files.Model.Settings_Pane.Set_Saved (Model, Settings);
    end Mark_Saved;
 
-end Files.Settings_Form;
+end Files.Overlays.Settings_Form;

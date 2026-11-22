@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 separate (Files_Suite.Operations)
    procedure Test_Hardlink_Dangling_Symlink
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -56,7 +56,7 @@ separate (Files_Suite.Operations)
       Assert (not Mutation.Success and then To_String (Mutation.Error_Key) = "error.file.exists",
               "hard-link creation identifies a dangling link collision");
 
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "dangling");
       Routed := Files.Controller.Execute_Non_Settings_Command
@@ -65,13 +65,13 @@ separate (Files_Suite.Operations)
                 and then Hostkit.Fs.Is_Link (Link_Path),
               "the selected dangling link can be hard-linked");
       Assert (Files.Model.History.Undo_Available (Model), "the created link has Undo history");
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success,
          "Undo removes only the new symbolic link entry: status");
       Assert (not Hostkit.Fs.Is_Link (Link_Path), "Undo removes only the new symbolic link entry: new link removed");
       Assert (Hostkit.Fs.Is_Link (Source), "Undo removes only the new symbolic link entry: source kept");
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,

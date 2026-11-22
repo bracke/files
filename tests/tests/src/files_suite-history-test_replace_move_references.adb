@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Job_Drivers.Foreground;
 with Files.Interaction;
 with Files.Settings.Path_References;
@@ -91,7 +91,7 @@ separate (Files_Suite.History)
             Dest_Path   => To_Unbounded_String (Dest),
             Skip        => False,
             Replaced    => True));
-      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
@@ -108,7 +108,7 @@ separate (Files_Suite.History)
                                         "the replaced item keeps its label");
 
       --  Undo puts both back, each with its own.
-      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "the move-replace is undone");
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");

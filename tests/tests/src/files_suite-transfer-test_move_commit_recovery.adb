@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Job_Drivers.Foreground;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
@@ -43,7 +43,7 @@ separate (Files_Suite.Transfer)
                   if Replace then
                      Write_Binary_File (Dest, "original destination");
                   end if;
-                  Load := Files.File_System.Load_Directory (Parent, Settings);
+                  Load := Files_Suite.Listings.Load_Directory (Parent, Settings);
                   Files.Model.Initialize (Model, Parent, Load.Items, Parent);
                   Files.Operations.Clear_Undo (Model);
                   Files.Model.Set_Background_Transfers (Model, True);
@@ -78,7 +78,7 @@ separate (Files_Suite.Transfer)
                              Committed & " (source replacement kept)");
                      Assert (File_Has_Bytes (Dest, "owned original"), Committed & " (destination holds the original)");
                   end;
-                  Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                  Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
@@ -92,7 +92,7 @@ separate (Files_Suite.Transfer)
                           "recovered Undo preserves the new source occupant and remains retryable: destination kept");
                   Mutation := Files.File_System.Delete_Permanently (Source);
                   Assert (Mutation.Success, "vacate our replacement fixture");
-                  Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                  Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
                   Assert (Step.Status = Files.Operation_Results.Operation_Success
                           and then File_Is (Source, "owned original"),

@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Preference_Types;
 with Files.Controller.Testing;
@@ -27,7 +28,7 @@ separate (Files_Suite.Interaction)
 
       procedure Load (Into : in out Files.Model.Window_Model) is
          Load_Result : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Root, Settings);
+           Files_Suite.Listings.Load_Directory (Root, Settings);
       begin
          Files.Model.Initialize (Into, Directory_Path => Root, Items => Load_Result.Items, Home_Path => "/home/test");
       end Load;

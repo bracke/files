@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    --  Undoing a trash whose item is already back where it was (restored by
@@ -21,14 +21,14 @@ separate (Files_Suite.Trash)
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Write_File (Item, "kept");
-      Files.Model.Initialize (Model, Root, Files.File_System.Load_Directory (Root, Settings).Items, Root);
+      Files.Model.Initialize (Model, Root, Files_Suite.Listings.Load_Directory (Root, Settings).Items, Root);
       Select_Name (Model, "kept.txt");
-      Result := Files.Operation_Commands.Delete_Selected (Model, Settings);
+      Result := Operation_Commands.Delete_Selected (Model, Settings);
       Assert (not Ada.Directories.Exists (Item), "the item is trashed");
       Assert (Files.File_System.Trash.Restore_From_Trash
                 (Join (Files.File_System.Trash.Trash_Files_Directory, "kept.txt")).Success,
               "and put back by hand");
-      Result := Files.Operation_Commands.Undo_Last (Model, Settings);
+      Result := Operation_Commands.Undo_Last (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status, Files.Operation_Results.Operation_Success, "undo finds the item already back");
       Assert (File_Has_Bytes (Item, "kept"), "it is where it was");

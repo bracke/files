@@ -1,3 +1,4 @@
+with Files.Controller.Operation_Commands;
 with Files.UI_Types;
 with Files.Operation_Results;
 with Files.Protocol_Names;
@@ -15,7 +16,7 @@ with AUnit.Test_Cases;
 with Project_Tools.Files;
 with Zlib;
 with Hostkit.Host;
-with Files.Archive_Writing;
+with Files.Operations.Archive_Writing;
 with Files.Controller;
 with Files.File_System;
 with Files.Model;
@@ -32,6 +33,9 @@ with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
 
 package body Files_Suite.Archives is
+
+   --  The command entry points the tests drive, by a short name.
+   package Operation_Commands renames Files.Controller.Operation_Commands;
 
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;

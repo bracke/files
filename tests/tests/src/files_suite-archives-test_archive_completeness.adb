@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;
@@ -17,7 +17,7 @@ separate (Files_Suite.Archives)
          Reset_Root;
          Write_Binary_File (Join (Root, "a.txt"), "a bytes");
          Write_Binary_File (Join (Root, "b.txt"), "b bytes");
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Selection.Select_All_Visible (Model);
@@ -25,7 +25,7 @@ separate (Files_Suite.Archives)
          Ada.Directories.Delete_File (Join (Root, "b.txt"));
          Step := Complete_Operation
            (Model, Settings,
-            Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
          declare
             Context : constant String :=
               "a missing selected source cannot produce a successful incomplete archive or Undo entry";
@@ -57,7 +57,7 @@ separate (Files_Suite.Archives)
          Files.Model.Selection.Select_All_Visible (Model);
          Step := Complete_Operation
            (Model, Settings,
-            Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
          --  Two inputs with one name are both kept: the second as "same 2.txt",
          --  so neither overwrites nor silently replaces the other.
          Files_Suite.Support.Assert_Equal
@@ -94,14 +94,14 @@ separate (Files_Suite.Archives)
             exit;
          end if;
          Settings := Files.Settings.Default_Settings;
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Select_Name (Model, "bag");
          Files.Model.Set_Background_Transfers (Model, Background);
          Step := Complete_Operation
            (Model, Settings,
-            Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
          Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Ada.Directories.Exists (Join (Root, "bag.zip")),
                  "a folder holding a link still compresses");
@@ -120,14 +120,14 @@ separate (Files_Suite.Archives)
       Write_Binary_File (Join (Join (Root, "bag"), "keep.txt"), "kept");
       if Files_Suite.Support.Disk.Create_Symlink ("gone.txt", Join (Join (Root, "bag"), "dangling")) then
          Settings := Files.Settings.Default_Settings;
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Select_Name (Model, "bag");
          Files.Model.Set_Background_Transfers (Model, False);
          Step := Complete_Operation
            (Model, Settings,
-            Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+            Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
          Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Ada.Directories.Exists (Join (Root, "bag.zip")),
                  "a folder holding a dangling link still compresses");
@@ -146,13 +146,13 @@ separate (Files_Suite.Archives)
                Ada.Directories.Create_Path (Join (Root, "bag"));
                Write_Binary_File (Join (Join (Root, "bag"), "notes:2024.txt"), "colon bytes");
                Settings := Files.Settings.Default_Settings;
-               Load := Files.File_System.Load_Directory (Root, Settings);
+               Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Operations.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "bag");
                Step := Complete_Operation
-                 (Model, Settings, Files.Operation_Commands.Compress_Selected (Model, Settings, Format));
+                 (Model, Settings, Operation_Commands.Compress_Selected (Model, Settings, Format));
                declare
                   Context : constant String :=
                     "a name an archive cannot store is reported as such, not as a generic failure";

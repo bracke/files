@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
@@ -36,7 +37,7 @@ separate (Files_Suite.History)
             Skip        => False,
             Replaced    => True));
       Files.Model.Initialize
-        (Model, Dest_Dir, Files.File_System.Load_Directory (Dest_Dir, Settings).Items, Root);
+        (Model, Dest_Dir, Files_Suite.Listings.Load_Directory (Dest_Dir, Settings).Items, Root);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
@@ -45,13 +46,15 @@ separate (Files_Suite.History)
 
       Files.Operations.Release_History (Model);
       Assert (not Files.Model.History.Undo_Available (Model), "the history ends");
-      for Item of Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings).Items loop
+      for Item of
+        Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings).Items
+      loop
          In_Trash := In_Trash
            or else (Ada.Strings.Fixed.Index (To_String (Item.Name), "report") > 0
                     and then File_Has_Bytes (To_String (Item.Full_Path), "old"));
       end loop;
       Assert (In_Trash, "the replaced original is in the trash");
-      for Item of Files.File_System.Load_Directory (Dest_Dir, Settings).Items loop
+      for Item of Files_Suite.Listings.Load_Directory (Dest_Dir, Settings).Items loop
          Assert (To_String (Item.Name) = "report.txt", "nothing else stays in its folder: " & To_String (Item.Name));
       end loop;
       Project_Tools.Files.Delete_Tree (Trash_Home);

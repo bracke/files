@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Settings.Testing;
 separate (Files_Suite.Model)
    procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -17,7 +18,7 @@ separate (Files_Suite.Model)
       Files.Settings.Testing.Add_Extension_Mapping (Settings, "profile", "text/x-profile");
       Files.Settings.Testing.Add_Extension_Mapping (Settings, "bin", "application/x-bin");
 
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Assert (Load.Success, "directory projection loads");
       Files_Suite.Support.Assert_Equal (Natural (Load.Items.Length), 3, "hidden files are hidden by default");
       Files_Suite.Support.Assert_Equal
@@ -34,7 +35,7 @@ separate (Files_Suite.Model)
          "directory follows file when name sort wins");
 
       Settings.Sort_Field_Value := Files.Types.Sort_Type;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files_Suite.Support.Assert_Equal
         (To_String (Load.Items.Element (1).Name),
          "c.bin",
@@ -50,7 +51,7 @@ separate (Files_Suite.Model)
 
       Settings.Sort_Field_Value := Files.Types.Sort_Size;
       Settings.Sort_Ascending := False;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files_Suite.Support.Assert_Equal
         (To_String (Load.Items.Element (1).Name),
          "c.bin",
@@ -63,7 +64,7 @@ separate (Files_Suite.Model)
       Settings.Show_Hidden_Files := True;
       Settings.Sort_Field_Value := Files.Types.Sort_Name;
       Settings.Sort_Ascending := True;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files_Suite.Support.Assert_Equal (Natural (Load.Items.Length), 5, "show-hidden setting exposes dot files");
       Files_Suite.Support.Assert_Equal
         (To_String (Load.Items.Element (1).Name),
@@ -80,11 +81,11 @@ separate (Files_Suite.Model)
 
       Ada.Directories.Create_Path (Join (Dir, ".vault"));
       Settings.Show_Hidden_Files := False;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files_Suite.Support.Assert_Equal (Natural (Load.Items.Length), 3, "hidden directories are hidden by default");
 
       Settings.Show_Hidden_Files := True;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files_Suite.Support.Assert_Equal (Natural (Load.Items.Length), 6, "show-hidden setting exposes dot directories");
       Files_Suite.Support.Assert_Equal
         (To_String (Load.Items.Element (1).Name),
@@ -107,7 +108,7 @@ separate (Files_Suite.Model)
       Settings.Show_Hidden_Files := False;
       Settings.Sort_Field_Value := Files.Types.Sort_Size;
       Settings.Sort_Ascending := True;
-      Load := Files.File_System.Load_Directory (Tie_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Tie_Dir, Settings);
       Files_Suite.Support.Assert_Equal
         (To_String (Load.Items.Element (1).Name),
          "a_equal.txt",
@@ -122,7 +123,7 @@ separate (Files_Suite.Model)
          "ascending size places larger item after ties");
 
       Settings.Sort_Ascending := False;
-      Load := Files.File_System.Load_Directory (Tie_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Tie_Dir, Settings);
       Files_Suite.Support.Assert_Equal
         (To_String (Load.Items.Element (1).Name),
          "later.txt",
@@ -159,7 +160,7 @@ separate (Files_Suite.Model)
             Hour   => 0,
             Minute => 0,
             Second => 0));
-      Load := Files.File_System.Load_Directory (Modified_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Modified_Dir, Settings);
       Files_Suite.Support.Assert_Equal
         (To_String (Load.Items.Element (1).Name),
          "old.txt",
@@ -170,7 +171,7 @@ separate (Files_Suite.Model)
          "modified sort orders newer item last");
 
       Settings.Sort_Ascending := False;
-      Load := Files.File_System.Load_Directory (Modified_Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Modified_Dir, Settings);
       Files_Suite.Support.Assert_Equal
         (To_String (Load.Items.Element (1).Name),
          "new.txt",

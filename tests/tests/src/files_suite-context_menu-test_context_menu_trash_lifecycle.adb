@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Input_Actions;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;
@@ -68,7 +69,7 @@ separate (Files_Suite.Context_Menu)
            (Ada.Directories.Exists (Files_Suite.Support.Disk.Join (Trash_File, "restore-me.txt")),
             "the restore setup stores the trashed payload");
 
-         Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
          Files.Model.Initialize
            (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Disk.Root);
          Files.Operations.Settle_Current_Is_Trash (Model);

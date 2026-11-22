@@ -1,3 +1,4 @@
+with Files.Command_Reasons; use Files.Command_Reasons;
 with Files.IO.Fs_Primitives;
 with Files.File_System.Trash;
 with Files.Model.Clipboard;

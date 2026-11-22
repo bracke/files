@@ -1,6 +1,6 @@
 with Files.UI_Types;
 with Files.Operation_Results;
-with Files.Operation_Commands;
+with Files.Controller.Operation_Commands;
 separate (Files.Controller)
    function Handle_Search_Scope_Toggle
      (Model    : in out Files.Model.Window_Model;
@@ -33,7 +33,7 @@ separate (Files.Controller)
             return Make_Result (Controller_Command_Executed, Files.Commands.Clear_Filter_Command);
          when Files.UI_Types.Tree_Search_Scope =>
             if Has_Query then
-               Operation := Files.Operation_Commands.Run_Search (Model, Settings, Next);
+               Operation := Operation_Commands.Run_Search (Model, Settings, Next);
             elsif Had_Results then
                Operation := Files.Operations.Refresh (Model, Settings);
                Files.Model.Clear_Search_Results (Model);

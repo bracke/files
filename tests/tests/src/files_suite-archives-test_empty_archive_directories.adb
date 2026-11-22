@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Archives)
    procedure Test_Empty_Archive_Directories (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -24,13 +24,13 @@ separate (Files_Suite.Archives)
                if not Empty_Only then
                   Write_Binary_File (Join (Join (Root, "bag"), "data.txt"), "payload bytes");
                end if;
-               Load := Files.File_System.Load_Directory (Root, Settings);
+               Load := Files_Suite.Listings.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Operations.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "bag");
                Step := Complete_Operation
-                 (Model, Settings, Files.Operation_Commands.Compress_Selected (Model, Settings, Format));
+                 (Model, Settings, Operation_Commands.Compress_Selected (Model, Settings, Format));
                Archive := To_Unbounded_String
                  (Join (Root, (if Format = Files.Operations.Zip_Archive then "bag.zip" else "bag.7z")));
                Assert (Step.Status = Files.Operation_Results.Operation_Success
@@ -51,7 +51,7 @@ separate (Files_Suite.Archives)
                             File_Has_Bytes (Join (Join (Verify, "bag"), "data.txt"), "payload bytes"),
                           Context & ": file payload");
                end;
-               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,

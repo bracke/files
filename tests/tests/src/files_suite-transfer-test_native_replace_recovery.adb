@@ -1,5 +1,4 @@
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;
 with Files_Suite.Support.Models;
@@ -88,7 +87,7 @@ separate (Files_Suite.Transfer)
                "new",
                "Replace publishes the new copy");
             Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
             --  Failed once on CI (2026-10-22) with no publish error beside it:
             --  name the status and key, so the next failure says which.
             Files_Suite.Support.Assert_Equal
@@ -185,7 +184,7 @@ separate (Files_Suite.Transfer)
          Files_Suite.Support.Models.Undo_Items (Paths), Redoable => False);
       Ada.Directories.Delete_File (Dest);
       Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operation_Results.Operation_Success,

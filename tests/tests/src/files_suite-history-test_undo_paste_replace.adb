@@ -1,5 +1,5 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Undo_Paste_Replace (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -45,7 +45,7 @@ separate (Files_Suite.History)
                Skip        => False,
                Replaced    => True));
 
-         Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
          Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
          Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
          Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
@@ -58,7 +58,7 @@ separate (Files_Suite.History)
             "the copy-replace overwrites the destination with the pasted content");
 
          Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "undo of a copy-replace succeeds");
          Assert
@@ -95,7 +95,7 @@ separate (Files_Suite.History)
                Skip        => False,
                Replaced    => True));
 
-         Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Dest_Dir, Settings);
          Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
          Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
          Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
@@ -108,7 +108,7 @@ separate (Files_Suite.History)
             "the move-replace overwrites the destination and consumes the source");
 
          Step := Complete_Operation
-                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                       (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "undo of a move-replace succeeds");
          Assert

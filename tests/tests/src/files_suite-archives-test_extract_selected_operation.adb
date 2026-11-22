@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.IO.Durability.Testing;
 with Hostkit.Fs;
 with Files.Operation_Results;
@@ -49,40 +50,40 @@ separate (Files_Suite.Archives)
       Catalogue (2).Uncompressed_Size := 20;
       Catalogue (2).Compressed_Size := 20;
       Assert
-        (Files.Archive_Writing.Extraction_Is_Within_Limits
+        (Files.Operations.Archive_Writing.Extraction_Is_Within_Limits
            (Catalogue, 1_000, True, 100, True),
          "a small archive fits within known destination resources");
       Catalogue (1).Name := To_Unbounded_String ("../report.txt");
       Assert
-        (not Files.Archive_Writing.Extraction_Is_Within_Limits
+        (not Files.Operations.Archive_Writing.Extraction_Is_Within_Limits
            (Catalogue, 1_000, True, 100, True),
          "archive traversal names are rejected before extraction");
       Catalogue (1).Name := To_Unbounded_String ("report.txt");
       Catalogue (2).Name := To_Unbounded_String ("report.txt");
       Assert
-        (not Files.Archive_Writing.Extraction_Is_Within_Limits
+        (not Files.Operations.Archive_Writing.Extraction_Is_Within_Limits
            (Catalogue, 1_000, True, 100, True),
          "duplicate archive names are rejected before extraction");
       Catalogue (1).Name := To_Unbounded_String ("docs/");
       Catalogue (2).Name := To_Unbounded_String ("docs/");
       Assert
-        (Files.Archive_Writing.Extraction_Is_Within_Limits
+        (Files.Operations.Archive_Writing.Extraction_Is_Within_Limits
            (Catalogue, 1_000, True, 100, True),
          "a repeated directory entry does not block extraction");
       Catalogue (1).Name := To_Unbounded_String ("report.txt");
       Catalogue (2).Name := To_Unbounded_String ("notes.txt");
       Assert
-        (not Files.Archive_Writing.Extraction_Is_Within_Limits
+        (not Files.Operations.Archive_Writing.Extraction_Is_Within_Limits
            (Catalogue, 25, True, 100, True),
          "archive extraction preserves free-space headroom");
       Assert
-        (not Files.Archive_Writing.Extraction_Is_Within_Limits
+        (not Files.Operations.Archive_Writing.Extraction_Is_Within_Limits
            (Catalogue, 1_000, True, 1, True),
          "archive extraction cannot exhaust destination inodes");
       Catalogue (1).Uncompressed_Size := Interfaces.Unsigned_64'Last;
       Catalogue (2).Uncompressed_Size := 1;
       Assert
-        (not Files.Archive_Writing.Extraction_Is_Within_Limits
+        (not Files.Operations.Archive_Writing.Extraction_Is_Within_Limits
            (Catalogue, 0, False, 0, False),
          "overflowing archive totals are rejected before extraction");
       Catalogue (1).Uncompressed_Size := 1;
@@ -90,7 +91,7 @@ separate (Files_Suite.Archives)
       Catalogue (2).Uncompressed_Size := 1;
       Catalogue (2).Compressed_Size := 0;
       Assert
-        (Files.Archive_Writing.Extraction_Is_Within_Limits
+        (Files.Operations.Archive_Writing.Extraction_Is_Within_Limits
            (Catalogue, 1_000, True, 100, True),
          "expansion-limit arithmetic saturates instead of overflowing");
 
@@ -104,7 +105,7 @@ separate (Files_Suite.Archives)
          One    : Zlib.Archive_Entry_Array (1 .. 1);
 
          function Fits (Entries : Zlib.Archive_Entry_Array; Space_Known : Boolean := True) return Boolean is
-           (Files.Archive_Writing.Extraction_Is_Within_Limits
+           (Files.Operations.Archive_Writing.Extraction_Is_Within_Limits
               (Entries, (if Space_Known then Plenty else 0), Space_Known, Plenty, True));
 
          procedure Free is new Ada.Unchecked_Deallocation (Zlib.Archive_Entry_Array, Catalogue_Access);
@@ -164,7 +165,7 @@ separate (Files_Suite.Archives)
          function Extractable (Name : String; Dos : Boolean := False; Folded : Boolean := False) return Boolean is
          begin
             One (1).Name := To_Unbounded_String (Name);
-            return Files.Archive_Writing.Names_Are_Extractable (One, Dos, Folded);
+            return Files.Operations.Archive_Writing.Names_Are_Extractable (One, Dos, Folded);
          end Extractable;
       begin
          for Unsafe of Files.Types.String_Vectors.Vector'
@@ -188,11 +189,11 @@ separate (Files_Suite.Archives)
             Two (1).Name := To_Unbounded_String ("fine.txt");
             Two (2).Name := To_Unbounded_String ("../escape.txt");
             Files_Suite.Support.Assert_Equal
-              (Files.Archive_Writing.First_Unextractable (Two, False, False), "../escape.txt",
+              (Files.Operations.Archive_Writing.First_Unextractable (Two, False, False), "../escape.txt",
                "the refused entry is named");
             Two (2).Name := To_Unbounded_String ("also fine.txt");
             Files_Suite.Support.Assert_Equal
-              (Files.Archive_Writing.First_Unextractable (Two, False, False), "", "all clear names none");
+              (Files.Operations.Archive_Writing.First_Unextractable (Two, False, False), "", "all clear names none");
          end;
          Assert (Extractable ("dir/nul.txt") and then Extractable ("aux.c"),
                  "a POSIX destination stores Windows device names");
@@ -207,13 +208,13 @@ separate (Files_Suite.Archives)
       end;
       Catalogue (1).Name := To_Unbounded_String ("Makefile");
       Catalogue (2).Name := To_Unbounded_String ("makefile");
-      Assert (Files.Archive_Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => False),
+      Assert (Files.Operations.Archive_Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => False),
               "names differing in case are distinct on a case-sensitive volume");
-      Assert (not Files.Archive_Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => True),
+      Assert (not Files.Operations.Archive_Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => True),
               "names differing only in case collide on a case-insensitive volume");
       Catalogue (1).Name := To_Unbounded_String (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("ΑΒΓ.txt"));
       Catalogue (2).Name := To_Unbounded_String (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("αβγ.txt"));
-      Assert (not Files.Archive_Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => True),
+      Assert (not Files.Operations.Archive_Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => True),
               "Greek names differing only in case collide on a case-insensitive volume too");
 
       Ada.Directories.Create_Path (Dir);
@@ -228,7 +229,7 @@ separate (Files_Suite.Archives)
       Zlib.ZIP_Files (Inputs, Archive_Path, Names, Status => Build_Status);
       Assert (Build_Status = Zlib.Ok, "test archive is created");
 
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "bundle.zip");
 
@@ -280,7 +281,7 @@ separate (Files_Suite.Archives)
       Names (2) := To_Unbounded_String ("makefile");
       Zlib.ZIP_Files (Inputs, Join (Dir, "cases.zip"), Names, Status => Build_Status);
       Assert (Build_Status = Zlib.Ok, "the case-colliding archive is created");
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "cases.zip");
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
@@ -321,7 +322,7 @@ separate (Files_Suite.Archives)
          Assert (Renamed = 2, "the name is renamed in both headers");
          Write_Binary_File (Join (Dir, "escape.zip"), Bytes);
       end;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "escape.zip");
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
@@ -335,7 +336,7 @@ separate (Files_Suite.Archives)
       --  The extracted folder is on the device before it is published, as a
       --  compressed archive is: an extracted file that cannot be flushed
       --  fails the extraction and leaves nothing behind.
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "bundle.zip");
       Files.IO.Durability.Testing.Fail_Syncs_Ending_With ("/notes.txt");
@@ -367,7 +368,7 @@ separate (Files_Suite.Archives)
          Bytes (Data_At) := Character'Val (255 - Character'Pos (Bytes (Data_At)));
          Write_Binary_File (Join (Dir, "damaged.zip"), Bytes);
       end;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "damaged.zip");
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Extract_Archive_Command, Model, Settings);

@@ -1,13 +1,13 @@
 separate (Files.File_System)
 function Search_Tree
   (Root_Path : String;
-   Settings  : Files.Settings.Settings_Model;
+   Classes   : Files.File_Types.Classification;
+   Options   : Files.Types.Listing_Options;
    Wanted    : not null access function (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
    Judge     : not null access function (Item : Directory_Item) return Search_Verdict;
    Max_Items : Natural)
    return Recursive_Search_Result
 is
-   Options : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Settings);
    Result  : Recursive_Search_Result;
 
    --  Bound the walk independently of how many entries match: a query that
@@ -50,7 +50,7 @@ is
       end if;
       declare
          Load : constant Directory_Load_Result :=
-           Load_Directory_Filtered (Directory_Path, Settings, Options, Include'Access);
+           Load_Directory_Filtered (Directory_Path, Classes, Options, Include'Access);
       begin
          if not Load.Success then
             if Depth = 0 then

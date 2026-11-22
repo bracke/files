@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Models;
@@ -34,7 +35,7 @@ separate (Files_Suite.Trash)
         (Ada.Directories.Exists (Join (Trash_Info, "restore-me.txt.trashinfo")),
          "restore setup writes trashinfo sidecar");
 
-      Load := Files.File_System.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
+      Load := Files_Suite.Listings.Load_Directory (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Assert (Load.Success, "restore navigates into trash files directory");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Files.Operations.Settle_Current_Is_Trash (Model);
@@ -68,7 +69,7 @@ separate (Files_Suite.Trash)
          and then Ada.Directories.Exists
            (Join (Trash_Info, "restore-me.txt.trashinfo")),
          "permanent-delete setup creates a payload and sidecar");
-      Load := Files.File_System.Load_Directory
+      Load := Files_Suite.Listings.Load_Directory
         (Files.File_System.Trash.Trash_Files_Directory, Settings);
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Files.Operations.Settle_Current_Is_Trash (Model);

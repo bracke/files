@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Search)
    procedure Test_Search_Input_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -19,14 +19,14 @@ separate (Files_Suite.Search)
             Reset_Root;
             Write_Binary_File (Join (Root, "alpha.txt"), "alpha bytes");
             Write_Binary_File (Join (Root, "beta.txt"), "beta bytes");
-            Load := Files.File_System.Load_Directory (Root, Settings);
+            Load := Files_Suite.Listings.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Model.Set_Background_Transfers (Model, True);
             Files.Model.Set_Filter (Model, "alpha");
             Files.Model.Focus_Filter_Input (Model);
-            Step := (if Contents then Files.Operation_Commands.Run_Search (Model, Settings,
+            Step := (if Contents then Operation_Commands.Run_Search (Model, Settings,
               Files.UI_Types.Search_Contents)
-                     else Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
+                     else Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
             Revision := Files.Model.Revision (Model);
             Outcome := Files.Controller.Append_Focused_Text (Model, "x");
             Files_Suite.Support.Assert_Equal

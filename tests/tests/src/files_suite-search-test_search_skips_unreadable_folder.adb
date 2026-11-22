@@ -1,6 +1,6 @@
+with Files_Suite.Listings;
 with Files.UI_Types;
 with Files.Operation_Results;
-with Files.Operation_Commands;
 separate (Files_Suite.Search)
    --  A folder below the search root that cannot be read is skipped: the
    --  matches around it are shown, with the notice that some went unsearched.
@@ -27,26 +27,26 @@ separate (Files_Suite.Search)
       Write_Binary_File (Join (Later, "needle-later.txt"), "needle");
       Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 0);
       Assert (Mutation.Success, "make the folder unreadable");
-      if Files.File_System.Load_Directory (Locked, Settings).Success then
+      if Files_Suite.Listings.Load_Directory (Locked, Settings).Success then
          Mutation := Files.File_System.Permissions.Set_Permissions (Locked, 8#755#);
          Files_Suite.Support.Skip
            ("Test_Search_Skips_Unreadable_Folder", "this host reads a folder whose permissions were removed");
          return;
       end if;
       for Contents in Boolean loop
-         Search := (if Contents then Files.File_System.Search_Contents (Root, "needle", Settings)
-                    else Files.File_System.Search_Names (Root, "needle", Settings));
+         Search := (if Contents then Files_Suite.Listings.Search_Contents (Root, "needle", Settings)
+                    else Files_Suite.Listings.Search_Names (Root, "needle", Settings));
          Assert (Search.Success and then Search.Incomplete and then not Search.Truncated,
                  "an unreadable folder makes the search incomplete, not failed, contents " & Contents'Image);
          Files_Suite.Support.Assert_Equal
            (Natural (Search.Items.Length), 2,
             "the matches before and after the unreadable folder are kept, contents " & Contents'Image);
-         Load := Files.File_System.Load_Directory (Root, Settings);
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, False);
          Files.Model.Set_Filter (Model, "needle");
-         Step := (if Contents then Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents)
-                  else Files.Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
+         Step := (if Contents then Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Contents)
+                  else Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names));
          Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Files.Model.Search_Results_Are_Active (Model)
                  and then Files.Model.Item_Count (Model) = 2,

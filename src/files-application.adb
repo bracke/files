@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Environment;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
@@ -19,7 +20,7 @@ with Files.Icon_Assets;
 with Files.Localization;
 with Files.Operations;
 with Files.Rendering;
-with Files.Settings_Form;
+with Files.Overlays.Settings_Form;
 with Guikit.Frame_Analysis;
 with Guikit.Mirroring;
 with Guikit.Vulkan;
@@ -303,7 +304,7 @@ package body Files.Application is
       --  Held as a save writes them (known commands, valid combos, canonical
       --  text and order), so the settings pane does not take a file written
       --  by hand for a change of its own.
-      Files.Settings_Form.Apply_Shortcut_Overrides (Settings);
+      Files.Overlays.Settings_Form.Apply_Shortcut_Overrides (Settings);
       --  The file, as read, says that: a later merge weighs this session's
       --  changes against it, not against how the file happened to spell it.
       Files.Settings.Note_Seen_Settings (Effective_Path, Settings);
@@ -388,7 +389,9 @@ package body Files.Application is
                   elsif not Already_Has_Window (Directory_Path) then
                      declare
                         Load   : constant Files.File_System.Directory_Load_Result :=
-                          Files.File_System.Load_Directory_Deferring_Thumbnails (Directory_Path, Settings);
+                          Files.File_System.Load_Directory_Deferring_Thumbnails
+                            (Directory_Path, Files.File_Types.Classification_Of (Settings),
+                             Files.Settings.Listing_Options_Of (Settings));
                         Window : Startup_Window;
                      begin
                         if Load.Success then

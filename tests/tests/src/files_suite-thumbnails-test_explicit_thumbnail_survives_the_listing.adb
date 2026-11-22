@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 with Files.File_System.Thumbnails;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Thumbnails)
@@ -32,7 +33,7 @@ separate (Files_Suite.Thumbnails)
          Join (Join (Join (Join (Root, "explicit-xdg"), "files"), "thumbnails"),
                Ada.Directories.Simple_Name (To_String (Generated.Thumbnail_Path))));
 
-      Listed := Files.File_System.Load_Directory (Root, Settings);
+      Listed := Files_Suite.Listings.Load_Directory (Root, Settings);
       for Item of Listed.Items loop
          if To_String (Item.Name) = "notes.txt" then
             Found := True;

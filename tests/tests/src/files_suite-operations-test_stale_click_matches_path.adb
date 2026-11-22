@@ -1,3 +1,4 @@
+with Files_Suite.Listings;
 separate (Files_Suite.Operations)
    --  A click on a frame older than the listing finds the drawn item by its
    --  path: the same name in another folder is not it.
@@ -10,7 +11,7 @@ separate (Files_Suite.Operations)
       Clicked  : Natural := 0;
 
       function Listing (Path : String) return Files.Items.Item_Vectors.Vector is
-        (Files.File_System.Load_Directory (Path, Settings).Items);
+        (Files_Suite.Listings.Load_Directory (Path, Settings).Items);
 
       function Index_Of (Name : String) return Natural is
       begin
