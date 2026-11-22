@@ -2,7 +2,6 @@ with Ada.Containers;
 with Files.Model.Selection;
 with Files.Commands.Context_Menus;
 with Files.Model.Recent;
-with Files.Model.Info_Pane;
 with Files.Events;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -165,61 +164,8 @@ package body Files.Interaction is
       end;
    end Persist_Recent_Opens;
 
-   --  The window's own view of the persisted UI state (view mode, sort,
-   --  info pane), captured before a command runs so what it changed, and only
-   --  that, is written back: a value the window never adopted from another
-   --  window (its view mode, its info pane) must not overwrite the shared one.
-   type UI_State is record
-      View      : Files.Preference_Types.View_Mode := Files.Preference_Types.Small_Icons;
-      Sort      : Files.Types.Sort_Field := Files.Types.Sort_Name;
-      Ascending : Boolean := True;
-      Info      : Boolean := False;
-   end record;
-
-   function UI_State_Of (Model : Files.Model.Window_Model) return UI_State is
-     (View      => Files.Model.View_Mode_Of (Model),
-      Sort      => Files.Model.Sort_Field_Of (Model),
-      Ascending => Files.Model.Sort_Is_Ascending (Model),
-      Info      => Files.Model.Info_Pane.Info_Pane_Is_Open (Model));
-
-   --  Write the global UI state a command changed in the model (against
-   --  Before_UI, the model's state before it ran) into the settings record and
-   --  persist it. Called whenever a runtime command flips one of the persisted
-   --  toggles. Returns True when a change was written.
-   function Sync_Global_UI_State
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : in out Files.Settings.Settings_Model;
-      Settings_Path : String;
-      Before_UI     : UI_State)
-      return Boolean
-   is
-      use type Files.Preference_Types.View_Mode;
-      use type Files.Types.Sort_Field;
-
-      Now     : constant UI_State := UI_State_Of (Model);
-      Updated : Files.Settings.Settings_Model := Settings;
-   begin
-      if Now.View /= Before_UI.View then
-         Updated.Default_View := Now.View;
-      end if;
-      if Now.Sort /= Before_UI.Sort or else Now.Ascending /= Before_UI.Ascending then
-         Updated.Sort_Field_Value := Now.Sort;
-         Updated.Sort_Ascending := Now.Ascending;
-      end if;
-      if Now.Info /= Before_UI.Info then
-         Updated.Info_Pane_Open := Now.Info;
-      end if;
-      if Files.Settings.Same_Content (Updated, Settings) then
-         return False;
-      end if;
-
-      declare
-         Accepted : Boolean;
-      begin
-         Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted);
-         return Accepted;
-      end;
-   end Sync_Global_UI_State;
+   subtype UI_State is Files.Controller.UI_State;
+   function UI_State_Of (Model : Files.Model.Window_Model) return UI_State renames Files.Controller.UI_State_Of;
 
    procedure Adopt_Shared_Settings
      (Model    : in out Files.Model.Window_Model;
@@ -263,10 +209,15 @@ package body Files.Interaction is
       if Observe then
          Observe_Settings_Command (Before, Settings, Result);
       end if;
-      if Files.Commands.Persists_Global_Ui_State (Command)
-        and then Sync_Global_UI_State (Model, Settings, Settings_Path, Before_UI)
-      then
-         Result.Settings_Changed := True;
+      if Files.Commands.Persists_Global_Ui_State (Command) then
+         declare
+            Accepted : Boolean;
+         begin
+            Files.Controller.Persist_UI_State (Model, Settings, Settings_Path, Before_UI, Accepted);
+            if Accepted then
+               Result.Settings_Changed := True;
+            end if;
+         end;
       end if;
       Files.Controller.Refresh_Open_Pane (Model, Before, Settings);
    end Finish_Settings_Command;

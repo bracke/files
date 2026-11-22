@@ -350,6 +350,41 @@ package body Files.Controller is
       end if;
    end Reorder_Column;
 
+   function UI_State_Of (Model : Files.Model.Window_Model) return UI_State is
+     (View      => Files.Model.View_Mode_Of (Model),
+      Sort      => Files.Model.Sort_Field_Of (Model),
+      Ascending => Files.Model.Sort_Is_Ascending (Model),
+      Info      => Files.Model.Info_Pane.Info_Pane_Is_Open (Model));
+
+   procedure Persist_UI_State
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Before        : UI_State;
+      Accepted      : out Boolean)
+   is
+      use type Files.Preference_Types.View_Mode;
+      use type Files.Types.Sort_Field;
+
+      Now     : constant UI_State := UI_State_Of (Model);
+      Updated : Files.Settings.Settings_Model := Settings;
+   begin
+      Accepted := False;
+      if Now.View /= Before.View then
+         Updated.Default_View := Now.View;
+      end if;
+      if Now.Sort /= Before.Sort or else Now.Ascending /= Before.Ascending then
+         Updated.Sort_Field_Value := Now.Sort;
+         Updated.Sort_Ascending := Now.Ascending;
+      end if;
+      if Now.Info /= Before.Info then
+         Updated.Info_Pane_Open := Now.Info;
+      end if;
+      if not Files.Settings.Same_Content (Updated, Settings) then
+         Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Accepted);
+      end if;
+   end Persist_UI_State;
+
    procedure Persist_Settings
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;

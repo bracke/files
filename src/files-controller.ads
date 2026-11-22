@@ -250,6 +250,36 @@ package Files.Controller is
       To_Index      : Files.Preference_Types.Detail_Column_Index;
       Accepted      : out Boolean);
 
+   --  The window's own view of the persisted UI state (view mode, sort,
+   --  info pane), captured before a command runs so what it changed, and only
+   --  that, is written back: a value the window never adopted from another
+   --  window (its view mode, its info pane) must not overwrite the shared one.
+   type UI_State is record
+      View      : Files.Preference_Types.View_Mode := Files.Preference_Types.Small_Icons;
+      Sort      : Files.Types.Sort_Field := Files.Types.Sort_Name;
+      Ascending : Boolean := True;
+      Info      : Boolean := False;
+   end record;
+
+   --  The model's UI state now.
+   --  @param Model The window.
+   --  @return Its view mode, sort and info-pane state.
+   function UI_State_Of (Model : Files.Model.Window_Model) return UI_State;
+
+   --  Write the UI state a command changed in the model (against Before, the
+   --  model's state before it ran) into the settings and persist it.
+   --  @param Model Window model the command ran on.
+   --  @param Settings Live settings model.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Before The model's UI state before the command ran.
+   --  @param Accepted True when a change was written and took.
+   procedure Persist_UI_State
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Before        : UI_State;
+      Accepted      : out Boolean);
+
    --  Cycle the filter-bar search scope one step forward and re-run the shared
    --  query in the new scope. Filter_Here restores the live-filtered directory,
    --  Search_Names runs a recursive name search, and Search_Contents runs a
