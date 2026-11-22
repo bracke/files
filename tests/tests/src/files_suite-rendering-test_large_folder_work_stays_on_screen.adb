@@ -566,7 +566,7 @@ separate (Files_Suite.Rendering)
                for Folder in 1 .. 10 loop
                   Measured.Append
                     (Files.Folder_Size.Measurement'
-                       (Path   => To_Unbounded_String ("/probe/folder" & Integer'Image ((Round - 1) * 10 + Folder)),
+                       (Path   => Items ((Round - 1) * 10 + Folder).Full_Path,
                         Result => (Available => True, Total_Bytes => 100, others => <>),
                         Listed => Files.Types.Unknown_Time));
                   Expected := Expected + 100;
