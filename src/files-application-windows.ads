@@ -343,10 +343,17 @@ private
       --  The window's text: its fonts, a failed load's retry, its glyphs.
       Text            : Files.Rendering.Text.Window_Text;
       --  The size text is drawn at, in framebuffer pixels: the setting's
-      --  size times Pixel_Ratio, the framebuffer's pixels per window pixel
-      --  (2.0 on a Retina display), so text keeps its size on screen.
+      --  size times Pixel_Ratio, the display's scale (Window_Policy.
+      --  Display_Scale: 2.0 on a Retina display, 1.5 on a Windows display
+      --  at 150%), so text keeps its size on screen.
       Font_Pixel_Size : Positive := 16;
       Pixel_Ratio     : Float := 1.0;
+      --  The window system's content scale, read again when the count of
+      --  scale changes (Glfw.Windows.Content_Scale.Changes) moves past
+      --  Scale_Changes_Seen; Content_Read is False until it is first read.
+      Content_Scale      : Float := 1.0;
+      Scale_Changes_Seen : Natural := 0;
+      Content_Read       : Boolean := False;
       --  The window title last set.
       Shown_Title : Ada.Strings.Unbounded.Unbounded_String;
       Vulkan          : Guikit.Vulkan.Vulkan_Renderer;

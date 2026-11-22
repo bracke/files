@@ -30,6 +30,23 @@ separate (Files_Suite.Interaction)
       Assert (P.Pixel_Ratio (400, 800, 2.0) = 1.0, "never below 1");
       Assert (P.Pixel_Ratio (16_000, 800, 1.0) = 8.0, "never above 8");
       Assert (P.Pixel_Ratio (1600, 0, 1.5) = 1.5, "an unknown window size keeps the ratio in use");
+      --  The display's scale: the framebuffer's ratio where it is larger
+      --  than the window (not doubled by the content scale saying the same),
+      --  the content scale where the two are the same size.
+      Assert (P.Display_Scale (1600, 800, 2.0, 1.0) = 2.0, "a 2x framebuffer is not scaled again by its content scale");
+      Assert (P.Display_Scale (800, 800, 1.5, 1.0) = 1.5, "a same-size framebuffer at 150% draws at 1.5");
+      Assert (P.Display_Scale (800, 800, 1.0, 1.5) = 1.0, "and at 1.0 when the display is not scaled");
+      Assert (P.Display_Scale (800, 800, 2.0, 1.5) = 2.0, "moved to a 200% display, the new content scale applies");
+      Assert (P.Display_Scale (800, 800, 0.5, 1.0) = 1.0, "never below 1");
+      Assert (P.Display_Scale (800, 800, 12.0, 1.0) = 8.0, "never above 8");
+      Assert (P.Display_Scale (0, 800, 1.5, 1.25) = 1.25, "an unknown framebuffer keeps the scale in use");
+      --  An accessibility tree waits while nobody listens, but never past
+      --  the quiet interval, and never a window's first one.
+      Assert
+        (P.Publish_Due (First => True, Listening => False, Quiet_Passed => False), "a window's first tree registers");
+      Assert (P.Publish_Due (False, True, False), "every change while an assistive technology listens");
+      Assert (not P.Publish_Due (False, False, False), "a change while nobody listens waits");
+      Assert (P.Publish_Due (False, False, True), "until the quiet interval has passed");
       Files_Suite.Support.Assert_Equal (P.Scaled_Font_Size (16, 2.0), 32, "text is drawn at the ratio");
       Files_Suite.Support.Assert_Equal (P.Scaled_Font_Size (16, 1.25), 20, "a fractional scale too");
 

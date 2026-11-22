@@ -168,6 +168,45 @@ package Files.Application.Window_Policy is
       then Float'Min (8.0, Float'Max (1.0, Float (Frame_Width) / Float (Window_Width)))
       else Current);
 
+   --  How often, at most, a window's accessibility tree is published while
+   --  no assistive technology listens: often enough that one starting up
+   --  finds a tree, rarely enough that a pointer moving over the window
+   --  costs no tree builds.
+   Quiet_Publish_Interval : constant Duration := 1.0;
+
+   --  Whether a changed accessibility tree is published now: always a
+   --  window's first (it registers the application), every one while an
+   --  assistive technology listens, and otherwise once the quiet interval
+   --  has passed since the last.
+   --
+   --  @param First True for the window's first tree.
+   --  @param Listening True when an assistive technology listens.
+   --  @param Quiet_Passed True once Quiet_Publish_Interval has passed since
+   --    the last tree was published (or none has been).
+   --  @return True to publish now; False to let it wait.
+   function Publish_Due (First, Listening, Quiet_Passed : Boolean) return Boolean is
+     (First or else Listening or else Quiet_Passed);
+
+   --  The scale to draw at, from both of the window system's answers. Where
+   --  the framebuffer is larger than the window (macOS, a scaled Wayland
+   --  output) that ratio already is the display's scale, and the content
+   --  scale, which says the same, is not applied again. Where the two are
+   --  the same size (Windows, X11) the desktop's scale reaches the window
+   --  only as its content scale (a display at 150%).
+   --
+   --  @param Frame_Width The framebuffer's width.
+   --  @param Window_Width The window's width.
+   --  @param Content_Scale The window's content scale (1.0 for none).
+   --  @param Current The scale in use, kept while either width is unknown (0).
+   --  @return The scale to draw at, from 1 to 8.
+   function Display_Scale
+     (Frame_Width, Window_Width : Natural;
+      Content_Scale             : Float;
+      Current                   : Float) return Float is
+     (if Window_Width = 0 or else Frame_Width = 0 then Current
+      elsif Frame_Width > Window_Width then Pixel_Ratio (Frame_Width, Window_Width, Current)
+      else Float'Min (8.0, Float'Max (1.0, Content_Scale)));
+
    --  A text size setting in framebuffer pixels.
    --
    --  @param Size The setting, in window pixels.

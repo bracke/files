@@ -3,11 +3,28 @@ separate (Files.Application.Windows.Render_Window)
    begin
       Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Width, Height);
       Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
-      --  Where the framebuffer has more pixels than the window (a Retina
-      --  display, a scaled Wayland output), text is drawn that much larger.
+      --  The content scale is read once and again only after the window
+      --  system reported a change (moved to another display, the desktop's
+      --  scale changed), not on every pass.
+      if not Runtime.Content_Read
+        or else Glfw.Windows.Content_Scale.Changes /= Runtime.Scale_Changes_Seen
+      then
+         declare
+            X_Scale, Y_Scale : Float;
+         begin
+            Runtime.Scale_Changes_Seen := Glfw.Windows.Content_Scale.Changes;
+            Glfw.Windows.Content_Scale.Get (As_Window (Runtime.Handle), X_Scale, Y_Scale);
+            Runtime.Content_Scale := Float'Max (X_Scale, Y_Scale);
+            Runtime.Content_Read := True;
+         end;
+      end if;
+      --  Text is drawn at the display's scale: the framebuffer's extra
+      --  pixels (a Retina display, a scaled Wayland output) or, where it has
+      --  none, the content scale (a Windows or X11 display at 150%).
       declare
          Ratio : constant Float :=
-           Files.Application.Window_Policy.Pixel_Ratio (Natural (Width), Natural (Window_W), Runtime.Pixel_Ratio);
+           Files.Application.Window_Policy.Display_Scale
+             (Natural (Width), Natural (Window_W), Runtime.Content_Scale, Runtime.Pixel_Ratio);
       begin
          --  The one place the live size follows the settings: this window's
          --  scale changed, its own zoom or settings save changed the size, or

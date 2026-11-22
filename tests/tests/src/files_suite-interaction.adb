@@ -171,7 +171,7 @@ package body Files_Suite.Interaction is
          "favorite toggle adds/removes the selected item's path and falls back to the current folder");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Window_Policy'Access,
-         "window policy: key repeat, pixel ratio, text size, accessibility requests and zoom saving");
+         "window policy: key repeat, display scale, text size, accessibility requests and publishing, zoom saving");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Favorite_Group_Toggle_Multi_Selection'Access,
          "favorite group-toggles a multi-selection: stars a mixed selection then un-stars it as a whole");

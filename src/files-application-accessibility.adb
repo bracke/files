@@ -1,5 +1,8 @@
+with Files.Application.Window_Policy;
 with Files.Diagnostics;
+with Files.Timing;
 with Ada.Containers.Ordered_Maps;
+with Ada.Real_Time;
 with Ada.Containers.Vectors;
 
 with A11ykit;
@@ -23,13 +26,13 @@ package body Files.Application.Accessibility is
          when Guikit.Draw.Role_Heading    => A11ykit.Role_Heading,
          when Guikit.Draw.Role_Status     => A11ykit.Role_Status);
 
-   function To_A11ykit_Tree
-     (Frame : Files.Rendering.Frame_Commands)
+   function Tree_Of_Nodes
+     (Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector)
       return A11ykit.Tree.Accessibility_Tree
    is
       Flat : A11ykit.Tree.Node_Vectors.Vector;
    begin
-      for Node of Frame.Accessibility loop
+      for Node of Nodes loop
          Flat.Append
            (A11ykit.Tree.Node'
               (Node_Role   => A11y_Role (Node.Role),
@@ -49,12 +52,11 @@ package body Files.Application.Accessibility is
       end loop;
 
       return A11ykit.Tree.Build (Flat);
-   end To_A11ykit_Tree;
+   end Tree_Of_Nodes;
 
-   procedure Service is
-   begin
-      A11ykit.Provider.Service;
-   end Service;
+   function To_A11ykit_Tree
+     (Frame : Files.Rendering.Frame_Commands)
+      return A11ykit.Tree.Accessibility_Tree is (Tree_Of_Nodes (Frame.Accessibility));
 
    --  Each open window's last tree, and which one has the focus. The screen
    --  reader is given them as one tree, the windows side by side.
@@ -75,6 +77,15 @@ package body Files.Application.Accessibility is
       "="          => Guikit.Draw.Accessibility_Node_Vectors."=");
 
    Inputs      : Window_Inputs.Map;
+
+   --  While no assistive technology listens (A11ykit.Provider.Listening), a
+   --  changed frame's nodes wait here, and are published at most once per
+   --  Files.Application.Window_Policy.Quiet_Publish_Interval: the provider
+   --  keeps a tree to be found by, a little behind. Once one listens, what
+   --  waits is published on the next pass (Service) and every change after
+   --  that at once.
+   Waiting      : Window_Inputs.Map;
+   Last_Publish : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
    Focused     : Window_Key := 0;
    Last_Key    : Window_Key := 0;
 
@@ -109,6 +120,7 @@ package body Files.Application.Accessibility is
       Stopped := True;
       Trees.Clear;
       Inputs.Clear;
+      Waiting.Clear;
       Ranges.Clear;
       Handles.Clear;
       Focused := 0;
@@ -173,7 +185,10 @@ package body Files.Application.Accessibility is
       return Result;
    end Combined;
 
-   procedure Publish (Window : Window_Key; Frame : Files.Rendering.Frame_Commands) is
+   procedure Publish_Nodes
+     (Window : Window_Key;
+      Nodes  : Guikit.Draw.Accessibility_Node_Vectors.Vector)
+   is
       use type A11ykit.Tree.Accessibility_Tree;
       use type Guikit.Draw.Accessibility_Node_Vectors.Vector;
       First : constant Boolean := not Trees.Contains (Window);
@@ -181,13 +196,27 @@ package body Files.Application.Accessibility is
       --  The same frame nodes make the same tree: nothing is built.
       if Stopped
         or else (not First and then Inputs.Contains (Window)
-                 and then Inputs.Constant_Reference (Window) = Frame.Accessibility)
+                 and then Inputs.Constant_Reference (Window) = Nodes)
       then
+         Waiting.Exclude (Window);
          return;
       end if;
-      Inputs.Include (Window, Frame.Accessibility);
+      if not Files.Application.Window_Policy.Publish_Due
+          (First        => First,
+           Listening    => A11ykit.Provider.Listening,
+           Quiet_Passed =>
+             Files.Timing.Elapsed
+               (Ada.Real_Time.Clock, Last_Publish,
+                Ada.Real_Time.To_Time_Span (Files.Application.Window_Policy.Quiet_Publish_Interval)))
+      then
+         Waiting.Include (Window, Nodes);
+         return;
+      end if;
+      Waiting.Exclude (Window);
+      Last_Publish := Ada.Real_Time.Clock;
+      Inputs.Include (Window, Nodes);
       declare
-         Tree : constant A11ykit.Tree.Accessibility_Tree := To_A11ykit_Tree (Frame);
+         Tree : constant A11ykit.Tree.Accessibility_Tree := Tree_Of_Nodes (Nodes);
       begin
          --  An overlay is republished every frame it is up; an unchanged tree
          --  costs no combining, no provider diff and no native attach (and is
@@ -206,7 +235,29 @@ package body Files.Application.Accessibility is
       if First then
          Attach_Windows;
       end if;
+   end Publish_Nodes;
+
+   procedure Publish (Window : Window_Key; Frame : Files.Rendering.Frame_Commands) is
+   begin
+      Publish_Nodes (Window, Frame.Accessibility);
    end Publish;
+
+   procedure Service is
+   begin
+      A11ykit.Provider.Service;
+      --  What waited for the quiet interval, or for an assistive technology
+      --  that has just started listening, is published now, without waiting
+      --  for the window to draw again.
+      if not Waiting.Is_Empty then
+         declare
+            Due : constant Window_Inputs.Map := Waiting;
+         begin
+            for Position in Due.Iterate loop
+               Publish_Nodes (Window_Inputs.Key (Position), Window_Inputs.Element (Position));
+            end loop;
+         end;
+      end if;
+   end Service;
 
    function Published_Windows return Natural is (Natural (Trees.Length));
 
@@ -216,6 +267,7 @@ package body Files.Application.Accessibility is
       if Trees.Contains (Window) then
          Trees.Delete (Window);
          Inputs.Exclude (Window);
+         Waiting.Exclude (Window);
          if Focused = Window then
             Focused := 0;
          end if;

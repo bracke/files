@@ -19,6 +19,7 @@ with Glfw.Input.Keys.Layout;
 with Glfw.Windows.Modifiers;
 with Glfw.Windows.Clipboard;
 with Files.Application.Window_Icon;
+with Glfw.Windows.Content_Scale;
 with Glfw.Windows.Native;
 with Glfw.Windows.Vulkan;
 
@@ -632,6 +633,7 @@ package body Files.Application.Windows is
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Position);
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Scroll);
       Files.Application.Window_Icon.Set (As_Window (Handle));
+      Glfw.Windows.Content_Scale.Watch (As_Window (Handle));
       --  One more than a drop may hold, so an oversized one can be refused.
       Glfw.Windows.Drop.Paths.Watch (As_Window (Handle), Handle, Limit => Files.Drop_Events.Max_Paths + 1);
       Glfw.Windows.Show (As_Window (Handle));
