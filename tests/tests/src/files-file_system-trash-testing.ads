@@ -51,4 +51,16 @@ package Files.File_System.Trash.Testing is
    --  @param Withhold Whether to withhold the location.
    procedure Withhold_Trash_Location (Withhold : Boolean);
 
+   --  The private Info_Codec's Encode: a trash info file's Path= value.
+   --
+   --  @param Path An original path, as bytes.
+   --  @return Its percent-encoded form.
+   function Encode_Info_Path (Path : String) return String;
+
+   --  The private Info_Codec's Decode.
+   --
+   --  @param Value A Path= value.
+   --  @return The original path it encodes.
+   function Decode_Info_Path (Value : String) return String;
+
 end Files.File_System.Trash.Testing;

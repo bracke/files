@@ -1,4 +1,3 @@
-with Files.Commands.Status.Testing;
 with Ada.Calendar;
 with Files.Model.Status_Samples;
 with Files.Model.Filtering;
@@ -65,9 +64,9 @@ separate (Files_Suite.Commands)
 
       --  A model no window sampled (a test's, the helper's) takes the host to
       --  be able to; the operations still refuse what it cannot do.
-      Assert (Files.Commands.Status.Testing.Trash_Available (Model)
-              and then Files.Commands.Status.Permissions_Supported (Model)
-              and then Files.Commands.Status.Ownership_Supported (Model),
+      Assert (Files.Model.Status_Samples.Trash_Available (Model)
+              and then Files.Model.Status_Samples.Permissions_Supported (Model)
+              and then Files.Model.Status_Samples.Ownership_Supported (Model),
               "an unsampled host is taken to be able to");
 
       --  What the host offers is read from the window's sample once there
@@ -76,13 +75,13 @@ separate (Files_Suite.Commands)
         (Model, Trash_Available => False, Permissions_Supported => False, Ownership_Supported => True,
          Sampled => Ada.Calendar.Clock);
       Expect (Files.Commands.Navigate_Trash_Command, "error.trash.unavailable", "no trash sampled");
-      Assert (not Files.Commands.Status.Permissions_Supported (Model), "permissions as sampled");
-      Assert (Files.Commands.Status.Ownership_Supported (Model), "ownership as sampled");
+      Assert (not Files.Model.Status_Samples.Permissions_Supported (Model), "permissions as sampled");
+      Assert (Files.Model.Status_Samples.Ownership_Supported (Model), "ownership as sampled");
       Files.Model.Status_Samples.Set_Host
         (Model, Trash_Available => True, Permissions_Supported => True, Ownership_Supported => False,
          Sampled => Ada.Calendar.Clock);
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Trash_Command, Model),
               "a sampled trash can be gone to");
-      Assert (Files.Commands.Status.Permissions_Supported (Model), "permissions as sampled again");
-      Assert (not Files.Commands.Status.Ownership_Supported (Model), "ownership as sampled again");
+      Assert (Files.Model.Status_Samples.Permissions_Supported (Model), "permissions as sampled again");
+      Assert (not Files.Model.Status_Samples.Ownership_Supported (Model), "ownership as sampled again");
    end Test_Disabled_Command_Reasons;

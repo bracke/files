@@ -34,13 +34,14 @@ separate (Files.Application.Windows)
                declare
                   Zoomed : Files.Interaction.Interaction_Result;
                begin
-                  --  In memory now (no settings path), saved when the wheel
-                  --  rests: see Save_Pending_Zoom.
+                  --  In force now, written when the wheel rests: see
+                  --  Save_Pending_Zoom.
                   Files.Interaction.Apply_Zoom
-                    (Runtime.Model, Runtime.Settings, "",
+                    (Runtime.Model, Runtime.Settings, To_String (Runtime.Settings_Path),
                      Files.Settings.Clamp_Font_Pixel_Size
                        (Window_Policy.Add_Pending_Scroll (Integer (Runtime.Settings.Font_Pixel_Size), Offset)),
-                     Zoomed);
+                     Save_Now => False,
+                     Result   => Zoomed);
                   if Zoomed.Settings_Changed then
                      Runtime.Zoom_Unsaved := True;
                      Runtime.Zoom_At := Ada.Real_Time.Clock;

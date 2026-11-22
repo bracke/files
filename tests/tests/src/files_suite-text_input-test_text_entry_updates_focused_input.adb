@@ -1,3 +1,4 @@
+with Files.Model.Command_Palette.Testing;
 with Files.Model.Filtering;
 with Files.Model.Command_Palette;
 with Files_Suite.Support.Models;
@@ -36,7 +37,7 @@ separate (Files_Suite.Text_Input)
             "typed text lands in the command-palette input (status)");
       end;
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Command_Palette.Query (Model),
+        (Files.Model.Command_Palette.Testing.Query (Model),
          "view",
          "typed text lands in the command-palette input");
 
@@ -58,7 +59,7 @@ separate (Files_Suite.Text_Input)
             "printable text edits the palette stacked above the root selector");
       end;
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Command_Palette.Query (Model),
+        (Files.Model.Command_Palette.Testing.Query (Model),
          "find",
          "the stacked palette receives native character input");
       declare
@@ -71,7 +72,7 @@ separate (Files_Suite.Text_Input)
             "Backspace edits the palette stacked above the root selector");
       end;
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Command_Palette.Query (Model),
+        (Files.Model.Command_Palette.Testing.Query (Model),
          "fin",
          "the stacked palette query loses its final character");
       Assert

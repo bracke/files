@@ -94,13 +94,6 @@ package Files.Model.Command_Palette is
      (Model : Window_Model)
       return Boolean;
 
-   --  The palette's current query text. Guikit.Command_Palette owns the query,
-   --  selection and scroll; these only forward to it.
-   --
-   --  @param Model Model to inspect.
-   --  @return The current query text.
-   function Query (Model : Window_Model) return String;
-
    --  Replace the palette's query text (resets its selection).
    --
    --  @param Model Model to update.
@@ -203,5 +196,14 @@ package Files.Model.Command_Palette is
       Empty_State : String;
       Close_Label : String;
       Draw        : not null access procedure (Palette : in out Guikit.Command_Palette.Palette));
+
+private
+
+   --  The palette's current query text. Guikit.Command_Palette owns the query,
+   --  selection and scroll; these only forward to it.
+   --
+   --  @param Model Model to inspect.
+   --  @return The current query text.
+   function Query (Model : Window_Model) return String;
 
 end Files.Model.Command_Palette;

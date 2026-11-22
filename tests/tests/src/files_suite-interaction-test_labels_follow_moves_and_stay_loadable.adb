@@ -34,7 +34,7 @@ separate (Files_Suite.Interaction)
            (Op.Status,
             Files.Operation_Results.Operation_Success,
             "rename " & Name & " to " & New_Name);
-         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+         Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
       end Rename;
    begin
       Files_Suite.Support.Disk.Reset_Root;
@@ -68,7 +68,7 @@ separate (Files_Suite.Interaction)
          "a path that only shares the folder's name as a prefix is left alone");
 
       Op := Operation_Commands.Undo_Last (Model, Settings);
-      Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+      Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
       Assert (Files.Settings.Path_References.Label_Of (Settings, Inner) = Files.Preference_Types.Blue
               and then Files.Settings.Path_References.Is_Favorite (Settings, Sub),
               "Undo of the folder rename brings its label and favorite back");

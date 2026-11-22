@@ -1,3 +1,4 @@
+with Files.Types;
 with Files.File_System;
 with Files.Model.Recent;
 with Files.File_System.Trash;
@@ -10,11 +11,8 @@ with Files.Jobs.Context;
 with Hostkit;
 with Hostkit.Fs;
 with Files.Operations.Support;
-with Ada.Containers;
 with Files.Diagnostics;
 with Files.Jobs.Copy_Context;
-with Ada.Containers.Indefinite_Hashed_Sets;
-with Ada.Strings.Hash;
 with Files.File_Identities;
 with Files.Undo.Journal;
 with Files.Operations.Undo_Recording;
@@ -33,10 +31,7 @@ package body Files.Operations.History is
 
    function Hard_Link_Snapshot (Source : String) return String is separate;
 
-   package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-     (Element_Type        => String,
-      Hash                => Ada.Strings.Hash,
-      Equivalent_Elements => "=");
+   package Path_Sets renames Files.Types.String_Sets;
 
    function To_Set (Paths : Files.Types.String_Vectors.Vector) return Path_Sets.Set is
       Result : Path_Sets.Set;

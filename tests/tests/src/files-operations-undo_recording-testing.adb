@@ -58,4 +58,13 @@ package body Files.Operations.Undo_Recording.Testing is
         Files.Undo.History.Kept_Copy_Vectors.Empty_Vector) return Boolean renames
           Files.Operations.Undo_Recording.Try_Record_Undo;
 
+   function Captured
+     (Items : Files.Undo.History.Undo_Item_Vectors.Vector) return Files.Undo.History.Recorded_Item_Vectors.Vector
+     renames Files.Operations.Undo_Recording.Captured;
+
+   function Captured
+     (Originals : Files.Undo.History.Replaced_Original_Vectors.Vector)
+      return Files.Undo.History.Recorded_Original_Vectors.Vector
+     renames Files.Operations.Undo_Recording.Captured;
+
 end Files.Operations.Undo_Recording.Testing;

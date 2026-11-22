@@ -1,5 +1,4 @@
-with Ada.Containers.Indefinite_Hashed_Sets;
-with Ada.Strings.Hash;
+with Files.Types;
 
 --  Thumbnails of image files: made with Files.Images, kept as small PPM files
 --  in a per-user cache directory, found again by the source's identity, and
@@ -90,10 +89,7 @@ package Files.File_System.Thumbnails is
    end record;
 
    --  The thumbnail names in a cache directory, as a listing reads them once.
-   package Thumbnail_Name_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-     (Element_Type        => String,
-      Hash                => Ada.Strings.Hash,
-      Equivalent_Elements => "=");
+   package Thumbnail_Name_Sets renames Files.Types.String_Sets;
 
    type Cache_Index is record
       Listed : Boolean := False;

@@ -791,7 +791,7 @@ package body Files.Refresh is
                --  Moved, or became readable or unreadable; a folder that
                --  stays unreadable (no state either time) is not a change.
                if (State.Taken or else Last_State.Taken)
-                 and then not Files.File_System.Same_State (State, Last_State)
+                 and then not Files.File_System_Types.Same_State (State, Last_State)
                then
                   Pending := True;
                   Last_State := State;

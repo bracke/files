@@ -6,7 +6,8 @@ with Files.Model.Tree_Panel;
 
 package body Files.Application.Snapshot_Slots is
 
-   package Settings_Keys renames Files.Snapshot_Policy.Settings_Keys;
+   --  The other slot.
+   function Other (Slot : Snapshot_Slot) return Snapshot_Slot is (if Slot = 1 then 2 else 1);
 
    procedure Refresh
      (View     : in out View_Slots;

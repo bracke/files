@@ -18,4 +18,8 @@ package body Files.Folder_Size.Testing is
 
    function Is_Active (Scan : Session) return Boolean renames Files.Folder_Size.Is_Active;
 
+   procedure Set_Targets (Scan : in out Session; Paths : Path_Vectors.Vector) renames Files.Folder_Size.Set_Targets;
+
+   procedure Request (Scan : in out Session; Path : String) renames Files.Folder_Size.Request;
+
 end Files.Folder_Size.Testing;

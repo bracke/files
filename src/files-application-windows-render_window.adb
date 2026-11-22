@@ -62,7 +62,7 @@ separate (Files.Application.Windows)
             pragma Unreferenced (Progress);
             --  A finished background move carries its labels along.
             Followed : constant Boolean :=
-              Files.Interaction.Follow_Path_Moves (Runtime.Model, Runtime.Settings, To_String (Runtime.Settings_Path));
+              Files.Controller.Follow_Path_Moves (Runtime.Model, Runtime.Settings, To_String (Runtime.Settings_Path));
             pragma Unreferenced (Followed);
          begin
             null;

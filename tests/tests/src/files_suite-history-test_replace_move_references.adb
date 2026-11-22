@@ -6,7 +6,6 @@ with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Operation_Results;
 with Files.Job_Drivers.Foreground;
-with Files.Interaction;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
@@ -101,7 +100,7 @@ separate (Files_Suite.History)
       Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "the move-replace paste succeeds");
-      Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+      Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
       Assert (Followed, "the move changes the settings");
       Assert_Once (Dest, Files.Preference_Types.Blue, "the moved item at its new path");
       Assert (Files.Settings.Path_References.Label_Of (Settings, Source) = Files.Preference_Types.No_Label
@@ -115,7 +114,7 @@ separate (Files_Suite.History)
       Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operation_Results.Operation_Success, "the move-replace is undone");
-      Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+      Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
       Assert (Followed, "the undo changes the settings");
       Assert_Once (Source, Files.Preference_Types.Blue, "the moved item back at its old path");
       Assert_Once (Dest, Files.Preference_Types.Red, "the replaced item back at its path");

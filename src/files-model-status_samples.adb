@@ -21,20 +21,18 @@ package body Files.Model.Status_Samples is
    end Set_Volume_Space;
 
    procedure Set_Name_Folding
-     (Model : in out Window_Model;
-      Path  : String;
-      Folds : Boolean) is
+     (Model   : in out Window_Model;
+      Path    : String;
+      Folding : Files.Text_Case.Path_Folding) is
    begin
-      Model.Name_Folding := (Path => To_Unbounded_String (Path), Folds => Folds);
+      Model.Name_Folding := (Path => To_Unbounded_String (Path), Folding => Folding);
    end Set_Name_Folding;
 
    function Name_Folding_Sampled (Model : Window_Model) return Boolean is
      (Length (Model.Name_Folding.Path) > 0 and then To_String (Model.Name_Folding.Path) = Current_Path (Model));
 
-   function Name_Folding (Model : Window_Model) return Files.Settings.Path_References.Path_Folding is
-     (if not Name_Folding_Sampled (Model) then Files.Settings.Path_References.Ask_Each_Path
-      elsif Model.Name_Folding.Folds then Files.Settings.Path_References.Match_Folded
-      else Files.Settings.Path_References.Match_Exactly);
+   function Name_Folding (Model : Window_Model) return Files.Text_Case.Path_Folding is
+     (if Name_Folding_Sampled (Model) then Model.Name_Folding.Folding else Files.Text_Case.Ask_Each_Path);
 
    function Volume_Space_Is_Current
      (Model : Window_Model;
@@ -138,8 +136,6 @@ package body Files.Model.Status_Samples is
       Model.Host_Sample := Sample;
    end Set_Host;
 
-   function Host_Sampled (Model : Window_Model) return Boolean is (Model.Host_Sample.Sampled);
-
    function Host_Is_Current
      (Model : Window_Model;
       Now   : Ada.Calendar.Time)
@@ -149,11 +145,13 @@ package body Files.Model.Status_Samples is
       and then Now >= Model.Host_Sample.Sampled_At
       and then Now <= Model.Host_Sample.Sampled_At + Volume_Space_Refresh_Interval);
 
-   function Trash_Available (Model : Window_Model) return Boolean is (Model.Host_Sample.Trash_Available);
+   function Trash_Available (Model : Window_Model) return Boolean is
+     (not Model.Host_Sample.Sampled or else Model.Host_Sample.Trash_Available);
 
    function Permissions_Supported (Model : Window_Model) return Boolean is
-     (Model.Host_Sample.Permissions_Supported);
+     (not Model.Host_Sample.Sampled or else Model.Host_Sample.Permissions_Supported);
 
-   function Ownership_Supported (Model : Window_Model) return Boolean is (Model.Host_Sample.Ownership_Supported);
+   function Ownership_Supported (Model : Window_Model) return Boolean is
+     (not Model.Host_Sample.Sampled or else Model.Host_Sample.Ownership_Supported);
 
 end Files.Model.Status_Samples;

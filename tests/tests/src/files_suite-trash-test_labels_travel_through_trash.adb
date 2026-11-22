@@ -33,7 +33,7 @@ separate (Files_Suite.Trash)
            (Step.Status,
             Files.Operation_Results.Operation_Success,
             "moving the photo to the trash succeeds" & Mode (Background));
-         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+         Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "trashing the photo moves its stored label" & Mode (Background));
       end Trash_Photo;
 
@@ -69,7 +69,7 @@ separate (Files_Suite.Trash)
          Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "undoing the trash succeeds" & Mode (Background));
-         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+         Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "restoring moves the stored label back" & Mode (Background));
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Path_References.Label_Of (Settings, Photo),
@@ -80,7 +80,7 @@ separate (Files_Suite.Trash)
          Step := Complete_Operation (Model, Settings, Operation_Commands.Empty_Trash (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "emptying the trash succeeds" & Mode (Background));
-         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+         Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "Empty Trash changes the stored labels" & Mode (Background));
          Assert (not Labeled_Anywhere, "Empty Trash forgets the label" & Mode (Background));
       end loop;

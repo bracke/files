@@ -7,7 +7,7 @@ with Files.Resources;
 with Guikit.Draw;
 with Hostkit.Fs;
 
-package body Files.Icon_Assets is
+package body Files.Application.Icon_Assets is
 
    package Text_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
@@ -274,4 +274,4 @@ package body Files.Icon_Assets is
 
 begin
    Register;
-end Files.Icon_Assets;
+end Files.Application.Icon_Assets;

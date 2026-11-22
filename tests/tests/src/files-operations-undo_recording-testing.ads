@@ -63,4 +63,17 @@ package Files.Operations.Undo_Recording.Testing is
       Kept        : Files.Undo.History.Kept_Copy_Vectors.Vector :=
         Files.Undo.History.Kept_Copy_Vectors.Empty_Vector) return Boolean;
 
+   --  Items whose identities are all read when recorded.
+   --
+   --  @param Items What the action changed.
+   --  @return Them, each Captured.
+   function Captured
+     (Items : Files.Undo.History.Undo_Item_Vectors.Vector) return Files.Undo.History.Recorded_Item_Vectors.Vector;
+
+   --  @param Originals Originals a replace preserved.
+   --  @return Them, each Captured.
+   function Captured
+     (Originals : Files.Undo.History.Replaced_Original_Vectors.Vector)
+      return Files.Undo.History.Recorded_Original_Vectors.Vector;
+
 end Files.Operations.Undo_Recording.Testing;

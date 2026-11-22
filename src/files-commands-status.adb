@@ -22,20 +22,4 @@ package body Files.Commands.Status is
       Model : Files.Model.Window_Model)
       return Boolean is (Status_Of (Id, Model).Enabled);
 
-   --  A window samples the host before its first frame and keeps the sample
-   --  current (Files.Application.Window_Polls.Sample_Host); a model no window
-   --  sampled -- the helper's, a test's -- takes the host to be able to.
-
-   function Trash_Available (Model : Files.Model.Window_Model) return Boolean is
-     (not Files.Model.Status_Samples.Host_Sampled (Model)
-      or else Files.Model.Status_Samples.Trash_Available (Model));
-
-   function Permissions_Supported (Model : Files.Model.Window_Model) return Boolean is
-     (not Files.Model.Status_Samples.Host_Sampled (Model)
-      or else Files.Model.Status_Samples.Permissions_Supported (Model));
-
-   function Ownership_Supported (Model : Files.Model.Window_Model) return Boolean is
-     (not Files.Model.Status_Samples.Host_Sampled (Model)
-      or else Files.Model.Status_Samples.Ownership_Supported (Model));
-
 end Files.Commands.Status;

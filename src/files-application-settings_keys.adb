@@ -1,6 +1,6 @@
 with Files.Settings.Path_References;
 
-package body Files.Snapshot_Policy.Settings_Keys is
+package body Files.Application.Settings_Keys is
 
    use type Files.Settings.Theme_Choice;
 
@@ -79,4 +79,4 @@ package body Files.Snapshot_Policy.Settings_Keys is
       or else (Files.Settings.Path_References.Same_Favorites (Settings, Key.Favorite_Paths)
                and then Files.Settings.Path_References.Same_Labels (Settings, Key.Labels)));
 
-end Files.Snapshot_Policy.Settings_Keys;
+end Files.Application.Settings_Keys;

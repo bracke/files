@@ -9,12 +9,10 @@ with Files.File_System.Copying;
 with Files.Diagnostics;
 with Files.File_Identities;
 with Files.IO.Errors;
-with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Finalization;
 with Ada.Task_Identification;
 with Ada.Directories;
 with Ada.Streams;
-with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 
 with Files.IO.Durability;
@@ -63,10 +61,7 @@ package body Files.File_System.Recovery is
    use type Hostkit.Durability.Outcome;
    use type Hostkit.Lease_Files.Open_Outcome;
 
-   package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-     (Element_Type        => String,
-      Hash                => Ada.Strings.Hash,
-      Equivalent_Elements => "=");
+   package Path_Sets renames Files.Types.String_Sets;
 
    Owner_Name : constant String := Files.Protocol_Names.Recovery_Owner;
    --  The members of a stage, and of a registry slot.

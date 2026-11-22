@@ -1,5 +1,5 @@
---  What the suite reaches of Files.Icon_Assets that is not part of its interface.
-package Files.Icon_Assets.Testing is
+--  What the suite reaches of Files.Application.Icon_Assets that is not part of its interface.
+package Files.Application.Icon_Assets.Testing is
 
    --  Return the contents of the bundled .icon file for an icon id and theme, or
    --  an empty string when it cannot be read. Results (including misses) are
@@ -35,4 +35,4 @@ package Files.Icon_Assets.Testing is
       Theme_Name : String)
       return String;
 
-end Files.Icon_Assets.Testing;
+end Files.Application.Icon_Assets.Testing;

@@ -1,3 +1,4 @@
+with Files.Model.Status_Samples;
 with Files.Model.Ownership_Input;
 with Files.File_System_Types;
 separate (Files.Rendering.Build_Snapshot_Into)
@@ -71,13 +72,13 @@ separate (Files.Rendering.Build_Snapshot_Into)
       Snapshot.Permissions_Editable :=
         Files.Model.Selection.Selected_Count (Model) = 1
         and then not In_Trash
-        and then Files.Commands.Status.Permissions_Supported (Model)
+        and then Files.Model.Status_Samples.Permissions_Supported (Model)
         and then Single_Item.Mode_Available;
 
       Snapshot.Ownership_Editable :=
         Files.Model.Selection.Selected_Count (Model) = 1
         and then not In_Trash
-        and then Files.Commands.Status.Ownership_Supported (Model)
+        and then Files.Model.Status_Samples.Ownership_Supported (Model)
         and then Single_Item.Ownership_Available;
 
       if Items.Is_Empty then

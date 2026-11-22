@@ -27,7 +27,7 @@ separate (Files_Suite.Info)
       Reference := Files.File_System.Directory_Size (Tree);
 
       Files.Folder_Size.Cancel (Scan);
-      Files.Folder_Size.Request (Scan, Tree);
+      Files.Folder_Size.Testing.Request (Scan, Tree);
       for Attempt in Polling loop
          Files.Folder_Size.Step (Scan);
          Files.Folder_Size.Take_All (Scan, Taken);

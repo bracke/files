@@ -1,5 +1,4 @@
 with Files.Settings.Open_Actions;
-with Files.Text_Basics;
 with Files.Text_Case;
 
 separate (Files.Settings)

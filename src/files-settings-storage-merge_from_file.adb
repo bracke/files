@@ -1,5 +1,5 @@
+with Files.Types;
 with Ada.Containers.Hashed_Sets;
-with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Unbounded.Hash;
 with Files.IO.Capped_Files;
 with Files.Diagnostics;
@@ -16,8 +16,7 @@ separate (Files.Settings.Storage)
         (Element_Type        => Unbounded_String,
          Hash                => Ada.Strings.Unbounded.Hash,
          Equivalent_Elements => Ada.Strings.Unbounded."=");
-      package Key_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-        (Element_Type => String, Hash => Ada.Strings.Hash, Equivalent_Elements => "=");
+      package Key_Sets renames Files.Types.String_Sets;
       package Key_Indexes is new Ada.Containers.Indefinite_Hashed_Maps
         (Key_Type => String, Element_Type => Positive, Hash => Ada.Strings.Hash, Equivalent_Keys => "=");
 

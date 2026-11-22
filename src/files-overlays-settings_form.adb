@@ -509,6 +509,19 @@ package body Files.Overlays.Settings_Form is
       return Applied.Success and then Needs_Save (Saved, Applied.Settings);
    end Needs_Save;
 
+   --  Apply a change emitted by the panel to a draft. Reset (to the
+   --  defaults, dropping every shortcut override), add and remove re-check
+   --  the draft (its Valid and Error_Key say what holds now) and ask for a
+   --  save when it is valid and Needs_Save against Saved; Prev/Next only
+   --  page. A toggle, choice, number or captured shortcut asks for a save,
+   --  which re-checks the draft; a text edit does not (the controller saves
+   --  it on commit). Only a re-check or a save changes the draft's error.
+   --
+   --  @param Draft The draft to update.
+   --  @param Change The change the panel produced.
+   --  @param Saved The settings as saved.
+   --  @param Rechecked Set when the draft was re-checked (reset, add, remove).
+   --  @return True when the caller should save.
    function Apply
      (Draft     : in out Files.Settings.Settings_Draft;
       Change    : Guikit.Settings_Panel.Change;

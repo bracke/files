@@ -1,4 +1,4 @@
-with Files.Icon_Assets.Testing;
+with Files.Application.Icon_Assets.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    procedure Test_Icon_Assets_Load_From_Disk (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -20,7 +20,7 @@ separate (Files_Suite.Operations)
          "counterfeit current-directory icon");
       Ada.Directories.Set_Directory (Counterfeit_Cwd);
       Folder := To_Unbounded_String
-        (Files.Icon_Assets.Testing.Disk_Icon_Asset ("folder", ""));
+        (Files.Application.Icon_Assets.Testing.Disk_Icon_Asset ("folder", ""));
       Assert
         (Trusted_Root /= "",
          "bundled resources stay anchored to the executable, not the launch directory: a share root exists");
@@ -41,8 +41,8 @@ separate (Files_Suite.Operations)
       Assert (Ada.Strings.Fixed.Index (To_String (Folder), "tri=") > 0,
               "the disk icon uses triangle primitives");
       Assert
-        (Files.Icon_Assets.Testing.Disk_Icon_Asset ("../settings", "") = ""
-         and then Files.Icon_Assets.Testing.Disk_Icon_Asset
+        (Files.Application.Icon_Assets.Testing.Disk_Icon_Asset ("../settings", "") = ""
+         and then Files.Application.Icon_Assets.Testing.Disk_Icon_Asset
            ("folder", "../../untrusted-theme") = "",
          "icon assets reject path traversal and unknown theme identifiers");
    end Test_Icon_Assets_Load_From_Disk;

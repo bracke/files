@@ -157,7 +157,6 @@ separate (Check_All)
           To_Unbounded_String ("Normalize_Draft"),
           To_Unbounded_String ("Path_Label_Vectors"),
           To_Unbounded_String ("Path_References"),
-          To_Unbounded_String ("Path_Sets"),
           --  Copies the two classification maps out of a settings model.
           To_Unbounded_String ("Classification_Of")],
          "the model reads no disk (settings are loaded and saved elsewhere)",
@@ -170,13 +169,7 @@ separate (Check_All)
         ("files-model", "Files.Settings.Path_References",
          [To_Unbounded_String ("Path_Labels"),
           To_Unbounded_String ("Same_Labels"),
-          To_Unbounded_String ("Recent_Paths"),
-          --  How the current folder's paths match, as the window sampled
-          --  it (Status_Samples.Name_Folding): an answer kept, not asked.
-          To_Unbounded_String ("Path_Folding"),
-          To_Unbounded_String ("Ask_Each_Path"),
-          To_Unbounded_String ("Match_Exactly"),
-          To_Unbounded_String ("Match_Folded")],
+          To_Unbounded_String ("Recent_Paths")],
          "the model only reads the stored labels and recent list");
       Require_Only_Names_From
         ("files-model", "Files.Desktop_Applications",
@@ -213,10 +206,10 @@ separate (Check_All)
          [To_Unbounded_String ("Session"), To_Unbounded_String ("Empty_Session"), To_Unbounded_String ("Valid")],
          "the model makes no transport; Operations.Begin_Paste_Execution does");
       declare
+         --  Files.Commands: the command a palette row names, the
+         --  registry's ids, read.
          Allowed : constant String_List :=
-           [To_Unbounded_String ("Files.Overlays.Command_Palette"),
-            --  The command a palette row names: the registry's ids, read.
-            To_Unbounded_String ("Files.Commands"),
+           [To_Unbounded_String ("Files.Commands"),
             To_Unbounded_String ("Files.Desktop_Applications"),
             --  A handler's trace of what it carried on past, not model I/O.
             To_Unbounded_String ("Files.Diagnostics"),
@@ -234,7 +227,6 @@ separate (Check_All)
             To_Unbounded_String ("Files.Items"),
             To_Unbounded_String ("Files.Jobs.Copy_Context"),
             To_Unbounded_String ("Files.Jobs.Process"),
-            To_Unbounded_String ("Files.Transfer_Jobs"),
             To_Unbounded_String ("Files.Model.Support"),
             --  A leaf name's stem and extension, from its text alone.
             To_Unbounded_String ("Files.Name_Parts"),

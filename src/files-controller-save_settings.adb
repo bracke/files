@@ -8,7 +8,6 @@ separate (Files.Controller)
       Settings_Path : String)
       return Controller_Result
    is
-      use type Files.Settings.Storage.Commit_Decision;
       Applied : constant Files.Settings.Settings_Parse_Result :=
         Files.Settings.Drafts.Apply_Draft (Settings, Files.Model.Settings_Pane.Draft_Of (Model));
       Final     : Files.Settings.Settings_Model;
@@ -51,20 +50,12 @@ separate (Files.Controller)
       --  so letting go writes the steps that were accepted and the pane
       --  shows what was written.
       if Files.Model.Settings_Pane.Key_Repeat (Model) then
-         case Files.Settings.Storage.Decide_Commit (Settings, Final) is
+         case Apply_Unsaved (Model, Settings, Final, Take_In_All => True) is
             when Files.Settings.Storage.Commit_Refused =>
-               Saved := Settings_Full (Model, Settings_Path);
                Operation.Status := Files.Operation_Results.Operation_Failed;
-               Operation.Error_Key := Saved.Error_Key;
+               Operation.Error_Key := Files.Settings.Storage.Full_Result (Settings_Path).Error_Key;
                Operation.Path := To_Unbounded_String (Settings_Path);
             when Files.Settings.Storage.Commit_Accepted =>
-               declare
-                  Before : constant Files.Settings.Settings_Model := Settings;
-               begin
-                  Settings := Final;
-                  Files.Model.Note_Settings_Changed (Model);
-                  Take_In_Settings (Model, Before, Settings);
-               end;
                Files.Model.Settings_Pane.Defer_Save (Model);
             when Files.Settings.Storage.Commit_Unchanged =>
                null;

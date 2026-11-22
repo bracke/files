@@ -2,6 +2,7 @@ with Ada.Directories;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
 with Files.Diagnostics;
+with Files.File_System.Trash.Info_Codec;
 
 package body Files.File_System.Trash.Testing is
 
@@ -82,5 +83,9 @@ package body Files.File_System.Trash.Testing is
    begin
       Trash_Location_Withheld := Withhold;
    end Withhold_Trash_Location;
+
+   function Encode_Info_Path (Path : String) return String is (Info_Codec.Encode (Path));
+
+   function Decode_Info_Path (Value : String) return String is (Info_Codec.Decode (Value));
 
 end Files.File_System.Trash.Testing;

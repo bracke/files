@@ -55,7 +55,7 @@ separate (Files.Interaction)
                   when others =>
                      Files.Settings.Default_Font_Pixel_Size);
          begin
-            Apply_Zoom (Model, Settings, Settings_Path, New_Size, Result);
+            Apply_Zoom (Model, Settings, Settings_Path, New_Size, Save_Now => True, Result => Result);
             --  Drop any parallel '=' / '-' / '0' character event so a zoomed
             --  keystroke never leaks a glyph into a focused text field.
             Result.Clear_Pending_Text := True;

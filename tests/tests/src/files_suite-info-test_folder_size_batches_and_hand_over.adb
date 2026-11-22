@@ -63,7 +63,7 @@ separate (Files_Suite.Info)
          Taken    : Files.Folder_Size.Measurement_Vectors.Vector;
          Reversed : Files.Folder_Size.Path_Vectors.Vector;
       begin
-         Files.Folder_Size.Set_Targets (Scan, Paths);
+         Files.Folder_Size.Testing.Set_Targets (Scan, Paths);
          Files_Suite.Support.Assert_Equal
            (Files.Folder_Size.Testing.Batch_Length (Scan), 256, "one helper takes at most 256 folders");
          declare
@@ -72,7 +72,7 @@ separate (Files_Suite.Info)
             for Path of reverse Paths loop
                Reversed.Append (Path);
             end loop;
-            Files.Folder_Size.Set_Targets (Scan, Reversed);
+            Files.Folder_Size.Testing.Set_Targets (Scan, Reversed);
             Files_Suite.Support.Assert_Equal
               (Files.Folder_Size.Testing.Target (Scan), First,
                "a re-target that still wants the running helper's folders keeps it");
@@ -90,11 +90,11 @@ separate (Files_Suite.Info)
       declare
          Last_Ten : Files.Folder_Size.Path_Vectors.Vector;
       begin
-         Files.Folder_Size.Set_Targets (Scan, Paths);
+         Files.Folder_Size.Testing.Set_Targets (Scan, Paths);
          for Index in Folders - 9 .. Folders loop
             Last_Ten.Append (Paths (Index));
          end loop;
-         Files.Folder_Size.Set_Targets (Scan, Last_Ten);
+         Files.Folder_Size.Testing.Set_Targets (Scan, Last_Ten);
          Files_Suite.Support.Assert_Equal
            (Files.Folder_Size.Testing.Batch_Length (Scan), 10, "a re-target that drops its folders starts afresh");
          Files.Folder_Size.Cancel (Scan);
@@ -107,7 +107,7 @@ separate (Files_Suite.Info)
          Taken : Files.Folder_Size.Measurement_Vectors.Vector;
          Now   : Ada.Real_Time.Time := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (3_600);
       begin
-         Files.Folder_Size.Set_Targets (Scan, Paths);
+         Files.Folder_Size.Testing.Set_Targets (Scan, Paths);
          for Attempt in Polling loop
             Files.Folder_Size.Step (Scan);
             Files.Folder_Size.Take_Due (Scan, Now, Taken);

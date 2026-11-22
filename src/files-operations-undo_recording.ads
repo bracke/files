@@ -12,19 +12,6 @@ with Files.Undo.History;
 --  another's history code.
 package Files.Operations.Undo_Recording is
 
-   --  Items or originals whose identities are all read when recorded.
-   --
-   --  @param Items What the action changed.
-   --  @return Them, each Captured.
-   function Captured
-     (Items : Files.Undo.History.Undo_Item_Vectors.Vector) return Files.Undo.History.Recorded_Item_Vectors.Vector;
-
-   --  @param Originals Originals a replace preserved.
-   --  @return Them, each Captured.
-   function Captured
-     (Originals : Files.Undo.History.Replaced_Original_Vectors.Vector)
-      return Files.Undo.History.Recorded_Original_Vectors.Vector;
-
    --  Items carrying what the action published, unverified.
    --
    --  @param Items What the action changed.
@@ -165,6 +152,19 @@ package Files.Operations.Undo_Recording is
       Progress : in out Progressive_Undo);
 
 private
+
+   --  Items or originals whose identities are all read when recorded.
+   --
+   --  @param Items What the action changed.
+   --  @return Them, each Captured.
+   function Captured
+     (Items : Files.Undo.History.Undo_Item_Vectors.Vector) return Files.Undo.History.Recorded_Item_Vectors.Vector;
+
+   --  @param Originals Originals a replace preserved.
+   --  @return Them, each Captured.
+   function Captured
+     (Originals : Files.Undo.History.Replaced_Original_Vectors.Vector)
+      return Files.Undo.History.Recorded_Original_Vectors.Vector;
 
    --  Record a performed action in the undo history, keeping only items
    --  whose publication identity still matches the live entry. Created

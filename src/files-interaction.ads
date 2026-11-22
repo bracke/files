@@ -220,33 +220,23 @@ package Files.Interaction is
       To_Index      : Files.Preference_Types.Detail_Column_Index;
       Result        : out Interaction_Result);
 
-   --  Make labels, favorites and recent entries follow the renames and moves
-   --  the model recorded (Files.Model.Recent.Note_Path_Move), and persist them.
-   --
-   --  @param Model Model whose recorded moves are drained.
-   --  @param Settings Live settings model updated in place.
-   --  @param Settings_Path Central settings file path (empty disables persistence).
-   --  @return True when any stored path changed.
-   function Follow_Path_Moves
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : in out Files.Settings.Settings_Model;
-      Settings_Path : String)
-      return Boolean;
-
    --  Zoom to New_Size, from the keyboard or the wheel alike: the change goes
-   --  through the one settings policy (Controller.Commit_Settings); the
+   --  through the one settings policy (Controller.Set_Font_Size); the
    --  window's next frame takes up the new size.
    --
    --  @param Model Window whose error line reports a refused or failed save.
    --  @param Settings Live settings, replaced when the change is taken.
    --  @param Settings_Path Central settings file path (empty disables persistence).
    --  @param New_Size The font pixel size asked for, already clamped.
+   --  @param Save_Now Write the file now (the keyboard); False puts the size
+   --    in force only, for the window to write once the wheel rests.
    --  @param Result Settings_Changed is set; other fields are left alone.
    procedure Apply_Zoom
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
       New_Size      : Positive;
+      Save_Now      : Boolean;
       Result        : in out Interaction_Result);
 
    --  The selection a marquee starts from, by path: the shell captures it at

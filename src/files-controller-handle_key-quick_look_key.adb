@@ -1,5 +1,4 @@
 with Files.Quick_Look.Preparation;
-with Files.Operations.Opening;
 with Files.Model.Quick_Look;
 separate (Files.Controller.Handle_Key)
 --  Quick Look on top owns the keyboard: Space closes it (Escape, as for

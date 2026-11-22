@@ -1,5 +1,5 @@
---  What the suite reaches of Files.Snapshot_Policy.Settings_Keys that is not part of its interface.
-package Files.Snapshot_Policy.Settings_Keys.Testing is
+--  What the suite reaches of Files.Application.Settings_Keys that is not part of its interface.
+package Files.Application.Settings_Keys.Testing is
 
    --  Capture the snapshot-relevant settings for caching.
    --
@@ -9,4 +9,4 @@ package Files.Snapshot_Policy.Settings_Keys.Testing is
      (Settings : Files.Settings.Settings_Model)
       return Snapshot_Settings_Key;
 
-end Files.Snapshot_Policy.Settings_Keys.Testing;
+end Files.Application.Settings_Keys.Testing;

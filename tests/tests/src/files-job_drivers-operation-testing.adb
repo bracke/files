@@ -1,3 +1,4 @@
+with Files.Operations.Undo_Recording.Testing;
 with Files.IO.Record_Fields;
 with Ada.Directories;
 with Ada.Streams;
@@ -204,7 +205,7 @@ package body Files.Job_Drivers.Operation.Testing is
       Items.Append
         (Files.Undo.History.Undo_Item'(From => Recorded_Path, others => <>));
       Files.Operations.Undo_Recording.Record_Undo
-        (Model, Files.Undo.History.Undo_Delete_Created, Files.Operations.Undo_Recording.Captured (Items),
+        (Model, Files.Undo.History.Undo_Delete_Created, Files.Operations.Undo_Recording.Testing.Captured (Items),
          Redoable => False);
       --  As if Advance's view work had failed.
       raise Program_Error;

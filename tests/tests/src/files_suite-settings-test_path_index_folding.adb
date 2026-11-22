@@ -1,3 +1,4 @@
+with Files.Text_Case;
 with Files.Settings.Path_References.Testing;
 with Files.Preference_Types;
 with Files.Settings.Path_References;
@@ -5,7 +6,7 @@ separate (Files_Suite.Settings)
    procedure Test_Path_Index_Folding (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       package Refs renames Files.Settings.Path_References;
-      use type Refs.Path_Folding;
+      use type Files.Text_Case.Path_Folding;
       Stored   : constant String := "/home/user/Notes/Plan.txt";
       Shouted  : constant String := "/home/user/NOTES/PLAN.TXT";
       Settings : Files.Settings.Settings_Model;
@@ -24,7 +25,7 @@ separate (Files_Suite.Settings)
       --  not fold (Linux), keying the stored path by its own volume would miss.
       Store;
       declare
-         Folded : constant Refs.Path_Index := Refs.Index_Paths (Settings, Refs.Match_Folded);
+         Folded : constant Refs.Path_Index := Refs.Index_Paths (Settings, Files.Text_Case.Match_Folded);
       begin
          Files_Suite.Support.Assert_Equal
            (Refs.Label_Of (Folded, Shouted), Files.Preference_Types.Green,
@@ -34,10 +35,10 @@ separate (Files_Suite.Settings)
 
       --  A folder decided exactly (a case-sensitive volume) matches its rows
       --  as spelled and nothing else, as asking each path's volume would.
-      if Refs.Folding_In ("/home/user") = Refs.Match_Exactly then
+      if Refs.Folding_In ("/home/user") = Files.Text_Case.Match_Exactly then
          Store;
          declare
-            Exact : constant Refs.Path_Index := Refs.Index_Paths (Settings, Refs.Match_Exactly);
+            Exact : constant Refs.Path_Index := Refs.Index_Paths (Settings, Files.Text_Case.Match_Exactly);
          begin
             Files_Suite.Support.Assert_Equal
               (Refs.Label_Of (Exact, Stored), Files.Preference_Types.Green, "an exact folder matches the spelling");
@@ -55,10 +56,10 @@ separate (Files_Suite.Settings)
       --  Where names fold, the folder decided once matches every spelling.
       Refs.Testing.Simulate_Folding_Host (True);
       Store;
-      Assert (Refs.Folding_In ("/home/user") = Refs.Match_Folded, "a folding host decides folded");
+      Assert (Refs.Folding_In ("/home/user") = Files.Text_Case.Match_Folded, "a folding host decides folded");
       declare
-         Folded : constant Refs.Path_Index := Refs.Index_Paths (Settings, Refs.Match_Folded);
-         Asking : constant Refs.Path_Index := Refs.Index_Paths (Settings, Refs.Ask_Each_Path);
+         Folded : constant Refs.Path_Index := Refs.Index_Paths (Settings, Files.Text_Case.Match_Folded);
+         Asking : constant Refs.Path_Index := Refs.Index_Paths (Settings, Files.Text_Case.Ask_Each_Path);
       begin
          Files_Suite.Support.Assert_Equal
            (Refs.Label_Of (Folded, Shouted), Files.Preference_Types.Green, "a folded folder matches another case");

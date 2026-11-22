@@ -266,14 +266,8 @@ package body Files.Application.Window_Polls is
       --  row's path against the stored favorites and labels then asks no
       --  volume.
       if not Files.Model.Status_Samples.Name_Folding_Sampled (Model) then
-         declare
-            use type Files.Settings.Path_References.Path_Folding;
-         begin
-            Files.Model.Status_Samples.Set_Name_Folding
-              (Model, Path,
-               Folds => Files.Settings.Path_References.Folding_In (Path)
-                 = Files.Settings.Path_References.Match_Folded);
-         end;
+         Files.Model.Status_Samples.Set_Name_Folding
+           (Model, Path, Files.Settings.Path_References.Folding_In (Path));
       end if;
       if not Files.Model.Status_Samples.Volume_Space_Is_Current (Model, Now) then
          declare

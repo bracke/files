@@ -5,7 +5,7 @@ with Files.Settings;
 --  The settings a view snapshot is built from, captured so the window can
 --  tell whether its cached snapshot still shows them (Action_For's
 --  Same_Settings and Same_Row_Settings).
-package Files.Snapshot_Policy.Settings_Keys is
+package Files.Application.Settings_Keys is
 
    --  The exact subset of the settings that Build_Snapshot reads. The render
    --  layer caches this and reuses the cached view snapshot while it still
@@ -95,4 +95,4 @@ private
      (Settings : Files.Settings.Settings_Model)
       return Snapshot_Settings_Key;
 
-end Files.Snapshot_Policy.Settings_Keys;
+end Files.Application.Settings_Keys;

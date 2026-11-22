@@ -33,6 +33,7 @@ with Files.Model.Selection;
 with Files.Model.Label_Picker;
 with Files.Settings.Open_Actions;
 with Files.Settings.Path_References;
+with Files.Model.Recent;
 with Files.Settings.Storage;
 
 package body Files.Controller is
@@ -157,17 +158,6 @@ package body Files.Controller is
       end if;
    end Take_In_Settings;
 
-   --  The settings refused as too big to load again, also said in the
-   --  window's error line.
-   function Settings_Full
-     (Model         : in out Files.Model.Window_Model;
-      Settings_Path : String)
-      return Files.Settings.Settings_Write_Result is
-   begin
-      Files.Model.Set_Error (Model, "error.settings.full");
-      return Files.Settings.Storage.Full_Result (Settings_Path);
-   end Settings_Full;
-
    --  Save already-applied settings (Files.Settings.Storage.Persist) and
    --  apply the outcome to this window: settings the save took in (another
    --  process's change, or a rebind not saved before) are made in force
@@ -214,10 +204,47 @@ package body Files.Controller is
       Accepted : Boolean := False;
    end record;
 
-   --  The one settings commit (Files.Settings.Storage.Decide_Commit): an
-   --  unchanged one counts as saved, a refused one is said in the error
-   --  line, and any other replaces Settings, is noted on the window's
-   --  settings revision, and is persisted.
+   --  Put Updated in force without writing the file: the one decision every
+   --  settings change takes (Files.Settings.Storage.Decide_Commit). A refused
+   --  one is said in the error line and changes nothing; an accepted one
+   --  replaces Settings, is noted on the window's settings revision, and is
+   --  taken in -- the favorites' tree roots followed, or with Take_In_All
+   --  everything Take_In_Settings follows (a held key stepping the pane,
+   --  whose steps can change the listing). The caller writes the file: at
+   --  once (Commit), or later (Persist_Settings, Persist_Held_Settings).
+   function Apply_Unsaved
+     (Model       : in out Files.Model.Window_Model;
+      Settings    : in out Files.Settings.Settings_Model;
+      Updated     : Files.Settings.Settings_Model;
+      Take_In_All : Boolean := False)
+      return Files.Settings.Storage.Commit_Decision
+   is
+      Decision : constant Files.Settings.Storage.Commit_Decision :=
+        Files.Settings.Storage.Decide_Commit (Settings, Updated);
+   begin
+      case Decision is
+         when Files.Settings.Storage.Commit_Unchanged =>
+            null;
+         when Files.Settings.Storage.Commit_Refused =>
+            Files.Model.Set_Error (Model, "error.settings.full");
+         when Files.Settings.Storage.Commit_Accepted =>
+            declare
+               Before : constant Files.Settings.Settings_Model := Settings;
+            begin
+               Settings := Updated;
+               Files.Model.Note_Settings_Changed (Model);
+               if Take_In_All then
+                  Take_In_Settings (Model, Before, Settings);
+               else
+                  Follow_Favorites (Model, Before, Settings);
+               end if;
+            end;
+      end case;
+      return Decision;
+   end Apply_Unsaved;
+
+   --  The one settings commit: Apply_Unsaved, then the file written. An
+   --  unchanged change counts as saved; a refused one is not written.
    function Commit
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
@@ -225,19 +252,12 @@ package body Files.Controller is
       Settings_Path : String)
       return Commit_Outcome is
    begin
-      case Files.Settings.Storage.Decide_Commit (Settings, Updated) is
+      case Apply_Unsaved (Model, Settings, Updated) is
          when Files.Settings.Storage.Commit_Unchanged =>
             return (Saved => Files.Settings.Storage.Unchanged_Result (Settings_Path), Accepted => False);
          when Files.Settings.Storage.Commit_Refused =>
-            return (Saved => Settings_Full (Model, Settings_Path), Accepted => False);
+            return (Saved => Files.Settings.Storage.Full_Result (Settings_Path), Accepted => False);
          when Files.Settings.Storage.Commit_Accepted =>
-            declare
-               Before : constant Files.Settings.Settings_Model := Settings;
-            begin
-               Settings := Updated;
-               Files.Model.Note_Settings_Changed (Model);
-               Follow_Favorites (Model, Before, Settings);
-            end;
             return (Saved => Persisted (Model, Settings, Settings_Path), Accepted => True);
       end case;
    end Commit;
@@ -261,6 +281,34 @@ package body Files.Controller is
    begin
       Accepted := Commit (Model, Settings, Updated, Settings_Path).Accepted;
    end Commit_Settings;
+
+   --  Settings with the path moves the model queued (renames, moves,
+   --  removals) applied to the stored favorites, labels and recent paths;
+   --  True when any stored path changed. The queue is drained.
+   function With_Path_Moves
+     (Model   : in out Files.Model.Window_Model;
+      Updated : in out Files.Settings.Settings_Model)
+      return Boolean
+   is
+      Moves   : constant Files.Types.Path_Move_Vectors.Vector := Files.Model.Recent.Take_Path_Moves (Model);
+      Changed : Boolean := False;
+   begin
+      for Move of Moves loop
+         declare
+            Followed : Boolean;
+         begin
+            case Move.Kind is
+               when Files.Types.Removed =>
+                  Files.Settings.Path_References.Forget_Path_References (Updated, To_String (Move.From), Followed);
+               when Files.Types.Moved =>
+                  Files.Settings.Path_References.Move_Path_References
+                    (Updated, To_String (Move.From), To_String (Move.To), Followed);
+            end case;
+            Changed := Changed or else Followed;
+         end;
+      end loop;
+      return Changed;
+   end With_Path_Moves;
 
    function With_Folder_Favorite_Toggled
      (Model    : Files.Model.Window_Model;
@@ -308,12 +356,20 @@ package body Files.Controller is
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
       Size          : Positive;
-      Accepted      : out Boolean) is
+      Save_Now      : Boolean;
+      Accepted      : out Boolean)
+   is
+      use type Files.Settings.Storage.Commit_Decision;
+      Updated : constant Files.Settings.Settings_Model := (Settings with delta Font_Pixel_Size => Size);
    begin
       Accepted := False;
-      if Size /= Settings.Font_Pixel_Size then
-         Commit_Settings
-           (Model, Settings, (Settings with delta Font_Pixel_Size => Size), Settings_Path, Accepted => Accepted);
+      if Size = Settings.Font_Pixel_Size then
+         return;
+      end if;
+      if Save_Now then
+         Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Accepted);
+      else
+         Accepted := Apply_Unsaved (Model, Settings, Updated) = Files.Settings.Storage.Commit_Accepted;
       end if;
    end Set_Font_Size;
 
@@ -324,13 +380,10 @@ package body Files.Controller is
       Width    : Natural;
       Changed  : out Boolean)
    is
+      use type Files.Settings.Storage.Commit_Decision;
       Updated : constant Files.Settings.Settings_Model := Files.Settings.With_Column_Width (Settings, Column, Width);
    begin
-      Changed := Updated.Column_Widths (Column) /= Settings.Column_Widths (Column);
-      if Changed then
-         Settings := Updated;
-         Files.Model.Note_Settings_Changed (Model);
-      end if;
+      Changed := Apply_Unsaved (Model, Settings, Updated) = Files.Settings.Storage.Commit_Accepted;
    end Resize_Column;
 
    procedure Reorder_Column
@@ -384,6 +437,69 @@ package body Files.Controller is
          Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Accepted);
       end if;
    end Persist_UI_State;
+
+   function Follow_Path_Moves
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Boolean
+   is
+      Updated : Files.Settings.Settings_Model := Settings;
+      Changed : Boolean;
+   begin
+      Changed := With_Path_Moves (Model, Updated);
+      if Changed then
+         Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Changed);
+      end if;
+      return Changed;
+   end Follow_Path_Moves;
+
+   procedure Note_Recent_Opens
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Accepted      : out Boolean)
+   is
+      Moved   : Files.Settings.Settings_Model := Settings;
+      Moves   : constant Boolean := With_Path_Moves (Model, Moved);
+      Opened  : constant Files.Types.String_Vectors.Vector := Files.Model.Recent.Take_Recent_Opens (Model);
+      Updated : Files.Settings.Settings_Model := Moved;
+   begin
+      Accepted := False;
+      for Path of Opened loop
+         Files.Settings.Path_References.Note_Recent (Updated, To_String (Path));
+      end loop;
+      if not Moves and then Opened.Is_Empty then
+         return;
+      end if;
+      --  One edit, one write. Should the longer recent list make the file
+      --  too big to load again, the moves still go in on their own: a
+      --  refused recent list must not keep labels on paths that are gone.
+      Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Accepted);
+      if not Accepted and then Moves and then not Opened.Is_Empty then
+         Commit_Settings (Model, Settings, Moved, Settings_Path, Accepted => Accepted);
+      end if;
+   end Note_Recent_Opens;
+
+   procedure Remember_Window_Size
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Width         : Positive;
+      Height        : Positive) is
+   begin
+      if Settings.Window_Width /= Width or else Settings.Window_Height /= Height then
+         declare
+            Saved : constant Files.Settings.Settings_Write_Result :=
+              Commit_Settings
+                (Model, Settings, (Settings with delta Window_Width => Width, Window_Height => Height),
+                 Settings_Path);
+            pragma Unreferenced (Saved);
+         begin
+            null;
+         end;
+      end if;
+   end Remember_Window_Size;
 
    procedure Persist_Settings
      (Model         : in out Files.Model.Window_Model;

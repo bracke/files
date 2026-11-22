@@ -1,10 +1,10 @@
-with Files.Snapshot_Policy.Settings_Keys.Testing;
+with Files.Application.Settings_Keys.Testing;
 with Files.Settings.Path_References.Testing;
 with Files.Preference_Types;
 with Files.Rendering.Testing;
 with Files.Settings.Testing;
 with Files.Settings.Path_References;
-with Files.Snapshot_Policy.Settings_Keys;
+with Files.Application.Settings_Keys;
 with Files_Suite.Support.Models;
 separate (Files_Suite.Rendering)
    --  The window keeps a snapshot's rows while Same_Row_Settings holds
@@ -29,8 +29,8 @@ separate (Files_Suite.Rendering)
          Before : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Base);
       begin
          Changes := Changes + 1;
-         if Files.Snapshot_Policy.Settings_Keys.Same_Row_Settings
-           (Changed, Files.Snapshot_Policy.Settings_Keys.Testing.Snapshot_Settings_Key_Of (Base))
+         if Files.Application.Settings_Keys.Same_Row_Settings
+           (Changed, Files.Application.Settings_Keys.Testing.Snapshot_Settings_Key_Of (Base))
          then
             Assert
               (Files.Rendering.Testing.Build_Snapshot_Keeping_Rows (Model, Changed, Before)

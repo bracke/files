@@ -28,25 +28,4 @@ package Files.Commands.Status is
       Model : Files.Model.Window_Model)
       return Boolean;
 
-   --  @param Model Current window model.
-   --  @return True when the host can edit permission bits.
-   function Permissions_Supported (Model : Files.Model.Window_Model) return Boolean;
-
-   --  @param Model Current window model.
-   --  @return True when the host can edit owner and group.
-   function Ownership_Supported (Model : Files.Model.Window_Model) return Boolean;
-
-private
-
-   --  What the host offers, as the window layer sampled it into the model
-   --  (Files.Model.Status_Samples.Set_Host), so a snapshot built on every
-   --  change asks the host nothing. A window samples it before its first
-   --  frame; a model no window sampled (a test, the helper process) takes
-   --  the host to be able to, and the operation itself still refuses what
-   --  the host cannot do.
-   --
-   --  @param Model Current window model.
-   --  @return True when the host has a trash folder to go to.
-   function Trash_Available (Model : Files.Model.Window_Model) return Boolean;
-
 end Files.Commands.Status;

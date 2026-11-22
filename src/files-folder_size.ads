@@ -44,12 +44,6 @@ package Files.Folder_Size is
    --  @param Targets Selected uncached directories, each with its listed time.
    procedure Set_Targets (Scan : in out Session; Targets : Target_Vectors.Vector);
 
-   --  Set_Targets with no listed time known for any of Paths.
-   --
-   --  @param Scan Window-owned measurements.
-   --  @param Paths Selected uncached directories.
-   procedure Set_Targets (Scan : in out Session; Paths : Path_Vectors.Vector);
-
    --  Ask again for one directory whose measurement came back stale (taken
    --  before the directory was listed as Listed), keeping the other targets.
    --
@@ -116,17 +110,23 @@ package Files.Folder_Size is
    --  @param Selection The model's selection revision.
    procedure Note_Targets_Set_For (Scan : in out Session; Rows, Selection : Natural);
 
-   --  Set_Targets with the one directory Path.
-   --
-   --  @param Scan The window's scan.
-   --  @param Path Absolute path of the directory to measure.
-   procedure Request (Scan : in out Session; Path : String);
-
    --  Internal helper entry point, dispatched before application startup.
    --  @param Directory Private transport directory containing the requested path.
    procedure Run_Helper (Directory : String);
 
 private
+
+   --  Set_Targets with no listed time known for any of Paths.
+   --
+   --  @param Scan Window-owned measurements.
+   --  @param Paths Selected uncached directories.
+   procedure Set_Targets (Scan : in out Session; Paths : Path_Vectors.Vector);
+
+   --  Set_Targets with the one directory Path.
+   --
+   --  @param Scan The window's scan.
+   --  @param Path Absolute path of the directory to measure.
+   procedure Request (Scan : in out Session; Path : String);
 
    --  @param Scan Measurements to inspect.
    --  @return True when a helper is active.

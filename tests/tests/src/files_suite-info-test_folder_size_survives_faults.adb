@@ -53,7 +53,7 @@ separate (Files_Suite.Info)
       --  The first helper (256 folders) will not start; the other 44 must
       --  still be measured rather than wait for a change of selection.
       Files.Jobs.Process.Testing.Refuse_Next_Launch;
-      Files.Folder_Size.Set_Targets (Scan, Folders (300));
+      Files.Folder_Size.Testing.Set_Targets (Scan, Folders (300));
       Measure_All (300, Measured, Unmeasured, "after a refused launch");
       Files.Jobs.Process.Testing.Clear_Refusal;
       Files_Suite.Support.Assert_Equal (Unmeasured, 256, "the refused helper's batch is answered unmeasured");
@@ -61,14 +61,14 @@ separate (Files_Suite.Info)
 
       --  Results that will not open at first are read again.
       Files.Folder_Size.Testing.Fail_Result_Reads (3);
-      Files.Folder_Size.Set_Targets (Scan, Folders (4));
+      Files.Folder_Size.Testing.Set_Targets (Scan, Folders (4));
       Measure_All (4, Measured, Unmeasured, "with results slow to open");
       Files.Folder_Size.Testing.Fail_Result_Reads (0);
       Files_Suite.Support.Assert_Equal (Measured, 4, "a result that opens late is still measured");
 
       --  Results that never open are answered unmeasured once the helper ends.
       Files.Folder_Size.Testing.Fail_Result_Reads (Natural'Last);
-      Files.Folder_Size.Set_Targets (Scan, Folders (2));
+      Files.Folder_Size.Testing.Set_Targets (Scan, Folders (2));
       Measure_All (2, Measured, Unmeasured, "with results that never open");
       Files.Folder_Size.Testing.Fail_Result_Reads (0);
       Files_Suite.Support.Assert_Equal (Unmeasured, 2, "a result that never opens is answered unmeasured");

@@ -72,12 +72,12 @@ separate (Files_Suite.Info)
          Take (Scan, Path, Result, Available);
          exit when not Available;
       end loop;
-      Files.Folder_Size.Request (Scan, "relative-folder-size-target");
+      Files.Folder_Size.Testing.Request (Scan, "relative-folder-size-target");
       Assert
         (not Files.Folder_Size.Testing.Is_Active (Scan)
          and then Files.Folder_Size.Testing.Target (Scan) = "",
          "folder-size requests reject relative targets before launching a helper");
-      Files.Folder_Size.Request
+      Files.Folder_Size.Testing.Request
         (Scan, Root & Character'Val (0) & "ignored");
       Assert
         (not Files.Folder_Size.Testing.Is_Active (Scan)
@@ -85,7 +85,7 @@ separate (Files_Suite.Info)
          "folder-size requests reject NUL-containing targets before launching a helper");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Marker);
       Before := Now;
-      Files.Folder_Size.Request (Scan, Join (Root, "unreadable-or-missing"));
+      Files.Folder_Size.Testing.Request (Scan, Join (Root, "unreadable-or-missing"));
       --  Posting starts a helper process, so it gets a launch's headroom;
       --  inspecting the stalled target in the caller would block far longer.
       Assert_Within (Before, Launch_Limit, "posting a size request does not inspect its target");
@@ -94,7 +94,7 @@ separate (Files_Suite.Info)
       Targets.Append (To_Unbounded_String (Join (Root, "another-window")));
       Before := Now;
       for Frame in 1 .. 50 loop
-         Files.Folder_Size.Set_Targets (Scan, Targets);
+         Files.Folder_Size.Testing.Set_Targets (Scan, Targets);
          Files.Folder_Size.Step (Scan);
          Take (Scan, Path, Result, Available);
          Assert (not Available, "a stalled scan does not publish a partial total");
@@ -105,7 +105,7 @@ separate (Files_Suite.Info)
       Previous := Started;
       Ada.Directories.Delete_File (Marker);
       Before := Now;
-      Files.Folder_Size.Request (Scan, Join (Root, "another-window"));
+      Files.Folder_Size.Testing.Request (Scan, Join (Root, "another-window"));
       --  Retargeting starts a replacement helper: the same headroom as posting.
       Assert_Within (Before, Launch_Limit, "retargeting does not join the abandoned scan");
       Await_Helper;
@@ -123,7 +123,7 @@ separate (Files_Suite.Info)
       Ada.Environment_Variables.Clear ("FILES_TEST_STALL_FOLDER_SIZES");
       Ada.Directories.Create_Path (Join (Root, "ready"));
       Write_Binary_File (Join (Join (Root, "ready"), "data"), "12345678");
-      Files.Folder_Size.Request (Scan, Join (Root, "ready"));
+      Files.Folder_Size.Testing.Request (Scan, Join (Root, "ready"));
       for Attempt in Files_Suite.Support.Timing.Polling loop
          Files.Folder_Size.Step (Scan);
          Take (Scan, Path, Result, Available);
@@ -142,7 +142,7 @@ separate (Files_Suite.Info)
             Target : constant String :=
               (if Invalid_Target = 1 then Join (Root, "missing") else Join (Join (Root, "ready"), "data"));
          begin
-            Files.Folder_Size.Request (Scan, Target);
+            Files.Folder_Size.Testing.Request (Scan, Target);
             Assert (Files.Folder_Size.Testing.Is_Active (Scan), "a request leaves collection for a later frame");
             for Attempt in Files_Suite.Support.Timing.Polling loop
                Files.Folder_Size.Step (Scan);
@@ -172,7 +172,7 @@ separate (Files_Suite.Info)
             Targets.Append (To_Unbounded_String (Join (Root, Name)));
          end;
       end loop;
-      Files.Folder_Size.Set_Targets (Scan, Targets);
+      Files.Folder_Size.Testing.Set_Targets (Scan, Targets);
       Files_Suite.Support.Assert_Equal
         (Files.Folder_Size.Testing.Batch_Length (Scan), 3, "three folders go to one helper");
       for Expected of Targets loop

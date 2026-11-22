@@ -68,7 +68,7 @@ separate (Files_Suite.Tree)
          Run (Files.Commands.Toggle_Favorite_Command);
          Assert (Tree_Has_Root (Item), "the file is a tree root again");
          Files.Model.Recent.Note_Path_Move (Model, Item, Moved);
-         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, Path);
+         Followed := Files.Controller.Follow_Path_Moves (Model, Settings, Path);
          Assert (Followed, "the favorite follows the move");
          Assert (Tree_Has_Root (Moved) and then not Tree_Has_Root (Item),
                  "the shown tree's root follows the moved favorite");

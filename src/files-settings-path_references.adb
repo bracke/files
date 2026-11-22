@@ -4,9 +4,10 @@ with Ada.Strings.Unbounded;
 with Files.Timing;
 
 with Hostkit.Fs;
-with Files.Text_Case;
 
 package body Files.Settings.Path_References is
+
+   use all type Files.Text_Case.Path_Folding;
    use Ada.Strings.Unbounded;
 
    package Fold_Answers is new Ada.Containers.Indefinite_Hashed_Maps
@@ -78,7 +79,7 @@ package body Files.Settings.Path_References is
    function Key (Path : String) return String is
      (if Folds (Path) then Files.Text_Case.Fold_Case (Path) else Path);
 
-   function Folding_In (Directory : String) return Path_Folding is
+   function Folding_In (Directory : String) return Files.Text_Case.Path_Folding is
      (if Folds_Paths then Match_Folded
       elsif not Asks_Volume then Match_Exactly
       elsif Directory = "" then Ask_Each_Path
@@ -270,7 +271,7 @@ package body Files.Settings.Path_References is
 
    function Index_Paths
      (Settings : Settings_Model;
-      Folding  : Path_Folding)
+      Folding  : Files.Text_Case.Path_Folding)
       return Path_Index
    is
       Result : Path_Index;

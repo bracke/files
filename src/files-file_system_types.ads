@@ -5,8 +5,8 @@ with Files.Types;
 
 --  The value types Files.File_System's results are made of, in a leaf
 --  package of their own so a unit that only holds such a value (the window
---  model) need not depend on the filesystem layer. Files.File_System
---  re-exports each one under its own name, literals included.
+--  model) need not depend on the filesystem layer. Clients name them here:
+--  Files.File_System does not re-export them.
 package Files.File_System_Types is
    subtype UString is Files.Types.UString;
 
@@ -46,6 +46,25 @@ package Files.File_System_Types is
    --  @return A signature that was not taken.
    function Unknown_Signature (Path : String := "") return Directory_Signature is
      ((Path => Ada.Strings.Unbounded.To_Unbounded_String (Path), others => <>));
+
+   --  Whether two signatures were both taken and record the same state. An
+   --  unknown signature is the same as nothing, itself included.
+   --
+   --  @param Left One signature.
+   --  @param Right The other.
+   --  @return True when nothing changed between them.
+   function Same_State (Left, Right : Directory_Signature) return Boolean is
+     (Left.Taken
+      and then Right.Taken
+      and then Ada.Strings.Unbounded."=" (Left.Path, Right.Path)
+      and then Left.Exists = Right.Exists
+      and then Left.Entry_Count = Right.Entry_Count
+      and then Left.Entry_State_Checksum = Right.Entry_State_Checksum
+      and then Left.Latest_Modified_Known = Right.Latest_Modified_Known
+      and then
+        (not Left.Latest_Modified_Known
+         or else not Right.Latest_Modified_Known
+         or else Ada.Calendar."=" (Left.Latest_Modified, Right.Latest_Modified)));
 
    --  Whether a drop copies its sources or moves them.
    type Drop_Import_Mode is

@@ -1,8 +1,6 @@
 with Files.Diagnostics;
 with Ada.IO_Exceptions;
-with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Directories;
-with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 with Interfaces;
@@ -18,10 +16,7 @@ package body Files.Operations.Archives.Writing is
    use type Interfaces.Unsigned_64;
    use type Zlib.Status_Code;
 
-   package Archive_Name_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-     (Element_Type        => String,
-      Hash                => Ada.Strings.Hash,
-      Equivalent_Elements => "=");
+   package Archive_Name_Sets renames Files.Types.String_Sets;
    type Text_Array_Access is access Zlib.Text_Array;
    procedure Free_Text_Array is new Ada.Unchecked_Deallocation
      (Zlib.Text_Array, Text_Array_Access);

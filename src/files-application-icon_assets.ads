@@ -7,7 +7,7 @@
 --
 --  The source is installed when this package is elaborated (and again by
 --  Register), so every program that links it draws with these definitions.
-package Files.Icon_Assets is
+package Files.Application.Icon_Assets is
 
    --  Install Icon_Asset as the Guikit.Draw icon-definition source. Elaboration
    --  already does this; calling it again is harmless.
@@ -50,4 +50,4 @@ private
       Theme_Name : String)
       return String;
 
-end Files.Icon_Assets;
+end Files.Application.Icon_Assets;

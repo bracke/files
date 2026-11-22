@@ -1,7 +1,6 @@
 with Ada.Containers;
 with Files.Model.Selection;
 with Files.Commands.Context_Menus;
-with Files.Model.Recent;
 with Files.Events;
 with Files.UI_Types;
 with Files.Operation_Results;
@@ -19,7 +18,6 @@ with Files.Model.Context_Menu;
 with Files.Model.Label_Picker;
 with Files.Model.Settings_Pane;
 with Files.Commands.Overlay_Buttons;
-with Files.Settings.Path_References;
 
 package body Files.Interaction is
 
@@ -76,11 +74,12 @@ package body Files.Interaction is
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
       New_Size      : Positive;
+      Save_Now      : Boolean;
       Result        : in out Interaction_Result)
    is
       Accepted : Boolean;
    begin
-      Files.Controller.Set_Font_Size (Model, Settings, Settings_Path, New_Size, Accepted);
+      Files.Controller.Set_Font_Size (Model, Settings, Settings_Path, New_Size, Save_Now, Accepted);
       Result.Settings_Changed := Result.Settings_Changed or else Accepted;
    end Apply_Zoom;
 
@@ -98,70 +97,19 @@ package body Files.Interaction is
       Files.Controller.Label_Selection (Model, Settings, Settings_Path, Label, Accepted => Result.Settings_Changed);
    end Apply_Label;
 
-   function Follow_Path_Moves
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : in out Files.Settings.Settings_Model;
-      Settings_Path : String)
-      return Boolean
-   is
-      Moves   : constant Files.Types.Path_Move_Vectors.Vector := Files.Model.Recent.Take_Path_Moves (Model);
-      Changed : Boolean := False;
-      Updated : Files.Settings.Settings_Model := Settings;
-   begin
-      for Move of Moves loop
-         declare
-            Followed : Boolean;
-         begin
-            case Move.Kind is
-               when Files.Types.Removed =>
-                  Files.Settings.Path_References.Forget_Path_References (Updated, To_String (Move.From), Followed);
-               when Files.Types.Moved =>
-                  Files.Settings.Path_References.Move_Path_References
-                    (Updated, To_String (Move.From), To_String (Move.To), Followed);
-            end case;
-            Changed := Changed or else Followed;
-         end;
-      end loop;
-      --  Longer paths can make the file too big to load again: then the
-      --  labels stay where they were, and the error line says why.
-      if not Changed then
-         return False;
-      end if;
-      Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Changed);
-      return Changed;
-   end Follow_Path_Moves;
-
-   --  Fold any paths the model queued while opening items into the persisted
-   --  recent list and write the settings. A no-op when nothing was opened, so it
-   --  is safe to call after every dispatch seam (open routes through several).
+   --  Fold the paths the model queued (opened items, moves) into the
+   --  settings: Controller.Note_Recent_Opens. A no-op when nothing was
+   --  queued, so it is safe to call after every dispatch seam.
    procedure Persist_Recent_Opens
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
       Result        : in out Interaction_Result)
    is
-      Opened : constant Files.Types.String_Vectors.Vector :=
-        Files.Model.Recent.Take_Recent_Opens (Model);
+      Accepted : Boolean;
    begin
-      --  Renames and moves made by this action carry their labels along.
-      if Follow_Path_Moves (Model, Settings, Settings_Path) then
-         Result.Settings_Changed := True;
-      end if;
-      if Opened.Is_Empty then
-         return;
-      end if;
-      declare
-         Updated  : Files.Settings.Settings_Model := Settings;
-         Accepted : Boolean;
-      begin
-         for Path of Opened loop
-            Files.Settings.Path_References.Note_Recent (Updated, To_String (Path));
-         end loop;
-         Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted);
-         --  Added to, not overwritten: a refused recent list must not hide
-         --  the label moves just written.
-         Result.Settings_Changed := Result.Settings_Changed or else Accepted;
-      end;
+      Files.Controller.Note_Recent_Opens (Model, Settings, Settings_Path, Accepted);
+      Result.Settings_Changed := Result.Settings_Changed or else Accepted;
    end Persist_Recent_Opens;
 
    subtype UI_State is Files.Controller.UI_State;
@@ -520,7 +468,7 @@ package body Files.Interaction is
       Base  : Files.Types.String_Vectors.Vector)
       return Marquee_Rows
    is
-      Base_Paths : Files.Settings.Path_References.Path_Sets.Set;
+      Base_Paths : Files.Types.String_Sets.Set;
       Base_Rows  : Marquee_Rows;
       Position   : Natural := 0;
 

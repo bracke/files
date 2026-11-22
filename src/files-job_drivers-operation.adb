@@ -23,7 +23,6 @@ with Files.Path_Checks;
 with Files.Model.Pasting;
 with Files.Model.History;
 with Files.Model.Selection;
-with Files.Settings.Path_References;
 with Files.Undo.History;
 with Ada.Real_Time;
 with Files.Text_Basics;
@@ -280,7 +279,7 @@ package body Files.Job_Drivers.Operation is
          --  Each destination's place in the entry, and what is completed:
          --  looked up per created entry, not scanned for.
          Places    : Index_Maps.Map;
-         Completed : Files.Settings.Path_References.Path_Sets.Set;
+         Completed : Files.Types.String_Sets.Set;
       begin
          for Index in Action.Items.First_Index .. Action.Items.Last_Index loop
             if not Places.Contains (To_String (Action.Items (Index).From)) then
@@ -315,7 +314,7 @@ package body Files.Job_Drivers.Operation is
    is
       Untracked : Files.Undo.History.Undo_Item_Vectors.Vector;
       --  Every path the undo history already records as created.
-      Recorded : Files.Settings.Path_References.Path_Sets.Set;
+      Recorded : Files.Types.String_Sets.Set;
    begin
       for Action of Files.Model.History.Undo_Entries (Model) loop
          for Item of Action.Items loop

@@ -20,8 +20,6 @@ with Files.File_Identities;
 with Files.IO.Lease_Streams;
 with Files.Path_Checks;
 with Ada.Real_Time;
-with Ada.Containers.Indefinite_Hashed_Sets;
-with Ada.Strings.Hash;
 with Files.Name_Parts;
 
 package body Files.Jobs.Context is
@@ -32,8 +30,7 @@ package body Files.Jobs.Context is
    use type Hostkit.Fs.Entry_Kind;
    use type Hostkit.Lease_Files.Open_Outcome;
 
-   package Destination_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-     (Element_Type => String, Hash => Ada.Strings.Hash, Equivalent_Elements => "=");
+   package Destination_Sets renames Files.Types.String_Sets;
 
    Stage_Record_Header : constant String := "files-stage-3";
    Created_Record_Header : constant String := "files-created-3";

@@ -1,5 +1,7 @@
 with Ada.Calendar;
+with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Containers.Vectors;
+with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 
 with Guikit.Shared_Bytes;
@@ -21,6 +23,13 @@ package Files.Types is
      (Index_Type   => Positive,
       Element_Type => UString,
       "="          => Ada.Strings.Unbounded."=");
+
+   --  A set of strings compared exactly (case included): paths, names,
+   --  keys. A caller that folds case folds the strings it puts in.
+   package String_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+     (Element_Type        => String,
+      Hash                => Ada.Strings.Hash,
+      Equivalent_Elements => "=");
 
    --  What became of an item whose labels, favorites and recent entries
    --  should follow it: it now lives elsewhere, or it is gone for good.

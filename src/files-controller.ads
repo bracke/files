@@ -224,12 +224,16 @@ package Files.Controller is
    --  @param Settings Live settings model.
    --  @param Settings_Path Central settings file path (empty disables persistence).
    --  @param Size The new font pixel size (already clamped).
+   --  @param Save_Now Write the file now; False puts the size in force only
+   --    (a wheel zoom, whose window writes it with Persist_Settings once the
+   --    wheel rests).
    --  @param Accepted True when the size changed and took.
    procedure Set_Font_Size
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
       Size          : Positive;
+      Save_Now      : Boolean;
       Accepted      : out Boolean);
 
    --  Give a details column Width (in reference units) while it is dragged:
@@ -293,6 +297,53 @@ package Files.Controller is
       Settings_Path : String;
       Before        : UI_State;
       Accepted      : out Boolean);
+
+   --  Carry the stored favorites, labels and recent paths along the moves,
+   --  renames and removals the model queued (Files.Model.Recent), under
+   --  Commit_Settings' policy: longer paths that would make the file too big
+   --  to load again leave the references where they were, said in the error
+   --  line. A background job's finish calls this; an input's dispatch calls
+   --  Note_Recent_Opens, which takes both queues.
+   --
+   --  @param Model Model whose queued moves are drained.
+   --  @param Settings Live settings model.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @return True when a stored path changed and the change took.
+   function Follow_Path_Moves
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Boolean;
+
+   --  Fold the paths the model queued while opening items into the recent
+   --  list, with the queued path moves, as one settings edit and one write.
+   --  A no-op when both queues are empty, so it is safe after every dispatch.
+   --  Should the recent list make the file too big, the moves alone go in.
+   --
+   --  @param Model Model whose queues are drained.
+   --  @param Settings Live settings model.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Accepted True when a change took.
+   procedure Note_Recent_Opens
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Accepted      : out Boolean);
+
+   --  Keep a closing window's size for the next window, under
+   --  Commit_Settings' policy; nothing when it is the stored size.
+   --
+   --  @param Model The closing window's model.
+   --  @param Settings Live settings model.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Width Window width in screen units.
+   --  @param Height Window height in screen units.
+   procedure Remember_Window_Size
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Width         : Positive;
+      Height        : Positive);
 
    --  Cycle the filter-bar search scope one step forward and re-run the shared
    --  query in the new scope. Filter_Here restores the live-filtered directory,

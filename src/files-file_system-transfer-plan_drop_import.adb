@@ -1,5 +1,4 @@
-with Ada.Containers.Indefinite_Hashed_Sets;
-with Ada.Strings.Hash;
+with Files.Types;
 with Files.Paste;
 with Files.Name_Parts;
 with Files.Text_Case;
@@ -11,8 +10,7 @@ function Plan_Drop_Import
    Mode                  : Drop_Import_Mode := Drop_Copy)
    return Drop_Import_Result
 is
-   package Claimed_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-     (Element_Type => String, Hash => Ada.Strings.Hash, Equivalent_Elements => "=");
+   package Claimed_Sets renames Files.Types.String_Sets;
 
    Result : Drop_Import_Result :=
      (Success   => False,

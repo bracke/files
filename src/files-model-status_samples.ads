@@ -1,4 +1,4 @@
-with Files.Settings.Path_References;
+with Files.Text_Case;
 
 --  What the window layer samples from the host for the status bar, the info
 --  pane and the commands -- the current volume's free space, the names of
@@ -18,11 +18,11 @@ package Files.Model.Status_Samples is
    --
    --  @param Model Model to update.
    --  @param Path The folder it was asked for.
-   --  @param Folds Whether that folder's paths are matched without regard to case.
+   --  @param Folding How that folder's paths are matched.
    procedure Set_Name_Folding
-     (Model : in out Window_Model;
-      Path  : String;
-      Folds : Boolean);
+     (Model   : in out Window_Model;
+      Path    : String;
+      Folding : Files.Text_Case.Path_Folding);
 
    --  @param Model Model to inspect.
    --  @return True when Set_Name_Folding answered for the current folder.
@@ -32,7 +32,7 @@ package Files.Model.Status_Samples is
    --  @return How the current folder's paths are matched: as sampled, or
    --    Ask_Each_Path when not (a view of no one folder, or before the
    --    window asked).
-   function Name_Folding (Model : Window_Model) return Files.Settings.Path_References.Path_Folding;
+   function Name_Folding (Model : Window_Model) return Files.Text_Case.Path_Folding;
 
    --  Record a volume-space sample. The window layer takes it (a statvfs);
    --  Build_Snapshot only reads it, so building a snapshot touches no disk.
@@ -130,11 +130,6 @@ package Files.Model.Status_Samples is
       Sampled               : Ada.Calendar.Time);
 
    --  @param Model Model to inspect.
-   --  @return True once Set_Host recorded the host; until then the three
-   --    answers below are not known.
-   function Host_Sampled (Model : Window_Model) return Boolean;
-
-   --  @param Model Model to inspect.
    --  @param Now The current time.
    --  @return True when the host was sampled less than
    --    Volume_Space_Refresh_Interval ago: a trash that appears (Windows
@@ -144,16 +139,24 @@ package Files.Model.Status_Samples is
       Now   : Ada.Calendar.Time)
       return Boolean;
 
+   --  What the host offers, as the window layer sampled it (Set_Host), so
+   --  a snapshot built on every change asks the host nothing. A window
+   --  samples it before its first frame; a model no window sampled (a test,
+   --  the helper process) takes the host to be able to, and the operation
+   --  itself still refuses what the host cannot do.
+   --
    --  @param Model Model to inspect.
-   --  @return The sampled answer: the host has a trash folder.
+   --  @return True when the host has a trash folder (or was not sampled).
    function Trash_Available (Model : Window_Model) return Boolean;
 
    --  @param Model Model to inspect.
-   --  @return The sampled answer: permission bits can be edited.
+   --  @return True when permission bits can be edited (or the host was not
+   --    sampled).
    function Permissions_Supported (Model : Window_Model) return Boolean;
 
    --  @param Model Model to inspect.
-   --  @return The sampled answer: owner and group can be edited.
+   --  @return True when owner and group can be edited (or the host was not
+   --    sampled).
    function Ownership_Supported (Model : Window_Model) return Boolean;
 
 end Files.Model.Status_Samples;

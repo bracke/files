@@ -2,6 +2,21 @@
 --  for a case-insensitive match, and the sort key every name list orders by.
 package Files.Text_Case is
 
+   --  How paths are matched against stored ones by case
+   --  (Files.Settings.Path_References' index). Every path in one folder lies
+   --  on the folder's volume, so a caller asking about a folder's items
+   --  decides once, for the folder (Path_References.Folding_In), instead of
+   --  each lookup asking the item's volume.
+   type Path_Folding is
+     (Ask_Each_Path,
+      --  Each path as its own volume folds names: for paths from anywhere
+      --  (the Recent view), or when nobody decided for the folder.
+      Match_Exactly,
+      --  Exactly as spelled: the folder's volume tells case apart (on a
+      --  host whose every volume folds, Windows, still folded).
+      Match_Folded);
+      --  Without regard to case: the folder's volume folds names.
+
    --  Text with its ASCII letters lower-cased and every other byte kept, so
    --  UTF-8 passes through untouched: for what is ASCII by definition --
    --  tokens, keys, MIME types, extensions. Text a person reads or types

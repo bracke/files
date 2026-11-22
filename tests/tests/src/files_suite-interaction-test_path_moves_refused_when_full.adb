@@ -19,7 +19,7 @@ separate (Files_Suite.Interaction)
       Assert (Files.Settings.Loadable (Settings), "3000 labels fit");
       Files.Model.Initialize (Model, "/", Files.Items.Item_Vectors.Empty_Vector, "/");
       Files.Model.Recent.Note_Path_Move (Model, "/d", Longer);
-      Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+      Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
       Assert (not Followed, "a move the settings file cannot hold is not followed");
       Assert (Files.Settings.Path_References.Label_Of (Settings,
         "/d/f" & Integer'(1)'Image) = Files.Preference_Types.Gray,

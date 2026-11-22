@@ -18,7 +18,7 @@ with Files.IO.Fs_Primitives;
 with Files.Application.Windows;
 with Files.Application.Windows.Smoke;
 with Files_Config;
-with Files.Icon_Assets;
+with Files.Application.Icon_Assets;
 with Files.Localization;
 with Files.Operations;
 with Files.Rendering;
@@ -527,7 +527,7 @@ package body Files.Application is
    begin
       --  Serve icon definitions from the bundled .icon files (the single edit
       --  surface); Guikit.Draw falls back to its built-in copies if they are absent.
-      Files.Icon_Assets.Register;
+      Files.Application.Icon_Assets.Register;
       --  A right-to-left interface locale draws the window mirrored
       --  (Render_Window mirrors each frame, the pointer is reflected back).
       Guikit.Mirroring.Set_Mirrored_Layout (Files.Localization.Layout_Is_Right_To_Left);

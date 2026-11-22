@@ -1,5 +1,4 @@
 with Ada.Containers.Indefinite_Hashed_Maps;
-with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Files.Name_Parts;
@@ -21,10 +20,7 @@ package body Files.Paste is
 
    use Ada.Strings.Unbounded;
 
-   package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-     (Element_Type        => String,
-      Hash                => Ada.Strings.Hash,
-      Equivalent_Elements => "=");
+   package Path_Sets renames Files.Types.String_Sets;
 
    package Spelling_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,

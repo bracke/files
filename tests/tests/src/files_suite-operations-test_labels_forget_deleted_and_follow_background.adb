@@ -50,7 +50,7 @@ separate (Files_Suite.Operations)
            (Step.Status,
             Files.Operation_Results.Operation_Success,
             "deleting the file permanently succeeds" & Mode (Background));
-         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+         Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "deleting a labeled file changes the stored labels" & Mode (Background));
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Path_References.Label_Of (Settings, Gone),
@@ -69,7 +69,7 @@ separate (Files_Suite.Operations)
            (Step.Status,
             Files.Operation_Results.Operation_Success,
             "deleting the folder permanently succeeds" & Mode (Background));
-         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+         Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "deleting a labeled folder changes the stored labels" & Mode (Background));
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Path_References.Label_Of (Settings, Inner),
@@ -86,7 +86,7 @@ separate (Files_Suite.Operations)
          Step := Files.Operations.Editing.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
                                            "the rename succeeds");
-         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+         Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "the rename moves the stored label");
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Path_References.Label_Of (Settings, Renamed),
@@ -96,7 +96,7 @@ separate (Files_Suite.Operations)
          Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status, Files.Operation_Results.Operation_Success, "undoing the rename succeeds" & Mode (Background));
-         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+         Followed := Files.Controller.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "undoing the rename moves the stored label" & Mode (Background));
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Path_References.Label_Of (Settings, Kept),

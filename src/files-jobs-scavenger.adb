@@ -4,10 +4,8 @@ with Files.IO.Fs_Primitives;
 with Files.Jobs.Helper_Modes;
 with Files.Diagnostics;
 with Files.Environment;
-with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Real_Time;
 with Ada.Streams;
-with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
@@ -32,10 +30,7 @@ package body Files.Jobs.Scavenger is
    use type Hostkit.Spawn.Wait_State;
    use type Ada.Real_Time.Time;
 
-   package Reported_Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-     (Element_Type        => String,
-      Hash                => Ada.Strings.Hash,
-      Equivalent_Elements => "=");
+   package Reported_Path_Sets renames Files.Types.String_Sets;
 
    Report_Directory : Files.Types.UString;
    Report_Environment : constant String := "FILES_RECOVERY_REPORT_DIR";

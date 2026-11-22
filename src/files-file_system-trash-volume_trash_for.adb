@@ -1,8 +1,5 @@
 with Ada.Streams;
 with Files.IO.Durable_Writes;
-with Files.IO.Durability;
-with Hostkit.Durability;
-with Hostkit.Host;
 with Hostkit.Process;
 
 separate (Files.File_System.Trash)

@@ -74,16 +74,6 @@ package Files.Model.Root_Selector is
       Index : Positive)
       return String;
 
-   --  Return a root label from the selector.
-   --
-   --  @param Model Model to inspect.
-   --  @param Index One-based root index.
-   --  @return Root label or an empty string when Index is invalid.
-   function Label
-     (Model : Window_Model;
-      Index : Positive)
-      return String;
-
    --  Return a root entry from the selector, as Files.Root_Labels shows it.
    --
    --  @param Model Model to inspect.

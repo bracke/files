@@ -1,6 +1,7 @@
+with Files.Text_Case;
+with Files.Types;
 with Files.Preference_Types;
 with Ada.Containers.Indefinite_Hashed_Maps;
-with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 
 private with Hostkit.Host;
@@ -185,24 +186,7 @@ package Files.Settings.Path_References is
       Label    : Files.Preference_Types.Color_Label);
 
    --  Favorite paths, as indexed by Index_Paths.
-   package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-     (Element_Type        => String,
-      Hash                => Ada.Strings.Hash,
-      Equivalent_Elements => "=");
-
-   --  How the paths a caller asks an index about are matched. Every path in
-   --  one folder lies on the folder's volume, so a caller asking about a
-   --  folder's items decides once, for the folder (Folding_In), instead of
-   --  each lookup asking the item's volume.
-   type Path_Folding is
-     (Ask_Each_Path,
-      --  Each path as its own volume folds names: for paths from anywhere
-      --  (the Recent view), or when nobody decided for the folder.
-      Match_Exactly,
-      --  Exactly as spelled: the folder's volume tells case apart (on a
-      --  host whose every volume folds, Windows, still folded).
-      Match_Folded);
-      --  Without regard to case: the folder's volume folds names.
+   package Path_Sets renames Files.Types.String_Sets;
 
    --  How paths in Directory are matched: folded on every path on Windows,
    --  as Directory's volume folds names on macOS (a volume query, so ask once
@@ -211,7 +195,7 @@ package Files.Settings.Path_References is
    --
    --  @param Directory The folder whose items will be asked about, or "".
    --  @return The matching that folder's paths take.
-   function Folding_In (Directory : String) return Path_Folding;
+   function Folding_In (Directory : String) return Files.Text_Case.Path_Folding;
 
    --  The favorites and labels of one settings model, hashed by path so a
    --  caller that asks about many paths (one view snapshot asks once per
@@ -221,7 +205,7 @@ package Files.Settings.Path_References is
       Favorites : Path_Sets.Set;
       Labels    : Path_Label_Maps.Map;
       --  How a path asked about is matched (Index_Paths' Folding).
-      Folding   : Path_Folding := Ask_Each_Path;
+      Folding   : Files.Text_Case.Path_Folding := Files.Text_Case.Ask_Each_Path;
    end record;
 
    --  Index the favorites and labels of Settings by path.
@@ -232,7 +216,7 @@ package Files.Settings.Path_References is
    --  @return Index answering as Is_Favorite and Label_Of on Settings do.
    function Index_Paths
      (Settings : Settings_Model;
-      Folding  : Path_Folding)
+      Folding  : Files.Text_Case.Path_Folding)
       return Path_Index;
 
    --  Report whether Path is a stored favorite, as Is_Favorite on the indexed

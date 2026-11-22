@@ -22,22 +22,11 @@ begin
          Window_H : Glfw.Size := 0;
       begin
          Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
-         if Window_W > 0 and then Window_H > 0
-           and then (Runtime.Settings.Window_Width /= Natural (Window_W)
-                     or else Runtime.Settings.Window_Height /= Natural (Window_H))
-         then
-            declare
-               --  A window closing has no error line left to read it on.
-               Saved : constant Files.Settings.Settings_Write_Result :=
-                 Files.Controller.Commit_Settings
-                   (Runtime.Model, Runtime.Settings,
-                    (Runtime.Settings with delta Window_Width => Natural (Window_W),
-                                                 Window_Height => Natural (Window_H)),
-                    To_String (Runtime.Settings_Path));
-               pragma Unreferenced (Saved);
-            begin
-               null;
-            end;
+         --  A window closing has no error line left to read a failure on.
+         if Window_W > 0 and then Window_H > 0 then
+            Files.Controller.Remember_Window_Size
+              (Runtime.Model, Runtime.Settings, To_String (Runtime.Settings_Path),
+               Width => Positive (Window_W), Height => Positive (Window_H));
          end if;
       end;
    end if;

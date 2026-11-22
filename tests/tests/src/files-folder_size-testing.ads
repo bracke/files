@@ -22,4 +22,16 @@ package Files.Folder_Size.Testing is
    --  @return True when a helper is active.
    function Is_Active (Scan : Session) return Boolean;
 
+   --  Set_Targets with no listed time known for any of Paths.
+   --
+   --  @param Scan Window-owned measurements.
+   --  @param Paths Selected uncached directories.
+   procedure Set_Targets (Scan : in out Session; Paths : Path_Vectors.Vector);
+
+   --  Set_Targets with the one directory Path.
+   --
+   --  @param Scan The window's scan.
+   --  @param Path Absolute path of the directory to measure.
+   procedure Request (Scan : in out Session; Path : String);
+
 end Files.Folder_Size.Testing;

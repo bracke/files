@@ -42,7 +42,7 @@ with Files.Model;
 with Files.Model.Selection;
 with Files.Model.Rename;
 with Files.Model.History;
-with Files.Icon_Assets;
+with Files.Application.Icon_Assets;
 with Files.Operations;
 with Hostkit.Fs;
 with Hostkit.Metadata;

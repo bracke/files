@@ -1,3 +1,4 @@
+with Files.Types;
 with Files.Model.Recent;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
@@ -9,10 +10,7 @@ with Hostkit.Fs;
 with Zlib;
 with Files.Operations.Support;
 with Files.Leaf_Names;
-with Ada.Containers;
 with Files.Diagnostics;
-with Ada.Containers.Indefinite_Hashed_Sets;
-with Ada.Strings.Hash;
 with Ada.Unchecked_Deallocation;
 with Files.Operations.Undo_Recording;
 with Files.Operations.Archives.Writing;
@@ -29,10 +27,7 @@ package body Files.Operations.Archives is
    use Files.Operations.Support;
    use Files.Operations.Undo_Recording;
 
-   package Archive_Name_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-     (Element_Type        => String,
-      Hash                => Ada.Strings.Hash,
-      Equivalent_Elements => "=");
+   package Archive_Name_Sets renames Files.Types.String_Sets;
 
    type Text_Array_Access is access Zlib.Text_Array;
 

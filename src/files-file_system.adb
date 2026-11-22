@@ -202,22 +202,6 @@ package body Files.File_System is
       return Item_Load_Result
    is separate;
 
-   function Unknown_Signature (Path : String := "") return Directory_Signature
-     renames Files.File_System_Types.Unknown_Signature;
-
-   function Same_State (Left, Right : Directory_Signature) return Boolean is
-     (Left.Taken
-      and then Right.Taken
-      and then Left.Path = Right.Path
-      and then Left.Exists = Right.Exists
-      and then Left.Entry_Count = Right.Entry_Count
-      and then Left.Entry_State_Checksum = Right.Entry_State_Checksum
-      and then Left.Latest_Modified_Known = Right.Latest_Modified_Known
-      and then
-        (not Left.Latest_Modified_Known
-         or else not Right.Latest_Modified_Known
-         or else Left.Latest_Modified = Right.Latest_Modified));
-
    function Directory_State
      (Path : String)
       return Directory_Signature

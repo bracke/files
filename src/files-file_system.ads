@@ -20,22 +20,6 @@ package Files.File_System is
    subtype Directory_Item is Files.Items.Directory_Item;
    package Item_Vectors renames Files.Items.Item_Vectors;
 
-   --  The signature of a listing not read from the directory (search
-   --  results, items handed in) or one that could not be signed: the next
-   --  check of Path reads it again.
-   --
-   --  @param Path The directory it stands for.
-   --  @return A signature that was not taken.
-   function Unknown_Signature (Path : String := "") return Directory_Signature;
-
-   --  Whether two signatures were both taken and record the same state. An
-   --  unknown signature is the same as nothing, itself included.
-   --
-   --  @param Left One signature.
-   --  @param Right The other.
-   --  @return True when nothing changed between them.
-   function Same_State (Left, Right : Directory_Signature) return Boolean;
-
    --  Signature: the directory's change signature, taken while it was
    --  listed, when the load was asked for one (Load_Directory_Deferring_Thumbnails);
    --  otherwise, or when it could not be taken, one that never matches.

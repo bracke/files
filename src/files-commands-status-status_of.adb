@@ -178,7 +178,7 @@ separate (Files.Commands.Status)
             | Reset_Settings_Command =>
             return Require (Files.Model.Settings_Pane.Is_Open (Model), Settings_Closed_Reason);
          when Navigate_Trash_Command =>
-            return Require (Trash_Available (Model), Trash_Unavailable_Reason);
+            return Require (Files.Model.Status_Samples.Trash_Available (Model), Trash_Unavailable_Reason);
          when Empty_Trash_Command =>
             --  Emptying is only meaningful in the trash payload view and only
             --  when at least one trashed entry is present to purge.

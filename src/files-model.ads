@@ -1,3 +1,4 @@
+with Files.Text_Case;
 with Files.Preference_Types;
 with Files.Items;
 with Ada.Calendar;
@@ -1128,8 +1129,8 @@ private
    --  layer asked it once for that folder. Every default is the unsampled
    --  state.
    type Name_Folding_Sample is record
-      Path  : UString;
-      Folds : Boolean := False;
+      Path    : UString;
+      Folding : Files.Text_Case.Path_Folding := Files.Text_Case.Ask_Each_Path;
    end record;
 
    --  The grouping the items are ordered by: the effective mode, the labels

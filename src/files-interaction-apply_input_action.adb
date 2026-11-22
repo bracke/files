@@ -1,6 +1,5 @@
 with Files.Operations.Paste;
 with Files.Input_Actions;
-with Files.Settings.Path_References;
 separate (Files.Interaction)
    procedure Apply_Input_Action
      (Model             : in out Files.Model.Window_Model;
