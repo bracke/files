@@ -14,7 +14,7 @@ separate (Files_Suite.Search)
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
-      Search   : Files.File_System.Recursive_Search_Result;
+      Search   : Files.File_System.Search.Recursive_Search_Result;
    begin
       if not Files.File_System.Permissions.Supports_Permissions then
          Files_Suite.Support.Skip ("Test_Search_Skips_Unreadable_Folder", "this host has no POSIX permissions to set");

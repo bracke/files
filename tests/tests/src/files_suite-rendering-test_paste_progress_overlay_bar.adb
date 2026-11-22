@@ -23,7 +23,7 @@ separate (Files_Suite.Rendering)
       Snap.Paste_Progress.Total := 10;
       Snap.Paste_Progress.Name := To_Unbounded_String ("bigfile.bin");
       Layout := Calculate_Layout (Snap, Width, Height, LH);
-      Panel  := Files.Rendering.Layouts.Calculate_Paste_Progress_Layout (Layout, LH);
+      Panel  := Files.Rendering.Layouts.Dialogs.Calculate_Paste_Progress_Layout (Layout, LH);
       Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
       Expected_Fill := (Panel.Bar_Width * Snap.Paste_Progress.Done) / Snap.Paste_Progress.Total;
       Assert

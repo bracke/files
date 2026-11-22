@@ -1,3 +1,5 @@
+with Files.Rendering.Layouts.Dialogs;
+with Files.File_System.Transfer;
 with Files.Rendering.Layouts.Tree;
 with Files.Rendering.Layouts.Details;
 with Files.Rendering.Layouts.Menus;
@@ -68,6 +70,7 @@ package body Files_Suite.Rendering is
    use Files.Rendering.Layouts.Menus;
    use Files.Rendering.Layouts.Details;
    use Files.Rendering.Layouts.Tree;
+   use Files.Rendering.Layouts.Dialogs;
    use Files.Rendering.Text;
    use Guikit.Draw;
    use type Files.Commands.Command_Id;

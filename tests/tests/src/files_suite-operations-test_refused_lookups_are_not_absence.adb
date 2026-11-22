@@ -64,7 +64,7 @@ separate (Files_Suite.Operations)
       Files.IO.Fs_Primitives.Testing.Refuse_Lookups (Kept);
       declare
          Sources : Files.Types.String_Vectors.Vector;
-         Plan    : Files.File_System.Drop_Import_Result;
+         Plan    : Files.File_System.Transfer.Drop_Import_Result;
       begin
          Sources.Append (To_Unbounded_String (Join (Incoming, "kept.txt")));
          Plan := Files.File_System.Transfer.Plan_Drop_Import (Sources, Root);

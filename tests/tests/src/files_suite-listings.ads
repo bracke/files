@@ -1,3 +1,4 @@
+with Files.File_System.Search;
 with Files.File_System;
 with Files.Settings;
 
@@ -60,7 +61,7 @@ package Files_Suite.Listings is
       Query     : String;
       Settings  : Files.Settings.Settings_Model;
       Max_Items : Natural := Files.File_System.Max_Search_Results)
-      return Files.File_System.Recursive_Search_Result;
+      return Files.File_System.Search.Recursive_Search_Result;
 
    --  Files.File_System.Search.Search_Contents by Settings.
    --
@@ -72,6 +73,6 @@ package Files_Suite.Listings is
      (Root_Path : String;
       Query     : String;
       Settings  : Files.Settings.Settings_Model)
-      return Files.File_System.Recursive_Search_Result;
+      return Files.File_System.Search.Recursive_Search_Result;
 
 end Files_Suite.Listings;

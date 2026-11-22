@@ -1,3 +1,5 @@
+with Ada.Calendar;
+
 --  The system trash: moving entries there, what is in it, and putting
 --  them back. Clients with this, not the whole of Files.File_System.
 package Files.File_System.Trash is
@@ -106,5 +108,60 @@ package Files.File_System.Trash is
    --  hosts whose trash keeps no info files. Best effort: what cannot be
    --  judged or removed stays.
    procedure Remove_Orphan_Info_Files;
+
+   --  Return the trash backend selected for the current environment.
+   --
+   --  @return Backend that Move_To_Trash will use, or Trash_Unavailable.
+   function Trash_Backend_Of_Current_Environment return Trash_Backend;
+
+   --  The folders the trash view lists besides the home trash's own: the
+   --  items folder of every existing volume trash of this user (on the
+   --  mounts the root list shows, and those trashed into before).
+   --
+   --  @return Items folders, unvalidated beyond being trash bases.
+   function Volume_Trash_Item_Directories return Files.Types.String_Vectors.Vector;
+
+private
+
+   --  Evaluate native trash support for Request without deleting anything.
+   --
+   --  @param Request Native trash request metadata.
+   --  @return Native trash support result.
+   function Evaluate_Native_Trash
+     (Request : Native_Trash_Request)
+      return Native_Trash_Result;
+
+   --  Hand Request's item to the desktop's own trash (the Windows Recycle Bin
+   --  or the macOS Trash). Nothing is attempted on a build that does not
+   --  target that desktop.
+   --
+   --  @param Request Native trash request for a native backend.
+   --  @return The evaluation, with Attempted and Completed set by the attempt.
+   function Trash_Natively
+     (Request : Native_Trash_Request)
+      return Native_Trash_Result
+     with Pre => Request.Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
+
+   --  Format a timestamp for freedesktop trashinfo DeletionDate metadata.
+   --
+   --  @param Value Time value to format.
+   --  @return Local timestamp in YYYY-MM-DDTHH:MM:SS form.
+   function Trash_Deletion_Date
+     (Value : Ada.Calendar.Time)
+      return String;
+
+   --  Set only by the test suite (Files.File_System.Testing.Refuse_Native_Trash):
+   --  the desktop's own trash then refuses every item, as an unreachable
+   --  Recycle Bin would, so the refusal paths can be exercised where the
+   --  trash is reachable. The application never sets it.
+   Native_Trash_Refused : Boolean := False
+     with Atomic;
+
+   --  Set only by the test suite (Files.File_System.Testing.Trash_Says_Nowhere):
+   --  a trash that takes an item then reports no place for it, as the
+   --  Finder may, so the Undo that cannot follow it is exercised on every
+   --  host. The application never sets it.
+   Trash_Location_Withheld : Boolean := False
+     with Atomic;
 
 end Files.File_System.Trash;

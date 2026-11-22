@@ -14,7 +14,7 @@ begin
 
    case Format is
       when Zip_Archive =>
-         Files.Operations.Archive_Writing.ZIP_Files
+         Files.Operations.Archives.Writing.ZIP_Files
            (Inputs.all, Staged, Names.all, Status);
       when Seven_Zip_Archive =>
          Zlib.Seven_Zip_Deflate_Files

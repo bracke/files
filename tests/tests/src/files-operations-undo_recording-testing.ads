@@ -10,4 +10,16 @@ package Files.Operations.Undo_Recording.Testing is
    --  @return The attempts counted since Count_Undo_Records (True).
    function Undo_Records return Natural;
 
+   --  Make the batch Undo throttle (Checkpoint_Undo) read a fake clock, on
+   --  which no second ever passes between a batch's records, except that its
+   --  Advance_At'th reading (counting from one; zero for never) moves it one
+   --  second on, where it stays (Fake True); or the real clock again (False).
+   --
+   --  @param Fake Whether to use the fake clock.
+   --  @param Advance_At The reading that moves the clock one second on.
+   procedure Fake_Checkpoint_Clock (Fake : Boolean; Advance_At : Natural := 0);
+
+   --  @return How often the fake clock was read since Fake_Checkpoint_Clock.
+   function Checkpoint_Clock_Readings return Natural;
+
 end Files.Operations.Undo_Recording.Testing;

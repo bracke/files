@@ -59,7 +59,7 @@ separate (Files.File_System.Recovery)
       then
          declare
             Available : Boolean;
-            Mode : constant Natural := Permission_Bits_Of (Path, Available);
+            Mode : constant Natural := Files.File_System.Permissions.Permission_Bits_Of (Path, Available);
          begin
             if Available and then (Mode / 8#200#) mod 2 = 0 then
                Files.IO.Exclusive_Streams.Create

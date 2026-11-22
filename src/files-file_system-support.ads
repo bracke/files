@@ -8,8 +8,7 @@ with Hostkit.Metadata_Copy;
 --  copy or move against its source (Snapshot, Same_Shape, Tree_Revision,
 --  Weak_Change_Times); staging (Create_Stage); listing a folder
 --  (For_Each_Entry); and where files keeps its own data
---  (Application_Data_Directory, the volume-trash list's path) and how an
---  environment variable is read. The copy engine itself is
+--  (Application_Data_Directory). The copy engine itself is
 --  Files.File_System.Copying.
 private package Files.File_System.Support is
    use type Hostkit.Metadata_Copy.Entry_Times;
@@ -41,17 +40,6 @@ private package Files.File_System.Support is
    function Sync_Copy
      (Source, Destination : String;
       Scope               : Sync_Scope := Files_And_Folders) return Boolean;
-
-   --  Whether environment variable Name equals Expected, compared
-   --  case-insensitively.
-   --
-   --  @param Name Environment variable name.
-   --  @param Expected Value to compare against.
-   --  @return True when the variable's value equals Expected.
-   function Environment_Equals
-     (Name     : String;
-      Expected : String)
-      return Boolean;
 
    --  @param Parent Existing directory on the destination filesystem.
    --  @return Exclusively created, journaled private staging directory.
@@ -94,11 +82,6 @@ private package Files.File_System.Support is
    function Move_No_Replace_Outcome
      (Source, Destination : String)
       return Hostkit.Fs.Move_Outcome;
-
-   --  @param Outcome A refused no-replace move.
-   --  @return True when a copy and delete may stand in for the rename.
-   function Copy_May_Replace_Move (Outcome : Hostkit.Fs.Move_Outcome) return Boolean is
-     (Outcome in Hostkit.Fs.Move_Cross_Device | Hostkit.Fs.Move_Unsupported);
 
    --  Whether the change times of the filesystem holding Path cannot pin an
    --  edit: a DOS-family one (FAT, exFAT), where setting the modification
@@ -157,12 +140,6 @@ private package Files.File_System.Support is
    --
    --  @return The folder, or "" when Application_Data_Directory has no name.
    function Files_Data_Directory return String;
-
-   --  The list of remembered volume trashes in Files_Data_Directory
-   --  (Protocol_Names.Volume_Trash_List).
-   --
-   --  @return The list's path, or "" when Files_Data_Directory has no name.
-   function Volume_Trash_List_Path return String;
 
    --  A snapshot taken with Content => False, completed with the digest of a
    --  regular-file root obtained another way (as it was copied), so the root

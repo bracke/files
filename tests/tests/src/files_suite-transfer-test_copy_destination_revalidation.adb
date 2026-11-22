@@ -21,7 +21,7 @@ separate (Files_Suite.Transfer)
       Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Paths : Files.Types.String_Vectors.Vector;
-      Plans : Files.File_System.Drop_Import_Result;
+      Plans : Files.File_System.Transfer.Drop_Import_Result;
       procedure Check_Source is
       begin
          Load := Files_Suite.Listings.Load_Directory (Child, Settings);

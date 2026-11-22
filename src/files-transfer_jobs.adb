@@ -259,11 +259,11 @@ package body Files.Transfer_Jobs is
    end Apply_Replacement_Checkpoint;
 
    --  A failed result that is the cancel: its key, read as a finished job's,
-   --  names no cause of its own (Files.File_System.Transfer.Says_Only_Stopped), and
+   --  names no cause of its own (Files.File_System.Says_Only_Stopped), and
    --  no original is held.
    function Is_Cancellation_Failure (Result : Job_Result) return Boolean is
      (not Result.Mutation.Success and then Length (Result.Trashed) = 0
-      and then Files.File_System.Transfer.Says_Only_Stopped
+      and then Files.File_System.Says_Only_Stopped
         (To_String (Result.Mutation.Error_Key), Files.File_System.Finished_Job));
 
    procedure Start
@@ -292,7 +292,7 @@ package body Files.Transfer_Jobs is
          if Length (Result.Trashed) > 0
            --  Read as a step's: a held original that a stop left held is
            --  what the user must learn, whatever stopped it.
-           and then Files.File_System.Transfer.Says_Only_Stopped
+           and then Files.File_System.Says_Only_Stopped
              (To_String (Result.Mutation.Error_Key), Files.File_System.Copy_Step)
          then
             Result.Mutation.Error_Key := To_Unbounded_String ("error.trash.restore_failed");
@@ -397,7 +397,7 @@ package body Files.Transfer_Jobs is
 
       --  The helper's one cancellation check. Import_Replacing is not handed
       --  it, but stops for the same marker through its default Cancel
-      --  (Files.File_System.Transfer.Job_Cancelled, which is this function).
+      --  (Files.File_System.Job_Cancelled, which is this function).
       function Cancelled return Boolean renames Files.Jobs.Context.Cancelled;
 
       procedure Save is

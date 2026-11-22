@@ -1,3 +1,6 @@
+with Files.File_System.Roots;
+with Files.File_System.Trash.Testing;
+with Files.File_System.Transfer.Testing;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Streams.Stream_IO;
@@ -325,12 +328,12 @@ package body Files.File_System.Testing is
 
    procedure Refuse_Native_Trash (Refuse : Boolean) is
    begin
-      Native_Trash_Refused := Refuse;
+      Files.File_System.Trash.Testing.Refuse_Native_Trash (Refuse);
    end Refuse_Native_Trash;
 
    procedure Trash_Says_Nowhere (Withhold : Boolean) is
    begin
-      Trash_Location_Withheld := Withhold;
+      Files.File_System.Trash.Testing.Withhold_Trash_Location (Withhold);
    end Trash_Says_Nowhere;
 
    function Execute_Native_Trash
@@ -348,7 +351,7 @@ package body Files.File_System.Testing is
          return Evaluation;
       end if;
 
-      Mutation := Move_To_Trash (To_String (Request.Path));
+      Mutation := Files.File_System.Trash.Move_To_Trash (To_String (Request.Path));
       return
         (Supported => True,
          Attempted => True,
@@ -388,7 +391,7 @@ package body Files.File_System.Testing is
    end Trash_Capabilities_Of_Current_Environment;
 
    function Root_Discovery_Status return Root_Discovery_Diagnostics is
-      Entries : constant Root_Entry_Vectors.Vector := Available_Root_Entries;
+      Entries : constant Root_Entry_Vectors.Vector := Files.File_System.Roots.Available_Root_Entries;
       Result  : Root_Discovery_Diagnostics :=
         (Root_Count              => Natural (Entries.Length),
          Removable_Count         => 0,
@@ -420,7 +423,7 @@ package body Files.File_System.Testing is
    end Root_Discovery_Status;
 
    function Available_Roots return Files.Types.String_Vectors.Vector is
-      Entries : constant Root_Entry_Vectors.Vector := Available_Root_Entries;
+      Entries : constant Root_Entry_Vectors.Vector := Files.File_System.Roots.Available_Root_Entries;
       Roots   : Files.Types.String_Vectors.Vector;
    begin
       for Root of Entries loop
@@ -440,33 +443,29 @@ package body Files.File_System.Testing is
      renames Files.File_System.Storable_Leaf_Name_At;
 
    function Trash_Backend_Of_Current_Environment return Trash_Backend
-     renames Files.File_System.Trash_Backend_Of_Current_Environment;
+     renames Files.File_System.Trash.Trash_Backend_Of_Current_Environment;
 
    function Evaluate_Native_Trash
      (Request : Native_Trash_Request)
       return Native_Trash_Result
-     renames Files.File_System.Evaluate_Native_Trash;
+     renames Files.File_System.Trash.Testing.Evaluate_Native_Trash;
 
    function Trash_Natively
      (Request : Native_Trash_Request)
       return Native_Trash_Result
-     renames Files.File_System.Trash_Natively;
+     renames Files.File_System.Trash.Testing.Trash_Natively;
 
    function Trash_Deletion_Date
      (Value : Ada.Calendar.Time)
       return String
-     renames Files.File_System.Trash_Deletion_Date;
+     renames Files.File_System.Trash.Testing.Trash_Deletion_Date;
 
    function Execute_Drop_Import
-     (Plans  : Drop_Import_Plan_Vectors.Vector;
-      Cancel : Cancellation_Check := Files.File_System.Transfer.Job_Cancelled;
+     (Plans  : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
+      Cancel : Cancellation_Check := Files.File_System.Job_Cancelled;
       Batch  : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result
-   is
-      Created : Created_Entry_Vectors.Vector;
-   begin
-      return Files.File_System.Execute_Drop_Import (Plans, Created, Cancel, Batch);
-   end Execute_Drop_Import;
+   renames Files.File_System.Transfer.Testing.Execute_Drop_Import;
 
    function Path_Is_Within
      (Child, Parent : String;

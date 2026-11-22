@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files.File_System;
 with Files.Model.Recent;
 with Files.File_System.Trash;
@@ -38,7 +39,7 @@ package body Files.Operations.Paste is
    is separate;
 
    function Paste_Work_List
-     (Plans     : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+     (Plans     : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
       Directory : String)
       return Files.Paste.Work_Item_Vectors.Vector
    is separate;

@@ -1,3 +1,4 @@
+with Files.Operations.Undo_Recording;
 with Files.File_System;
 with Files.Model.Recent;
 with Files.File_System.Trash;
@@ -15,6 +16,7 @@ package body Files.Operations.Trash is
    use Ada.Strings.Unbounded;
    use type Files.Undo.History.Undo_Action_Kind;
    use Files.Operations.Support;
+   use Files.Operations.Undo_Recording;
 
    function Delete_Selected
      (Model    : in out Files.Model.Window_Model;

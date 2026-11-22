@@ -1,3 +1,4 @@
+with Files.File_System.Transfer;
 with Files.File_System_Types;
 with Files.Controller.Operation_Commands;
 with Files.Operations;

@@ -1,10 +1,8 @@
 with Ada.Strings.Unbounded;
-with Ada.Real_Time;
 
 with Files.Items;
 with Files.Model;
 with Files.Settings;
-with Files.Undo.History;
 
 --  Internal helpers shared by the Files.Operations subunits (one per operation).
 --  A private child so only the Files.Operations hierarchy can see it; the public
@@ -82,13 +80,6 @@ private package Files.Operations.Support is
    --  @return Disabled with that message, or Operation_Success.
    function Real_Selection_Refusal (Model : in out Files.Model.Window_Model) return Operation_Result;
 
-   --  Whether Executable names something this host will actually run: an
-   --  on-PATH command, or a path that is a regular executable file.
-   --
-   --  @param Executable Executable name to look up, or a path to a file.
-   --  @return True when it resolves to a runnable executable.
-   function Executable_Is_Available (Executable : String) return Boolean;
-
    --  Reload the model's current directory, optionally selecting Select_Name or
    --  restoring the complete current selection, and refresh its signature.
    --
@@ -144,101 +135,6 @@ private package Files.Operations.Support is
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
       Items    : Files.Items.Item_Vectors.Vector);
-
-   --  The Undo entry of a batch (duplicate, extract, trash) that grows with
-   --  it, so a batch stopped part way -- by a failure, a cancel, or a crash
-   --  of the helper running it -- still undoes what it did. The batch
-   --  appends each item it completes to the vectors and calls
-   --  Checkpoint_Undo; once it ends, however it ends, it calls Finish_Undo.
-   --
-   --  Each record rewrites the whole Undo entry and the history journal, so
-   --  one per item made a large batch quadratic, with a journal write per
-   --  item. Checkpoint_Undo records the first item at once (an Undo exists
-   --  from the start) and then at most once a second; a crash so loses only
-   --  the last second's items from Undo, which stay where the batch put them
-   --  (copies beside their sources, trashed items in the trash).
-   --  Finish_Undo records whatever Checkpoint_Undo left out, so the entry a
-   --  batch ends with covers all of it. A record attempt that keeps nothing
-   --  (no member could be verified, as when something else touched every
-   --  copy) is throttled the same way: it is retried at Finish_Undo, not on
-   --  every item.
-   type Progressive_Undo is record
-      --  How the entry is recorded, as for Try_Record_Undo.
-      Kind        : Files.Undo.History.Undo_Action_Kind := Files.Undo.History.Undo_Delete_Created;
-      Create_Kind : Files.Undo.History.Undo_Create_Kind := Files.Undo.History.Create_None;
-      Redoable    : Boolean := False;
-      --  Whether each record also commits the history journal durably
-      --  (Files.Undo.Journal.Save, Must_Commit), stopping a helper that
-      --  cannot.
-      Durable : Boolean := False;
-      --  The batch appends an item for each entry it made, Published; once a
-      --  record admitted them all, they are Verified (Try_Record_Undo).
-      Items : Files.Undo.History.Recorded_Item_Vectors.Vector;
-      --  Kept by Checkpoint_Undo and Finish_Undo: whether the top Undo entry
-      --  is this batch's, whether a record was attempted, how many From
-      --  members the last attempt covered, and when the last attempt was.
-      Recorded        : Boolean := False;
-      Attempted       : Boolean := False;
-      Attempted_Count : Natural := 0;
-      Last_Checkpoint : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
-   end record;
-
-   --  Record Progress after an item was appended: at once for the first
-   --  record, then once a second has passed since the last.
-   --
-   --  @param Model Model whose history is updated.
-   --  @param Progress The batch's entry so far.
-   procedure Checkpoint_Undo
-     (Model    : in out Files.Model.Window_Model;
-      Progress : in out Progressive_Undo);
-
-   --  How a batch's Undo ended up.
-   --    * Undo_Covered: the batch's entry is recorded (members that could
-   --      not be verified are left out of it), or it appended nothing.
-   --    * Undo_Unavailable: it appended items but no entry could be
-   --      recorded. The batch's work stands, so it still succeeds, but with
-   --      the "undo.unavailable" notice rather than a silent missing Undo.
-   type Undo_Outcome is (Undo_Covered, Undo_Unavailable);
-
-   --  The notice a batch whose Undo is unavailable shows.
-   Undo_Unavailable_Notice : constant String := "undo.unavailable";
-
-   --  The notice a trash batch shows when a native trash took an item
-   --  without saying where it went, so Undo cannot bring that one back.
-   Untracked_Trash_Notice : constant String := "undo.partial";
-
-   --  Record whatever Checkpoint_Undo left out, so the entry covers every
-   --  item appended. A record that raises propagates, so a batch that
-   --  otherwise succeeded reports the failure rather than an Undo it does not
-   --  have; a record that keeps nothing is reported as Undo_Unavailable.
-   --
-   --  @param Model Model whose history is updated.
-   --  @param Progress The batch's entry.
-   --  @return Whether the batch has its Undo.
-   function Finish_Undo
-     (Model    : in out Files.Model.Window_Model;
-      Progress : in out Progressive_Undo) return Undo_Outcome;
-
-   --  Show Notice once a batch's Undo turned out unavailable, after the
-   --  reload a successful batch ends with (which clears notices).
-   --
-   --  @param Model Window that shows the notice.
-   --  @param Outcome The batch's Finish_Undo outcome.
-   --  @param Result The batch's result; only a success is given the notice.
-   procedure Note_Undo_Outcome
-     (Model   : in out Files.Model.Window_Model;
-      Outcome : Undo_Outcome;
-      Result  : Operation_Result);
-
-   --  Finish_Undo for a batch that has already failed: a record that fails
-   --  (raises or keeps nothing) is noted, and the batch's own failure is
-   --  what the caller reports.
-   --
-   --  @param Model Window whose Undo history holds the batch's entry.
-   --  @param Progress The batch's entry so far.
-   procedure Finish_Failed_Undo
-     (Model    : in out Files.Model.Window_Model;
-      Progress : in out Progressive_Undo);
 
    --  Put a staged file or folder at Target, as Files.File_System.Transfer.Publish_Staged
    --  does: never over an entry already there, flushed before and named

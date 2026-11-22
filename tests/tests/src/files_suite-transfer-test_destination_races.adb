@@ -11,7 +11,7 @@ separate (Files_Suite.Transfer)
       Current : Entry_Kind;
       Created : Boolean;
       Checks  : Natural;
-      Plans   : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+      Plans   : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
       Result  : Files.File_System.Mutation_Result;
 
       function Race return Boolean is
@@ -38,7 +38,7 @@ separate (Files_Suite.Transfer)
             Created := True;
             Checks := 0;
             Plans.Clear;
-            Plans.Append (Files.File_System.Drop_Import_Plan'
+            Plans.Append (Files.File_System.Transfer.Drop_Import_Plan'
                             (To_Unbounded_String (Source), To_Unbounded_String (Dest), Mode, True,
                              Null_Unbounded_String));
             Result := Files.File_System.Testing.Execute_Drop_Import (Plans, Race'Unrestricted_Access);

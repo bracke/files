@@ -70,7 +70,7 @@ separate (Files_Suite.Transfer)
          Reset_Root;
          declare
             Paths    : Files.Types.String_Vectors.Vector;
-            Plans    : Files.File_System.Drop_Import_Result;
+            Plans    : Files.File_System.Transfer.Drop_Import_Result;
             Moved    : Files.File_System.Mutation_Result;
          begin
             Leaf := To_Unbounded_String (Source);

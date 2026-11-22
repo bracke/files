@@ -55,7 +55,7 @@ separate (Files_Suite.Trash)
       if Hostkit.Fs.Create_Link (Join (Root, "missing-target"), Link) then
          declare
             Identity : constant String := Files.File_Identities.Token (Link);
-            Planned : Files.File_System.Drop_Import_Result;
+            Planned : Files.File_System.Transfer.Drop_Import_Result;
             Sources : Files.Types.String_Vectors.Vector;
             Output  : constant String := Join (Root, "link-copies");
          begin

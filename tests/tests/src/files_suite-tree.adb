@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Dialogs;
 with Files.File_System_Types;
 with Files.Controller.Testing;
 with Files.Items;

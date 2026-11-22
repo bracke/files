@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Dialogs;
 with Files.Rendering.Layouts.Tree;
 with Files.Rendering.Layouts.Details;
 with Files.Rendering.Layouts.Menus;
@@ -17,6 +18,7 @@ package Files.Rendering.Hit is
    use Files.Rendering.Layouts.Menus;
    use Files.Rendering.Layouts.Details;
    use Files.Rendering.Layouts.Tree;
+   use Files.Rendering.Layouts.Dialogs;
 
    --  Whether a window coordinate is on the main view. The folder tree and
    --  the info pane sit beside it, so its rectangle is all of it.

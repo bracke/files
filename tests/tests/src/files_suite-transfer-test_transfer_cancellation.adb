@@ -5,7 +5,7 @@ separate (Files_Suite.Transfer)
       pragma Unreferenced (T);
       Source : constant String := Join (Root, "chunk-source");
       Dest   : constant String := Join (Root, "chunk-dest");
-      Plans  : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+      Plans  : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
       Result : Files.File_System.Mutation_Result;
       Checks : Natural := 0;
 
@@ -23,7 +23,7 @@ separate (Files_Suite.Transfer)
       Reset_Root;
       Write_Binary_File (Source, [1 .. 262_144 => 'x']);
       Plans.Append
-        (Files.File_System.Drop_Import_Plan'
+        (Files.File_System.Transfer.Drop_Import_Plan'
            (Source_Path      => To_Unbounded_String (Source),
             Destination_Path => To_Unbounded_String (Dest),
             Mode             => Files.File_System_Types.Drop_Copy,
@@ -44,7 +44,7 @@ separate (Files_Suite.Transfer)
          "collision cleanup never removes unrelated data");
       Plans.Clear;
       Plans.Append
-        (Files.File_System.Drop_Import_Plan'
+        (Files.File_System.Transfer.Drop_Import_Plan'
            (Source_Path      => To_Unbounded_String (Source),
             Destination_Path => To_Unbounded_String (Source),
             Mode             => Files.File_System_Types.Drop_Copy,
@@ -57,7 +57,7 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Delete_File (Dest);
       Plans.Clear;
       Plans.Append
-        (Files.File_System.Drop_Import_Plan'
+        (Files.File_System.Transfer.Drop_Import_Plan'
            (Source_Path      => To_Unbounded_String (Source),
             Destination_Path => To_Unbounded_String (Dest),
             Mode             => Files.File_System_Types.Drop_Move,

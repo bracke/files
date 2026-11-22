@@ -44,7 +44,7 @@ separate (Files_Suite.Rendering)
       Layout := Calculate_Layout (Snap, Compact_W, Compact_H, LH);
       declare
          Panel : constant Paste_Progress_Layout :=
-           Files.Rendering.Layouts.Calculate_Paste_Progress_Layout (Layout, LH);
+           Files.Rendering.Layouts.Dialogs.Calculate_Paste_Progress_Layout (Layout, LH);
          Frame : constant Frame_Commands :=
            Build_Frame_Commands (Snap, Compact_W, Compact_H, LH);
       begin

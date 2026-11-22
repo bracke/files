@@ -10,7 +10,7 @@ separate (Files_Suite.Transfer)
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Sources  : Files.Types.String_Vectors.Vector;
-      Plans    : Files.File_System.Drop_Import_Result;
+      Plans    : Files.File_System.Transfer.Drop_Import_Result;
       Mutation : Files.File_System.Mutation_Result;
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;

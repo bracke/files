@@ -30,8 +30,10 @@ package Files.Commands.Status is
 
    --  What the host offers, as the window layer sampled it into the model
    --  (Files.Model.Status_Samples.Set_Host), so a snapshot built on every
-   --  change asks the host nothing; asked of the host only for a model no
-   --  window sampled (a test, the helper process).
+   --  change asks the host nothing. A window samples it before its first
+   --  frame; a model no window sampled (a test, the helper process) takes
+   --  the host to be able to, and the operation itself still refuses what
+   --  the host cannot do.
    --
    --  @param Model Current window model.
    --  @return True when the host has a trash folder to go to.

@@ -15,6 +15,14 @@ package body Files.Operations.Opening is
    use type Files.Types.Item_Kind;
    use Files.Operations.Support;
 
+   --  Whether Executable names something this host will actually run: an
+   --  on-PATH command, or a path that is a regular executable file.
+   --
+   --  @param Executable Executable name to look up, or a path to a file.
+   --  @return True when it resolves to a runnable executable.
+   function Executable_Is_Available (Executable : String) return Boolean is
+     (Hostkit.Process.Is_Runnable (Executable));
+
    function Unsafe_Open_Action
      (Model : in out Files.Model.Window_Model;
       Path  : String)

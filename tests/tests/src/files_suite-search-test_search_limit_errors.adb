@@ -13,7 +13,7 @@ separate (Files_Suite.Search)
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operation_Results.Operation_Result;
       Child : Unbounded_String;
-      Search : Files.File_System.Recursive_Search_Result;
+      Search : Files.File_System.Search.Recursive_Search_Result;
    begin
       Reset_Root;
       Child := To_Unbounded_String (Root);

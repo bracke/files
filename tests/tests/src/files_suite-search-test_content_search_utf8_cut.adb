@@ -17,7 +17,7 @@ separate (Files_Suite.Search)
       Lead     : constant Character := Zhe (Zhe'First);
       Read_Cap : constant := 64 * 1024;
       Text     : String (1 .. Read_Cap + 20) := [others => 'a'];
-      Search   : Files.File_System.Recursive_Search_Result;
+      Search   : Files.File_System.Search.Recursive_Search_Result;
    begin
       --  Folding keeps a stray byte and folds what surrounds it.
       Files_Suite.Support.Assert_Equal

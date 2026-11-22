@@ -1,3 +1,4 @@
+with Files.Commands.Keymap_Settings;
 with Files.Operations.Navigation;
 with Files.Operations.Opening;
 with Files.Operations.Metadata;
@@ -179,19 +180,29 @@ package body Files.Controller is
       Settings_Path : String)
       return Files.Settings.Settings_Write_Result
    is
-      Before   : constant Files.Settings.Settings_Model := Settings;
+      use type Files.Settings.Shortcut_Override_Vectors.Vector;
       Taken_In : Boolean;
-      Saved    : constant Files.Settings.Settings_Write_Result :=
-        Files.Settings.Storage.Persist (Settings_Path, Settings, Taken_In);
    begin
-      if Taken_In then
-         Take_In_Settings (Model, Before, Settings);
-         Files.Model.Note_Settings_Changed (Model);
-      end if;
-      if not Saved.Success or else not Saved.Durable then
-         Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
-      end if;
-      return Saved;
+      --  The live keymap is what the file is to hold of the shortcuts; a
+      --  rebind another process saved meanwhile is put in force here.
+      Files.Commands.Keymap_Settings.Store_Shortcut_Overrides (Settings);
+      declare
+         Before : constant Files.Settings.Settings_Model := Settings;
+         Saved  : constant Files.Settings.Settings_Write_Result :=
+           Files.Settings.Storage.Persist (Settings_Path, Settings, Taken_In);
+      begin
+         if Taken_In and then Settings.Shortcut_Overrides /= Before.Shortcut_Overrides then
+            Files.Commands.Keymap_Settings.Apply_Shortcut_Overrides (Settings);
+         end if;
+         if Taken_In then
+            Take_In_Settings (Model, Before, Settings);
+            Files.Model.Note_Settings_Changed (Model);
+         end if;
+         if not Saved.Success or else not Saved.Durable then
+            Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
+         end if;
+         return Saved;
+      end;
    end Persisted;
 
    --  What a settings commit did: the write's result, and whether Updated

@@ -1,3 +1,5 @@
+with Ada.Calendar;
+with Files.File_System.Permissions;
 with Files.Types;
 with Files.IO.Fs_Primitives;
 with Files.Timing;
@@ -30,6 +32,11 @@ with Files.Name_Parts;
 with Files.Text_Basics;
 
 package body Files.File_System.Recovery is
+
+   --  @param Outcome A refused no-replace move.
+   --  @return True when a copy and delete may stand in for the rename.
+   function Copy_May_Replace_Move (Outcome : Hostkit.Fs.Move_Outcome) return Boolean is
+     (Outcome in Hostkit.Fs.Move_Cross_Device | Hostkit.Fs.Move_Unsupported);
 
    --  Remove a copied move's source atomically before recursive cleanup.
    --  @param Path Source whose complete destination copy has been published.

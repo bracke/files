@@ -3,8 +3,6 @@ with Hostkit.Fs;
 with Files.IO.Fs_Primitives;
 with Ada.Strings.Unbounded;
 
-with Files.Commands.Keymap_Settings;
-
 package body Files.Settings.Storage is
 
    use Ada.Strings.Unbounded;
@@ -53,7 +51,6 @@ package body Files.Settings.Storage is
       Settings      : in out Settings_Model)
       return Settings_Write_Result
    is
-      use type Shortcut_Override_Vectors.Vector;
       Merged, Refused : Boolean;
    begin
       if Settings.Persistence_Refused then
@@ -65,7 +62,6 @@ package body Files.Settings.Storage is
       elsif Settings_Path = "" then
          return (Success => True, Durable => True, Path => Null_Unbounded_String, Error_Key => Null_Unbounded_String);
       end if;
-      Files.Commands.Keymap_Settings.Store_Shortcut_Overrides (Settings);
       declare
          Own : constant Settings_Model := Settings;
       begin
@@ -80,8 +76,6 @@ package body Files.Settings.Storage is
             if not Loadable (Settings) then
                Settings := Own;
                return Full_Result (Settings_Path);
-            elsif Settings.Shortcut_Overrides /= Own.Shortcut_Overrides then
-               Files.Commands.Keymap_Settings.Apply_Shortcut_Overrides (Settings);
             end if;
          end if;
       end;

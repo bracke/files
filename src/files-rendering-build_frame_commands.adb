@@ -1,4 +1,5 @@
 with Files.Rendering.Layouts.Tree;
+with Files.Rendering.Layouts.Dialogs;
 with Files.Extension_Labels;
 with Guikit.List_Panel;
 
@@ -15,6 +16,7 @@ separate (Files.Rendering)
    is
       --  The draw model the frame is made of, for this body and its subunits.
       use Guikit.Draw;
+      use Files.Rendering.Layouts.Dialogs;
 
       --  The pointer's parts by their own names, as the drawing reads them.
       Hover_X         : Natural renames Pointer.Hover_X;

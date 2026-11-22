@@ -1,3 +1,4 @@
+with Files.Application.Window_Polls;
 with Files.Settings.Storage;
 with Files.Commands.Keymap_Settings;
 with Files.File_System_Types;
@@ -409,6 +410,9 @@ package body Files.Application is
                            --  and every startup folder was read again for nothing.
                            Files.Model.Set_Directory_Signature (Window.Model, Load.Signature);
                            Files.Operations.Settle_Current_Is_Trash (Window.Model);
+                           --  What the host can do, before the first frame shows a
+                           --  command or an editor that depends on it.
+                           Files.Application.Window_Polls.Sample_Host (Window.Model);
                            Apply_Persisted_UI_State (Window.Model, Settings);
                            --  As on navigation, missing thumbnails are made by a
                            --  background listing, which the window's first poll launches.

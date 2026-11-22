@@ -24,14 +24,15 @@ is
    --  so the view lists the records' items under their original names
    --  instead of the folder's own entries (which are still what is signed).
    Recycle_Bin : constant Boolean :=
-     Trash_Backend_Of_Current_Environment = Trash_Windows_Recycle_Bin and then Is_Trash_Files_Directory (Path);
+     Trash.Trash_Backend_Of_Current_Environment = Trash_Windows_Recycle_Bin
+     and then Trash.Is_Trash_Files_Directory (Path);
 
    --  A freedesktop trash's files/ (the home trash's, with every volume's
    --  added below): its payloads are named for the trash ("notes.txt.2",
    --  a long name cut), so the view lists each under the name it had, as
    --  its .trashinfo records it, and its type and icon follow that name.
    --  Everything done to it still addresses the payload's own path.
-   Trash_View : constant Boolean := not Recycle_Bin and then Is_Trash_Files_Directory (Path);
+   Trash_View : constant Boolean := not Recycle_Bin and then Trash.Is_Trash_Files_Directory (Path);
 
    --  List the entry at Full under Name, Normalized_Path being its folder.
    procedure Add_Named (Name : String; Full : String);
@@ -39,7 +40,7 @@ is
    --  The name a trash payload at Full had, or Name when its record does
    --  not say (the macOS home trash keeps none).
    function Shown_Name (Name : String; Full : String) return String is
-      Original : constant String := Trash_Original_Path (Full);
+      Original : constant String := Trash.Trash_Original_Path (Full);
       Leaf     : constant String := (if Original = "" then "" else Files.Name_Parts.Leaf_Of (Original));
    begin
       return (if Leaf = "" then Name else Leaf);
@@ -154,10 +155,10 @@ begin
       Normalized_Path := To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Path));
    --  The trash view is the home trash and every volume's trash together:
    --  an item trashed on a USB stick stays there, and is listed here.
-   elsif Is_Trash_Files_Directory (Path) then
-      for Base of Volume_Trash_Bases loop
+   elsif Trash.Is_Trash_Files_Directory (Path) then
+      for Items_Directory of Trash.Volume_Trash_Item_Directories loop
          declare
-            Volume_Files : constant String := Trash_Items_Directory (To_String (Base));
+            Volume_Files : constant String := To_String (Items_Directory);
          begin
             Normalized_Path := To_Unbounded_String (Files.IO.Fs_Primitives.Full_Name (Volume_Files));
             Support.For_Each_Entry (Volume_Files, Add_Entry'Access);

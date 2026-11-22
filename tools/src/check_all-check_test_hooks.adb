@@ -12,9 +12,9 @@ separate (Check_All)
       Override_Text : constant String := "FILES_TRASH_BACKEND";
       Hooks : constant Project_Tools.Files.Path_List :=
         [To_Unbounded_String (Root & "/src/files-file_system-support.adb"),
-         To_Unbounded_String (Root & "/src/files-file_system-volume_trash_supported.adb"),
-         To_Unbounded_String (Root & "/src/files-file_system-volume_trash_bases.adb")];
-      Override_Home : constant String := Root & "/src/files-file_system-trash_location_for_environment.adb";
+         To_Unbounded_String (Root & "/src/files-file_system-trash-volume_trash_supported.adb"),
+         To_Unbounded_String (Root & "/src/files-file_system-trash-volume_trash_bases.adb")];
+      Override_Home : constant String := Root & "/src/files-file_system-trash-trash_location_for_environment.adb";
       Override_Homes : constant Project_Tools.Files.Path_List := [1 => To_Unbounded_String (Override_Home)];
 
       --  The literal value every known string name stands for: one a unit

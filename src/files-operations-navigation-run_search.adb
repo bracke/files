@@ -24,7 +24,7 @@ begin
    end;
 
    declare
-      Found : constant Files.File_System.Recursive_Search_Result :=
+      Found : constant Files.File_System.Search.Recursive_Search_Result :=
         (if Scope = Files.UI_Types.Search_Contents
          then Files.File_System.Search.Search_Contents (Root, Query, Classes, Options)
          else Files.File_System.Search.Search_Names (Root, Query, Classes, Options));

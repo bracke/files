@@ -1,3 +1,4 @@
+with Files.UI_Types;
 with Ada.Containers;
 with Ada.Strings;
 with Ada.Strings.Unbounded;
@@ -109,18 +110,6 @@ package body Files.Rendering.Layouts is
       return Positive
  is separate;
 
-   function Calculate_Paste_Progress_Layout
-     (Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Paste_Progress_Layout
-   is separate;
-
-   function Calculate_Conflict_Dialog_Layout
-     (Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Conflict_Dialog_Layout
- is separate;
-
    procedure Marquee_Rect
      (Start_X   : Natural;
       Start_Y   : Natural;
@@ -158,36 +147,12 @@ package body Files.Rendering.Layouts is
       return Command_Palette_Layout
  is separate;
 
-   procedure Titled_Panel_Title
-     (Panel_X, Panel_Y, Panel_W : Natural;
-      Line_Height               : Positive;
-      Title_X, Title_Y, Title_W : out Natural)
- is separate;
-
-   function Calculate_Quick_Look_Layout
-     (Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Quick_Look_Layout
-   is separate;
-
-   function Calculate_Label_Picker_Layout
-     (Layout      : Layout_Metrics;
-      Line_Height : Positive)
-      return Label_Picker_Layout
-   is separate;
-
    function Calculate_Root_Selector_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
       Line_Height : Positive)
       return Root_Selector_Layout
    is separate;
-
-   function Calculate_Root_Path_Layout
-     (Snapshot : View_Snapshot;
-      Layout   : Root_Selector_Layout)
-      return Root_Path_Layout_Vectors.Vector
- is separate;
 
    function Path_Favorite_Star_Region
      (Width       : Natural;

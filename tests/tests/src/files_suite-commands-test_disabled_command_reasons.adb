@@ -62,6 +62,13 @@ separate (Files_Suite.Commands)
       Assert (Files.Commands.Status.Status_Of (Files.Commands.Navigate_Recent_Command, Model).Enabled,
               "the recent view stays reachable");
 
+      --  A model no window sampled (a test's, the helper's) takes the host to
+      --  be able to; the operations still refuse what it cannot do.
+      Assert (Files.Commands.Status.Trash_Available (Model)
+              and then Files.Commands.Status.Permissions_Supported (Model)
+              and then Files.Commands.Status.Ownership_Supported (Model),
+              "an unsampled host is taken to be able to");
+
       --  What the host offers is read from the window's sample once there
       --  is one: a build asks the host nothing.
       Files.Model.Status_Samples.Set_Host

@@ -1,0 +1,80 @@
+separate (Files.Rendering.Layouts.Dialogs)
+   function Calculate_Conflict_Dialog_Layout
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Conflict_Dialog_Layout
+   is
+      Pad        : constant Natural := Dialog_Padding (Line_Height);
+      Width      : constant Natural := Dialog_Box_Width (Layout, Line_Height);
+      Desired_Message_H : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Desired_Apply_H   : constant Natural := Line_Height;
+      Desired_Button_H  : constant Natural := Guikit.Layout.Saturating_Add (Line_Height, Pad);
+      Desired_Height    : constant Natural :=
+        Guikit.Layout.Saturating_Add
+          (Saturating_Multiply (Pad, 4),
+           Guikit.Layout.Saturating_Add
+             (Desired_Message_H,
+              Guikit.Layout.Saturating_Add (Desired_Apply_H, Desired_Button_H)));
+      Height     : constant Natural := Natural'Min (Layout.Height, Desired_Height);
+      X          : constant Natural := Centered (Layout.Width, Width);
+      Y          : constant Natural := Centered (Layout.Height, Height);
+      Base_Content_H : constant Natural :=
+        Guikit.Layout.Saturating_Add
+          (Desired_Message_H,
+           Guikit.Layout.Saturating_Add (Desired_Apply_H, Desired_Button_H));
+      Gap : constant Natural :=
+        (if Height > Base_Content_H
+         then Natural'Min (Pad, (Height - Base_Content_H) / 4)
+         else 0);
+      Button_H : constant Natural :=
+        (if Height >= Base_Content_H
+         then Desired_Button_H
+         else Natural'Min (Desired_Button_H, Height / 3));
+      Apply_H : constant Natural :=
+        (if Height >= Base_Content_H
+         then Desired_Apply_H
+         else Natural'Min (Desired_Apply_H, (Height - Button_H) / 2));
+      Message_H : constant Natural :=
+        (if Height >= Base_Content_H
+         then Desired_Message_H
+         else Height - Button_H - Apply_H);
+      Message_Y : constant Natural := Guikit.Layout.Saturating_Add (Y, Gap);
+      Apply_Y   : constant Natural :=
+        Guikit.Layout.Saturating_Add (Message_Y, Guikit.Layout.Saturating_Add (Message_H, Gap));
+      Button_Y  : constant Natural :=
+        Guikit.Layout.Saturating_Add (Apply_Y, Guikit.Layout.Saturating_Add (Apply_H, Gap));
+      Side_Pad : constant Natural := Natural'Min (Pad, Width / 2);
+      Apply_W  : constant Natural := Width - Saturating_Multiply (Side_Pad, 2);
+      Button_Gap : constant Natural :=
+        (if Width > 4 then Natural'Min (Pad, (Width - 4) / 5) else 0);
+      Inner_Buttons : constant Natural :=
+        Width - Saturating_Multiply (Button_Gap, 5);
+      Button_W   : constant Natural := Inner_Buttons / 4;
+      Button_Step : constant Natural := Guikit.Layout.Saturating_Add (Button_W, Button_Gap);
+   begin
+      return
+        (X             => X,
+         Y             => Y,
+         Width         => Width,
+         Height        => Height,
+         Message_X      => Guikit.Layout.Saturating_Add (X, Side_Pad),
+         Message_Y      => Message_Y,
+         Message_Width  => Apply_W,
+         Message_Height => Message_H,
+         Apply_X       => Guikit.Layout.Saturating_Add (X, Side_Pad),
+         Apply_Y       => Apply_Y,
+         Apply_Width   => Apply_W,
+         Apply_Height  => Apply_H,
+         Button_Y      => Button_Y,
+         Button_Height => Button_H,
+         Replace_X     => Guikit.Layout.Saturating_Add (X, Button_Gap),
+         Skip_X        => Guikit.Layout.Saturating_Add (X, Guikit.Layout.Saturating_Add (Button_Gap, Button_Step)),
+         Rename_X      =>
+           Guikit.Layout.Saturating_Add
+             (X, Guikit.Layout.Saturating_Add (Button_Gap, Saturating_Multiply (Button_Step, 2))),
+         Cancel_X      =>
+           Guikit.Layout.Saturating_Add
+             (X, Guikit.Layout.Saturating_Add (Button_Gap, Saturating_Multiply (Button_Step, 3))),
+         Button_Width  => Button_W,
+         Close_Button  => Panel_Close_Button (X, Y, Width, Height, Line_Height));
+   end Calculate_Conflict_Dialog_Layout;

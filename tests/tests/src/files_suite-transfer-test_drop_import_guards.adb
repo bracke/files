@@ -5,7 +5,7 @@ separate (Files_Suite.Transfer)
    procedure Test_Drop_Import_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Sources  : Files.Types.String_Vectors.Vector;
-      Plans    : Files.File_System.Drop_Import_Result;
+      Plans    : Files.File_System.Transfer.Drop_Import_Result;
       Mutation : Files.File_System.Mutation_Result;
    begin
       Reset_Root;

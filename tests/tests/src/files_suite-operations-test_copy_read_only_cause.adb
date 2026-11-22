@@ -10,7 +10,7 @@ separate (Files_Suite.Operations)
       Folder : constant String := Join (Root, "folder");
       Locked : constant String := Join (Root, "locked");
       Mutation : Files.File_System.Mutation_Result;
-      Plans : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+      Plans : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
    begin
       Environment.Save ("XDG_DATA_HOME");
       Reset_Root;
@@ -34,7 +34,7 @@ separate (Files_Suite.Operations)
       for Mode in Files.File_System_Types.Drop_Import_Mode loop
          Plans.Clear;
          Plans.Append
-           (Files.File_System.Drop_Import_Plan'
+           (Files.File_System.Transfer.Drop_Import_Plan'
               (Source_Path      => To_Unbounded_String (Source),
                Destination_Path => To_Unbounded_String (Join (Locked, "source.txt")),
                Mode             => Mode,

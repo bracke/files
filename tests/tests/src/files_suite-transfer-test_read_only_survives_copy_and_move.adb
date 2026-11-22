@@ -12,7 +12,7 @@ separate (Files_Suite.Transfer)
       Remote   : Files_Suite.Volumes.Remote_Directory;
       Source   : constant String := Join (Root, "read-only.txt");
       Copy     : constant String := Join (Root, "read-only-copy.txt");
-      Paths    : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+      Paths    : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
       Mutation : Files.File_System.Mutation_Result;
       function Set_Read_Only_Attribute (Path : System.Address) return Interfaces.C.int
         with Import, Convention => C, External_Name => "files_test_set_read_only_attribute";
@@ -63,7 +63,7 @@ separate (Files_Suite.Transfer)
          Files_Suite.Support.Skip ("Test_Read_Only_Survives_Copy_And_Move", Files_Suite.Volumes.No_Other_Volume);
          return;
       end if;
-      Paths.Append (Files.File_System.Drop_Import_Plan'
+      Paths.Append (Files.File_System.Transfer.Drop_Import_Plan'
         (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "moved.txt")),
          Files.File_System_Types.Drop_Move, True, Null_Unbounded_String));
       Mutation := Files.File_System.Testing.Execute_Drop_Import (Paths);

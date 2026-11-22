@@ -1,3 +1,4 @@
+with Files.Rendering.Layouts.Dialogs;
 with Files.Rendering.Layouts.Menus;
 with Files.Commands.Overlay_Buttons;
 with Files.Rendering.Layouts;
@@ -51,8 +52,8 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
    --  Quick Look: a click on its close button or anywhere outside the panel
    --  toggles it shut, and a click inside the panel body is swallowed.
    function Quick_Look_Click return Input_Action is
-      QL : constant Files.Rendering.Layouts.Quick_Look_Layout :=
-        Files.Rendering.Layouts.Calculate_Quick_Look_Layout (Layout, Line_Height);
+      QL : constant Files.Rendering.Layouts.Dialogs.Quick_Look_Layout :=
+        Files.Rendering.Layouts.Dialogs.Calculate_Quick_Look_Layout (Layout, Line_Height);
    begin
       if Close_Button_Hit (QL.Close_Button)
         or else not (Within (X, QL.X, QL.Width) and then Within (Y, QL.Y, QL.Height))
@@ -66,12 +67,12 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
    --  button or a click outside the panel closes it, and a click inside the
    --  body is swallowed.
    function Label_Picker_Click return Input_Action is
-      Picker : constant Files.Rendering.Layouts.Label_Picker_Layout :=
-        Files.Rendering.Layouts.Calculate_Label_Picker_Layout (Layout, Line_Height);
+      Picker : constant Files.Rendering.Layouts.Dialogs.Label_Picker_Layout :=
+        Files.Rendering.Layouts.Dialogs.Calculate_Label_Picker_Layout (Layout, Line_Height);
    begin
       for Index in Picker.Swatches'Range loop
          declare
-            Swatch : constant Files.Rendering.Layouts.Label_Swatch_Bounds := Picker.Swatches (Index);
+            Swatch : constant Files.Rendering.Layouts.Dialogs.Label_Swatch_Bounds := Picker.Swatches (Index);
          begin
             if Within (X, Swatch.X, Swatch.Width) and then Within (Y, Swatch.Y, Swatch.Height) then
                return Label_Choice_Action (Files.UI_Types.Label_For_Swatch (Index));
@@ -129,7 +130,7 @@ procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
         Files.Rendering.Layouts.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height);
       Root_Index  : constant Natural :=
         Files.Rendering.Hit.Root_Path_At
-          (Files.Rendering.Layouts.Calculate_Root_Path_Layout (Snapshot, Root_Layout), X, Y);
+          (Files.Rendering.Layouts.Dialogs.Calculate_Root_Path_Layout (Snapshot, Root_Layout), X, Y);
    begin
       if Close_Button_Hit (Root_Layout.Close_Button) then
          return Dismiss;

@@ -30,8 +30,8 @@ separate (Files_Suite.Tree)
            Files.Rendering.Layouts.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
          Selector : constant Files.Rendering.Layouts.Root_Selector_Layout :=
            Files.Rendering.Layouts.Calculate_Root_Selector_Layout (Snapshot, Layout, Line);
-         Rows     : constant Files.Rendering.Layouts.Root_Path_Layout_Vectors.Vector :=
-           Files.Rendering.Layouts.Calculate_Root_Path_Layout (Snapshot, Selector);
+         Rows     : constant Files.Rendering.Layouts.Dialogs.Root_Path_Layout_Vectors.Vector :=
+           Files.Rendering.Layouts.Dialogs.Calculate_Root_Path_Layout (Snapshot, Selector);
          Action   : Files.Input_Actions.Input_Action;
       begin
          for Row of Rows loop

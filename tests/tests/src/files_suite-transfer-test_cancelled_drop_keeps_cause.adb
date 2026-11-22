@@ -48,10 +48,10 @@ separate (Files_Suite.Transfer)
       --  replacement takes its name meanwhile: it stays in its stage.
       Files.File_System.Testing.Fail_Directory_Restore (Join (Root, ".files-recovery-1/payload"), Source);
       declare
-         Plans    : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+         Plans    : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
          Mutation : Files.File_System.Mutation_Result;
       begin
-         Plans.Append (Files.File_System.Drop_Import_Plan'
+         Plans.Append (Files.File_System.Transfer.Drop_Import_Plan'
            (To_Unbounded_String (Source), Destination, Files.File_System_Types.Drop_Move, True, Null_Unbounded_String));
          Mutation := Files.File_System.Testing.Execute_Drop_Import
            (Plans, Cancel_After_Set_Aside'Unrestricted_Access);

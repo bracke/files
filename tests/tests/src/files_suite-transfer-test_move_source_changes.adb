@@ -7,7 +7,7 @@ separate (Files_Suite.Transfer)
       Remote : Files_Suite.Volumes.Remote_Directory;
       Source : constant String := Join (Root, "changing-source");
       Held : constant String := Join (Root, "held-source");
-      Paths : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+      Paths : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
       Mutation : Files.File_System.Mutation_Result;
       Checks : Natural;
       Current : Positive;
@@ -58,7 +58,7 @@ separate (Files_Suite.Transfer)
          end if;
          Original_Id := To_Unbounded_String (Files.File_Identities.Token (Source));
          Paths.Clear;
-         Paths.Append (Files.File_System.Drop_Import_Plan'
+         Paths.Append (Files.File_System.Transfer.Drop_Import_Plan'
            (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "destination")),
             Files.File_System_Types.Drop_Move, True, Null_Unbounded_String));
          Mutation := Files.File_System.Testing.Execute_Drop_Import (Paths, Change_Source'Unrestricted_Access);

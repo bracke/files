@@ -9,7 +9,7 @@ separate (Files_Suite.Transfer)
       Parent : constant String := Join (Root, "destination");
       Stage : constant String := Join (Parent, Files.Protocol_Names.Work_Stage_Prefix & "1");
       Seen : Boolean := False;
-      Plans : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+      Plans : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
       Mutation : Files.File_System.Mutation_Result;
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
@@ -55,7 +55,7 @@ separate (Files_Suite.Transfer)
       end;
       Mutation := Files.File_System.Delete_Permanently (Stage);
       Assert (Mutation.Success, "remove our collision fixture");
-      Plans.Append (Files.File_System.Drop_Import_Plan'
+      Plans.Append (Files.File_System.Transfer.Drop_Import_Plan'
         (To_Unbounded_String (Source), To_Unbounded_String (Join (Parent, "copy")),
          Files.File_System_Types.Drop_Copy, True, Null_Unbounded_String));
       Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans, Observe'Unrestricted_Access);

@@ -1,7 +1,4 @@
-with Files.Jobs.Copy_Context;
 with Files.Extra_Info;
-with Ada.Calendar;
-with Ada.Containers.Vectors;
 
 with Files.File_Types;
 with Files.Items;
@@ -50,44 +47,11 @@ package Files.File_System is
       Signature : Directory_Signature;
    end record;
 
-   --  A search's answer. Success with Items is an answer to show, partial
-   --  or not; only a root that could not be searched at all fails.
-   type Recursive_Search_Result is record
-      Success   : Boolean := False;
-      Items     : Item_Vectors.Vector;
-      Error_Key : UString;
-      --  A limit stopped the walk before it saw everything (the match cap,
-      --  Max_Search_Depth, the scan caps): Items are the first found.
-      Truncated : Boolean := False;
-      --  Something under the root could not be searched (a folder or file
-      --  that could not be read, a text file longer than is read with no
-      --  match in what was): a match there is missing from Items.
-      Incomplete : Boolean := False;
-   end record;
-
    type Directory_Change_Result is record
       Changed        : Boolean := False;
       Before_State   : Directory_Signature;
       After_State    : Directory_Signature;
       Error_Key      : UString;
-   end record;
-
-   type Drop_Import_Plan is record
-      Source_Path      : UString;
-      Destination_Path : UString;
-      Mode             : Drop_Import_Mode := Drop_Copy;
-      Valid            : Boolean := False;
-      Error_Key        : UString;
-   end record;
-
-   package Drop_Import_Plan_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Drop_Import_Plan);
-
-   type Drop_Import_Result is record
-      Success   : Boolean := False;
-      Plans     : Drop_Import_Plan_Vectors.Vector;
-      Error_Key : UString;
    end record;
 
    type Mutation_Result is record
@@ -562,6 +526,25 @@ package Files.File_System is
    --    destination that appeared).
    type Failure_Reading is (Copy_Step, Finished_Job);
 
+   --  The one rule for telling a cancel from a failure of its own: whether a
+   --  failure key says no more than that the work stopped -- no key, a
+   --  cancel, an interruption, or, read at a Copy_Step, the generic
+   --  "error.drop.failed". A cancelled job's failure with such a key is
+   --  reported as the cancel; any other key (a full disk, a collision) has
+   --  a cause of its own and is reported as such.
+   --  @param Error_Key The failure's message key.
+   --  @param Reading Where the key is read.
+   --  @return True when the key names no cause beyond the stop.
+   function Says_Only_Stopped (Error_Key : String; Reading : Failure_Reading) return Boolean is
+     (Error_Key in "" | Cancelled_Error_Key | Interrupted_Error_Key
+      or else (Reading = Copy_Step and then Error_Key = "error.drop.failed"));
+
+   --  The job's own cancellation (Files.Jobs.Context.Cancelled): what a copy
+   --  or a check stops for unless it is handed another check, or null for
+   --  none -- recovery, which must finish once the job is cancelled.
+   --  @return Files.Jobs.Context.Cancelled.
+   function Job_Cancelled return Cancellation_Check;
+
    --  Read up to Max_Bytes leading bytes of a file as a raw String, for a
    --  bounded text preview. Returns an empty string when the file cannot be
    --  opened or read. Never blocks beyond the capped read.
@@ -590,263 +573,6 @@ package Files.File_System is
      (Path : String; Max_Bytes : Natural; Success, Complete : out Boolean) return String;
 private
 
-   --  Declared for Roots (renamed there) and for the parent's own
-   --  bodies and private children, which keep calling them by these names.
-
-   --  Return available filesystem root locations with labels and source kind.
-   --
-   --  @return Root entries available on the host platform.
-   function Available_Root_Entries return Root_Entry_Vectors.Vector;
-
-   --  Return the label of a root location: a localization key (e.g.
-   --  "root.home", or "root.mount", whose pattern takes Root_Name as {name}),
-   --  or, for a plain filesystem root, its path.
-   --
-   --  @param Path Root path.
-   --  @param Kind Root classification.
-   --  @return Label key or literal text.
-   function Root_Label (Path : String; Kind : Root_Kind) return String;
-
-   --  Return the {name} a root's label pattern takes: a mount's or a
-   --  favorite's leaf name, a drive's path; empty for kinds with no name.
-   --
-   --  @param Path Root path.
-   --  @param Kind Root classification.
-   --  @return The name, which may hold any character a file name can.
-   function Root_Name (Path : String; Kind : Root_Kind) return String;
-
-   --  Declared for Search (renamed there) and for the parent's own
-   --  bodies and private children, which keep calling them by these names.
-
-   --  Search a directory tree recursively for item names matching Query.
-   --  A folder below the root that cannot be read is skipped (Incomplete),
-   --  and a limit reached ends the walk (Truncated); both keep what was found.
-   --
-   --  @param Root_Path Directory where recursive search starts.
-   --  @param Query Case-insensitive name fragment to match.
-   --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.Settings.Classification_Of the settings).
-   --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
-   --  @param Max_Items Maximum number of matching items to return.
-   --  @return Deterministic recursive search result or recoverable error.
-   function Search_Names
-     (Root_Path : String;
-      Query     : String;
-      Classes   : Files.File_Types.Classification;
-      Options   : Files.Types.Listing_Options;
-      Max_Items : Natural := Max_Search_Results)
-      return Recursive_Search_Result;
-
-   --  Whether Bytes, text and not binary, contain Query, ignoring case.
-   --  UTF-16 and Windows-1252 text is searched as what it says
-   --  (Files.Text_Encoding.Searchable_Text).
-   --
-   --  @param Bytes A file's first bytes.
-   --  @param Query Text to look for; "" matches nothing.
-   --  @return True for a text match.
-   function Content_Matches
-     (Bytes : String;
-      Query : String)
-      return Boolean;
-
-   --  Search a directory tree for text files whose first 64 KiB contain
-   --  Query, ignoring case, with Search_Names's walk: real folders only
-   --  (a linked folder is an item, so cycles are impossible), Max_Search_Depth
-   --  deep, and cancellable. Past its limits (Max_Search_Results matches,
-   --  20,000 files read) the answer is Truncated; a file it could not read,
-   --  or a text file larger than it reads with no match in what it read,
-   --  makes it Incomplete.
-   --
-   --  @param Root_Path Directory where the search starts.
-   --  @param Query Text to look for.
-   --  @param Classes Filetype and icon maps items are classified by
-   --    (Files.Settings.Classification_Of the settings).
-   --  @param Options Hidden-entry and sort policy (Files.Settings.Listing_Options_Of).
-   --  @return The matching files, or why the search failed.
-   function Search_Contents
-     (Root_Path : String;
-      Query     : String;
-      Classes   : Files.File_Types.Classification;
-      Options   : Files.Types.Listing_Options)
-      return Recursive_Search_Result;
-
-   --  Declared for Transfer (renamed there) and for the parent's own
-   --  bodies and private children, which keep calling them by these names.
-
-   --  Recursively copy a file or directory tree to a new destination path.
-   --
-   --  The destination must not already exist. Directories are copied with their
-   --  full contents. Used by the duplicate command.
-   --
-   --  @param Source_Path Existing file or directory to copy.
-   --  @param Destination_Path New path to create.
-   --  @param Batch Shared hard-link journal for consecutive copies.
-   --  @return Mutation result with a localized error key on failure.
-   function Copy_Tree
-     (Source_Path      : String;
-      Destination_Path : String;
-      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
-      return Mutation_Result;
-
-   --  Copy while returning snapshots captured before atomic publication.
-   --  @param Source_Path Existing file or directory to copy.
-   --  @param Destination_Path New path to create.
-   --  @param Identity Published entry identity.
-   --  @param Tree_Revision_Value Directory or regular-file revision, empty for links.
-   --  @param Batch Shared hard-link journal for consecutive copies.
-   --  @return Mutation result with a localized error key on failure.
-   function Copy_Tree
-     (Source_Path, Destination_Path : String;
-      Identity, Tree_Revision_Value : out Files.Types.UString;
-      Batch : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
-      return Mutation_Result;
-
-   --  Put a staged file or folder at Target, never over an entry already
-   --  there: its identity and tree revision taken first, the whole of it
-   --  flushed to the device (a power cut leaves no recorded but empty or cut
-   --  short output), named as intended (Files.Jobs.Context.Intend_Created),
-   --  renamed into place, given the access its new folder hands down (as a
-   --  published copy is, its revision read again where that changed it and
-   --  named again with it), recorded as created, and its new name flushed --
-   --  the publication Copy_Tree's copies share (Copying.Publish_From_Stage). A failure of that last
-   --  flush is traced, not returned: the entry is published and recorded,
-   --  as a Durable_Writes publication that is Published_Not_Durable. The one
-   --  way Compress and Extract publish what they made.
-   --
-   --  @param Staged The finished file or folder inside a stage.
-   --  @param Target Where it is published.
-   --  @param Identity Set to its identity token, for its Undo.
-   --  @param Revision Set to its tree revision, for its Undo.
-   --  @return False when it was not published; Staged is then left for the
-   --    caller to discard with its stage.
-   function Publish_Staged
-     (Staged   : String;
-      Target   : String;
-      Identity : out UString;
-      Revision : out UString)
-      return Boolean;
-
-   --  Build deterministic copy/move plans for paths dropped into a directory.
-   --
-   --  @param Source_Paths Paths received from a drag-and-drop operation.
-   --  @param Destination_Directory Directory receiving the dropped entries.
-   --  @param Mode Copy or move mode for all valid plans.
-   --  @return Planned destination paths and validation diagnostics.
-   function Plan_Drop_Import
-     (Source_Paths          : Files.Types.String_Vectors.Vector;
-      Destination_Directory : String;
-      Mode                  : Drop_Import_Mode := Drop_Copy)
-      return Drop_Import_Result;
-
-   --  The one rule for telling a cancel from a failure of its own: whether a
-   --  failure key says no more than that the work stopped -- no key, a
-   --  cancel, an interruption, or, read at a Copy_Step, the generic
-   --  "error.drop.failed". A cancelled job's failure with such a key is
-   --  reported as the cancel; any other key (a full disk, a collision) has
-   --  a cause of its own and is reported as such.
-   --  @param Error_Key The failure's message key.
-   --  @param Reading Where the key is read.
-   --  @return True when the key names no cause beyond the stop.
-   function Says_Only_Stopped (Error_Key : String; Reading : Failure_Reading) return Boolean is
-     (Error_Key in "" | Cancelled_Error_Key | Interrupted_Error_Key
-      or else (Reading = Copy_Step and then Error_Key = "error.drop.failed"));
-
-   --  The job's own cancellation (Files.Jobs.Context.Cancelled): what a copy
-   --  or a check stops for unless it is handed another check, or null for
-   --  none -- recovery, which must finish once the job is cancelled.
-   --  @return Files.Jobs.Context.Cancelled.
-   function Job_Cancelled return Cancellation_Check;
-
-   --  Import one paste action, preserving the destination it replaces first
-   --  and putting that original back when the import fails. The one routine
-   --  behind both the in-process paste and the transfer helper: a replace
-   --  target that vanished after planning has nothing to preserve and the
-   --  import proceeds; a destination that is the source itself is never
-   --  preserved, so a same-path move is a no-op success (and a same-path
-   --  copy fails as Execute_Drop_Import fails it).
-   --  @param Source Entry to copy or move.
-   --  @param Destination New pathname.
-   --  @param Mode Copy or move.
-   --  @param Replace Whether an existing Destination is to be replaced.
-   --  @param Replaced Where the replaced original is held, or empty: empty
-   --    when nothing was preserved or the original was put back.
-   --  @param Replaced_Identity Identity of Replaced, or empty.
-   --  @param Created_Identity Identity of the published destination.
-   --  @param Created_Tree_Revision Tree revision of the published destination.
-   --  @param Preserved Called once the original is held at Backup (with its
-   --    identity), before the import starts -- also when preserving failed
-   --    yet left the original there; an exception from it fails the action
-   --    and the original is put back.
-   --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
-   --  @param Batch Shared hard-link journal.
-   --  @return Success when Destination holds the imported entry; otherwise
-   --    the preserving, import, or restoring failure. A cross-device move
-   --    that failed yet had to keep its copy at Destination (see
-   --    Execute_Drop_Import) also fails, with Created_Identity set to that
-   --    copy and the original left held at Replaced: Destination is taken,
-   --    so the original is not put back, and the caller records both.
-   function Import_Replacing
-     (Source, Destination   : String;
-      Mode                  : Drop_Import_Mode;
-      Replace               : Boolean;
-      Replaced              : out Files.Types.UString;
-      Replaced_Identity     : out Files.Types.UString;
-      Created_Identity      : out Files.Types.UString;
-      Created_Tree_Revision : out Files.Types.UString;
-      Preserved             : access procedure (Backup, Backup_Identity : String) := null;
-      Cancel                : Cancellation_Check := Job_Cancelled;
-      Batch                 : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
-      return Mutation_Result;
-
-   --  Put an original that a failed replace preserved back at Destination:
-   --  the one rollback behind Import_Replacing and the transfer helper. With
-   --  nothing held (Replaced empty) it does nothing.
-   --  @param Replaced Where the original is held; emptied once it is back.
-   --  @param Replaced_Identity Identity of Replaced; emptied with it.
-   --  @param Destination Where the original came from.
-   --  @param Result The action's result, replaced by the restore's failure
-   --    when the original cannot be put back.
-   procedure Put_Back_Replaced
-     (Replaced, Replaced_Identity : in out Files.Types.UString;
-      Destination                 : String;
-      Result                      : in out Mutation_Result);
-
-   --  Declared for Recovery_Registry (renamed there) and for the parent's own
-   --  bodies and private children, which keep calling them by these names.
-
-   --  Return whether Path is an application-owned replacement recovery payload.
-   --  @param Path Possible recovery payload path.
-   --  @return True only for a recognized application recovery payload.
-   function Is_Recovery_Payload (Path : String) return Boolean;
-
-   --  Move a recovery payload nothing will restore any more -- its undo
-   --  history is ending with the window -- to the system trash under its
-   --  original name, and remove the hidden folder that held it.
-   --  @param Path Recognized application recovery payload.
-   --  @return Success when the payload is in the trash.
-   function Release_Recovery_Payload (Path : String) return Mutation_Result;
-
-   --  Return recoverable replacement payloads recorded across directories.
-   --  Stale or damaged registry entries are omitted. A pure query: it
-   --  changes nothing on disk (see Sweep_Recovery_Registry).
-   --  @return Valid registered replacement-recovery payload paths.
-   function Registered_Recovery_Payloads return Files.Types.String_Vectors.Vector;
-
-   --  Finish interrupted recovery work the registry records: drop stale and
-   --  duplicate records, resume a stopped release, and remove a stage whose
-   --  payload a restore or release moved out on purpose. A stage another
-   --  operation is still filling is left alone, so this is safe to run while
-   --  other processes preserve, restore or release.
-   procedure Sweep_Recovery_Registry;
-
-   --  Preserve an overwritten destination in a location this application can restore.
-   --  Native trash backends use an adjacent recovery backup instead of the OS bin.
-   --  @param Path Destination to preserve before replacement.
-   --  @param Recovery_Path Payload for rollback and Undo.
-   --  @return Result of preserving the destination.
-   function Preserve_For_Replace
-     (Path : String; Recovery_Path : out Files.Types.UString) return Mutation_Result;
-
    --  Whether an entry is hidden: a leading dot in its name, or the host's
    --  hidden flag (Hostkit.Fs.Is_Hidden: Windows' attribute, macOS's
    --  UF_HIDDEN). The one rule the listing, the tree, folder counts, Recent
@@ -872,258 +598,25 @@ private
       Folds         : not null access function (Directory : String) return Boolean)
       return Boolean;
 
-   --  Declared for Permissions (renamed there) and for the parent's own
-   --  bodies and private children, which keep calling them by these names.
-
-   --  Return whether this build can read and change POSIX permission bits.
-   --
-   --  @return True on the Linux platform, False on the stub platforms.
-   function Supports_Permissions return Boolean;
-
-   --  Return the POSIX permission bits of Path (the low 12 mode bits).
-   --
-   --  @param Path Existing filesystem path to inspect.
-   --  @param Available Set True when the permission bits were obtained.
-   --  @return Permission bits in 0 .. 8#7777#, or 0 when Available is False.
-   function Permission_Bits_Of
-     (Path      : String;
-      Available : out Boolean)
-      return Natural;
-
-   --  Change the POSIX permission bits of an existing entry through chmod(2).
-   --
-   --  The path must already exist. Mode carries the numeric POSIX permission
-   --  bits (the low 12 bits). Failures map to error.permissions.failed, and an
-   --  unsupported platform maps to error.permissions.unsupported.
-   --
-   --  Exact, not an edit: on Windows the entry's access becomes just the
-   --  three accounts' bits (Hostkit.Metadata.Set_Exact_Permissions), so 0
-   --  takes access away even from an administrator -- what a test's fixture
-   --  needs. A user's edit goes through Change_Access, which changes only
-   --  what the bits do.
-   --
-   --  @param Path Existing filesystem path whose mode is changed.
-   --  @param Mode New permission bits to apply.
-   --  @return Mutation result with a localized error key on failure.
-   function Set_Permissions
-     (Path : String;
-      Mode : Natural)
-      return Mutation_Result;
-
-   --  Return whether this build can read and change file ownership.
-   --
-   --  @return True on the Linux platform, False on the stub platforms.
-   function Supports_Ownership return Boolean;
-
-   --  Change the permission bits of one verified entry as a user's edit does, reporting its whole
-   --  access record too where the mode cannot hold it all: on Windows the
-   --  DACL, before and after (Hostkit.Metadata.Update_Entry_Metadata), which
-   --  the edit changes only where the bits do. With Access_Text -- a record
-   --  reported earlier -- that record is put back exactly instead of Mode:
-   --  how an undo restores the access an edit changed. The records are empty
-   --  on a POSIX host, where the mode is the whole of it and Access_Text is
-   --  ignored.
-   --
-   --  @param Path Existing entry; symbolic links must be resolved by the caller.
-   --  @param Expected_Identity History identity to verify, or empty for a new live change.
-   --  @param Mode New permission bits, 0 .. 8#7777#.
-   --  @param Access_Text An access record to restore instead of Mode, or "".
-   --  @param Previous Live previous permission bits captured before mutation.
-   --  @param Previous_Access The access record before the change, or "".
-   --  @param Applied_Access The access record after it, or "".
-   --  @param Identity Identity of the entry actually changed.
-   --  @return Result of applying the change to the verified entry.
-   function Change_Access
-     (Path, Expected_Identity : String; Mode : Natural; Access_Text : String;
-      Previous : out Natural; Previous_Access, Applied_Access, Identity : out Files.Types.UString)
-      return Mutation_Result;
-
-   --  Change the owner and group of one verified entry through a handle that
-   --  pins it, capturing the ids it had.
-   --
-   --  @param Path Existing entry; symbolic links must be resolved by the caller.
-   --  @param Expected_Identity History identity to verify, or empty for a new live change.
-   --  @param User_Id New owning user id.
-   --  @param Group_Id New owning group id.
-   --  @param Previous_User Live previous user id captured before mutation.
-   --  @param Previous_Group Live previous group id captured before mutation.
-   --  @param Identity Identity of the entry actually changed.
-   --  @param Owner_Name Native account name paired with User_Id when required.
-   --  @param Group_Name Native account name paired with Group_Id when required.
-   --  @return Result of applying the ownership to the verified entry.
-   function Change_Ownership
-     (Path, Expected_Identity : String; User_Id, Group_Id : Files.Types.Account_Id;
-      Previous_User, Previous_Group : out Files.Types.Account_Id; Identity : out Files.Types.UString;
-      Owner_Name : String := ""; Group_Name : String := "") return Mutation_Result;
-
-   --  Resolve a user name to its numeric id (getpwnam).
-   --
-   --  @param Name User name to resolve.
-   --  @param Found Set True when the name resolved to an id.
-   --  @return The user id when Found, otherwise 0.
-   function User_Id_For_Name
-     (Name  : String;
-      Found : out Boolean)
-      return Files.Types.Account_Id;
-
-   --  Resolve a group name to its numeric id (getgrnam).
-   --
-   --  @param Name Group name to resolve.
-   --  @param Found Set True when the name resolved to an id.
-   --  @return The group id when Found, otherwise 0.
-   function Group_Id_For_Name
-     (Name  : String;
-      Found : out Boolean)
-      return Files.Types.Account_Id;
-
-   --  Resolve a numeric user id to its name (getpwuid), memoized for the session.
-   --
-   --  @param Id User id to resolve.
-   --  @return The user name, or the empty string when it cannot be resolved.
-   function User_Name_For_Id (Id : Files.Types.Account_Id) return String;
-
-   --  Resolve a numeric group id to its name (getgrgid), memoized for the session.
-   --
-   --  @param Id Group id to resolve.
-   --  @return The group name, or the empty string when it cannot be resolved.
-   function Group_Name_For_Id (Id : Files.Types.Account_Id) return String;
-
-   --  Declared for Trash (renamed there) and for the parent's own
-   --  bodies and private children, which keep calling them by these names.
-
-   --  Return whether a platform trash backend is available in the current environment.
-   --
-   --  @return True when Move_To_Trash can use a configured trash location.
-   function Trash_Is_Available return Boolean;
-
-   --  Validate whether an entry can be moved to the selected trash backend.
-   --
-   --  This performs non-mutating checks used before multi-item delete so later
-   --  failures do not move earlier selected files.
-   --
-   --  @param Path Entry to preflight for trash movement.
-   --  @return Success when Move_To_Trash can be attempted safely.
-   function Move_To_Trash_Preflight
-     (Path : String)
-      return Mutation_Result;
-
-   --  Return the directory that holds trashed payloads for the current backend.
-   --
-   --  This is <Trash_Base_Path>/files for the freedesktop XDG and home-data
-   --  backends, and <Trash_Base_Path> itself for the macOS flat home backend.
-   --
-   --  @return Trashed-payload directory, or an empty string when unavailable.
-   function Trash_Files_Directory return String;
-
-   --  Remove the freedesktop trashes' info files (home and volume) whose
-   --  item is surely not there and that are older than a trash in progress
-   --  can be: a trash writes its info file before the item moves in, so a
-   --  crash between the two (or a move lost before the folder was synced)
-   --  leaves one describing nothing, which keeps its name taken.
-   procedure Remove_Orphan_Trash_Info;
-
-   --  Return whether Path identifies the active trash payload directory.
-   --  Filesystem identity is used when possible so aliases such as symbolic
-   --  links cannot bypass trash-view safety rules.
-   --
-   --  @param Path Existing directory path to compare with the trash payload.
-   --  @return True only when Path identifies the active payload directory.
-   function Is_Trash_Files_Directory (Path : String) return Boolean;
-
-   --  Whether Path is an item in a volume's own trash, which the trash view
-   --  lists beside the home trash's items.
-   --
-   --  @param Path Entry to test.
-   --  @return True when Path is directly in a valid volume trash's files/.
-   function Is_Volume_Trash_Item (Path : String) return Boolean;
-
-   --  Capture a payload's original path before recording restore history.
-   --  @param Trashed_Path Trash or replacement recovery payload pathname.
-   --  @return Original path from its sidecar, or empty on failure.
-   function Trash_Original_Path (Trashed_Path : String) return String;
-
-   --  Restore a trashed payload to its recorded original location.
-   --
-   --  For freedesktop backends the original path is read from the matching
-   --  <base>/info/<name>.trashinfo sidecar, URL-decoded, and the payload is
-   --  moved back; the sidecar is removed on success. Backends without a sidecar
-   --  fail with error.trash.restore_unavailable.
-   --
-   --  @param Trashed_Path Payload path inside the trash files directory.
-   --  @param Expected_Identity Optional history snapshot verified before restoring the payload.
-   --  @param Expected_Original Authoritative restore destination captured in history.
-   --  @return Mutation result with a localized error key on failure.
-   function Restore_From_Trash
-     (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
-      return Mutation_Result;
-
-   --  Move an entry to trash when a supported trash backend is available.
-   --
-   --  @param Path Entry to move to trash.
-   --  @return Mutation result with a localized error key on failure.
-   function Move_To_Trash
-     (Path : String)
-      return Mutation_Result;
-
-   --  As Move_To_Trash, but also report the payload's path inside the trash so
-   --  callers can later restore it (used by Undo).
-   --
-   --  @param Path Entry to move to trash.
-   --  @param Trashed_Path Set to the payload's location in the trash on success.
-   --  @param Recorded_Path Where the trash says the item came from, so a
-   --    restore puts it back there; empty means Path. A recovery payload
-   --    names its original location this way, not its hidden stage.
-   --  @return Mutation result with a localized error key on failure.
-   function Move_To_Trash
-     (Path          : String;
-      Trashed_Path  : out Files.Types.UString;
-      Recorded_Path : String := "")
-      return Mutation_Result;
-
-   --  Permanently delete a single trashed or application recovery payload and
-   --  its metadata.
-   --
-   --  Removes the payload through Delete_Permanently and, for freedesktop
-   --  backends, best-effort removes the matching <base>/info/<name>.trashinfo
-   --  sidecar so the trash entry leaves no orphaned metadata behind. Sidecar
-   --  removal never fails the operation; the payload deletion result is
-   --  returned.
-   --
-   --  @param Trashed_Path Payload path inside the trash files directory.
-   --  @return Mutation result with a localized error key on failure.
-   function Delete_Trashed_Item
-     (Trashed_Path : String)
-      return Mutation_Result;
-
-   --  What one completed import plan published: the entry's identity token
-   --  and, for a directory, its recursive tree revision.
-   type Created_Entry is record
-      Identity      : Files.Types.UString;
-      Tree_Revision : Files.Types.UString;
-   end record;
-
-   package Created_Entry_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Created_Entry);
-
-   --  Execute validated drag-and-drop import plans, returning what each
-   --  completed plan published, in plan order. A cross-device move whose
-   --  copy had to stay at its destination (its source was set aside in
-   --  recovery, or the copy could not be removed) fails, yet its copy is
-   --  appended too: it is the plan's result for undo. Import_Replacing runs
-   --  one plan through it; the suite drives several through
-   --  Files.File_System.Testing.Execute_Drop_Import.
-   --
-   --  @param Plans Plans produced by Plan_Drop_Import.
-   --  @param Created What each completed plan published.
-   --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
-   --  @param Batch Shared hard-link journal, created automatically for multiple plans.
-   --  @return Mutation result with a localized error key on failure.
-   function Execute_Drop_Import
-     (Plans   : Drop_Import_Plan_Vectors.Vector;
-      Created : out Created_Entry_Vectors.Vector;
-      Cancel  : Cancellation_Check := Job_Cancelled;
-      Batch   : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
-      return Mutation_Result;
+   --  The one rule every "is this path inside that one" check here follows:
+   --  Hostkit.Fs.Is_Same_Or_Inside on the text (a root such as "/" or "C:\"
+   --  holds every longer path; /a/bc is not inside /a/b), and on the
+   --  case-folded text too where each of Parent's names may be folded: a
+   --  name compares by the rule of the folder it is in (Hostkit.Fs.
+   --  Folds_Name_Case of that folder, or of a root itself), since where
+   --  that folds C:\Data and c:\data are one folder. So the folders above
+   --  a mount compare exactly and only from the mount point down are names
+   --  folded: a case-folding stick mounted at /media/u/STICK does not make
+   --  /media/u/stick the same folder, as /media/u, where both names are,
+   --  tells them apart, nor /MEDIA/u/STICK, as / does. Below Parent the
+   --  spelling does not matter: Child is inside once its head is Parent.
+   --  The volume is asked only when the spellings differ by case alone, so
+   --  an exact match never waits on a slow mount. Making the paths absolute
+   --  or resolving links is the caller's choice.
+   --  @param Child Candidate path.
+   --  @param Parent Candidate ancestor.
+   --  @return True when Child is Parent or lies inside it.
+   function Path_Is_Within (Child, Parent : String) return Boolean;
 
    --  Rolling checksums (directory signatures, thumbnail cache names) all
    --  reduce by this prime, so each fits a Natural.
@@ -1185,58 +678,12 @@ private
       Directory : String)
       return Boolean;
 
-   --  Return the trash backend selected for the current environment.
-   --
-   --  @return Backend that Move_To_Trash will use, or Trash_Unavailable.
-   function Trash_Backend_Of_Current_Environment return Trash_Backend;
-
-   --  Evaluate native trash support for Request without deleting anything.
-   --
-   --  @param Request Native trash request metadata.
-   --  @return Native trash support result.
-   function Evaluate_Native_Trash
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result;
-
-   --  Hand Request's item to the desktop's own trash (the Windows Recycle Bin
-   --  or the macOS Trash). Nothing is attempted on a build that does not
-   --  target that desktop.
-   --
-   --  @param Request Native trash request for a native backend.
-   --  @return The evaluation, with Attempted and Completed set by the attempt.
-   function Trash_Natively
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result
-     with Pre => Request.Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
-
-   --  Format a timestamp for freedesktop trashinfo DeletionDate metadata.
-   --
-   --  @param Value Time value to format.
-   --  @return Local timestamp in YYYY-MM-DDTHH:MM:SS form.
-   function Trash_Deletion_Date
-     (Value : Ada.Calendar.Time)
-      return String;
-
    --  Read at most Max_Bytes of a regular file, never following a link and
    --  never blocking on a FIFO. Complete is False when the file is longer.
    --  The thumbnail writers (Files.File_System.Thumbnails) read sources so.
    function Read_Bounded_Regular_File
      (Path : String; Max_Bytes : Natural;
       Success, Complete : out Boolean) return String;
-
-   --  Set only by the test suite (Files.File_System.Testing.Refuse_Native_Trash):
-   --  the desktop's own trash then refuses every item, as an unreachable
-   --  Recycle Bin would, so the refusal paths can be exercised where the
-   --  trash is reachable. The application never sets it.
-   Native_Trash_Refused : Boolean := False
-     with Atomic;
-
-   --  Set only by the test suite (Files.File_System.Testing.Trash_Says_Nowhere):
-   --  a trash that takes an item then reports no place for it, as the
-   --  Finder may, so the Undo that cannot follow it is exercised on every
-   --  host. The application never sets it.
-   Trash_Location_Withheld : Boolean := False
-     with Atomic;
 
    --  What a copy calls with the path of each entry whose metadata it has
    --  just set, before it checks the source against the copy.

@@ -1,11 +1,12 @@
 --  Reading and writing the settings file (Load_File, Save_Text,
 --  Merge_From_File, Ensure_Default_File), and the policy every settings
---  change is saved by, below the window layer: the live keymap is written with the
---  settings (Files.Commands.Keymap_Settings), what another process wrote
+--  change is saved by, below the window layer: what another process wrote
 --  since is taken in first (Merge_From_File), and settings that would not
---  load again are never written. Files.Controller applies the outcome to a
---  window (its error line, taking merged-in settings into the open pane
---  and listing).
+--  load again are never written. It writes exactly the settings it is
+--  handed: Files.Controller stores the live keymap into them first
+--  (Files.Commands.Keymap_Settings), puts a rebind taken in from the file
+--  in force, and applies the outcome to a window (its error line, taking
+--  merged-in settings into the open pane and listing).
 package Files.Settings.Storage is
 
    --  The result of a settings write refused because the settings would be
@@ -25,10 +26,11 @@ package Files.Settings.Storage is
    --  off (smoke runs, tests): the settings apply in memory and count as
    --  saved. A session whose settings file could not be loaded refuses to
    --  write it: the change applies in memory and the result says it was not
-   --  saved. The shortcut overrides written are the live keymap's, a rebind
-   --  not saved yet included. What another process wrote to the file since
-   --  this one saw it is taken into Settings first (Merge_From_File), its
-   --  shortcuts made the live keymap and held as a save writes them; a file
+   --  saved. The shortcut overrides written are Settings' own (the caller
+   --  stores the live keymap into them). What another process wrote to the
+   --  file since this one saw it is taken into Settings first
+   --  (Merge_From_File), its shortcuts included, for the caller to put in
+   --  force; a file
    --  changed into one this build cannot load is not written over, nor is a
    --  merge that would make it too big to load (Settings then stay as they
    --  were).

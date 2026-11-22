@@ -171,7 +171,7 @@ separate (Files_Suite.Rendering)
 
          function Progress_Inset (LH : Positive) return Natural is
             Dialog : constant Paste_Progress_Layout :=
-              Files.Rendering.Layouts.Calculate_Paste_Progress_Layout (Calculate_Layout (Snap, 2_000, 1_600, LH), LH);
+              Calculate_Paste_Progress_Layout (Calculate_Layout (Snap, 2_000, 1_600, LH), LH);
          begin
             return Dialog.Message_X - Dialog.X;
          end Progress_Inset;

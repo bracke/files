@@ -1,3 +1,5 @@
+with Files.File_System.Transfer;
+with Files.File_System.Search;
 with Files.Operations.Archives;
 with Files.Controller.Operation_Commands;
 with Files.Preference_Types;

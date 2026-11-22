@@ -6,7 +6,7 @@ separate (Files_Suite.Search)
    procedure Test_Recursive_Search (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Search   : Files.File_System.Recursive_Search_Result;
+      Search   : Files.File_System.Search.Recursive_Search_Result;
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
       Routed   : Files.Controller.Controller_Result;

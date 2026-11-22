@@ -15,7 +15,7 @@ separate (Files_Suite.Transfer)
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
       Paths    : Files.Types.String_Vectors.Vector;
-      Plans    : Files.File_System.Drop_Import_Result;
+      Plans    : Files.File_System.Transfer.Drop_Import_Result;
       Result   : Files.File_System.Mutation_Result;
       Trashed  : Unbounded_String;
 

@@ -1,3 +1,5 @@
+with Ada.Calendar;
+with Files.Jobs.Copy_Context;
 with Files.File_System.Transfer;
 --  Test-only entry points into the trash backends (the application moves
 --  items with Files.File_System.Move_To_Trash, which picks the backend itself)
@@ -233,8 +235,8 @@ package Files.File_System.Testing is
    --  @param Batch Shared hard-link journal, created automatically for multiple plans.
    --  @return Mutation result with a localized error key on failure.
    function Execute_Drop_Import
-     (Plans  : Drop_Import_Plan_Vectors.Vector;
-      Cancel : Cancellation_Check := Files.File_System.Transfer.Job_Cancelled;
+     (Plans  : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
+      Cancel : Cancellation_Check := Files.File_System.Job_Cancelled;
       Batch  : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
       return Mutation_Result;
 

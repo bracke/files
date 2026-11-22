@@ -35,10 +35,10 @@ separate (Files_Suite.Transfer)
       Write_Binary_File (Join (To_String (Source), "child"), "old bytes");
       GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp (Join (To_String (Source), "child"), Old_Time);
       declare
-         Plans    : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+         Plans    : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
          Mutation : Files.File_System.Mutation_Result;
       begin
-         Plans.Append (Files.File_System.Drop_Import_Plan'
+         Plans.Append (Files.File_System.Transfer.Drop_Import_Plan'
            (Source, To_Unbounded_String (Join (Root, "moved")), Files.File_System_Types.Drop_Move, True,
             Null_Unbounded_String));
          Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans, Edit_Child'Unrestricted_Access);

@@ -13,7 +13,7 @@ function Begin_Paste_To
    return Operation_Result
 is
    Directory : constant String := Destination;
-   Plans     : Files.File_System.Drop_Import_Result;
+   Plans     : Files.File_System.Transfer.Drop_Import_Result;
 
    --  The incoming destination paths that already exist, probed one by one:
    --  the fallback when the destination cannot be listed whole, so a

@@ -18,7 +18,7 @@ separate (Files_Suite.Search)
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operation_Results.Operation_Result;
-      Search   : Files.File_System.Recursive_Search_Result;
+      Search   : Files.File_System.Search.Recursive_Search_Result;
    begin
       Reset_Root;
       for Index in 1 .. Files.File_System.Max_Search_Results loop

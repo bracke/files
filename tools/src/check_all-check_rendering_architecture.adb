@@ -172,6 +172,7 @@ separate (Check_All)
             To_Unbounded_String ("Files.Rendering.Labels"),
             To_Unbounded_String ("Files.Rendering.Layouts"),
             To_Unbounded_String ("Files.Rendering.Layouts.Details"),
+            To_Unbounded_String ("Files.Rendering.Layouts.Dialogs"),
             To_Unbounded_String ("Files.Rendering.Layouts.Menus"),
             To_Unbounded_String ("Files.Rendering.Layouts.Tree"),
             To_Unbounded_String ("Files.Root_Labels"),

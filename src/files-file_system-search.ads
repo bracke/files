@@ -2,6 +2,21 @@
 --  not the whole of Files.File_System.
 package Files.File_System.Search is
 
+   --  A search's answer. Success with Items is an answer to show, partial
+   --  or not; only a root that could not be searched at all fails.
+   type Recursive_Search_Result is record
+      Success   : Boolean := False;
+      Items     : Item_Vectors.Vector;
+      Error_Key : UString;
+      --  A limit stopped the walk before it saw everything (the match cap,
+      --  Max_Search_Depth, the scan caps): Items are the first found.
+      Truncated : Boolean := False;
+      --  Something under the root could not be searched (a folder or file
+      --  that could not be read, a text file longer than is read with no
+      --  match in what was): a match there is missing from Items.
+      Incomplete : Boolean := False;
+   end record;
+
    --  Search a directory tree recursively for item names matching Query.
    --  A folder below the root that cannot be read is skipped (Incomplete),
    --  and a limit reached ends the walk (Truncated); both keep what was found.

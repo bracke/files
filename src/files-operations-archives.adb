@@ -15,7 +15,7 @@ with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 with Ada.Unchecked_Deallocation;
 with Files.Operations.Undo_Recording;
-with Files.Operations.Archive_Writing;
+with Files.Operations.Archives.Writing;
 with Files.Model.Selection;
 with Files.Undo.History;
 
@@ -27,6 +27,7 @@ package body Files.Operations.Archives is
    use type Files.Undo.History.Undo_Action_Kind;
    use type Zlib.Status_Code;
    use Files.Operations.Support;
+   use Files.Operations.Undo_Recording;
 
    --  The undo history is recorded by Files.Operations.Undo_Recording; these name it
    --  here for the bodies that record.

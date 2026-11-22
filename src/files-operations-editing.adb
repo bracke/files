@@ -23,6 +23,7 @@ package body Files.Operations.Editing is
    use type Files.Types.Item_Kind;
    use type Files.Undo.History.Undo_Action_Kind;
    use Files.Operations.Support;
+   use Files.Operations.Undo_Recording;
 
    --  The undo history is recorded by Files.Operations.Undo_Recording; these name it
    --  here for the bodies that record.

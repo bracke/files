@@ -74,7 +74,7 @@ separate (Files_Suite.Operations)
       end Listed;
 
       --  Whether Result found an item called Name.
-      function Found (Result : Files.File_System.Recursive_Search_Result; Name : String) return Boolean is
+      function Found (Result : Files.File_System.Search.Recursive_Search_Result; Name : String) return Boolean is
         (Result.Success and then (for some Item of Result.Items => To_String (Item.Name) = Name));
 
       --  A model of Deep with Name selected, as a window shows it.
@@ -90,7 +90,7 @@ separate (Files_Suite.Operations)
       --  Copy or move Source into the folder Destination.
       procedure Import (Source : String; Destination : String; Mode : Files.File_System_Types.Drop_Import_Mode) is
          Sources : Files.Types.String_Vectors.Vector;
-         Plan    : Files.File_System.Drop_Import_Result;
+         Plan    : Files.File_System.Transfer.Drop_Import_Result;
       begin
          Sources.Append (To_Unbounded_String (Source));
          Plan := Files.File_System.Transfer.Plan_Drop_Import (Sources, Destination, Mode);

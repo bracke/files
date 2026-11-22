@@ -1,8 +1,29 @@
+with Files.Jobs.Copy_Context;
+with Ada.Containers.Vectors;
+
 --  Copying, moving and publishing entries: drop and paste plans, the
 --  import that preserves what it replaces and puts it back on failure,
 --  tree copies, staged publication, and the cancel-versus-failure rule.
 --  Clients with this, not the whole of Files.File_System.
 package Files.File_System.Transfer is
+
+   type Drop_Import_Plan is record
+      Source_Path      : UString;
+      Destination_Path : UString;
+      Mode             : Drop_Import_Mode := Drop_Copy;
+      Valid            : Boolean := False;
+      Error_Key        : UString;
+   end record;
+
+   package Drop_Import_Plan_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Drop_Import_Plan);
+
+   type Drop_Import_Result is record
+      Success   : Boolean := False;
+      Plans     : Drop_Import_Plan_Vectors.Vector;
+      Error_Key : UString;
+   end record;
 
    --  Recursively copy a file or directory tree to a new destination path.
    --
@@ -69,23 +90,6 @@ package Files.File_System.Transfer is
       Mode                  : Drop_Import_Mode := Drop_Copy)
       return Drop_Import_Result;
 
-   --  The one rule for telling a cancel from a failure of its own: whether a
-   --  failure key says no more than that the work stopped -- no key, a
-   --  cancel, an interruption, or, read at a Copy_Step, the generic
-   --  "error.drop.failed". A cancelled job's failure with such a key is
-   --  reported as the cancel; any other key (a full disk, a collision) has
-   --  a cause of its own and is reported as such.
-   --  @param Error_Key The failure's message key.
-   --  @param Reading Where the key is read.
-   --  @return True when the key names no cause beyond the stop.
-   function Says_Only_Stopped (Error_Key : String; Reading : Failure_Reading) return Boolean;
-
-   --  The job's own cancellation (Files.Jobs.Context.Cancelled): what a copy
-   --  or a check stops for unless it is handed another check, or null for
-   --  none -- recovery, which must finish once the job is cancelled.
-   --  @return Files.Jobs.Context.Cancelled.
-   function Job_Cancelled return Cancellation_Check;
-
    --  Import one paste action, preserving the destination it replaces first
    --  and putting that original back when the import fails. The one routine
    --  behind both the in-process paste and the transfer helper: a replace
@@ -139,4 +143,37 @@ package Files.File_System.Transfer is
      (Replaced, Replaced_Identity : in out Files.Types.UString;
       Destination                 : String;
       Result                      : in out Mutation_Result);
+
+private
+
+   --  What one completed import plan published: the entry's identity token
+   --  and, for a directory, its recursive tree revision.
+   type Created_Entry is record
+      Identity      : Files.Types.UString;
+      Tree_Revision : Files.Types.UString;
+   end record;
+
+   package Created_Entry_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Created_Entry);
+
+   --  Execute validated drag-and-drop import plans, returning what each
+   --  completed plan published, in plan order. A cross-device move whose
+   --  copy had to stay at its destination (its source was set aside in
+   --  recovery, or the copy could not be removed) fails, yet its copy is
+   --  appended too: it is the plan's result for undo. Import_Replacing runs
+   --  one plan through it; the suite drives several through
+   --  Files.File_System.Testing.Execute_Drop_Import.
+   --
+   --  @param Plans Plans produced by Plan_Drop_Import.
+   --  @param Created What each completed plan published.
+   --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
+   --  @param Batch Shared hard-link journal, created automatically for multiple plans.
+   --  @return Mutation result with a localized error key on failure.
+   function Execute_Drop_Import
+     (Plans   : Drop_Import_Plan_Vectors.Vector;
+      Created : out Created_Entry_Vectors.Vector;
+      Cancel  : Cancellation_Check := Job_Cancelled;
+      Batch   : Files.Jobs.Copy_Context.Session := Files.Jobs.Copy_Context.Empty_Session)
+      return Mutation_Result;
+
 end Files.File_System.Transfer;

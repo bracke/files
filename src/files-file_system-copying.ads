@@ -1,3 +1,4 @@
+with Files.Jobs.Copy_Context;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Files.File_System.Support;
 

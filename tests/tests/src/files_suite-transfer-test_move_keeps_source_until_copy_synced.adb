@@ -9,7 +9,7 @@ separate (Files_Suite.Transfer)
       pragma Unreferenced (T);
       Remote   : Files_Suite.Volumes.Remote_Directory;
       Source   : constant String := Join (Root, "durable-source");
-      Paths    : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+      Paths    : Files.File_System.Transfer.Drop_Import_Plan_Vectors.Vector;
       Mutation : Files.File_System.Mutation_Result;
    begin
       Reset_Root;
@@ -27,7 +27,7 @@ separate (Files_Suite.Transfer)
             Write_Binary_File (Source, "the bytes");
          end if;
          Paths.Clear;
-         Paths.Append (Files.File_System.Drop_Import_Plan'
+         Paths.Append (Files.File_System.Transfer.Drop_Import_Plan'
            (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "durable-destination")),
             Files.File_System_Types.Drop_Move, True, Null_Unbounded_String));
          --  A file is flushed as it is written, while still staged under the

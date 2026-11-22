@@ -17,7 +17,7 @@ with AUnit.Test_Cases;
 with Project_Tools.Files;
 with Zlib;
 with Hostkit.Host;
-with Files.Operations.Archive_Writing;
+with Files.Operations.Archives.Writing;
 with Files.Controller;
 with Files.File_System;
 with Files.Model;
