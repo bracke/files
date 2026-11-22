@@ -5,21 +5,36 @@ package body Files.Model.Clipboard is
    use Ada.Strings.Unbounded;
    use Files.Model.Support;
 
+   --  Only a cut marks rows (their Cut_Pending flag); a copy shows nowhere
+   --  in the rows, so it moves the header revision alone.
+   --  @param Model Model whose clipboard is about to change.
+   --  @param New_Mode The clipboard mode after the change.
+   procedure Touch_For_Mode
+     (Model    : in out Window_Model;
+      New_Mode : Clipboard_Mode) is
+   begin
+      if Model.Clipboard.Mode = Clipboard_Cut or else New_Mode = Clipboard_Cut then
+         Touch (Model);
+      else
+         Touch_Header (Model);
+      end if;
+   end Touch_For_Mode;
+
    procedure Set
      (Model : in out Window_Model;
       Paths : Files.Types.String_Vectors.Vector;
       Mode  : Clipboard_Mode) is
+      New_Mode : constant Clipboard_Mode := (if Paths.Is_Empty then Clipboard_None else Mode);
    begin
-      Touch (Model);
+      Touch_For_Mode (Model, New_Mode);
       Model.Clipboard.Paths := Paths;
-      Model.Clipboard.Mode :=
-        (if Paths.Is_Empty then Clipboard_None else Mode);
+      Model.Clipboard.Mode := New_Mode;
    end Set;
 
    procedure Clear
      (Model : in out Window_Model) is
    begin
-      Touch (Model);
+      Touch_For_Mode (Model, Clipboard_None);
       Model.Clipboard.Paths.Clear;
       Model.Clipboard.Mode := Clipboard_None;
    end Clear;

@@ -1,3 +1,8 @@
+with Ada.Containers.Ordered_Maps;
+with Files.Folder_Size;
+with Files.Model.Folder_Sizes;
+with Files.Model.Info_Pane;
+with Files.Model.Clipboard;
 with Files.Item_Lists;
 with Files.Text_Case.Testing;
 with Files.Model.Filtering;
@@ -412,6 +417,153 @@ separate (Files_Suite.Rendering)
          end;
          Files.Model.Rename.Toggle (Model);
          Refresh;
+
+         --  A plain left click on an item (nothing focused or edited) and a
+         --  Ctrl+C leave the rows: only the selection and header move.
+         declare
+            Rows : constant Natural := Files.Model.Rows_Revision (Model);
+         begin
+            Start := Ada.Real_Time.Clock;
+            for Round in 1 .. Rounds loop
+               Files.Model.Cancel_Focus_Or_Edit (Model);
+               Files.Model.Selection.Select_Visible (Model, 1 + Round mod 7);
+               Refresh;
+            end loop;
+            Ada.Text_IO.Put_Line ("large-folder: left click on an item and refresh" & Per_Round (Start, Rounds));
+            Start := Ada.Real_Time.Clock;
+            for Round in 1 .. Rounds loop
+               Files.Model.Clipboard.Set
+                 (Model, Files.Model.Selection.Selected_Paths (Model), Files.Model.Clipboard_Copy);
+               Refresh;
+            end loop;
+            Ada.Text_IO.Put_Line ("large-folder: Ctrl+C and refresh" & Per_Round (Start, Rounds));
+            Assert (Files.Model.Rows_Revision (Model) = Rows, "a click and a copy leave the rows");
+         end;
+
+         --  Whether a header-only build draws as the one on screen: the two
+         --  slots share the rows, which the window moves aside instead of
+         --  comparing them row by row (Refresh_Cached_Frame).
+         declare
+            A : View_Snapshot := Files.Rendering.Testing.Build_Snapshot_At (Model, Settings, Wall);
+            B : View_Snapshot := Files.Rendering.Testing.Build_Snapshot_At (Model, Settings, Wall);
+            Same : Boolean := False;
+         begin
+            Start := Ada.Real_Time.Clock;
+            for Round in 1 .. Rounds loop
+               Same := A = B;
+            end loop;
+            Ada.Text_IO.Put_Line
+              ("large-folder: snapshot compare, rows included (replaced)" & Per_Round (Start, Rounds));
+            Start := Ada.Real_Time.Clock;
+            for Round in 1 .. Rounds loop
+               declare
+                  A_Rows, B_Rows : Item_Snapshot_Vectors.Vector;
+               begin
+                  Item_Snapshot_Vectors.Move (A_Rows, A.Items);
+                  Item_Snapshot_Vectors.Move (B_Rows, B.Items);
+                  Same := A = B;
+                  Item_Snapshot_Vectors.Move (A.Items, A_Rows);
+                  Item_Snapshot_Vectors.Move (B.Items, B_Rows);
+               end;
+            end loop;
+            Ada.Text_IO.Put_Line
+              ("large-folder: snapshot compare, shared rows moved aside" & Per_Round (Start, Rounds));
+            Assert (Same and then Natural (A.Items.Length) = Count, "the rows come back after the compare");
+         end;
+
+         --  The info pane over a large selection, on a header-only change.
+         Files.Model.Selection.Select_All_Visible (Model);
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
+         Refresh;
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            Files.Model.Set_Error (Model, (if Round mod 2 = 0 then "error.probe" else ""));
+            Refresh;
+         end loop;
+         Ada.Text_IO.Put_Line
+           ("large-folder: header change with the info pane over 20k selected" & Per_Round (Start, Rounds));
+         Files.Model.Info_Pane.Toggle_Info_Pane (Model);
+         Refresh;
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            Files.Model.Set_Error (Model, (if Round mod 2 = 0 then "error.probe" else ""));
+            Refresh;
+         end loop;
+         Ada.Text_IO.Put_Line
+           ("large-folder: header change, info pane closed, 20k selected" & Per_Round (Start, Rounds));
+         Files.Model.Selection.Select_Visible (Model, 1);
+         Refresh;
+      end;
+
+      --  Folder sizes streaming in with 20k folders selected: each hand-over
+      --  looks up the folders it measured and moves the kept total, where it
+      --  mapped every selected folder and the snapshot summed them all again.
+      declare
+         Items    : Files.Items.Item_Vectors.Vector;
+         Model    : Files.Model.Window_Model;
+         Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         View     : Files.Application.Snapshot_Slots.View_Slots;
+         Wall     : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+         Rounds   : constant := 20;
+         Start    : Ada.Real_Time.Time;
+         Expected : Long_Long_Integer := 0;
+
+         procedure Refresh is
+         begin
+            Files.Application.Snapshot_Slots.Refresh (View, Model, Settings, Ada.Real_Time.Clock, Wall);
+            View.Drawn_Slot := View.Current_Slot;
+         end Refresh;
+      begin
+         for Index in 1 .. Count loop
+            Items.Append
+              (Files.Item_Lists.Make_Item ("/probe", "folder" & Integer'Image (Index), Files.Types.Directory_Item));
+         end loop;
+         Files.Model.Initialize
+           (Model, Directory_Path => "/probe", Items => Items, Home_Path => "/home/test",
+            Default_View_Mode => Files.Preference_Types.Details);
+         Files.Model.Selection.Select_All_Visible (Model);
+         Refresh;
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            declare
+               Measured : Files.Folder_Size.Measurement_Vectors.Vector;
+            begin
+               for Folder in 1 .. 10 loop
+                  Measured.Append
+                    (Files.Folder_Size.Measurement'
+                       (Path   => To_Unbounded_String ("/probe/folder" & Integer'Image ((Round - 1) * 10 + Folder)),
+                        Result => (Available => True, Total_Bytes => 100, others => <>),
+                        Listed => Files.Types.Unknown_Time));
+                  Expected := Expected + 100;
+               end loop;
+               Files.Model.Folder_Sizes.Note (Model, Measured);
+               Refresh;
+            end;
+         end loop;
+         Ada.Text_IO.Put_Line
+           ("large-folder: folder-size hand-over and refresh, 20k folders selected" & Per_Round (Start, Rounds));
+         Files_Suite.Support.Assert_Equal
+           (View.Snapshots (View.Current_Slot).Selection_Total_Bytes, Expected,
+            "the kept total counts every folder measured");
+         Assert (View.Snapshots (View.Current_Slot).Selection_Total_Pending, "with folders still unmeasured");
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            declare
+               --  What each hand-over did before: map every selected folder.
+               package Time_Maps is new Ada.Containers.Ordered_Maps
+                 (Key_Type => Ada.Strings.Unbounded.Unbounded_String, Element_Type => Ada.Calendar.Time,
+                  "<" => Ada.Strings.Unbounded."<", "=" => Ada.Calendar."=");
+               Selected : Time_Maps.Map;
+               procedure Add (Item : Files.Items.Directory_Item) is
+               begin
+                  Selected.Include (Item.Full_Path, Item.Modified_Time);
+               end Add;
+            begin
+               Files.Model.Selection.For_Each_Selected_Item (Model, Add'Access);
+            end;
+         end loop;
+         Ada.Text_IO.Put_Line
+           ("large-folder: mapping every selected folder per hand-over (replaced)" & Per_Round (Start, Rounds));
       end;
 
       --  A filter keystroke over 20k names that are not ASCII: each name is

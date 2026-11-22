@@ -7,7 +7,7 @@ procedure Reapply_Listing_Settings
 is
    --  Taken before the visibility changes: Restore_Selection keeps of them
    --  what is still shown, as a refresh does, and closes Quick Look.
-   Selected : constant Files.Items.Item_Vectors.Vector := Selected_Items (Model);
+   Selected : constant Files.Types.String_Vectors.Vector := Support.Selected_Paths (Model);
    Primary  : constant UString :=
      (if Model.Selected_Item_Index in Model.Items.First_Index .. Model.Items.Last_Index
       then Model.Items (Model.Selected_Item_Index).Full_Path

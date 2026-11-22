@@ -58,6 +58,31 @@ package Files.Model.Folder_Sizes is
       Path  : String)
       return Boolean;
 
+   --  Cached_For for a path as the items hold it, without copying it.
+   --
+   --  @param Model Model to inspect.
+   --  @param Path Directory path to look up in the cache.
+   --  @return True when a measurement for Path is cached.
+   function Cached_For
+     (Model : Window_Model;
+      Path  : Ada.Strings.Unbounded.Unbounded_String)
+      return Boolean;
+
+   --  The selection's combined size (every selected file's size plus each
+   --  selected folder's measured size), as kept by the folder-size
+   --  hand-overs. Kept is False when it is not current (the selection,
+   --  rows or folder sizes moved since), and the caller sums the selection.
+   --
+   --  @param Model Model to inspect.
+   --  @param Kept True when Bytes and Pending are current.
+   --  @param Bytes The combined size (0 when not Kept).
+   --  @param Pending True when a selected folder is not measured yet.
+   procedure Selection_Total
+     (Model   : Window_Model;
+      Kept    : out Boolean;
+      Bytes   : out Long_Long_Integer;
+      Pending : out Boolean);
+
    --  Return the cached folder-size measurement for Path.
    --
    --  @param Model Model to inspect.

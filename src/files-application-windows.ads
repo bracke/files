@@ -205,6 +205,7 @@ private
    --  another window's settings (Share_Settings_From).
    type Overlay_Inputs is record
       Model_Revision    : Natural := 0;
+      Overlay_Revision  : Natural := 0;
       Settings_Revision : Natural := 0;
       Region            : Files.Overlays.Overlay_Region;
       Focused           : Boolean := False;
@@ -297,6 +298,11 @@ private
       Synced_Settings_Revision : Natural := 0;
       Settings_Path   : Ada.Strings.Unbounded.Unbounded_String;
       Drag_Source_Index : Natural := 0;
+      --  The dragged item's path, and the rows revision Drag_Source_Index
+      --  was found at: the index is found again by the path when the rows
+      --  move mid-drag (Resolve_Drag_Source).
+      Drag_Source_Path  : Ada.Strings.Unbounded.Unbounded_String;
+      Drag_Source_Rows  : Natural := 0;
       --  Where the left button last went down, in framebuffer pixels: a
       --  control is drawn pressed only where the press began.
       Press_X, Press_Y : Natural := 0;

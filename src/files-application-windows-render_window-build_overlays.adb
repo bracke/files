@@ -25,6 +25,7 @@ separate (Files.Application.Windows.Render_Window)
       begin
          return
            (Model_Revision    => Files.Model.Revision (Runtime.Model),
+            Overlay_Revision  => Files.Model.Overlay_Revision (Runtime.Model),
             Settings_Revision => Files.Model.Settings_Revision (Runtime.Model),
             Region            =>
               (X           => X,

@@ -64,6 +64,14 @@ private package Files.Model.Support is
    --  @return The item the row shows.
    function Temporary_Item (Model : Window_Model) return Files.Items.Directory_Item;
 
+   --  The group band the pending create row falls in under the model's
+   --  grouping (its name decides its label), or 0 when nothing is grouped
+   --  or no create row is pending.
+   --
+   --  @param Model Model to inspect.
+   --  @return The create row's band, or 0.
+   function Temporary_Band (Model : Window_Model) return Natural;
+
    --  Map a 1-based visible-row index to its item-list index (accounting for
    --  the filter and the temporary row); zero when the row has no backing item.
    --
@@ -158,6 +166,12 @@ private package Files.Model.Support is
    --
    --  @param Model Model that changed.
    procedure Touch_Header (Model : in out Window_Model);
+
+   --  Note a change only a model-drawn overlay shows (Overlay_Revision):
+   --  Revision, and with it the snapshot, stays.
+   --
+   --  @param Model Model that changed.
+   procedure Touch_Overlay (Model : in out Window_Model);
 
    --  Note a change to the folder sizes measured: Folder_Sizes_Revision and
    --  Revision move.
@@ -367,12 +381,22 @@ private package Files.Model.Support is
    --  the keyboard anchor when that item still exists.
    --
    --  @param Model Model whose selection is replaced.
-   --  @param Items Previously selected items to match by full path.
+   --  @param Paths Full paths of the previously selected items.
    --  @param Primary_Path Full path of the previous primary item, or empty.
    procedure Restore_Selection
      (Model        : in out Window_Model;
-      Items        : Files.Items.Item_Vectors.Vector;
+      Paths        : Files.Types.String_Vectors.Vector;
       Primary_Path : String);
+
+   --  The selected loaded items' full paths, in item order: what a
+   --  selection is restored from (Restore_Selection), without copying the
+   --  items themselves.
+   --
+   --  @param Model Model to inspect.
+   --  @return The selected loaded items' full paths.
+   function Selected_Paths
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector;
 
    --  Return whether any selected item is the temporary create-file item.
    --

@@ -77,11 +77,15 @@ separate (Files.Application.Windows)
                Runtime.Last_Click_Path := To_Unbounded_String (Path);
                Runtime.Last_Click_Time := Now;
                Runtime.Drag_Source_Index := Action.Item_Index;
+               Runtime.Drag_Source_Path := To_Unbounded_String (Path);
+               Runtime.Drag_Source_Rows := Files.Model.Rows_Revision (Runtime.Model);
             else
                --  A double click is spent: a third click starts over.
                Runtime.Last_Click_Item := 0;
                Runtime.Last_Click_Path := Null_Unbounded_String;
                Runtime.Drag_Source_Index := (if Is_Item then Action.Item_Index else 0);
+               Runtime.Drag_Source_Path := To_Unbounded_String (Path);
+               Runtime.Drag_Source_Rows := Files.Model.Rows_Revision (Runtime.Model);
             end if;
 
             if Activate then
@@ -113,6 +117,7 @@ separate (Files.Application.Windows)
       --  A left release: the end of a drag (a drop) or of a deferred click.
       procedure Left_Release (Event : Guikit.Input.Mouse_Buttons.Button_Event) is
       begin
+         Resolve_Drag_Source (Runtime);
          if Event.Dragged and then Runtime.Drag_Source_Index /= 0 then
             declare
                Modifiers : constant Guikit.Input.Modifier_Set := Event.Modifiers;

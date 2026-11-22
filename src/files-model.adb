@@ -58,6 +58,8 @@ package body Files.Model is
 
    function Rows_Revision (Model : Window_Model) return Natural is (Model.Rows_Revision_Value);
 
+   function Overlay_Revision (Model : Window_Model) return Natural is (Model.Overlay_Revision_Value);
+
    function Selection_Revision (Model : Window_Model) return Natural is (Model.Selection_Revision_Value);
 
    function Rename_Revision (Model : Window_Model) return Natural is (Model.Rename_Revision_Value);
@@ -802,7 +804,19 @@ package body Files.Model is
    procedure Cancel_Focus_Or_Edit
      (Model : in out Window_Model) is
    begin
-      Support.Touch (Model);
+      --  Nothing to leave: a plain click on an item lands here, so it must
+      --  not move a revision. Focus and the root selector are drawn outside
+      --  the rows (Touch_Header); ending a rename or the pending create row
+      --  rebuilds the rows itself.
+      if Model.Focus_Value = Files.UI_Types.Focus_None
+        and then not Model.Root_Selector.Open
+        and then Model.Root_Selector.Entries.Is_Empty
+        and then not Model.Rename.Active
+        and then not Is_Temporary_Rename (Model)
+      then
+         return;
+      end if;
+      Support.Touch_Header (Model);
       Clear_Root_Selector_State (Model);
 
       if Model.Focus_Value = Files.UI_Types.Focus_Path_Input then

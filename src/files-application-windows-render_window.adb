@@ -74,6 +74,8 @@ separate (Files.Application.Windows)
       Files.Application.Window_Polls.Sample_Host (Runtime.Model);
       Files.Application.Window_Polls.Sample_Account_Names (Runtime.Model);
 
+      --  The drag preview names the dragged item where the rows now hold it.
+      Resolve_Drag_Source (Runtime);
       Refresh_Cached_Frame;
 
       --  Anything that changes what is on screen -- a rebuilt frame, an overlay

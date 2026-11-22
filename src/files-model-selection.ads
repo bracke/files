@@ -307,11 +307,12 @@ package Files.Model.Selection is
    --  the keyboard anchor when that item still exists.
    --
    --  @param Model Model whose selection is replaced.
-   --  @param Items Previously selected items to match by full path.
+   --  @param Paths Full paths of the previously selected items
+   --    (Selected_Paths).
    --  @param Primary_Path Full path of the previous primary item, or empty.
    procedure Restore
      (Model        : in out Window_Model;
-      Items        : Files.Items.Item_Vectors.Vector;
+      Paths        : Files.Types.String_Vectors.Vector;
       Primary_Path : String);
 
    --  Return whether any selected item is the temporary create-file item.

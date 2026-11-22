@@ -1,3 +1,4 @@
+with Files.Text_Case;
 with Files.UI_Types;
 with Guikit.Layout;
 with Files.Model.Support;
@@ -81,6 +82,9 @@ package body Files.Model.Command_Palette is
       Guikit.Command_Palette.Set_Configuration
         (Model.Command_Palette.View, Palette_Config (Guikit.Layout.Reference_Line_Height));
       Guikit.Command_Palette.Reset (Model.Command_Palette.View);
+      --  Every script's letters, as the filter bar folds them: guikit's own
+      --  folding knows ASCII and Latin-1 only.
+      Guikit.Command_Palette.Set_Folding (Model.Command_Palette.View, Files.Text_Case.Fold_Case'Access);
       --  Nothing from an earlier opening -- another mode's rows -- stays
       --  listed: a choice is resolved only against a list handed over
       --  since (List).
@@ -114,31 +118,31 @@ package body Files.Model.Command_Palette is
 
    procedure Set_Query (Model : in out Window_Model; Text : String) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Command_Palette.Set_Query (Model.Command_Palette.View, Text);
    end Set_Query;
 
    procedure Move_Selection (Model : in out Window_Model; Delta_Rows : Integer) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Command_Palette.Move_Selection (Model.Command_Palette.View, Delta_Rows);
    end Move_Selection;
 
    procedure Select_First (Model : in out Window_Model) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Command_Palette.Select_First (Model.Command_Palette.View);
    end Select_First;
 
    procedure Select_Last (Model : in out Window_Model) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Command_Palette.Select_Last (Model.Command_Palette.View);
    end Select_Last;
 
    procedure Page (Model : in out Window_Model; Down : Boolean) is
    begin
-      Touch_Header (Model);
+      Touch_Overlay (Model);
       Guikit.Command_Palette.Page (Model.Command_Palette.View, Down);
    end Page;
 
@@ -147,7 +151,7 @@ package body Files.Model.Command_Palette is
         Guikit.Command_Palette.Click (Model.Command_Palette.View, X, Y);
    begin
       if Clicked then
-         Touch_Header (Model);
+         Touch_Overlay (Model);
       end if;
       return Clicked;
    end Click;

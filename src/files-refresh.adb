@@ -310,8 +310,8 @@ package body Files.Refresh is
       Work  : Request;
       Items : Files.Items.Item_Vectors.Vector)
    is
-      Previous_Selection : constant Files.Items.Item_Vectors.Vector :=
-        Files.Model.Selection.Selected_Items (Model);
+      Previous_Selection : constant Files.Types.String_Vectors.Vector :=
+        Files.Model.Selection.Selected_Paths (Model);
       --  The primary item as the info pane shows it, details and all.
       Previous_Item    : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
       Previous_Primary : constant Files.Types.UString := Previous_Item.Full_Path;

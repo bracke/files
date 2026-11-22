@@ -57,7 +57,14 @@ separate (Files.Rendering.Build_Snapshot_Into)
          Append (Snapshot.Last_Error_Text, " " & Files.Localization.Text (Files.Model.Last_Error_Notice (Model)));
       end if;
       Snapshot.Focus := Files.Model.Focus (Model);
-      Snapshot.Text_Cursor_Position := Files.Model.Text_Cursor_Position (Model);
+      --  The caret of a field the frame draws (path, filter, ownership): the
+      --  palette's and the settings pane's are drawn by their overlays, and
+      --  a palette keystroke must not make the snapshot differ (it leaves
+      --  the model's revision, Files.Model.Overlay_Revision).
+      Snapshot.Text_Cursor_Position :=
+        (if Snapshot.Focus in Files.UI_Types.Focus_Command_Palette | Files.UI_Types.Focus_Settings_Input
+         then 0
+         else Files.Model.Text_Cursor_Position (Model));
       Snapshot.Path_Input_Text := To_Unbounded_String (Files.Model.Path_Input_Text (Model));
       Snapshot.Path_Input_Valid := Files.Model.Path_Input_Is_Valid (Model);
       Snapshot.Path_Input_Error_Key := To_Unbounded_String (Files.Model.Path_Input_Error_Key (Model));

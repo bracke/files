@@ -575,6 +575,8 @@ package body Files.Application.Windows is
       Item    : A11ykit.Provider.Request)
    is separate;
 
+   procedure Resolve_Drag_Source (Runtime : in out Runtime_Window) is separate;
+
    procedure Handle_Mouse
      (Runtime : in out Runtime_Window)
  is separate;

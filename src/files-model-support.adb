@@ -1,9 +1,10 @@
+with Ada.Containers.Hashed_Sets;
+with Ada.Strings.Unbounded.Hash;
 with Ada.Unchecked_Deallocation;
 with Files.Preference_Types;
 with Files.Item_Lists;
 with Files.UI_Types;
 with Ada.Containers.Indefinite_Hashed_Maps;
-with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 
 with Files.Grouping;
@@ -113,6 +114,12 @@ package body Files.Model.Support is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
    end Touch_Header;
+
+   procedure Touch_Overlay (Model : in out Window_Model) is
+   begin
+      Model.Overlay_Revision_Value :=
+        (if Model.Overlay_Revision_Value = Natural'Last then 0 else Model.Overlay_Revision_Value + 1);
+   end Touch_Overlay;
 
    procedure Note_Folder_Sizes (Model : in out Window_Model) is
    begin
@@ -398,6 +405,14 @@ package body Files.Model.Support is
          (if Label_Maps.Has_Element (Found) then Label_Maps.Element (Found) else Files.Preference_Types.No_Label),
          Model.Grouping.Day);
    end Group_Band;
+
+   function Temporary_Band (Model : Window_Model) return Natural is
+   begin
+      if not Model.Temporary.Active or else Model.Grouping.Mode = Files.Preference_Types.No_Grouping then
+         return 0;
+      end if;
+      return Group_Band (Model, Group_Labels_Map (Model), Temporary_Item (Model));
+   end Temporary_Band;
 
    function Items_In_Group_Order (Model : Window_Model) return Boolean is
       Labels   : Label_Maps.Map;
@@ -856,17 +871,32 @@ package body Files.Model.Support is
       return Result;
    end Selected_Items;
 
+   function Selected_Paths
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector
+   is
+      Paths : Files.Types.String_Vectors.Vector;
+
+      procedure Note (Item : Files.Items.Directory_Item) is
+      begin
+         Paths.Append (Item.Full_Path);
+      end Note;
+   begin
+      For_Each_Selected_Item (Model, Note'Access);
+      return Paths;
+   end Selected_Paths;
+
    procedure Restore_Selection
      (Model        : in out Window_Model;
-      Items        : Files.Items.Item_Vectors.Vector;
+      Paths        : Files.Types.String_Vectors.Vector;
       Primary_Path : String)
    is
       --  Runs on every refresh, so a large Select All must stay linear:
       --  hash the previous paths once instead of rescanning them per item.
-      package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-        (Element_Type        => String,
-         Hash                => Ada.Strings.Hash,
-         Equivalent_Elements => "=");
+      package Path_Sets is new Ada.Containers.Hashed_Sets
+        (Element_Type        => UString,
+         Hash                => Ada.Strings.Unbounded.Hash,
+         Equivalent_Elements => Ada.Strings.Unbounded."=");
 
       First_Selected   : Natural := 0;
       Primary_Selected : Natural := 0;
@@ -877,9 +907,9 @@ package body Files.Model.Support is
       Model.Selected_Item_Indexes.Clear;
       Reset_Quick_Look (Model);
 
-      Previous_Paths.Reserve_Capacity (Items.Length);
-      for Previous of Items loop
-         Previous_Paths.Include (To_String (Previous.Full_Path));
+      Previous_Paths.Reserve_Capacity (Paths.Length);
+      for Previous of Paths loop
+         Previous_Paths.Include (Previous);
       end loop;
 
       if not Model.Items.Is_Empty and then not Previous_Paths.Is_Empty then
@@ -887,10 +917,9 @@ package body Files.Model.Support is
             declare
                --  Read in place: Element copied the whole item, three times.
                Item : Files.Items.Directory_Item renames Model.Items (Index);
-               Path : constant String := To_String (Item.Full_Path);
             begin
                if Item_Visible_At (Model, Index)
-                 and then Previous_Paths.Contains (Path)
+                 and then Previous_Paths.Contains (Item.Full_Path)
                then
                   --  Indexes ascend and the list was cleared above, so each is
                   --  new; appending directly avoids a linear duplicate check.
@@ -898,7 +927,7 @@ package body Files.Model.Support is
                   if First_Selected = 0 then
                      First_Selected := Natural (Index);
                   end if;
-                  if Path = Primary_Path then
+                  if Item.Full_Path = Primary_Path then
                      Primary_Selected := Natural (Index);
                   end if;
                   --  The anchor is a selected item: its new index, found on

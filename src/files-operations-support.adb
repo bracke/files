@@ -105,8 +105,8 @@ package body Files.Operations.Support is
       declare
          --  Only a reload here restores them: the background one above
          --  restores its own, so a Select All is not copied for nothing.
-         Previous_Selection : constant Files.Items.Item_Vectors.Vector :=
-           Files.Model.Selection.Selected_Items (Model);
+         Previous_Selection : constant Files.Types.String_Vectors.Vector :=
+           Files.Model.Selection.Selected_Paths (Model);
          Previous_Primary : constant String :=
            To_String (Files.Model.Selection.Selected_Item (Model).Full_Path);
       begin

@@ -5,9 +5,11 @@ private with Ada.Real_Time;
 private with Files.Desktop_Applications;
 private with Files.Jobs.Process;
 private with Files.Paste_States;
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Hash;
 
 with Files.File_System_Types;
 private with Files.Folder_Tree;
@@ -68,6 +70,18 @@ package Files.Model is
    --  @param Model Window whose settings changed.
    procedure Note_Settings_Changed
      (Model : in out Window_Model);
+
+   --  Moved by a change that only an overlay drawn from the model shows (the
+   --  command palette's query, highlight and page), and by nothing else:
+   --  such a change leaves Revision, and with it the snapshot and the
+   --  palette's command list, as they were. The window layer rebuilds an
+   --  overlay when either moved.
+   --
+   --  @param Model Model to inspect.
+   --  @return The overlay revision.
+   function Overlay_Revision
+     (Model : Window_Model)
+      return Natural;
 
    --  Like Revision, but not moved by a change of the selection alone: the
    --  rows a view shows (names, metadata, rename fields, cut marks, order)
@@ -886,6 +900,32 @@ private
       Element_Type => Files.File_System_Types.Directory_Size_Result,
       "<"          => Ada.Strings.Unbounded."<");
 
+   --  Each selected folder and when it was listed, by path.
+   package Folder_Time_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => UString,
+      Element_Type    => Ada.Calendar.Time,
+      Hash            => Ada.Strings.Unbounded.Hash,
+      Equivalent_Keys => Ada.Strings.Unbounded."=",
+      "="             => Ada.Calendar."=");
+
+   --  The selected folders and the selection's combined size, kept across
+   --  folder-size hand-overs (Files.Model.Folder_Sizes): each hand-over then
+   --  looks up only the folders it measured and moves the total by their
+   --  difference, where it used to map every selected folder and the
+   --  snapshot summed the whole selection again. Folders is current while
+   --  the selection and rows revisions are those it was built at; the total
+   --  while the folder sizes' revision is Sizes_Revision too.
+   type Selected_Folders_Cache is record
+      Built             : Boolean := False;
+      Selection_Rev     : Natural := 0;
+      Rows_Rev          : Natural := 0;
+      Folders           : Folder_Time_Maps.Map;
+      Total_Valid       : Boolean := False;
+      Sizes_Revision    : Natural := 0;
+      Total_Bytes       : Long_Long_Integer := 0;
+      Unmeasured        : Natural := 0;
+   end record;
+
    use type Files.Types.Account_Id;
 
    --  Resolved account names keyed by numeric id (Set_Account_Name).
@@ -1181,6 +1221,7 @@ private
       --  Moves with every change to Folder_Sizes (Support.Note_Folder_Sizes):
       --  what a selection's total, kept across builds, is keyed on.
       Folder_Sizes_Revision   : Natural := 0;
+      Selected_Folders        : Selected_Folders_Cache;
       Folder_Scan             : Files.Folder_Size.Session;
       Context_Menu                  : Context_Menu_State;
       Paste_Conflict                : Files.Paste_States.Conflict_State;
@@ -1209,6 +1250,8 @@ private
       --  only the selection (Support.Touch_Selection): while it holds, a view
       --  snapshot's rows are still right but for their selected flags.
       Rows_Revision_Value : Natural := 0;
+      --  See Overlay_Revision.
+      Overlay_Revision_Value : Natural := 0;
       --  Bumped with Revision_Value by every change of the selection.
       Selection_Revision_Value : Natural := 0;
       --  Bumped with Revision_Value by every change of a rename field's text

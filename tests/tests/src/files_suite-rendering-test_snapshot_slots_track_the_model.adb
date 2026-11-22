@@ -1,6 +1,7 @@
 with Files.Item_Lists;
 with Files.Model.Filtering;
 with Files.Preference_Types;
+with Files.Model.Clipboard;
 with Files.Model.Command_Palette;
 with Guikit.Input;
 with Ada.Calendar;
@@ -54,6 +55,18 @@ separate (Files_Suite.Rendering)
          Assert (Files.Model.Rows_Revision (Model) = Rows, Name & ": the rows revision stays put");
       end Header_Step;
 
+      --  A change only the command palette overlay shows: the model's
+      --  revision, and with it the snapshot, stays; the overlay revision
+      --  the window layer rebuilds the palette on moves.
+      procedure Overlay_Step (Name : String; Change : not null access procedure; Draw : Boolean) is
+         Revision : constant Natural := Files.Model.Revision (Model);
+         Overlay  : constant Natural := Files.Model.Overlay_Revision (Model);
+      begin
+         Header_Step (Name, Change, Draw);
+         Assert (Files.Model.Revision (Model) = Revision, Name & ": the model revision stays put");
+         Assert (Files.Model.Overlay_Revision (Model) /= Overlay, Name & ": the overlay revision moves");
+      end Overlay_Step;
+
       --  Each visible item's row, as a reveal and a drag preview look it up,
       --  is the row that shows it, group headers between them or not.
       procedure Check_Rows (Name : String) is
@@ -78,6 +91,15 @@ separate (Files_Suite.Rendering)
       procedure Path_Type is begin Files.Model.Set_Path_Input_Text (Model, "/probe/elsewhere"); end Path_Type;
       procedure Path_Caret is begin Files.Model.Move_Text_Cursor (Model, Guikit.Input.Move_Left); end Path_Caret;
       procedure Path_Leave is begin Files.Model.Cancel_Focus_Or_Edit (Model); end Path_Leave;
+      procedure Copy is
+      begin
+         Files.Model.Clipboard.Set (Model, Files.Model.Selection.Selected_Paths (Model), Files.Model.Clipboard_Copy);
+      end Copy;
+      procedure Cut is
+      begin
+         Files.Model.Clipboard.Set (Model, Files.Model.Selection.Selected_Paths (Model), Files.Model.Clipboard_Cut);
+      end Cut;
+      procedure Uncut is begin Files.Model.Clipboard.Clear (Model); end Uncut;
       procedure Type_Ahead is
          Matched : Boolean;
       begin
@@ -174,13 +196,26 @@ separate (Files_Suite.Rendering)
             Step (Mode & "scrolled after the label", Scroll_Down'Access, Draw);
             Step (Mode & "selected after the label", Pick_Other'Access, Draw);
             Header_Step (Mode & "palette opened", Palette_Open'Access, Draw);
-            Header_Step (Mode & "palette query typed", Palette_Type'Access, Draw);
-            Header_Step (Mode & "palette highlight moved", Palette_Move'Access, Draw);
+            Overlay_Step (Mode & "palette query typed", Palette_Type'Access, Draw);
+            Overlay_Step (Mode & "palette highlight moved", Palette_Move'Access, Draw);
             Header_Step (Mode & "palette closed", Palette_Close'Access, Draw);
             Header_Step (Mode & "path field focused", Path_Focus'Access, Draw);
             Header_Step (Mode & "path field typed in", Path_Type'Access, Draw);
             Header_Step (Mode & "path caret moved", Path_Caret'Access, Draw);
-            Step (Mode & "path field left", Path_Leave'Access, Draw);
+            Header_Step (Mode & "path field left", Path_Leave'Access, Draw);
+            declare
+               Revision : constant Natural := Files.Model.Revision (Model);
+            begin
+               --  A click on an item with nothing focused or edited.
+               Files.Model.Cancel_Focus_Or_Edit (Model);
+               Assert (Files.Model.Revision (Model) = Revision,
+                       Mode & "nothing to leave: an item click moves no revision");
+            end;
+            Header_Step (Mode & "copied to the clipboard", Copy'Access, Draw);
+            Step (Mode & "cut to the clipboard", Cut'Access, Draw);
+            Step (Mode & "clipboard cleared after a cut", Uncut'Access, Draw);
+            Header_Step (Mode & "clipboard copied again", Copy'Access, Draw);
+            Header_Step (Mode & "clipboard cleared after a copy", Uncut'Access, Draw);
             Header_Step (Mode & "type-ahead", Type_Ahead'Access, Draw);
             Step (Mode & "rename started", Rename_Start'Access, Draw);
             Rename_Step (Mode & "rename typed in", Rename_Type'Access, Draw);

@@ -95,6 +95,33 @@ separate (Files.Application.Windows.Render_Window)
       Refresh_Snapshot (Runtime);
       declare
          Current : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Current_Slot);
+
+         --  Whether Current draws as the drawn snapshot does. Two slots that
+         --  hold one build's rows, patched to the same selection and rename
+         --  revisions, hold equal rows by construction: their tens of
+         --  thousands of rows are moved aside (in constant time, and back)
+         --  rather than compared row by row on every header change.
+         function Same_As_Drawn return Boolean is
+            Drawn : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Drawn_Slot);
+         begin
+            if Runtime.View.Slot_Rows (Runtime.View.Current_Slot) /= Runtime.View.Slot_Rows (Runtime.View.Drawn_Slot)
+              or else Current.Rows_Selection_Revision /= Drawn.Rows_Selection_Revision
+              or else Current.Rows_Rename_Revision /= Drawn.Rows_Rename_Revision
+            then
+               return Current = Drawn;
+            end if;
+            declare
+               Current_Items, Drawn_Items : Files.Rendering.Item_Snapshot_Vectors.Vector;
+               Same : Boolean;
+            begin
+               Files.Rendering.Item_Snapshot_Vectors.Move (Current_Items, Current.Items);
+               Files.Rendering.Item_Snapshot_Vectors.Move (Drawn_Items, Drawn.Items);
+               Same := Current = Drawn;
+               Files.Rendering.Item_Snapshot_Vectors.Move (Current.Items, Current_Items);
+               Files.Rendering.Item_Snapshot_Vectors.Move (Drawn.Items, Drawn_Items);
+               return Same;
+            end;
+         end Same_As_Drawn;
       begin
          if Runtime.View.Current_Slot = Runtime.View.Drawn_Slot then
             --  The snapshot is the one drawn last: reuse it in place -- no
@@ -106,7 +133,7 @@ separate (Files.Application.Windows.Render_Window)
             end if;
          else
             --  A rebuilt snapshot: draw it unless it equals what is drawn.
-            if not Inputs_Match or else Current /= Runtime.View.Snapshots (Runtime.View.Drawn_Slot) then
+            if not Inputs_Match or else not Same_As_Drawn then
                Rebuild_Frame (Current);
             end if;
             Runtime.View.Drawn_Slot := Runtime.View.Current_Slot;

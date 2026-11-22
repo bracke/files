@@ -171,7 +171,7 @@ package body Files.Application.Window_Polls is
             procedure Add (Item : Files.Items.Directory_Item) is
             begin
                if Item.Kind = Files.Types.Directory_Item
-                 and then not Files.Model.Folder_Sizes.Cached_For (Model, To_String (Item.Full_Path))
+                 and then not Files.Model.Folder_Sizes.Cached_For (Model, Item.Full_Path)
                then
                   Targets.Append (Files.Folder_Size.Target'(Path => Item.Full_Path, Listed => Item.Modified_Time));
                end if;

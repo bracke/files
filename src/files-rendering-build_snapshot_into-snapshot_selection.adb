@@ -44,7 +44,18 @@ separate (Files.Rendering.Build_Snapshot_Into)
                  and then Snapshot.Total_Selection_Revision = Selection
                  and then Snapshot.Total_Sizes_Revision = Sizes)
       then
-         Files.Model.Selection.For_Each_Selected_Item (Model, Count'Access);
+         declare
+            Kept : Boolean;
+         begin
+            --  The model keeps the total across folder-size hand-overs; only
+            --  a selection it has not seen yet is summed here.
+            Files.Model.Folder_Sizes.Selection_Total (Model, Kept, Total, Pending);
+            if not Kept then
+               Total := 0;
+               Pending := False;
+               Files.Model.Selection.For_Each_Selected_Item (Model, Count'Access);
+            end if;
+         end;
          Snapshot.Selection_Total_Bytes := Total;
          Snapshot.Selection_Total_Pending := Pending;
       end if;
