@@ -3,6 +3,9 @@ with Files.Rendering.Labels;
 
 package body Files.Rendering.Testing is
 
+   function Formatted_Rows (Row_Texts : Row_Text_Cache) return Natural is
+     (Natural (Row_Texts.Rows.Length));
+
    function Build_Snapshot
      (Model : Files.Model.Window_Model)
       return View_Snapshot is

@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 with Files.Preference_Types;
 with Ada.Real_Time;
 with Ada.Text_IO;
@@ -44,12 +45,13 @@ separate (Files_Suite.Rendering)
 
       declare
          First  : constant Frame_Commands := Frame (Build => 7, Hover_Y => 100);
-         Formatted : constant Natural := Formatted_Rows (Texts);
+         Formatted : constant Natural := Files.Rendering.Testing.Formatted_Rows (Texts);
          Second : constant Frame_Commands := Frame (Build => 7, Hover_Y => 140);
          Plain  : constant Frame_Commands := Uncached (140);
       begin
          Assert (Formatted > 0, "the drawn rows' texts are kept");
-         Assert (Formatted_Rows (Texts) = Formatted, "a pointer frame over the same build formats no row again");
+         Assert (Files.Rendering.Testing.Formatted_Rows (Texts) = Formatted,
+                 "a pointer frame over the same build formats no row again");
          Assert
            (Guikit.Draw.Text_Command_Vectors."=" (Second.Text, Plain.Text),
             "a frame from kept texts draws what a fresh frame draws");

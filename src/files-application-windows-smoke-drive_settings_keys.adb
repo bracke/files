@@ -84,17 +84,9 @@ separate (Files.Application.Windows.Smoke)
          and then Files.Model.Focus (Runtime.Model) = Files.UI_Types.Focus_Settings_Input);
 
       function Key_Now return String is (Files.Model.Settings_Pane.Focused_Key (Runtime.Model));
-   begin
-      Failed_Step := 0;
-      if Runtime.Handle = null then
-         Failed_Step := 1;
-         return;
-      end if;
 
-      Press (Guikit.Input.Key_Comma, Ctrl);
-      Expect (Open);
-
-      declare
+      --  Down/Up and Tab/Shift+Tab move the focus between fields and back.
+      procedure Check_Field_Keys is
          First : constant String := Key_Now;
       begin
          Press (Guikit.Input.Key_Down);
@@ -105,163 +97,174 @@ separate (Files.Application.Windows.Smoke)
          Expect (Key_Now /= First);
          Press (Guikit.Input.Key_Tab, Shift);
          Expect (Key_Now = First);
-      end;
+      end Check_Field_Keys;
+
+      --  The mouse: a click on the toggle's switch flips it, through the
+      --  path a real click takes (window position -> input action ->
+      --  dispatch). The switch sits at the focused row's right; sweep the
+      --  row from that edge until the value changes.
+      procedure Click_Toggle_Switch (Before : String) is
+         --  The nodes of the frame shown, the settings pane merged in
+         --  (Shown_Frame, as the pane is open). A copy: each click
+         --  re-renders, which replaces the shown frame.
+         Shown   : constant Guikit.Draw.Accessibility_Node_Vectors.Vector := Runtime.Shown_Frame.Accessibility;
+         Flipped : Boolean := False;
+      begin
+         for Node of Shown loop
+            if Node.Focused and then Node.Width > 0 then
+               --  Clicks hit-test the last drawn layout, so no frame is
+               --  drawn between them; 4 px steps cannot miss a switch.
+               for Step in 0 .. Node.Width / 4 loop
+                  exit when Node.Width < 4 * Step + 1;
+                  Click_At (Node.X + Node.Width - 1 - 4 * Step, Node.Y + Node.Height / 2);
+                  Flipped := Files.Model.Settings_Pane.Focused_Value (Runtime.Model) /= Before;
+                  exit when Flipped;
+               end loop;
+               Render_Window (Runtime);
+               exit;
+            end if;
+         end loop;
+         Expect (Flipped);
+      end Click_Toggle_Switch;
+
+      --  A screen reader's "activate" on the focused toggle flips it too,
+      --  through the path its requests take (a click on the node's
+      --  centre, which only focuses a settings row, then its change).
+      procedure Activate_Toggle is
+         Shown  : constant Guikit.Draw.Accessibility_Node_Vectors.Vector := Runtime.Shown_Frame.Accessibility;
+         Was    : constant String := Files.Model.Settings_Pane.Focused_Value (Runtime.Model);
+         Asked  : Boolean := False;
+      begin
+         for Node of Shown loop
+            if Node.Focused and then Node.Width > 0 then
+               Perform_Accessibility_Request
+                 (Runtime,
+                  (Kind   => A11ykit.Provider.Activate_Request,
+                   Node   => 0,
+                   Bounds => (X => Node.X, Y => Node.Y, Width => Node.Width, Height => Node.Height)));
+               Render_Window (Runtime);
+               Asked := True;
+               exit;
+            end if;
+         end loop;
+         Expect (Asked and then Files.Model.Settings_Pane.Focused_Value (Runtime.Model) /= Was);
+      end Activate_Toggle;
 
       --  Walk to a toggle, flip it with Space (whose own space must not also
       --  be typed), then flip it back with Right.
-      for Attempt in 1 .. 50 loop
-         exit when Files.Model.Settings_Pane.Focused_Kind (Runtime.Model) = Guikit.Settings_Panel.Toggle;
-         Press (Guikit.Input.Key_Tab);
-      end loop;
-      Expect (Files.Model.Settings_Pane.Focused_Kind (Runtime.Model) = Guikit.Settings_Panel.Toggle);
-      declare
-         Before : constant String := Files.Model.Settings_Pane.Focused_Value (Runtime.Model);
+      procedure Check_Toggle is
       begin
-         Press (Guikit.Input.Key_Space, Typed => " ");
-         Expect (Files.Model.Settings_Pane.Focused_Value (Runtime.Model) /= Before);
-         --  The change applies without a save error: the smoke has no
-         --  settings file, which turns persistence off rather than failing.
-         Expect (Files.Model.Last_Error_Key (Runtime.Model) = "");
-         Press (Guikit.Input.Key_Right);
-         Expect (Files.Model.Settings_Pane.Focused_Value (Runtime.Model) = Before);
-
-         --  The mouse: a click on the toggle's switch flips it, through the
-         --  path a real click takes (window position -> input action ->
-         --  dispatch). The switch sits at the focused row's right; sweep the
-         --  row from that edge until the value changes.
+         for Attempt in 1 .. 50 loop
+            exit when Files.Model.Settings_Pane.Focused_Kind (Runtime.Model) = Guikit.Settings_Panel.Toggle;
+            Press (Guikit.Input.Key_Tab);
+         end loop;
+         Expect (Files.Model.Settings_Pane.Focused_Kind (Runtime.Model) = Guikit.Settings_Panel.Toggle);
          declare
-            --  The nodes of the frame shown, the settings pane merged in
-            --  (Shown_Frame, as the pane is open). A copy: each click
-            --  re-renders, which replaces the shown frame.
-            Shown   : constant Guikit.Draw.Accessibility_Node_Vectors.Vector := Runtime.Shown_Frame.Accessibility;
-            Flipped : Boolean := False;
+            Before : constant String := Files.Model.Settings_Pane.Focused_Value (Runtime.Model);
          begin
-            for Node of Shown loop
-               if Node.Focused and then Node.Width > 0 then
-                  --  Clicks hit-test the last drawn layout, so no frame is
-                  --  drawn between them; 4 px steps cannot miss a switch.
-                  for Step in 0 .. Node.Width / 4 loop
-                     exit when Node.Width < 4 * Step + 1;
-                     Click_At (Node.X + Node.Width - 1 - 4 * Step, Node.Y + Node.Height / 2);
-                     Flipped := Files.Model.Settings_Pane.Focused_Value (Runtime.Model) /= Before;
-                     exit when Flipped;
-                  end loop;
-                  Render_Window (Runtime);
+            Press (Guikit.Input.Key_Space, Typed => " ");
+            Expect (Files.Model.Settings_Pane.Focused_Value (Runtime.Model) /= Before);
+            --  The change applies without a save error: the smoke has no
+            --  settings file, which turns persistence off rather than failing.
+            Expect (Files.Model.Last_Error_Key (Runtime.Model) = "");
+            Press (Guikit.Input.Key_Right);
+            Expect (Files.Model.Settings_Pane.Focused_Value (Runtime.Model) = Before);
+
+            Click_Toggle_Switch (Before);
+            Activate_Toggle;
+         end;
+      end Check_Toggle;
+
+      --  Ctrl+Tab and Ctrl+Shift+Tab switch sections; Escape closes the pane.
+      procedure Check_Sections_And_Close is
+      begin
+         Press (Guikit.Input.Key_Tab, Ctrl);
+         Expect (Files.Model.Settings_Pane.Active_Section (Runtime.Model) = 2);
+         Press (Guikit.Input.Key_Tab, Ctrl_Shift);
+         Expect (Files.Model.Settings_Pane.Active_Section (Runtime.Model) = 1);
+
+         Press (Guikit.Input.Key_Escape);
+         Expect (not Files.Model.Settings_Pane.Is_Open (Runtime.Model)
+                 and then Files.Model.Focus (Runtime.Model) = Files.UI_Types.Focus_None);
+      end Check_Sections_And_Close;
+
+      function Selected_Shown return Boolean is
+         Frame_W, Frame_H : Glfw.Size := 0;
+         Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
+      begin
+         Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
+         declare
+            Snapshot : constant Files.Rendering.View_Snapshot :=
+              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+            Layout   : constant Files.Rendering.Layout_Metrics :=
+              Files.Rendering.Layouts.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+         begin
+            for Cell of Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
+               if Cell.Visible_Index = Files.Model.Selection.Selected_Index (Runtime.Model) then
+                  return Cell.Height > 0;
+               end if;
+            end loop;
+            return False;
+         end;
+      end Selected_Shown;
+
+      --  Press (and later release) the left button over the item with
+      --  Visible_Index, through the window's own mouse step.
+      procedure Press_Item (Visible_Index : Positive) is
+         Window_W, Window_H, Frame_W, Frame_H : Glfw.Size := 0;
+         Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
+      begin
+         Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
+         Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
+         declare
+            Snapshot : constant Files.Rendering.View_Snapshot :=
+              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+            Layout   : constant Files.Rendering.Layout_Metrics :=
+              Files.Rendering.Layouts.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+         begin
+            for Cell of Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
+               if Cell.Visible_Index = Visible_Index and then Cell.Height > 0 and then Frame_W > 0 then
+                  Runtime.Handle.Drag_Start_X :=
+                    Glfw.Input.Mouse.Coordinate
+                      (Float (Cell.X + Cell.Width / 2) * Float (Window_W) / Float (Frame_W));
+                  Runtime.Handle.Drag_Start_Y :=
+                    Glfw.Input.Mouse.Coordinate
+                      (Float (Cell.Y + Cell.Height / 2) * Float (Window_H) / Float (Frame_H));
+                  Runtime.Handle.Pending_Mouse.Append
+                    (Guikit.Input.Mouse_Buttons.Button_Event'
+                       (Button    => Guikit.Input.Mouse_Buttons.Left_Mouse_Button,
+                        Pressed   => True,
+                        X         => Runtime.Handle.Drag_Start_X,
+                        Y         => Runtime.Handle.Drag_Start_Y,
+                        Modifiers => Guikit.Input.No_Modifiers,
+                        Dragged   => False,
+                        At_Time   => Ada.Real_Time.Clock));
+                  Runtime.Handle.Drag_Moved := False;
+                  Handle_Mouse (Runtime);
                   exit;
                end if;
             end loop;
-            Expect (Flipped);
          end;
+      end Press_Item;
 
-         --  A screen reader's "activate" on the focused toggle flips it too,
-         --  through the path its requests take (a click on the node's
-         --  centre, which only focuses a settings row, then its change).
-         declare
-            Shown  : constant Guikit.Draw.Accessibility_Node_Vectors.Vector := Runtime.Shown_Frame.Accessibility;
-            Was    : constant String := Files.Model.Settings_Pane.Focused_Value (Runtime.Model);
-            Asked  : Boolean := False;
-         begin
-            for Node of Shown loop
-               if Node.Focused and then Node.Width > 0 then
-                  Perform_Accessibility_Request
-                    (Runtime,
-                     (Kind   => A11ykit.Provider.Activate_Request,
-                      Node   => 0,
-                      Bounds => (X => Node.X, Y => Node.Y, Width => Node.Width, Height => Node.Height)));
-                  Render_Window (Runtime);
-                  Asked := True;
-                  exit;
-               end if;
-            end loop;
-            Expect (Asked and then Files.Model.Settings_Pane.Focused_Value (Runtime.Model) /= Was);
-         end;
-      end;
-
-      Press (Guikit.Input.Key_Tab, Ctrl);
-      Expect (Files.Model.Settings_Pane.Active_Section (Runtime.Model) = 2);
-      Press (Guikit.Input.Key_Tab, Ctrl_Shift);
-      Expect (Files.Model.Settings_Pane.Active_Section (Runtime.Model) = 1);
-
-      Press (Guikit.Input.Key_Escape);
-      Expect (not Files.Model.Settings_Pane.Is_Open (Runtime.Model)
-              and then Files.Model.Focus (Runtime.Model) = Files.UI_Types.Focus_None);
+      --  Release the left button where it went down, without a drag.
+      procedure Release_Left is
+      begin
+         Runtime.Handle.Pending_Mouse.Append
+           (Guikit.Input.Mouse_Buttons.Button_Event'
+              (Button    => Guikit.Input.Mouse_Buttons.Left_Mouse_Button,
+               Pressed   => False,
+               X         => Runtime.Handle.Drag_Start_X,
+               Y         => Runtime.Handle.Drag_Start_Y,
+               Modifiers => Guikit.Input.No_Modifiers,
+               Dragged   => False,
+               --  Long past its debounce window, so the next drain takes it.
+               At_Time   => Ada.Real_Time.Time_First));
+      end Release_Left;
 
       --  The list: the selection follows the keyboard into view, and a press on
       --  part of the selection keeps all of it until a release without a drag.
-      declare
-         function Selected_Shown return Boolean is
-            Frame_W, Frame_H : Glfw.Size := 0;
-            Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
-         begin
-            Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
-            declare
-               Snapshot : constant Files.Rendering.View_Snapshot :=
-                 Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
-               Layout   : constant Files.Rendering.Layout_Metrics :=
-                 Files.Rendering.Layouts.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
-            begin
-               for Cell of Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
-                  if Cell.Visible_Index = Files.Model.Selection.Selected_Index (Runtime.Model) then
-                     return Cell.Height > 0;
-                  end if;
-               end loop;
-               return False;
-            end;
-         end Selected_Shown;
-
-         --  Press (and later release) the left button over the item with
-         --  Visible_Index, through the window's own mouse step.
-         procedure Press_Item (Visible_Index : Positive) is
-            Window_W, Window_H, Frame_W, Frame_H : Glfw.Size := 0;
-            Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
-         begin
-            Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
-            Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
-            declare
-               Snapshot : constant Files.Rendering.View_Snapshot :=
-                 Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
-               Layout   : constant Files.Rendering.Layout_Metrics :=
-                 Files.Rendering.Layouts.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
-            begin
-               for Cell of Files.Rendering.Layouts.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
-                  if Cell.Visible_Index = Visible_Index and then Cell.Height > 0 and then Frame_W > 0 then
-                     Runtime.Handle.Drag_Start_X :=
-                       Glfw.Input.Mouse.Coordinate
-                         (Float (Cell.X + Cell.Width / 2) * Float (Window_W) / Float (Frame_W));
-                     Runtime.Handle.Drag_Start_Y :=
-                       Glfw.Input.Mouse.Coordinate
-                         (Float (Cell.Y + Cell.Height / 2) * Float (Window_H) / Float (Frame_H));
-                     Runtime.Handle.Pending_Mouse.Append
-                       (Guikit.Input.Mouse_Buttons.Button_Event'
-                          (Button    => Guikit.Input.Mouse_Buttons.Left_Mouse_Button,
-                           Pressed   => True,
-                           X         => Runtime.Handle.Drag_Start_X,
-                           Y         => Runtime.Handle.Drag_Start_Y,
-                           Modifiers => Guikit.Input.No_Modifiers,
-                           Dragged   => False,
-                           At_Time   => Ada.Real_Time.Clock));
-                     Runtime.Handle.Drag_Moved := False;
-                     Handle_Mouse (Runtime);
-                     exit;
-                  end if;
-               end loop;
-            end;
-         end Press_Item;
-
-         --  Release the left button where it went down, without a drag.
-         procedure Release_Left is
-         begin
-            Runtime.Handle.Pending_Mouse.Append
-              (Guikit.Input.Mouse_Buttons.Button_Event'
-                 (Button    => Guikit.Input.Mouse_Buttons.Left_Mouse_Button,
-                  Pressed   => False,
-                  X         => Runtime.Handle.Drag_Start_X,
-                  Y         => Runtime.Handle.Drag_Start_Y,
-                  Modifiers => Guikit.Input.No_Modifiers,
-                  Dragged   => False,
-                  --  Long past its debounce window, so the next drain takes it.
-                  At_Time   => Ada.Real_Time.Time_First));
-         end Release_Left;
+      procedure Check_List_Keys is
       begin
          Files.Model.Replace_Items (Runtime.Model, Scenario_Overflow_Items (Runtime.Model));
          Files.Model.Set_View_Mode (Runtime.Model, Files.Preference_Types.Details);
@@ -284,52 +287,67 @@ separate (Files.Application.Windows.Smoke)
                  and then Files.Model.Selection.Selected_Index (Runtime.Model) = 2);
          Runtime.Last_Click_Item := 0;
          Runtime.Last_Click_Path := Null_Unbounded_String;
+      end Check_List_Keys;
 
-         --  A double click opens a folder; a third click straight after, on
-         --  whatever sits at that row of the folder now shown, opens nothing.
-         --  Folders only, so even a regression opens no program.
-         declare
-            Base  : constant String := Hostkit.Fs.Create_Temporary_Directory ("files-live-click");
-            Inner : constant String := Hostkit.Fs.Join (Base, "inner");
+      --  A double click opens a folder; a third click straight after, on
+      --  whatever sits at that row of the folder now shown, opens nothing.
+      --  Folders only, so even a regression opens no program.
+      procedure Check_Click_Opens_Once is
+         Base  : constant String := Hostkit.Fs.Create_Temporary_Directory ("files-live-click");
+         Inner : constant String := Hostkit.Fs.Join (Base, "inner");
 
-            procedure Show (Path : String) is
-               Load : constant Files.File_System.Directory_Load_Result :=
-                 Files.File_System.Load_Directory
-                   (Path, Files.File_Types.Classification_Of (Runtime.Settings),
-                    Files.Settings.Listing_Options_Of (Runtime.Settings));
-            begin
-               Files.Model.Navigate_To (Runtime.Model, Path, Load.Items);
-               Render_Window (Runtime);
-            end Show;
-
-            procedure Click (Visible_Index : Positive) is
-            begin
-               Press_Item (Visible_Index);
-               Release_Left;
-               Handle_Mouse (Runtime);
-               Render_Window (Runtime);
-            end Click;
+         procedure Show (Path : String) is
+            Load : constant Files.File_System.Directory_Load_Result :=
+              Files.File_System.Load_Directory
+                (Path, Files.File_Types.Classification_Of (Runtime.Settings),
+                 Files.Settings.Listing_Options_Of (Runtime.Settings));
          begin
-            if Base /= "" then
-               Files.IO.Fs_Primitives.Create_Path (Hostkit.Fs.Join (Inner, "deeper"));
-               Show (Base);
-               Click (1);
-               --  A frame between the clicks can take longer than a double
-               --  click allows on a slow host: the step is about matching the
-               --  clicks, not the host's speed.
-               Runtime.Last_Click_Time := Ada.Real_Time.Clock;
-               Click (1);
-               Expect (Files.Model.Current_Path (Runtime.Model) = Files.IO.Fs_Primitives.Full_Name (Inner));
-               Runtime.Last_Click_Time := Ada.Real_Time.Clock;
-               Click (1);
-               Expect (Files.Model.Current_Path (Runtime.Model) = Files.IO.Fs_Primitives.Full_Name (Inner));
-               Runtime.Last_Click_Item := 0;
-               Runtime.Last_Click_Path := Null_Unbounded_String;
-               Files.Model.Replace_Items (Runtime.Model, Scenario_Overflow_Items (Runtime.Model));
-               Files.IO.Fs_Primitives.Delete_Tree_If_Present (Base);
-            end if;
-         end;
-      end;
+            Files.Model.Navigate_To (Runtime.Model, Path, Load.Items);
+            Render_Window (Runtime);
+         end Show;
+
+         procedure Click (Visible_Index : Positive) is
+         begin
+            Press_Item (Visible_Index);
+            Release_Left;
+            Handle_Mouse (Runtime);
+            Render_Window (Runtime);
+         end Click;
+      begin
+         if Base /= "" then
+            Files.IO.Fs_Primitives.Create_Path (Hostkit.Fs.Join (Inner, "deeper"));
+            Show (Base);
+            Click (1);
+            --  A frame between the clicks can take longer than a double
+            --  click allows on a slow host: the step is about matching the
+            --  clicks, not the host's speed.
+            Runtime.Last_Click_Time := Ada.Real_Time.Clock;
+            Click (1);
+            Expect (Files.Model.Current_Path (Runtime.Model) = Files.IO.Fs_Primitives.Full_Name (Inner));
+            Runtime.Last_Click_Time := Ada.Real_Time.Clock;
+            Click (1);
+            Expect (Files.Model.Current_Path (Runtime.Model) = Files.IO.Fs_Primitives.Full_Name (Inner));
+            Runtime.Last_Click_Item := 0;
+            Runtime.Last_Click_Path := Null_Unbounded_String;
+            Files.Model.Replace_Items (Runtime.Model, Scenario_Overflow_Items (Runtime.Model));
+            Files.IO.Fs_Primitives.Delete_Tree_If_Present (Base);
+         end if;
+      end Check_Click_Opens_Once;
+   begin
+      Failed_Step := 0;
+      if Runtime.Handle = null then
+         Failed_Step := 1;
+         return;
+      end if;
+
+      Press (Guikit.Input.Key_Comma, Ctrl);
+      Expect (Open);
+
+      Check_Field_Keys;
+      Check_Toggle;
+      Check_Sections_And_Close;
+      Check_List_Keys;
+      Check_Click_Opens_Once;
 
       --  Reopen and leave it on the second tab, so the final frame shows the
       --  panel the keys drove rather than the startup view.

@@ -91,12 +91,6 @@ package Files.Overlays is
       Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
       Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector);
 
-   --  How many times Fields was built: for tests.
-   --
-   --  @param Fields A fields cache.
-   --  @return Builds so far.
-   function Builds (Fields : Settings_Fields_Cache) return Natural;
-
 private
 
    type Settings_Fields_Cache is record
@@ -107,7 +101,5 @@ private
       Fields            : Guikit.Settings_Panel.Field_Vectors.Vector;
       Build_Count       : Natural := 0;
    end record;
-
-   function Builds (Fields : Settings_Fields_Cache) return Natural is (Fields.Build_Count);
 
 end Files.Overlays;

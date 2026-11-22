@@ -54,6 +54,7 @@ package body Files_Suite.Search is
    procedure Test_Recursive_Search (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Search_Result_Actions_Stay_Beside_Source (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Content_Search_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Utf16_Transcoding (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Search_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -91,6 +92,9 @@ package body Files_Suite.Search is
          "a name search with no match shows the no-matches notice");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Search_Limit_Errors'Access, "search limits show what was found with the truncated notice");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Utf16_Transcoding'Access,
+         "UTF-16 text is told by its mark or NULs and transcoded, surrogates paired or replaced");
    end Register_Tests;
 
    procedure Test_Recursive_Search (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -112,6 +116,8 @@ package body Files_Suite.Search is
    procedure Test_Name_Search_No_Matches (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Content_Search_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Utf16_Transcoding (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

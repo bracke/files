@@ -78,6 +78,7 @@ package body Files_Suite.Thumbnails is
    procedure Test_Thumbnail_Listing_Counts_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Decode_Emoji_Png_From_Font (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Image_Header_Bytes (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Png_Refusals (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Oversized_Image_File_Refused (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Cut_Text (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Decodes_Off_Thread (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -146,6 +147,9 @@ package body Files_Suite.Thumbnails is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Netpbm_Fields'Access,
          "the Netpbm reader splits fields, refuses bad numbers and scales samples");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Png_Refusals'Access,
+         "the PNG reader decodes 8-bit RGB and RGBA and refuses every other layout or a damaged file");
    end Register_Tests;
 
    procedure Test_Thumbnail_Generation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -192,6 +196,8 @@ package body Files_Suite.Thumbnails is
    procedure Test_Decode_Emoji_Png_From_Font (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Image_Header_Bytes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Png_Refusals (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Oversized_Image_File_Refused (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

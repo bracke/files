@@ -5,5 +5,3 @@ os.time.weekday.thursday = цыппӕрӕм
 os.time.weekday.friday = майрӕмбон
 os.time.weekday.saturday = сабат
 os.time.weekday.sunday = хуыцаубон
-os.number.decimal = ,
-os.number.group =  

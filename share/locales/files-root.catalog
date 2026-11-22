@@ -1,5 +1,3 @@
-root.number.decimal = .
-root.number.group = ,
 root.details.size.unit.bytes = byte
 root.details.size.unit.kib = kB
 root.details.size.unit.mib = MB

@@ -13,6 +13,135 @@ separate (Files.Application.Windows.Gestures)
    is
       X_Frame : Integer;
       Y_Frame : Integer;
+
+      --  The origin is a screen point on content that scrolls: shift it by
+      --  however far the rows moved since it was last placed (a wheel turn,
+      --  the auto-scroll below, measured in pixels as the renderer may snap
+      --  to a row period), so it stays on the row the press was on.
+      procedure Follow_Scroll (Main_View : Files.Rendering.Layouts.Main_View_Layout) is
+         Now_Pixels : constant Natural := Main_View.Scroll_Pixels;
+      begin
+         Runtime.Marquee.Origin_Y :=
+           Runtime.Marquee.Origin_Y - (Integer (Now_Pixels) - Integer (Runtime.Marquee.Scroll_Pixels));
+         Runtime.Marquee.Scroll_Pixels := Now_Pixels;
+      end Follow_Scroll;
+
+      --  Auto-scroll: while the cursor is dragged to (or past) the top or
+      --  bottom of the scrollable rows area, scroll the list so items beyond
+      --  the current view can be rubber-banded in one gesture; the origin
+      --  follows the scroll, so items already inside the band stay in it as
+      --  they move off screen.
+      procedure Auto_Scroll
+        (Layout      : in out Files.Rendering.Layout_Metrics;
+         Main_View   : in out Files.Rendering.Layouts.Main_View_Layout;
+         Line_Height : Positive)
+      is
+         Max_Lines  : constant Natural := Files.Rendering.Layouts.Main_View_Max_Scroll (Main_View, Line_Height);
+         Current    : constant Natural := Files.Model.Main_View_Scroll_Lines (Runtime.Model);
+         Step       : constant Integer :=
+           Files.Rendering.Layouts.Marquee_Auto_Scroll_Step
+             (Cursor_Y      => Y_Frame,
+              Region_Top    => Integer (Main_View.Scrollbar_Y),
+              Region_Bottom =>
+                Integer (Main_View.Scrollbar_Y) + Integer (Main_View.Scrollbar_Track_Height),
+              Line_Height   => Line_Height);
+      begin
+         if Step /= 0 then
+            declare
+               New_Lines : constant Natural :=
+                 Natural
+                   (Integer'Max
+                      (0, Integer'Min (Integer (Current) + Step, Integer (Max_Lines))));
+            begin
+               if New_Lines /= Current then
+                  Runtime.Marquee.Auto_Scrolled := True;
+                  Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, New_Lines);
+                  Refresh_Snapshot (Runtime);
+                  Layout := Files.Rendering.Layouts.Calculate_Layout
+                    (Runtime.View.Snapshots (Runtime.View.Current_Slot), Natural (Frame_W), Natural (Frame_H),
+                     Line_Height);
+                  Main_View :=
+                    Files.Rendering.Layouts.Calculate_Main_View_Layout
+                      (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height);
+                  Follow_Scroll (Main_View);
+               end if;
+            end;
+         end if;
+      end Auto_Scroll;
+
+      --  Selects what the band covers, hit-tested in unscrolled content
+      --  coordinates, and records the band to draw.
+      procedure Select_Band
+        (Layout      : Files.Rendering.Layout_Metrics;
+         Main_View   : Files.Rendering.Layouts.Main_View_Layout;
+         Line_Height : Positive)
+      is
+         Scroll : constant Integer := Integer (Main_View.Scroll_Pixels);
+         Band_X : Natural;
+         Band_Y : Natural;
+         Band_W : Natural;
+         Band_H : Natural;
+         Rect_X : Natural;
+         Rect_Y : Natural;
+         Rect_W : Natural;
+         Rect_H : Natural;
+      begin
+         Files.Rendering.Layouts.Marquee_Rect
+           (Start_X   => Natural'Max (0, Runtime.Marquee.Origin_X),
+            Start_Y   => Natural'Max (0, Runtime.Marquee.Origin_Y),
+            Current_X => Natural'Max (0, X_Frame),
+            Current_Y => Natural'Max (0, Y_Frame),
+            X         => Rect_X,
+            Y         => Rect_Y,
+            Width     => Rect_W,
+            Height    => Rect_H);
+         Files.Rendering.Layouts.Marquee_Rect
+           (Start_X   => Natural'Max (0, Runtime.Marquee.Origin_X),
+            Start_Y   => Natural'Max (0, Runtime.Marquee.Origin_Y + Scroll),
+            Current_X => Natural'Max (0, X_Frame),
+            Current_Y => Natural'Max (0, Y_Frame + Scroll),
+            X         => Band_X,
+            Y         => Band_Y,
+            Width     => Band_W,
+            Height    => Band_H);
+         declare
+            --  Hit-tested in unscrolled content coordinates: a row the
+            --  auto-scroll moved off screen has no area on screen but is
+            --  still inside the band. Only the band's rows are laid out.
+            Items : constant Files.Rendering.Layouts.Placed_Item_Layout :=
+              Files.Rendering.Layouts.Place_Item_Layout
+                (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height,
+                 Whole_Content => True, Window_Top => Band_Y, Window_Height => Natural'Max (Band_H, 1));
+         begin
+            --  The base's rows, again only when the rows may have moved.
+            if Runtime.Marquee.Additive then
+               declare
+                  Key : constant Natural := Files.Model.Selection.Visible_Rows_Key (Runtime.Model);
+               begin
+                  if not Runtime.Marquee.Base_Rows_Known or else Runtime.Marquee.Base_Rows_Key /= Key then
+                     Runtime.Marquee.Base_Rows :=
+                       Files.Interaction.Marquee_Base_Rows (Runtime.Model, Runtime.Marquee.Base);
+                     Runtime.Marquee.Base_Rows_Key := Key;
+                     Runtime.Marquee.Base_Rows_Known := True;
+                  end if;
+               end;
+            end if;
+            Files.Interaction.Apply_Marquee_Selection
+              (Model     => Runtime.Model,
+               Hits      =>
+                 Files.Rendering.Hit.Items_In_Rect (Items, Band_X, Band_Y, Band_W, Band_H),
+               Additive  => Runtime.Marquee.Additive,
+               Base_Rows => Runtime.Marquee.Base_Rows);
+         end;
+         Runtime.Marquee.Rect_X := Rect_X;
+         Runtime.Marquee.Rect_Y := Rect_Y;
+         Runtime.Marquee.Rect_W := Rect_W;
+         Runtime.Marquee.Rect_H := Rect_H;
+         Runtime.Marquee.Last_X := X_Frame;
+         Runtime.Marquee.Last_Y := Y_Frame;
+         Runtime.Marquee.Last_Scroll := Files.Model.Main_View_Scroll_Lines (Runtime.Model);
+      end Select_Band;
+
    begin
       if not Runtime.Marquee.Active then
          return;
@@ -72,127 +201,12 @@ separate (Files.Application.Windows.Gestures)
          Main_View : Files.Rendering.Layouts.Main_View_Layout :=
            Files.Rendering.Layouts.Calculate_Main_View_Layout
              (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height);
-
-         --  The origin is a screen point on content that scrolls: shift it by
-         --  however far the rows moved since it was last placed (a wheel turn,
-         --  the auto-scroll below, measured in pixels as the renderer may snap
-         --  to a row period), so it stays on the row the press was on.
-         procedure Follow_Scroll is
-            Now_Pixels : constant Natural := Main_View.Scroll_Pixels;
-         begin
-            Runtime.Marquee.Origin_Y :=
-              Runtime.Marquee.Origin_Y - (Integer (Now_Pixels) - Integer (Runtime.Marquee.Scroll_Pixels));
-            Runtime.Marquee.Scroll_Pixels := Now_Pixels;
-         end Follow_Scroll;
       begin
-         Follow_Scroll;
-
-         --  Auto-scroll: while the cursor is dragged to (or past) the top or
-         --  bottom of the scrollable rows area, scroll the list so items beyond
-         --  the current view can be rubber-banded in one gesture; the origin
-         --  follows the scroll, so items already inside the band stay in it as
-         --  they move off screen. Nothing to do when it all fits (no bar).
+         Follow_Scroll (Main_View);
+         --  Nothing to auto-scroll when it all fits (no bar).
          if Main_View.Scrollbar_Visible then
-            declare
-               Max_Lines  : constant Natural := Files.Rendering.Layouts.Main_View_Max_Scroll (Main_View, Line_Height);
-               Current    : constant Natural := Files.Model.Main_View_Scroll_Lines (Runtime.Model);
-               Step       : constant Integer :=
-                 Files.Rendering.Layouts.Marquee_Auto_Scroll_Step
-                   (Cursor_Y      => Y_Frame,
-                    Region_Top    => Integer (Main_View.Scrollbar_Y),
-                    Region_Bottom =>
-                      Integer (Main_View.Scrollbar_Y) + Integer (Main_View.Scrollbar_Track_Height),
-                    Line_Height   => Line_Height);
-            begin
-               if Step /= 0 then
-                  declare
-                     New_Lines : constant Natural :=
-                       Natural
-                         (Integer'Max
-                            (0, Integer'Min (Integer (Current) + Step, Integer (Max_Lines))));
-                  begin
-                     if New_Lines /= Current then
-                        Runtime.Marquee.Auto_Scrolled := True;
-                        Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, New_Lines);
-                        Refresh_Snapshot (Runtime);
-                        Layout := Files.Rendering.Layouts.Calculate_Layout
-                          (Runtime.View.Snapshots (Runtime.View.Current_Slot), Natural (Frame_W), Natural (Frame_H),
-                           Line_Height);
-                        Main_View :=
-                          Files.Rendering.Layouts.Calculate_Main_View_Layout
-                            (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height);
-                        Follow_Scroll;
-                     end if;
-                  end;
-               end if;
-            end;
+            Auto_Scroll (Layout, Main_View, Line_Height);
          end if;
-
-         declare
-            Scroll : constant Integer := Integer (Main_View.Scroll_Pixels);
-            Band_X : Natural;
-            Band_Y : Natural;
-            Band_W : Natural;
-            Band_H : Natural;
-            Rect_X : Natural;
-            Rect_Y : Natural;
-            Rect_W : Natural;
-            Rect_H : Natural;
-         begin
-            Files.Rendering.Layouts.Marquee_Rect
-              (Start_X   => Natural'Max (0, Runtime.Marquee.Origin_X),
-               Start_Y   => Natural'Max (0, Runtime.Marquee.Origin_Y),
-               Current_X => Natural'Max (0, X_Frame),
-               Current_Y => Natural'Max (0, Y_Frame),
-               X         => Rect_X,
-               Y         => Rect_Y,
-               Width     => Rect_W,
-               Height    => Rect_H);
-            Files.Rendering.Layouts.Marquee_Rect
-              (Start_X   => Natural'Max (0, Runtime.Marquee.Origin_X),
-               Start_Y   => Natural'Max (0, Runtime.Marquee.Origin_Y + Scroll),
-               Current_X => Natural'Max (0, X_Frame),
-               Current_Y => Natural'Max (0, Y_Frame + Scroll),
-               X         => Band_X,
-               Y         => Band_Y,
-               Width     => Band_W,
-               Height    => Band_H);
-            declare
-               --  Hit-tested in unscrolled content coordinates: a row the
-               --  auto-scroll moved off screen has no area on screen but is
-               --  still inside the band. Only the band's rows are laid out.
-               Items : constant Files.Rendering.Layouts.Placed_Item_Layout :=
-                 Files.Rendering.Layouts.Place_Item_Layout
-                   (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height,
-                    Whole_Content => True, Window_Top => Band_Y, Window_Height => Natural'Max (Band_H, 1));
-            begin
-               --  The base's rows, again only when the rows may have moved.
-               if Runtime.Marquee.Additive then
-                  declare
-                     Key : constant Natural := Files.Model.Selection.Visible_Rows_Key (Runtime.Model);
-                  begin
-                     if not Runtime.Marquee.Base_Rows_Known or else Runtime.Marquee.Base_Rows_Key /= Key then
-                        Runtime.Marquee.Base_Rows :=
-                          Files.Interaction.Marquee_Base_Rows (Runtime.Model, Runtime.Marquee.Base);
-                        Runtime.Marquee.Base_Rows_Key := Key;
-                        Runtime.Marquee.Base_Rows_Known := True;
-                     end if;
-                  end;
-               end if;
-               Files.Interaction.Apply_Marquee_Selection
-                 (Model     => Runtime.Model,
-                  Hits      =>
-                    Files.Rendering.Hit.Items_In_Rect (Items, Band_X, Band_Y, Band_W, Band_H),
-                  Additive  => Runtime.Marquee.Additive,
-                  Base_Rows => Runtime.Marquee.Base_Rows);
-            end;
-            Runtime.Marquee.Rect_X := Rect_X;
-            Runtime.Marquee.Rect_Y := Rect_Y;
-            Runtime.Marquee.Rect_W := Rect_W;
-            Runtime.Marquee.Rect_H := Rect_H;
-            Runtime.Marquee.Last_X := X_Frame;
-            Runtime.Marquee.Last_Y := Y_Frame;
-            Runtime.Marquee.Last_Scroll := Files.Model.Main_View_Scroll_Lines (Runtime.Model);
-         end;
+         Select_Band (Layout, Main_View, Line_Height);
       end;
    end Update_Marquee_Drag;

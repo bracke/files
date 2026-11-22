@@ -5,6 +5,7 @@ with Ada.Text_IO;
 with Files.Controller;
 with Files.Interaction;
 with Files.Overlays;
+with Files.Overlays.Testing;
 with Files.Preference_Types;
 with Files.Settings;
 with Guikit.Input;
@@ -128,7 +129,7 @@ separate (Files_Suite.Rendering)
             Ada.Text_IO.Put_Line
               ("large-folder: settings pane hover" & Per_Round (Start, Rounds) & " kept fields vs"
                & Duration'Image (Fresh / Rounds * 1000) & " ms rebuilt");
-            Assert (Files.Overlays.Builds (Fields) = 1, "a hover move over the settings pane keeps its fields");
+            Assert (Files.Overlays.Testing.Builds (Fields) = 1, "a hover move over the settings pane keeps its fields");
             Assert
               (Guikit.Draw.Text_Command_Vectors."=" (Kept_Text, Text)
                and then Guikit.Draw.Rectangle_Command_Vectors."=" (Kept_Rects, Rects),
@@ -141,7 +142,7 @@ separate (Files_Suite.Rendering)
                           Clip_Width => 600, Clip_Height => 500, Line_Height => LH),
                Focused => True, Hover_X => -1, Hover_Y => -1, Fields => Fields,
                Rectangles => Kept_Rects, Text => Kept_Text, Accessibility => Kept_Nodes);
-            Assert (Files.Overlays.Builds (Fields) = 2, "a settings change builds the fields again");
+            Assert (Files.Overlays.Testing.Builds (Fields) = 2, "a settings change builds the fields again");
          end;
       end;
 

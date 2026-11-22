@@ -36,15 +36,6 @@ package Files.Text_Encoding is
    function Is_Continuation_Byte (Item : Character) return Boolean is
      (Character'Pos (Item) in 16#80# .. 16#BF#);
 
-   --  The length of the well-formed UTF-8 multibyte sequence starting at
-   --  Text (At_Index): no overlong form, surrogate or value past U+10FFFF.
-   --
-   --  @param Text Bytes to read.
-   --  @param At_Index Index of the sequence's lead byte, within Text.
-   --  @return The sequence's byte length; 0 when none starts there (an ASCII
-   --    byte included).
-   function Utf8_Sequence_Length (Text : String; At_Index : Positive) return Natural;
-
    --  Return whether Raw_Bytes looks like binary (non-text) data: it contains a
    --  NUL byte, or too large a share of non-printable control bytes to render as
    --  monospace text. An empty input is not considered binary. Applied to

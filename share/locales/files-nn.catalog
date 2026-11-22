@@ -5,5 +5,3 @@ nn.time.weekday.thursday = torsdag
 nn.time.weekday.friday = fredag
 nn.time.weekday.saturday = laurdag
 nn.time.weekday.sunday = søndag
-nn.number.decimal = ,
-nn.number.group =  

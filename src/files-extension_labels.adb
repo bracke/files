@@ -88,6 +88,118 @@ package body Files.Extension_Labels is
       Failed_At := Ada.Real_Time.Clock;
    end Ensure_Renderer;
 
+   --  Where a label's glyphs left ink, so the bitmap can be cropped to it.
+   type Ink_Bounds is record
+      Min_C, Max_C, Min_R, Max_R : Natural := 0;
+      Inked                      : Boolean := False;
+   end record;
+
+   --  Copies one glyph's coverage from the atlas into the W0 x H0 RGBA
+   --  scratch buffer in the label colour, widening the inked bounds.
+   procedure Composite_Glyph
+     (G                   : Guikit.Draw.Glyph_Command;
+      Atlas               : Atlas_Conversions.Object_Pointer;
+      AW, AH, Atlas_Bytes : Natural;
+      W0, H0              : Natural;
+      Cr, Cg, Cb          : Interfaces.Unsigned_8;
+      Buf                 : in out Guikit.Shared_Bytes.Byte_Vectors.Vector;
+      Ink                 : in out Ink_Bounds)
+   is
+      --  The glyph's own pixels when it says where they are: the
+      --  atlas may have grown taller while this text was packed.
+      SX0 : constant Natural :=
+        (if G.Atlas_W > 0 then G.Atlas_X else Natural (Float'Floor (G.U0 * Float (AW))));
+      SY0 : constant Natural :=
+        (if G.Atlas_W > 0 then G.Atlas_Y else Natural (Float'Floor (G.V0 * Float (AH))));
+      GW  : constant Natural := Natural (Float'Rounding (Float'Max (0.0, G.Width)));
+      GH  : constant Natural := Natural (Float'Rounding (Float'Max (0.0, G.Height)));
+      DX0 : constant Natural := Natural (Float'Rounding (Float'Max (0.0, G.X)));
+      DY0 : constant Natural := Natural (Float'Rounding (Float'Max (0.0, G.Y)));
+   begin
+      if GW > 0 and then GH > 0
+        and then SX0 < AW and then SY0 < AH
+        and then DX0 < W0 and then DY0 < H0
+      then
+         declare
+            Safe_W : constant Natural :=
+              Natural'Min (GW, Natural'Min (AW - SX0, W0 - DX0));
+            Safe_H : constant Natural :=
+              Natural'Min (GH, Natural'Min (AH - SY0, H0 - DY0));
+         begin
+            if Safe_W > 0 and then Safe_H > 0 then
+               for Y in 0 .. Safe_H - 1 loop
+                  for X in 0 .. Safe_W - 1 loop
+                     declare
+                        SX : constant Natural := SX0 + X;
+                        SY : constant Natural := SY0 + Y;
+                        DX : constant Natural := DX0 + X;
+                        DY : constant Natural := DY0 + Y;
+                        A_Idx : constant Natural := SY * AW + SX + 1;
+                     begin
+                        if A_Idx <= Atlas_Bytes then
+                           declare
+                              Alpha : constant Interfaces.Unsigned_8 :=
+                                Atlas.all (A_Idx);
+                              P : constant Positive :=
+                                Positive ((DY * W0 + DX) * 4 + 1);
+                           begin
+                              if Alpha > 0 then
+                                 Buf.Replace_Element (P, Cr);
+                                 Buf.Replace_Element (P + 1, Cg);
+                                 Buf.Replace_Element (P + 2, Cb);
+                                 Buf.Replace_Element (P + 3, Alpha);
+                                 Ink.Min_C := Natural'Min (Ink.Min_C, DX);
+                                 Ink.Max_C := Natural'Max (Ink.Max_C, DX);
+                                 Ink.Min_R := Natural'Min (Ink.Min_R, DY);
+                                 Ink.Max_R := Natural'Max (Ink.Max_R, DY);
+                                 Ink.Inked := True;
+                              end if;
+                           end;
+                        end if;
+                     end;
+                  end loop;
+               end loop;
+            end if;
+         end;
+      end if;
+   end Composite_Glyph;
+
+   --  The scratch buffer cropped to its inked bounds, so no transparent
+   --  margin remains on any side.
+   function Cropped
+     (Buf : Guikit.Shared_Bytes.Byte_Vectors.Vector;
+      W0  : Natural;
+      Ink : Ink_Bounds) return Label
+   is
+      CW : constant Natural := Ink.Max_C - Ink.Min_C + 1;
+      CH : constant Natural := Ink.Max_R - Ink.Min_R + 1;
+   begin
+      return Out_Label : Label do
+         Out_Label.Width  := CW;
+         Out_Label.Height := CH;
+         declare
+            Pixels : Guikit.Shared_Bytes.Byte_Vectors.Vector :=
+              Guikit.Shared_Bytes.Byte_Vectors.To_Vector (0, Ada.Containers.Count_Type (CW * CH * 4));
+         begin
+            for Row in 0 .. CH - 1 loop
+               for Col in 0 .. CW - 1 loop
+                  declare
+                     Src : constant Positive :=
+                       Positive (((Row + Ink.Min_R) * W0 + (Col + Ink.Min_C)) * 4 + 1);
+                     Dst : constant Positive := Positive ((Row * CW + Col) * 4 + 1);
+                  begin
+                     Pixels.Replace_Element (Dst, Buf.Element (Src));
+                     Pixels.Replace_Element (Dst + 1, Buf.Element (Src + 1));
+                     Pixels.Replace_Element (Dst + 2, Buf.Element (Src + 2));
+                     Pixels.Replace_Element (Dst + 3, Buf.Element (Src + 3));
+                  end;
+               end loop;
+            end loop;
+            Out_Label.Pixels := Guikit.Shared_Bytes.To_Shared (Pixels);
+         end;
+      end return;
+   end Cropped;
+
    function Rasterize
      (Ext    : String;
       Height : Positive;
@@ -152,111 +264,18 @@ package body Files.Extension_Labels is
          end if;
 
          declare
-            Buf   : Byte_Vectors.Vector :=
+            Buf : Byte_Vectors.Vector :=
               Byte_Vectors.To_Vector (0, Ada.Containers.Count_Type (W0 * H0 * 4));
-            Min_C : Natural := W0;
-            Max_C : Natural := 0;
-            Min_R : Natural := H0;
-            Max_R : Natural := 0;
-            Inked : Boolean := False;
+            Ink : Ink_Bounds := (Min_C => W0, Max_C => 0, Min_R => H0, Max_R => 0, Inked => False);
          begin
             --  Composite every glyph into a scratch buffer, tracking the inked bounds.
             for G of Result.Glyphs loop
-               declare
-                  --  The glyph's own pixels when it says where they are: the
-                  --  atlas may have grown taller while this text was packed.
-                  SX0 : constant Natural :=
-                    (if G.Atlas_W > 0 then G.Atlas_X else Natural (Float'Floor (G.U0 * Float (AW))));
-                  SY0 : constant Natural :=
-                    (if G.Atlas_W > 0 then G.Atlas_Y else Natural (Float'Floor (G.V0 * Float (AH))));
-                  GW  : constant Natural := Natural (Float'Rounding (Float'Max (0.0, G.Width)));
-                  GH  : constant Natural := Natural (Float'Rounding (Float'Max (0.0, G.Height)));
-                  DX0 : constant Natural := Natural (Float'Rounding (Float'Max (0.0, G.X)));
-                  DY0 : constant Natural := Natural (Float'Rounding (Float'Max (0.0, G.Y)));
-               begin
-                  if GW > 0 and then GH > 0
-                    and then SX0 < AW and then SY0 < AH
-                    and then DX0 < W0 and then DY0 < H0
-                  then
-                     declare
-                        Safe_W : constant Natural :=
-                          Natural'Min (GW, Natural'Min (AW - SX0, W0 - DX0));
-                        Safe_H : constant Natural :=
-                          Natural'Min (GH, Natural'Min (AH - SY0, H0 - DY0));
-                     begin
-                        if Safe_W > 0 and then Safe_H > 0 then
-                           for Y in 0 .. Safe_H - 1 loop
-                              for X in 0 .. Safe_W - 1 loop
-                                 declare
-                                    SX : constant Natural := SX0 + X;
-                                    SY : constant Natural := SY0 + Y;
-                                    DX : constant Natural := DX0 + X;
-                                    DY : constant Natural := DY0 + Y;
-                                    A_Idx : constant Natural := SY * AW + SX + 1;
-                                 begin
-                                    if A_Idx <= Result.Atlas_Bytes then
-                                       declare
-                                          Alpha : constant Interfaces.Unsigned_8 :=
-                                            Atlas.all (A_Idx);
-                                          P : constant Positive :=
-                                            Positive ((DY * W0 + DX) * 4 + 1);
-                                       begin
-                                          if Alpha > 0 then
-                                             Buf.Replace_Element (P, Cr);
-                                             Buf.Replace_Element (P + 1, Cg);
-                                             Buf.Replace_Element (P + 2, Cb);
-                                             Buf.Replace_Element (P + 3, Alpha);
-                                             Min_C := Natural'Min (Min_C, DX);
-                                             Max_C := Natural'Max (Max_C, DX);
-                                             Min_R := Natural'Min (Min_R, DY);
-                                             Max_R := Natural'Max (Max_R, DY);
-                                             Inked := True;
-                                          end if;
-                                       end;
-                                    end if;
-                                 end;
-                              end loop;
-                           end loop;
-                        end if;
-                     end;
-                  end if;
-               end;
+               Composite_Glyph (G, Atlas, AW, AH, Result.Atlas_Bytes, W0, H0, Cr, Cg, Cb, Buf, Ink);
             end loop;
-
-            if not Inked then
+            if not Ink.Inked then
                return (Width => 0, Height => 0, Pixels => Guikit.Shared_Bytes.Empty);
             end if;
-
-            --  Crop to the inked bounds so no transparent margin remains on any side.
-            declare
-               CW : constant Natural := Max_C - Min_C + 1;
-               CH : constant Natural := Max_R - Min_R + 1;
-            begin
-               return Out_Label : Label do
-                  Out_Label.Width  := CW;
-                  Out_Label.Height := CH;
-                  declare
-                     Cropped : Byte_Vectors.Vector :=
-                       Byte_Vectors.To_Vector (0, Ada.Containers.Count_Type (CW * CH * 4));
-                  begin
-                     for Row in 0 .. CH - 1 loop
-                        for Col in 0 .. CW - 1 loop
-                           declare
-                              Src : constant Positive :=
-                                Positive (((Row + Min_R) * W0 + (Col + Min_C)) * 4 + 1);
-                              Dst : constant Positive := Positive ((Row * CW + Col) * 4 + 1);
-                           begin
-                              Cropped.Replace_Element (Dst, Buf.Element (Src));
-                              Cropped.Replace_Element (Dst + 1, Buf.Element (Src + 1));
-                              Cropped.Replace_Element (Dst + 2, Buf.Element (Src + 2));
-                              Cropped.Replace_Element (Dst + 3, Buf.Element (Src + 3));
-                           end;
-                        end loop;
-                     end loop;
-                     Out_Label.Pixels := Guikit.Shared_Bytes.To_Shared (Cropped);
-                  end;
-               end return;
-            end;
+            return Cropped (Buf, W0, Ink);
          end;
       end;
    end Rasterize;

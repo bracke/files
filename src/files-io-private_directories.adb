@@ -22,19 +22,27 @@ package body Files.IO.Private_Directories is
    function Create_Numbered
      (Parent  : String;
       Prefix  : String;
-      Reclaim : access function (Path : String) return Boolean := null)
+      Reclaim : access function (Path : String) return Boolean := null;
+      Prepare : access procedure (Path : String) := null;
+      Abandon : access procedure (Path : String) := null)
       return String is
    begin
       for N in 1 .. 9_999 loop
          declare
             Candidate : constant String := Hostkit.Fs.Join (Parent, Prefix & Files.Text_Basics.Natural_Text (N));
          begin
+            if Prepare /= null then
+               Prepare (Candidate);
+            end if;
             if Try_Create (Candidate) = Created
               or else (Reclaim /= null
                        and then Reclaim (Candidate)
                        and then Try_Create (Candidate) = Created)
             then
                return Candidate;
+            end if;
+            if Abandon /= null then
+               Abandon (Candidate);
             end if;
          end;
       end loop;

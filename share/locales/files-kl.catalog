@@ -5,5 +5,3 @@ kl.time.weekday.thursday = sisamanngorneq
 kl.time.weekday.friday = tallimanngorneq
 kl.time.weekday.saturday = arfininngorneq
 kl.time.weekday.sunday = sabaat
-kl.number.decimal = ,
-kl.number.group = .

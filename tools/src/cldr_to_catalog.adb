@@ -252,17 +252,6 @@ procedure Cldr_To_Catalog is
       return Section (Calendars, "<calendar type=""gregorian""", "</calendar>");
    end Gregorian_Calendar;
 
-   function Number_Symbol
-     (Content : String;
-      Name    : String)
-      return String
-   is
-      Numbers : constant String := Section (Content, "<numbers", "</numbers>");
-      Symbols : constant String := Section (Numbers, "<symbols numberSystem=""latn""", "</symbols>");
-   begin
-      return Element_Text (Symbols, Name, "");
-   end Number_Symbol;
-
    function Digital_Unit_Label
      (Content   : String;
       Unit_Name : String)
@@ -365,9 +354,6 @@ procedure Cldr_To_Catalog is
       if Locale = "" or else Calendar = "" then
          return;
       end if;
-
-      Add (Entries, Locale, "number.decimal", Number_Symbol (Content, "decimal"));
-      Add (Entries, Locale, "number.group", Number_Symbol (Content, "group"));
 
       Add (Entries, Locale, "details.size.unit.bytes", Digital_Unit_Label (Content, "digital-byte"));
       Add (Entries, Locale, "details.size.unit.kib", Digital_Unit_Label (Content, "digital-kilobyte"));

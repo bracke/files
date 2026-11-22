@@ -86,7 +86,7 @@ separate (Check_All)
       Require_Registered_Routine
         ("Test_Host_Locale_Fallbacks",
          "the test of the environment and KDE locale fallbacks");
-      Require_Contains
+      Require_Contains_In_Unit
         (Localization,
          "Hostkit.Host.Native_Locale",
          "the system locale is asked of the host (Hostkit.Host.Native_Locale), not detected per OS here");

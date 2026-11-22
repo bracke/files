@@ -586,12 +586,6 @@ package Files.Rendering is
       Pointer     : Pointer_State := No_Pointer)
       return Frame_Commands;
 
-   --  How many rows Row_Texts holds formatted (for tests).
-   --
-   --  @param Row_Texts A window's cache.
-   --  @return The number of rows formatted for its build.
-   function Formatted_Rows (Row_Texts : Row_Text_Cache) return Natural;
-
    --  The text line height for a font pixel size.
    --
    --  @param Size Font pixel size.
@@ -627,9 +621,6 @@ private
       Build : Natural := 0;
       Rows  : Row_Text_Maps.Map;
    end record;
-
-   function Formatted_Rows (Row_Texts : Row_Text_Cache) return Natural is
-     (Natural (Row_Texts.Rows.Length));
 
    --  The text cell width is the advance every layout measures labels with,
    --  taken from the same line height. Derived separately (Size * 3 / 4) it

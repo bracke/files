@@ -749,6 +749,15 @@ procedure Check_All is
       end if;
    end Require_Contains;
 
+   --  Like Require_Contains, but the pattern may be in the unit whose body is
+   --  Base_Path or in any of its subunit bodies (<stem>-*.adb): a call the
+   --  guardrail asks for still counts once a split moves it into a subunit.
+   procedure Require_Contains_In_Unit
+     (Base_Path : String;
+      Pattern   : String;
+      Message   : String)
+   is separate;
+
    procedure Check_Localization_Usage is separate;
 
    --  Like Require_Not_Contains, but also scans every subunit body of the unit

@@ -342,9 +342,6 @@ package body Files.Model.History is
       Support.Touch_Header (Model);
    end Restore;
 
-   function Journal_State (Model : Window_Model) return Files.Undo.History.History_Journal_State is
-     (Model.History.Journal);
-
    function State (Model : Window_Model) return Files.Undo.History.Undo_History_State is (Model.History);
 
    procedure Merge

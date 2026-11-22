@@ -10,6 +10,55 @@ separate (Files.Rendering.Build_Frame_Commands)
       --  Drawn here, then added to the layer the panel is on.
       Rectangles : Rectangle_Command_Vectors.Vector;
       Texts      : Text_Command_Vectors.Vector;
+      Pick       : constant Tree_Pick_Button_Layout :=
+        (if Snapshot.Tree_Pick_Active
+         then Tree_Pick_Buttons (Tree_Panel)
+         else (others => <>));
+
+      --  The panel, its rows and the pick buttons as accessibility nodes;
+      --  they stay caller-side because they carry the node path and focus.
+      procedure Describe_For_Accessibility is
+      begin
+         Add_Accessibility_Node
+           (Role_List,
+            Tree_Panel.X,
+            Tree_Panel.Y,
+            Tree_Panel.Width,
+            Tree_Panel.Height,
+            Localized ("accessibility.tree_panel"));
+         for I in 1 .. Natural (Tree_Rows_Layout.Length) loop
+            declare
+               Row  : constant Tree_Row_Layout := Tree_Rows_Layout.Element (Positive (I));
+               Data : constant Files.Folder_Tree.Visible_Row :=
+                 Snapshot.Tree_Rows.Element (Positive (Row.Visible_Row_Index));
+            begin
+               Add_Accessibility_Node
+                 (Role_List_Item,
+                  Row.X,
+                  Row.Y,
+                  Row.Width,
+                  Row.Height,
+                  Data.Name,
+                  Data.Path,
+                  Enabled  => True,
+                  Selected => Row.Selected,
+                  --  Only while the tree has the keyboard (picker or Tab);
+                  --  otherwise the grid's item holds the focus.
+                  Focused  =>
+                    Row.Selected
+                    and then (Snapshot.Tree_Pick_Active or else Snapshot.Tree_Keyboard_Active));
+            end;
+         end loop;
+         if Snapshot.Tree_Pick_Active and then Pick.Visible then
+            Add_Accessibility_Node
+              (Role_Button, Pick.Choose_X, Pick.Y, Pick.Button_Width, Pick.Height,
+               Localized ("tree.pick.choose"));
+            Add_Accessibility_Node
+              (Role_Button, Pick.Cancel_X, Pick.Y, Pick.Button_Width, Pick.Height,
+               Localized ("tree.pick.cancel"));
+         end if;
+      end Describe_For_Accessibility;
+
    begin
       declare
          Title : constant UString :=
@@ -26,10 +75,6 @@ separate (Files.Rendering.Build_Frame_Commands)
             Collapsed_Glyph => To_Unbounded_String (Tree_Expander_Collapsed_Text));
          Rows    : Guikit.Menu_Tree.Menu_Tree_Row_Vectors.Vector;
          Buttons : Guikit.Menu_Tree.Menu_Tree_Button_Vectors.Vector;
-         Pick    : constant Tree_Pick_Button_Layout :=
-           (if Snapshot.Tree_Pick_Active
-            then Tree_Pick_Buttons (Tree_Panel)
-            else (others => <>));
       begin
          for I in 1 .. Natural (Tree_Rows_Layout.Length) loop
             declare
@@ -114,45 +159,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                Grip_Color   => Muted_Text_Color);
          end if;
 
-         --  Accessibility stays caller-side (it carries the node path + focus).
-         Add_Accessibility_Node
-           (Role_List,
-            Tree_Panel.X,
-            Tree_Panel.Y,
-            Tree_Panel.Width,
-            Tree_Panel.Height,
-            Localized ("accessibility.tree_panel"));
-         for I in 1 .. Natural (Tree_Rows_Layout.Length) loop
-            declare
-               Row  : constant Tree_Row_Layout := Tree_Rows_Layout.Element (Positive (I));
-               Data : constant Files.Folder_Tree.Visible_Row :=
-                 Snapshot.Tree_Rows.Element (Positive (Row.Visible_Row_Index));
-            begin
-               Add_Accessibility_Node
-                 (Role_List_Item,
-                  Row.X,
-                  Row.Y,
-                  Row.Width,
-                  Row.Height,
-                  Data.Name,
-                  Data.Path,
-                  Enabled  => True,
-                  Selected => Row.Selected,
-                  --  Only while the tree has the keyboard (picker or Tab);
-                  --  otherwise the grid's item holds the focus.
-                  Focused  =>
-                    Row.Selected
-                    and then (Snapshot.Tree_Pick_Active or else Snapshot.Tree_Keyboard_Active));
-            end;
-         end loop;
-         if Snapshot.Tree_Pick_Active and then Pick.Visible then
-            Add_Accessibility_Node
-              (Role_Button, Pick.Choose_X, Pick.Y, Pick.Button_Width, Pick.Height,
-               Localized ("tree.pick.choose"));
-            Add_Accessibility_Node
-              (Role_Button, Pick.Cancel_X, Pick.Y, Pick.Button_Width, Pick.Height,
-               Localized ("tree.pick.cancel"));
-         end if;
+         Describe_For_Accessibility;
       end;
 
       if As_Overlay then

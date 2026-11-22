@@ -32,6 +32,225 @@ separate (Files.Application.Windows.Smoke)
 
       --  Extra frames a scenario may take for its readback to arrive.
       Max_Readback_Wait_Frames : constant := 30;
+
+      --  A readback of a frame this scenario drew (Drawn_Before is the
+      --  window's frame count when it started): the scenario's verdict, hash
+      --  and region check, and the run's device and framebuffer facts.
+      procedure Note_Frame
+        (Runtime      : Runtime_Window;
+         Scenario     : Live_Smoke_Scenario;
+         Drawn_Before : Natural;
+         Outcome      : in out Scenario_Outcome)
+      is
+         Diagnostics : constant Guikit.Vulkan.Renderer_Diagnostics :=
+           Guikit.Vulkan.Diagnostics (Runtime.Vulkan);
+      begin
+         Result.Last_Status := Runtime.Last_Present_Status;
+         Result.Last_Vk_Result := Diagnostics.Last_Vk_Result;
+         Result.Vulkan_Device_Ready :=
+           Result.Vulkan_Device_Ready or else Diagnostics.Device_Ready;
+         if Runtime.Last_Present_Status = Guikit.Vulkan.Vulkan_Presented then
+            Result.Frames_Presented := Result.Frames_Presented + 1;
+         end if;
+         if Diagnostics.Framebuffer_Readback_Ready
+           and then Diagnostics.Last_Framebuffer_Frame > Drawn_Before
+         then
+            Result.Framebuffer_Readback_Ready := True;
+            Result.Last_Framebuffer_Bytes := Diagnostics.Last_Framebuffer_Bytes;
+            Outcome.Rendered := True;
+            Outcome.Readback_Ready := True;
+            Outcome.Hash := Diagnostics.Last_Framebuffer_Hash;
+            Outcome.Passed := Diagnostics.Framebuffer_Passed;
+
+            --  Layout-derived region assertion: prove a
+            --  specific UI element rendered at the pixel
+            --  rectangle its layout computed. An empty region
+            --  where the structural Analyze still passed is
+            --  exactly what a coordinate/DPI-scaling
+            --  regression produces, so it fails the scenario.
+            declare
+               Rect : constant Region_Rect :=
+                 Scenario_Region
+                   (Runtime, Scenario,
+                    Diagnostics.Frame_Width, Diagnostics.Frame_Height);
+            begin
+               if Rect.Valid then
+                  Outcome.Region_Checked := True;
+                  Outcome.Region_Ink_Fraction :=
+                    Guikit.Vulkan.Readback_Region_Ink_Fraction
+                      (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
+                  Outcome.Region_Ink_Present :=
+                    Guikit.Vulkan.Readback_Region_Has_Ink
+                      (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
+               end if;
+            end;
+
+            --  The default scenario feeds the legacy
+            --  single-frame diagnostics printout.
+            if Scenario = Scenario_Default then
+               Result.Last_Framebuffer_Hash := Diagnostics.Last_Framebuffer_Hash;
+               Result.Framebuffer_Analysis := Diagnostics.Framebuffer_Analysis;
+            end if;
+         end if;
+      end Note_Frame;
+
+      --  The readback trails the frame it reads, and the run's first
+      --  frames are the slowest: a scenario that ended before its
+      --  own readback arrived was judged on none (hash 0, a blank
+      --  verdict) -- or on the scenario before it -- and failed now
+      --  and then. Only a readback of a frame this scenario drew
+      --  counts, and the scenario renders on, up to a bound, until
+      --  one arrives.
+      procedure Render_Until_Readback (Scenario : Live_Smoke_Scenario; Outcome : in out Scenario_Outcome) is
+         Drawn_Before : array (1 .. Natural (Runtime_Windows.Length)) of Natural := [others => 0];
+         Window_Index : Positive := 1;
+      begin
+         for Runtime of Runtime_Windows loop
+            Drawn_Before (Window_Index) := Guikit.Vulkan.Diagnostics (Runtime.Vulkan).Submitted_Frames;
+            Window_Index := Window_Index + 1;
+         end loop;
+         for Frame_Index in 1 .. Plan.Frame_Count + Max_Readback_Wait_Frames loop
+            exit when Frame_Index > Plan.Frame_Count and then Outcome.Readback_Ready;
+            Result.Frames_Attempted := Result.Frames_Attempted + 1;
+            --  Render directly rather than through Render_All, whose
+            --  per-window boundary would hide a failing frame from the smoke.
+            for Runtime of Runtime_Windows loop
+               Render_Window (Runtime);
+            end loop;
+            Result.Frame_Rendered :=
+              Result.Frame_Rendered or else Any_Runtime_Frame_Rendered (Runtime_Windows);
+            Window_Index := 1;
+            for Runtime of Runtime_Windows loop
+               if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Not_Initialized then
+                  Note_Frame (Runtime, Scenario, Drawn_Before (Window_Index), Outcome);
+               end if;
+               Window_Index := Window_Index + 1;
+            end loop;
+         end loop;
+      end Render_Until_Readback;
+
+      --  The scenario's last frame held on screen for Hold seconds.
+      procedure Hold_Frame (Scenario : Live_Smoke_Scenario) is
+      begin
+         if Hold > 0 then
+            --  A fixed marker for tools to grep, like "live-smoke:", so
+            --  built from space-free tokens rather than prose.
+            Ada.Text_IO.Put_Line
+              ("live-smoke" & ' ' & "hold" & ' ' & Live_Smoke_Scenario'Image (Scenario));
+            Ada.Text_IO.Flush;
+            for Tick in 1 .. Hold * 10 loop
+               Guikit.Vulkan.Poll_Events;
+               --  Answer a screen reader looking at the held frame.
+               Files.Application.Accessibility.Service;
+               delay 0.1;
+            end loop;
+         end if;
+      end Hold_Frame;
+
+      --  Render every scenario in order within the one window/device, taking
+      --  each scenario's structural verdict and framebuffer hash from the
+      --  final frame's readback.
+      procedure Run_Scenarios (Bases : Scenario_Base_Vectors.Vector) is
+      begin
+         for Scenario in Live_Smoke_Scenario loop
+            declare
+               Base_Index : Positive := 1;
+               Outcome    : Scenario_Outcome := (others => <>);
+            begin
+               for Runtime of Runtime_Windows loop
+                  Prepare_Scenario (Runtime, Bases (Base_Index), Scenario);
+                  Base_Index := Base_Index + 1;
+               end loop;
+
+               if Scenario = Scenario_Settings_Keyboard then
+                  Outcome.Keys_Checked := True;
+                  Drive_Settings_Keys (Runtime_Windows (1), Outcome.Keys_Failed_Step);
+               end if;
+               Render_Until_Readback (Scenario, Outcome);
+               Result.Scenario_Results (Scenario) := Outcome;
+               Hold_Frame (Scenario);
+            end;
+         end loop;
+      end Run_Scenarios;
+
+      --  Then the loop as the program runs it: back at the startup state, let
+      --  the passes settle, press a key, and require that the passes drew the
+      --  change -- the read-back frame differs from the settled one (with
+      --  readback on, every pass submits a frame, so a count would not tell).
+      --  A pass that raised every time after startup froze every window
+      --  once; it is counted, and any count fails the smoke.
+      procedure Check_Loop_Draws_Input (Bases : Scenario_Base_Vectors.Vector) is
+         Window : Runtime_Window renames Runtime_Windows (1);
+         Settle_Passes : constant := 10;
+         Before : Interfaces.Unsigned_32;
+      begin
+         Prepare_Scenario (Window, Bases (1), Scenario_Default);
+         for Pass in 1 .. Settle_Passes loop
+            Guikit.Vulkan.Poll_Events;
+            Event_Loop_Pass (Runtime_Windows, Loop_State);
+         end loop;
+         Before := Guikit.Vulkan.Diagnostics (Window.Vulkan).Last_Framebuffer_Hash;
+         --  Ctrl+= (zoom in): it redraws everything and starts no
+         --  background work. Selecting an item would measure a folder of
+         --  the runner's home, whose helper may outlive the smoke's exit.
+         Window.Handle.Pending_Input.Append
+           (Input_Event'
+              (Kind      => Key_Press_Event,
+               Key       => Guikit.Input.Key_Equal,
+               Modifiers => [Guikit.Input.Control_Key => True, others => False],
+               Text      => Null_Unbounded_String,
+               Parallel  => False));
+         for Pass in 1 .. Settle_Passes loop
+            Guikit.Vulkan.Poll_Events;
+            Event_Loop_Pass (Runtime_Windows, Loop_State);
+            Result.Loop_Drew_Input :=
+              Guikit.Vulkan.Diagnostics (Window.Vulkan).Last_Framebuffer_Hash /= Before;
+            exit when Result.Loop_Drew_Input;
+         end loop;
+      end Check_Loop_Draws_Input;
+
+      --  Then a resize, which the scenarios above never make: the renderer
+      --  rebuilds its swapchain for the new size while frames are still in
+      --  flight. A frame drawn after the resize must be read back at the
+      --  new framebuffer size.
+      procedure Check_Resize is
+         Window          : Runtime_Window renames Runtime_Windows (1);
+         --  How long the resize may take to reach the screen: by time,
+         --  not by a count of passes, which a slow runner (software
+         --  Vulkan) spends before the swapchain is rebuilt and a fast one
+         --  in a moment.
+         Resize_Limit    : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (10);
+         Resize_Started  : Ada.Real_Time.Time;
+         Width, Height   : Glfw.Size;
+         Old_Frame_Width : Glfw.Size;
+         Old_Frame_Height : Glfw.Size;
+         Frame_Width     : Glfw.Size;
+         Frame_Height    : Glfw.Size;
+         Submitted       : Natural;
+      begin
+         Glfw.Windows.Get_Size (As_Window (Window.Handle), Width, Height);
+         Glfw.Windows.Get_Framebuffer_Size (As_Window (Window.Handle), Old_Frame_Width, Old_Frame_Height);
+         Glfw.Windows.Set_Size (As_Window (Window.Handle), Width - Width / 4, Height - Height / 4);
+         Submitted := Guikit.Vulkan.Diagnostics (Window.Vulkan).Submitted_Frames;
+         Resize_Started := Ada.Real_Time.Clock;
+         loop
+            Guikit.Vulkan.Poll_Events;
+            Event_Loop_Pass (Runtime_Windows, Loop_State);
+            Glfw.Windows.Get_Framebuffer_Size (As_Window (Window.Handle), Frame_Width, Frame_Height);
+            declare
+               Drawn : constant Guikit.Vulkan.Renderer_Diagnostics := Guikit.Vulkan.Diagnostics (Window.Vulkan);
+            begin
+               Result.Resize_Drawn :=
+                 (Frame_Width /= Old_Frame_Width or else Frame_Height /= Old_Frame_Height)
+                 and then Drawn.Last_Framebuffer_Frame > Submitted
+                 and then Drawn.Frame_Width = Natural (Frame_Width)
+                 and then Drawn.Frame_Height = Natural (Frame_Height);
+            end;
+            exit when Result.Resize_Drawn
+              or else Files.Timing.Elapsed (Ada.Real_Time.Clock, Resize_Started, Resize_Limit);
+            delay 0.01;
+         end loop;
+      end Check_Resize;
    begin
       if not Plan.Can_Run or else Startup.Windows.Is_Empty then
          if Startup.Windows.Is_Empty then
@@ -90,205 +309,9 @@ separate (Files.Application.Windows.Smoke)
                   Settings => Runtime.Settings));
          end loop;
 
-         --  Render every scenario in order within the one window/device, taking
-         --  each scenario's structural verdict and framebuffer hash from the
-         --  final frame's readback.
-         for Scenario in Live_Smoke_Scenario loop
-            declare
-               Base_Index : Positive := 1;
-               Outcome    : Scenario_Outcome := (others => <>);
-            begin
-               for Runtime of Runtime_Windows loop
-                  Prepare_Scenario (Runtime, Bases (Base_Index), Scenario);
-                  Base_Index := Base_Index + 1;
-               end loop;
-
-               if Scenario = Scenario_Settings_Keyboard then
-                  Outcome.Keys_Checked := True;
-                  Drive_Settings_Keys (Runtime_Windows (1), Outcome.Keys_Failed_Step);
-               end if;
-
-               --  The readback trails the frame it reads, and the run's first
-               --  frames are the slowest: a scenario that ended before its
-               --  own readback arrived was judged on none (hash 0, a blank
-               --  verdict) -- or on the scenario before it -- and failed now
-               --  and then. Only a readback of a frame this scenario drew
-               --  counts, and the scenario renders on, up to a bound, until
-               --  one arrives.
-               declare
-                  Drawn_Before : array (1 .. Natural (Runtime_Windows.Length)) of Natural := [others => 0];
-                  Window_Index : Positive := 1;
-               begin
-                  for Runtime of Runtime_Windows loop
-                     Drawn_Before (Window_Index) := Guikit.Vulkan.Diagnostics (Runtime.Vulkan).Submitted_Frames;
-                     Window_Index := Window_Index + 1;
-                  end loop;
-                  for Frame_Index in 1 .. Plan.Frame_Count + Max_Readback_Wait_Frames loop
-                     exit when Frame_Index > Plan.Frame_Count and then Outcome.Readback_Ready;
-                     Result.Frames_Attempted := Result.Frames_Attempted + 1;
-                     --  Render directly rather than through Render_All, whose
-                     --  per-window boundary would hide a failing frame from the smoke.
-                     for Runtime of Runtime_Windows loop
-                        Render_Window (Runtime);
-                     end loop;
-                     Result.Frame_Rendered :=
-                       Result.Frame_Rendered or else Any_Runtime_Frame_Rendered (Runtime_Windows);
-                     Window_Index := 1;
-                     for Runtime of Runtime_Windows loop
-                        if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Not_Initialized then
-                           declare
-                              Diagnostics : constant Guikit.Vulkan.Renderer_Diagnostics :=
-                                Guikit.Vulkan.Diagnostics (Runtime.Vulkan);
-                           begin
-                              Result.Last_Status := Runtime.Last_Present_Status;
-                              Result.Last_Vk_Result := Diagnostics.Last_Vk_Result;
-                              Result.Vulkan_Device_Ready :=
-                                Result.Vulkan_Device_Ready or else Diagnostics.Device_Ready;
-                              if Runtime.Last_Present_Status = Guikit.Vulkan.Vulkan_Presented then
-                                 Result.Frames_Presented := Result.Frames_Presented + 1;
-                              end if;
-                              if Diagnostics.Framebuffer_Readback_Ready
-                                and then Diagnostics.Last_Framebuffer_Frame > Drawn_Before (Window_Index)
-                              then
-                                 Result.Framebuffer_Readback_Ready := True;
-                                 Result.Last_Framebuffer_Bytes := Diagnostics.Last_Framebuffer_Bytes;
-                                 Outcome.Rendered := True;
-                                 Outcome.Readback_Ready := True;
-                                 Outcome.Hash := Diagnostics.Last_Framebuffer_Hash;
-                                 Outcome.Passed := Diagnostics.Framebuffer_Passed;
-
-                                 --  Layout-derived region assertion: prove a
-                                 --  specific UI element rendered at the pixel
-                                 --  rectangle its layout computed. An empty region
-                                 --  where the structural Analyze still passed is
-                                 --  exactly what a coordinate/DPI-scaling
-                                 --  regression produces, so it fails the scenario.
-                                 declare
-                                    Rect : constant Region_Rect :=
-                                      Scenario_Region
-                                        (Runtime, Scenario,
-                                         Diagnostics.Frame_Width, Diagnostics.Frame_Height);
-                                 begin
-                                    if Rect.Valid then
-                                       Outcome.Region_Checked := True;
-                                       Outcome.Region_Ink_Fraction :=
-                                         Guikit.Vulkan.Readback_Region_Ink_Fraction
-                                           (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
-                                       Outcome.Region_Ink_Present :=
-                                         Guikit.Vulkan.Readback_Region_Has_Ink
-                                           (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
-                                    end if;
-                                 end;
-
-                                 --  The default scenario feeds the legacy
-                                 --  single-frame diagnostics printout.
-                                 if Scenario = Scenario_Default then
-                                    Result.Last_Framebuffer_Hash := Diagnostics.Last_Framebuffer_Hash;
-                                    Result.Framebuffer_Analysis := Diagnostics.Framebuffer_Analysis;
-                                 end if;
-                              end if;
-                           end;
-                        end if;
-                        Window_Index := Window_Index + 1;
-                     end loop;
-                  end loop;
-               end;
-
-               Result.Scenario_Results (Scenario) := Outcome;
-               if Hold > 0 then
-                  --  A fixed marker for tools to grep, like "live-smoke:", so
-                  --  built from space-free tokens rather than prose.
-                  Ada.Text_IO.Put_Line
-                    ("live-smoke" & ' ' & "hold" & ' ' & Live_Smoke_Scenario'Image (Scenario));
-                  Ada.Text_IO.Flush;
-                  for Tick in 1 .. Hold * 10 loop
-                     Guikit.Vulkan.Poll_Events;
-                     --  Answer a screen reader looking at the held frame.
-                     Files.Application.Accessibility.Service;
-                     delay 0.1;
-                  end loop;
-               end if;
-            end;
-         end loop;
-
-         --  Then the loop as the program runs it: back at the startup state, let
-         --  the passes settle, press a key, and require that the passes drew the
-         --  change -- the read-back frame differs from the settled one (with
-         --  readback on, every pass submits a frame, so a count would not tell).
-         --  A pass that raised every time after startup froze every window
-         --  once; it is counted, and any count fails the smoke.
-         declare
-            Window : Runtime_Window renames Runtime_Windows (1);
-            Settle_Passes : constant := 10;
-            Before : Interfaces.Unsigned_32;
-         begin
-            Prepare_Scenario (Window, Bases (1), Scenario_Default);
-            for Pass in 1 .. Settle_Passes loop
-               Guikit.Vulkan.Poll_Events;
-               Event_Loop_Pass (Runtime_Windows, Loop_State);
-            end loop;
-            Before := Guikit.Vulkan.Diagnostics (Window.Vulkan).Last_Framebuffer_Hash;
-            --  Ctrl+= (zoom in): it redraws everything and starts no
-            --  background work. Selecting an item would measure a folder of
-            --  the runner's home, whose helper may outlive the smoke's exit.
-            Window.Handle.Pending_Input.Append
-              (Input_Event'
-                 (Kind      => Key_Press_Event,
-                  Key       => Guikit.Input.Key_Equal,
-                  Modifiers => [Guikit.Input.Control_Key => True, others => False],
-                  Text      => Null_Unbounded_String,
-                  Parallel  => False));
-            for Pass in 1 .. Settle_Passes loop
-               Guikit.Vulkan.Poll_Events;
-               Event_Loop_Pass (Runtime_Windows, Loop_State);
-               Result.Loop_Drew_Input :=
-                 Guikit.Vulkan.Diagnostics (Window.Vulkan).Last_Framebuffer_Hash /= Before;
-               exit when Result.Loop_Drew_Input;
-            end loop;
-         end;
-
-         --  Then a resize, which the scenarios above never make: the renderer
-         --  rebuilds its swapchain for the new size while frames are still in
-         --  flight. A frame drawn after the resize must be read back at the
-         --  new framebuffer size.
-         declare
-            Window          : Runtime_Window renames Runtime_Windows (1);
-            --  How long the resize may take to reach the screen: by time,
-            --  not by a count of passes, which a slow runner (software
-            --  Vulkan) spends before the swapchain is rebuilt and a fast one
-            --  in a moment.
-            Resize_Limit    : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (10);
-            Resize_Started  : Ada.Real_Time.Time;
-            Width, Height   : Glfw.Size;
-            Old_Frame_Width : Glfw.Size;
-            Old_Frame_Height : Glfw.Size;
-            Frame_Width     : Glfw.Size;
-            Frame_Height    : Glfw.Size;
-            Submitted       : Natural;
-         begin
-            Glfw.Windows.Get_Size (As_Window (Window.Handle), Width, Height);
-            Glfw.Windows.Get_Framebuffer_Size (As_Window (Window.Handle), Old_Frame_Width, Old_Frame_Height);
-            Glfw.Windows.Set_Size (As_Window (Window.Handle), Width - Width / 4, Height - Height / 4);
-            Submitted := Guikit.Vulkan.Diagnostics (Window.Vulkan).Submitted_Frames;
-            Resize_Started := Ada.Real_Time.Clock;
-            loop
-               Guikit.Vulkan.Poll_Events;
-               Event_Loop_Pass (Runtime_Windows, Loop_State);
-               Glfw.Windows.Get_Framebuffer_Size (As_Window (Window.Handle), Frame_Width, Frame_Height);
-               declare
-                  Drawn : constant Guikit.Vulkan.Renderer_Diagnostics := Guikit.Vulkan.Diagnostics (Window.Vulkan);
-               begin
-                  Result.Resize_Drawn :=
-                    (Frame_Width /= Old_Frame_Width or else Frame_Height /= Old_Frame_Height)
-                    and then Drawn.Last_Framebuffer_Frame > Submitted
-                    and then Drawn.Frame_Width = Natural (Frame_Width)
-                    and then Drawn.Frame_Height = Natural (Frame_Height);
-               end;
-               exit when Result.Resize_Drawn
-                 or else Files.Timing.Elapsed (Ada.Real_Time.Clock, Resize_Started, Resize_Limit);
-               delay 0.01;
-            end loop;
-         end;
+         Run_Scenarios (Bases);
+         Check_Loop_Draws_Input (Bases);
+         Check_Resize;
       end;
 
       --  Overall structural verdict: every scenario must pass and every

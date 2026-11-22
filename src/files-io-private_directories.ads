@@ -18,11 +18,18 @@ package Files.IO.Private_Directories is
    --  @param Reclaim Asked about a name already taken: True when it removed
    --    a stale slot there, so the create is tried once more; null keeps
    --    every taken name.
+   --  @param Prepare Called with each candidate before its create is tried
+   --    (a caller that publishes the name it is about to make); null: none.
+   --  @param Abandon Called with a candidate that turned out taken, after
+   --    Prepare, before the next is tried (to withdraw what Prepare
+   --    published); null: none.
    --  @return The created directory, or "" when every name is taken.
    function Create_Numbered
      (Parent  : String;
       Prefix  : String;
-      Reclaim : access function (Path : String) return Boolean := null)
+      Reclaim : access function (Path : String) return Boolean := null;
+      Prepare : access procedure (Path : String) := null;
+      Abandon : access procedure (Path : String) := null)
       return String;
 
    --  Create Path atomically with owner-only access and without an inherited

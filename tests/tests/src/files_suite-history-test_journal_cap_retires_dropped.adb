@@ -78,7 +78,7 @@ separate (Files_Suite.History)
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.Model.Testing.Restore_Journal (Directory, Helper), "the helper reads the window's journal");
       declare
-         Helper_State : constant Files.Undo.History.History_Journal_State := Files.Model.History.Journal_State (Helper);
+         Helper_State : constant Files.Undo.History.History_Journal_State := Files.Model.Testing.Journal_State (Helper);
       begin
          Assert (Helper_State.Dropped.Contains (1) and then Helper_State.Dropped.Contains (2),
                  "the journal names the entries its cap dropped");
@@ -108,7 +108,7 @@ separate (Files_Suite.History)
                  "the journaled entry keeps its original");
          Assert (Dirty, "the merged history is saved again");
       end;
-      Assert (Files.Model.History.Journal_State (Window).Dropped.Is_Empty, "the merge forgets the dropped list");
+      Assert (Files.Model.Testing.Journal_State (Window).Dropped.Is_Empty, "the merge forgets the dropped list");
 
       --  A version 2 journal, written before the dropped list, still reads.
       declare
@@ -126,8 +126,8 @@ separate (Files_Suite.History)
       end;
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.Model.Testing.Restore_Journal (Directory, Helper), "a version 2 journal reads");
-      Assert (Files.Model.History.Journal_State (Helper).Unjournaled.Contains (3),
+      Assert (Files.Model.Testing.Journal_State (Helper).Unjournaled.Contains (3),
               "with its left-out list");
-      Assert (Files.Model.History.Journal_State (Helper).Dropped.Is_Empty, "and no dropped list");
+      Assert (Files.Model.Testing.Journal_State (Helper).Dropped.Is_Empty, "and no dropped list");
       Reset_Root;
    end Test_Journal_Cap_Retires_Dropped;

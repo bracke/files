@@ -121,8 +121,8 @@ separate (Check_All)
       Require_Tests ("recovery", 64);
       Require_Tests ("history", 42);
       Require_Tests ("trash", 35);
-      Require_Tests ("search", 10);
-      Require_Tests ("thumbnails", 20);
+      Require_Tests ("search", 11);
+      Require_Tests ("thumbnails", 21);
       Require_Tests ("archives", 7);
       Require_Tests ("info", 33);
       Require_Tests ("names", 19);

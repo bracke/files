@@ -13,6 +13,9 @@ package body Files.Text_Encoding is
    --  no well-formed sequence: past every codepoint, so never a real one.
    Invalid : constant Natural := Natural'Last;
 
+   --  The length of the well-formed UTF-8 multibyte sequence starting at
+   --  Text (At_Index): no overlong form, surrogate or value past U+10FFFF;
+   --  0 when none starts there (an ASCII byte included).
    function Utf8_Sequence_Length (Text : String; At_Index : Positive) return Natural is
       Next      : Integer := At_Index;
       Codepoint : Natural;

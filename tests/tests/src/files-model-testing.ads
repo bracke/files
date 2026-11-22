@@ -148,4 +148,8 @@ package Files.Model.Testing is
    --  @return True when that stack is empty or its newest entry is journaled.
    function Journals_Newest (Model : Window_Model; Side : Files.Undo.History.History_Side) return Boolean;
 
+   --  @param Model Window whose journal state to read.
+   --  @return Its history's journal state (sequence, unjournaled list).
+   function Journal_State (Model : Window_Model) return Files.Undo.History.History_Journal_State;
+
 end Files.Model.Testing;

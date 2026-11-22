@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`files` is an Ada 2022 desktop file manager. Core logic (~90K lines in `src/`) is platform-agnostic; rendering uses Vulkan + GLFW + `textrender`. Linux is the only production-validated platform.
+`files` is an Ada 2022 desktop file manager. Core logic (~92K lines in `src/`) is platform-agnostic; rendering uses Vulkan + GLFW + `textrender`. Linux is the only production-validated platform.
 
 ## Build, test, verify
 

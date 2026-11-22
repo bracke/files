@@ -210,23 +210,23 @@ separate (Check_All)
          end loop;
       end;
 
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Fonts_Body,
          "or else Has_Suffix (Lower, "".ttc"")",
          "font discovery must not select TTC collections that the text renderer cannot initialize");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Fonts_Body,
          "Textrender.Reset",
          "font discovery must not reset process-global text renderer state");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Fonts_Body,
          "Textrender.Load_Font",
          "font discovery must not load fonts through the live text renderer");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Fonts_Body,
          "Textrender.Get_Glyph",
          "font discovery must not probe glyphs through the live text renderer");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Fonts_Body,
          "function Is_Required_Zero_Width_Codepoint",
          "font discovery must not keep a local required zero-width glyph classifier");

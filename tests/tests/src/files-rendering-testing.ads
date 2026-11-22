@@ -22,6 +22,12 @@ package Files.Rendering.Testing is
      (Label : Files.Preference_Types.Color_Label)
       return Guikit.Draw.Render_Color;
 
+   --  How many rows Row_Texts holds formatted.
+   --
+   --  @param Row_Texts A window's cache.
+   --  @return The number of rows formatted for its build.
+   function Formatted_Rows (Row_Texts : Row_Text_Cache) return Natural;
+
    --  Whether any overlay covers the view (what hides background tooltips).
    --
    --  @param Snapshot The view snapshot.

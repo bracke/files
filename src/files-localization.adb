@@ -489,9 +489,9 @@ package body Files.Localization is
    --  loaded: the regional message, else its language's, else Key.
    --
    --  Which catalog defines the key decides, never what the text says: a
-   --  regional value that happens to equal the English one (es-PR's
-   --  %m/%d/%Y date pattern, es-419's ',' digit group) is still the
-   --  region's own and must win over the language's.
+   --  regional value that happens to equal the English one (zh-Hant's "MB",
+   --  where zh names the unit) is still the region's own and must win over
+   --  the language's.
    function Uncached_Text
      (Key              : String;
       Effective_Locale : String)

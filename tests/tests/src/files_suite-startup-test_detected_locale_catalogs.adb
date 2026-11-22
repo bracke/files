@@ -34,14 +34,6 @@ separate (Files_Suite.Startup)
         (Files.Localization.Text ("time.relative.today", "de-DE"),
          "Heute",
          "German catalog includes date/time resources");
-      Files_Suite.Support.Assert_Equal
-        (Files.Localization.Text ("number.decimal", "de-DE"),
-         ",",
-         "German catalog has decimal symbol");
-      Files_Suite.Support.Assert_Equal
-        (Files.Localization.Text ("number.group", "de-DE"),
-         ".",
-         "German catalog has group symbol");
       Assert
         (Files.Localization.Text ("details.size.unit.mib", "de-DE") /= "details.size.unit.mib",
          "German catalog has generated digital unit labels");
@@ -49,9 +41,9 @@ separate (Files_Suite.Startup)
       --  the English one: the catalog that defines the key decides, not
       --  whether its text looks like the default standing in.
       Files_Suite.Support.Assert_Equal
-        (Files.Localization.Text ("number.group", "es-419"),
-         ",",
-         "Latin American Spanish keeps its comma digit group, not Spanish's dot");
+        (Files.Localization.Text ("details.size.unit.mib", "zh-Hant"),
+         "MB",
+         "Traditional Chinese keeps its MB, the English text, not Chinese's own unit name");
       Files_Suite.Support.Assert_Equal
         (Files.Localization.Text ("time.weekday.monday", "es-ES"),
          Files.Localization.Text ("time.weekday.monday", "es"),

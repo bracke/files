@@ -168,4 +168,7 @@ package body Files.Model.Testing is
    function Journals_Newest (Model : Window_Model; Side : Files.Undo.History.History_Side) return Boolean is
      (Files.Undo.Journal.Journals_Newest (Files.Model.History.State (Model), Side));
 
+   function Journal_State (Model : Window_Model) return Files.Undo.History.History_Journal_State is
+     (Model.History.Journal);
+
 end Files.Model.Testing;

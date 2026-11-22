@@ -56,8 +56,8 @@ separate (Files_Suite.History)
       Files.Model.Initialize (Helper, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Files.Model.History.Restore (Helper, Held_Entry (10), Empty, State);
       Assert (Natural (Files.Model.History.Undo_Entries (Helper).Length) = 1, "the held entry is admitted");
-      Assert (Image (Files.Model.History.Journal_State (Helper).Unjournaled) = "7,4,3",
-              "the restored list is pruned: " & Image (Files.Model.History.Journal_State (Helper).Unjournaled));
+      Assert (Image (Files.Model.Testing.Journal_State (Helper).Unjournaled) = "7,4,3",
+              "the restored list is pruned: " & Image (Files.Model.Testing.Journal_State (Helper).Unjournaled));
 
       --  Past the cap of 800: the save goes through, keeping the newest 800.
       State.Next_Sequence := 2_000;
@@ -67,7 +67,7 @@ separate (Files_Suite.History)
       end loop;
       Files.Model.Initialize (Window, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Files.Model.History.Restore (Window, Empty, Empty, State);
-      Assert (Natural (Files.Model.History.Journal_State (Window).Unjournaled.Length) = 900,
+      Assert (Natural (Files.Model.Testing.Journal_State (Window).Unjournaled.Length) = 900,
               "nothing in range is pruned on restore");
       begin
          Files.Model.Testing.Save_Journal_To (Directory, Window, Mode => Files.Undo.Journal.Must_Commit);
@@ -79,7 +79,7 @@ separate (Files_Suite.History)
       Assert (Files.Model.Testing.Restore_Journal (Directory, Helper), "the truncated journal reads back");
       declare
          Kept : constant Files.Undo.History.Sequence_Vectors.Vector :=
-           Files.Model.History.Journal_State (Helper).Unjournaled;
+           Files.Model.Testing.Journal_State (Helper).Unjournaled;
       begin
          Assert (Natural (Kept.Length) = 800, "the list is truncated to its cap:" & Kept.Length'Image);
          Assert (Kept.First_Element = 101 and then Kept.Last_Element = 900,

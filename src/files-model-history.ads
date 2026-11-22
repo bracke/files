@@ -26,10 +26,6 @@ package Files.Model.History is
       Undo, Redo : Files.Undo.History.Undo_Entry_Vectors.Vector;
       State : Files.Undo.History.History_Journal_State := (others => <>));
 
-   --  @param Model Window whose journal state to read.
-   --  @return The journal state to write beside its stacks.
-   function Journal_State (Model : Window_Model) return Files.Undo.History.History_Journal_State;
-
    --  @param Model Window whose history to read.
    --  @return Its whole history: the stacks and the journal state, for the
    --    journal (Files.Undo.Journal) to write.

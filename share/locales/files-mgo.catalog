@@ -5,5 +5,3 @@ mgo.time.weekday.thursday = Aneg 5
 mgo.time.weekday.friday = Aneg 6
 mgo.time.weekday.saturday = Aneg 7
 mgo.time.weekday.sunday = Aneg 1
-mgo.number.decimal = .
-mgo.number.group = ,
