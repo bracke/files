@@ -1,3 +1,4 @@
+with Files.IO.Errors.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Io_Error_Code_Per_Task (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,7 +8,7 @@ separate (Files_Suite.Operations)
       Seen_After  : Integer := -1;
    begin
       Files.IO.Errors.Reset;
-      Files.IO.Errors.Record_Code (Caller_Code);
+      Files.IO.Errors.Testing.Record_Code (Caller_Code);
       declare
          --  A background task (the orphan reaper, the scavenger's monitor)
          --  starting and failing an operation of its own.
@@ -17,7 +18,7 @@ separate (Files_Suite.Operations)
          begin
             Seen_Before := Files.IO.Errors.Last_Code;
             Files.IO.Errors.Reset;
-            Files.IO.Errors.Record_Code (Other_Code);
+            Files.IO.Errors.Testing.Record_Code (Other_Code);
             Seen_After := Files.IO.Errors.Last_Code;
          end Background;
       begin

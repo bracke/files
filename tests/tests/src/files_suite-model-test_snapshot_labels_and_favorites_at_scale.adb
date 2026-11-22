@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.Item_Lists;
 with Files.Preference_Types;
 with Files.Settings.Path_References;
@@ -42,13 +43,15 @@ separate (Files_Suite.Model)
             Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Join (Root, Name_Of (Index)));
          end if;
          if Index mod 5 = 0 then
-            Files.Settings.Path_References.Set_Label (Settings, Join (Root, Name_Of (Index)), Color_For (Index));
+            Files.Settings.Path_References.Testing.Set_Label (Settings, Join (Root, Name_Of (Index)),
+              Color_For (Index));
          end if;
       end loop;
       --  Paths that only resemble an item's: another case, a trailing
       --  separator. Neither names item 1 or 2 for the settings.
       Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Join (Root, "ITEM_1.TXT"));
-      Files.Settings.Path_References.Set_Label (Settings, Join (Root, Name_Of (2)) & "/", Files.Preference_Types.Green);
+      Files.Settings.Path_References.Testing.Set_Label (Settings, Join (Root, Name_Of (2)) & "/",
+        Files.Preference_Types.Green);
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);

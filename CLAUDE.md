@@ -86,3 +86,4 @@ A helper with a single client family is that family's child, not a top-level uni
 
 - Commits follow conventional-commits style (`feat:`, `fix:`, `refactor:`, etc.).
 - For non-trivial changes, propose a short plan and wait for approval before editing.
+- A production spec's public part holds only what production code calls. A subprogram only the suite needs — a pure helper the unit uses internally, a hook, a report the tests read — is declared in the unit's private part and reached through a `*.Testing` child of that unit in `tests/tests/src` (whose body renames it; a child's visible part cannot see its parent's private part, so the child redeclares the profile). The exceptions are a unit's own interface that production happens not to call yet: `File_Types.Filetype_For_Extension`/`Icon_For_Filetype` (the lookups of the public map type) and `Leaf_Names.Length_Under` (the measure `Too_Long_Under` is defined by).

@@ -28,7 +28,7 @@ separate (Files.Rendering.Layouts)
          Bottom_Y             => Bottom_Y,
          Bottom_Content_Y     => Guikit.Layout.Saturating_Add (Bottom_Y, Optically_Raised (Bottom_Pad, Line_Height)),
          Bottom_Content_H     =>
-           (if Layout.Bottom_Bar_Height > Saturating_Multiply (Bottom_Pad, 2)
-            then Layout.Bottom_Bar_Height - Saturating_Multiply (Bottom_Pad, 2)
+           (if Layout.Bottom_Bar_Height > Guikit.Layout.Saturating_Multiply (Bottom_Pad, 2)
+            then Layout.Bottom_Bar_Height - Guikit.Layout.Saturating_Multiply (Bottom_Pad, 2)
             else Layout.Bottom_Bar_Height));
    end Calculate_Frame_Layout;

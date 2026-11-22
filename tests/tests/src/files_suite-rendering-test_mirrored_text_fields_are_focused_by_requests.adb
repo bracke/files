@@ -1,3 +1,4 @@
+with Files.Application.Window_Policy.Testing;
 with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Application.Window_Policy;
@@ -32,7 +33,7 @@ separate (Files_Suite.Rendering)
       Guikit.Mirroring.Set_Mirrored_Layout (False);
       Assert (Path_Seen and then Filter_Seen, "both fields are focused by a request on their shown boxes");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Window_Policy.Unmirrored_Node_X (10, 30, Width), 10,
+        (Files.Application.Window_Policy.Testing.Unmirrored_Node_X (10, 30, Width), 10,
                                                             "unmirrored, a box stays where it is shown");
    exception
       when others =>

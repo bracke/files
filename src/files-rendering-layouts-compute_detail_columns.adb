@@ -30,10 +30,10 @@ separate (Files.Rendering.Layouts)
       Base_X    : constant Natural :=
         Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Add (Content_X, Pad), Icon_Gap);
       Available : constant Natural :=
-        (if Content_W > Guikit.Layout.Saturating_Add (Icon_Gap, Saturating_Multiply (Pad, 2))
-         then Content_W - Icon_Gap - Saturating_Multiply (Pad, 2)
+        (if Content_W > Guikit.Layout.Saturating_Add (Icon_Gap, Guikit.Layout.Saturating_Multiply (Pad, 2))
+         then Content_W - Icon_Gap - Guikit.Layout.Saturating_Multiply (Pad, 2)
          else 0);
-      Min_Name  : constant Natural := Natural'Min (Available, Saturating_Multiply (Line_Height, 5));
+      Min_Name  : constant Natural := Natural'Min (Available, Guikit.Layout.Saturating_Multiply (Line_Height, 5));
       Result    : Detail_Column_Geometry_Array;
       Fixed_Sum : Natural := 0;
       Cursor    : Natural;

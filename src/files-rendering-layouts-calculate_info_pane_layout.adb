@@ -32,14 +32,16 @@ separate (Files.Rendering.Layouts)
       --  The combined selection total is now the last line of the Contents
       --  section (counted by Total_Info_Rows), so no header rows are reserved.
       Content_Rows  : constant Natural := Total_Info_Rows;
-      Raw_Content_H : constant Natural := Saturating_Multiply (Content_Rows, Line_Height);
+      Raw_Content_H : constant Natural := Guikit.Layout.Saturating_Multiply (Content_Rows, Line_Height);
       Content_H     : constant Natural :=
         (if Raw_Content_H > 0
-         then Guikit.Layout.Saturating_Add (Raw_Content_H, Saturating_Multiply (Info_Pane_Padding (Line_Height), 2))
+         then Guikit.Layout.Saturating_Add (Raw_Content_H,
+           Guikit.Layout.Saturating_Multiply (Info_Pane_Padding (Line_Height), 2))
          else 0);
       Max_Scroll_Px : constant Natural :=
         (if Content_H > Layout.Main_Height then Content_H - Layout.Main_Height else 0);
-      Requested_Px  : constant Natural := Saturating_Multiply (Snapshot.Info_Pane_Scroll_Lines, Line_Height);
+      Requested_Px  : constant Natural :=
+        Guikit.Layout.Saturating_Multiply (Snapshot.Info_Pane_Scroll_Lines, Line_Height);
       Scroll_Px     : constant Natural := Natural'Min (Requested_Px, Max_Scroll_Px);
       Thumb         : constant Guikit.Layout.Scrollbar_Thumb :=
         Guikit.Layout.Calculate_Scrollbar_Thumb

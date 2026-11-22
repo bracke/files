@@ -64,6 +64,7 @@ package body Files_Suite.Commands is
    procedure Test_Registered_Command_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Command_Shortcut_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Text_And_Search (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Palette_Folds_Every_Script (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Selection_Command_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -105,6 +106,9 @@ package body Files_Suite.Commands is
    begin
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Clear_Filter_And_No_Command_Enablement'Access, "clear-filter enablement and the no-command no-op");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Palette_Folds_Every_Script'Access,
+         "the palette folds case in every script, as the filter bar does");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Commands_Disabled_Without_Selection'Access,
          "commands without a selection or history are disabled and report why");
@@ -304,6 +308,7 @@ package body Files_Suite.Commands is
    procedure Test_Context_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Save_Settings_Applies_Live (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Palette_Folds_Every_Script (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

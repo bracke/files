@@ -5,12 +5,13 @@ separate (Files_Suite.Recovery)
       pragma Unreferenced (T);
       use type Hostkit.Spawn.Spawn_Outcome;
       use type Hostkit.Spawn.Wait_State;
+      Prefix : String renames Files.Protocol_Names.Transport_Prefix;
       Before : constant String := Join
-        (Hostkit.Fs.Temp_Directory, "files-job-77777777777777777777777777777777");
+        (Hostkit.Fs.Temp_Directory, Prefix & "77777777777777777777777777777777");
       After : constant String := Join
-        (Hostkit.Fs.Temp_Directory, "files-job-88888888888888888888888888888888");
+        (Hostkit.Fs.Temp_Directory, Prefix & "88888888888888888888888888888888");
       Held : constant String := Join
-        (Hostkit.Fs.Temp_Directory, "files-job-99999999999999999999999999999999");
+        (Hostkit.Fs.Temp_Directory, Prefix & "99999999999999999999999999999999");
       Control : constant String := Join (Root, "held-transport-creator");
       Job : Files.Jobs.Process.Session;
       Child : Hostkit.Spawn.Process_Handle := Hostkit.Spawn.Invalid_Process;
@@ -26,7 +27,7 @@ separate (Files_Suite.Recovery)
          Simple : constant String := Ada.Directories.Simple_Name (Path);
          Witness : constant String := Join
            (Hostkit.Fs.Temp_Directory,
-            ".files-job-creation-" & Simple (Simple'First + 10 .. Simple'Last));
+            ".files-job-creation-" & Simple (Simple'First + Prefix'Length .. Simple'Last));
       begin
          if Ada.Directories.Exists (Path) then
             Project_Tools.Files.Delete_Tree (Path);
@@ -196,7 +197,7 @@ separate (Files_Suite.Recovery)
             Simple : constant String := Ada.Directories.Simple_Name (Path);
             Witness : constant String := Join
               (Hostkit.Fs.Temp_Directory,
-               ".files-job-creation-" & Simple (Simple'First + 10 .. Simple'Last));
+               ".files-job-creation-" & Simple (Simple'First + Prefix'Length .. Simple'Last));
             Handle : Hostkit.Lease_Files.Lease;
             Published : constant Ada.Streams.Stream_Element_Array :=
               [Character'Pos ('p'), Character'Pos ('u'), Character'Pos ('b'),
@@ -244,7 +245,7 @@ separate (Files_Suite.Recovery)
       --  before the rename) the folder is cleaned up, temporary and all.
       declare
          Hex     : constant String := "44444444444444444444444444444444";
-         Path    : constant String := Join (Hostkit.Fs.Temp_Directory, "files-job-" & Hex);
+         Path    : constant String := Join (Hostkit.Fs.Temp_Directory, Prefix & Hex);
          Witness : constant String := Join (Hostkit.Fs.Temp_Directory, ".files-job-creation-" & Hex);
          Handle  : Hostkit.Lease_Files.Lease;
          Preparing : constant Ada.Streams.Stream_Element_Array :=
@@ -286,7 +287,7 @@ separate (Files_Suite.Recovery)
       if Hostkit.Host.Current /= Hostkit.Host.Windows then
          declare
             Path : constant String :=
-              Join (Hostkit.Fs.Temp_Directory, "files-job-55555555555555555555555555555555");
+              Join (Hostkit.Fs.Temp_Directory, Prefix & "55555555555555555555555555555555");
          begin
             Remove (Path);
             Ada.Directories.Create_Directory (Path);
@@ -301,6 +302,35 @@ separate (Files_Suite.Recovery)
          exception
             when others =>
                Remove (Path);
+               raise;
+         end;
+
+         --  A link named like a job folder (planted, or another user's) is
+         --  not followed: the folder it points at, private to this user and
+         --  holding a payload, is left alone, and the link is not reported.
+         declare
+            Link   : constant String :=
+              Join (Hostkit.Fs.Temp_Directory, Prefix & "66666666666666666666666666666666");
+            Target : constant String := Join (Root, "linked-job-folder");
+         begin
+            if GNAT.OS_Lib.Is_Symbolic_Link (Link) then
+               GNAT.OS_Lib.Delete_File (Link, Found);
+            end if;
+            Files.IO.Private_Directories.Create (Target);
+            Write_Binary_File (Join (Target, "payload"), "kept");
+            Assert (Hostkit.Fs.Create_Link (Target, Link), "the planted link is made");
+            Found := Files.Jobs.Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
+            Assert (Ada.Directories.Exists (Join (Target, "payload"))
+                    and then GNAT.OS_Lib.Is_Symbolic_Link (Link)
+                    and then not Files.Jobs.Scavenger.Testing.Was_Reported (Link),
+                    "a link named like a job folder is neither followed, removed nor reported");
+            GNAT.OS_Lib.Delete_File (Link, Found);
+            Project_Tools.Files.Delete_Tree (Target);
+         exception
+            when others =>
+               if GNAT.OS_Lib.Is_Symbolic_Link (Link) then
+                  GNAT.OS_Lib.Delete_File (Link, Found);
+               end if;
                raise;
          end;
       end if;

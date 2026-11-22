@@ -13,6 +13,11 @@ separate (Files_Suite.Interaction)
       use type Ada.Real_Time.Time;
       Now : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
       Sort_By_Size : constant Files.Commands.Command_Id := Files.Commands.Sort_Command (Files.Types.Sort_Size);
+
+      --  The dragged item's index by its path, as the model would answer
+      --  after a refresh moved "/b" to the first row and dropped "/gone".
+      function Index_Of (Path : String) return Natural is
+        (if Path = "/b" then 1 elsif Path = "/a" then 2 else 0);
    begin
       Assert (P.Key_Repeats (Guikit.Input.Key_Down) and then P.Key_Repeats (Guikit.Input.Key_Backspace)
               and then P.Key_Repeats (Guikit.Input.Key_Equal),
@@ -59,4 +64,16 @@ separate (Files_Suite.Interaction)
       Assert (P.Zoom_Save_Due (True, False, Now + P.Zoom_Save_Delay, Now), "it is once the wheel has rested");
       Assert (P.Zoom_Save_Due (True, True, Now, Now), "or at once when a window closes");
       Assert (not P.Zoom_Save_Due (False, True, Now, Now), "and never when nothing is unsaved");
+
+      --  A drag's source while the rows stand is the index taken at the
+      --  press; once they moved it is found again by its path, and an item
+      --  gone since ends the drag.
+      Files_Suite.Support.Assert_Equal
+        (P.Drag_Source_Now (2, 7, 7, "/b", Index_Of'Access), 2, "the rows unchanged: the pressed index stands");
+      Files_Suite.Support.Assert_Equal
+        (P.Drag_Source_Now (2, 7, 8, "/b", Index_Of'Access), 1, "the rows moved: the item is found by its path");
+      Files_Suite.Support.Assert_Equal
+        (P.Drag_Source_Now (2, 7, 8, "/gone", Index_Of'Access), 0, "an item gone since ends the drag");
+      Files_Suite.Support.Assert_Equal
+        (P.Drag_Source_Now (0, 7, 8, "/b", Index_Of'Access), 0, "no drag stays no drag");
    end Test_Window_Policy;

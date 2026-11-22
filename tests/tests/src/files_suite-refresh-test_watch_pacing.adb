@@ -1,3 +1,4 @@
+with Files.Refresh.Testing;
 with Ada.Real_Time;
 separate (Files_Suite.Refresh)
    procedure Test_Watch_Pacing (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -9,28 +10,28 @@ separate (Files_Suite.Refresh)
       Retry : constant Ada.Real_Time.Time_Span := Files.Refresh.Load_Retry_Gap;
       function At_Ms (Ms : Natural) return Ada.Real_Time.Time is (Start + Ada.Real_Time.Milliseconds (Ms));
    begin
-      Assert (not Files.Refresh.Watch_Refresh_Due (Pacer, Start, False), "no change, no refresh");
-      Assert (Files.Refresh.Watch_Refresh_Due (Pacer, Start, True), "the first change refreshes at once");
+      Assert (not Files.Refresh.Testing.Watch_Refresh_Due (Pacer, Start, False), "no change, no refresh");
+      Assert (Files.Refresh.Testing.Watch_Refresh_Due (Pacer, Start, True), "the first change refreshes at once");
       --  A file being written: a change every 50 ms.
       for Ms in 1 .. 20 loop
          Assert
-           (not Files.Refresh.Watch_Refresh_Due (Pacer, At_Ms (Ms * 50), True),
+           (not Files.Refresh.Testing.Watch_Refresh_Due (Pacer, At_Ms (Ms * 50), True),
             "changes inside the gap wait");
       end loop;
       Assert
-        (not Files.Refresh.Watch_Refresh_Due (Pacer, Start + Gap - Ada.Real_Time.Milliseconds (1), False),
+        (not Files.Refresh.Testing.Watch_Refresh_Due (Pacer, Start + Gap - Ada.Real_Time.Milliseconds (1), False),
          "the owed refresh waits for the gap");
       Assert
-        (Files.Refresh.Watch_Refresh_Due (Pacer, Start + Gap, False),
+        (Files.Refresh.Testing.Watch_Refresh_Due (Pacer, Start + Gap, False),
          "and is paid once the gap has passed, with no new change");
       Assert
-        (not Files.Refresh.Watch_Refresh_Due (Pacer, Start + Gap + Gap, False),
+        (not Files.Refresh.Testing.Watch_Refresh_Due (Pacer, Start + Gap + Gap, False),
          "nothing is owed after it");
 
       --  A change seen while a read runs stays owed and is paid after it.
-      Files.Refresh.Owe_Watch_Refresh (Pacer, True);
+      Files.Refresh.Testing.Owe_Watch_Refresh (Pacer, True);
       Assert
-        (Files.Refresh.Watch_Refresh_Due (Pacer, Start + Gap + Gap + Gap, False),
+        (Files.Refresh.Testing.Watch_Refresh_Due (Pacer, Start + Gap + Gap + Gap, False),
          "a change owed during a read is refreshed once the gap allows");
 
       Assert (Files.Refresh.Retry_Due (Pacer, Start, False), "a listing that loaded may be re-read");

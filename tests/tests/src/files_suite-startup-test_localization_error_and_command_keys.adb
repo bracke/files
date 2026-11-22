@@ -15,6 +15,7 @@ separate (Files_Suite.Startup)
    begin
       Add_Error_Key ("error.path.missing");
       Add_Error_Key ("error.recovery.unsafe_transport");
+      Add_Error_Key ("error.recovery.unsafe_entry");
       Add_Error_Key ("error.path.inaccessible");
       Add_Error_Key ("error.directory.load");
       Add_Error_Key ("error.startup.too_many_windows");

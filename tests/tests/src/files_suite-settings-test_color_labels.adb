@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.Preference_Types;
 with Files.Settings.Path_References;
 separate (Files_Suite.Settings)
@@ -16,24 +17,24 @@ separate (Files_Suite.Settings)
          "an unlabeled path reports No_Label");
 
       --  Set and replace a label on a file path.
-      Files.Settings.Path_References.Set_Label (Base, File_Path, Files.Preference_Types.Red);
+      Files.Settings.Path_References.Testing.Set_Label (Base, File_Path, Files.Preference_Types.Red);
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Path_References.Label_Of (Base, File_Path),
          Files.Preference_Types.Red,
          "a set label is reported back");
-      Files.Settings.Path_References.Set_Label (Base, File_Path, Files.Preference_Types.Blue);
+      Files.Settings.Path_References.Testing.Set_Label (Base, File_Path, Files.Preference_Types.Blue);
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Path_References.Label_Of (Base, File_Path),
          Files.Preference_Types.Blue,
          "re-labeling replaces the previous color");
 
       --  Label a folder path too.
-      Files.Settings.Path_References.Set_Label (Base, Folder_Path, Files.Preference_Types.Green);
+      Files.Settings.Path_References.Testing.Set_Label (Base, Folder_Path, Files.Preference_Types.Green);
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Path_References.Label_Of (Base, Folder_Path),
          Files.Preference_Types.Green,
          "a folder path can carry a label");
-      Files.Settings.Path_References.Set_Label
+      Files.Settings.Path_References.Testing.Set_Label
         (Base, File_Path & Character'Val (0) & "ignored", Files.Preference_Types.Red);
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Settings.Path_References.Path_Labels (Base).Length),
@@ -41,7 +42,7 @@ separate (Files_Suite.Settings)
          "a NUL-containing path cannot create a persisted color label");
 
       --  No_Label clears the entry.
-      Files.Settings.Path_References.Set_Label (Base, File_Path, Files.Preference_Types.No_Label);
+      Files.Settings.Path_References.Testing.Set_Label (Base, File_Path, Files.Preference_Types.No_Label);
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Path_References.Label_Of (Base, File_Path),
          Files.Preference_Types.No_Label,
@@ -55,8 +56,8 @@ separate (Files_Suite.Settings)
       declare
          Source : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       begin
-         Files.Settings.Path_References.Set_Label (Source, File_Path, Files.Preference_Types.Purple);
-         Files.Settings.Path_References.Set_Label (Source, Folder_Path, Files.Preference_Types.Gray);
+         Files.Settings.Path_References.Testing.Set_Label (Source, File_Path, Files.Preference_Types.Purple);
+         Files.Settings.Path_References.Testing.Set_Label (Source, Folder_Path, Files.Preference_Types.Gray);
          Source.Group_By := Files.Preference_Types.Group_By_Label;
          declare
             Reloaded : constant Files.Settings.Settings_Parse_Result :=

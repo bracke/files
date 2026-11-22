@@ -353,48 +353,6 @@ package Files.Settings is
    --  @return True when To_Text (Settings) parses successfully.
    function Loadable (Settings : Settings_Model) return Boolean;
 
-   --  Return the filetype Mapping (an extension-to-filetype map such as
-   --  Settings_Model.Extension_Filetypes) gives Extension.
-   --
-   --  @param Mapping Extension-to-filetype map.
-   --  @param Extension File extension with or without a leading dot.
-   --  @return Mapped filetype, or an empty string when no mapping exists.
-   function Filetype_For_Extension
-     (Mapping   : String_Maps.Map;
-      Extension : String)
-      return String renames Files.File_Types.Filetype_For_Extension;
-
-   --  Return the icon Mapping (a filetype-to-icon map such as
-   --  Settings_Model.Icon_Mappings) gives Filetype.
-   --
-   --  @param Mapping Filetype-to-icon map.
-   --  @param Filetype Filetype identifier.
-   --  @return Mapped icon identifier, or an empty string when no mapping exists.
-   function Icon_For_Filetype
-     (Mapping  : String_Maps.Map;
-      Filetype : String)
-      return String renames Files.File_Types.Icon_For_Filetype;
-
-   --  Return the mapped filetype for Extension.
-   --
-   --  @param Settings Settings model to inspect.
-   --  @param Extension File extension with or without a leading dot.
-   --  @return Mapped filetype, or an empty string when no mapping exists.
-   function Filetype_For_Extension
-     (Settings  : Settings_Model;
-      Extension : String)
-      return String;
-
-   --  Return the mapped icon for Filetype.
-   --
-   --  @param Settings Settings model to inspect.
-   --  @param Filetype Filetype identifier.
-   --  @return Mapped icon identifier, or an empty string when no mapping exists.
-   function Icon_For_Filetype
-     (Settings : Settings_Model;
-      Filetype : String)
-      return String;
-
    --  Parse settings text into a settings model.
    --
    --  @param Text Settings file content.
@@ -410,14 +368,6 @@ package Files.Settings is
    function To_Text
      (Settings : Settings_Model)
       return String;
-
-   --  Return a normalized extension without a leading dot.
-   --
-   --  @param Extension Extension text to normalize.
-   --  @return Lower-case extension without a leading dot.
-   function Normalize_Extension
-     (Extension : String)
-      return String renames Files.File_Types.Normalize_Extension;
 
    --  The classification Settings maps items by: the two maps the
    --  filesystem layer's listings and searches take instead of the settings.

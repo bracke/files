@@ -1,10 +1,7 @@
 with Files.Localization;
 with Guikit.Utf8;
-with Files.Rendering.Geometry;
 
 package body Files.Rendering.Layouts.Menus is
-
-   use Files.Rendering.Geometry;
 
    function Calculate_Context_Menu_Layout
      (Snapshot : View_Snapshot; Width : Natural; Height : Natural; Line_Height : Positive) return Context_Menu_Layout

@@ -117,4 +117,12 @@ package body Files.Refresh.Testing is
 
    function Watch_Target (Job : Watch_Session) return String is
      (Ada.Strings.Unbounded.To_String (Job.Path));
+
+   function Watch_Refresh_Due
+     (Pacer   : in out Watch_Pacer;
+      Now     : Ada.Real_Time.Time;
+      Changed : Boolean) return Boolean renames Files.Refresh.Watch_Refresh_Due;
+
+   procedure Owe_Watch_Refresh (Pacer : in out Watch_Pacer; Changed : Boolean) renames Files.Refresh.Owe_Watch_Refresh;
+
 end Files.Refresh.Testing;

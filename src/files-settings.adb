@@ -520,7 +520,7 @@ package body Files.Settings is
       Extension : String;
       Filetype  : String)
    is
-      Key : constant String := Normalize_Extension (Extension);
+      Key : constant String := Files.File_Types.Normalize_Extension (Extension);
       Value : constant String := Trim (Filetype);
    begin
       if not Mapping_Key_Is_Valid (Key) or else not Mapping_Value_Is_Valid (Value) then
@@ -617,16 +617,6 @@ package body Files.Settings is
       Token    : String;
       Action   : Open_Action)
  is separate;
-
-   function Filetype_For_Extension
-     (Settings  : Settings_Model;
-      Extension : String)
-      return String is (Filetype_For_Extension (Settings.Extension_Filetypes, Extension));
-
-   function Icon_For_Filetype
-     (Settings : Settings_Model;
-      Filetype : String)
-      return String is (Icon_For_Filetype (Settings.Icon_Mappings, Filetype));
 
    function Modifier_Token
      (Modifiers : Guikit.Input.Modifier_Set)

@@ -79,7 +79,7 @@ separate (Files.Rendering.Layouts)
             declare
                Seg        : constant Files.Breadcrumbs.Segment := Shown.Element (Positive (I));
                Cells      : constant Natural := Guikit.Utf8.Display_Units (To_String (Seg.Label));
-               Seg_W      : constant Natural := Saturating_Multiply (Cells, Advance);
+               Seg_W      : constant Natural := Guikit.Layout.Saturating_Multiply (Cells, Advance);
                Field_End  : constant Natural := Guikit.Layout.Saturating_Add (Inner_X, Inner_W);
                Remaining  : constant Natural :=
                  (if Field_End > Cursor_X then Field_End - Cursor_X else 0);
@@ -110,7 +110,7 @@ separate (Files.Rendering.Layouts)
                Cursor_X :=
                  Guikit.Layout.Saturating_Add
                    (Cursor_X,
-                    Guikit.Layout.Saturating_Add (Draw_W, Saturating_Multiply (Sep_Cells, Advance)));
+                    Guikit.Layout.Saturating_Add (Draw_W, Guikit.Layout.Saturating_Multiply (Sep_Cells, Advance)));
             end;
          end loop;
       end;

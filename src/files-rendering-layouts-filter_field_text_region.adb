@@ -13,8 +13,8 @@ separate (Files.Rendering.Layouts)
       return
         (X           => Guikit.Layout.Saturating_Add (Field_X, Padding),
          Width       =>
-           (if Field_W > Saturating_Multiply (Padding, 2)
-            then Field_W - Saturating_Multiply (Padding, 2)
+           (if Field_W > Guikit.Layout.Saturating_Multiply (Padding, 2)
+            then Field_W - Guikit.Layout.Saturating_Multiply (Padding, 2)
             else 0),
          Field_X     => Field_X,
          Field_Width => Field_W);

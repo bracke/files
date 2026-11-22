@@ -1,3 +1,4 @@
+with Files.Operations.Archives.Writing.Testing;
 with Files_Suite.Listings;
 with Files.IO.Durability.Testing;
 with Hostkit.Fs;
@@ -165,7 +166,7 @@ separate (Files_Suite.Archives)
          function Extractable (Name : String; Dos : Boolean := False; Folded : Boolean := False) return Boolean is
          begin
             One (1).Name := To_Unbounded_String (Name);
-            return Files.Operations.Archives.Writing.Names_Are_Extractable (One, Dos, Folded);
+            return Files.Operations.Archives.Writing.Testing.Names_Are_Extractable (One, Dos, Folded);
          end Extractable;
       begin
          for Unsafe of Files.Types.String_Vectors.Vector'
@@ -189,11 +190,12 @@ separate (Files_Suite.Archives)
             Two (1).Name := To_Unbounded_String ("fine.txt");
             Two (2).Name := To_Unbounded_String ("../escape.txt");
             Files_Suite.Support.Assert_Equal
-              (Files.Operations.Archives.Writing.First_Unextractable (Two, False, False), "../escape.txt",
+              (Files.Operations.Archives.Writing.Testing.First_Unextractable (Two, False, False), "../escape.txt",
                "the refused entry is named");
             Two (2).Name := To_Unbounded_String ("also fine.txt");
             Files_Suite.Support.Assert_Equal
-              (Files.Operations.Archives.Writing.First_Unextractable (Two, False, False), "", "all clear names none");
+              (Files.Operations.Archives.Writing.Testing.First_Unextractable (Two, False, False), "",
+                "all clear names none");
          end;
          Assert (Extractable ("dir/nul.txt") and then Extractable ("aux.c"),
                  "a POSIX destination stores Windows device names");
@@ -208,13 +210,16 @@ separate (Files_Suite.Archives)
       end;
       Catalogue (1).Name := To_Unbounded_String ("Makefile");
       Catalogue (2).Name := To_Unbounded_String ("makefile");
-      Assert (Files.Operations.Archives.Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => False),
+      Assert (Files.Operations.Archives.Writing.Testing.Names_Are_Extractable (Catalogue, False,
+        Case_Insensitive => False),
               "names differing in case are distinct on a case-sensitive volume");
-      Assert (not Files.Operations.Archives.Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => True),
+      Assert (not Files.Operations.Archives.Writing.Testing.Names_Are_Extractable (Catalogue, False,
+        Case_Insensitive => True),
               "names differing only in case collide on a case-insensitive volume");
       Catalogue (1).Name := To_Unbounded_String (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("ΑΒΓ.txt"));
       Catalogue (2).Name := To_Unbounded_String (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("αβγ.txt"));
-      Assert (not Files.Operations.Archives.Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => True),
+      Assert (not Files.Operations.Archives.Writing.Testing.Names_Are_Extractable (Catalogue, False,
+        Case_Insensitive => True),
               "Greek names differing only in case collide on a case-insensitive volume too");
 
       Ada.Directories.Create_Path (Dir);

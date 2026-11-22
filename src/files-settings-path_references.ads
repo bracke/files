@@ -139,18 +139,6 @@ package Files.Settings.Path_References is
       Path     : String)
       return Files.Preference_Types.Color_Label;
 
-   --  Assign Label to Path, replacing any existing label. Passing No_Label
-   --  clears Path's label by removing its stored entry. The empty path is
-   --  ignored.
-   --
-   --  @param Settings Settings model updated in place.
-   --  @param Path Full item or folder path to label.
-   --  @param Label Color label to assign, or No_Label to clear.
-   procedure Set_Label
-     (Settings : in out Settings_Model;
-      Path     : String;
-      Label    : Files.Preference_Types.Color_Label);
-
    --  Set_Label for each of Paths, in one pass over the stored labels: the
    --  same result as calling it per path, without a search of every label
    --  per path (labelling a large selection was quadratic).
@@ -272,6 +260,17 @@ package Files.Settings.Path_References is
 
 private
 
+   --  Assign Label to Path, replacing any existing label. Passing No_Label
+   --  clears Path's label by removing its stored entry. The empty path is
+   --  ignored.
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param Path Full item or folder path to label.
+   --  @param Label Color label to assign, or No_Label to clear.
+   procedure Set_Label
+     (Settings : in out Settings_Model;
+      Path     : String;
+      Label    : Files.Preference_Types.Color_Label);
    --  Whether every stored path is matched without regard to case
    --  (Windows). Test seam (Files.Settings.Path_References.Testing), so the
    --  Windows matching is checked on every host.

@@ -1,3 +1,4 @@
+with Files.Icon_Assets.Testing;
 with Files.File_Types;
 with Project_Tools.Text;
 separate (Files_Suite.Operations)
@@ -32,7 +33,7 @@ separate (Files_Suite.Operations)
                Id : constant String := Ada.Directories.Base_Name (Ada.Directories.Simple_Name (Found));
             begin
                Files_Suite.Support.Assert_Equal
-                 (Files.Icon_Assets.Builtin_Icon_Asset (Id, Theme_Name),
+                 (Files.Icon_Assets.Testing.Builtin_Icon_Asset (Id, Theme_Name),
                   To_String (Project_Tools.Text.Read_Text_File (Ada.Directories.Full_Name (Found))),
                   "the compiled-in '" & Id & "' icon equals " & Ada.Directories.Full_Name (Found));
                Compared := Compared + 1;
@@ -47,7 +48,7 @@ separate (Files_Suite.Operations)
          for Theme_Name of Themes loop
             Assert
               (Guikit.Draw.Parse_Icon_Asset
-                 (Files.Icon_Assets.Builtin_Icon_Asset (Id, To_String (Theme_Name))).Valid,
+                 (Files.Icon_Assets.Testing.Builtin_Icon_Asset (Id, To_String (Theme_Name))).Valid,
                "the '" & Id & "' icon has a compiled-in definition in theme '" & To_String (Theme_Name) & "'");
          end loop;
       end Require_Builtin;
@@ -66,9 +67,9 @@ separate (Files_Suite.Operations)
       end loop;
 
       Assert
-        (Files.Icon_Assets.Builtin_Icon_Asset ("not-an-icon", "") = ""
-         and then Files.Icon_Assets.Builtin_Icon_Asset ("../folder", "") = ""
-         and then Files.Icon_Assets.Builtin_Icon_Asset ("folder", "no-such-theme") = "",
+        (Files.Icon_Assets.Testing.Builtin_Icon_Asset ("not-an-icon", "") = ""
+         and then Files.Icon_Assets.Testing.Builtin_Icon_Asset ("../folder", "") = ""
+         and then Files.Icon_Assets.Testing.Builtin_Icon_Asset ("folder", "no-such-theme") = "",
          "there is no compiled-in definition for an icon or theme files does not ship");
 
       --  What draws: the registered source, the bundled file when it parses.
@@ -77,7 +78,7 @@ separate (Files_Suite.Operations)
          "the files icon source is installed in Guikit.Draw");
       Files_Suite.Support.Assert_Equal
         (Files.Icon_Assets.Icon_Asset ("markdown", "files-high-contrast"),
-         Files.Icon_Assets.Builtin_Icon_Asset ("markdown", "files-high-contrast"),
+         Files.Icon_Assets.Testing.Builtin_Icon_Asset ("markdown", "files-high-contrast"),
          "the source serves the bundled definition");
       Assert
         (Files.Icon_Assets.Icon_Asset ("not-an-icon", "") = "",

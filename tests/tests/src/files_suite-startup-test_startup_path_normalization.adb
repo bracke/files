@@ -1,3 +1,4 @@
+with Files.Application.Testing;
 with Files.File_System_Types;
 separate (Files_Suite.Startup)
    procedure Test_Startup_Path_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -69,7 +70,7 @@ separate (Files_Suite.Startup)
 
                Args.Clear;
                Args.Append (To_Unbounded_String (Special_Path));
-               Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
+               Startup := Files.Application.Testing.Resolve_Startup_Paths (Args, Settings);
                Assert (Startup.Windows.Is_Empty, "special startup path opens no window");
                Files_Suite.Support.Assert_Equal
                  (Natural (Startup.Errors.Length),
@@ -96,7 +97,7 @@ separate (Files_Suite.Startup)
       Args.Append (To_Unbounded_String (Other));
       Args.Append (To_Unbounded_String (Second_Dir));
       Args.Append (To_Unbounded_String (Join (Root, "missing")));
-      Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
+      Startup := Files.Application.Testing.Resolve_Startup_Paths (Args, Settings);
       Files_Suite.Support.Assert_Equal
         (Natural (Startup.Windows.Length),
          2,

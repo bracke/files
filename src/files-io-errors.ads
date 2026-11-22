@@ -36,20 +36,9 @@ package Files.IO.Errors is
    --  refusal and a missing privilege both mean the user may not.
    subtype Cause is Hostkit.Errors.Cause;
 
-   --  The errno value this host uses for a cause: Hostkit.Errors' table.
-   --  @param Item Cause to look up.
-   --  @return The host's errno for Item, or zero when the host has none
-   --    (EDQUOT on Windows) or Hostkit has no table for this host.
-   function Host_Code (Item : Cause) return Integer renames Hostkit.Errors.Code_Of;
-
    --  @param Item Cause to name.
    --  @return The catalog key a user is shown for Item.
    function Key_Of (Item : Cause) return String;
-
-   --  @param Code An errno value from this host; zero means none.
-   --  @param Fallback Key to answer when Code is no cause the user can act on.
-   --  @return The key for Code's cause, or Fallback.
-   function Key_For_Errno (Code : Integer; Fallback : String) return String;
 
    --  @param Key Catalog key to test.
    --  @return True when Key is one of the cause keys above.
@@ -72,10 +61,6 @@ package Files.IO.Errors is
    --  anything else can overwrite errno. A zero errno records nothing.
    procedure Capture;
 
-   --  Record Code as though errno had held it.
-   --  @param Code An errno value; zero records nothing.
-   procedure Record_Code (Code : Integer);
-
    --  @return The code the calling task recorded last since Reset, or zero.
    function Last_Code return Integer;
 
@@ -86,11 +71,22 @@ package Files.IO.Errors is
    procedure Adopt_Code (Code : Integer);
 
    --  @param Fallback Key to answer when nothing specific was recorded.
-   --  @return Key_For_Errno (Last_Code, Fallback).
-   function Key_For_Last (Fallback : String) return String;
-
-   --  @param Fallback Key to answer when nothing specific was recorded.
    --  @return Key_For_Last (Fallback), ready for a Mutation_Result.
    function Error_Key (Fallback : String) return Files.Types.UString;
+
+private
+
+   --  @param Code An errno value from this host; zero means none.
+   --  @param Fallback Key to answer when Code is no cause the user can act on.
+   --  @return The key for Code's cause, or Fallback.
+   function Key_For_Errno (Code : Integer; Fallback : String) return String;
+
+   --  Record Code as though errno had held it.
+   --  @param Code An errno value; zero records nothing.
+   procedure Record_Code (Code : Integer);
+
+   --  @param Fallback Key to answer when nothing specific was recorded.
+   --  @return Key_For_Errno (Last_Code, Fallback).
+   function Key_For_Last (Fallback : String) return String;
 
 end Files.IO.Errors;

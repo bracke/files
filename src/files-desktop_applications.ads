@@ -63,6 +63,22 @@ package Files.Desktop_Applications is
    --  @return Available applications, possibly empty.
    function Available_Applications return Application_Vectors.Vector;
 
+   --  Build_Open_Actions, each run inside Terminal when App asks for one
+   --  (Terminal=true).
+   --
+   --  @param App Application to launch.
+   --  @param Targets Selected paths to open.
+   --  @param Terminal The terminal emulator for an App that needs one.
+   --  @return The actions in launch order; empty when App needs a terminal
+   --          and Terminal cannot run it.
+   function Launch_Actions
+     (App      : Application;
+      Targets  : Files.Types.String_Vectors.Vector;
+      Terminal : String)
+      return Open_Action_Vectors.Vector;
+
+private
+
    --  Build the open action that launches an application on the given targets.
    --
    --  The application Exec string is parsed using desktop-entry quoting and
@@ -111,20 +127,6 @@ package Files.Desktop_Applications is
      (Action   : Files.Settings.Open_Action;
       Terminal : String)
       return Files.Settings.Open_Action;
-
-   --  Build_Open_Actions, each run inside Terminal when App asks for one
-   --  (Terminal=true).
-   --
-   --  @param App Application to launch.
-   --  @param Targets Selected paths to open.
-   --  @param Terminal The terminal emulator for an App that needs one.
-   --  @return The actions in launch order; empty when App needs a terminal
-   --          and Terminal cannot run it.
-   function Launch_Actions
-     (App      : Application;
-      Targets  : Files.Types.String_Vectors.Vector;
-      Terminal : String)
-      return Open_Action_Vectors.Vector;
 
    --  A BCP 47 locale tag as a Desktop Entry spells a locale postfix:
    --  lang_COUNTRY@MODIFIER. A script that glibc names by a modifier becomes

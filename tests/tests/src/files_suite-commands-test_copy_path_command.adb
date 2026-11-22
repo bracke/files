@@ -1,3 +1,4 @@
+with Files.Controller.Clipboard_Text.Testing;
 with Files.Item_Lists;
 with Files.Controller.Clipboard_Text;
 with Hostkit.Host;
@@ -8,7 +9,7 @@ with Files_Suite.Support.Models;
 separate (Files_Suite.Commands)
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      function Line_Break return String renames Files.Controller.Clipboard_Text.Line_Break;
+      function Line_Break return String renames Files.Controller.Clipboard_Text.Testing.Line_Break;
       Settings   : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model      : Files.Model.Window_Model := Sample_Model;
       Empty      : Files.Items.Item_Vectors.Vector;

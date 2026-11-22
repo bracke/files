@@ -1,3 +1,4 @@
+with Files.Leaf_Names.Testing;
 with Files.Leaf_Names;
 with Hostkit.Fs;
 separate (Files_Suite.Names)
@@ -71,15 +72,15 @@ separate (Files_Suite.Names)
 
       --  Cutting: whole characters only, the tail kept, as little as needed.
       Files_Suite.Support.Assert_Equal
-        (Files.Leaf_Names.Cut (Repeat (E_Acute, 128), " 2", 255),
+        (Files.Leaf_Names.Testing.Cut (Repeat (E_Acute, 128), " 2", 255),
          Repeat (E_Acute, 126) & " 2",
          "a cut drops whole two-byte characters to fit 255 bytes");
       Files_Suite.Support.Assert_Equal
-        (Files.Leaf_Names.Cut (Repeat (E_Acute, 128), " 2", 255, Hostkit.Fs.Utf16_Units),
+        (Files.Leaf_Names.Testing.Cut (Repeat (E_Acute, 128), " 2", 255, Hostkit.Fs.Utf16_Units),
          Repeat (E_Acute, 128) & " 2",
          "130 UTF-16 units fit uncut");
       Files_Suite.Support.Assert_Equal
-        (Files.Leaf_Names.Cut (Repeat (Emoji, 128), "", 255, Hostkit.Fs.Utf16_Units),
+        (Files.Leaf_Names.Testing.Cut (Repeat (Emoji, 128), "", 255, Hostkit.Fs.Utf16_Units),
          Repeat (Emoji, 127),
          "a surrogate pair is never split");
       Files_Suite.Support.Assert_Equal

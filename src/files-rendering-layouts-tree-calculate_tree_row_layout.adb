@@ -36,14 +36,14 @@ separate (Files.Rendering.Layouts.Tree)
             Row_Y : constant Natural :=
               Guikit.Layout.Saturating_Add
                 (Guikit.Layout.Saturating_Add (Layout.Y, Header_H),
-                 Saturating_Multiply
+                 Guikit.Layout.Saturating_Multiply
                    (Natural (I - First_Row - 1), Layout.Row_Height));
          begin
             exit when Row_Y >= Panel_End_Y;
             declare
                Remaining    : constant Natural := Panel_End_Y - Row_Y;
                Row_H        : constant Natural := Natural'Min (Layout.Row_Height, Remaining);
-               Depth_Indent : constant Natural := Saturating_Multiply (TR.Depth, Indent_W);
+               Depth_Indent : constant Natural := Guikit.Layout.Saturating_Multiply (TR.Depth, Indent_W);
                Tri_X        : constant Natural := Guikit.Layout.Saturating_Add (Content_X, Depth_Indent);
                Tri_Size     : constant Natural := Natural'Min (Line_Height, Row_H);
                Tri_W        : constant Natural :=

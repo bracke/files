@@ -5,15 +5,6 @@ private with Messages.Runtime;
 --  Default localization facade for files.
 package Files.Localization is
 
-   --  Normalize an operating-system locale name to the catalog locale form.
-   --  A glibc modifier naming a script (@latin, @cyrillic, @devanagari)
-   --  becomes the script subtag after the language, and @valencia the
-   --  variant at the end: sr_RS@latin is sr-Latn-RS. Other modifiers go.
-   --
-   --  @param Value Locale text such as da_DK.UTF-8.
-   --  @return Normalized locale such as da-DK, or en for empty, C, or POSIX.
-   function Normalize_Locale (Value : String) return String;
-
    --  Return the process locale inferred from the environment. The answer is
    --  worked out once and remembered (a test rereads it through
    --  Files.Localization.Testing): files never changes its own locale
@@ -125,6 +116,14 @@ package Files.Localization is
 
 private
 
+   --  Normalize an operating-system locale name to the catalog locale form.
+   --  A glibc modifier naming a script (@latin, @cyrillic, @devanagari)
+   --  becomes the script subtag after the language, and @valencia the
+   --  variant at the end: sr_RS@latin is sr-Latn-RS. Other modifiers go.
+   --
+   --  @param Value Locale text such as da_DK.UTF-8.
+   --  @return Normalized locale such as da-DK, or en for empty, C, or POSIX.
+   function Normalize_Locale (Value : String) return String;
    --  Forget the remembered System_Locale, System_Time_Locale and
    --  System_Number_Locale, so the next call reads LC_ALL, LC_MESSAGES,
    --  LC_TIME, LC_NUMERIC, LANG and the desktop's configuration under HOME

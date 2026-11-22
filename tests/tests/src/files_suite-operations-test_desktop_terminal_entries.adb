@@ -1,3 +1,4 @@
+with Files.Desktop_Applications.Testing;
 with Hostkit.Metadata;
 with Files.Settings.Open_Actions;
 with Files_Suite.Support.Guards;
@@ -86,12 +87,12 @@ separate (Files_Suite.Operations)
          --  not the plain program: a name the host cannot run as it stands),
          --  which is what decides whether the entry is offered.
          Built    : constant Files.Settings.Open_Action :=
-           Files.Desktop_Applications.Build_Open_Action
+           Files.Desktop_Applications.Testing.Build_Open_Action
              ((Name => To_Unbounded_String ("Terminal Program"), Exec => To_Unbounded_String ("top -d 1"),
                Terminal => True, others => <>),
               Files.Types.String_Vectors.Empty_Vector);
          Runs     : constant Boolean :=
-           To_String (Files.Desktop_Applications.In_Terminal (Built, Terminal).Executable) /= "";
+           To_String (Files.Desktop_Applications.Testing.In_Terminal (Built, Terminal).Executable) /= "";
          --  What the scan saw, for a failure message.
          Seen     : constant String :=
            " (terminal " & Terminal & ", action " & To_String (Built.Executable)
@@ -134,7 +135,7 @@ separate (Files_Suite.Operations)
       declare
          procedure Check (Terminal, Expected_Arguments : String) is
             Wrapped : constant Files.Settings.Open_Action :=
-              Files.Desktop_Applications.In_Terminal (Program, Terminal);
+              Files.Desktop_Applications.Testing.In_Terminal (Program, Terminal);
          begin
             Files_Suite.Support.Assert_Equal
               (To_String (Wrapped.Executable) & " " & Arguments_Image (Wrapped),

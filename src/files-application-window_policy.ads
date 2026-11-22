@@ -1,7 +1,6 @@
 with Files.Input_Actions;
 with Ada.Real_Time;
 
-with Files.Events;
 with Files.UI_Types;
 with Glfw;
 with Glfw.Input.Mouse;
@@ -190,17 +189,6 @@ package Files.Application.Window_Policy is
       Activate : Boolean)
       return Files.Input_Actions.Input_Action;
 
-   --  The X of a screen reader's node box in the frame as drawn before
-   --  mirroring: the tree a screen reader is given is the shown one, which a
-   --  right-to-left (mirrored) layout reflects, while layouts and hit tests
-   --  work unmirrored. A box reaching past the frame stays where it is.
-   --
-   --  @param X The box's left edge as shown.
-   --  @param Width The box's width.
-   --  @param Frame_Width The frame's width.
-   --  @return The box's left edge as drawn.
-   function Unmirrored_Node_X (X, Width, Frame_Width : Natural) return Natural;
-
    --  The text field a screen reader's request for a node names
    --  (Files.Events.Translate_Field_Request), with the node's box as shown,
    --  reflected back first in a mirrored layout.
@@ -216,9 +204,7 @@ package Files.Application.Window_Policy is
      (X, Y, Width, Height : Natural;
       Frame_Width         : Natural;
       Line_Height         : Positive)
-      return Files.Input_Actions.Input_Action is
-     (Files.Events.Translate_Field_Request
-        (Unmirrored_Node_X (X, Width, Frame_Width), Y, Width, Height, Frame_Width, Line_Height));
+      return Files.Input_Actions.Input_Action;
 
    --  Whether an Activate request also presses Space: on a focused settings
    --  toggle or choice, which a click on its row's middle only focuses.
@@ -250,5 +236,39 @@ package Files.Application.Window_Policy is
       Now       : Ada.Real_Time.Time;
       Zoomed_At : Ada.Real_Time.Time)
       return Boolean;
+
+   --  The dragged item's visible index now. The index taken at the press
+   --  stands while the rows are those it was taken from; once they moved (a
+   --  watched refresh reordering the list mid-drag) it would name another
+   --  item, so the item is found again by its path, and an item gone since
+   --  ends the drag (0).
+   --
+   --  @param Index The visible index the drag knows, 0 for no drag.
+   --  @param Index_Rows The rows revision Index was taken at.
+   --  @param Rows The model's rows revision now.
+   --  @param Path The dragged item's full path.
+   --  @param Index_Of The visible index of an item by its path, 0 if none.
+   --  @return The dragged item's visible index, or 0.
+   function Drag_Source_Now
+     (Index      : Natural;
+      Index_Rows : Natural;
+      Rows       : Natural;
+      Path       : String;
+      Index_Of   : not null access function (Path : String) return Natural)
+      return Natural is
+     (if Index = 0 or else Index_Rows = Rows then Index else Index_Of (Path));
+
+private
+
+   --  The X of a screen reader's node box in the frame as drawn before
+   --  mirroring: the tree a screen reader is given is the shown one, which a
+   --  right-to-left (mirrored) layout reflects, while layouts and hit tests
+   --  work unmirrored. A box reaching past the frame stays where it is.
+   --
+   --  @param X The box's left edge as shown.
+   --  @param Width The box's width.
+   --  @param Frame_Width The frame's width.
+   --  @return The box's left edge as drawn.
+   function Unmirrored_Node_X (X, Width, Frame_Width : Natural) return Natural;
 
 end Files.Application.Window_Policy;

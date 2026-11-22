@@ -18,9 +18,11 @@ begin
          return;
       elsif (Key = Guikit.Input.Key_Left or else Key = Guikit.Input.Key_Right)
         and then Modifiers = Guikit.Input.No_Modifiers
+        and then Files.Model.Settings_Pane.Focused_Kind (Model) not in Guikit.Settings_Panel.Text
       then
-         --  Left/Right cycle the focused toggle/choice or step a number (a
-         --  no-op on text fields); the emitted change is applied to the draft.
+         --  Left/Right cycle the focused toggle/choice or step a number; the
+         --  emitted change is applied to the draft. In a text field they move
+         --  its caret (Editing_Key), as in every other field.
          Files.Model.Settings_Pane.Cycle_Choice (Model, Forward => Key = Guikit.Input.Key_Right);
          Result := Applied_Settings_Change (Model);
          return;

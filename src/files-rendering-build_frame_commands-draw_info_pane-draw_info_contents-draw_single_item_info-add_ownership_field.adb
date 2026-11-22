@@ -18,7 +18,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
       Add_Info_Wrapped_Value
         (Value_Row, Value, (if Editing then Text_Color else Muted_Text_Color));
       Cell_Y :=
-        Saturating_Integer_Add (Row_Y, Saturating_Multiply (Value_Row, Line_Height));
+        Saturating_Integer_Add (Row_Y, Guikit.Layout.Saturating_Multiply (Value_Row, Line_Height));
       if Cell_Y >= Integer (Info_Pane.Y)
         and then Cell_Y + Integer (Line_Height) <= Integer (Info_Bottom)
         and then Text_W > 0

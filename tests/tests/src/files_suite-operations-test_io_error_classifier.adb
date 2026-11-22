@@ -1,8 +1,10 @@
+with Files.IO.Errors.Testing;
 with Hostkit.Errors;
 separate (Files_Suite.Operations)
    procedure Test_Io_Error_Classifier (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use Files.IO.Errors;
+      use Files.IO.Errors.Testing;
       use all type Hostkit.Errors.Cause;
       Fallback : constant String := "error.copy.failed";
 
@@ -20,8 +22,8 @@ separate (Files_Suite.Operations)
       Assert_Equal (Key_Of (Text_Busy), "error.io.busy", "a running program reads as busy");
       Assert_Equal (Key_Of (Name_Too_Long), "error.io.name_too_long", "a long name has its key");
       for Item in Cause loop
-         if Host_Code (Item) /= 0 then
-            Expect (Host_Code (Item), Key_Of (Item), Cause'Image (Item));
+         if Hostkit.Errors.Code_Of (Item) /= 0 then
+            Expect (Hostkit.Errors.Code_Of (Item), Key_Of (Item), Cause'Image (Item));
          end if;
          Assert (Is_Cause_Key (Key_Of (Item)), Cause'Image (Item) & " key is a cause key");
          Assert (Files.Localization.Text (Key_Of (Item)) /= Key_Of (Item), Key_Of (Item) & " is localized");
@@ -56,10 +58,10 @@ separate (Files_Suite.Operations)
       Reset;
       Assert_Equal (Last_Code, 0, "Reset forgets the recorded code");
       Assert_Equal (Key_For_Last (Fallback), Fallback, "nothing recorded keeps the generic key");
-      Record_Code (Host_Code (Permission_Denied));
+      Record_Code (Hostkit.Errors.Code_Of (Permission_Denied));
       Record_Code (0);
       Assert_Equal (Key_For_Last (Fallback), "error.io.denied", "a zero code keeps the recorded cause");
-      Record_Code (Host_Code (No_Space));
+      Record_Code (Hostkit.Errors.Code_Of (No_Space));
       Assert_Equal (To_String (Error_Key (Fallback)), "error.io.no_space", "the last recorded cause wins");
       Reset;
       Assert_Equal (Key_For_Last (Fallback), Fallback, "Reset ends the operation's cause");

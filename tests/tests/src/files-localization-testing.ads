@@ -36,4 +36,13 @@ package Files.Localization.Testing is
      (Base, Language_Shard, Region_Shard, Locale, Key : String)
       return String;
 
+   --  Normalize an operating-system locale name to the catalog locale form.
+   --  A glibc modifier naming a script (@latin, @cyrillic, @devanagari)
+   --  becomes the script subtag after the language, and @valencia the
+   --  variant at the end: sr_RS@latin is sr-Latn-RS. Other modifiers go.
+   --
+   --  @param Value Locale text such as da_DK.UTF-8.
+   --  @return Normalized locale such as da-DK, or en for empty, C, or POSIX.
+   function Normalize_Locale (Value : String) return String;
+
 end Files.Localization.Testing;

@@ -1,3 +1,5 @@
+with Files.Settings.Drafts.Testing;
+with Files.File_Types;
 with Files.Settings.Drafts;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
@@ -63,11 +65,11 @@ separate (Files_Suite.Settings)
          Normalized_Load := Files.Settings.Drafts.Apply_Draft (Normalized_Draft_Settings, Normalized_Draft);
          Assert (Normalized_Load.Success, "normalized draft mapping replacement applies");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Filetype_For_Extension (Normalized_Load.Settings, "txt"),
+           (Files.File_Types.Filetype_For_Extension (Normalized_Load.Settings.Extension_Filetypes, "txt"),
             "text/x-overridden",
             "normalized draft extension replaces existing row");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Icon_For_Filetype (Normalized_Load.Settings, "text/plain"),
+           (Files.File_Types.Icon_For_Filetype (Normalized_Load.Settings.Icon_Mappings, "text/plain"),
             "text-updated",
             "trimmed draft icon key replaces existing row");
          Lookup :=
@@ -96,7 +98,7 @@ separate (Files_Suite.Settings)
          Normalized_Draft.Open_Action_Token := To_Unbounded_String (" application/ld+json + control ");
          Normalized_Draft.Open_Action_Command := To_Unbounded_String ("json-editor {path}");
          Assert
-           (Files.Settings.Drafts.Validate_Draft (Normalized_Draft).Success,
+           (Files.Settings.Drafts.Testing.Validate_Draft (Normalized_Draft).Success,
             "draft validates structured-suffix modifier action");
          Normalized_Load := Files.Settings.Drafts.Apply_Draft (Normalized_Draft_Settings, Normalized_Draft);
          Assert (Normalized_Load.Success, "draft applies structured-suffix modifier action");

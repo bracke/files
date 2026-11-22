@@ -1,3 +1,4 @@
+with Files.File_System.Search.Testing;
 with Files.File_System.Search;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
@@ -18,16 +19,16 @@ separate (Files_Suite.Search)
       Big      : String (1 .. 70_000) := [others => 'a'];
    begin
       --  Pure match seam: case-insensitive substring, binary and empty handled.
-      Assert (Files.File_System.Search.Content_Matches ("The Needle is here", "needle"),
+      Assert (Files.File_System.Search.Testing.Content_Matches ("The Needle is here", "needle"),
               "content match is case-insensitive");
-      Assert (not Files.File_System.Search.Content_Matches ("nothing relevant", "needle"),
+      Assert (not Files.File_System.Search.Testing.Content_Matches ("nothing relevant", "needle"),
               "content match misses when the query is absent");
-      Assert (not Files.File_System.Search.Content_Matches ("needle", ""),
+      Assert (not Files.File_System.Search.Testing.Content_Matches ("needle", ""),
               "an empty query never matches");
-      Assert (not Files.File_System.Search.Content_Matches ("", "needle"),
+      Assert (not Files.File_System.Search.Testing.Content_Matches ("", "needle"),
               "empty bytes never match");
       Assert
-        (not Files.File_System.Search.Content_Matches ("nee" & Character'Val (0) & "dle needle", "needle"),
+        (not Files.File_System.Search.Testing.Content_Matches ("nee" & Character'Val (0) & "dle needle", "needle"),
          "binary bytes (NUL) are skipped even when the query text is present");
 
       --  Text that is not UTF-8 is searched as what it says.
@@ -51,13 +52,13 @@ separate (Files_Suite.Search)
          Pair   : constant String :=
            Character'Val (16#3D#) & Character'Val (16#D8#) & Character'Val (16#00#) & Character'Val (16#DE#);
       begin
-         Assert (Files.File_System.Search.Content_Matches (Le_Bom & Utf16 ("a Needle here", True), "needle"),
+         Assert (Files.File_System.Search.Testing.Content_Matches (Le_Bom & Utf16 ("a Needle here", True), "needle"),
                  "UTF-16LE text with its byte order mark is searched");
-         Assert (Files.File_System.Search.Content_Matches (Be_Bom & Utf16 ("a Needle here", False), "needle"),
+         Assert (Files.File_System.Search.Testing.Content_Matches (Be_Bom & Utf16 ("a Needle here", False), "needle"),
                  "UTF-16BE text with its byte order mark is searched");
-         Assert (Files.File_System.Search.Content_Matches (Utf16 ("log line: needle", True), "NEEDLE"),
+         Assert (Files.File_System.Search.Testing.Content_Matches (Utf16 ("log line: needle", True), "NEEDLE"),
                  "UTF-16LE text without a byte order mark is searched");
-         Assert (not Files.File_System.Search.Content_Matches (Le_Bom & Utf16 ("nothing", True), "needle"),
+         Assert (not Files.File_System.Search.Testing.Content_Matches (Le_Bom & Utf16 ("nothing", True), "needle"),
                  "UTF-16 text without the query does not match");
          Files_Suite.Support.Assert_Equal
            (Files.Text_Encoding.Searchable_Text (Le_Bom & Utf16 ("x", True) & Pair),
@@ -66,17 +67,18 @@ separate (Files_Suite.Search)
          Files_Suite.Support.Assert_Equal
            (Files.Text_Encoding.Searchable_Text (Le_Bom & Utf16 ("x", True) & Pair (1 .. 3)), "x",
             "a surrogate pair a read cut short is dropped");
-         Assert (Files.File_System.Search.Content_Matches ("caf" & Character'Val (16#E9#) & " au lait", U8 ("CAFÉ")),
+         Assert (Files.File_System.Search.Testing.Content_Matches ("caf" & Character'Val (16#E9#) & " au lait",
+           U8 ("CAFÉ")),
                  "Latin-1 text is searched as the characters it says");
          Assert
-           (Files.File_System.Search.Content_Matches
+           (Files.File_System.Search.Testing.Content_Matches
               ("say " & Character'Val (16#93#) & "hi" & Character'Val (16#94#), U8 ("“hi”")),
             "Windows-1252 quotation marks are read as such");
          Files_Suite.Support.Assert_Equal
            (Files.Text_Encoding.Searchable_Text ("caf" & Character'Val (16#C3#) & Character'Val (16#A9#)), U8 ("café"),
             "UTF-8 text is searched as it is");
          Assert
-           (Files.File_System.Search.Content_Matches
+           (Files.File_System.Search.Testing.Content_Matches
               (U8 ("Привет, мир") & Character'Val (16#E9#) & " fin", U8 ("ПРИВЕТ")),
             "UTF-8 text with a stray byte keeps its characters");
          Files_Suite.Support.Assert_Equal

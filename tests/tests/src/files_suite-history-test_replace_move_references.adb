@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.Operations.Paste.Testing;
 with Files.Operations.Paste;
 with Files.File_System_Types;
@@ -80,8 +81,8 @@ separate (Files_Suite.History)
       Ada.Directories.Create_Path (Dest_Dir);
       Write_File (Source, "new");
       Write_File (Dest, "old");
-      Files.Settings.Path_References.Set_Label (Settings, Source, Files.Preference_Types.Blue);
-      Files.Settings.Path_References.Set_Label (Settings, Dest, Files.Preference_Types.Red);
+      Files.Settings.Path_References.Testing.Set_Label (Settings, Source, Files.Preference_Types.Blue);
+      Files.Settings.Path_References.Testing.Set_Label (Settings, Dest, Files.Preference_Types.Red);
       Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Source);
       Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Dest);
       Files.Settings.Path_References.Note_Recent (Settings, Dest);

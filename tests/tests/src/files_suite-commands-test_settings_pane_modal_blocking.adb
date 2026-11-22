@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 with Files.Commands.Status;
 with Files.Model.Command_Palette;
 with Files.Model.Settings_Pane;
@@ -47,10 +48,10 @@ separate (Files_Suite.Commands)
          "settings pane opening moves focus to settings input");
       Files.Model.Selection.Select_Visible (Model, 1);
       Assert
-        (Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Save_Settings_Command),
+        (Files.Commands.Testing.Allowed_With_Settings_Pane (Files.Commands.Save_Settings_Command),
          "settings pane allowlist includes save");
       Assert
-        (not Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Delete_Selected_Items_Command),
+        (not Files.Commands.Testing.Allowed_With_Settings_Pane (Files.Commands.Delete_Selected_Items_Command),
          "settings pane allowlist excludes background delete");
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),

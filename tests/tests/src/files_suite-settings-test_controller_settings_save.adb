@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Settings.Storage;
 with Files.Preference_Types;
 with Files.Overlays.Settings_Form;
@@ -135,19 +136,19 @@ separate (Files_Suite.Settings)
             "files-high-contrast",
             "controller save updates live icon theme");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Filetype_For_Extension (Draft_Settings, "cfg"),
+           (Files.File_Types.Filetype_For_Extension (Draft_Settings.Extension_Filetypes, "cfg"),
             "text/x-config",
             "controller save updates live filetype mappings");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Filetype_For_Extension (Draft_Settings, "txt"),
+           (Files.File_Types.Filetype_For_Extension (Draft_Settings.Extension_Filetypes, "txt"),
             "text/plain",
             "controller save preserves other filetype mappings");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Filetype_For_Extension (Draft_Settings, "tmpdel"),
+           (Files.File_Types.Filetype_For_Extension (Draft_Settings.Extension_Filetypes, "tmpdel"),
             "",
             "controller save omits removed filetype mappings");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Icon_For_Filetype (Draft_Settings, "text/x-config"),
+           (Files.File_Types.Icon_For_Filetype (Draft_Settings.Icon_Mappings, "text/x-config"),
             "text",
             "controller save updates live icon mappings");
          Lookup :=

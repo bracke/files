@@ -45,7 +45,8 @@ separate (Files.Settings)
 
       function Icon_Key (Key : String) return String is (Key);
 
-      procedure Parse_Filetypes_Line is new Parse_Mapping_Line (Normalize_Extension, Add_Extension_Mapping);
+      procedure Parse_Filetypes_Line is new Parse_Mapping_Line
+        (Files.File_Types.Normalize_Extension, Add_Extension_Mapping);
       procedure Parse_Icons_Line is new Parse_Mapping_Line (Icon_Key, Add_Icon_Mapping);
 
       procedure Parse_Open_Actions_Line

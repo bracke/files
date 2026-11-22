@@ -109,6 +109,8 @@ package Files.Settings.Storage is
    --  @param Settings What the file as last seen says.
    procedure Note_Seen_Settings (Path : String; Settings : Settings_Model);
 
+private
+
    --  Write settings text to Path, creating parent directories as needed.
    --
    --  @param Path Settings file path.
@@ -118,9 +120,6 @@ package Files.Settings.Storage is
      (Path : String;
       Text : String)
       return Settings_Write_Result;
-
-private
-
    --  Write's first step: take into Settings what another process (another
    --  files, an editor) wrote to the settings file at Path since this one
    --  last read or wrote it (Load_File, Save_Text), so a save does not throw

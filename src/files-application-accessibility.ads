@@ -8,16 +8,6 @@ with A11ykit.Tree;
 --  Accessibility bridge for exporting render accessibility nodes.
 package Files.Application.Accessibility is
 
-   --  Map the frame's flat accessibility nodes into a hierarchical A11ykit tree
-   --  -- the toolkit-neutral form a screen-reader provider consumes -- inferring
-   --  the parent/child structure from the nodes' geometry.
-   --
-   --  @param Frame Render frame containing accessibility nodes.
-   --  @return The nodes as an A11ykit.Tree with inferred hierarchy and focus.
-   function To_A11ykit_Tree
-     (Frame : Files.Rendering.Frame_Commands)
-      return A11ykit.Tree.Accessibility_Tree;
-
    --  Begin and end the application's host screen-reader lifetime. Native
    --  providers defer registration until Publish supplies the first root tree.
    --
@@ -83,6 +73,15 @@ package Files.Application.Accessibility is
 
 private
 
+   --  Map the frame's flat accessibility nodes into a hierarchical A11ykit tree
+   --  -- the toolkit-neutral form a screen-reader provider consumes -- inferring
+   --  the parent/child structure from the nodes' geometry.
+   --
+   --  @param Frame Render frame containing accessibility nodes.
+   --  @return The nodes as an A11ykit.Tree with inferred hierarchy and focus.
+   function To_A11ykit_Tree
+     (Frame : Files.Rendering.Frame_Commands)
+      return A11ykit.Tree.Accessibility_Tree;
    --  How many windows the application's tree holds now.
    --
    --  @return The number of windows published and not forgotten since Stop.

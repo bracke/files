@@ -1,3 +1,4 @@
+with Files.Rendering.Display_Text.Testing;
 with Ada.Calendar;
 with Ada.Calendar.Time_Zones;
 with Files.Rendering.Display_Text;
@@ -21,7 +22,7 @@ separate (Files_Suite.Rendering)
                Value : constant Ada.Calendar.Time := Local (Change_Day + 1 - Back, 8);
             begin
                Files_Suite.Support.Assert_Equal
-                 (Files.Rendering.Display_Text.Calendar_Days_Ago (Value, Now), Back,
+                 (Files.Rendering.Display_Text.Testing.Calendar_Days_Ago (Value, Now), Back,
                   Where & ": the calendar days back across the change");
                Assert
                  (Files.Rendering.Display_Text.Humanized_Time_Text (Value, Now)
@@ -30,7 +31,8 @@ separate (Files_Suite.Rendering)
             end;
          end loop;
          Files_Suite.Support.Assert_Equal
-           (Files.Rendering.Display_Text.Calendar_Days_Ago (Local (Change_Day + 2, 8), Local (Change_Day + 1, 12)), -1,
+           (Files.Rendering.Display_Text.Testing.Calendar_Days_Ago (Local (Change_Day + 2, 8), Local (Change_Day + 1,
+             12)), -1,
             Where & ": tomorrow is a day ahead");
       end Check;
 

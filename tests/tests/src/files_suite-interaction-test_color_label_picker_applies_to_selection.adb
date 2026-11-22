@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.Preference_Types;
 with Files.Input_Actions;
 with Files.Model.Label_Picker;
@@ -90,7 +91,7 @@ separate (Files_Suite.Interaction)
 
       --  A mixed selection (one already labeled differently) all takes the
       --  chosen color.
-      Files.Settings.Path_References.Set_Label (Settings, Two, Files.Preference_Types.Red);
+      Files.Settings.Path_References.Testing.Set_Label (Settings, Two, Files.Preference_Types.Red);
       Files.Model.Label_Picker.Open (Model);
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Choose (Files.Preference_Types.Blue), Guikit.Input.No_Modifiers, Result);

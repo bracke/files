@@ -1,3 +1,4 @@
+with Files.Text_Basics;
 with Files.Model.Support;
 
 package body Files.Model.Folder_Sizes is
@@ -21,23 +22,61 @@ package body Files.Model.Folder_Sizes is
       Note (Model, Measured, Ignored);
    end Note;
 
-   --  Saturating sum: a total past Long_Long_Integer'Last stays there.
-   --  @param Total Running total.
-   --  @param Amount Bytes to add (ignored when not positive).
-   procedure Add_Bytes (Total : in out Long_Long_Integer; Amount : Long_Long_Integer) is
+   --  The one sum of a selection: every selected file's size plus each
+   --  selected folder's measured size, a folder listed twice (search
+   --  results) counted once, and a folder not measured yet, or whose
+   --  measuring failed, counted as Unmeasured. Both the kept total and a
+   --  snapshot's own walk come from here, so they cannot disagree.
+   --  @param Model Model whose selection is summed.
+   --  @param Folders The selected folders, each with its listed time.
+   --  @param Total Their bytes, capped at Long_Long_Integer'Last.
+   --  @param Unmeasured How many selected folders have no known size.
+   procedure Walk_Selection
+     (Model      : Window_Model;
+      Folders    : out Folder_Time_Maps.Map;
+      Total      : out Long_Long_Integer;
+      Unmeasured : out Natural)
+   is
+      use type Files.Types.Item_Kind;
+      --  The selection flags, as the snapshot's walk counted: each item once.
+      Selected : constant Selection_Flags := Selected_Flags (Model);
    begin
-      if Amount > 0 and then Total <= Long_Long_Integer'Last - Amount then
-         Total := Total + Amount;
-      elsif Amount > 0 then
-         Total := Long_Long_Integer'Last;
-      end if;
-   end Add_Bytes;
+      Folders.Clear;
+      Total := 0;
+      Unmeasured := 0;
+      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+         if Selected (Index) then
+            declare
+               Item     : Files.Items.Directory_Item renames Model.Items (Index);
+               Found    : Folder_Size_Maps.Cursor;
+               Listed   : Folder_Time_Maps.Cursor;
+               Inserted : Boolean;
+            begin
+               if Item.Kind = Files.Types.Directory_Item then
+                  Folders.Insert (Item.Full_Path, Item.Modified_Time, Listed, Inserted);
+                  if Inserted then
+                     Found := Model.Folder_Sizes.Find (Item.Full_Path);
+                     if Folder_Size_Maps.Has_Element (Found)
+                       and then Folder_Size_Maps.Element (Found).Available
+                     then
+                        Total := Files.Text_Basics.Saturating_Add
+                          (Total, Folder_Size_Maps.Element (Found).Total_Bytes);
+                     else
+                        Unmeasured := Unmeasured + 1;
+                     end if;
+                  end if;
+               elsif Item.Size_Available then
+                  Total := Files.Text_Basics.Saturating_Add (Total, Item.Size);
+               end if;
+            end;
+         end if;
+      end loop;
+   end Walk_Selection;
 
    --  Bring Model.Selected_Folders up to the current selection and rows:
    --  one walk of the selection after it changed, none per hand-over.
    --  @param Model Model whose cache is brought up to date.
    procedure Ensure_Selected_Folders (Model : in out Window_Model) is
-      use type Files.Types.Item_Kind;
       Cache : Selected_Folders_Cache renames Model.Selected_Folders;
    begin
       if Cache.Built
@@ -46,49 +85,25 @@ package body Files.Model.Folder_Sizes is
       then
          return;
       end if;
-      Cache.Folders.Clear;
-      Cache.Total_Bytes := 0;
-      Cache.Unmeasured := 0;
-      --  The selection flags, as the snapshot's walk counted: each item once.
-      declare
-         Selected : constant Selection_Flags := Selected_Flags (Model);
-      begin
-         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-            if Selected (Index) then
-               declare
-                  Item     : Files.Items.Directory_Item renames Model.Items (Index);
-                  Found    : Folder_Size_Maps.Cursor;
-                  Listed   : Folder_Time_Maps.Cursor;
-                  Inserted : Boolean;
-               begin
-                  if Item.Kind = Files.Types.Directory_Item then
-                     --  A folder listed twice (search results) counts once.
-                     Cache.Folders.Insert (Item.Full_Path, Item.Modified_Time, Listed, Inserted);
-                     if Inserted then
-                        Found := Model.Folder_Sizes.Find (Item.Full_Path);
-                        if Folder_Size_Maps.Has_Element (Found)
-                          and then Folder_Size_Maps.Element (Found).Available
-                        then
-                           Add_Bytes (Cache.Total_Bytes, Folder_Size_Maps.Element (Found).Total_Bytes);
-                        else
-                           --  Not measured yet, or measuring it failed: the
-                           --  total is incomplete either way.
-                           Cache.Unmeasured := Cache.Unmeasured + 1;
-                        end if;
-                     end if;
-                  elsif Item.Size_Available then
-                     Add_Bytes (Cache.Total_Bytes, Item.Size);
-                  end if;
-               end;
-            end if;
-         end loop;
-      end;
+      Walk_Selection (Model, Cache.Folders, Cache.Total_Bytes, Cache.Unmeasured);
       Cache.Built := True;
       Cache.Selection_Rev := Model.Selection_Revision_Value;
       Cache.Rows_Rev := Model.Rows_Revision_Value;
       Cache.Total_Valid := Cache.Total_Bytes < Long_Long_Integer'Last;
       Cache.Sizes_Revision := Model.Folder_Sizes_Revision;
    end Ensure_Selected_Folders;
+
+   procedure Sum_Selection
+     (Model   : Window_Model;
+      Bytes   : out Long_Long_Integer;
+      Pending : out Boolean)
+   is
+      Folders    : Folder_Time_Maps.Map;
+      Unmeasured : Natural;
+   begin
+      Walk_Selection (Model, Folders, Bytes, Unmeasured);
+      Pending := Unmeasured > 0;
+   end Sum_Selection;
 
    procedure Note
      (Model    : in out Window_Model;
@@ -138,7 +153,8 @@ package body Files.Model.Folder_Sizes is
                         Cache.Unmeasured := Cache.Unmeasured - 1;
                      end if;
                      if Done.Result.Available then
-                        Add_Bytes (Cache.Total_Bytes, Done.Result.Total_Bytes);
+                        Cache.Total_Bytes :=
+                          Files.Text_Basics.Saturating_Add (Cache.Total_Bytes, Done.Result.Total_Bytes);
                      else
                         Cache.Unmeasured := Cache.Unmeasured + 1;
                      end if;
@@ -235,18 +251,6 @@ package body Files.Model.Folder_Sizes is
       Bytes := (if Kept then Cache.Total_Bytes else 0);
       Pending := Kept and then Cache.Unmeasured > 0;
    end Selection_Total;
-
-   procedure Find
-     (Model : Window_Model;
-      Path  : Ada.Strings.Unbounded.Unbounded_String;
-      Known : out Boolean;
-      Bytes : out Long_Long_Integer)
-   is
-      Found : constant Folder_Size_Maps.Cursor := Model.Folder_Sizes.Find (Path);
-   begin
-      Known := Folder_Size_Maps.Has_Element (Found) and then Folder_Size_Maps.Element (Found).Available;
-      Bytes := (if Known then Folder_Size_Maps.Element (Found).Total_Bytes else 0);
-   end Find;
 
    function Revision (Model : Window_Model) return Natural is (Model.Folder_Sizes_Revision);
 

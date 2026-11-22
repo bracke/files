@@ -1,3 +1,4 @@
+with Files.Application.Testing;
 with Files.Preference_Types;
 separate (Files_Suite.Startup)
    procedure Test_Run_Configuration_Parsing (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -9,7 +10,7 @@ separate (Files_Suite.Startup)
       Args.Append (To_Unbounded_String ("--settings"));
       Args.Append (To_Unbounded_String ("/tmp/files.conf"));
       Args.Append (To_Unbounded_String ("/tmp"));
-      Config := Files.Application.Parse_Run_Configuration (Args);
+      Config := Files.Application.Testing.Parse_Run_Configuration (Args);
       Assert (Config.Mode = Files.Application.Headless_Smoke_Run, "runtime smoke flag selects headless smoke mode");
       Files_Suite.Support.Assert_Equal (Natural (Config.Paths.Length), 1, "runtime smoke flag is consumed");
       Files_Suite.Support.Assert_Equal
@@ -25,7 +26,7 @@ separate (Files_Suite.Startup)
       Args.Append (To_Unbounded_String ("--settings"));
       Args.Append (To_Unbounded_String ("--dash-start.conf"));
       Args.Append (To_Unbounded_String ("--runtime-smoke"));
-      Config := Files.Application.Parse_Run_Configuration (Args);
+      Config := Files.Application.Testing.Parse_Run_Configuration (Args);
       Files_Suite.Support.Assert_Equal
         (To_String (Config.Settings_Path),
          "--dash-start.conf",
@@ -40,7 +41,7 @@ separate (Files_Suite.Startup)
       Args.Append (To_Unbounded_String ("--runtime-smoke"));
       Args.Append (To_Unbounded_String ("--help"));
       Args.Append (To_Unbounded_String ("--settings=/tmp/inline.conf"));
-      Config := Files.Application.Parse_Run_Configuration (Args);
+      Config := Files.Application.Testing.Parse_Run_Configuration (Args);
       Assert (Config.Mode = Files.Application.Help_Run, "later run mode flag wins deterministically");
       Assert (Config.Paths.Is_Empty, "smoke flags do not become startup paths");
       Files_Suite.Support.Assert_Equal
@@ -50,19 +51,19 @@ separate (Files_Suite.Startup)
 
       Args.Clear;
       Args.Append (To_Unbounded_String ("-h"));
-      Config := Files.Application.Parse_Run_Configuration (Args);
+      Config := Files.Application.Testing.Parse_Run_Configuration (Args);
       Assert (Config.Mode = Files.Application.Help_Run, "short help flag selects help mode");
       Assert (Config.Paths.Is_Empty, "short help flag is consumed");
 
       Args.Clear;
       Args.Append (To_Unbounded_String ("--version"));
-      Config := Files.Application.Parse_Run_Configuration (Args);
+      Config := Files.Application.Testing.Parse_Run_Configuration (Args);
       Assert (Config.Mode = Files.Application.Version_Run, "version flag selects version mode");
       Assert (Config.Paths.Is_Empty, "version flag is consumed");
 
       Args.Clear;
       Args.Append (To_Unbounded_String ("--unknown-path"));
-      Config := Files.Application.Parse_Run_Configuration (Args);
+      Config := Files.Application.Testing.Parse_Run_Configuration (Args);
       Assert (not Config.Valid, "unknown dash-prefixed options are rejected");
       Assert (Config.Paths.Is_Empty, "an unknown option is not reinterpreted as a path");
       Files_Suite.Support.Assert_Equal
@@ -77,7 +78,7 @@ separate (Files_Suite.Startup)
       Args.Append (To_Unbounded_String ("--help"));
       Args.Append (To_Unbounded_String ("--settings=/tmp/after-terminator.conf"));
       Args.Append (To_Unbounded_String ("--settings"));
-      Config := Files.Application.Parse_Run_Configuration (Args);
+      Config := Files.Application.Testing.Parse_Run_Configuration (Args);
       Assert (Config.Mode = Files.Application.Headless_Smoke_Run, "terminator stops smoke flag parsing");
       Files_Suite.Support.Assert_Equal (Natural (Config.Paths.Length), 4, "terminated flags are preserved as paths");
       Files_Suite.Support.Assert_Equal
@@ -101,7 +102,7 @@ separate (Files_Suite.Startup)
       Args.Append (To_Unbounded_String ("--settings"));
       Args.Append (To_Unbounded_String ("--"));
       Args.Append (To_Unbounded_String ("--runtime-smoke"));
-      Config := Files.Application.Parse_Run_Configuration (Args);
+      Config := Files.Application.Testing.Parse_Run_Configuration (Args);
       Files_Suite.Support.Assert_Equal
         (To_String (Config.Settings_Path),
          "--",
@@ -111,13 +112,13 @@ separate (Files_Suite.Startup)
 
       Args.Clear;
       Args.Append (To_Unbounded_String ("--settings"));
-      Config := Files.Application.Parse_Run_Configuration (Args);
+      Config := Files.Application.Testing.Parse_Run_Configuration (Args);
       Assert (not Config.Valid, "a dangling --settings is rejected");
       Assert (Config.Paths.Is_Empty, "a dangling --settings never becomes a startup path");
 
       Args.Clear;
       Args.Append (To_Unbounded_String ("--settings="));
-      Config := Files.Application.Parse_Run_Configuration (Args);
+      Config := Files.Application.Testing.Parse_Run_Configuration (Args);
       Assert (not Config.Valid, "an empty settings equals form is rejected");
       Assert (Config.Paths.Is_Empty, "an empty settings value is consumed as an invalid flag");
 
@@ -139,8 +140,8 @@ separate (Files_Suite.Startup)
          Args.Append (To_Unbounded_String ("--settings"));
          Args.Append (To_Unbounded_String (Settings_Path));
          Args.Append (To_Unbounded_String (Dir));
-         Config := Files.Application.Parse_Run_Configuration (Args);
-         Startup := Files.Application.Resolve_Startup (Config.Paths, To_String (Config.Settings_Path));
+         Config := Files.Application.Testing.Parse_Run_Configuration (Args);
+         Startup := Files.Application.Testing.Resolve_Startup (Config.Paths, To_String (Config.Settings_Path));
          Files_Suite.Support.Assert_Equal
            (To_String (Startup.Settings_Path),
             Settings_Path,
@@ -156,7 +157,7 @@ separate (Files_Suite.Startup)
       end;
 
       declare
-         Help : constant String := Files.Application.Help_Text;
+         Help : constant String := Files.Application.Testing.Help_Text;
       begin
          Assert
            (Ada.Strings.Fixed.Index (Help, "Usage: files") > 0,
@@ -175,7 +176,7 @@ separate (Files_Suite.Startup)
            (Ada.Strings.Fixed.Index (Help, "--help, -h") > 0,
             "help text documents long and short help flags");
          Files_Suite.Support.Assert_Equal
-           (Files.Application.Version_Text,
+           (Files.Application.Testing.Version_Text,
             "files 0.1.0-dev",
             "version text uses generated crate metadata");
       end;

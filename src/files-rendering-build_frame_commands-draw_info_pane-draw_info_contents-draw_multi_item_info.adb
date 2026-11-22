@@ -31,7 +31,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
             for Info of Snapshot.Selected_Info loop
                declare
                   Y : constant Integer :=
-                    Saturating_Integer_Add (Row_Y, Saturating_Multiply (Item_Row, Line_Height));
+                    Saturating_Integer_Add (Row_Y, Guikit.Layout.Saturating_Multiply (Item_Row, Line_Height));
                   Visible_Y : constant Integer := Integer'Max (Y, Integer (Info_Pane.Y));
                   Description : constant Unbounded_String :=
                     To_Unbounded_String (Info_Description (Info, Full => False));

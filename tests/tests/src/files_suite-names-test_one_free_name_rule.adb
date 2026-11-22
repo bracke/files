@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Model.Jobs;
 with Files.Operations.Archives;
 with Files.Operations.History;
@@ -70,7 +71,7 @@ separate (Files_Suite.Names)
 
       --  An extension mapping folds case in every script.
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Normalize_Extension
+        (Files.File_Types.Normalize_Extension
            ("." & Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("ДОК")),
          Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("док"),
          "a Cyrillic extension folds to lower case");

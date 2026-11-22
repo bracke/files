@@ -1,3 +1,4 @@
+with Files.Application.Testing;
 separate (Files_Suite.Startup)
    procedure Test_Startup_Settings_Path_Not_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -16,7 +17,7 @@ separate (Files_Suite.Startup)
       Write_File (Join (Dir, "shown.txt"));
 
       Args.Append (To_Unbounded_String (Dir));
-      Startup := Files.Application.Resolve_Startup (Args, Settings_Path);
+      Startup := Files.Application.Testing.Resolve_Startup (Args, Settings_Path);
       Files_Suite.Support.Assert_Equal
         (Natural (Startup.Windows.Length),
          1,
@@ -55,7 +56,7 @@ separate (Files_Suite.Startup)
          1,
          "default settings are used when startup settings path is a directory");
 
-      Report := To_Unbounded_String (Files.Application.Startup_Report (Startup));
+      Report := To_Unbounded_String (Files.Application.Testing.Startup_Report (Startup));
       Assert
         (Ada.Strings.Fixed.Index
            (To_String (Report),

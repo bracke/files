@@ -85,11 +85,11 @@ package body Files.Rendering.Geometry is
          when Files.Preference_Types.Modified_Column | Files.Preference_Types.Created_Column =>
             return Time_Column_Width (Line_Height);
          when Files.Preference_Types.Size_Column =>
-            return Saturating_Multiply (Line_Height, 6);
+            return Guikit.Layout.Saturating_Multiply (Line_Height, 6);
          when Files.Preference_Types.Filetype_Column =>
-            return Saturating_Multiply (Line_Height, 9);
+            return Guikit.Layout.Saturating_Multiply (Line_Height, 9);
          when Files.Preference_Types.Permissions_Column =>
-            return Saturating_Multiply (Line_Height, 8);
+            return Guikit.Layout.Saturating_Multiply (Line_Height, 8);
       end case;
    end Default_Detail_Column_Width;
 
@@ -101,8 +101,8 @@ package body Files.Rendering.Geometry is
    begin
       return
         Guikit.Layout.Saturating_Add
-          (Saturating_Multiply (Value / Denominator, Numerator),
-           Saturating_Multiply (Value mod Denominator, Numerator) / Denominator);
+          (Guikit.Layout.Saturating_Multiply (Value / Denominator, Numerator),
+           Guikit.Layout.Saturating_Multiply (Value mod Denominator, Numerator) / Denominator);
    end Scaled_Down;
 
    function Bounded_Product_Divide
@@ -236,7 +236,8 @@ package body Files.Rendering.Geometry is
       return Natural
    is
       Reserved_W : constant Natural :=
-        Guikit.Layout.Saturating_Add (Scrollbar_W, Saturating_Multiply (Info_Pane_Padding (Layout.Line_Height), 2));
+        Guikit.Layout.Saturating_Add (Scrollbar_W,
+          Guikit.Layout.Saturating_Multiply (Info_Pane_Padding (Layout.Line_Height), 2));
    begin
       return
         (if Layout.Info_Pane_Width > Reserved_W

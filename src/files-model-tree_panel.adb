@@ -136,12 +136,6 @@ package body Files.Model.Tree_Panel is
    is
       Count : constant Natural :=
         Files.Folder_Tree.Visible_Row_Count (Model.Tree_Panel.Tree);
-      Maximum : constant Natural :=
-        (if Count > Page_Rows then Count - Page_Rows else 0);
-      Current : constant Natural :=
-        Natural'Min (Scroll_Rows (Model), Maximum);
-      Target  : constant Natural := Visible_Row - 1;
-      Wanted  : Natural := Current;
    begin
       if not Model.Tree_Panel.Open
         or else Page_Rows = 0
@@ -151,17 +145,21 @@ package body Files.Model.Tree_Panel is
          return;
       end if;
 
-      if Target < Current then
-         Wanted := Target;
-      elsif Target - Current >= Page_Rows then
-         Wanted := Target - Page_Rows + 1;
-      end if;
-      Wanted := Natural'Min (Wanted, Maximum);
-
-      if Model.Tree_Panel.Scroll /= Wanted then
-         Touch_Header (Model);
-         Model.Tree_Panel.Scroll := Wanted;
-      end if;
+      --  The least scroll that shows the row, the last page kept full: the
+      --  rule every list with a highlight follows (Guikit.Layout).
+      declare
+         Wanted : constant Natural :=
+           Guikit.Layout.Scroll_Offset_For_Selection
+             (Selected       => Visible_Row,
+              Result_Count   => Count,
+              Visible_Rows   => Page_Rows,
+              Current_Offset => Scroll_Rows (Model));
+      begin
+         if Model.Tree_Panel.Scroll /= Wanted then
+            Touch_Header (Model);
+            Model.Tree_Panel.Scroll := Wanted;
+         end if;
+      end;
    end Ensure_Row_Visible;
 
    function Is_Seeded

@@ -7,26 +7,6 @@ package Files.Undo.Journal is
    --  the failure and goes on.
    type Save_Mode is (Best_Effort, Must_Commit);
 
-   --  Persist explicit history stacks in a private helper transport.
-   --  Entries too old or too large for the journal's caps are left out of
-   --  it, never failing the save: the oldest first, and the newest of a
-   --  stack only when it does not fit even alone. Each one left out is
-   --  listed in the journal ("not journaled") by its Sequence, together with
-   --  those State already lists, so a window merging the journal back keeps
-   --  its own copy (Merge). That list has a cap: a Sequence past it is
-   --  listed instead as dropped, and the window merging the journal retires
-   --  that entry, releasing the originals it preserved to the system trash.
-   --  @param Directory Absolute private helper transport directory.
-   --  @param Undo Undo stack to persist.
-   --  @param Redo Redo stack to persist.
-   --  @param Mode Must_Commit raises when the snapshot cannot be committed.
-   --  @param State The history's journal state, written with the stacks.
-   procedure Save_Stacks
-     (Directory : String;
-      Undo, Redo : Files.Undo.History.Undo_Entry_Vectors.Vector;
-      Mode : Save_Mode := Best_Effort;
-      State : Files.Undo.History.History_Journal_State := (others => <>));
-
    --  Save_Stacks of History's stacks and journal state, into the current
    --  job's transport (Files.Jobs.Context.Directory).
    --  @param History Helper history to persist (Files.Model.History.State).
@@ -98,6 +78,25 @@ package Files.Undo.Journal is
 
 private
 
+   --  Persist explicit history stacks in a private helper transport.
+   --  Entries too old or too large for the journal's caps are left out of
+   --  it, never failing the save: the oldest first, and the newest of a
+   --  stack only when it does not fit even alone. Each one left out is
+   --  listed in the journal ("not journaled") by its Sequence, together with
+   --  those State already lists, so a window merging the journal back keeps
+   --  its own copy (Merge). That list has a cap: a Sequence past it is
+   --  listed instead as dropped, and the window merging the journal retires
+   --  that entry, releasing the originals it preserved to the system trash.
+   --  @param Directory Absolute private helper transport directory.
+   --  @param Undo Undo stack to persist.
+   --  @param Redo Redo stack to persist.
+   --  @param Mode Must_Commit raises when the snapshot cannot be committed.
+   --  @param State The history's journal state, written with the stacks.
+   procedure Save_Stacks
+     (Directory : String;
+      Undo, Redo : Files.Undo.History.Undo_Entry_Vectors.Vector;
+      Mode : Save_Mode := Best_Effort;
+      State : Files.Undo.History.History_Journal_State := (others => <>));
    --  Test seam (Files.Undo.Journal.Testing): how many of the next
    --  journal reads are refused, as a journal held a moment by another
    --  process is. Zero outside the test suite.

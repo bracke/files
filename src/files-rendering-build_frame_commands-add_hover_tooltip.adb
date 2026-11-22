@@ -68,13 +68,13 @@ separate (Files.Rendering.Build_Frame_Commands)
             declare
                Draw_Text_W : constant Natural :=
                  (if Capacity > 0 and then Line_Units > 0
-                  then Saturating_Multiply (Line_Units, Cell_W) else Text_W);
+                  then Guikit.Layout.Saturating_Multiply (Line_Units, Cell_W) else Text_W);
                Tip_W       : constant Natural :=
-                 Guikit.Layout.Saturating_Add (Draw_Text_W, Saturating_Multiply (Padding, 2));
+                 Guikit.Layout.Saturating_Add (Draw_Text_W, Guikit.Layout.Saturating_Multiply (Padding, 2));
                Tip_H       : constant Natural :=
                  Guikit.Layout.Saturating_Add
-                   (Saturating_Multiply (Natural (Rows.Length), Line_Height),
-                    Saturating_Multiply (Padding_V, 2));
+                   (Guikit.Layout.Saturating_Multiply (Natural (Rows.Length), Line_Height),
+                    Guikit.Layout.Saturating_Multiply (Padding_V, 2));
 
                Place   : constant Files.Rendering.Geometry.Tooltip_Placement :=
                  Files.Rendering.Geometry.Calculate_Tooltip_Placement
@@ -102,7 +102,8 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Add_Overlay_Text
                     (Label_X,
                      Guikit.Layout.Saturating_Add
-                       (Guikit.Layout.Saturating_Add (Tip_Y, Padding_V), Saturating_Multiply (Line, Line_Height)),
+                       (Guikit.Layout.Saturating_Add (Tip_Y, Padding_V),
+                         Guikit.Layout.Saturating_Multiply (Line, Line_Height)),
                      Draw_Text_W, Line_Height, To_Unbounded_String (Raw (Row.First .. Row.Last)));
                   Line := Guikit.Layout.Saturating_Add (Line, 1);
                end loop;
@@ -116,7 +117,8 @@ separate (Files.Rendering.Build_Frame_Commands)
 
       declare
          Text_Raw   : constant String := To_String (Tooltip_At (Hover_X, Hover_Y));
-         Raw_Text_W : constant Natural := Saturating_Multiply (Guikit.Utf8.Display_Units (Text_Raw), Cell_W);
+         Raw_Text_W : constant Natural :=
+           Guikit.Layout.Saturating_Multiply (Guikit.Utf8.Display_Units (Text_Raw), Cell_W);
          Text_W     : constant Natural :=
            (if Max_Tip_W > 2 * Padding
             then Natural'Min (Raw_Text_W, Max_Tip_W - 2 * Padding)

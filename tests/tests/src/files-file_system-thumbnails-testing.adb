@@ -15,4 +15,9 @@ package body Files.File_System.Thumbnails.Testing is
       Count := Natural (Index.Names.Length);
    end List_Cache;
 
+   procedure Prune_Thumbnail_Cache
+     (Cache_Directory : String;
+      Budget_Bytes    : Long_Long_Integer;
+      Max_Entries     : Positive := Max_Cache_Prune_Entries) renames Files.File_System.Thumbnails.Prune_Thumbnail_Cache;
+
 end Files.File_System.Thumbnails.Testing;

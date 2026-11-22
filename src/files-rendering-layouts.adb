@@ -25,10 +25,10 @@ package body Files.Rendering.Layouts is
    begin
       --  Bar mode reserves a fixed-width band for the graphical bar.
       if Free_Space_Bar_Active (Snapshot) then
-         return Saturating_Multiply (Line_Height, 3);
+         return Guikit.Layout.Saturating_Multiply (Line_Height, 3);
       end if;
 
-      return Saturating_Multiply (Guikit.Utf8.Display_Units (Label), Cell_W);
+      return Guikit.Layout.Saturating_Multiply (Guikit.Utf8.Display_Units (Label), Cell_W);
    end Free_Space_Label_Width;
 
    function Metrics_For

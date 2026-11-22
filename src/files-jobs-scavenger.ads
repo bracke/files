@@ -3,7 +3,7 @@ package Files.Jobs.Scavenger is
    --  The message key of the line naming a transport recovery could not
    --  safely reclaim. The job layer translates nothing: the caller looks it
    --  up and hands the text to Set_Report_Label.
-   Report_Label_Key : constant String := "recovery.unsafe_transport";
+   Report_Label_Key : constant String := "error.recovery.unsafe_entry";
 
    --  Set the localized text that prefixes each unrecoverable-transport
    --  line, before Scavenge or Run. Until it is set the line starts with

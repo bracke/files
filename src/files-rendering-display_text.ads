@@ -20,15 +20,6 @@ package Files.Rendering.Display_Text is
    --  @return The localization key of its weekday.
    function Weekday_Key (Value : Ada.Calendar.Time) return String;
 
-   --  How many calendar days before Now's Value falls: 0 today, 1 yesterday,
-   --  negative in the future, counted from local midnights so a 23- or
-   --  25-hour day still counts as one.
-   --
-   --  @param Value The earlier time.
-   --  @param Now The present.
-   --  @return The number of calendar days.
-   function Calendar_Days_Ago (Value, Now : Ada.Calendar.Time) return Integer;
-
    --  A time as a listing shows it: today or yesterday and the clock time,
    --  the weekday within a week, the date beyond it.
    --
@@ -59,5 +50,16 @@ package Files.Rendering.Display_Text is
    --  @param Inline True to join the parts on one line.
    --  @return The readable, writable and executable words, or "none".
    function Permission_Text (Permissions : String; Inline : Boolean := False) return String;
+
+private
+
+   --  How many calendar days before Now's Value falls: 0 today, 1 yesterday,
+   --  negative in the future, counted from local midnights so a 23- or
+   --  25-hour day still counts as one.
+   --
+   --  @param Value The earlier time.
+   --  @param Now The present.
+   --  @return The number of calendar days.
+   function Calendar_Days_Ago (Value, Now : Ada.Calendar.Time) return Integer;
 
 end Files.Rendering.Display_Text;

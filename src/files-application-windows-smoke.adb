@@ -84,7 +84,7 @@ package body Files.Application.Windows.Smoke is
             Missing_Glyphs => Glyphs.Missing_Glyph_Count,
             Vertices       => Natural (Batch.Vertices.Length),
             Text_Rendered  =>
-              Glyphs.Status = Files.Rendering.Text.Text_Render_Success
+              Glyphs.Status = Guikit.Draw.Text_Render_Success
               and then not Glyphs.Glyphs.Is_Empty,
             Font_Path      => To_Unbounded_String (Font_Path));
       end;

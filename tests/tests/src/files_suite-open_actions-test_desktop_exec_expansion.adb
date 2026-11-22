@@ -1,3 +1,4 @@
+with Files.Desktop_Applications.Testing;
 separate (Files_Suite.Open_Actions)
    procedure Test_Desktop_Exec_Expansion (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -22,7 +23,7 @@ separate (Files_Suite.Open_Actions)
          begin
             Targets.Append (To_Unbounded_String ("/tmp/a.txt"));
             Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
-            Action := Files.Desktop_Applications.Build_Open_Action (Localized, Targets);
+            Action := Files.Desktop_Applications.Testing.Build_Open_Action (Localized, Targets);
             declare
                Context : constant String := "localized values and two-stage desktop escapes expand correctly";
             begin
@@ -46,7 +47,7 @@ separate (Files_Suite.Open_Actions)
          begin
             Targets.Append (To_Unbounded_String ("/tmp/a.txt"));
             Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
-            Action := Files.Desktop_Applications.Build_Open_Action (Viewer, Targets);
+            Action := Files.Desktop_Applications.Testing.Build_Open_Action (Viewer, Targets);
             Files_Suite.Support.Assert_Equal
               (To_String (Action.Executable),
                "viewer",
@@ -78,7 +79,7 @@ separate (Files_Suite.Open_Actions)
          begin
             Targets.Append (To_Unbounded_String ("/tmp/a file.txt"));
             Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
-            Action := Files.Desktop_Applications.Build_Open_Action (Quoted, Targets);
+            Action := Files.Desktop_Applications.Testing.Build_Open_Action (Quoted, Targets);
             Files_Suite.Support.Assert_Equal
               (To_String (Action.Executable),
                "/opt/Quoted Editor/bin/editor",
@@ -137,7 +138,7 @@ separate (Files_Suite.Open_Actions)
          begin
             Targets.Append (To_Unbounded_String ("/tmp/a.txt"));
             Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
-            Actions := Files.Desktop_Applications.Build_Open_Actions (Single_App, Targets);
+            Actions := Files.Desktop_Applications.Testing.Build_Open_Actions (Single_App, Targets);
             declare
                Context : constant String := "single-file fields produce one positional launch per selected target";
             begin
@@ -152,13 +153,13 @@ separate (Files_Suite.Open_Actions)
                  (To_String (Actions.Element (2).Arguments.Element (2)), "/tmp/b.txt", Context & ": second target");
             end;
 
-            Actions := Files.Desktop_Applications.Build_Open_Actions (Viewer, Targets);
+            Actions := Files.Desktop_Applications.Testing.Build_Open_Actions (Viewer, Targets);
             Assert
               (Natural (Actions.Length) = 1
                and then Natural (Actions.First_Element.Arguments.Length) = 3,
                "multi-file fields retain one launch containing every target");
 
-            Action := Files.Desktop_Applications.Build_Open_Action (Percent_App, Targets);
+            Action := Files.Desktop_Applications.Testing.Build_Open_Action (Percent_App, Targets);
             Assert
               (To_String (Action.Executable) = "viewer%tool"
                and then Natural (Action.Arguments.Length) = 2,

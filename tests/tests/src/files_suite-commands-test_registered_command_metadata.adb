@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Registered_Command_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,7 +24,8 @@ separate (Files_Suite.Commands)
               (Files.Commands.Command_Palette_Visible (Id),
                "registered command is command-palette visible");
             Assert
-              (Files.Commands.Allowed_With_Settings_Pane (Id) or else not Files.Commands.Requires_Settings_Path (Id),
+              (Files.Commands.Testing.Allowed_With_Settings_Pane (Id) or else not
+                Files.Commands.Requires_Settings_Path (Id),
                "settings-path commands are allowed while settings pane is open");
             if Primary.Present then
                Assert (Primary.Key /= Guikit.Input.Key_Unknown, "present primary shortcut has a concrete key");

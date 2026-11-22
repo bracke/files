@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Settings.Path_References;
 separate (Files_Suite.Settings)
    procedure Test_Sort_Favorites_And_Mapping_Authority (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -69,15 +70,15 @@ separate (Files_Suite.Settings)
       begin
          Assert (Authoritative.Success, "settings with an explicit filetypes section parses");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Filetype_For_Extension (Authoritative.Settings, "custom"),
+           (Files.File_Types.Filetype_For_Extension (Authoritative.Settings.Extension_Filetypes, "custom"),
             "application/x-custom",
             "an explicit filetype mapping loads from the file");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Filetype_For_Extension (Authoritative.Settings, "txt"),
+           (Files.File_Types.Filetype_For_Extension (Authoritative.Settings.Extension_Filetypes, "txt"),
             "",
             "a built-in mapping omitted from the file does not reappear");
          Assert
-           (Files.Settings.Filetype_For_Extension (Files.Settings.Default_Settings, "txt") /= "",
+           (Files.File_Types.Filetype_For_Extension (Files.Settings.Default_Settings.Extension_Filetypes, "txt") /= "",
             "built-in defaults still provide mappings for a fresh install");
       end;
    end Test_Sort_Favorites_And_Mapping_Authority;

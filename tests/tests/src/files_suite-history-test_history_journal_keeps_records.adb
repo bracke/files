@@ -1,3 +1,4 @@
+with Files.Undo.Journal.Testing;
 with Files.Undo.History;
 separate (Files_Suite.History)
    --  The journal writes an entry's records as columns and reads them back as
@@ -39,7 +40,7 @@ separate (Files_Suite.History)
       Given.Reverse_Completed.Append (U (Join (Root, "kept-copy")));
       Given.Sequence := 1;
       Undo.Append (Given);
-      Files.Undo.Journal.Save_Stacks
+      Files.Undo.Journal.Testing.Save_Stacks
         (History_Directory, Undo, Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,
          Mode => Files.Undo.Journal.Must_Commit);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);

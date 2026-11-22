@@ -1,3 +1,4 @@
+with Files.Text_Basics;
 separate (Files.File_System)
 function Directory_Size
   (Path        : String;
@@ -7,18 +8,6 @@ function Directory_Size
 is
    Result  : Directory_Size_Result;
    Visited : Natural := 0;
-
-   function Saturating_Long_Add
-     (Left  : Long_Long_Integer;
-      Right : Long_Long_Integer)
-      return Long_Long_Integer is
-   begin
-      if Right > 0 and then Left > Long_Long_Integer'Last - Right then
-         return Long_Long_Integer'Last;
-      else
-         return Left + Right;
-      end if;
-   end Saturating_Long_Add;
 
    function Is_Symlink (Candidate : String) return Boolean is
    begin
@@ -60,7 +49,8 @@ is
          elsif Files.IO.Fs_Primitives.Kind (Full) = Ada.Directories.Ordinary_File then
             Result.File_Count := Result.File_Count + 1;
             Result.Total_Bytes :=
-              Saturating_Long_Add (Result.Total_Bytes, Long_Long_Integer (Files.IO.Fs_Primitives.Size (Full)));
+              Files.Text_Basics.Saturating_Add
+                (Result.Total_Bytes, Long_Long_Integer (Files.IO.Fs_Primitives.Size (Full)));
          end if;
       exception
          when Swallowed : others =>

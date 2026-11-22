@@ -1,3 +1,4 @@
+with Files.Undo.Journal.Testing;
 with Files.Operations.Editing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -140,7 +141,7 @@ separate (Files_Suite.History)
          Rejected        : Boolean := False;
       begin
          begin
-            Files.Undo.Journal.Save_Stacks
+            Files.Undo.Journal.Testing.Save_Stacks
               ("relative-history-directory",
                Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,
                Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,
@@ -163,7 +164,7 @@ separate (Files_Suite.History)
          if Hostkit.Fs.Create_Link
            (Victim, Join (Write_Directory, "history.tmp"))
          then
-            Files.Undo.Journal.Save_Stacks
+            Files.Undo.Journal.Testing.Save_Stacks
               (Write_Directory,
                Files.Model.History.Undo_Entries (Model),
                Files.Model.History.Redo_Entries (Model),
@@ -178,7 +179,7 @@ separate (Files_Suite.History)
          end if;
 
          Ada.Directories.Create_Directory (Source_Directory);
-         Files.Undo.Journal.Save_Stacks
+         Files.Undo.Journal.Testing.Save_Stacks
            (Source_Directory,
             Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,
             Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,

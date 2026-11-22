@@ -36,11 +36,11 @@ separate (Files.Rendering.Layouts.Menus)
       --  and hit-testing both read these fields, so they stay in agreement.
       Result.Padding := Guikit.Layout.Scaled (4, Line_Height);
       Result.Row_Height :=
-        Guikit.Layout.Saturating_Add (Line_Height, Saturating_Multiply (Result.Padding, 2));
+        Guikit.Layout.Saturating_Add (Line_Height, Guikit.Layout.Saturating_Multiply (Result.Padding, 2));
       --  A separator is just a 1px divider line surrounded by the row padding,
       --  so it takes noticeably less vertical space than a command row.
       Result.Separator_Height :=
-        Guikit.Layout.Saturating_Add (1, Saturating_Multiply (Result.Padding, 2));
+        Guikit.Layout.Saturating_Add (1, Guikit.Layout.Saturating_Multiply (Result.Padding, 2));
 
       --  Size one column to the widest command label (using the same monospace
       --  cell metric and edge padding the renderer draws rows with).
@@ -48,7 +48,7 @@ separate (Files.Rendering.Layouts.Menus)
          Cell_W    : constant Positive :=
            Guikit.Layout.Caret_Advance_Width (Line_Height);
          Edge_Pad  : constant Natural :=
-           Saturating_Multiply (Field_Padding (Line_Height), 2);
+           Guikit.Layout.Saturating_Multiply (Field_Padding (Line_Height), 2);
          Max_Label : Natural := 0;
       begin
          for Row in 1 .. Result.Row_Count loop
@@ -58,7 +58,7 @@ separate (Files.Rendering.Layouts.Menus)
                     Files.Localization.Text
                       (Files.Commands.Name_Key (Result.Rows (Row).Command));
                   Label_W : constant Natural :=
-                    Saturating_Multiply (Guikit.Utf8.Display_Units (Label), Cell_W);
+                    Guikit.Layout.Saturating_Multiply (Guikit.Utf8.Display_Units (Label), Cell_W);
                begin
                   Max_Label := Natural'Max (Max_Label, Label_W);
                end;
@@ -75,7 +75,7 @@ separate (Files.Rendering.Layouts.Menus)
 
       declare
          Single_Column_Width : constant Natural := Result.Width;
-         Outer_Padding       : constant Natural := Saturating_Multiply (Result.Padding, 2);
+         Outer_Padding       : constant Natural := Guikit.Layout.Saturating_Multiply (Result.Padding, 2);
 
          function Rows_Height (First_Row, Last_Row : Positive) return Natural is
             Value : Natural := 0;
@@ -105,7 +105,7 @@ separate (Files.Rendering.Layouts.Menus)
          --  unreachable by mouse, which is worse than shortened labels.
          if Result.Height > Height
            and then Result.Row_Count > 1
-           and then Width >= Saturating_Multiply (Line_Height, 8)
+           and then Width >= Guikit.Layout.Saturating_Multiply (Line_Height, 8)
          then
             for Row in 1 .. Result.Row_Count - 1 loop
                if Result.Rows (Row).Kind = Files.Commands.Context_Menus.Menu_Separator then
@@ -129,7 +129,7 @@ separate (Files.Rendering.Layouts.Menus)
                Result.Column_Count := 2;
                Result.Column_Break_Row := Best_Break;
                Result.Width :=
-                 Natural'Min (Width, Saturating_Multiply (Single_Column_Width, 2));
+                 Natural'Min (Width, Guikit.Layout.Saturating_Multiply (Single_Column_Width, 2));
                Result.Column_Width := Result.Width / 2;
                Result.Height := Guikit.Layout.Saturating_Add (Best_Tallest, Outer_Padding);
             end if;

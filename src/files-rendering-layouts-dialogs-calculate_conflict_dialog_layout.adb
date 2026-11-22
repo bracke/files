@@ -6,12 +6,12 @@ separate (Files.Rendering.Layouts.Dialogs)
    is
       Pad        : constant Natural := Dialog_Padding (Line_Height);
       Width      : constant Natural := Dialog_Box_Width (Layout, Line_Height);
-      Desired_Message_H : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Desired_Message_H : constant Natural := Guikit.Layout.Saturating_Multiply (Line_Height, 2);
       Desired_Apply_H   : constant Natural := Line_Height;
       Desired_Button_H  : constant Natural := Guikit.Layout.Saturating_Add (Line_Height, Pad);
       Desired_Height    : constant Natural :=
         Guikit.Layout.Saturating_Add
-          (Saturating_Multiply (Pad, 4),
+          (Guikit.Layout.Saturating_Multiply (Pad, 4),
            Guikit.Layout.Saturating_Add
              (Desired_Message_H,
               Guikit.Layout.Saturating_Add (Desired_Apply_H, Desired_Button_H)));
@@ -44,11 +44,11 @@ separate (Files.Rendering.Layouts.Dialogs)
       Button_Y  : constant Natural :=
         Guikit.Layout.Saturating_Add (Apply_Y, Guikit.Layout.Saturating_Add (Apply_H, Gap));
       Side_Pad : constant Natural := Natural'Min (Pad, Width / 2);
-      Apply_W  : constant Natural := Width - Saturating_Multiply (Side_Pad, 2);
+      Apply_W  : constant Natural := Width - Guikit.Layout.Saturating_Multiply (Side_Pad, 2);
       Button_Gap : constant Natural :=
         (if Width > 4 then Natural'Min (Pad, (Width - 4) / 5) else 0);
       Inner_Buttons : constant Natural :=
-        Width - Saturating_Multiply (Button_Gap, 5);
+        Width - Guikit.Layout.Saturating_Multiply (Button_Gap, 5);
       Button_W   : constant Natural := Inner_Buttons / 4;
       Button_Step : constant Natural := Guikit.Layout.Saturating_Add (Button_W, Button_Gap);
    begin
@@ -71,10 +71,10 @@ separate (Files.Rendering.Layouts.Dialogs)
          Skip_X        => Guikit.Layout.Saturating_Add (X, Guikit.Layout.Saturating_Add (Button_Gap, Button_Step)),
          Rename_X      =>
            Guikit.Layout.Saturating_Add
-             (X, Guikit.Layout.Saturating_Add (Button_Gap, Saturating_Multiply (Button_Step, 2))),
+             (X, Guikit.Layout.Saturating_Add (Button_Gap, Guikit.Layout.Saturating_Multiply (Button_Step, 2))),
          Cancel_X      =>
            Guikit.Layout.Saturating_Add
-             (X, Guikit.Layout.Saturating_Add (Button_Gap, Saturating_Multiply (Button_Step, 3))),
+             (X, Guikit.Layout.Saturating_Add (Button_Gap, Guikit.Layout.Saturating_Multiply (Button_Step, 3))),
          Button_Width  => Button_W,
          Close_Button  => Panel_Close_Button (X, Y, Width, Height, Line_Height));
    end Calculate_Conflict_Dialog_Layout;

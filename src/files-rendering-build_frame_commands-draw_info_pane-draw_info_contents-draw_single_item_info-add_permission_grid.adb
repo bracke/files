@@ -24,14 +24,14 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
       --  The row labels sit just past the three columns.
       Labels_X : constant Natural :=
         Guikit.Layout.Saturating_Add
-          (Text_X, Guikit.Layout.Saturating_Add (Saturating_Multiply (3, Cell + Gap), Gap));
+          (Text_X, Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Multiply (3, Cell + Gap), Gap));
       Labels_W : constant Natural :=
         (if Text_W > Labels_X - Text_X then Text_W - (Labels_X - Text_X) else 0);
 
       --  Draw a clipped label/glyph at a section-row offset.
       procedure Add_At (X : Natural; Section_Row : Natural; Width : Natural; Text : String) is
          Y : constant Integer :=
-           Saturating_Integer_Add (Row_Y, Saturating_Multiply (Section_Row, Line_Height));
+           Saturating_Integer_Add (Row_Y, Guikit.Layout.Saturating_Multiply (Section_Row, Line_Height));
       begin
          if Width > 0
            and then Y >= Integer (Info_Pane.Y)
@@ -64,7 +64,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
       for Col in 0 .. 2 loop
          Add_At
            (Guikit.Layout.Saturating_Add
-              (Guikit.Layout.Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap)), Header_Pad),
+              (Guikit.Layout.Saturating_Add (Text_X, Guikit.Layout.Saturating_Multiply (Col, Cell + Gap)), Header_Pad),
             Current_Row + 1, Char_W, Files.Localization.Text (Column_Header_Key (Col)));
       end loop;
 
@@ -73,12 +73,13 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
             Col   : constant Natural := Bit mod 3;
             Row   : constant Natural := Bit / 3;
             Cell_X : constant Natural :=
-              Guikit.Layout.Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap));
+              Guikit.Layout.Saturating_Add (Text_X, Guikit.Layout.Saturating_Multiply (Col, Cell + Gap));
             Cell_Y : constant Integer :=
               Saturating_Integer_Add
                 (Saturating_Integer_Add
                    (Row_Y,
-                    Saturating_Multiply (Guikit.Layout.Saturating_Add (Current_Row + 2, Row), Line_Height)),
+                    Guikit.Layout.Saturating_Multiply
+                      (Guikit.Layout.Saturating_Add (Current_Row + 2, Row), Line_Height)),
                  Cell_Top);
             Is_Set : constant Boolean :=
               (Info.Mode_Bits / (2 ** (8 - Bit))) mod 2 = 1;

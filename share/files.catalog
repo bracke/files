@@ -1,6 +1,4 @@
 default_locale = en
-en.recovery.unsafe_transport = Cannot safely reclaim transport with unverified ownership
-en.error.recovery.unsafe_transport = Interrupted jobs left unsafe temporary files; see the error log for paths.
 en.startup.window.ready = Window
 en.startup.error = Error
 en.runtime.smoke.window = Runtime smoke window
@@ -608,6 +606,8 @@ en.error.settings.closed = Settings pane is not open.
 en.error.settings.not_persisted = Settings are not being saved: the settings file could not be loaded.
 en.error.settings.changed_elsewhere = Settings not saved: the file was changed elsewhere and no longer loads.
 en.error.window.create = Window could not be created.
+en.error.recovery.unsafe_transport = Interrupted jobs left unsafe temporary files; see the error log for paths.
+en.error.recovery.unsafe_entry = Cannot safely reclaim transport with unverified ownership
 en.key.modifier.control = Ctrl
 en.key.modifier.shift = Shift
 en.key.modifier.alt = Alt

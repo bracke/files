@@ -34,14 +34,6 @@ package Files.Snapshot_Policy.Settings_Keys is
       Path_Stamp           : Natural := 0;
    end record;
 
-   --  Capture the snapshot-relevant settings for caching.
-   --
-   --  @param Settings Settings model to read.
-   --  @return The snapshot-input key for Settings.
-   function Snapshot_Settings_Key_Of
-     (Settings : Files.Settings.Settings_Model)
-      return Snapshot_Settings_Key;
-
    --  Key brought up to Settings, as Snapshot_Settings_Key_Of would give
    --  it, copying the favorites and labels only when their stamp moved and
    --  they differ: a rebuild in a folder with many labels need not copy
@@ -92,5 +84,15 @@ package Files.Snapshot_Policy.Settings_Keys is
      (Settings : Files.Settings.Settings_Model;
       Key      : Snapshot_Settings_Key)
       return Boolean;
+
+private
+
+   --  Capture the snapshot-relevant settings for caching.
+   --
+   --  @param Settings Settings model to read.
+   --  @return The snapshot-input key for Settings.
+   function Snapshot_Settings_Key_Of
+     (Settings : Files.Settings.Settings_Model)
+      return Snapshot_Settings_Key;
 
 end Files.Snapshot_Policy.Settings_Keys;

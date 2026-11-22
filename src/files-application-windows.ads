@@ -56,6 +56,13 @@ package Files.Application.Windows is
      (Model : in out Files.Model.Window_Model;
       Watch : in out Files.Refresh.Watch_Session);
 
+   --  Return desktop runtime capabilities observable without opening a window.
+   --
+   --  @return Display, Vulkan, and smoke-test readiness flags.
+   function Runtime_Capabilities return Desktop_Capabilities;
+
+private
+
    --  Return whether a live desktop display appears available.
    --
    --  @return True when the environment advertises a display/session endpoint.
@@ -65,14 +72,6 @@ package Files.Application.Windows is
    --
    --  @return True when GLFW reports Vulkan support after initialization.
    function Vulkan_Runtime_Available return Boolean;
-
-   --  Return desktop runtime capabilities observable without opening a window.
-   --
-   --  @return Display, Vulkan, and smoke-test readiness flags.
-   function Runtime_Capabilities return Desktop_Capabilities;
-
-private
-
    --  The window session's internals, shared with the smoke harness
    --  (Files.Application.Windows.Smoke), which drives real windows through
    --  the same input and render steps the event loop takes.

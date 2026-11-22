@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.Preference_Types;
 with Files.Settings.Path_References;
 separate (Files_Suite.Settings)
@@ -15,7 +16,7 @@ separate (Files_Suite.Settings)
          At_Once    : Files.Settings.Settings_Model := Base;
       begin
          for Name of Names loop
-            Files.Settings.Path_References.Set_Label (One_By_One, To_String (Name), Label);
+            Files.Settings.Path_References.Testing.Set_Label (One_By_One, To_String (Name), Label);
          end loop;
          Files.Settings.Path_References.Set_Labels (At_Once, Names, Label);
          Assert (Files.Settings.Path_References.Same_Labels (One_By_One,

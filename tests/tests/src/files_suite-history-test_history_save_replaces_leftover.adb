@@ -1,3 +1,4 @@
+with Files.Undo.Journal.Testing;
 separate (Files_Suite.History)
    --  A history.tmp a crash left behind does not refuse any later save.
    procedure Test_History_Save_Replaces_Leftover (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -8,7 +9,7 @@ separate (Files_Suite.History)
       Reset_Root;
       Ada.Directories.Create_Directory (History_Directory);
       Write_Binary_File (Join (History_Directory, "history.tmp"), "half a journal");
-      Files.Undo.Journal.Save_Stacks
+      Files.Undo.Journal.Testing.Save_Stacks
         (History_Directory,
          Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,
          Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,

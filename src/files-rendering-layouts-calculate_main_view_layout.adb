@@ -7,17 +7,17 @@ separate (Files.Rendering.Layouts)
       return Main_View_Layout
    is
       Padding      : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding (Layout), 2)
-           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding (Layout), 2)
+        (if Layout.Main_Width > Guikit.Layout.Saturating_Multiply (Main_Content_Padding (Layout), 2)
+           and then Layout.Main_Height > Guikit.Layout.Saturating_Multiply (Main_Content_Padding (Layout), 2)
          then Main_Content_Padding (Layout)
          else 0);
       Content_W    : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
-         then Layout.Main_Width - Saturating_Multiply (Padding, 2)
+        (if Layout.Main_Width > Guikit.Layout.Saturating_Multiply (Padding, 2)
+         then Layout.Main_Width - Guikit.Layout.Saturating_Multiply (Padding, 2)
          else Layout.Main_Width);
       View_H       : constant Natural :=
-        (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
-         then Layout.Main_Height - Saturating_Multiply (Padding, 2)
+        (if Layout.Main_Height > Guikit.Layout.Saturating_Multiply (Padding, 2)
+         then Layout.Main_Height - Guikit.Layout.Saturating_Multiply (Padding, 2)
          else Layout.Main_Height);
       Count        : constant Natural := Natural (Snapshot.Items.Length);
       Metrics      : constant Item_Cell_Metrics :=
@@ -37,10 +37,10 @@ separate (Files.Rendering.Layouts)
       Row_Content_H : constant Natural :=
         (if Rows = 0 then 0
          elsif Snapshot.View_Mode = Files.Preference_Types.Details
-         then Saturating_Multiply (Rows, Cell_H)
+         then Guikit.Layout.Saturating_Multiply (Rows, Cell_H)
          else Guikit.Layout.Saturating_Add
-           (Saturating_Multiply (Rows, Cell_H),
-            Saturating_Multiply (Rows - 1, Main_Grid_Gap (Line_Height))));
+           (Guikit.Layout.Saturating_Multiply (Rows, Cell_H),
+            Guikit.Layout.Saturating_Multiply (Rows - 1, Main_Grid_Gap (Line_Height))));
       --  Details shows a sticky column header; its rows scroll in the area
       --  BELOW it. The scrollbar's viewport and track are therefore the rows
       --  area (View_H minus the header), starting below the header -- otherwise
@@ -53,7 +53,8 @@ separate (Files.Rendering.Layouts)
       Content_Total_H : constant Natural := Row_Content_H;
       Max_Scroll   : constant Natural :=
         (if Content_Total_H > Viewport_H then Content_Total_H - Viewport_H else 0);
-      Requested_Px : constant Natural := Saturating_Multiply (Snapshot.Main_View_Scroll_Lines, Line_Height);
+      Requested_Px : constant Natural :=
+        Guikit.Layout.Saturating_Multiply (Snapshot.Main_View_Scroll_Lines, Line_Height);
       Bounded_Px   : constant Natural := Natural'Min (Requested_Px, Max_Scroll);
       --  Snap the scroll offset to whole row periods so partially-scrolled
       --  rows at the top don't leave a visible empty band. Icons modes lay

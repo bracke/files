@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.Preference_Types;
 with Hostkit.Path_Text;
 with Files.Settings.Path_References;
@@ -18,8 +19,8 @@ separate (Files_Suite.Settings)
       Tree     : constant String := Root;
       Top      : constant String := Tree (Tree'First .. Tree'First + Hostkit.Path_Text.Root_Length (Tree) - 1);
    begin
-      Files.Settings.Path_References.Set_Label (Settings, Inside, Files.Preference_Types.Green);
-      Files.Settings.Path_References.Set_Label (Settings, Sibling, Files.Preference_Types.Red);
+      Files.Settings.Path_References.Testing.Set_Label (Settings, Inside, Files.Preference_Types.Green);
+      Files.Settings.Path_References.Testing.Set_Label (Settings, Sibling, Files.Preference_Types.Red);
       Files.Settings.Path_References.Forget_Path_References (Settings, Folder, Changed);
       Assert (Changed, "forgetting a folder drops what lies inside it");
       Assert

@@ -1,3 +1,4 @@
+with Files.Settings.Storage.Testing;
 with Files.Settings.Storage;
 with Files.File_Identities.Testing;
 separate (Files_Suite.Settings)
@@ -15,11 +16,11 @@ separate (Files_Suite.Settings)
       Reset_Root;
       Ada.Directories.Create_Path (Folder);
       Files.File_Identities.Testing.Set_Unavailable (True);
-      Saved := Files.Settings.Storage.Save_Text (Path, "[settings]" & ASCII.LF);
+      Saved := Files.Settings.Storage.Testing.Save_Text (Path, "[settings]" & ASCII.LF);
       Files.File_Identities.Testing.Set_Unavailable (False);
       Assert (not Saved.Success, "a save whose temporary has no identity fails");
       Assert (not Ada.Directories.Exists (Path & ".tmp"), "and leaves no temporary behind");
-      Saved := Files.Settings.Storage.Save_Text (Path, "[settings]" & ASCII.LF);
+      Saved := Files.Settings.Storage.Testing.Save_Text (Path, "[settings]" & ASCII.LF);
       Assert (Saved.Success and then not Ada.Directories.Exists (Path & ".tmp-2"),
               "so the next save takes the first temporary name again and succeeds");
    exception

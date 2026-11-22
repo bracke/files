@@ -13,7 +13,8 @@ separate (Files.Rendering.Layouts)
          return Snapshot.Main_View_Scroll_Lines;
       end if;
       declare
-         Top    : constant Natural := Saturating_Multiply ((Position - 1) / Main.Columns, Main.Row_Stride);
+         Top    : constant Natural :=
+           Guikit.Layout.Saturating_Multiply ((Position - 1) / Main.Columns, Main.Row_Stride);
          Bottom : constant Natural := Guikit.Layout.Saturating_Add (Top, Main.Cell_Height);
          --  Wanted pixel offset; the layout snaps it down to a whole row, so
          --  a row that must end the view starts the next row period instead.
@@ -22,7 +23,7 @@ separate (Files.Rendering.Layouts)
             elsif Bottom > Guikit.Layout.Saturating_Add (Main.Scroll_Pixels, Main.Viewport_Height)
             then Natural'Min
               (Main.Max_Scroll_Pixels,
-               Saturating_Multiply
+               Guikit.Layout.Saturating_Multiply
                  ((Bottom - Main.Viewport_Height + Main.Row_Stride - 1) / Main.Row_Stride, Main.Row_Stride))
             else Main.Scroll_Pixels);
       begin

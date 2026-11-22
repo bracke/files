@@ -59,4 +59,6 @@ package body Files.Localization.Testing is
       end;
    end Text_With_Shards;
 
+   function Normalize_Locale (Value : String) return String renames Files.Localization.Normalize_Locale;
+
 end Files.Localization.Testing;

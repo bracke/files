@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.Model.Recent;
 with Files.Preference_Types;
 with Files.Settings.Path_References;
@@ -13,7 +14,7 @@ separate (Files_Suite.Interaction)
       Followed : Boolean;
    begin
       for Index in 1 .. 3_000 loop
-         Files.Settings.Path_References.Set_Label (Settings, "/d/f" & Index'Image, Files.Preference_Types.Gray);
+         Files.Settings.Path_References.Testing.Set_Label (Settings, "/d/f" & Index'Image, Files.Preference_Types.Gray);
       end loop;
       Assert (Files.Settings.Loadable (Settings), "3000 labels fit");
       Files.Model.Initialize (Model, "/", Files.Items.Item_Vectors.Empty_Vector, "/");

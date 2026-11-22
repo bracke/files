@@ -61,7 +61,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane)
          Fit    : Boolean := True)
       is
          Y : constant Integer :=
-           Saturating_Integer_Add (Row_Y, Saturating_Multiply (Offset, Line_Height));
+           Saturating_Integer_Add (Row_Y, Guikit.Layout.Saturating_Multiply (Offset, Line_Height));
       begin
          if Y >= Integer (Info_Pane.Y)
            and then Y < Integer (Info_Bottom)
@@ -87,7 +87,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane)
          if Text_W > 1 then
             declare
                Y : constant Integer :=
-                 Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
+                 Saturating_Integer_Add (Row_Y, Guikit.Layout.Saturating_Multiply (Row, Line_Height));
             begin
                if Y >= Integer (Info_Pane.Y)
                  and then Y < Integer (Info_Bottom)
@@ -109,7 +109,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane)
          declare
             Tip_Key : constant String := Key & ".tooltip";
             Tip_Y   : constant Integer :=
-              Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
+              Saturating_Integer_Add (Row_Y, Guikit.Layout.Saturating_Multiply (Row, Line_Height));
          begin
             if Text_W > 0
               and then Tip_Y >= Integer (Info_Pane.Y)

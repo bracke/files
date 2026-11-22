@@ -107,7 +107,7 @@ separate (Check_All)
       --  one added without its count moving here, fails.
       Require_Tests ("settings", 43);
       Require_Tests ("startup", 32);
-      Require_Tests ("commands", 44);
+      Require_Tests ("commands", 45);
       Require_Tests ("model", 56);
       Require_Tests ("interaction", 37);
       Require_Tests ("context_menu", 22);
@@ -115,7 +115,7 @@ separate (Check_All)
       Require_Tests ("tree", 16);
       Require_Tests ("keyboard", 15);
       Require_Tests ("text_input", 5);
-      Require_Tests ("rendering", 120);
+      Require_Tests ("rendering", 121);
       Require_Tests ("operations", 49);
       Require_Tests ("transfer", 60);
       Require_Tests ("recovery", 64);

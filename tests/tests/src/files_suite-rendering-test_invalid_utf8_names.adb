@@ -1,3 +1,4 @@
+with Files.Application.Accessibility.Testing;
 with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Transfer;
@@ -68,7 +69,8 @@ separate (Files_Suite.Rendering)
             Snapshot : constant View_Snapshot := Build_Snapshot (Model, Settings);
             Frame    : constant Frame_Commands :=
               Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
-            Tree     : constant A11ykit.Tree.Accessibility_Tree := Files.Application.Accessibility.To_A11ykit_Tree
+            Tree     : constant A11ykit.Tree.Accessibility_Tree :=
+              Files.Application.Accessibility.Testing.To_A11ykit_Tree
               (Frame);
          begin
             Files_Suite.Support.Assert_Equal (Natural (Snapshot.Items.Length), 2, "both items reach the snapshot");

@@ -1,3 +1,4 @@
+with Guikit.Settings_Panel;
 with Files.Overlays.Settings_Form;
 with Files.Operation_Results;
 with Files.Controller.Testing;
@@ -17,11 +18,12 @@ separate (Files_Suite.Commands)
       Files.Controller.Testing.Replace_Focused_Text (Model, "details");
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
       --  Opening the pane now focuses the first setting, not the preamble action
-      --  buttons. The settings caret is not movable -- it always rests at the end
-      --  of the focused value -- so a manually set cursor is superseded by that end
-      --  position. Focus the icon-theme field (appearance is the third section, its
-      --  second field -- a Choice whose displayed value mirrors the draft) to check
-      --  this on a real, non-empty setting; the assert catches any layout drift.
+      --  buttons. A choice has no caret of its own -- it rests at the end of the
+      --  focused value -- so a manually set cursor is superseded by that end
+      --  position (a text field's caret moves; see below). Focus the icon-theme
+      --  field (appearance is the third section, its second field -- a Choice
+      --  whose displayed value mirrors the draft) to check this on a real,
+      --  non-empty setting; the assert catches any layout drift.
       Files.Model.Settings_Pane.Set_Active_Section (Model, 3);
       Files.Model.Settings_Pane.Move_Focus (Model, 1);
       declare
@@ -39,6 +41,43 @@ separate (Files_Suite.Commands)
         (Files.Model.Text_Cursor_Position (Model),
          Files.Model.Settings_Pane.Focused_Value (Model)'Length,
          "settings caret rests at the end of the focused value, ignoring a manual cursor");
+
+      --  A text field's caret is the field's own: it starts at the end, Left
+      --  and Home move it, and typing goes in where it stands.
+      Find_Text_Field :
+      for Section in 1 .. Files.Model.Settings_Pane.Section_Count (Model) loop
+         Files.Model.Settings_Pane.Set_Active_Section (Model, Section);
+         for Step in 1 .. 64 loop
+            exit Find_Text_Field when Files.Model.Settings_Pane.Focused_Kind (Model) in Guikit.Settings_Panel.Text;
+            Files.Model.Settings_Pane.Move_Focus (Model, 1);
+         end loop;
+      end loop Find_Text_Field;
+      Assert (Files.Model.Settings_Pane.Focused_Kind (Model) in Guikit.Settings_Panel.Text, "a text field is found");
+      if Files.Model.Settings_Pane.Focused_Kind (Model) in Guikit.Settings_Panel.Text then
+         declare
+            Value : constant String := Files.Model.Settings_Pane.Focused_Value (Model);
+         begin
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Text_Cursor_Position (Model), Value'Length, "a text field's caret starts at its end");
+            Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Text_Cursor_Position (Model), 0, "Home moves it to the start");
+            Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Text_Cursor_Position (Model), (if Value = "" then 0 else 1),
+               "Right moves it, instead of cycling the field");
+            Result := Files.Controller.Append_Focused_Text (Model, "Q");
+            Assert
+              (Files.Model.Settings_Pane.Focused_Value (Model)
+               = (if Value = "" then "Q" else Value (Value'First .. Value'First) & "Q"
+                    & Value (Value'First + 1 .. Value'Last)),
+               "typing goes in at the caret");
+            Files.Model.Settings_Pane.Set_Focused_Value (Model, Value);
+         end;
+      end if;
+      --  Back on the icon-theme choice for the keys below.
+      Files.Model.Settings_Pane.Set_Active_Section (Model, 3);
+      Files.Model.Settings_Pane.Move_Focus (Model, 1);
       Result := Files.Controller.Testing.Handle_Key (Model, Settings, Guikit.Input.Key_S, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,

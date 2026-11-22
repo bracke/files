@@ -1,3 +1,4 @@
+with Files.Application.Testing;
 with Files.Settings.Drafts;
 with Files_Suite.Support.Guards;
 with Guikit.Input;
@@ -37,7 +38,7 @@ separate (Files_Suite.Startup)
          "shortcut = ""edit.redo|control+bogus""" & ASCII.LF &
          "shortcut = ""view.large|control+shfit+5""" & ASCII.LF &
          "shortcut = ""view.small|control+7""" & ASCII.LF);
-      Startup := Files.Application.Resolve_Startup (Args, Settings_Path);
+      Startup := Files.Application.Testing.Resolve_Startup (Args, Settings_Path);
       Files_Suite.Support.Assert_Equal
         (Natural (Startup.Errors.Length), 0, "upper-case booleans and misspelt shortcuts do not reject the file");
       Assert (Startup.Settings.Info_Pane_Open, "info_pane_open = TRUE loads as true");

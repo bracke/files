@@ -8,10 +8,10 @@ separate (Files.Rendering.Layouts.Dialogs)
       --  A large centered panel: roughly three quarters of the window, with a
       --  sensible floor so it stays usable in tiny windows.
       Panel_W   : constant Natural :=
-        Natural'Min (Layout.Width, Natural'Max (Saturating_Multiply (Line_Height, 16),
+        Natural'Min (Layout.Width, Natural'Max (Guikit.Layout.Saturating_Multiply (Line_Height, 16),
                                                 Bounded_Product_Divide (Layout.Width, 3, 4)));
       Panel_H   : constant Natural :=
-        Natural'Min (Layout.Height, Natural'Max (Saturating_Multiply (Line_Height, 12),
+        Natural'Min (Layout.Height, Natural'Max (Guikit.Layout.Saturating_Multiply (Line_Height, 12),
                                                  Bounded_Product_Divide (Layout.Height, 3, 4)));
       Panel_X   : constant Natural :=
         Centered (Layout.Width, Panel_W);
@@ -25,7 +25,7 @@ separate (Files.Rendering.Layouts.Dialogs)
       Bottom_Padding : constant Natural := Natural'Min (Padding, Remaining_H);
       Content_X : constant Natural := Guikit.Layout.Saturating_Add (Panel_X, Horizontal_Padding);
       Content_Y : constant Natural := Guikit.Layout.Saturating_Add (Panel_Y, Title_H);
-      Used_W    : constant Natural := Saturating_Multiply (Horizontal_Padding, 2);
+      Used_W    : constant Natural := Guikit.Layout.Saturating_Multiply (Horizontal_Padding, 2);
    begin
       return Result : Quick_Look_Layout :=
         (X              => Panel_X,

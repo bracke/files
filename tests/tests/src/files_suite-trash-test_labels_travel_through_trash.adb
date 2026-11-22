@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.Model.Jobs;
 with Files_Suite.Listings;
 with Files.Preference_Types;
@@ -49,7 +50,7 @@ separate (Files_Suite.Trash)
          Project_Tools.Files.Delete_Tree (Trash_Home);
          Settings := Files.Settings.Default_Settings;
          Write_Binary_File (Photo, "x");
-         Files.Settings.Path_References.Set_Label (Settings, Photo, Files.Preference_Types.Purple);
+         Files.Settings.Path_References.Testing.Set_Label (Settings, Photo, Files.Preference_Types.Purple);
 
          Trash_Photo (Background);
          Files_Suite.Support.Assert_Equal

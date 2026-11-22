@@ -61,15 +61,6 @@ private package Files.Rendering.Geometry is
    --  @return The padding in pixels.
    function Root_Selector_Padding (LH : Positive) return Natural is (Guikit.Layout.Scaled (8, LH));
 
-   --  @param Value A pixel count.
-   --  @param Factor Its multiplier.
-   --  @return Value * Factor, or Natural'Last when that overflows.
-   function Saturating_Multiply
-     (Value  : Natural;
-      Factor : Natural)
-      return Natural
-     renames Guikit.Layout.Saturating_Multiply;
-
    --  Visible glyph content sits low in its Line_Height cell, so text placed at
    --  a geometric inset reads a little low. Every single-line field (toolbar
    --  inputs, bottom bar, details header) lifts its text origin by this many

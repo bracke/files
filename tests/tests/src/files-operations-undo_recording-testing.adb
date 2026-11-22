@@ -46,4 +46,16 @@ package body Files.Operations.Undo_Recording.Testing is
 
    function Checkpoint_Clock_Readings return Natural is (Fake_Readings);
 
+   function Try_Record_Undo
+     (Model       : in out Files.Model.Window_Model;
+      Kind        : Files.Undo.History.Undo_Action_Kind;
+      Items       : Files.Undo.History.Recorded_Item_Vectors.Vector;
+      Create_Kind : Files.Undo.History.Undo_Create_Kind := Files.Undo.History.Create_None;
+      Redoable    : Boolean := True;
+      Replaced    : Files.Undo.History.Recorded_Original_Vectors.Vector :=
+        Files.Undo.History.Recorded_Original_Vectors.Empty_Vector;
+      Kept        : Files.Undo.History.Kept_Copy_Vectors.Vector :=
+        Files.Undo.History.Kept_Copy_Vectors.Empty_Vector) return Boolean renames
+          Files.Operations.Undo_Recording.Try_Record_Undo;
+
 end Files.Operations.Undo_Recording.Testing;

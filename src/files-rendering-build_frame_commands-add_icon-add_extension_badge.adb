@@ -13,7 +13,7 @@ separate (Files.Rendering.Build_Frame_Commands.Add_Icon)
          return;
       end if;
       declare
-         Text_H   : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 3) / 4);
+         Text_H   : constant Natural := Natural'Max (1, Guikit.Layout.Saturating_Multiply (Line_Height, 3) / 4);
          Pad_Y    : constant Natural := Natural'Max (1, Line_Height / 8);
          Pad_X    : constant Natural := Pad_Y + 1;
          --  Three display cells, cut at a character boundary: a byte

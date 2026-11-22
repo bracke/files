@@ -65,7 +65,7 @@ package body Files.Settings.Drafts is
    begin
       case Kind is
          when Draft_Filetype_Mapping =>
-            return Normalize_Extension (To_String (Key));
+            return Files.File_Types.Normalize_Extension (To_String (Key));
          when Draft_Icon_Mapping =>
             return Trim (To_String (Key));
          when Draft_Open_Action_Mapping =>

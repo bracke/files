@@ -1,3 +1,4 @@
+with Files.Undo.Journal.Testing;
 separate (Files_Suite.History)
    --  One very large action does not make the history journal refuse every
    --  later save (and with it every operation's start and every Undo): the
@@ -30,7 +31,7 @@ separate (Files_Suite.History)
       --  About 40 MB each: two do not fit under the 64 MiB cap.
       Undo.Append (Large ("older"));
       Undo.Append (Large ("newer"));
-      Files.Undo.Journal.Save_Stacks
+      Files.Undo.Journal.Testing.Save_Stacks
         (History_Directory, Undo, Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,
          Mode => Files.Undo.Journal.Must_Commit);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);

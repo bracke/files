@@ -36,22 +36,6 @@ package Files.Leaf_Names is
       return Boolean is
      (Length_Under (Name, Limit.Unit) > Limit.Most);
 
-   --  Head cut down at a whole UTF-8 character, as little as needed, with
-   --  Tail kept whole after it, so the result measures at most Room.
-   --
-   --  @param Head The part that may be shortened (a stem).
-   --  @param Tail The part kept whole (a counter and an extension).
-   --  @param Room The most the result may measure (Length_Under).
-   --  @param Unit How the result is measured.
-   --  @return Head's longest prefix that fits, then Tail; just Tail when no
-   --    prefix fits, which then may still not.
-   function Cut
-     (Head : String;
-      Tail : String;
-      Room : Natural;
-      Unit : Hostkit.Fs.Name_Length_Unit := Hostkit.Fs.Bytes)
-      return String;
-
    --  Name with Insert placed before its extension, its stem cut down as
    --  Cut cuts so the whole measures at most Room. The extension -- from the
    --  last dot, unless the name starts with that dot or it is longer than 32
@@ -153,6 +137,24 @@ package Files.Leaf_Names is
       Limit     : Hostkit.Fs.Leaf_Name_Limit;
       First     : Natural := 1;
       Place     : Marker_Place := Before_Extension)
+      return String;
+
+private
+
+   --  Head cut down at a whole UTF-8 character, as little as needed, with
+   --  Tail kept whole after it, so the result measures at most Room.
+   --
+   --  @param Head The part that may be shortened (a stem).
+   --  @param Tail The part kept whole (a counter and an extension).
+   --  @param Room The most the result may measure (Length_Under).
+   --  @param Unit How the result is measured.
+   --  @return Head's longest prefix that fits, then Tail; just Tail when no
+   --    prefix fits, which then may still not.
+   function Cut
+     (Head : String;
+      Tail : String;
+      Room : Natural;
+      Unit : Hostkit.Fs.Name_Length_Unit := Hostkit.Fs.Bytes)
       return String;
 
 end Files.Leaf_Names;

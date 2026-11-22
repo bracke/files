@@ -9,7 +9,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
       if Menu.Width > 0 then
          declare
             Row_H     : constant Natural := Menu.Row_Height;
-            Rows_H    : constant Natural := Saturating_Multiply (Row_H, Menu.Row_Count);
+            Rows_H    : constant Natural := Guikit.Layout.Saturating_Multiply (Row_H, Menu.Row_Count);
             Menu_H    : constant Natural := Menu.Height;
             Menu_X    : constant Natural := Menu.X;
             Menu_Y    : constant Natural := Menu.Y;

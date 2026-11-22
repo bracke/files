@@ -16,4 +16,28 @@ package Files.Application.Windows.Smoke.Testing is
       Height   : Natural)
       return Window_Frame_Check;
 
+   --  Evaluate a live-window smoke plan without opening a native window.
+   --
+   --  This returns the execution contract a live harness must satisfy. It does
+   --  not create windows in headless test runs.
+   --
+   --  @param Plan Live smoke plan to evaluate.
+   --  @return Structured live smoke execution result.
+   function Evaluate_Live_Window_Smoke
+     (Plan : Live_Smoke_Plan)
+      return Live_Smoke_Result;
+
+   --  Aggregate the per-scenario outcomes into the overall live smoke verdict.
+   --
+   --  The verdict is a pure, headless decision: it passes only when every
+   --  scenario passed structural analysis and every non-default scenario's
+   --  framebuffer hash differs from the default scenario's hash. It is a robust
+   --  inequality check, never a golden-image equality assertion.
+   --
+   --  @param Outcomes Per-scenario outcomes captured by the live smoke.
+   --  @return True when every scenario contributed to a pass.
+   function Scenarios_Verdict
+     (Outcomes : Scenario_Outcome_Array)
+      return Boolean;
+
 end Files.Application.Windows.Smoke.Testing;

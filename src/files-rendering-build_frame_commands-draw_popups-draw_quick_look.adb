@@ -20,11 +20,11 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
                CH : constant Natural := QL.Content_Height;
                --  Fit the image inside the content box preserving aspect.
                Height_Bound : constant Boolean :=
-                 Saturating_Multiply (IW, CH) <= Saturating_Multiply (IH, CW);
+                 Guikit.Layout.Saturating_Multiply (IW, CH) <= Guikit.Layout.Saturating_Multiply (IH, CW);
                Draw_W : constant Natural :=
-                 (if Height_Bound then Saturating_Multiply (IW, CH) / IH else CW);
+                 (if Height_Bound then Guikit.Layout.Saturating_Multiply (IW, CH) / IH else CW);
                Draw_H : constant Natural :=
-                 (if Height_Bound then CH else Saturating_Multiply (IH, CW) / IW);
+                 (if Height_Bound then CH else Guikit.Layout.Saturating_Multiply (IH, CW) / IW);
                Img_X  : constant Natural :=
                  Guikit.Layout.Saturating_Add (QL.Content_X, Centered (CW, Draw_W));
                Img_Y  : constant Natural :=
@@ -78,14 +78,14 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
             exit when Row >= Preview_Lines;
             Add_Overlay_Text
               (QL.Content_X,
-               Guikit.Layout.Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
+               Guikit.Layout.Saturating_Add (QL.Content_Y, Guikit.Layout.Saturating_Multiply (Row, Line_Height)),
                QL.Content_Width, Line_Height, Line, Fit => True);
             Row := Row + 1;
          end loop;
          if Content_Omitted and then Max_Lines > 0 then
             Add_Overlay_Text
               (QL.Content_X,
-               Guikit.Layout.Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
+               Guikit.Layout.Saturating_Add (QL.Content_Y, Guikit.Layout.Saturating_Multiply (Row, Line_Height)),
                QL.Content_Width, Line_Height,
                Localized ("quick_look.truncated"), Muted_Text_Color, Italic => True);
          end if;
@@ -93,7 +93,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
 
       --  Anything else: the type icon, then its file type and size.
       procedure Draw_Info_Content is
-         Text_Height : constant Natural := Saturating_Multiply (Line_Height, 2);
+         Text_Height : constant Natural := Guikit.Layout.Saturating_Multiply (Line_Height, 2);
          Reserved_H  : constant Natural :=
            Guikit.Layout.Saturating_Add (Margin, Text_Height);
          Icon_Height_Available : constant Natural :=
@@ -102,7 +102,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
             else 0);
          Icon_Size : constant Natural :=
            Natural'Min
-             (Saturating_Multiply (Line_Height, 3),
+             (Guikit.Layout.Saturating_Multiply (Line_Height, 3),
               Natural'Min (QL.Content_Width, Icon_Height_Available));
          Content_End_Y : constant Natural :=
            Guikit.Layout.Saturating_Add (QL.Content_Y, QL.Content_Height);

@@ -20,7 +20,7 @@ separate (Files.Rendering.Layouts)
          then 0
          else Natural'Min
            (Width / 2,
-            Natural'Max (Width / 4, Saturating_Multiply (Line_Height, 16))));
+            Natural'Max (Width / 4, Guikit.Layout.Saturating_Multiply (Line_Height, 16))));
       Beside_W   : constant Natural := (if Width > Pane_W then Width - Pane_W else 0);
       --  The folder tree takes the view's left side rather than covering it,
       --  so nothing in the view can be selected unseen beneath it: a quarter
@@ -30,7 +30,7 @@ separate (Files.Rendering.Layouts)
          then 0
          else Natural'Min
            (Beside_W / 2,
-            Natural'Max (Width / 4, Saturating_Multiply (Line_Height, 16))));
+            Natural'Max (Width / 4, Guikit.Layout.Saturating_Multiply (Line_Height, 16))));
       Main_W     : constant Natural := Beside_W - Tree_W;
       Command_W  : constant Natural := Scaled_Down (Width, 8, 10);
       Command_H  : constant Natural := Scaled_Down (Height, 8, 10);

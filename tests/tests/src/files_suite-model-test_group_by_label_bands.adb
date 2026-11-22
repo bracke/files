@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.Items;
 with Files.Name_Parts;
 with Files.Preference_Types;
@@ -17,8 +18,8 @@ separate (Files_Suite.Model)
       Settings.Group_By := Files.Preference_Types.Group_By_Label;
       --  Alpha -> Red (band 1), Gamma -> Blue (band 5), Beta stays unlabeled
       --  (band 8, drawn last).
-      Files.Settings.Path_References.Set_Label (Settings, Join (Root, "Alpha.txt"), Files.Preference_Types.Red);
-      Files.Settings.Path_References.Set_Label (Settings, Join (Root, "Gamma.md"), Files.Preference_Types.Blue);
+      Files.Settings.Path_References.Testing.Set_Label (Settings, Join (Root, "Alpha.txt"), Files.Preference_Types.Red);
+      Files.Settings.Path_References.Testing.Set_Label (Settings, Join (Root, "Gamma.md"), Files.Preference_Types.Blue);
       --  The window loop does this before every frame.
       Files.Model.Sync_Grouping (Model, Settings);
 

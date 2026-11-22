@@ -51,14 +51,6 @@ package Files.Settings.Drafts is
       Saved : Settings_Model)
       return Settings_Draft;
 
-   --  Validate a settings draft without changing a settings model.
-   --
-   --  @param Draft Draft to validate.
-   --  @return Validation result containing deterministic diagnostic key.
-   function Validate_Draft
-     (Draft : Settings_Draft)
-      return Settings_Parse_Result;
-
    --  Apply a valid settings draft to an existing settings model.
    --
    --  @param Settings Settings model to update.
@@ -73,5 +65,15 @@ package Files.Settings.Drafts is
    --
    --  @return Draft created from Default_Settings.
    function Reset_Draft_To_Defaults return Settings_Draft;
+
+private
+
+   --  Validate a settings draft without changing a settings model.
+   --
+   --  @param Draft Draft to validate.
+   --  @return Validation result containing deterministic diagnostic key.
+   function Validate_Draft
+     (Draft : Settings_Draft)
+      return Settings_Parse_Result;
 
 end Files.Settings.Drafts;

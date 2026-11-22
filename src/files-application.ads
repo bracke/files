@@ -53,6 +53,20 @@ package Files.Application is
       Error_Argument : UString;
    end record;
 
+   --  Return the current user's home directory using platform environment variables.
+   --
+   --  @return Home directory path, or the current directory as a fallback.
+   function Home_Directory return String;
+
+   --  Run the application entry point using process command-line arguments.
+   --
+   --  The selected run mode may print help, execute smoke checks, or open
+   --  desktop windows after resolving startup paths and settings.
+   --  @return Success only when the selected mode completes without errors.
+   function Run return Ada.Command_Line.Exit_Status;
+
+private
+
    --  Parse application command-line arguments into runtime mode and paths.
    --
    --  Recognized flags are consumed before a -- terminator. Unknown options
@@ -77,11 +91,6 @@ package Files.Application is
    --
    --  @return Crate name and version from generated Alire configuration.
    function Version_Text return String;
-
-   --  Return the current user's home directory using platform environment variables.
-   --
-   --  @return Home directory path, or the current directory as a fallback.
-   function Home_Directory return String;
 
    --  Return the default settings file path under a home directory.
    --
@@ -162,12 +171,5 @@ package Files.Application is
       Height : Natural := Files.Rendering.Layouts.Default_Window_Height;
       Locale : String := "en")
       return String;
-
-   --  Run the application entry point using process command-line arguments.
-   --
-   --  The selected run mode may print help, execute smoke checks, or open
-   --  desktop windows after resolving startup paths and settings.
-   --  @return Success only when the selected mode completes without errors.
-   function Run return Ada.Command_Line.Exit_Status;
 
 end Files.Application;

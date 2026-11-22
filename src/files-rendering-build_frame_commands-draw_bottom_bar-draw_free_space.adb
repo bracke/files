@@ -38,7 +38,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
          declare
             Bar_H  : constant Natural :=
               Natural'Max
-                (Guikit.Layout.Scaled (8, Line_Height), Saturating_Multiply (Line_Height, 2) / 3);
+                (Guikit.Layout.Scaled (8, Line_Height), Guikit.Layout.Saturating_Multiply (Line_Height, 2) / 3);
             --  Centre the bar in the field's full height (the hover
             --  rect band), not the smaller inset content band.
             Bar_Y  : constant Natural :=

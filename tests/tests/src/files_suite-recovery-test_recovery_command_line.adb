@@ -1,3 +1,4 @@
+with Files.Recovery_CLI.Testing;
 with Files.File_System.Recovery_Registry;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
@@ -58,20 +59,20 @@ separate (Files_Suite.Recovery)
       begin
          if Hostkit.Fs.Separator = '\' then
             Files_Suite.Support.Assert_Equal
-              (Files.Recovery_CLI.Escaped (Odd_Windows), "C:\x\a\tb\x1b",
+              (Files.Recovery_CLI.Testing.Escaped (Odd_Windows), "C:\x\a\tb\x1b",
                "control bytes print escaped, separators as they are");
             Files_Suite.Support.Assert_Equal
-              (Files.Recovery_CLI.Unescaped ("C:\temp\x41"), "C:\temp\x41", "a Windows path reads as it is");
+              (Files.Recovery_CLI.Testing.Unescaped ("C:\temp\x41"), "C:\temp\x41", "a Windows path reads as it is");
          else
             Files_Suite.Support.Assert_Equal
-              (Files.Recovery_CLI.Escaped (Odd & "\"), "/x/a\tb\nc\x1b[2J\r\\",
+              (Files.Recovery_CLI.Testing.Escaped (Odd & "\"), "/x/a\tb\nc\x1b[2J\r\\",
                "control bytes and backslashes print escaped");
             Files_Suite.Support.Assert_Equal
-              (Files.Recovery_CLI.Unescaped (Files.Recovery_CLI.Escaped (Odd & "\q")), Odd & "\q",
+              (Files.Recovery_CLI.Testing.Unescaped (Files.Recovery_CLI.Testing.Escaped (Odd & "\q")), Odd & "\q",
                "a printed path reads back as the path");
          end if;
          Files_Suite.Support.Assert_Equal
-           (Files.Recovery_CLI.Escaped ("/plain/" & "caf" & Character'Val (16#C3#) & Character'Val (16#A9#)),
+           (Files.Recovery_CLI.Testing.Escaped ("/plain/" & "caf" & Character'Val (16#C3#) & Character'Val (16#A9#)),
             "/plain/" & "caf" & Character'Val (16#C3#) & Character'Val (16#A9#),
             "a path with nothing to escape prints as it is");
       end;

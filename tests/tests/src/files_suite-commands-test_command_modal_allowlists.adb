@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Command_Modal_Allowlists (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,40 +7,40 @@ separate (Files_Suite.Commands)
         (not Files.Commands.Requires_Settings_Path (Files.Commands.No_Command),
          "no-command does not require a settings path");
       Assert
-        (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Select_Drive_Command),
+        (Files.Commands.Testing.Allowed_With_Root_Selector (Files.Commands.Select_Drive_Command),
          "drive selector is allowed while root selector is open");
       Assert
-        (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Open_Selected_Root_Command),
+        (Files.Commands.Testing.Allowed_With_Root_Selector (Files.Commands.Open_Selected_Root_Command),
          "selected-root activation is allowed while root selector is open");
       Assert
-        (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Eject_Selected_Root_Command),
+        (Files.Commands.Testing.Allowed_With_Root_Selector (Files.Commands.Eject_Selected_Root_Command),
          "selected-root eject is allowed while root selector is open");
       Assert
-        (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Open_Command_Palette_Command),
+        (Files.Commands.Testing.Allowed_With_Root_Selector (Files.Commands.Open_Command_Palette_Command),
          "palette open is allowed while root selector is open");
       Assert
-        (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Close_Overlay_Command),
+        (Files.Commands.Testing.Allowed_With_Root_Selector (Files.Commands.Close_Overlay_Command),
          "palette close is allowed while root selector is open");
       Assert
-        (not Files.Commands.Allowed_With_Root_Selector (Files.Commands.Toggle_Settings_Pane_Command),
+        (not Files.Commands.Testing.Allowed_With_Root_Selector (Files.Commands.Toggle_Settings_Pane_Command),
          "settings pane is blocked while root selector is open");
       Assert
-        (not Files.Commands.Allowed_With_Root_Selector (Files.Commands.Delete_Selected_Items_Command),
+        (not Files.Commands.Testing.Allowed_With_Root_Selector (Files.Commands.Delete_Selected_Items_Command),
          "delete is blocked while root selector is open");
       Assert
-        (Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Toggle_Settings_Pane_Command),
+        (Files.Commands.Testing.Allowed_With_Settings_Pane (Files.Commands.Toggle_Settings_Pane_Command),
          "settings toggle is allowed while settings pane is open");
       Assert
-        (Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Open_Command_Palette_Command),
+        (Files.Commands.Testing.Allowed_With_Settings_Pane (Files.Commands.Open_Command_Palette_Command),
          "palette open is allowed while settings pane is open");
       Assert
-        (Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Close_Overlay_Command),
+        (Files.Commands.Testing.Allowed_With_Settings_Pane (Files.Commands.Close_Overlay_Command),
          "palette close is allowed while settings pane is open");
       Assert
-        (not Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Select_Drive_Command),
+        (not Files.Commands.Testing.Allowed_With_Settings_Pane (Files.Commands.Select_Drive_Command),
          "drive selector is blocked while settings pane is open");
       Assert
-        (not Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Navigate_Back_Command),
+        (not Files.Commands.Testing.Allowed_With_Settings_Pane (Files.Commands.Navigate_Back_Command),
          "background navigation is blocked while settings pane is open");
       Assert
         (not Files.Commands.Command_Palette_Visible (Files.Commands.No_Command),

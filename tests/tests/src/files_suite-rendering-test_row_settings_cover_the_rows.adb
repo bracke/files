@@ -1,3 +1,5 @@
+with Files.Snapshot_Policy.Settings_Keys.Testing;
+with Files.Settings.Path_References.Testing;
 with Files.Preference_Types;
 with Files.Rendering.Testing;
 with Files.Settings.Testing;
@@ -28,7 +30,7 @@ separate (Files_Suite.Rendering)
       begin
          Changes := Changes + 1;
          if Files.Snapshot_Policy.Settings_Keys.Same_Row_Settings
-           (Changed, Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key_Of (Base))
+           (Changed, Files.Snapshot_Policy.Settings_Keys.Testing.Snapshot_Settings_Key_Of (Base))
          then
             Assert
               (Files.Rendering.Testing.Build_Snapshot_Keeping_Rows (Model, Changed, Before)
@@ -74,7 +76,7 @@ separate (Files_Suite.Rendering)
          declare
             Changed : Files.Settings.Settings_Model := Base;
          begin
-            Files.Settings.Path_References.Set_Label (Changed, First_Path, Files.Preference_Types.Red);
+            Files.Settings.Path_References.Testing.Set_Label (Changed, First_Path, Files.Preference_Types.Red);
             Check ("a label", Changed);
          end;
          declare

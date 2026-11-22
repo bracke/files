@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.Item_Lists;
 with Files.Model.Filtering;
 with Files.Preference_Types;
@@ -169,7 +170,7 @@ separate (Files_Suite.Rendering)
       end Extensions;
       procedure Label is
       begin
-         Files.Settings.Path_References.Set_Label
+         Files.Settings.Path_References.Testing.Set_Label
            (Settings, To_String (Files.Model.Visible_Item (Model, 2).Full_Path), Files.Preference_Types.Green);
       end Label;
    begin

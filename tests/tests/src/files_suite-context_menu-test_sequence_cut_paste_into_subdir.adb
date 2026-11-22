@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files_Suite.Listings;
 with Files.Preference_Types;
 with Files.Model.Clipboard;
@@ -20,7 +21,7 @@ separate (Files_Suite.Context_Menu)
       Files_Suite.Support.Disk.Reset_Root;
       Ada.Directories.Create_Path (Sub);
       Files_Suite.Support.Disk.Write_File (Source, "payload");
-      Files.Settings.Path_References.Set_Label (Settings, Source, Files.Preference_Types.Red);
+      Files.Settings.Path_References.Testing.Set_Label (Settings, Source, Files.Preference_Types.Red);
 
       --  Step 1: cut a file from the source directory.
       Model := Loaded_Model (Src_Dir);

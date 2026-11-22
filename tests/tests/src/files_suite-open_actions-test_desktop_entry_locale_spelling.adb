@@ -1,3 +1,5 @@
+with Files.Localization.Testing;
+with Files.Desktop_Applications.Testing;
 with Files.Desktop_Applications;
 with Files.Localization;
 separate (Files_Suite.Open_Actions)
@@ -12,7 +14,8 @@ separate (Files_Suite.Open_Actions)
       procedure Check (Tag, Expected : String) is
       begin
          Files_Suite.Support.Assert_Equal
-           (Files.Desktop_Applications.Desktop_Entry_Locale (Tag), Expected, Tag & " in desktop-entry spelling");
+           (Files.Desktop_Applications.Testing.Desktop_Entry_Locale (Tag), Expected,
+             Tag & " in desktop-entry spelling");
       end Check;
    begin
       Check ("sr-Latn-RS", "sr_RS@latin");
@@ -25,5 +28,5 @@ separate (Files_Suite.Open_Actions)
       --  The variant Normalize_Locale keeps goes back to its modifier, both
       --  from the normalized tag and as a round trip of the POSIX locale.
       Check ("ca-ES-valencia", "ca_ES@valencia");
-      Check (Files.Localization.Normalize_Locale ("ca_ES@valencia"), "ca_ES@valencia");
+      Check (Files.Localization.Testing.Normalize_Locale ("ca_ES@valencia"), "ca_ES@valencia");
    end Test_Desktop_Entry_Locale_Spelling;

@@ -699,8 +699,15 @@ package body Files.Model is
             --  The palette query has no separate caret.
             return At_End (Guikit.Command_Palette.Query (Model.Command_Palette.View));
          when Files.UI_Types.Focus_Settings_Input =>
-            --  The panel edits whole values.
-            return At_End (Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View));
+            --  The panel keeps a text field's caret; any other field's value
+            --  (a choice, a number) has its caret at its end.
+            if Guikit.Settings_Panel.Focused_Kind (Model.Settings_Panel_View) in Guikit.Settings_Panel.Text then
+               return
+                 (Text   => To_Unbounded_String (Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View)),
+                  Cursor => Guikit.Settings_Panel.Focused_Caret (Model.Settings_Panel_View));
+            else
+               return At_End (Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View));
+            end if;
          when Files.UI_Types.Focus_Ownership_Input =>
             return Model.Ownership_Input.Edit;
          when Files.UI_Types.Focus_None =>
@@ -733,6 +740,9 @@ package body Files.Model is
       --  the window's chrome, so their caret leaves the rows standing.
       if Model.Focus_Value = Files.UI_Types.Focus_Rename_Input then
          Support.Touch_Rename (Model);
+      elsif Model.Focus_Value = Files.UI_Types.Focus_Settings_Input then
+         --  The settings pane is drawn from the model, not the snapshot.
+         Support.Touch_Overlay (Model);
       else
          Support.Touch_Header (Model);
       end if;
@@ -754,8 +764,7 @@ package body Files.Model is
             --  The palette query is append-only; it has no movable caret.
             null;
          when Files.UI_Types.Focus_Settings_Input =>
-            --  The panel edits whole values; there is no movable caret.
-            null;
+            Guikit.Settings_Panel.Set_Focused_Caret (Model.Settings_Panel_View, Clamped);
          when Files.UI_Types.Focus_Ownership_Input =>
             Model.Ownership_Input.Edit.Cursor := Clamped;
          when Files.UI_Types.Focus_None =>

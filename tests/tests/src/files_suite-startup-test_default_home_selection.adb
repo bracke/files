@@ -1,3 +1,4 @@
+with Files.Application.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Startup)
    procedure Test_Default_Home_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -53,7 +54,7 @@ separate (Files_Suite.Startup)
             "and what the password file reports is a directory that exists");
       end if;
 
-      Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
+      Startup := Files.Application.Testing.Resolve_Startup_Paths (Args, Settings);
       Files_Suite.Support.Assert_Equal (Natural (Startup.Windows.Length), 1, "no args resolves one path");
       Assert (Startup.Errors.Is_Empty, "valid default home path reports no startup error");
 
@@ -86,7 +87,7 @@ separate (Files_Suite.Startup)
          Ada.Directories.Current_Directory,
 
          "invalid home environment falls back to current directory");
-      Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
+      Startup := Files.Application.Testing.Resolve_Startup_Paths (Args, Settings);
       Files_Suite.Support.Assert_Equal
         (Natural (Startup.Windows.Length),
          1,
@@ -100,42 +101,42 @@ separate (Files_Suite.Startup)
       Ada.Environment_Variables.Clear ("FILES_SETTINGS");
       Ada.Environment_Variables.Clear ("XDG_CONFIG_HOME");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Default_Settings_Path (Home_Path),
+        (Files.Application.Testing.Default_Settings_Path (Home_Path),
          Expected_Default,
          "default settings path is under home config directory");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Configured_Settings_Path (Home_Path),
+        (Files.Application.Testing.Configured_Settings_Path (Home_Path),
          Expected_Default,
          "configured settings path falls back to home config directory");
 
       Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", Xdg_Path);
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Configured_Settings_Path (Home_Path),
+        (Files.Application.Testing.Configured_Settings_Path (Home_Path),
          Expected_Xdg,
          "XDG_CONFIG_HOME selects the XDG settings path");
 
       Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", "relative-config-home");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Configured_Settings_Path (Home_Path),
+        (Files.Application.Testing.Configured_Settings_Path (Home_Path),
          Expected_Default,
          "a relative XDG_CONFIG_HOME cannot redirect settings into the process directory");
       Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", Xdg_Path);
 
       Ada.Environment_Variables.Set ("FILES_SETTINGS", Override_Path);
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Configured_Settings_Path (Home_Path),
+        (Files.Application.Testing.Configured_Settings_Path (Home_Path),
          Override_Path,
          "FILES_SETTINGS overrides the XDG settings path");
 
       Ada.Environment_Variables.Set ("FILES_SETTINGS", "");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Configured_Settings_Path (Home_Path),
+        (Files.Application.Testing.Configured_Settings_Path (Home_Path),
          Expected_Xdg,
          "empty FILES_SETTINGS is ignored");
 
       Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", "");
       Files_Suite.Support.Assert_Equal
-        (Files.Application.Configured_Settings_Path (Home_Path),
+        (Files.Application.Testing.Configured_Settings_Path (Home_Path),
          Expected_Default,
          "empty XDG_CONFIG_HOME is ignored");
    end Test_Default_Home_Selection;

@@ -26,7 +26,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
          Compact   : constant String := Compact_Count_Status_Text (Snapshot);
          Use_Compact : constant Boolean :=
            Length (Snapshot.Last_Error_Key) = 0
-           and then Saturating_Multiply (Guikit.Utf8.Display_Units (To_String (Info_Text)), Cell_W) > Counts_W;
+           and then
+             Guikit.Layout.Saturating_Multiply (Guikit.Utf8.Display_Units (To_String (Info_Text)), Cell_W) > Counts_W;
          Status_Text : constant UString :=
            (if Use_Compact then To_Unbounded_String (Compact) else Info_Text);
          --  The counts area is the clickable hidden-files toggle, so its text

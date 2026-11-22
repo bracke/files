@@ -1,3 +1,5 @@
+with Files.Settings.Path_References.Testing;
+with Files.Settings.Storage.Testing;
 with Files.Text_Basics;
 with Files.Settings.Open_Actions;
 with Files.Settings.Path_References;
@@ -28,7 +30,7 @@ separate (Files_Suite.Settings)
          Written : Files.Settings.Settings_Write_Result;
       begin
          Setup (Base);
-         Written := Files.Settings.Storage.Save_Text (Path, Files.Settings.To_Text (Base));
+         Written := Files.Settings.Storage.Testing.Save_Text (Path, Files.Settings.To_Text (Base));
          Assert (Written.Success, Name & ": the base file is written");
          Loaded := Files.Settings.Storage.Load_File (Path);
          Assert (Loaded.Success, Name & ": and loaded by this process");
@@ -88,18 +90,18 @@ separate (Files_Suite.Settings)
       --  either side all survive.
       procedure Two_Labels (Settings : in out Files.Settings.Settings_Model) is
       begin
-         Refs.Set_Label (Settings, P ("lab-a"), Red);
-         Refs.Set_Label (Settings, P ("lab-b"), Orange);
+         Refs.Testing.Set_Label (Settings, P ("lab-a"), Red);
+         Refs.Testing.Set_Label (Settings, P ("lab-b"), Orange);
       end Two_Labels;
       procedure Relabel_A_Add_C (Settings : in out Files.Settings.Settings_Model) is
       begin
-         Refs.Set_Label (Settings, P ("lab-a"), Green);
-         Refs.Set_Label (Settings, P ("lab-c"), Red);
+         Refs.Testing.Set_Label (Settings, P ("lab-a"), Green);
+         Refs.Testing.Set_Label (Settings, P ("lab-c"), Red);
       end Relabel_A_Add_C;
       procedure Clear_B_Add_D (Settings : in out Files.Settings.Settings_Model) is
       begin
-         Refs.Set_Label (Settings, P ("lab-b"), No_Label);
-         Refs.Set_Label (Settings, P ("lab-d"), Blue);
+         Refs.Testing.Set_Label (Settings, P ("lab-b"), No_Label);
+         Refs.Testing.Set_Label (Settings, P ("lab-d"), Blue);
       end Clear_B_Add_D;
       function Labels_Merged (Settings : Files.Settings.Settings_Model) return Boolean is
         (Refs.Label_Of (Settings, P ("lab-a")) = Green

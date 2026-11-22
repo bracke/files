@@ -6,12 +6,12 @@ separate (Files.Rendering.Layouts.Dialogs)
    is
       Pad       : constant Natural := Files.Rendering.Layouts.Dialog_Padding (Line_Height);
       Width      : constant Natural := Dialog_Box_Width (Layout, Line_Height);
-      Desired_Message_H : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Desired_Message_H : constant Natural := Guikit.Layout.Saturating_Multiply (Line_Height, 2);
       Desired_Bar_H     : constant Natural := Natural'Max (Guikit.Layout.Scaled (6, Line_Height), Line_Height / 2);
       Desired_Button_H  : constant Natural := Guikit.Layout.Saturating_Add (Line_Height, Pad);
       Desired_Height    : constant Natural :=
         Guikit.Layout.Saturating_Add
-          (Saturating_Multiply (Pad, 5),
+          (Guikit.Layout.Saturating_Multiply (Pad, 5),
            Guikit.Layout.Saturating_Add
              (Desired_Message_H,
               Guikit.Layout.Saturating_Add (Desired_Bar_H, Desired_Button_H)));
@@ -43,12 +43,12 @@ separate (Files.Rendering.Layouts.Dialogs)
         Guikit.Layout.Saturating_Add (Message_Y, Guikit.Layout.Saturating_Add (Message_H, Gap));
       Button_Y  : constant Natural :=
         Guikit.Layout.Saturating_Add
-          (Bar_Y, Guikit.Layout.Saturating_Add (Bar_H, Saturating_Multiply (Gap, 2)));
+          (Bar_Y, Guikit.Layout.Saturating_Add (Bar_H, Guikit.Layout.Saturating_Multiply (Gap, 2)));
       Side_Pad  : constant Natural := Natural'Min (Pad, Width / 2);
-      Bar_W     : constant Natural := Width - Saturating_Multiply (Side_Pad, 2);
+      Bar_W     : constant Natural := Width - Guikit.Layout.Saturating_Multiply (Side_Pad, 2);
       Button_W  : constant Natural :=
         Natural'Min
-          (Saturating_Multiply (Line_Height, 6),
+          (Guikit.Layout.Saturating_Multiply (Line_Height, 6),
            Bar_W);
       Button_X  : constant Natural :=
         Guikit.Layout.Saturating_Add

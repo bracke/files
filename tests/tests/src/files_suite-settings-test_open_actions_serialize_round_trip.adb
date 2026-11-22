@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Settings.Open_Actions;
 separate (Files_Suite.Settings)
    procedure Test_Open_Actions_Serialize_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -65,19 +66,19 @@ separate (Files_Suite.Settings)
             "shell runner",
             "serialized shell action preserves quoted executable");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Filetype_For_Extension (Reloaded.Settings, "quote"),
+           (Files.File_Types.Filetype_For_Extension (Reloaded.Settings.Extension_Filetypes, "quote"),
             "text/""quoted",
             "serialized filetype mapping preserves quote");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Filetype_For_Extension (Reloaded.Settings, "eq"),
+           (Files.File_Types.Filetype_For_Extension (Reloaded.Settings.Extension_Filetypes, "eq"),
             "text/with=equals",
             "serialized filetype mapping preserves equals");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Icon_For_Filetype (Reloaded.Settings, "text/x-quote"),
+           (Files.File_Types.Icon_For_Filetype (Reloaded.Settings.Icon_Mappings, "text/x-quote"),
             "quote""icon",
             "serialized icon mapping preserves quote");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Icon_For_Filetype (Reloaded.Settings, "text/x-equals"),
+           (Files.File_Types.Icon_For_Filetype (Reloaded.Settings.Icon_Mappings, "text/x-equals"),
             "icon=equals",
             "serialized icon mapping preserves equals");
       end;

@@ -65,8 +65,8 @@ separate (Files.Rendering.Build_Frame_Commands)
             else 0);
          Visible_Y : constant Natural := Guikit.Layout.Saturating_Add (Button_Y, Pad_V);
          Visible_H : constant Natural :=
-           (if Button_H > Saturating_Multiply (Pad_V, 2)
-            then Button_H - Saturating_Multiply (Pad_V, 2)
+           (if Button_H > Guikit.Layout.Saturating_Multiply (Pad_V, 2)
+            then Button_H - Guikit.Layout.Saturating_Multiply (Pad_V, 2)
             else 0);
          --  The icon's margins inside a full-width button scale with it.
          Icon_Size : constant Natural :=

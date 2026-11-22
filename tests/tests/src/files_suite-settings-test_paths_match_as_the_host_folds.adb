@@ -20,7 +20,7 @@ separate (Files_Suite.Settings)
    begin
       Refs.Testing.Simulate_Folding_Host (True);
       Refs.Add_Favorite (Settings, Stored);
-      Refs.Set_Label (Settings, File, Files.Preference_Types.Red);
+      Refs.Testing.Set_Label (Settings, File, Files.Preference_Types.Red);
       Assert (Refs.Is_Favorite (Settings, Typed), "the star shows for the folder however it is typed");
       Assert (Refs.Is_Favorite (Refs.Index_Paths (Settings), Typed), "and through the index");
       Assert (Refs.Label_Of (Settings, "/users/me/documents/report.TXT") = Files.Preference_Types.Red,
@@ -34,7 +34,7 @@ separate (Files_Suite.Settings)
       Refs.Note_Recent (Settings, Stored);
       Refs.Note_Recent (Settings, Typed);
       Assert (Natural (Refs.Recent_Paths (Settings).Length) = 1, "Recent keeps the folder once");
-      Refs.Set_Label (Settings, "/USERS/me/documents/report.txt", Files.Preference_Types.Blue);
+      Refs.Testing.Set_Label (Settings, "/USERS/me/documents/report.txt", Files.Preference_Types.Blue);
       Assert (Natural (Refs.Path_Labels (Settings).Length) = 1
               and then Refs.Label_Of (Settings, File) = Files.Preference_Types.Blue,
               "relabelling under another spelling changes the one label");

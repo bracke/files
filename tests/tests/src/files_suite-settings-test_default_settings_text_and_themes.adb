@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Settings.Testing;
 separate (Files_Suite.Settings)
    procedure Test_Default_Settings_Text_And_Themes (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -7,7 +8,7 @@ separate (Files_Suite.Settings)
    begin
       Assert (Default_Parse.Success, "default settings text parses");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Default_Parse.Settings, "txt"),
+        (Files.File_Types.Filetype_For_Extension (Default_Parse.Settings.Extension_Filetypes, "txt"),
          "text/plain",
          "default settings text includes filetype mappings");
       Assert

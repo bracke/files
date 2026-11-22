@@ -1,3 +1,5 @@
+with Files.Application.Testing;
+with Files.File_Types;
 with Files.Application.Windows.Smoke.Testing;
 with Files.Preference_Types;
 separate (Files_Suite.Startup)
@@ -33,7 +35,7 @@ separate (Files_Suite.Startup)
          "show_hidden_files = true" & ASCII.LF);
 
       Args.Append (To_Unbounded_String (Dir));
-      Startup := Files.Application.Resolve_Startup (Args, Settings_Path);
+      Startup := Files.Application.Testing.Resolve_Startup (Args, Settings_Path);
       Files_Suite.Support.Assert_Equal
         (Natural (Startup.Errors.Length),
          0,
@@ -82,7 +84,7 @@ separate (Files_Suite.Startup)
 
       Args.Clear;
       Args.Append (To_Unbounded_String (Dir));
-      Startup := Files.Application.Resolve_Startup (Args, Created_Path);
+      Startup := Files.Application.Testing.Resolve_Startup (Args, Created_Path);
       Files_Suite.Support.Assert_Equal
         (Natural (Startup.Errors.Length),
          0,
@@ -97,7 +99,7 @@ separate (Files_Suite.Startup)
          1,
          "startup still opens path after creating settings file");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Startup.Settings, "txt"),
+        (Files.File_Types.Filetype_For_Extension (Startup.Settings.Extension_Filetypes, "txt"),
          "text/plain",
          "startup result exposes created default settings");
    end Test_Startup_Loads_Settings_File;

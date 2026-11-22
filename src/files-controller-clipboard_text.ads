@@ -21,6 +21,8 @@ package Files.Controller.Clipboard_Text is
      (Items : Files.Items.Item_Vectors.Vector)
       return String;
 
+private
+
    --  The line break between copied paths: CR LF on Windows, LF elsewhere.
    --
    --  @return The line break.

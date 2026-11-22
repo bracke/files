@@ -1,3 +1,4 @@
+with Files.Events;
 with Files.Commands;
 with Files.Timing;
 with Guikit.Mirroring;
@@ -202,5 +203,13 @@ package body Files.Application.Window_Policy is
       Zoomed_At : Ada.Real_Time.Time)
       return Boolean is
      (Unsaved and then (Force or else Files.Timing.Elapsed (Now, Zoomed_At, Zoom_Save_Delay)));
+
+   function Field_Request
+     (X, Y, Width, Height : Natural;
+      Frame_Width         : Natural;
+      Line_Height         : Positive)
+      return Files.Input_Actions.Input_Action is
+     (Files.Events.Translate_Field_Request
+        (Unmirrored_Node_X (X, Width, Frame_Width), Y, Width, Height, Frame_Width, Line_Height));
 
 end Files.Application.Window_Policy;

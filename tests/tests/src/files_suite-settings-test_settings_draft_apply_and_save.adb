@@ -1,3 +1,6 @@
+with Files.Settings.Storage.Testing;
+with Files.Settings.Drafts.Testing;
+with Files.File_Types;
 with Files.Settings.Drafts;
 with Files.Settings.Storage;
 with Files.Preference_Types;
@@ -24,7 +27,7 @@ separate (Files_Suite.Settings)
             return (Success => False, Durable => False, Path => To_Unbounded_String (Path),
                     Error_Key => Applied.Error_Key);
          end if;
-         return Files.Settings.Storage.Save_Text (Path, Files.Settings.To_Text (Applied.Settings));
+         return Files.Settings.Storage.Testing.Save_Text (Path, Files.Settings.To_Text (Applied.Settings));
       end Save_Draft;
    begin
       declare
@@ -68,7 +71,8 @@ separate (Files_Suite.Settings)
          Draft.Icon_Value := To_Unbounded_String ("text");
          Draft.Open_Action_Token := To_Unbounded_String ("application/ld+json+alt");
          Draft.Open_Action_Command := To_Unbounded_String ("json-editor {path}");
-         Assert (Files.Settings.Drafts.Validate_Draft (Draft).Success, "settings draft validates editable values");
+         Assert (Files.Settings.Drafts.Testing.Validate_Draft (Draft).Success,
+           "settings draft validates editable values");
          Draft_Load := Files.Settings.Drafts.Apply_Draft (Loaded.Settings, Draft);
          Assert (Draft_Load.Success, "settings draft applies to a settings model");
          Files_Suite.Support.Assert_Equal
@@ -88,11 +92,11 @@ separate (Files_Suite.Settings)
             "files-high-contrast",
             "draft applies icon theme selection");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Filetype_For_Extension (Draft_Load.Settings, "log"),
+           (Files.File_Types.Filetype_For_Extension (Draft_Load.Settings.Extension_Filetypes, "log"),
             "text/x-log",
             "draft applies filetype mapping");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Icon_For_Filetype (Draft_Load.Settings, "text/x-log"),
+           (Files.File_Types.Icon_For_Filetype (Draft_Load.Settings.Icon_Mappings, "text/x-log"),
             "text",
             "draft applies icon mapping");
          Lookup :=
@@ -114,11 +118,11 @@ separate (Files_Suite.Settings)
             Files.Preference_Types.Details,
             "saved draft persists default view");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Filetype_For_Extension (Draft_Load.Settings, "log"),
+           (Files.File_Types.Filetype_For_Extension (Draft_Load.Settings.Extension_Filetypes, "log"),
             "text/x-log",
             "saved draft persists filetype mapping");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Icon_For_Filetype (Draft_Load.Settings, "text/x-log"),
+           (Files.File_Types.Icon_For_Filetype (Draft_Load.Settings.Icon_Mappings, "text/x-log"),
             "text",
             "saved draft persists icon mapping");
          Lookup :=

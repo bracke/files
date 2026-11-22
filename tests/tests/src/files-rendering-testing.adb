@@ -35,9 +35,10 @@ package body Files.Rendering.Testing is
       Settings  : Files.Settings.Settings_Model;
       Rows_From : View_Snapshot)
       return View_Snapshot is
+      Source : View_Snapshot := Rows_From;
    begin
       return Result : View_Snapshot do
-         Copy_Rows (Result, Rows_From);
+         Copy_Rows (Result, Source);
          --  Whatever the favorites and labels were: reading them again is
          --  right either way.
          Build_Snapshot_Into

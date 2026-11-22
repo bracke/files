@@ -1,3 +1,5 @@
+with Files.Snapshot_Policy.Settings_Keys.Testing;
+with Files.Settings.Path_References.Testing;
 with Files.Preference_Types;
 with Files.Settings.Path_References;
 with Files.Snapshot_Policy.Settings_Keys;
@@ -26,7 +28,7 @@ separate (Files_Suite.Rendering)
       Base      : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Base_View : constant View_Snapshot := Build_Snapshot (Model, Base);
       Base_Key  : constant Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key :=
-        Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key_Of (Base);
+        Files.Snapshot_Policy.Settings_Keys.Testing.Snapshot_Settings_Key_Of (Base);
       Moved     : Natural := 0;
 
       function Changed (Field : Setting_Field) return Files.Settings.Settings_Model is
@@ -87,7 +89,7 @@ separate (Files_Suite.Rendering)
             when Recent_Paths =>
                Files.Settings.Path_References.Note_Recent (Result, Item_Path);
             when Labels =>
-               Files.Settings.Path_References.Set_Label (Result, Item_Path, Files.Preference_Types.Red);
+               Files.Settings.Path_References.Testing.Set_Label (Result, Item_Path, Files.Preference_Types.Red);
             when Use_System_Default_Opener =>
                Result.Use_System_Default_Opener := not Base.Use_System_Default_Opener;
             when Column_Visible =>
@@ -122,7 +124,7 @@ separate (Files_Suite.Rendering)
             Assert
               (Key_Moved
                = Files.Snapshot_Policy.Settings_Keys."/="
-                   (Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key_Of (Settings), Base_Key),
+                   (Files.Snapshot_Policy.Settings_Keys.Testing.Snapshot_Settings_Key_Of (Settings), Base_Key),
                "comparing in place agrees with comparing keys for " & Field'Image);
             Assert
               (Key_Moved or else not Snapshot_Moved,

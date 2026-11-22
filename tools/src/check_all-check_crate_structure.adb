@@ -80,7 +80,7 @@ separate (Check_All)
          "files project must compile as Ada 2022");
       Require_In_Text
         (Root & "/tools/src/check_all.adb",
-         "Run (""top-level tests build"", Root & ""/tests"", Alr, [1 => new String'(""build"")]);",
+         "Run (""top-level tests build"", Root & ""/tests"", Alr,",
          "full validation must build the top-level tests sub-crate");
       Require_In_Text
         (Root & "/tools/src/check_all.adb",

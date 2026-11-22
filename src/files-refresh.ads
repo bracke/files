@@ -75,27 +75,6 @@ package Files.Refresh is
    --  How long a listing that failed to load waits before the next try.
    Load_Retry_Gap : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (30);
 
-   --  Whether to refresh now for the watch. A change seen while the last
-   --  refresh is too recent is owed, and a later call pays it, so the last
-   --  write of a burst is always shown.
-   --
-   --  @param Pacer This window's pacing.
-   --  @param Now The current time.
-   --  @param Changed The watch reported a change since the last call.
-   --  @return True when the caller should refresh now.
-   function Watch_Refresh_Due
-     (Pacer   : in out Watch_Pacer;
-      Now     : Ada.Real_Time.Time;
-      Changed : Boolean) return Boolean;
-
-   --  Note a change the watch reported while a refresh is still running: it
-   --  stays owed, and Watch_Refresh_Due pays it once that refresh is done
-   --  (a read already under way may have listed the folder before it).
-   --
-   --  @param Pacer This window's pacing.
-   --  @param Changed The watch reported a change.
-   procedure Owe_Watch_Refresh (Pacer : in out Watch_Pacer; Changed : Boolean);
-
    --  Whether a timed re-read may run. After a failed load it may, once per
    --  Load_Retry_Gap; otherwise always.
    --
@@ -170,6 +149,27 @@ package Files.Refresh is
    function Load_Recent_Items (Settings : Files.Settings.Settings_Model) return Files.Items.Item_Vectors.Vector;
 
 private
+
+   --  Whether to refresh now for the watch. A change seen while the last
+   --  refresh is too recent is owed, and a later call pays it, so the last
+   --  write of a burst is always shown.
+   --
+   --  @param Pacer This window's pacing.
+   --  @param Now The current time.
+   --  @param Changed The watch reported a change since the last call.
+   --  @return True when the caller should refresh now.
+   function Watch_Refresh_Due
+     (Pacer   : in out Watch_Pacer;
+      Now     : Ada.Real_Time.Time;
+      Changed : Boolean) return Boolean;
+
+   --  Note a change the watch reported while a refresh is still running: it
+   --  stays owed, and Watch_Refresh_Due pays it once that refresh is done
+   --  (a read already under way may have listed the folder before it).
+   --
+   --  @param Pacer This window's pacing.
+   --  @param Changed The watch reported a change.
+   procedure Owe_Watch_Refresh (Pacer : in out Watch_Pacer; Changed : Boolean);
    --  A real directory request carries absolute filesystem paths. The Recent
    --  view is synthetic, so both path fields are deliberately empty there.
    function Request_Paths_Are_Consistent

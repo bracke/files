@@ -86,51 +86,23 @@ separate (Files.Rendering)
       --  Start from a blank snapshot, keeping only the rows when asked: the
       --  previous header must not leak into this one.
       declare
-         Rows : Item_Snapshot_Vectors.Vector;
-         Row_Table : Row_Index_Vectors.Vector;
-         Renamed   : Renamed_Row_Maps.Map;
-         Rows_Selection   : constant Natural := Snapshot.Rows_Selection_Revision;
-         Rows_Rename      : constant Natural := Snapshot.Rows_Rename_Revision;
-         Total_Selection  : constant Natural := Snapshot.Total_Selection_Revision;
-         Total_Sizes      : constant Natural := Snapshot.Total_Sizes_Revision;
-         Total_Bytes      : constant Long_Long_Integer := Snapshot.Selection_Total_Bytes;
-         Total_Pending    : constant Boolean := Snapshot.Selection_Total_Pending;
-         Info_Key         : constant Info_Pane_Key := Snapshot.Info_Key;
-         Info_Rows        : Info_Snapshot_Vectors.Vector;
-         Info_Sections    : Coalesced_Section_Vectors.Vector;
-         Permissions_Editable : constant Boolean := Snapshot.Permissions_Editable;
-         Ownership_Editable   : constant Boolean := Snapshot.Ownership_Editable;
+         --  The rows and what is kept with them (Copy_Rows names them all),
+         --  held across the reset.
+         Saved : View_Snapshot;
          --  The tree rows this slot took, whatever the rows: Snapshot_Overlays
          --  keeps them while the tree's structure revision stands.
-         Tree_Rows            : Files.Folder_Tree.Visible_Row_Vectors.Vector;
-         Tree_Rows_Revision   : constant Natural := Snapshot.Tree_Rows_Revision;
+         Tree_Rows          : Files.Folder_Tree.Visible_Row_Vectors.Vector;
+         Tree_Rows_Revision : constant Natural := Snapshot.Tree_Rows_Revision;
       begin
          Tree_Rows.Move (Snapshot.Tree_Rows);
          if Keep_Rows then
-            Info_Rows.Move (Snapshot.Selected_Info);
-            Info_Sections.Move (Snapshot.Info_Sections);
-            Rows.Move (Snapshot.Items);
-            Row_Table.Move (Snapshot.Visible_Rows);
-            Renamed.Move (Snapshot.Renamed_Rows);
+            Copy_Rows (Saved, Snapshot, Move => True);
          end if;
          Snapshot := (others => <>);
          Snapshot.Tree_Rows.Move (Tree_Rows);
          Snapshot.Tree_Rows_Revision := Tree_Rows_Revision;
          if Keep_Rows then
-            Snapshot.Items.Move (Rows);
-            Snapshot.Visible_Rows.Move (Row_Table);
-            Snapshot.Renamed_Rows.Move (Renamed);
-            Snapshot.Rows_Selection_Revision := Rows_Selection;
-            Snapshot.Rows_Rename_Revision := Rows_Rename;
-            Snapshot.Total_Selection_Revision := Total_Selection;
-            Snapshot.Total_Sizes_Revision := Total_Sizes;
-            Snapshot.Selection_Total_Bytes := Total_Bytes;
-            Snapshot.Selection_Total_Pending := Total_Pending;
-            Snapshot.Info_Key := Info_Key;
-            Snapshot.Selected_Info.Move (Info_Rows);
-            Snapshot.Info_Sections.Move (Info_Sections);
-            Snapshot.Permissions_Editable := Permissions_Editable;
-            Snapshot.Ownership_Editable := Ownership_Editable;
+            Copy_Rows (Snapshot, Saved, Move => True);
          end if;
       end;
       Snapshot.Now := Files.Timing.Minute_Start (Now);

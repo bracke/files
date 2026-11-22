@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.UI_Types;
 with Files.File_System_Types;
 with Files.Model.Status_Samples;
@@ -638,7 +639,7 @@ separate (Files_Suite.Rendering)
          Same     : Natural := 0;
       begin
          for Index in 1 .. 500 loop
-            Files.Settings.Path_References.Set_Label
+            Files.Settings.Path_References.Testing.Set_Label
               (Settings, "/probe/item" & Integer'Image (Index), Files.Preference_Types.Green);
          end loop;
          Start := Ada.Real_Time.Clock;
@@ -754,7 +755,7 @@ separate (Files_Suite.Rendering)
          Refresh;
          Start := Ada.Real_Time.Clock;
          for Round in 1 .. Rounds loop
-            Files.Settings.Path_References.Set_Label
+            Files.Settings.Path_References.Testing.Set_Label
               (Settings, "/probe/item" & Integer'Image (Round),
                Files.Preference_Types.Blue);
             Refresh;

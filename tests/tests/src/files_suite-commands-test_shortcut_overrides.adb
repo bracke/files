@@ -1,3 +1,4 @@
+with Files.Commands.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Commands)
    procedure Test_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -23,16 +24,16 @@ separate (Files_Suite.Commands)
                  "control+1 parses only the control modifier");
       end;
       Files_Suite.Support.Assert_Equal
-        (Files.Commands.Text_To_Key ("f5"),
+        (Files.Commands.Testing.Text_To_Key ("f5"),
          Guikit.Input.Key_F5,
          "text-to-key maps a function key");
       Files_Suite.Support.Assert_Equal
-        (Files.Commands.Text_To_Key ("nope"),
+        (Files.Commands.Testing.Text_To_Key ("nope"),
          Guikit.Input.Key_Unknown,
          "unrecognised text yields Key_Unknown");
       --  Keys added by the keycode expansion round-trip too.
       Files_Suite.Support.Assert_Equal
-        (Files.Commands.Text_To_Key ("e"),
+        (Files.Commands.Testing.Text_To_Key ("e"),
          Guikit.Input.Key_E,
          "a newly-added letter key parses");
       declare

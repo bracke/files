@@ -1,3 +1,4 @@
+with Files.Application.Testing;
 separate (Files_Suite.Startup)
    procedure Test_Startup_And_Runtime_Smoke_Reports (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,8 +15,8 @@ separate (Files_Suite.Startup)
       Args.Append (To_Unbounded_String (Dir));
       Args.Append (To_Unbounded_String (Missing));
 
-      Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
-      Report := To_Unbounded_String (Files.Application.Startup_Report (Startup));
+      Startup := Files.Application.Testing.Resolve_Startup_Paths (Args, Settings);
+      Report := To_Unbounded_String (Files.Application.Testing.Startup_Report (Startup));
       Assert
         (Ada.Strings.Fixed.Index
            (To_String (Report),
@@ -28,7 +29,8 @@ separate (Files_Suite.Startup)
             Missing & ": " &
             Files.Localization.Text ("error.path.missing")) > 0,
          "startup report uses localized error label and diagnostic");
-      Smoke := To_Unbounded_String (Files.Application.Runtime_Smoke_Report (Startup, Width => 800, Height => 400));
+      Smoke := To_Unbounded_String (Files.Application.Testing.Runtime_Smoke_Report (Startup, Width => 800,
+        Height => 400));
       Assert
         (Ada.Strings.Fixed.Index
            (To_String (Smoke),
@@ -45,7 +47,8 @@ separate (Files_Suite.Startup)
         (Ada.Strings.Fixed.Index (To_String (Smoke), "runtime-smoke: FAIL") > 0,
          "runtime smoke emits FAIL when any requested path failed");
       Startup.Errors.Clear;
-      Smoke := To_Unbounded_String (Files.Application.Runtime_Smoke_Report (Startup, Width => 800, Height => 400));
+      Smoke := To_Unbounded_String (Files.Application.Testing.Runtime_Smoke_Report (Startup, Width => 800,
+        Height => 400));
       Assert
         (Ada.Strings.Fixed.Index (To_String (Smoke), Files.Localization.Text ("runtime.smoke.ready")) > 0,
          "runtime smoke report exposes successful headless render quality");
@@ -63,7 +66,7 @@ separate (Files_Suite.Startup)
       Assert
         (Ada.Strings.Fixed.Index (To_String (Smoke), Files.Localization.Text ("runtime.smoke.font") & ": ") > 0,
          "runtime smoke report exposes selected text font path");
-      Smoke := To_Unbounded_String (Files.Application.Runtime_Smoke_Report (Startup, Width => 1, Height => 1));
+      Smoke := To_Unbounded_String (Files.Application.Testing.Runtime_Smoke_Report (Startup, Width => 1, Height => 1));
       Assert
         (Ada.Strings.Fixed.Index (To_String (Smoke), Files.Localization.Text ("runtime.smoke.text_failed")) > 0,
          "runtime smoke reports zero-glyph text batches as failures");
@@ -72,7 +75,7 @@ separate (Files_Suite.Startup)
          "runtime smoke report emits the fixed ASCII FAIL verdict marker for CI");
       Assert
         (Ada.Strings.Fixed.Index
-           (Files.Application.Runtime_Smoke_Report ((others => <>)),
+           (Files.Application.Testing.Runtime_Smoke_Report ((others => <>)),
             Files.Localization.Text ("runtime.smoke.no_windows")) > 0,
          "runtime smoke report uses localized empty-startup diagnostic");
       declare

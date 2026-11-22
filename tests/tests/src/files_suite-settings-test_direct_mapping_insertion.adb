@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Settings.Testing;
 separate (Files_Suite.Settings)
    procedure Test_Direct_Mapping_Insertion (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -10,7 +11,7 @@ separate (Files_Suite.Settings)
       Files.Settings.Testing.Add_Extension_Mapping (Manual, ".TXT", "text/first");
       Files.Settings.Testing.Add_Extension_Mapping (Manual, " txt ", " text/second ");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "TXT"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "TXT"),
          "text/second",
          "direct extension mapping trims values and replaces existing entries");
       Files.Settings.Testing.Add_Extension_Mapping (Manual, ".", "text/blank");
@@ -31,53 +32,53 @@ separate (Files_Suite.Settings)
          "unicodebreak",
          "text/plain" & Line_Separator & "bad");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "."),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "."),
          "",
          "direct extension mapping ignores empty normalized extension");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "blank"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "blank"),
          "",
          "direct extension mapping ignores empty filetype value");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "bad=extension"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "bad=extension"),
          "",
          "direct extension mapping ignores unrepresentable extension keys");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "bad" & ASCII.LF & "extension"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "bad" & ASCII.LF & "extension"),
          "",
          "direct extension mapping ignores line-break extension keys");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "bad" & ASCII.VT & "extension"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "bad" & ASCII.VT & "extension"),
          "",
          "direct extension mapping ignores vertical-tab extension keys");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "bad" & C1_Break & "extension"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "bad" & C1_Break & "extension"),
          "",
          "direct extension mapping ignores C1 line-break extension keys");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "bad" & Line_Separator & "extension"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "bad" & Line_Separator & "extension"),
          "",
          "direct extension mapping ignores Unicode line-separator extension keys");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "linebreak"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "linebreak"),
          "",
          "direct extension mapping ignores unrepresentable values");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "formfeed"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "formfeed"),
          "",
          "direct extension mapping ignores form-feed values");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "c1break"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "c1break"),
          "",
          "direct extension mapping ignores C1 line-break values");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "unicodebreak"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "unicodebreak"),
          "",
          "direct extension mapping ignores Unicode line-separator values");
       Files.Settings.Testing.Add_Icon_Mapping (Manual, " text/second ", " first-icon ");
       Files.Settings.Testing.Add_Icon_Mapping (Manual, "text/second", " second-icon ");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/second"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/second"),
          "second-icon",
          "direct icon mapping trims values and replaces existing entries");
       Files.Settings.Testing.Add_Icon_Mapping (Manual, "   ", "blank-icon");
@@ -98,47 +99,47 @@ separate (Files_Suite.Settings)
          "text/unicodebreak-icon",
          "icon" & Line_Separator & "bad");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, ""),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, ""),
          "",
          "direct icon mapping ignores empty filetype key");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/blank-icon"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/blank-icon"),
          "",
          "direct icon mapping ignores empty icon value");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/bad=icon"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/bad=icon"),
          "",
          "direct icon mapping ignores unrepresentable filetype keys");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & ASCII.LF & "icon"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/bad" & ASCII.LF & "icon"),
          "",
          "direct icon mapping ignores line-break filetype keys");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & ASCII.VT & "icon"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/bad" & ASCII.VT & "icon"),
          "",
          "direct icon mapping ignores vertical-tab filetype keys");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & C1_Break & "icon"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/bad" & C1_Break & "icon"),
          "",
          "direct icon mapping ignores C1 line-break filetype keys");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & Line_Separator & "icon"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/bad" & Line_Separator & "icon"),
          "",
          "direct icon mapping ignores Unicode line-separator filetype keys");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/linebreak-icon"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/linebreak-icon"),
          "",
          "direct icon mapping ignores unrepresentable values");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/formfeed-icon"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/formfeed-icon"),
          "",
          "direct icon mapping ignores form-feed values");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/c1break-icon"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/c1break-icon"),
          "",
          "direct icon mapping ignores C1 line-break values");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/unicodebreak-icon"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/unicodebreak-icon"),
          "",
          "direct icon mapping ignores Unicode line-separator values");
    end Test_Direct_Mapping_Insertion;

@@ -1,3 +1,4 @@
+with Files.Undo.Journal.Testing;
 with Ada.Streams;
 with Files.IO.Durable_Writes;
 with Files.Undo.Journal;
@@ -63,7 +64,7 @@ separate (Files_Suite.Recovery)
       Assert (Raised and then not Ada.Directories.Exists (Temporary), "a writer that fails leaves nothing behind");
 
       --  The history journal itself.
-      Files.Undo.Journal.Save_Stacks
+      Files.Undo.Journal.Testing.Save_Stacks
         (Root, Files.Undo.History.Undo_Entry_Vectors.Empty_Vector, Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,
          Mode => Files.Undo.Journal.Must_Commit);
       Assert (Ada.Directories.Exists (Join (Root, "history")), "the history journal is written");

@@ -28,12 +28,12 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
          Cell_W      : constant Positive :=
            Guikit.Layout.Caret_Advance_Width (Line_Height);
          Label_W     : constant Natural :=
-           Saturating_Multiply (Guikit.Utf8.Display_Units (Field_Label), Cell_W);
+           Guikit.Layout.Saturating_Multiply (Guikit.Utf8.Display_Units (Field_Label), Cell_W);
          --  Tighter than a full monospace space so the direction arrow sits
          --  close to the sort field it belongs to.
          Arrow_Gap   : constant Natural := Cell_W / 2;
          Arrow_W     : constant Natural :=
-           Saturating_Multiply (Guikit.Utf8.Display_Units (Arrow_Text), Cell_W);
+           Guikit.Layout.Saturating_Multiply (Guikit.Utf8.Display_Units (Arrow_Text), Cell_W);
          --  Actual field + gap + arrow width drawn. The button is sized assuming
          --  a full space before the arrow, so it is a touch wider; centre the
          --  drawn content within the button rather than left-aligning it.
@@ -46,8 +46,10 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Bottom_Bar)
                then (Bottom.Sort_Button_Width - Rendered_W) / 2
                else Files.Rendering.Layouts.Field_Padding (Line_Height)));
          Content_W   : constant Natural :=
-           (if Bottom.Sort_Button_Width > Saturating_Multiply (Files.Rendering.Layouts.Field_Padding (Line_Height), 2)
-            then Bottom.Sort_Button_Width - Saturating_Multiply (Files.Rendering.Layouts.Field_Padding (Line_Height), 2)
+           (if Bottom.Sort_Button_Width >
+             Guikit.Layout.Saturating_Multiply (Files.Rendering.Layouts.Field_Padding (Line_Height), 2)
+            then Bottom.Sort_Button_Width -
+              Guikit.Layout.Saturating_Multiply (Files.Rendering.Layouts.Field_Padding (Line_Height), 2)
             else 0);
          Arrow_X     : constant Natural :=
            Guikit.Layout.Saturating_Add (Text_X0, Guikit.Layout.Saturating_Add (Label_W, Arrow_Gap));

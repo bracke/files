@@ -1,3 +1,5 @@
+with Files.Application.Testing;
+with Files.Application.Windows.Smoke.Testing;
 separate (Files_Suite.Startup)
    procedure Test_Live_Window_Smoke_Plan (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,7 +19,7 @@ separate (Files_Suite.Startup)
       Args.Append (To_Unbounded_String (Missing));
 
       --  The startup the runner sees once its path errors are cleared.
-      Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
+      Startup := Files.Application.Testing.Resolve_Startup_Paths (Args, Settings);
       Startup.Errors.Clear;
       Plan := Files.Application.Windows.Smoke.Live_Window_Smoke_Plan (Width => 640, Height => 360);
       Files_Suite.Support.Assert_Equal (Plan.Width, 640, "live smoke plan records requested width");
@@ -49,7 +51,7 @@ separate (Files_Suite.Startup)
       end;
       Files_Suite.Support.Assert_Equal
         (Plan.Can_Run, Caps.Live_Window_Smoke_Ready, "and this host's plan follows its capabilities");
-      Live_Result := Files.Application.Windows.Smoke.Evaluate_Live_Window_Smoke (Plan);
+      Live_Result := Files.Application.Windows.Smoke.Testing.Evaluate_Live_Window_Smoke (Plan);
       Assert
         (Live_Result.Skipped_By_Plan = not Plan.Can_Run,
          "live smoke result records whether the plan skipped execution");

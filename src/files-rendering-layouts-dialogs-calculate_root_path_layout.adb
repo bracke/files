@@ -7,13 +7,13 @@ separate (Files.Rendering.Layouts.Dialogs)
       Result       : Root_Path_Layout_Vectors.Vector;
       Root_Count   : constant Natural := Natural (Snapshot.Roots.Length);
       Content_H    : constant Natural :=
-        (if Layout.Height > Saturating_Multiply (Layout.Padding, 2)
-         then Layout.Height - Saturating_Multiply (Layout.Padding, 2)
+        (if Layout.Height > Guikit.Layout.Saturating_Multiply (Layout.Padding, 2)
+         then Layout.Height - Guikit.Layout.Saturating_Multiply (Layout.Padding, 2)
          else 0);
       Horizontal_Padding : constant Natural :=
         Natural'Min (Layout.Padding, Layout.Width / 2);
       Content_W    : constant Natural :=
-        Layout.Width - Saturating_Multiply (Horizontal_Padding, 2);
+        Layout.Width - Guikit.Layout.Saturating_Multiply (Horizontal_Padding, 2);
       --  Fully visible rows only: the keyboard selection must never land on
       --  the half-hidden last row the dropdown clips.
       Visible_Rows : constant Natural :=
@@ -46,7 +46,7 @@ separate (Files.Rendering.Layouts.Dialogs)
             Row_Y : constant Natural :=
               Guikit.Layout.Saturating_Add
                 (Guikit.Layout.Saturating_Add (Layout.Y, Layout.Padding),
-                 Saturating_Multiply (Natural (Index - Start_Index), Layout.Row_Height));
+                 Guikit.Layout.Saturating_Multiply (Natural (Index - Start_Index), Layout.Row_Height));
             Layout_End_Y : constant Natural :=
               Guikit.Layout.Saturating_Add
                 (Layout.Y,

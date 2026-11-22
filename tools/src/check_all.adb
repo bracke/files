@@ -998,14 +998,19 @@ begin
       Cleanup_Temps;
       return;
    end if;
-   Run ("files build", Root, Alr, [1 => new String'("build")]);
+   --  Non-interactive (a stale lockfile must not stop on a prompt) and at the
+   --  development profile for every crate: a release build of the siblings
+   --  (guikit at -O3) runs the compiler out of memory on a small machine.
+   Run ("files build", Root, Alr,
+        [new String'("-n"), new String'("build"), new String'("--profiles=*=development")]);
    Run_Check ("Check_Executable_CLI_Help", Check_Executable_CLI_Help'Access);
    Run_Check ("Check_Desktop_Runtime_Contract", Check_Desktop_Runtime_Contract'Access);
    if Problems_Found ("the suite") then
       Cleanup_Temps;
       return;
    end if;
-   Run ("top-level tests build", Root & "/tests", Alr, [1 => new String'("build")]);
+   Run ("top-level tests build", Root & "/tests", Alr,
+        [new String'("-n"), new String'("build"), new String'("--profiles=*=development")]);
    --  CI has just run the suite with its own settings (a small stack among
    --  them) and passes --skip-suite rather than run it a second time.
    if not (Ada.Command_Line.Argument_Count >= 1 and then Ada.Command_Line.Argument (1) = "--skip-suite") then

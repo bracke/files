@@ -12,11 +12,6 @@ package Files.Rendering.Text is
    --  Text rasterization outcome and glyph/atlas result, Guikit.Draw's.
    subtype Text_Render_Status is Guikit.Draw.Text_Render_Status;
 
-   --  Re-export of the successful text-rasterization status literal.
-   --  @return The Text_Render_Success value from Guikit.Draw.
-   function Text_Render_Success return Text_Render_Status
-     renames Guikit.Draw.Text_Render_Success;
-
    subtype Text_Render_Result is Guikit.Draw.Text_Render_Result;
 
    --  How long a window waits before loading its text again after a load

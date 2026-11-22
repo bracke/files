@@ -20,6 +20,25 @@ package Files.Application.Event_Wait is
    --  What every open window has pending, one entry a window.
    type Pending_List is array (Positive range <>) of Window_Pending;
 
+   --  The wait all windows allow: Window_Wait folded over Windows, each
+   --  window's answer the next one's limit, so the shortest wins.
+   --
+   --  @param Now The current time.
+   --  @param Windows What each open window has pending.
+   --  @param Limit The loop's normal wait; the answer with no window, or
+   --    none with anything pending.
+   --  @param Prompt The short wait for work that is due now.
+   --  @return The shortest wait any window allows, at most Limit, never
+   --    negative.
+   function Fold
+     (Now     : Ada.Real_Time.Time;
+      Windows : Pending_List;
+      Limit   : Duration;
+      Prompt  : Duration)
+      return Duration;
+
+private
+
    --  The wait one window allows.
    --
    --  @param Now The current time.
@@ -34,23 +53,6 @@ package Files.Application.Event_Wait is
    function Window_Wait
      (Now     : Ada.Real_Time.Time;
       Pending : Window_Pending;
-      Limit   : Duration;
-      Prompt  : Duration)
-      return Duration;
-
-   --  The wait all windows allow: Window_Wait folded over Windows, each
-   --  window's answer the next one's limit, so the shortest wins.
-   --
-   --  @param Now The current time.
-   --  @param Windows What each open window has pending.
-   --  @param Limit The loop's normal wait; the answer with no window, or
-   --    none with anything pending.
-   --  @param Prompt The short wait for work that is due now.
-   --  @return The shortest wait any window allows, at most Limit, never
-   --    negative.
-   function Fold
-     (Now     : Ada.Real_Time.Time;
-      Windows : Pending_List;
       Limit   : Duration;
       Prompt  : Duration)
       return Duration;

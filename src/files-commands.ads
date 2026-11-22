@@ -202,13 +202,6 @@ package Files.Commands is
      (Value : Shortcut)
       return String;
 
-   --  Parse the key name produced by Key_Text back into a key code, or
-   --  Key_Unknown when the text names no key.
-   --
-   --  @param Text A lowercase key name (e.g. "a", "f5", "backspace").
-   --  @return The matching key code, or Key_Unknown.
-   function Text_To_Key (Text : String) return Guikit.Input.Key_Code;
-
    --  Parse the text produced by Shortcut_Text (e.g. "control+shift+k") back into
    --  a shortcut. Accepts common modifier aliases (ctrl, cmd, option). Present is
    --  False when no key was recognised.
@@ -323,22 +316,6 @@ package Files.Commands is
       Reason  : Disabled_Reason := Files.Command_Reasons.No_Reason;
    end record;
 
-   --  Return whether a command may execute while the root selector is open.
-   --
-   --  @param Id Command identifier.
-   --  @return True when the root-selector modal state allows the command.
-   function Allowed_With_Root_Selector
-     (Id : Command_Id)
-      return Boolean;
-
-   --  Return whether a command may execute while the settings pane is open.
-   --
-   --  @param Id Command identifier.
-   --  @return True when the settings-pane modal state allows the command.
-   function Allowed_With_Settings_Pane
-     (Id : Command_Id)
-      return Boolean;
-
    --  Return whether a keyboard shortcut may run its command while a text
    --  field (path, filter, rename, palette, settings) owns the keyboard. Only
    --  commands that act on the window or move focus qualify; anything acting
@@ -386,5 +363,30 @@ package Files.Commands is
    function Sort_Label_Key
      (Field : Files.Types.Sort_Field)
       return String;
+
+private
+
+   --  Parse the key name produced by Key_Text back into a key code, or
+   --  Key_Unknown when the text names no key.
+   --
+   --  @param Text A lowercase key name (e.g. "a", "f5", "backspace").
+   --  @return The matching key code, or Key_Unknown.
+   function Text_To_Key (Text : String) return Guikit.Input.Key_Code;
+
+   --  Return whether a command may execute while the root selector is open.
+   --
+   --  @param Id Command identifier.
+   --  @return True when the root-selector modal state allows the command.
+   function Allowed_With_Root_Selector
+     (Id : Command_Id)
+      return Boolean;
+
+   --  Return whether a command may execute while the settings pane is open.
+   --
+   --  @param Id Command identifier.
+   --  @return True when the settings-pane modal state allows the command.
+   function Allowed_With_Settings_Pane
+     (Id : Command_Id)
+      return Boolean;
 
 end Files.Commands;

@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.Operations.Editing;
 with Files.Preference_Types;
 with Files.Input_Actions;
@@ -40,9 +41,9 @@ separate (Files_Suite.Interaction)
       Ada.Directories.Create_Path (Sub);
       Files_Suite.Support.Disk.Write_File (One, "a");
       Files_Suite.Support.Disk.Write_File (Inner, "b");
-      Files.Settings.Path_References.Set_Label (Settings, One, Files.Preference_Types.Green);
-      Files.Settings.Path_References.Set_Label (Settings, Inner, Files.Preference_Types.Blue);
-      Files.Settings.Path_References.Set_Label (Settings, Sibling, Files.Preference_Types.Red);
+      Files.Settings.Path_References.Testing.Set_Label (Settings, One, Files.Preference_Types.Green);
+      Files.Settings.Path_References.Testing.Set_Label (Settings, Inner, Files.Preference_Types.Blue);
+      Files.Settings.Path_References.Testing.Set_Label (Settings, Sibling, Files.Preference_Types.Red);
       Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Sub);
       Model := Loaded_Model (Dir);
 
@@ -83,7 +84,8 @@ separate (Files_Suite.Interaction)
          loop
             Grown := Settings;
             for Index in Next + 1 .. Next + 10 loop
-               Files.Settings.Path_References.Set_Label (Grown, "/nowhere/" & Index'Image, Files.Preference_Types.Gray);
+               Files.Settings.Path_References.Testing.Set_Label (Grown, "/nowhere/" & Index'Image,
+                 Files.Preference_Types.Gray);
             end loop;
             exit when not Files.Settings.Loadable (Grown) or else Next > 10_000;
             Settings := Grown;

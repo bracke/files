@@ -4,7 +4,7 @@ separate (Files.Settings.Drafts)
       return String is
    begin
       if (Length (Draft.Filetype_Extension) > 0 or else Length (Draft.Filetype_Value) > 0)
-        and then not Mapping_Key_Is_Valid (Normalize_Extension (To_String (Draft.Filetype_Extension)))
+        and then not Mapping_Key_Is_Valid (Files.File_Types.Normalize_Extension (To_String (Draft.Filetype_Extension)))
       then
          return "error.settings.invalid_mapping";
       end if;
@@ -12,7 +12,7 @@ separate (Files.Settings.Drafts)
       for Index in 1 .. Natural (Draft.Filetype_Keys.Length) loop
          if not Blank_Row (Draft.Filetype_Keys, Draft.Filetype_Values, Index)
            and then not Mapping_Key_Is_Valid
-             (Normalize_Extension (To_String (Draft.Filetype_Keys.Element (Index))))
+             (Files.File_Types.Normalize_Extension (To_String (Draft.Filetype_Keys.Element (Index))))
          then
             return "error.settings.invalid_mapping";
          end if;

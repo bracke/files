@@ -27,7 +27,7 @@ package body Files.IO.Errors is
    begin
       if Code /= 0 then
          for Item in Cause loop
-            if Host_Code (Item) = Code then
+            if Hostkit.Errors.Code_Of (Item) = Code then
                return Key_Of (Item);
             end if;
          end loop;

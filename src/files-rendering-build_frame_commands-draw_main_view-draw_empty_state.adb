@@ -4,7 +4,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
       Panel_W : constant Natural :=
         Natural'Min
           (Natural'Max (Guikit.Layout.Scaled (240, Line_Height), Layout.Main_Width / 2), Layout.Main_Width);
-      Panel_H : constant Natural := Natural'Min (Saturating_Multiply (Line_Height, 3), Layout.Main_Height);
+      Panel_H : constant Natural := Natural'Min (
+        Guikit.Layout.Saturating_Multiply (Line_Height, 3), Layout.Main_Height);
       Panel_X : constant Natural :=
         Guikit.Layout.Saturating_Add
           (Layout.Main_X,
@@ -19,14 +20,14 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
       Side_Pad : constant Natural := Natural'Min (Guikit.Layout.Scaled (8, Line_Height), Panel_W / 4);
       Inner_X  : constant Natural := Guikit.Layout.Saturating_Add (Panel_X, Side_Pad);
       Inner_W  : constant Natural :=
-        (if Panel_W > Saturating_Multiply (Side_Pad, 2)
-         then Panel_W - Saturating_Multiply (Side_Pad, 2)
+        (if Panel_W > Guikit.Layout.Saturating_Multiply (Side_Pad, 2)
+         then Panel_W - Guikit.Layout.Saturating_Multiply (Side_Pad, 2)
          else 0);
       Desired_Icon : constant Natural := Natural'Min (Line_Height, Panel_H);
       --  Text is the useful empty-state explanation. Drop the decorative
       --  icon when a compact panel cannot leave two text cells beside it.
       Icon_Size : constant Natural :=
-        (if Inner_W > Guikit.Layout.Saturating_Add (Desired_Icon, Saturating_Multiply (Line_Height, 2))
+        (if Inner_W > Guikit.Layout.Saturating_Add (Desired_Icon, Guikit.Layout.Saturating_Multiply (Line_Height, 2))
          then Desired_Icon
          else 0);
       Icon_Gap : constant Natural :=

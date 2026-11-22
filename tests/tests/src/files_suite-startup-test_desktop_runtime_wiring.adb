@@ -1,3 +1,4 @@
+with Files.Application.Windows.Testing;
 separate (Files_Suite.Startup)
    procedure Test_Desktop_Runtime_Wiring (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,8 +6,8 @@ separate (Files_Suite.Startup)
       --  The window's wiring (drops, icon, waiting, the folder watch) is
       --  checked in its own code by check_all's Check_Desktop_Runtime_Contract.
       declare
-         Display_Available : constant Boolean := Files.Application.Windows.Live_Display_Available;
-         Vulkan_Available  : constant Boolean := Files.Application.Windows.Vulkan_Runtime_Available;
+         Display_Available : constant Boolean := Files.Application.Windows.Testing.Live_Display_Available;
+         Vulkan_Available  : constant Boolean := Files.Application.Windows.Testing.Vulkan_Runtime_Available;
          Capabilities      : constant Files.Application.Windows.Desktop_Capabilities :=
            Files.Application.Windows.Runtime_Capabilities;
       begin

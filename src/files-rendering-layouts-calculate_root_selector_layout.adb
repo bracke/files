@@ -5,16 +5,18 @@ separate (Files.Rendering.Layouts)
       Line_Height : Positive)
       return Root_Selector_Layout
    is
-      Preferred_Width : constant Natural := Natural'Max (Layout.Width / 3, Saturating_Multiply (Line_Height, 18));
+      Preferred_Width : constant Natural := Natural'Max (Layout.Width / 3,
+        Guikit.Layout.Saturating_Multiply (Line_Height, 18));
       Dropdown_Width  : constant Natural := Natural'Min (Layout.Width, Preferred_Width);
       Row_Height      : constant Natural :=
         Guikit.Layout.Saturating_Add
-          (Guikit.Layout.Saturating_Add (Line_Height, Saturating_Multiply (Field_Padding (Line_Height), 2)),
-           Saturating_Multiply (Root_Selector_Padding (Line_Height), 2));
+          (Guikit.Layout.Saturating_Add (Line_Height,
+            Guikit.Layout.Saturating_Multiply (Field_Padding (Line_Height), 2)),
+           Guikit.Layout.Saturating_Multiply (Root_Selector_Padding (Line_Height), 2));
       Wanted_Height   : constant Natural :=
         Guikit.Layout.Saturating_Add
-          (Saturating_Multiply (Natural (Snapshot.Roots.Length), Row_Height),
-           Saturating_Multiply (Root_Selector_Padding (Line_Height), 2));
+          (Guikit.Layout.Saturating_Multiply (Natural (Snapshot.Roots.Length), Row_Height),
+           Guikit.Layout.Saturating_Multiply (Root_Selector_Padding (Line_Height), 2));
       Dropdown_Height : constant Natural := Natural'Min (Layout.Main_Height, Wanted_Height);
    begin
       if not Snapshot.Root_Selector_Open then

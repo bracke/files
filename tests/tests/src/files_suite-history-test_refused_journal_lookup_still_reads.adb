@@ -1,3 +1,4 @@
+with Files.Undo.Journal.Testing;
 with Files.IO.Fs_Primitives.Testing;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.History)
@@ -24,7 +25,7 @@ separate (Files_Suite.History)
             Tree_Revision => To_Unbounded_String ("rev"),
             others => <>));
       Undo.Append (Item);
-      Files.Undo.Journal.Save_Stacks
+      Files.Undo.Journal.Testing.Save_Stacks
         (Directory, Undo, Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,
          Mode => Files.Undo.Journal.Must_Commit);
       Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);

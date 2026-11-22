@@ -1,3 +1,4 @@
+with Files.File_Types;
 separate (Files_Suite.Settings)
    procedure Test_Filetype_And_Icon_Mappings (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,139 +6,139 @@ separate (Files_Suite.Settings)
       Manual : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
    begin
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, ".ada"),
+        (Files.File_Types.Filetype_For_Extension (Parsed.Settings.Extension_Filetypes, ".ada"),
          "text/x-ada",
          "extension mapping parses");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, " ADA "),
+        (Files.File_Types.Filetype_For_Extension (Parsed.Settings.Extension_Filetypes, " ADA "),
          "text/x-ada",
          "extension lookup normalizes whitespace and case");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "log"),
+        (Files.File_Types.Filetype_For_Extension (Parsed.Settings.Extension_Filetypes, "log"),
          "text/x-log",
          "quoted filetype mapping value parses");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "quote"),
+        (Files.File_Types.Filetype_For_Extension (Parsed.Settings.Extension_Filetypes, "quote"),
          "text/""quoted",
          "quote-containing filetype mapping value parses");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "eq"),
+        (Files.File_Types.Filetype_For_Extension (Parsed.Settings.Extension_Filetypes, "eq"),
          "text/with=equals",
          "equals-containing filetype mapping value parses");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Normalize_Extension ("."),
+        (Files.File_Types.Normalize_Extension ("."),
          "",
          "single-dot extension normalizes to empty");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Normalize_Extension (". TXT "),
+        (Files.File_Types.Normalize_Extension (". TXT "),
          "txt",
          "extension normalization trims after a leading dot");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "."),
+        (Files.File_Types.Filetype_For_Extension (Parsed.Settings.Extension_Filetypes, "."),
          "",
          "empty normalized extension has no filetype mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "unknown"),
+        (Files.File_Types.Filetype_For_Extension (Parsed.Settings.Extension_Filetypes, "unknown"),
          "",
          "unknown extension has no filetype mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "pdf"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "pdf"),
          "application/pdf",
          "default settings map PDF files");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "adb"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "adb"),
          "text/x-ada",
          "default settings map Ada body files");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "json"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "json"),
          "application/json",
          "default settings map JSON files");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "xml"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "xml"),
          "application/xml",
          "default settings map XML files");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "zip"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "zip"),
          "application/zip",
          "default settings map ZIP archives");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "tar.gz"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "tar.gz"),
          "application/gzip-tar",
          "default settings map compressed tar archives");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "docx"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "docx"),
          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
          "default settings map Word documents");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "xlsx"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "xlsx"),
          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
          "default settings map spreadsheet documents");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "mp3"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "mp3"),
          "audio/mpeg",
          "default settings map MP3 audio");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Manual, "mp4"),
+        (Files.File_Types.Filetype_For_Extension (Manual.Extension_Filetypes, "mp4"),
          "video/mp4",
          "default settings map MP4 video");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "inode/directory"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "inode/directory"),
          "folder",
          "default settings map directory icons");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "inode/symlink"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "inode/symlink"),
          "link",
          "default settings map symlink icons");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "application/x-executable"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "application/x-executable"),
          "executable",
          "default settings map executable icons");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/plain"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/plain"),
          "text",
          "default settings map text icons");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "text/x-ada"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "text/x-ada"),
          "ada",
          "default settings map Ada icons");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "image/png"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "image/png"),
          "image",
          "default settings map PNG icons");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "application/x-tar"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "application/x-tar"),
          "unknown",
          "default settings map tar icons");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Manual, "audio/mpeg"),
+        (Files.File_Types.Icon_For_Filetype (Manual.Icon_Mappings, "audio/mpeg"),
          "unknown",
          "default settings map audio icons");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-ada"),
+        (Files.File_Types.Icon_For_Filetype (Parsed.Settings.Icon_Mappings, "text/x-ada"),
          "text",
          "icon mapping parses");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, " text/x-ada "),
+        (Files.File_Types.Icon_For_Filetype (Parsed.Settings.Icon_Mappings, " text/x-ada "),
          "text",
          "icon lookup normalizes whitespace");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-log"),
+        (Files.File_Types.Icon_For_Filetype (Parsed.Settings.Icon_Mappings, "text/x-log"),
          "log-icon",
          "quoted icon mapping value parses");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-quote"),
+        (Files.File_Types.Icon_For_Filetype (Parsed.Settings.Icon_Mappings, "text/x-quote"),
          "quote""icon",
          "quoted icon mapping unescapes doubled quotes");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-equals"),
+        (Files.File_Types.Icon_For_Filetype (Parsed.Settings.Icon_Mappings, "text/x-equals"),
          "icon=equals",
          "equals-containing icon mapping value parses");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "application/x-missing"),
+        (Files.File_Types.Icon_For_Filetype (Parsed.Settings.Icon_Mappings, "application/x-missing"),
          "",
          "unknown filetype has no icon mapping");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "   "),
+        (Files.File_Types.Icon_For_Filetype (Parsed.Settings.Icon_Mappings, "   "),
          "",
          "blank filetype has no icon mapping");
    end Test_Filetype_And_Icon_Mappings;

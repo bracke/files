@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Settings.Storage;
 with Files_Suite.Support.Disk;
 separate (Files_Suite.Settings)
@@ -31,7 +32,7 @@ separate (Files_Suite.Settings)
       Missing := Files.Settings.Storage.Load_File (Join (Root, "missing.conf"));
       Assert (Missing.Success, "missing settings file falls back to defaults");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Missing.Settings, "txt"),
+        (Files.File_Types.Filetype_For_Extension (Missing.Settings.Extension_Filetypes, "txt"),
          "text/plain",
          "default settings are returned for a missing file");
       Empty_Load := Files.Settings.Storage.Load_File ("");
@@ -77,7 +78,7 @@ separate (Files_Suite.Settings)
         (Loaded.Settings.Theme = Files.Settings.Theme_High_Contrast,
          "legacy high-contrast key wins over light and loads from disk");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Loaded.Settings, "foo"),
+        (Files.File_Types.Filetype_For_Extension (Loaded.Settings.Extension_Filetypes, "foo"),
          "application/x-foo",
          "filetype mapping loads from disk");
       declare
@@ -107,7 +108,7 @@ separate (Files_Suite.Settings)
       Long_Loaded := Files.Settings.Storage.Load_File (Long_Path);
       Assert (Long_Loaded.Success, "settings loader preserves long logical lines");
       Files_Suite.Support.Assert_Equal
-        (Files.Settings.Filetype_For_Extension (Long_Loaded.Settings, "long"),
+        (Files.File_Types.Filetype_For_Extension (Long_Loaded.Settings.Extension_Filetypes, "long"),
          Long_Type,
          "long filetype mapping is not split while loading");
 

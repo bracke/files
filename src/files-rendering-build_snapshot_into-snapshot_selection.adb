@@ -1,5 +1,3 @@
-with Ada.Containers.Hashed_Sets;
-with Ada.Strings.Unbounded.Hash;
 separate (Files.Rendering.Build_Snapshot_Into)
    --  Combined selection total: every selected file's size plus the recursive
    --  size of each selected folder. Computed for any selection (not only when
@@ -14,41 +12,6 @@ separate (Files.Rendering.Build_Snapshot_Into)
       Sizes     : constant Natural := Files.Model.Folder_Sizes.Revision (Model);
       Total     : Long_Long_Integer := 0;
       Pending   : Boolean := False;
-      --  The folders counted, so a folder listed twice counts once.
-      package Path_Sets is new Ada.Containers.Hashed_Sets
-        (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
-         Hash                => Ada.Strings.Unbounded.Hash,
-         Equivalent_Elements => Ada.Strings.Unbounded."=");
-      Counted   : Path_Sets.Set;
-
-      procedure Add (Amount : Long_Long_Integer) is
-      begin
-         if Amount > 0 and then Total <= Long_Long_Integer'Last - Amount then
-            Total := Total + Amount;
-         elsif Amount > 0 then
-            Total := Long_Long_Integer'Last;
-         end if;
-      end Add;
-
-      procedure Count (Item : Files.Items.Directory_Item) is
-         Known : Boolean;
-         Bytes : Long_Long_Integer;
-      begin
-         if Item.Kind = Files.Types.Directory_Item then
-            if Counted.Contains (Item.Full_Path) then
-               return;
-            end if;
-            Counted.Insert (Item.Full_Path);
-            Files.Model.Folder_Sizes.Find (Model, Item.Full_Path, Known, Bytes);
-            if Known then
-               Add (Bytes);
-            else
-               Pending := True;
-            end if;
-         elsif Item.Size_Available then
-            Add (Item.Size);
-         end if;
-      end Count;
    begin
       if Snapshot.Selected_Count = 0 then
          Snapshot.Selection_Total_Bytes := 0;
@@ -61,12 +24,11 @@ separate (Files.Rendering.Build_Snapshot_Into)
             Kept : Boolean;
          begin
             --  The model keeps the total across folder-size hand-overs; only
-            --  a selection it has not seen yet is summed here.
+            --  a selection it has not seen yet is summed here, by the same
+            --  rule (Folder_Sizes.Sum_Selection).
             Files.Model.Folder_Sizes.Selection_Total (Model, Kept, Total, Pending);
             if not Kept then
-               Total := 0;
-               Pending := False;
-               Files.Model.Selection.For_Each_Selected_Item (Model, Count'Access);
+               Files.Model.Folder_Sizes.Sum_Selection (Model, Total, Pending);
             end if;
          end;
          Snapshot.Selection_Total_Bytes := Total;

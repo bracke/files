@@ -6,7 +6,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
       procedure Add_Info_Heading is
          Y : constant Integer :=
            Saturating_Integer_Add
-             (Row_Y, Saturating_Multiply (Current_Row, Line_Height));
+             (Row_Y, Guikit.Layout.Saturating_Multiply (Current_Row, Line_Height));
       begin
          Add_Info_Text (Current_Row, Info.Name, Text_Color, Fit => True);
          if Text_W > 1
@@ -67,7 +67,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Info_Pane.Draw_Info_Contents
       declare
          Section_H : constant Natural :=
            Natural'Min
-             (Saturating_Multiply
+             (Guikit.Layout.Saturating_Multiply
                 (Line_Height,
                  Info_Section_Row_Count (Info, Text_W, Line_Height, Snapshot.Now)),
               Info_Pane.Height);

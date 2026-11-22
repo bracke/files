@@ -15,7 +15,7 @@ separate (Files.Rendering.Layouts)
    begin
       if Toolbar.Middle_Width
         <= Guikit.Layout.Saturating_Add
-             (Saturating_Multiply (Field_Margin, 2), Guikit.Layout.Saturating_Add (Star_W, Pad))
+             (Guikit.Layout.Saturating_Multiply (Field_Margin, 2), Guikit.Layout.Saturating_Add (Star_W, Pad))
       then
          return (others => <>);
       end if;

@@ -9,7 +9,7 @@ separate (Files.Rendering.Layouts)
       Panel_Width     : constant Natural := Layout.Main_X;
       Row_Height      : constant Natural :=
         Guikit.Layout.Saturating_Add
-          (Line_Height, Saturating_Multiply (Field_Padding (Line_Height), 2));
+          (Line_Height, Guikit.Layout.Saturating_Multiply (Field_Padding (Line_Height), 2));
    begin
       if not Snapshot.Tree_Panel_Open then
          return (others => <>);

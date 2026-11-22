@@ -1,3 +1,4 @@
+with Files.Application.Windows.Smoke.Testing;
 separate (Files_Suite.Startup)
    procedure Test_Live_Smoke_Scenarios_Verdict (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,14 +21,14 @@ separate (Files_Suite.Startup)
       end loop;
 
       Assert
-        (Files.Application.Windows.Smoke.Scenarios_Verdict (All_Distinct),
+        (Files.Application.Windows.Smoke.Testing.Scenarios_Verdict (All_Distinct),
          "all scenarios passing with distinct hashes yields an overall pass");
 
       --  A single scenario that failed structural analysis fails the aggregate.
       Analysis_Fail := All_Distinct;
       Analysis_Fail (Files.Application.Windows.Smoke.Scenario_Palette).Passed := False;
       Assert
-        (not Files.Application.Windows.Smoke.Scenarios_Verdict (Analysis_Fail),
+        (not Files.Application.Windows.Smoke.Testing.Scenarios_Verdict (Analysis_Fail),
          "one scenario failing structural analysis fails the aggregate verdict");
 
       --  A non-default scenario whose frame is identical to the default frame
@@ -36,7 +37,7 @@ separate (Files_Suite.Startup)
       Duplicate (Files.Application.Windows.Smoke.Scenario_Selection).Hash :=
         Duplicate (Files.Application.Windows.Smoke.Scenario_Default).Hash;
       Assert
-        (not Files.Application.Windows.Smoke.Scenarios_Verdict (Duplicate),
+        (not Files.Application.Windows.Smoke.Testing.Scenarios_Verdict (Duplicate),
          "a non-default scenario identical to default fails the aggregate verdict");
       Assert
         (not Files.Application.Windows.Smoke.Scenario_Passed
@@ -56,13 +57,13 @@ separate (Files_Suite.Startup)
                  (Region_Fail, Files.Application.Windows.Smoke.Scenario_Selection),
             "an empty layout-derived region fails the scenario despite a structural pass");
          Assert
-           (not Files.Application.Windows.Smoke.Scenarios_Verdict (Region_Fail),
+           (not Files.Application.Windows.Smoke.Testing.Scenarios_Verdict (Region_Fail),
             "an empty layout-derived region fails the aggregate verdict");
 
          --  The same region check passing keeps the scenario and aggregate green.
          Region_Fail (Files.Application.Windows.Smoke.Scenario_Selection).Region_Ink_Present := True;
          Assert
-           (Files.Application.Windows.Smoke.Scenarios_Verdict (Region_Fail),
+           (Files.Application.Windows.Smoke.Testing.Scenarios_Verdict (Region_Fail),
             "a region assertion that found ink keeps the aggregate verdict passing");
       end;
    end Test_Live_Smoke_Scenarios_Verdict;

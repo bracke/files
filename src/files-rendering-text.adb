@@ -80,7 +80,7 @@ package body Files.Rendering.Text is
             end if;
             Renderer.Slot := Index;
             Renderer.Loaded := True;
-            return Text_Render_Success;
+            return Guikit.Draw.Text_Render_Success;
          end if;
       end loop;
       for Index in Pool'Range loop
@@ -106,7 +106,7 @@ package body Files.Rendering.Text is
            Cell_Height    => Cell_Height,
            Atlas_Width    => Atlas_Width,
            Atlas_Height   => Atlas_Height);
-      Renderer.Loaded       := Status = Text_Render_Success;
+      Renderer.Loaded       := Status = Guikit.Draw.Text_Render_Success;
 
       --  With this installed the emoji font in the fallback chain can be drawn
       --  in colour; without it those codepoints fall back as they always did.
@@ -152,7 +152,7 @@ package body Files.Rendering.Text is
                 (Renderer, To_String (Renderer.Font_Path), Renderer.Pixel_Size, Renderer.Cell_Width,
                  Renderer.Cell_Height, Renderer.Atlas_Width, Renderer.Atlas_Height);
          begin
-            if Status /= Text_Render_Success then
+            if Status /= Guikit.Draw.Text_Render_Success then
                return Empty;
             end if;
          end;
@@ -185,7 +185,7 @@ package body Files.Rendering.Text is
    begin
       if Retry_Due (Text, Pixel_Size, Now) then
          Text.Glyphs_Valid := False;
-         if Initialize_Text (Text.Renderer, Font_Path, Pixel_Size) = Text_Render_Success then
+         if Initialize_Text (Text.Renderer, Font_Path, Pixel_Size) = Guikit.Draw.Text_Render_Success then
             Text.Ready := True;
             Text.Failed_Size := 0;
          else
@@ -213,7 +213,7 @@ package body Files.Rendering.Text is
       elsif Text.Glyphs_Valid
         and then Text.Glyph_Text = Frame.Text
         and then Text.Glyph_Overlay_Text = Frame.Overlay_Text
-        and then Text.Glyphs.Status = Text_Render_Success
+        and then Text.Glyphs.Status = Guikit.Draw.Text_Render_Success
         and then Text_Glyphs_Current (Text.Renderer, Text.Glyphs)
       then
          return Text.Glyphs;

@@ -37,16 +37,6 @@ package Files.Rendering.Layouts.Menus is
       Line_Height : Positive)
       return Context_Menu_Layout;
 
-   --  Width of the sort dropdown menu: sized to the widest sort-field label (plus
-   --  the direction indicator and padding), so every row fits even though the sort
-   --  button itself is only as wide as the active field's label.
-   --
-   --  @param Line_Height Text line height in pixels.
-   --  @return Sort-menu width in pixels.
-   function Sort_Menu_Width
-     (Line_Height : Positive)
-      return Natural;
-
    --  Geometry of the open sort dropdown: the menu rectangle (it opens upward
    --  from the bottom bar, left-aligned with the sort button), the top of its
    --  first row, the row height, and the row count (one row per sort field).
@@ -156,5 +146,17 @@ package Files.Rendering.Layouts.Menus is
    is (if Files.Commands.Context_Menus."=" (Menu.Rows (Row).Kind, Files.Commands.Context_Menus.Menu_Separator)
        then Menu.Separator_Height
        else Menu.Row_Height);
+
+private
+
+   --  Width of the sort dropdown menu: sized to the widest sort-field label (plus
+   --  the direction indicator and padding), so every row fits even though the sort
+   --  button itself is only as wide as the active field's label.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Sort-menu width in pixels.
+   function Sort_Menu_Width
+     (Line_Height : Positive)
+      return Natural;
 
 end Files.Rendering.Layouts.Menus;

@@ -1,3 +1,4 @@
+with Files.File_System.Thumbnails.Testing;
 with Files.File_System.Thumbnails;
 separate (Files_Suite.Thumbnails)
    --  A cache holding more thumbnails than one prune collects is still
@@ -59,7 +60,7 @@ separate (Files_Suite.Thumbnails)
       end;
 
       --  A budget far above what is there: only the cap forces eviction.
-      Files.File_System.Thumbnails.Prune_Thumbnail_Cache (Cache, 1_000_000, Max_Entries => Cap);
+      Files.File_System.Thumbnails.Testing.Prune_Thumbnail_Cache (Cache, 1_000_000, Max_Entries => Cap);
       Assert (Remaining < Count, "a pass over a cache past the cap still evicts");
       --  Six past a cap of four: the four collected are the four oldest,
       --  and all four are needed to make room.
@@ -67,7 +68,7 @@ separate (Files_Suite.Thumbnails)
       Assert (Only_Newest (Remaining), "the first pass evicts the oldest thumbnails and keeps the newest");
       for Pass in 1 .. Count loop
          exit when Remaining <= Cap;
-         Files.File_System.Thumbnails.Prune_Thumbnail_Cache (Cache, 1_000_000, Max_Entries => Cap);
+         Files.File_System.Thumbnails.Testing.Prune_Thumbnail_Cache (Cache, 1_000_000, Max_Entries => Cap);
       end loop;
       Assert (Remaining <= Cap, "repeated passes bring the cache back under the cap");
       --  Two past the cap, plus a margin of one: three more of the oldest.
@@ -84,7 +85,7 @@ separate (Files_Suite.Thumbnails)
                Newest := Index;
             end if;
          end loop;
-         Files.File_System.Thumbnails.Prune_Thumbnail_Cache (Cache, 150, Max_Entries => Cap);
+         Files.File_System.Thumbnails.Testing.Prune_Thumbnail_Cache (Cache, 150, Max_Entries => Cap);
          Assert (Before >= 1 and then Remaining = 1, "the budget applies once the cache is under the cap");
          Assert (Path_Exists (Thumbnail (Newest)), "the newest thumbnail left survives");
          Assert (Only_Newest (1), "the budget evicts oldest first: only the newest thumbnail is left");

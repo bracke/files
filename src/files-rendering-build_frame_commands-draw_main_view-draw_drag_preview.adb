@@ -27,7 +27,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
                       (Natural'Max
                          (Guikit.Layout.Saturating_Add
                             (Guikit.Layout.Saturating_Add (Desired_Icon, Small_Pad),
-                             Saturating_Multiply (Line_Height, 8)),
+                             Guikit.Layout.Saturating_Multiply (Line_Height, 8)),
                           Guikit.Layout.Saturating_Add (Desired_Icon, Large_Pad)),
                        Natural'Max (1, Width));
                   Offset    : constant Natural := Guikit.Layout.Scaled (14, Line_Height);
@@ -50,16 +50,17 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Main_View)
                   Pad       : constant Natural :=
                     Natural'Min (Small_Pad, Natural'Min (Panel_W / 4, Panel_H / 4));
                   Inner_W   : constant Natural :=
-                    (if Panel_W > Saturating_Multiply (Pad, 2)
-                     then Panel_W - Saturating_Multiply (Pad, 2)
+                    (if Panel_W > Guikit.Layout.Saturating_Multiply (Pad, 2)
+                     then Panel_W - Guikit.Layout.Saturating_Multiply (Pad, 2)
                      else 0);
                   Inner_H   : constant Natural :=
-                    (if Panel_H > Saturating_Multiply (Pad, 2)
-                     then Panel_H - Saturating_Multiply (Pad, 2)
+                    (if Panel_H > Guikit.Layout.Saturating_Multiply (Pad, 2)
+                     then Panel_H - Guikit.Layout.Saturating_Multiply (Pad, 2)
                      else 0);
                   Fitted_Icon : constant Natural := Natural'Min (Desired_Icon, Inner_H);
                   Icon_Size : constant Natural :=
-                    (if Inner_W > Guikit.Layout.Saturating_Add (Fitted_Icon, Saturating_Multiply (Line_Height, 2))
+                    (if Inner_W > Guikit.Layout.Saturating_Add (Fitted_Icon,
+                      Guikit.Layout.Saturating_Multiply (Line_Height, 2))
                      then Fitted_Icon
                      else 0);
                   Gap       : constant Natural :=

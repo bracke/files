@@ -1,3 +1,5 @@
+with Files.Snapshot_Policy.Settings_Keys.Testing;
+with Files.Settings.Path_References.Testing;
 with Files.Model.Creation;
 with Files.Model.Filtering;
 with Files.Preference_Types;
@@ -112,7 +114,7 @@ separate (Files_Suite.Rendering)
          Before : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Key    : constant Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key :=
-           Files.Snapshot_Policy.Settings_Keys.Snapshot_Settings_Key_Of (Settings);
+           Files.Snapshot_Policy.Settings_Keys.Testing.Snapshot_Settings_Key_Of (Settings);
       begin
          Settings.Column_Widths (Files.Preference_Types.Name_Column) := Settings.Column_Widths
            (Files.Preference_Types.Name_Column) + 24;
@@ -206,7 +208,7 @@ separate (Files_Suite.Rendering)
          --  By label a name that takes another label moves it to another
          --  band, which a patch would leave under the old header: that
          --  keystroke rebuilds the rows; one that keeps the band does not.
-         Files.Settings.Path_References.Set_Label
+         Files.Settings.Path_References.Testing.Set_Label
            (Settings, Hostkit.Fs.Join (Files.Model.Current_Path (Model), "labelled.txt"), Files.Preference_Types.Red);
          Settings.Group_By := Files.Preference_Types.Group_By_Label;
          Files.Model.Sync_Grouping (Model, Settings);

@@ -17,6 +17,8 @@ package Files.Recovery_CLI is
      (Arguments : Files.Types.String_Vectors.Vector;
       Failed    : out Boolean) return Boolean;
 
+private
+
    --  Text as --list-recoveries prints a path, one line per payload and a
    --  tab between its two fields: a tab, line feed or carriage return as
    --  \t, \n or \r, any other control byte as \xHH, and -- where '\' is not
@@ -36,4 +38,5 @@ package Files.Recovery_CLI is
    --  @param Text A printed path.
    --  @return The path.
    function Unescaped (Text : String) return String;
+
 end Files.Recovery_CLI;

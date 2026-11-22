@@ -201,17 +201,6 @@ package Files.Application.Windows.Smoke is
       Height : Natural := Files.Rendering.Layouts.Default_Window_Height)
       return Live_Smoke_Plan;
 
-   --  Evaluate a live-window smoke plan without opening a native window.
-   --
-   --  This returns the execution contract a live harness must satisfy. It does
-   --  not create windows in headless test runs.
-   --
-   --  @param Plan Live smoke plan to evaluate.
-   --  @return Structured live smoke execution result.
-   function Evaluate_Live_Window_Smoke
-     (Plan : Live_Smoke_Plan)
-      return Live_Smoke_Result;
-
    --  Execute a bounded live-window smoke test when Plan allows it.
    --
    --  This opens one native window for each startup window, polls input,
@@ -254,19 +243,6 @@ package Files.Application.Windows.Smoke is
       Scenario : Live_Smoke_Scenario)
       return Boolean;
 
-   --  Aggregate the per-scenario outcomes into the overall live smoke verdict.
-   --
-   --  The verdict is a pure, headless decision: it passes only when every
-   --  scenario passed structural analysis and every non-default scenario's
-   --  framebuffer hash differs from the default scenario's hash. It is a robust
-   --  inequality check, never a golden-image equality assertion.
-   --
-   --  @param Outcomes Per-scenario outcomes captured by the live smoke.
-   --  @return True when every scenario contributed to a pass.
-   function Scenarios_Verdict
-     (Outcomes : Scenario_Outcome_Array)
-      return Boolean;
-
    --  Classify a live-window smoke result into the CI gate taxonomy.
    --
    --  The mapping is pure and headless. A plan that was skipped or never
@@ -285,6 +261,29 @@ package Files.Application.Windows.Smoke is
 
 private
 
+   --  Evaluate a live-window smoke plan without opening a native window.
+   --
+   --  This returns the execution contract a live harness must satisfy. It does
+   --  not create windows in headless test runs.
+   --
+   --  @param Plan Live smoke plan to evaluate.
+   --  @return Structured live smoke execution result.
+   function Evaluate_Live_Window_Smoke
+     (Plan : Live_Smoke_Plan)
+      return Live_Smoke_Result;
+
+   --  Aggregate the per-scenario outcomes into the overall live smoke verdict.
+   --
+   --  The verdict is a pure, headless decision: it passes only when every
+   --  scenario passed structural analysis and every non-default scenario's
+   --  framebuffer hash differs from the default scenario's hash. It is a robust
+   --  inequality check, never a golden-image equality assertion.
+   --
+   --  @param Outcomes Per-scenario outcomes captured by the live smoke.
+   --  @return True when every scenario contributed to a pass.
+   function Scenarios_Verdict
+     (Outcomes : Scenario_Outcome_Array)
+      return Boolean;
    --  Render one window model through the snapshot, frame, text and Vulkan
    --  submission stages without opening a native window, exactly as
    --  --runtime-smoke (Headless_Render_Quality_Report) does for each startup

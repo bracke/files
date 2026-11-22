@@ -6,7 +6,7 @@ separate (Files.Rendering.Layouts.Tree)
       --  Need room for the title band, at least one row, and the button bar.
       if Panel.Width = 0
         or else Height = 0
-        or else Panel.Height <= Saturating_Multiply (Height, 2)
+        or else Panel.Height <= Guikit.Layout.Saturating_Multiply (Height, 2)
       then
          return (others => <>);
       end if;

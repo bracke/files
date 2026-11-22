@@ -1,3 +1,4 @@
+with Files.Undo.Journal.Testing;
 with Files.Operation_Results;
 separate (Files_Suite.Recovery)
    procedure Test_Truncated_Persisted_Records
@@ -110,7 +111,7 @@ separate (Files_Suite.Recovery)
       end;
 
       Ada.Directories.Create_Directory (History_Directory);
-      Files.Undo.Journal.Save_Stacks
+      Files.Undo.Journal.Testing.Save_Stacks
         (History_Directory,
          Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,
          Files.Undo.History.Undo_Entry_Vectors.Empty_Vector,

@@ -529,13 +529,19 @@ package Files.Rendering is
       Path_References_Changed : Boolean := False);
 
    --  Give Target Source's rows and what is kept with them (the row of each
-   --  visible index, the selection their flags show, the selection total
-   --  and what it was summed at), for a Build_Snapshot_Into that keeps the
-   --  rows into another snapshot than the one they were built in.
+   --  visible index, the renamed rows, the selection their flags show, the
+   --  selection total and what it was summed at, the info pane's rows and
+   --  what they were built from), for a Build_Snapshot_Into that keeps the
+   --  rows into another snapshot than the one they were built in. The one
+   --  list of what a build keeps: Build_Snapshot_Into carries its own kept
+   --  fields across its reset with Move => True, so a field kept in one
+   --  place and not the other cannot happen.
    --
    --  @param Target Snapshot to build into next, with Keep_Rows.
-   --  @param Source Snapshot whose rows are still right.
-   procedure Copy_Rows (Target : in out View_Snapshot; Source : View_Snapshot);
+   --  @param Source Snapshot whose rows are still right; left as it was
+   --    unless Move, which takes its containers instead of copying them.
+   --  @param Move Take Source's containers (cheap) rather than copy them.
+   procedure Copy_Rows (Target, Source : in out View_Snapshot; Move : Boolean := False);
 
    --  The model's visible index of the item drawn at Index in Drawn, a
    --  snapshot that may be older than the model's listing (a watched change,

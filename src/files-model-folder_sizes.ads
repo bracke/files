@@ -93,22 +93,19 @@ package Files.Model.Folder_Sizes is
       Path  : String)
       return Files.File_System_Types.Directory_Size_Result;
 
-   --  Look Path up once: whether it is measured, and its totals. For a
-   --  caller that asks for many folders (a selection's total), without the
-   --  two lookups and copies of the path Cached_For and Value make.
+   --  The selection's combined size, summed now: every selected file's
+   --  size plus each selected folder's measured size, a folder listed twice
+   --  counted once. The same rule the kept total (Selection_Total) follows;
+   --  a snapshot uses this when no total is kept for its selection.
    --
    --  @param Model Model to inspect.
-   --  @param Path Directory path, as the items hold it.
-   --  @param Known True when a measurement for Path is cached and its size
-   --    is known: a folder whose measuring failed (missing, unreadable, a
-   --    helper that died) is cached, so it is not measured again in a loop,
-   --    but is not Known, and a total counting it is incomplete.
-   --  @param Bytes Its total bytes (0 when not Known).
-   procedure Find
-     (Model : Window_Model;
-      Path  : Ada.Strings.Unbounded.Unbounded_String;
-      Known : out Boolean;
-      Bytes : out Long_Long_Integer);
+   --  @param Bytes The sum, capped at Long_Long_Integer'Last.
+   --  @param Pending True when a selected folder has no known size yet
+   --    (not measured, or measuring it failed): the total is incomplete.
+   procedure Sum_Selection
+     (Model   : Window_Model;
+      Bytes   : out Long_Long_Integer;
+      Pending : out Boolean);
 
    --  A number that moves with every change to the folder sizes measured, so
    --  a total computed from them can be kept until it does.

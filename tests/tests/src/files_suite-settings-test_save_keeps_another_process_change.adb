@@ -1,3 +1,4 @@
+with Files.Settings.Storage.Testing;
 with GNAT.OS_Lib;
 with Files.Settings.Storage;
 with Files.Settings.Path_References;
@@ -29,7 +30,8 @@ separate (Files_Suite.Settings)
       Ada.Directories.Create_Path (Favorite);
       Ada.Directories.Create_Path (Own_Star);
       Files.Commands.Reset_Shortcut_Overrides;
-      Written := Files.Settings.Storage.Save_Text (Path, Files.Settings.To_Text (Files.Settings.Default_Settings));
+      Written := Files.Settings.Storage.Testing.Save_Text (Path, Files.Settings.To_Text (
+        Files.Settings.Default_Settings));
       Assert (Written.Success, "the shared file is written");
       Loaded := Files.Settings.Storage.Load_File (Path);
       Assert (Loaded.Success, "and this process loads it");
@@ -92,7 +94,7 @@ separate (Files_Suite.Settings)
             Saved  : Files.Settings.Settings_Write_Result;
          begin
             Ada.Directories.Create_Path (Folder);
-            Written := Files.Settings.Storage.Save_Text (Shared, Files.Settings.To_Text (There));
+            Written := Files.Settings.Storage.Testing.Save_Text (Shared, Files.Settings.To_Text (There));
             Loaded := Files.Settings.Storage.Load_File (Shared);
             Assert (Written.Success and then Loaded.Success, "a second shared file is written and loaded");
             Here := Loaded.Settings;

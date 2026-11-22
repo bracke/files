@@ -1,3 +1,4 @@
+with Files.Settings.Path_References.Testing;
 with Files.Model.Jobs;
 with Files.Operations.Editing;
 with Files_Suite.Listings;
@@ -36,9 +37,9 @@ separate (Files_Suite.Operations)
          Write_Binary_File (Gone, "x");
          Write_Binary_File (Inner, "y");
          Write_Binary_File (Kept, "z");
-         Files.Settings.Path_References.Set_Label (Settings, Gone, Files.Preference_Types.Red);
-         Files.Settings.Path_References.Set_Label (Settings, Inner, Files.Preference_Types.Blue);
-         Files.Settings.Path_References.Set_Label (Settings, Kept, Files.Preference_Types.Green);
+         Files.Settings.Path_References.Testing.Set_Label (Settings, Gone, Files.Preference_Types.Red);
+         Files.Settings.Path_References.Testing.Set_Label (Settings, Inner, Files.Preference_Types.Blue);
+         Files.Settings.Path_References.Testing.Set_Label (Settings, Kept, Files.Preference_Types.Green);
          Files.Settings.Path_References.Toggle_Favorite_Path (Settings, Folder);
 
          Show_Root (Background);

@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Settings.Drafts;
 with Files.Overlays.Settings_Form;
 with Files.Settings.Testing;
@@ -27,11 +28,11 @@ separate (Files_Suite.Settings)
            Files.Settings.Drafts.Apply_Draft (Empty_Settings, Files.Model.Settings_Pane.Draft_Of (Empty_Model));
          Assert (Empty_Load.Success, "empty mapping draft remains valid after ignored edits");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "ghost"),
+           (Files.File_Types.Filetype_For_Extension (Empty_Load.Settings.Extension_Filetypes, "ghost"),
             "",
             "ignored empty-list filetype edit is not saved");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-ghost"),
+           (Files.File_Types.Icon_For_Filetype (Empty_Load.Settings.Icon_Mappings, "text/x-ghost"),
             "",
             "ignored empty-list icon edit is not saved");
          Lookup :=
@@ -50,7 +51,7 @@ separate (Files_Suite.Settings)
            Files.Settings.Drafts.Apply_Draft (Empty_Settings, Files.Model.Settings_Pane.Draft_Of (Empty_Model));
          Assert (Empty_Load.Success, "repaired misaligned filetype draft validates");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "orphan-ext"),
+           (Files.File_Types.Filetype_For_Extension (Empty_Load.Settings.Extension_Filetypes, "orphan-ext"),
             "",
             "repaired misaligned filetype edit is not saved");
 
@@ -63,7 +64,7 @@ separate (Files_Suite.Settings)
            Files.Settings.Drafts.Apply_Draft (Empty_Settings, Files.Model.Settings_Pane.Draft_Of (Empty_Model));
          Assert (Empty_Load.Success, "repaired misaligned icon draft validates");
          Files_Suite.Support.Assert_Equal
-           (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-orphan"),
+           (Files.File_Types.Icon_For_Filetype (Empty_Load.Settings.Icon_Mappings, "text/x-orphan"),
             "",
             "repaired misaligned icon edit is not saved");
 

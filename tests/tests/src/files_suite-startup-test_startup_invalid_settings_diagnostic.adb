@@ -1,3 +1,4 @@
+with Files.Application.Testing;
 separate (Files_Suite.Startup)
    procedure Test_Startup_Invalid_Settings_Diagnostic (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -18,7 +19,7 @@ separate (Files_Suite.Startup)
          "show_hidden_files = maybe" & ASCII.LF);
 
       Args.Append (To_Unbounded_String (Dir));
-      Startup := Files.Application.Resolve_Startup (Args, Settings_Path);
+      Startup := Files.Application.Testing.Resolve_Startup (Args, Settings_Path);
       Files_Suite.Support.Assert_Equal
         (Natural (Startup.Windows.Length),
          1,

@@ -194,6 +194,7 @@ package body Files_Suite.Rendering is
    procedure Test_Selection_Patch_Matches_Rebuild (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Row_Settings_Cover_The_Rows (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scroll_Patch_Matches_Rebuild (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Reuse (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scope_Chip_Has_Own_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filetype_Labels_Omit_Document (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -537,6 +538,9 @@ package body Files_Suite.Rendering is
         (T, Test_Selection_Patch_Matches_Rebuild'Access,
          "a selection change keeps the rows, and the patched snapshot equals a rebuilt one");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Reuse'Access,
+         "a kept build keeps the info pane's rows until an input of what they show changes");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Grouped_Numbers_Keep_The_Sign'Access, "digit grouping leaves a negative number's sign alone");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Counts_Use_The_Locale_Digits'Access,
@@ -644,6 +648,7 @@ package body Files_Suite.Rendering is
    procedure Test_Row_Settings_Cover_The_Rows (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Scroll_Patch_Matches_Rebuild (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Info_Pane_Reuse (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Scope_Chip_Has_Own_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

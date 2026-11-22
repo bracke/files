@@ -13,12 +13,13 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
             First_Row  : constant Root_Path_Layout := Root_Rows.First_Element;
             Row_H      : constant Natural := Root_Selector.Row_Height;
             Inner_H    : constant Natural :=
-              (if Row_H > Saturating_Multiply (Root_Selector_Padding (Line_Height), 2)
-               then Row_H - Saturating_Multiply (Root_Selector_Padding (Line_Height), 2)
+              (if Row_H > Guikit.Layout.Saturating_Multiply (Root_Selector_Padding (Line_Height), 2)
+               then Row_H - Guikit.Layout.Saturating_Multiply (Root_Selector_Padding (Line_Height), 2)
                else Row_H);
             Toolbar_Icon_Size : constant Natural :=
               Guikit.Layout.Saturating_Add
-                (Line_Height, Saturating_Multiply (Files.Rendering.Layouts.Field_Padding (Line_Height), 2));
+                (Line_Height,
+                  Guikit.Layout.Saturating_Multiply (Files.Rendering.Layouts.Field_Padding (Line_Height), 2));
             --  Uniform across rows (they share Row_Height), so compute once.
             Glyph_Size : constant Natural := Natural'Min (Toolbar_Icon_Size, Inner_H);
             List_Rows  : Guikit.List_Panel.List_Panel_Row_Vectors.Vector;
