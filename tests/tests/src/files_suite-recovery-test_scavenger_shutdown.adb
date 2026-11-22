@@ -59,6 +59,9 @@ separate (Files_Suite.Recovery)
               (not Ada.Directories.Exists
                  ("/proc/" & Ada.Strings.Fixed.Trim (Integer'Image (Child_Id), Ada.Strings.Both)),
                "shutdown reaps the coordinator before returning");
+         else
+            Files_Suite.Support.Skip
+              ("Test_Scavenger_Shutdown", "the reaped-coordinator half needs Linux and its /proc");
          end if;
       exception
          when others =>

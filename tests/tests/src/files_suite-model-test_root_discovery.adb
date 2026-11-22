@@ -6,39 +6,24 @@ with Hostkit.Mounts;
 separate (Files_Suite.Model)
    procedure Test_Root_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Target   : constant String := Join (Root, "selected-root");
       Roots_A  : Files.Types.String_Vectors.Vector;
       Roots_B  : Files.Types.String_Vectors.Vector;
       Entries  : Files.File_System_Types.Root_Entry_Vectors.Vector;
       Root_Status : Files.File_System.Roots.Testing.Root_Discovery_Diagnostics;
 
-      function Starts_With
-        (Text   : String;
-         Prefix : String)
-         return Boolean is
+      --  The filesystem type the host's mount table gives Path, or "".
+      function Filesystem_Type_Of (Path : String) return String is
       begin
-         return Text'Length >= Prefix'Length
-           and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix;
-      end Starts_With;
-
-      --  "/", a host volume folder, or inside one.
-      function Is_User_Visible_Mount_Point (Path : String) return Boolean is
-      begin
-         if Path = "/" then
-            return True;
-         end if;
-         for Place of Hostkit.Mounts.Volume_Places loop
-            if Path = To_String (Place.Path) or else Starts_With (Path, To_String (Place.Path) & "/") then
-               return True;
+         for Item of Hostkit.Mounts.Table loop
+            if To_String (Item.Mount_Point) = Path then
+               return To_String (Item.Filesystem_Type);
             end if;
          end loop;
-         return False;
-      end Is_User_Visible_Mount_Point;
+         return "";
+      end Filesystem_Type_Of;
 
    begin
       Reset_Root;
-      Ada.Directories.Create_Path (Target);
-      Write_File (Join (Target, "inside.txt"));
       Roots_A := Files.File_System.Roots.Testing.Available_Roots;
       Roots_B := Files.File_System.Roots.Testing.Available_Roots;
       Entries := Files.File_System.Roots.Available_Root_Entries;
@@ -65,6 +50,19 @@ separate (Files_Suite.Model)
                "root discovery excludes mount container rows: " & Path);
          end;
       end loop;
+      --  What each host roots its file system at: "/" where it has one
+      --  (Linux, macOS), and the drives where it has none (Windows).
+      if Hostkit.Mounts.Filesystem_Root /= "" then
+         Assert
+           ((for some Item of Entries =>
+               Item.Kind = Files.File_System_Types.Root_Filesystem
+               and then To_String (Item.Path) = Hostkit.Mounts.Filesystem_Root),
+            "the filesystem root is listed as such");
+      else
+         Assert
+           ((for some Item of Entries => Item.Kind = Files.File_System_Types.Root_Windows_Drive),
+            "a host without a filesystem root lists its drives");
+      end if;
       Files_Suite.Support.Assert_Equal
         (Natural (Roots_A.Length),
          Natural (Roots_B.Length),
@@ -77,37 +75,20 @@ separate (Files_Suite.Model)
             "root metadata path matches path projection");
          Assert (To_String (Entries.Element (Index).Label) /= "", "root metadata label is non-empty");
          Assert (To_String (Entries.Element (Index).Volume_Name) /= "", "root metadata volume name is non-empty");
-         case Entries.Element (Index).Kind is
-            when Files.File_System_Types.Root_Filesystem
-               | Files.File_System_Types.Root_Home
-               | Files.File_System_Types.Root_Current
-               | Files.File_System_Types.Root_Mount
-               | Files.File_System_Types.Root_User_Mount
-               | Files.File_System_Types.Root_Network_Mount
-               | Files.File_System_Types.Root_Windows_Drive
-               | Files.File_System_Types.Root_Favorite =>
-               null;
-         end case;
          if Entries.Element (Index).Kind = Files.File_System_Types.Root_Mount then
-            Assert
-              (Is_User_Visible_Mount_Point (To_String (Entries.Element (Index).Path)),
-               "root selector excludes system implementation mounts");
-            Files_Suite.Support.Assert_Equal
-              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|tmpfs"),
-               0,
-               "root selector excludes tmpfs mounts from proc metadata");
-            Files_Suite.Support.Assert_Equal
-              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|proc"),
-               0,
-               "root selector excludes proc mounts from proc metadata");
-            Files_Suite.Support.Assert_Equal
-              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|sysfs"),
-               0,
-               "root selector excludes sysfs mounts from proc metadata");
-            Files_Suite.Support.Assert_Equal
-              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|squashfs"),
-               0,
-               "root selector excludes snap package mounts from proc metadata");
+            declare
+               Path : constant String := To_String (Entries.Element (Index).Path);
+               --  "" for a folder in a volumes folder that is no mount itself.
+               Kind : constant String := Filesystem_Type_Of (Path);
+            begin
+               Assert
+                 (Files.File_System.Roots.Testing.Is_User_Visible_Mount_Point (Path, Runtime_Gvfs => ""),
+                  "root selector excludes system implementation mounts: " & Path);
+               --  proc, sysfs, tmpfs, a snap's squashfs: no volume of the user's.
+               Assert
+                 (Kind = "" or else not Hostkit.Mounts.Is_Pseudo (Kind),
+                  "root selector excludes pseudo filesystems: " & Path & " (" & Kind & ")");
+            end;
          end if;
          Assert (Ada.Directories.Exists (To_String (Roots_A.Element (Index))), "available root path exists");
          Assert

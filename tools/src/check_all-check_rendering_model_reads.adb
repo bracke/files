@@ -3,142 +3,93 @@ separate (Check_All)
       --  A frame reads the model and changes none of it. Every subprogram
       --  in Files.Model or any of its children that takes the Window_Model
       --  "in out" is a mutator; the list is derived from the specs, so a new
-      --  child or a new mutator is covered without editing this check.
-
-      function Lower (Text : String) return String renames Ada.Characters.Handling.To_Lower;
-
-      function Identifier_Char (C : Character) return Boolean is
-        (C in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_');
-
-      --  "files-model-selection-type_ahead.ads" -> "files.model.selection.type_ahead"
-      function Unit_Of (Path : String) return String is
-         Simple : constant String := Ada.Directories.Simple_Name (Path);
-         Stem   : String := Lower (Simple (Simple'First .. Simple'Last - 4));
-      begin
-         for C of Stem loop
-            if C = '-' then
-               C := '.';
-            end if;
-         end loop;
-         return Stem;
-      end Unit_Of;
+      --  child or a new mutator is covered without editing this check. A
+      --  rendering unit names the model in full: a use clause ("use
+      --  Files.Model.Selection", "use all type") or a renaming of a model
+      --  unit would let a mutator be called by a name this check cannot see,
+      --  so those are refused too.
+      use Tokens;
 
       Mutators : Key_Sets.Set;
 
       --  Adds Unit.Name for every subprogram in the spec at Path whose
       --  parameter list has a Window_Model "in out".
       procedure Collect (Path : String) is
-         Code : constant String :=
-           Lower (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => True));
-         Unit : constant String := Unit_Of (Path);
-         From : Positive := Code'First;
+         Unit : constant String := Unit_Of_File (Path);
       begin
+         for Name of Subprograms_With_Parameter
+           (Project_Tools.Files.Read_Raw_File (Path), Mode => "in out", Type_Name => "window_model")
          loop
-            declare
-               P : constant Natural := Ada.Strings.Fixed.Index (Code (From .. Code'Last), "procedure ");
-               F : constant Natural := Ada.Strings.Fixed.Index (Code (From .. Code'Last), "function ");
-               At_Word : constant Natural :=
-                 (if P = 0 then F elsif F = 0 then P else Natural'Min (P, F));
-               Name_First : Positive;
-               Name_Last  : Natural;
-               Cursor     : Positive;
-            begin
-               exit when At_Word = 0;
-               Name_First := Ada.Strings.Fixed.Index (Code (At_Word .. Code'Last), " ") + 1;
-               while Name_First <= Code'Last and then Code (Name_First) = ' ' loop
-                  Name_First := Name_First + 1;
-               end loop;
-               Name_Last := Name_First - 1;
-               while Name_Last < Code'Last and then Identifier_Char (Code (Name_Last + 1)) loop
-                  Name_Last := Name_Last + 1;
-               end loop;
-               Cursor := Name_Last + 1;
-               while Cursor <= Code'Last and then Code (Cursor) in ' ' | ASCII.LF | ASCII.CR | ASCII.HT loop
-                  Cursor := Cursor + 1;
-               end loop;
-               if Name_Last >= Name_First and then Cursor <= Code'Last and then Code (Cursor) = '(' then
-                  declare
-                     Depth : Natural := 0;
-                     Close : Positive := Cursor;
-                  begin
-                     for I in Cursor .. Code'Last loop
-                        if Code (I) = '(' then
-                           Depth := Depth + 1;
-                        elsif Code (I) = ')' then
-                           Depth := Depth - 1;
-                           if Depth = 0 then
-                              Close := I;
-                              exit;
-                           end if;
-                        end if;
-                     end loop;
-                     declare
-                        Params : String := Code (Cursor .. Close);
-                     begin
-                        for C of Params loop
-                           if C in ASCII.LF | ASCII.CR | ASCII.HT then
-                              C := ' ';
-                           end if;
-                        end loop;
-                        --  "Model : in out Window_Model" (or the full name),
-                        --  once runs of blanks are allowed for.
-                        declare
-                           Compact : Ada.Strings.Unbounded.Unbounded_String;
-                        begin
-                           for I in Params'Range loop
-                              if not (Params (I) = ' ' and then I > Params'First and then Params (I - 1) = ' ') then
-                                 Ada.Strings.Unbounded.Append (Compact, Params (I));
-                              end if;
-                           end loop;
-                           declare
-                              Text : constant String := Ada.Strings.Unbounded.To_String (Compact);
-                           begin
-                              if Ada.Strings.Fixed.Index (Text, "in out window_model") > 0
-                                or else Ada.Strings.Fixed.Index (Text, "in out files.model.window_model") > 0
-                              then
-                                 Mutators.Include (Unit & "." & Code (Name_First .. Name_Last));
-                              end if;
-                           end;
-                        end;
-                     end;
-                     From := Close;
-                  end;
-               else
-                  From := Natural'Max (Name_Last, At_Word) + 1;
-               end if;
-               exit when From > Code'Last;
-            end;
+            Mutators.Include (Unit & "." & To_String (Name));
          end loop;
       end Collect;
 
-      --  Every dotted name in the rendering file at Path that is a mutator.
-      procedure Check (Path : String) is
-         Code : constant String :=
-           Lower (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => True));
-         From : Positive := Code'First;
+      function Starts (Text, Prefix : String) return Boolean is
+        (Text'Length >= Prefix'Length and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix);
+
+      --  Whether Name is a model unit: Files.Model or a child of it.
+      function Is_Model (Name : String) return Boolean is
+        (Name = "files.model" or else Starts (Name, "files.model."));
+
+      --  The dotted name starting at From, lower case.
+      function Name_At (Toks : Token_List; From : Positive) return String is
+         Result : Unbounded_String;
       begin
-         loop
-            declare
-               At_Name : constant Natural := Ada.Strings.Fixed.Index (Code (From .. Code'Last), "files.model.");
-               Last    : Natural;
-            begin
-               exit when At_Name = 0;
-               Last := At_Name - 1;
-               while Last < Code'Last and then (Identifier_Char (Code (Last + 1)) or else Code (Last + 1) = '.') loop
-                  Last := Last + 1;
-               end loop;
+         for Index in From .. Past_Name_Prefix (Toks, From) loop
+            Append (Result, (if Toks (Index).Kind = Word then To_String (Toks (Index).Text) else "."));
+         end loop;
+         return To_String (Result);
+      end Name_At;
+
+      --  Every dotted name in the rendering file at Path that is a mutator,
+      --  and every use clause or renaming of a model unit.
+      procedure Check (Path : String) is
+         Toks : constant Token_List := Tokens_Of (Project_Tools.Files.Read_Raw_File (Path));
+         Index : Positive := Toks.First_Index;
+      begin
+         while Index <= Toks.Last_Index loop
+            if Is_Word (Toks (Index), "use") and then Index < Toks.Last_Index then
                declare
-                  Name : constant String := Code (At_Name .. Last);
+                  First : Positive := Index + 1;
                begin
-                  if (At_Name = Code'First or else not Identifier_Char (Code (At_Name - 1)))
-                    and then Mutators.Contains (Name)
+                  --  "use type T" makes only operators visible; "use all
+                  --  type T" makes every primitive of T visible, mutators too.
+                  if Is_Word (Toks (First), "type") then
+                     First := Toks.Last_Index + 1;
+                  elsif Is_Word (Toks (First), "all") and then First + 1 <= Toks.Last_Index
+                    and then Is_Word (Toks (First + 1), "type")
                   then
-                     Report (Path & ": a frame must not change the model (" & Name & ")");
+                     First := First + 2;
+                  end if;
+                  if First <= Toks.Last_Index and then Toks (First).Kind = Word
+                    and then Is_Model (Name_At (Toks, First))
+                  then
+                     Report (Path & ": a frame names the model in full, not through ""use " & Name_At (Toks, First)
+                             & """");
                   end if;
                end;
-               From := Last + 1;
-               exit when From > Code'Last;
-            end;
+               Index := Index + 1;
+            elsif Is_Word (Toks (Index), "renames") and then Index < Toks.Last_Index
+              and then Toks (Index + 1).Kind = Word
+              and then Is_Model (Name_At (Toks, Index + 1))
+            then
+               Report (Path & ": a frame names the model in full, not through a renaming of "
+                       & Name_At (Toks, Index + 1));
+               Index := Index + 1;
+            elsif Is_Word (Toks (Index), "files")
+              and then (Index = Toks.First_Index or else not Is_Symbol (Toks (Index - 1), "."))
+            then
+               declare
+                  Name : constant String := Name_At (Toks, Index);
+               begin
+                  if Mutators.Contains (Name) then
+                     Report (Path & ": a frame must not change the model (" & Name & ")");
+                  end if;
+                  Index := Past_Name_Prefix (Toks, Index) + 1;
+               end;
+            else
+               Index := Index + 1;
+            end if;
          end loop;
       end Check;
    begin

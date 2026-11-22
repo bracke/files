@@ -200,6 +200,15 @@ separate (Files_Suite.Model)
         (Files.File_Types.Normalized_Extension_Of ("/tmp/dir.with.dots/file"),
          "",
          "extension extraction ignores dotted directory names");
+      --  The backslash form: a path that starts the Windows way ("C:\") is
+      --  read the Windows way on every host (Hostkit.Path_Text), so its
+      --  dotted folder lends no extension either. ("...\main.adb" above
+      --  reads "adb" whichever way the backslashes are taken; only this one
+      --  tells a leaf from the whole text.)
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Normalized_Extension_Of ("C:\tmp\dir.with.dots\file"),
+         "",
+         "extension extraction ignores dotted Windows directory names");
       Files_Suite.Support.Assert_Equal
         (Files.File_Types.Detect_Filetype (Classes, Files.Types.Regular_File_Item, ".profile"),
          "application/octet-stream",

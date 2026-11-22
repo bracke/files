@@ -190,7 +190,7 @@ jobs:
             git -C "$name" fetch --depth 1 origin "$revision"
             git -C "$name" checkout --detach FETCH_HEAD
           }
-          clone_at project_tools 4f5357c7c7e8e175054e6f2cb72c302409f371c8
+          clone_at project_tools 6968b9b1ac3f395948ebc758f4c52b569102cea1
           clone_at i18n 21d4d191f1d90a16248b71dfc54b4384502cf658
           clone_at messages 6d092f9590c6b0cb0d7704ce20c33b3ac76b8d14
           clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
@@ -458,6 +458,9 @@ jobs:
       # named streams"), which expected-skips-linux.txt does not list, so the
       # test steps below fail with an unlisted skip. A local run without the
       # mount reports the same skip and still runs the fault-hook half.
+      # Test_Case_Only_Paste_Conflicts pastes onto the same volume, whose
+      # names fold case as the test root's do not; without it that test
+      # skips unlisted too.
       - name: Mount a FAT volume (Linux)
         if: runner.os == 'Linux'
         continue-on-error: true

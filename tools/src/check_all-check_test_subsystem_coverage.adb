@@ -15,8 +15,6 @@ separate (Check_All)
          --  an identifier such as Required_Size does not count, nor does Skip:
          --  a body that only skips checks nothing on any host.
          function Calls_A_Check (Code : String) return Boolean is
-            function Identifier_Char (C : Character) return Boolean is
-              (C in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_');
             function Declares (At_Name : Positive) return Boolean is
               (At_Name - Code'First >= 10
                and then (Ada.Strings.Fixed.Tail (Code (Code'First .. At_Name - 1), 10) = "procedure "
@@ -35,9 +33,9 @@ separate (Check_All)
                   loop
                      At_Word := Ada.Strings.Fixed.Index (Code (From .. Code'Last), Word);
                      exit when At_Word = 0;
-                     if At_Word = Code'First or else not Identifier_Char (Code (At_Word - 1)) then
+                     if At_Word = Code'First or else not Is_Identifier_Character (Code (At_Word - 1)) then
                         Next := At_Word + Word'Length;
-                        while Next <= Code'Last and then Identifier_Char (Code (Next)) loop
+                        while Next <= Code'Last and then Is_Identifier_Character (Code (Next)) loop
                            Next := Next + 1;
                         end loop;
                         while Next <= Code'Last and then Code (Next) in ' ' | ASCII.LF | ASCII.CR | ASCII.HT loop

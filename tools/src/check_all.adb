@@ -399,13 +399,56 @@ procedure Check_All is
    function Quotes (Pattern : String) return Boolean is
      (Ada.Strings.Fixed.Index (Pattern, """") > 0);
 
-   function Is_Ada_Identifier_Char (Char : Character) return Boolean is
-     (Char in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_');
-
    --  Ada source as tokens, for the checks that must not be fooled by a
    --  comment or a string literal that spells what they look for, nor by
    --  how a statement is laid out over lines.
    package Tokens renames Project_Tools.Ada_Source.Tokens;
+
+   --  The unit a GNAT-named source holds, lower case:
+   --  ".../files-model-selection.ads" is "files.model.selection".
+   function Unit_Of_File (Path : String) return String is
+      Result : String := Ada.Characters.Handling.To_Lower (Ada.Directories.Base_Name (Path));
+   begin
+      for C of Result loop
+         if C = '-' then
+            C := '.';
+         end if;
+      end loop;
+      return Result;
+   end Unit_Of_File;
+
+   --  Whether the body at Path is a subunit of Unit (lower case): its
+   --  "separate" names Unit, or a subunit of Unit's in the same folder. A
+   --  child unit's body (files-x-child.adb, "package body Files.X.Child")
+   --  is no subunit of Files.X, nor are its own subunits.
+   function Is_Subunit_Of (Path : String; Unit : String) return Boolean is
+      Parent : constant String := Tokens.Separate_Parent_Of (Project_Tools.Files.Read_Raw_File (Path));
+   begin
+      if Parent = "" then
+         return False;
+      elsif Parent = Unit then
+         return True;
+      elsif Parent'Length > Unit'Length + 1
+        and then Parent (Parent'First .. Parent'First + Unit'Length) = Unit & "."
+      then
+         declare
+            File : String := Parent;
+         begin
+            for C of File loop
+               if C = '.' then
+                  C := '-';
+               end if;
+            end loop;
+            declare
+               Parent_Path : constant String := Ada.Directories.Containing_Directory (Path) & "/" & File & ".adb";
+            begin
+               return Project_Tools.Files.File_Exists (Parent_Path) and then Is_Subunit_Of (Parent_Path, Unit);
+            end;
+         end;
+      else
+         return False;
+      end if;
+   end Is_Subunit_Of;
 
    --  Require the sources in src/ whose names start with Prefix (".ads" and
    --  ".adb": a unit, its children and subunits) to name nothing from
@@ -750,8 +793,9 @@ procedure Check_All is
    end Require_Contains;
 
    --  Like Require_Contains, but the pattern may be in the unit whose body is
-   --  Base_Path or in any of its subunit bodies (<stem>-*.adb): a call the
-   --  guardrail asks for still counts once a split moves it into a subunit.
+   --  Base_Path or in any of its subunits (Is_Subunit_Of: a child unit's
+   --  body named <stem>-*.adb does not count): a call the guardrail asks for
+   --  still counts once a split moves it into a subunit.
    procedure Require_Contains_In_Unit
      (Base_Path : String;
       Pattern   : String;
@@ -760,11 +804,11 @@ procedure Check_All is
 
    procedure Check_Localization_Usage is separate;
 
-   --  Like Require_Not_Contains, but also scans every subunit body of the unit
-   --  whose body is Base_Path -- the sibling files named <stem>-*.adb. A
-   --  guardrail expressed over a unit body therefore keeps covering code that
-   --  has since been moved out into subunits, so splitting a large body never
-   --  silently narrows the guardrail's reach.
+   --  Like Require_Not_Contains, but also scans every body of the unit family
+   --  whose body is Base_Path -- its subunits and its child units' bodies,
+   --  the sibling files named <stem>-*.adb. A guardrail expressed over a unit
+   --  body therefore keeps covering code that has since been moved out into
+   --  subunits or children, so a split never silently narrows its reach.
    procedure Require_Not_Contains_In_Unit
      (Base_Path : String;
       Pattern   : String;
@@ -812,7 +856,7 @@ procedure Check_All is
    --  layer (Files.Overlays) draws and localizes them.
    procedure Check_Command_And_Overlay_Layers is separate;
 
-   --  Files.Jobs imports nothing from the file system or above it.
+   --  Files.Jobs imports nothing but its own family, Files.IO and the leaf units.
    procedure Check_Job_Layer is separate;
 
    --  Nothing Files.File_System reaches, however indirectly, is Files.Settings:

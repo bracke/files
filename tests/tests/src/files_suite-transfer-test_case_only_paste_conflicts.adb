@@ -8,8 +8,28 @@ separate (Files_Suite.Transfer)
    procedure Test_Case_Only_Paste_Conflicts (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Src_Dir  : constant String := Join (Root, "case-src");
-      Dest_Dir : constant String := Join (Root, "case-dest");
+      --  Where the folders go: the test root where its volume folds case
+      --  (Windows, macOS), else a FAT volume CI mounts on Linux
+      --  (FILES_TEST_STREAMLESS_VOLUME), whose names fold too.
+      Volume   : constant String := Ada.Environment_Variables.Value ("FILES_TEST_STREAMLESS_VOLUME", "");
+      Base     : constant String :=
+        (if Volume /= "" and then not Hostkit.Fs.Folds_Name_Case (Root)
+         then Join (Volume, "files-test-case-paste")
+         else Root);
+      Src_Dir  : constant String := Join (Base, "case-src");
+      Dest_Dir : constant String := Join (Base, "case-dest");
+
+      --  An empty Base: the test root's reset, and on a volume of its own
+      --  the folder there removed.
+      procedure Clear is
+         Removed : Files.File_System.Mutation_Result;
+      begin
+         Reset_Root;
+         if Base /= Root and then Ada.Directories.Exists (Base) then
+            Removed := Files.File_System.Delete_Permanently (Base);
+            Assert (Removed.Success, "remove the folder on the case-folding volume");
+         end if;
+      end Clear;
 
       function UTF_8 (Text : Wide_Wide_String) return String is
       begin
@@ -38,7 +58,7 @@ separate (Files_Suite.Transfer)
          Routed : Files.Controller.Controller_Result;
          pragma Unreferenced (Routed);
       begin
-         Reset_Root;
+         Clear;
          Ada.Directories.Create_Path (Src_Dir);
          Ada.Directories.Create_Path (Dest_Dir);
          Write_File (Join (Src_Dir, Incoming), "SRC");
@@ -86,19 +106,21 @@ separate (Files_Suite.Transfer)
          end;
       end Check;
    begin
-      Reset_Root;
+      Clear;
       Ada.Directories.Create_Path (Dest_Dir);
-      --  Only a case-insensitive destination folds names. A Linux test root is
-      --  case-sensitive (ext4, tmpfs), and Uses_Dos_Filename_Rules reads the
-      --  real mount table, so there is no stand-in to force it here; the
-      --  Windows and macOS runs are the ones that exercise the fold.
-      if not (Hostkit.Host.Current in Hostkit.Host.Windows | Hostkit.Host.MacOS
-              or else Hostkit.Fs.Uses_Dos_Filename_Rules (Dest_Dir))
-      then
+      --  Only a destination whose volume folds case folds names: what the
+      --  paste itself asks (Files.Paste, through Hostkit.Fs.Folds_Name_Case),
+      --  not which host this is -- a case-sensitive APFS volume does not fold.
+      --  A Linux test root is case-sensitive (ext4, tmpfs); there the FAT
+      --  volume above is the one that folds.
+      if not Hostkit.Fs.Folds_Name_Case (Dest_Dir) then
          Files_Suite.Support.Skip
            ("Test_Case_Only_Paste_Conflicts", "the test root's filesystem is case-sensitive");
+         Clear;
          return;
       end if;
       Check ("Report.txt", "report.txt", "Latin");
       Check (Upper_Cyrillic, Lower_Cyrillic, "Cyrillic");
+      --  A failed run leaves the folder for the next one to remove.
+      Clear;
    end Test_Case_Only_Paste_Conflicts;

@@ -9,9 +9,6 @@ separate (Check_All)
       Short  : constant String :=
         Package_Name (Ada.Strings.Fixed.Index (Package_Name, ".", Ada.Strings.Backward) + 1 .. Package_Name'Last);
 
-      function Identifier_Char (C : Character) return Boolean is
-        (C in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_');
-
       procedure Refuse (Path, What : String) is
       begin
          Report (Path & ": " & Message & " (" & What & ")");
@@ -45,7 +42,7 @@ separate (Check_All)
                --  another package's name.
                function Alone (Position : Positive) return Boolean is
                  (Position = Code'First
-                  or else (not Identifier_Char (Code (Position - 1)) and then Code (Position - 1) /= '.'));
+                  or else (not Is_Identifier_Character (Code (Position - 1)) and then Code (Position - 1) /= '.'));
                --  Package_Name in full (Files.Folder_Size.), or the short
                --  name alone (Folder_Size.).
                Relevant : constant Boolean :=
@@ -54,7 +51,7 @@ separate (Check_All)
                           and then Code (At_Name - Parent'Length .. At_Name - 1) = Parent
                           and then Alone (At_Name - Parent'Length));
             begin
-               while Last < Code'Last and then Identifier_Char (Code (Last + 1)) loop
+               while Last < Code'Last and then Is_Identifier_Character (Code (Last + 1)) loop
                   Last := Last + 1;
                end loop;
                if Relevant

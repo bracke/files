@@ -23,9 +23,9 @@ separate (Check_All)
          while From <= Code'Last loop
             At_Index := Ada.Strings.Fixed.Index (Code (From .. Code'Last), Name);
             exit when At_Index = 0;
-            if (At_Index = Code'First or else not Is_Ada_Identifier_Char (Code (At_Index - 1)))
+            if (At_Index = Code'First or else not Is_Identifier_Character (Code (At_Index - 1)))
               and then (At_Index + Name'Length > Code'Last
-                        or else not Is_Ada_Identifier_Char (Code (At_Index + Name'Length)))
+                        or else not Is_Identifier_Character (Code (At_Index + Name'Length)))
             then
                Found := Found + 1;
             end if;
@@ -69,7 +69,7 @@ separate (Check_All)
                   Here := Ada.Strings.Fixed.Index (Code (Code'First .. Last), Header, Going => Ada.Strings.Backward);
                   exit when Here = 0;
                   if Here + Header'Length > Code'Last
-                    or else not Is_Ada_Identifier_Char (Code (Here + Header'Length))
+                    or else not Is_Identifier_Character (Code (Here + Header'Length))
                   then
                      Start := Natural'Max (Start, Here);
                      exit;

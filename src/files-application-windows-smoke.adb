@@ -4,6 +4,7 @@ with Files.UI_Types;
 with Ada.Real_Time;
 with Files.Fonts;
 with Files.Items;
+with Files.Item_Lists;
 with Ada.Strings;
 with Ada.Strings.Fixed;
 
@@ -260,16 +261,8 @@ package body Files.Application.Windows.Smoke is
             Suffix : constant String := Files.Text_Basics.Natural_Text (Index);
             Name   : constant String := "smoke-item-" & Suffix;
          begin
-            Items.Append
-              (Files.Items.Directory_Item'
-                 (Name        => To_Unbounded_String (Name),
-                  Full_Path   => To_Unbounded_String (Parent & "/" & Name),
-                  Parent_Path => To_Unbounded_String (Parent),
-                  Hidden      => False,
-                  Kind        => Files.Types.Regular_File_Item,
-                  Filetype    => To_Unbounded_String ("text/plain"),
-                  Icon_Id     => To_Unbounded_String ("text"),
-                  others      => <>));
+            --  Joined the host's way, as a listing joins a real item.
+            Items.Append (Files.Item_Lists.Make_Item (Parent, Name, Files.Types.Regular_File_Item, "text/plain"));
          end;
       end loop;
 

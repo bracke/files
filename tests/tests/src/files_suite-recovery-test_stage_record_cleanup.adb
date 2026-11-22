@@ -1,3 +1,4 @@
+with Ada.Containers.Indefinite_Ordered_Sets;
 with Files.File_System.Permissions;
 with Files.Job_Drivers.Helpers.Testing;
 with Files_Suite.Support.Timing;
@@ -19,6 +20,73 @@ separate (Files_Suite.Recovery)
       Record_Linked : Boolean := False;
       Record_Alias : constant String := Join (Root, "stage-record-hardlink");
       Children_Before : Files.Types.UString;
+      --  Linux lists each thread's children in /proc (with
+      --  CONFIG_PROC_CHILDREN); other hosts have no such list.
+      Lists_Children : constant Boolean :=
+        Hostkit.Host.Current = Hostkit.Host.Linux and then Ada.Directories.Exists ("/proc/thread-self/children");
+
+      --  This process's children, whichever of its threads started them (a
+      --  cleanup worker may be started by the orphan reaper's task, not by
+      --  the test's thread): the pids of every /proc/self/task/*/children,
+      --  sorted and joined.
+      function Process_Children return String is
+         package Pid_Sets is new Ada.Containers.Indefinite_Ordered_Sets (String);
+         Pids   : Pid_Sets.Set;
+         Search : Ada.Directories.Search_Type;
+         Item   : Ada.Directories.Directory_Entry_Type;
+         Result : Files.Types.UString;
+
+         --  The list, read as text: /proc gives its files no size, so a
+         --  read by size sees none. A thread that ended since the search
+         --  began has no list.
+         function Read_List (Path : String) return String is
+            List   : Ada.Text_IO.File_Type;
+            Result : Files.Types.UString;
+         begin
+            Ada.Text_IO.Open (List, Ada.Text_IO.In_File, Path);
+            while not Ada.Text_IO.End_Of_File (List) loop
+               Append (Result, Ada.Text_IO.Get_Line (List) & " ");
+            end loop;
+            Ada.Text_IO.Close (List);
+            return To_String (Result);
+         exception
+            when Ada.IO_Exceptions.Name_Error | Ada.IO_Exceptions.Use_Error | Ada.IO_Exceptions.End_Error =>
+               if Ada.Text_IO.Is_Open (List) then
+                  Ada.Text_IO.Close (List);
+               end if;
+               return To_String (Result);
+         end Read_List;
+      begin
+         Ada.Directories.Start_Search
+           (Search, "/proc/self/task", "*", [Ada.Directories.Directory => True, others => False]);
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Item);
+            declare
+               Name : constant String := Ada.Directories.Simple_Name (Item);
+            begin
+               if Name /= "." and then Name /= ".." then
+                  declare
+                     List  : constant String := Read_List (Ada.Directories.Full_Name (Item) & "/children");
+                     First : Positive := List'First;
+                  begin
+                     for Index in List'First .. List'Last + 1 loop
+                        if Index > List'Last or else List (Index) = ' ' then
+                           if Index > First then
+                              Pids.Include (List (First .. Index - 1));
+                           end if;
+                           First := Index + 1;
+                        end if;
+                     end loop;
+                  end;
+               end if;
+            end;
+         end loop;
+         Ada.Directories.End_Search (Search);
+         for Pid of Pids loop
+            Append (Result, Pid & " ");
+         end loop;
+         return To_String (Result);
+      end Process_Children;
       Transport_Identity : Files.Types.UString;
       Before    : Instant;
 
@@ -205,9 +273,8 @@ separate (Files_Suite.Recovery)
               "foreground staging records its identity and cleans through the same guarded path");
       Stage := To_Unbounded_String (Files.Jobs.Context.Create_Stage (Root));
       Identity := To_Unbounded_String (Files.File_Identities.Token (To_String (Stage)));
-      if Ada.Directories.Exists ("/proc/thread-self/children") then
-         Children_Before := To_Unbounded_String
-           (Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children"));
+      if Lists_Children then
+         Children_Before := To_Unbounded_String (Process_Children);
       end if;
       declare
          Owner_Directory : Files.Types.UString;
@@ -241,15 +308,17 @@ separate (Files_Suite.Recovery)
          Assert (not Ada.Directories.Exists (To_String (Stage))
                  and then not Ada.Directories.Exists (To_String (Owner_Directory)),
                  "idle foreground cleanup retries its durable record and removes its transport");
-         if Ada.Directories.Exists ("/proc/thread-self/children") then
+         if Lists_Children then
             for Attempt in Files_Suite.Support.Timing.Polling loop
-               exit when Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children") =
-                 To_String (Children_Before);
+               exit when Process_Children = To_String (Children_Before);
             end loop;
             Files_Suite.Support.Assert_Equal
-              (Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children"),
+              (Process_Children,
                To_String (Children_Before),
                "idle cleanup leaves no child process waiting for a later job API call");
+         else
+            Files_Suite.Support.Skip
+              ("Test_Stage_Record_Cleanup", "the leftover-child half needs Linux's /proc children lists");
          end if;
       end;
       --  Cleanup rightly refuses the unowned and linked records planted

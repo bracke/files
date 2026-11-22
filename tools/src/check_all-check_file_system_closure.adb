@@ -27,22 +27,6 @@ separate (Check_All)
       --  The files a settings unit was reached from, each reported once.
       Entries : Parent_Maps.Map;
 
-      function Lower (Text : String) return String renames Ada.Characters.Handling.To_Lower;
-
-      --  Text without the blanks, tabs and line ends around it.
-      function Trimmed (Text : String) return String is
-         First : Positive := Text'First;
-         Last  : Natural := Text'Last;
-      begin
-         while First <= Last and then Text (First) in ' ' | ASCII.HT | ASCII.LF | ASCII.CR | ASCII.FF loop
-            First := First + 1;
-         end loop;
-         while Last >= First and then Text (Last) in ' ' | ASCII.HT | ASCII.LF | ASCII.CR | ASCII.FF loop
-            Last := Last - 1;
-         end loop;
-         return Text (First .. Last);
-      end Trimmed;
-
       --  Note File (a simple name in src) reached from From, once.
       procedure Reach (File, From : String) is
       begin
@@ -55,7 +39,7 @@ separate (Check_All)
       --  The files a with of Unit brings in: its spec and parents' specs,
       --  its body and that body's subunits.
       procedure Reach_Unit (Unit, From : String) is
-         Stem : String := Lower (Unit);
+         Stem : String := Ada.Characters.Handling.To_Lower (Unit);
          Dash : Natural;
       begin
          for C of Stem loop
@@ -69,13 +53,9 @@ separate (Check_All)
             end if;
          end loop;
          for Path of Project_Tools.Files.List_Tree (Src, Stem & "-*.adb", Generated_Directories) loop
-            declare
-               Code : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (To_String (Path))));
-            begin
-               if Ada.Strings.Fixed.Index (Code, "separate") > 0 then
-                  Reach (Ada.Directories.Simple_Name (To_String (Path)), From);
-               end if;
-            end;
+            if Is_Subunit_Of (To_String (Path), Ada.Characters.Handling.To_Lower (Unit)) then
+               Reach (Ada.Directories.Simple_Name (To_String (Path)), From);
+            end if;
          end loop;
          Dash := Ada.Strings.Fixed.Index (Stem, "-", Ada.Strings.Backward);
          while Dash > 0 loop
@@ -88,45 +68,15 @@ separate (Check_All)
 
       --  Every Files unit File's with clauses name.
       procedure Follow (File : String) is
-         Code  : constant String :=
-           Code_Of (To_String (Project_Tools.Text.Read_Text_File (Src & "/" & File)), Blank_Strings => True);
-         Start : Positive := Code'First;
-         Stop  : Natural;
       begin
-         while Start <= Code'Last loop
-            Stop := Ada.Strings.Fixed.Index (Code (Start .. Code'Last), ";");
-            exit when Stop = 0;
+         for Unit of Tokens.With_Units_Of (Project_Tools.Files.Read_Raw_File (Src & "/" & File)) loop
             declare
-               Clause : constant String := Lower (Trimmed (Code (Start .. Stop - 1)));
-               Kept   : constant String := Trimmed
-                 (if Clause'Length > 8 and then Clause (Clause'First .. Clause'First + 7) = "limited "
-                  then Clause (Clause'First + 8 .. Clause'Last) else Clause);
-               Names  : constant String := Trimmed
-                 (if Kept'Length > 8 and then Kept (Kept'First .. Kept'First + 7) = "private "
-                  then Kept (Kept'First + 8 .. Kept'Last) else Kept);
-               From   : Positive;
+               Name : constant String := To_String (Unit);
             begin
-               --  Context clauses come first; the first other declaration ends them.
-               exit when not (Names'Length > 5 and then Names (Names'First .. Names'First + 4) = "with ")
-                 and then not (Names'Length > 4 and then Names (Names'First .. Names'First + 3) = "use ")
-                 and then not (Names'Length > 6 and then Names (Names'First .. Names'First + 5) = "pragma");
-               if Names'Length > 5 and then Names (Names'First .. Names'First + 4) = "with " then
-                  From := Names'First + 5;
-                  for I in Names'First + 5 .. Names'Last + 1 loop
-                     if I > Names'Last or else Names (I) = ',' then
-                        declare
-                           Unit : constant String := Trimmed (Names (From .. I - 1));
-                        begin
-                           if Unit'Length > 6 and then Unit (Unit'First .. Unit'First + 5) = "files." then
-                              Reach_Unit (Unit, File);
-                           end if;
-                        end;
-                        From := I + 1;
-                     end if;
-                  end loop;
+               if Name'Length > 6 and then Name (Name'First .. Name'First + 5) = "files." then
+                  Reach_Unit (Name, File);
                end if;
             end;
-            Start := Stop + 1;
          end loop;
       end Follow;
 

@@ -18,7 +18,7 @@ separate (Check_All)
 
          --  Whether Text could be a linker symbol: name characters alone.
          function Is_Symbol_Name (Text : String) return Boolean is
-           (Text'Length > 0 and then (for all C of Text => Is_Ada_Identifier_Char (C)));
+           (Text'Length > 0 and then (for all C of Text => Is_Identifier_Character (C)));
 
          function Names_A_Reader (Text : String) return Boolean is
            (Contains (Text, "getenv") or else Contains (Text, "nsgetenviron"));

@@ -351,23 +351,28 @@ separate (Files_Suite.Rendering)
          --  the filter is folded once, not once per item.
          Start := Ada.Real_Time.Clock;
          for Round in 1 .. Rounds loop
-            Files.Model.Filtering.Set_Filter (Model, (if Round mod 2 = 0 then "ITEM1" else "Item12"));
+            --  The names are "item N" ('Image keeps the sign's space).
+            Files.Model.Filtering.Set_Filter (Model, (if Round mod 2 = 0 then "Item 12" else "ITEM 1"));
             Refresh;
          end loop;
          Ada.Text_IO.Put_Line ("large-folder: filter keystroke and refresh" & Per_Round (Start, Rounds));
+         --  "item 12", "item 120".."item 129", ... "item 12999": 1 + 10 + 100 + 1000.
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Visible_Count (Model), 1_111, "the filter shows every name holding it");
          declare
             Matches : Natural := 0;
          begin
             Start := Ada.Real_Time.Clock;
             for Round in 1 .. Rounds loop
                for Item of Items loop
-                  if Files.Text_Case.Testing.Contains_Case_Insensitive (To_String (Item.Name), "Item12") then
+                  if Files.Text_Case.Testing.Contains_Case_Insensitive (To_String (Item.Name), "Item 12") then
                      Matches := Matches + 1;
                   end if;
                end loop;
             end loop;
             Ada.Text_IO.Put_Line ("large-folder: per-item filter folding (replaced)" & Per_Round (Start, Rounds));
-            Assert (Matches = Rounds * Files.Model.Visible_Count (Model), "both matchers agree");
+            Files_Suite.Support.Assert_Equal
+              (Matches, Rounds * Files.Model.Visible_Count (Model), "both matchers agree");
          end;
 
          --  Narrowing the filter with every item selected drops the hidden
@@ -379,13 +384,16 @@ separate (Files_Suite.Rendering)
                Files.Model.Filtering.Set_Filter (Model, "");
                Files.Model.Selection.Select_All_Visible (Model);
                Start := Ada.Real_Time.Clock;
-               Files.Model.Filtering.Set_Filter (Model, "item1");
+               Files.Model.Filtering.Set_Filter (Model, "item 1");
                Spent := Spent + Ada.Real_Time.To_Duration (Ada.Real_Time.Clock - Start);
             end loop;
             Ada.Text_IO.Put_Line
               ("large-folder: filter narrowed after select all" & Duration'Image (Spent / Rounds * 1000) & " ms");
-            Assert
-              (Files.Model.Selection.Selected_Count (Model) = Files.Model.Visible_Count (Model),
+            --  "item 1", "item 10".."item 19", ... "item 19999".
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Visible_Count (Model), 11_111, "the narrowed filter shows every name holding it");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Selection.Selected_Count (Model), Files.Model.Visible_Count (Model),
                "the selection keeps exactly the items still shown");
          end;
          Files.Model.Filtering.Set_Filter (Model, "");

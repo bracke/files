@@ -2,14 +2,16 @@
 -- each as "Test: reason", exactly as the test's Skip call gives them: a listed
 -- test that skips for another reason fails the run as an unlisted skip does.
 Test_Autonomous_Cleanup_Worker: the stopped-worker half needs Linux and its /proc
+Test_Copy_Encrypted_File: EFS encryption is Windows'
 Test_Copy_Extended_Metadata: the xattr and POSIX ACL fixture is Linux C
+Test_Copy_Without_Xattr_Support: the xattr fault hooks lsetxattr in Linux-only C
 Test_Deep_Tree_Copy: the 1025-deep fixture passes the host's path limit
-Test_Hardlink_Dangling_Symlink: link() follows a symlink here; a dangling one fails
 Test_Hard_Linked_Symbolic_Links: link() follows a symlink here; a dangling one fails
+Test_Hardlink_Dangling_Symlink: link() follows a symlink here; a dangling one fails
 Test_Invalid_UTF8_Names: this filesystem would not store a name that is not valid UTF-8
 Test_Move_Ownership: the owning-group fixture is Linux-only C
-Test_Sparse_Transfers: the second test volume (HFS+) has no sparse files
-Test_Staging_Default_ACL: the default-ACL fixture is a Linux POSIX ACL
-Test_Copy_Without_Xattr_Support: the xattr fault hooks lsetxattr in Linux-only C
 Test_Recycle_Bin_Trash_View: needs the Windows Recycle Bin
-Test_Copy_Encrypted_File: EFS encryption is Windows'
+Test_Scavenger_Shutdown: the reaped-coordinator half needs Linux and its /proc
+Test_Sparse_Transfers: the second test volume (HFS+) has no sparse files
+Test_Stage_Record_Cleanup: the leftover-child half needs Linux's /proc children lists
+Test_Staging_Default_ACL: the default-ACL fixture is a Linux POSIX ACL

@@ -14,7 +14,11 @@ separate (Check_All)
          return;
       end if;
 
-      --  Its subunits: the sibling bodies <stem>-*.adb.
+      --  Every body named <stem>-*.adb: its subunits, and its child units'
+      --  bodies and their subunits too. A refusal over the whole family is
+      --  only stricter (Require_Contains_In_Unit, the other way round, counts
+      --  real subunits alone), and the family is what some guards mean: the
+      --  headless smoke the windows body's guards name is its Smoke child.
       for Subunit of Project_Tools.Files.List_Tree (Dir, Stem & "-?*.adb", Generated_Directories) loop
          Require_Not_Contains (To_String (Subunit), Pattern, Message);
       end loop;

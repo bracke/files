@@ -21,7 +21,7 @@ separate (Check_All)
       --  Only a body has subunits; a spec (.ads) is covered on its own.
       if Ada.Directories.Extension (Base_Path) = "adb" then
          for Subunit of Project_Tools.Files.List_Tree (Dir, Stem & "-?*.adb", Generated_Directories) loop
-            if Holds (To_String (Subunit)) then
+            if Is_Subunit_Of (To_String (Subunit), Unit_Of_File (Base_Path)) and then Holds (To_String (Subunit)) then
                return;
             end if;
          end loop;
