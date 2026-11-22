@@ -4,7 +4,13 @@ with Zlib;
 package Files.Operations.Archives.Writing is
    --  First_Unextractable for a destination folder, asked of its volume
    --  (Hostkit.Fs.Uses_Dos_Filename_Rules, Folds_Name_Case), so an
-   --  extraction names the entry it refuses.
+   --  extraction names the entry it refuses. The one check of the names an
+   --  extraction makes: on a DOS-rules filesystem (FAT, exFAT, NTFS) every
+   --  name segment must be one Windows can store -- no device names such as
+   --  nul or aux.c, no trailing dot -- and on a case-insensitive one (those,
+   --  and macOS volumes) two files whose names differ only in case would
+   --  overwrite each other, so they count as duplicates. "" (no destination
+   --  known) checks by the host's own rules alone.
    --
    --  @param Entries Catalogue returned by Zlib before extraction.
    --  @param Destination Folder the entries are extracted into.
@@ -16,27 +22,21 @@ package Files.Operations.Archives.Writing is
    --  Check that an archive catalogue can be extracted without exhausting the
    --  destination volume or crossing the application's structural limits.
    --  Unknown volume figures still receive conservative absolute and expansion
-   --  bounds.  Known figures retain headroom for the running system.
+   --  bounds.  Known figures retain headroom for the running system. The
+   --  entries' names are First_Unextractable_At's to check, before this.
    --
    --  @param Entries Catalogue returned by Zlib before extraction.
    --  @param Free_Bytes Bytes currently available on the destination volume.
    --  @param Free_Bytes_Known True when Free_Bytes is authoritative.
    --  @param Free_Inodes Inodes currently available on the destination volume.
    --  @param Free_Inodes_Known True when Free_Inodes is authoritative.
-   --  @param Destination Folder the entries are extracted into, or "" when
-   --    unknown. On a DOS-rules filesystem (FAT, exFAT, NTFS) every name
-   --    segment must be one Windows can store -- no device names such as nul
-   --    or aux.c, no trailing dot -- and on a case-insensitive one (those, and
-   --    macOS volumes) two files whose names differ only in case would
-   --    overwrite each other, so they count as duplicates.
    --  @return True only when every resource bound is satisfied.
    function Extraction_Is_Within_Limits
      (Entries            : Zlib.Archive_Entry_Array;
       Free_Bytes         : Long_Long_Integer;
       Free_Bytes_Known   : Boolean;
       Free_Inodes        : Long_Long_Integer;
-      Free_Inodes_Known  : Boolean;
-      Destination        : String := "") return Boolean;
+      Free_Inodes_Known  : Boolean) return Boolean;
 
    --  Whether an archive entry name can be stored: ZIP and 7z entry names use
    --  '/' as their only separator and readers treat '\' and ':' as path

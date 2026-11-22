@@ -1,8 +1,6 @@
 with Files.File_System_Types;
 with Files.File_System;
 with Files.Model.Recent;
-with Files.Model.Filtering;
-with Files.File_System.Search;
 with Files.File_System.Trash;
 with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;

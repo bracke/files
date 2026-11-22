@@ -44,9 +44,12 @@ separate (Files.Controller)
       --  in force for the session (Take_In_Settings, which reads the folder
       --  again only for a step that changes what it lists: the hidden filter
       --  or the type maps), and the file is written once, when the key is
-      --  let go (the window layer saves then). A durable write per repeat
-      --  held the window. A step the file could not hold is refused as
-      --  Commit refuses one: said in the error line, the draft kept.
+      --  let go (the window layer writes what is in force then,
+      --  Persist_Held_Settings). A durable write per repeat held the window.
+      --  A step the file could not hold is refused as Commit refuses one,
+      --  said in the error line; the pane goes back to the value in force,
+      --  so letting go writes the steps that were accepted and the pane
+      --  shows what was written.
       if Files.Model.Settings_Pane.Key_Repeat (Model) then
          case Files.Settings.Storage.Decide_Commit (Settings, Final) is
             when Files.Settings.Storage.Commit_Refused =>
@@ -54,7 +57,6 @@ separate (Files.Controller)
                Operation.Status := Files.Operation_Results.Operation_Failed;
                Operation.Error_Key := Saved.Error_Key;
                Operation.Path := To_Unbounded_String (Settings_Path);
-               return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
             when Files.Settings.Storage.Commit_Accepted =>
                declare
                   Before : constant Files.Settings.Settings_Model := Settings;

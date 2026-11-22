@@ -274,7 +274,7 @@ package body Files.Desktop_Applications is
       end Offered;
    begin
       for Base of Data_Directories loop
-         Folders.Append (Base & "/applications");
+         Folders.Append (To_Unbounded_String (Hostkit.Fs.Join (To_String (Base), "applications")));
       end loop;
 
       for Item of Hostkit.Desktop_Entries.Scan

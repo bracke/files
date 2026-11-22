@@ -69,7 +69,6 @@ begin
                  First_Free_Leaf
                    (Destination_Directory, Files.Name_Parts.Name_Stem (Name, Is_Folder),
                     Files.Name_Parts.Name_Extension (Name, Is_Folder), Copy_Marker'Access));
-            Dest_Name : constant String := Files.Name_Parts.Leaf_Of (Dest_Path);
             Identity, Revision : Files.Types.UString;
             Mutation  : constant Files.File_System.Mutation_Result :=
               Files.File_System.Transfer.Copy_Tree (Source, Dest_Path, Identity, Revision, Copy_Batch);
@@ -89,7 +88,7 @@ begin
                   Provenance => Files.Undo.History.Published));
             Checkpoint_Undo (Model, Progress);
             if not Created_Any then
-               First_Created := To_Unbounded_String (Dest_Name);
+               First_Created := To_Unbounded_String (Dest_Path);
                Created_Any := True;
             end if;
          end;
@@ -104,7 +103,8 @@ begin
 
       --  Reload the active view; an ordinary folder selects the first copy.
       declare
-         Result : constant Operation_Result := Reload_Current_Directory (Model, Settings, To_String (First_Created));
+         Result : constant Operation_Result :=
+           Reload_Current_Directory (Model, Settings, Select_Path => To_String (First_Created));
       begin
          Note_Undo_Outcome (Model, Undo, Result);
          return Result;

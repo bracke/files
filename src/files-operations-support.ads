@@ -3,6 +3,7 @@ with Ada.Strings.Unbounded;
 with Files.Items;
 with Files.Model;
 with Files.Settings;
+with Files.UI_Types;
 
 --  Internal helpers shared by the Files.Operations subunits (one per operation).
 --  A private child so only the Files.Operations hierarchy can see it; the public
@@ -82,18 +83,40 @@ private package Files.Operations.Support is
 
    --  Reload the model's current directory, optionally selecting Select_Name or
    --  restoring the complete current selection, and refresh its signature.
+   --  Search results are searched again instead, in the same scope, so an
+   --  operation run on them leaves them shown, brought up to date; their
+   --  names are not unique, so they keep the selection by path, and only
+   --  Select_Path picks an item among them.
    --
    --  @param Model Window model whose current directory is reloaded.
    --  @param Settings Settings model used to classify the reload.
    --  @param Select_Name Item name to re-select after reload, or "" for none.
    --  @param Preserve_Selection Restore all current selected paths when no
    --    Select_Name is supplied.
+   --  @param Select_Path Full path of the item to select, winning over
+   --    Select_Name: an item an operation made beside its source, which is
+   --    selected where the reloaded view lists it and nowhere else.
    --  @return Success result, or a failed result when the reload fails.
    function Reload_Current_Directory
      (Model       : in out Files.Model.Window_Model;
       Settings    : Files.Settings.Settings_Model;
       Select_Name : String := "";
-      Preserve_Selection : Boolean := False)
+      Preserve_Selection : Boolean := False;
+      Select_Path : String := "")
+      return Operation_Result;
+
+   --  Replace the view with the recursive search results for the filter
+   --  text below the current folder, in Scope (Navigation.Run_Search, which
+   --  refuses first, says what is shown).
+   --
+   --  @param Model Window model containing the current path and filter query.
+   --  @param Settings Settings model used for classification.
+   --  @param Scope Search by name or by content.
+   --  @return Structured operation result.
+   function Search_Current_Folder
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Scope    : Files.UI_Types.Tree_Search_Scope)
       return Operation_Result;
 
    --  A batch (duplicate, extract, links) stopped by a failure: when some

@@ -235,7 +235,7 @@ package body Files_Suite.Settings is
          "a held arrow's steps on a setting are in force at once and written once, when it is let go");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Held_Key_Refused_Step'Access,
-         "a held arrow's step the settings file cannot hold is refused and said, the value kept in the pane");
+         "a held arrow's step the settings file cannot hold is refused and said; letting go writes the steps in force");
    end Register_Tests;
 
    --  A settings text exercising every section the parsing and open-action

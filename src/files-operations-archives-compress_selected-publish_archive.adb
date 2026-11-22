@@ -1,6 +1,6 @@
 separate (Files.Operations.Archives.Compress_Selected)
 function Publish_Archive
-  (Stage, Staged, Output_Path, Archive_Name : String; Status : Zlib.Status_Code)
+  (Stage, Staged, Output_Path : String; Status : Zlib.Status_Code)
    return Operation_Result
 is
    --  What identifies the published archive, for its Undo.
@@ -29,7 +29,7 @@ begin
 
    --  Reload so the new archive appears, and select it.
    declare
-      Reloaded : constant Operation_Result := Reload_Current_Directory (Model, Settings, Archive_Name);
+      Reloaded : constant Operation_Result := Reload_Current_Directory (Model, Settings, Select_Path => Output_Path);
    begin
       if Reloaded.Status /= Operation_Success then
          null;

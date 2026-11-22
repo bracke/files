@@ -82,6 +82,35 @@ separate (Files_Suite.Transfer)
             Assert (File_Has_Bytes (Join (Join (Root, "four-copied"), [Name]), "linked bytes"),
                     "every name of a refused link holds the source's bytes: " & Name);
          end loop;
+
+         --  Two linked files, each with both names in a folder of its own
+         --  (the walk lists a folder in no set order but copies it whole
+         --  before the next): once the first file's link was refused, the
+         --  second is copied as a plain file, its first name included, so
+         --  the walk reads no more than it did for one linked file.
+         declare
+            Pairs : constant String := Join (Root, "two-files");
+         begin
+            Ada.Directories.Create_Path (Join (Pairs, "x"));
+            Ada.Directories.Create_Path (Join (Pairs, "y"));
+            Write_Binary_File (Join (Pairs, "x/x1"), "first file");
+            Write_Binary_File (Join (Pairs, "y/y1"), "second file");
+            Assert (Hostkit.Fs.Create_Hard_Link (Join (Pairs, "x/x1"), Join (Pairs, "x/x2"))
+                    and then Hostkit.Fs.Create_Hard_Link (Join (Pairs, "y/y1"), Join (Pairs, "y/y2")),
+                    "prepare two linked files");
+            Files.File_System.Testing.Refuse_Hard_Links (True);
+            Reads := Files.File_System.Testing.Copy_Digest_Reads;
+            Mutation := Files.File_System.Transfer.Copy_Tree (Pairs, Join (Root, "two-files-copied"));
+            Files.File_System.Testing.Refuse_Hard_Links (False);
+            Assert (Mutation.Success, "copy two linked files where links are refused");
+            Files_Suite.Support.Assert_Equal
+              (Files.File_System.Testing.Copy_Digest_Reads - Reads, Two_Reads,
+               "a second linked file after a refused link reads nothing to link it");
+            Assert (File_Has_Bytes (Join (Root, "two-files-copied/x/x2"), "first file")
+                    and then File_Has_Bytes (Join (Root, "two-files-copied/y/y1"), "second file")
+                    and then File_Has_Bytes (Join (Root, "two-files-copied/y/y2"), "second file"),
+                    "every name of both files holds its bytes");
+         end;
       end;
       Remote.Create ("files-test-hard-link-move-");
       if Remote.Path = "" then

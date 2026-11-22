@@ -21,12 +21,20 @@ separate (Files_Suite.Operations)
       Assert_Equal (Key_Of (Busy), "error.io.busy", "a busy device has its key");
       Assert_Equal (Key_Of (Text_Busy), "error.io.busy", "a running program reads as busy");
       Assert_Equal (Key_Of (Name_Too_Long), "error.io.name_too_long", "a long name has its key");
+      --  A link limit is told apart for the copy alone: it names no message,
+      --  so its errno reads as the caller's own key.
+      Assert_Equal (Key_Of (Too_Many_Links), "", "a link limit names no message");
+      if Hostkit.Errors.Code_Of (Too_Many_Links) /= 0 then
+         Expect (Hostkit.Errors.Code_Of (Too_Many_Links), Fallback, "EMLINK");
+      end if;
       for Item in Cause loop
-         if Hostkit.Errors.Code_Of (Item) /= 0 then
-            Expect (Hostkit.Errors.Code_Of (Item), Key_Of (Item), Cause'Image (Item));
+         if Item /= Too_Many_Links then
+            if Hostkit.Errors.Code_Of (Item) /= 0 then
+               Expect (Hostkit.Errors.Code_Of (Item), Key_Of (Item), Cause'Image (Item));
+            end if;
+            Assert (Is_Cause_Key (Key_Of (Item)), Cause'Image (Item) & " key is a cause key");
+            Assert (Files.Localization.Text (Key_Of (Item)) /= Key_Of (Item), Key_Of (Item) & " is localized");
          end if;
-         Assert (Is_Cause_Key (Key_Of (Item)), Cause'Image (Item) & " key is a cause key");
-         Assert (Files.Localization.Text (Key_Of (Item)) /= Key_Of (Item), Key_Of (Item) & " is localized");
       end loop;
       case Hostkit.Host.Current is
          when Hostkit.Host.Linux =>

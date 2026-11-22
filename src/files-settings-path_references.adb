@@ -279,15 +279,20 @@ package body Files.Settings.Path_References is
       --  Every stored favorite is valid and none repeats (Add_Favorite,
       --  Toggle_Favorite_Path, Move_Path_References). Is_Favorite and
       --  Label_Of take the first stored label, so keep the first of a path's.
+      --  A stored path is keyed by the rule the asked paths are (Asked_Key),
+      --  not by its own volume's: a folder's rows include its mount points,
+      --  whose volume may decide otherwise than the folder's, and matching
+      --  needs both sides in one form.
       for Existing of Settings.Paths.Favorites loop
-         Result.Favorites.Include (Key (To_String (Existing)));
+         Result.Favorites.Include (Asked_Key (Result, To_String (Existing)));
       end loop;
       for Entry_Value of Settings.Paths.Labels loop
          declare
-            Path : constant String := To_String (Entry_Value.Path);
+            Path  : constant String := To_String (Entry_Value.Path);
+            Keyed : constant String := Asked_Key (Result, Path);
          begin
-            if Persistent_Path_Is_Valid (Path) and then not Result.Labels.Contains (Key (Path)) then
-               Result.Labels.Insert (Key (Path), Entry_Value.Label);
+            if Persistent_Path_Is_Valid (Path) and then not Result.Labels.Contains (Keyed) then
+               Result.Labels.Insert (Keyed, Entry_Value.Label);
             end if;
          end;
       end loop;

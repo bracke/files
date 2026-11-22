@@ -78,8 +78,7 @@ begin
               Free_Bytes        => Capacity.Free_Bytes,
               Free_Bytes_Known  => Capacity.Available,
               Free_Inodes       => Capacity.Free_Inode_Count,
-              Free_Inodes_Known => Capacity.Inodes_Known,
-              Destination       => Destination)
+              Free_Inodes_Known => Capacity.Inodes_Known)
          then
             --  The stage was made before the archive was read.
             Discard_Stage (Stage);
@@ -118,7 +117,7 @@ begin
             Provenance => Files.Undo.History.Published));
       Checkpoint_Undo (Model, Progress);
       if not Extracted_Any then
-         First_Created := To_Unbounded_String (Dest_Name);
+         First_Created := To_Unbounded_String (Dest_Dir);
          Extracted_Any := True;
       end if;
    exception

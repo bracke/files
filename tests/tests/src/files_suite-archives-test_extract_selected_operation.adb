@@ -54,23 +54,30 @@ separate (Files_Suite.Archives)
         (Files.Operations.Archives.Writing.Extraction_Is_Within_Limits
            (Catalogue, 1_000, True, 100, True),
          "a small archive fits within known destination resources");
+      --  The names are checked once, by First_Unextractable_At; the limits
+      --  are resources alone.
       Catalogue (1).Name := To_Unbounded_String ("../report.txt");
-      Assert
-        (not Files.Operations.Archives.Writing.Extraction_Is_Within_Limits
-           (Catalogue, 1_000, True, 100, True),
+      Files_Suite.Support.Assert_Equal
+        (Files.Operations.Archives.Writing.First_Unextractable_At (Catalogue, ""), "../report.txt",
          "archive traversal names are rejected before extraction");
-      Catalogue (1).Name := To_Unbounded_String ("report.txt");
-      Catalogue (2).Name := To_Unbounded_String ("report.txt");
-      Assert
-        (not Files.Operations.Archives.Writing.Extraction_Is_Within_Limits
-           (Catalogue, 1_000, True, 100, True),
-         "duplicate archive names are rejected before extraction");
-      Catalogue (1).Name := To_Unbounded_String ("docs/");
-      Catalogue (2).Name := To_Unbounded_String ("docs/");
       Assert
         (Files.Operations.Archives.Writing.Extraction_Is_Within_Limits
            (Catalogue, 1_000, True, 100, True),
+         "the resource limits leave names to the name check");
+      Catalogue (1).Name := To_Unbounded_String ("report.txt");
+      Catalogue (2).Name := To_Unbounded_String ("report.txt");
+      Files_Suite.Support.Assert_Equal
+        (Files.Operations.Archives.Writing.First_Unextractable_At (Catalogue, ""), "report.txt",
+         "duplicate archive names are rejected before extraction");
+      Catalogue (1).Name := To_Unbounded_String ("docs/");
+      Catalogue (2).Name := To_Unbounded_String ("docs/");
+      Files_Suite.Support.Assert_Equal
+        (Files.Operations.Archives.Writing.First_Unextractable_At (Catalogue, ""), "",
          "a repeated directory entry does not block extraction");
+      Assert
+        (Files.Operations.Archives.Writing.Extraction_Is_Within_Limits
+           (Catalogue, 1_000, True, 100, True),
+         "nor do the limits");
       Catalogue (1).Name := To_Unbounded_String ("report.txt");
       Catalogue (2).Name := To_Unbounded_String ("notes.txt");
       Assert

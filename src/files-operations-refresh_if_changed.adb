@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Model.Jobs;
 separate (Files.Operations)
 function Refresh_If_Changed
@@ -8,6 +9,11 @@ is
 begin
    if Files.Model.Jobs.Background_Transfers (Model) then
       return Files.Refresh.Start (Model, Settings);
+   end if;
+   --  A folder's change does not replace search results with its listing,
+   --  as Files.Refresh.Start leaves them unless forced.
+   if Files.Model.Filtering.Search_Results_Are_Active (Model) then
+      return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
    end if;
    declare
       Change : constant Files.File_System.Directory_Change_Result :=

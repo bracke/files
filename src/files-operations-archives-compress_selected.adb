@@ -85,7 +85,7 @@ is
    --  selected. A failed write, a cancel or a refused publish fails the
    --  operation and publishes nothing.
    function Publish_Archive
-     (Stage, Staged, Output_Path, Archive_Name : String; Status : Zlib.Status_Code)
+     (Stage, Staged, Output_Path : String; Status : Zlib.Status_Code)
       return Operation_Result
    is separate;
 begin
@@ -132,7 +132,7 @@ begin
       Stage        : constant String := Files.Jobs.Context.Create_Stage (Directory);
       Staged       : constant String := Hostkit.Fs.Join (Stage, Archive_Name);
    begin
-      return Publish_Archive (Stage, Staged, Output_Path, Archive_Name, Write_Staged (Staged));
+      return Publish_Archive (Stage, Staged, Output_Path, Write_Staged (Staged));
    exception
       when others =>
          Discard_Stage (Stage);

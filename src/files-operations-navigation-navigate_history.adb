@@ -17,6 +17,8 @@ is
    Had_Rename     : constant Boolean := Files.Model.Rename.Is_Active (Model);
    Rename_Text    : constant String := Files.Model.Rename.Text (Model);
    Rename_Source  : constant String := Files.Model.Selection.Selected_Name (Model);
+   --  The caret in the field being named (Begin_Create_* puts it at the end).
+   Rename_Caret   : constant Natural := (if Had_Rename then Files.Model.Text_Cursor_Position (Model) else 0);
    Origin         : constant Files.Model.Navigation_Mark := Files.Model.Mark_Navigation (Model);
    Available      : constant Boolean :=
      (if Direction = History_Back
@@ -49,12 +51,17 @@ begin
          Files.Model.Return_To (Model, Origin);
          Settle_Current_Is_Trash (Model);
          if Had_Temporary then
+            --  The temporary's name follows its field as it is typed
+            --  (Rename.Sync_Temporary_From_Field), so this is the typed name.
             if Temporary_Dir then
                Files.Model.Creation.Begin_Create_Folder
                  (Model, Temporary_Name, Files.Settings.Classification_Of (Settings));
             else
                Files.Model.Creation.Begin_Create_File
                  (Model, Temporary_Name, Files.Settings.Classification_Of (Settings));
+            end if;
+            if Had_Rename then
+               Files.Model.Set_Text_Cursor_Position (Model, Rename_Caret);
             end if;
          elsif Had_Rename then
             declare
@@ -65,6 +72,7 @@ begin
                null;
             end;
             Files.Model.Rename.Resume (Model, Rename_Text);
+            Files.Model.Set_Text_Cursor_Position (Model, Rename_Caret);
          end if;
       end if;
 

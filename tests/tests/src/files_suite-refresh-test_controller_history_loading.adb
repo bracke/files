@@ -87,11 +87,18 @@ separate (Files_Suite.Refresh)
       Project_Tools.Files.Delete_Tree (First);
       Files.Model.Creation.Begin_Create_File
         (Model, "failed-history-pending.txt", Files.File_Types.Default_Classification);
+      --  A name typed into the new item, the caret inside it.
+      Files.Model.Rename.Set_Text (Model, "Invoices 2026.txt");
+      Files.Model.Set_Text_Cursor_Position (Model, 8);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operation_Results.Operation_Failed,
          "failed back reload is reported");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename.Text (Model), "Invoices 2026.txt", "failed back keeps the typed name");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model), 8, "failed back keeps the caret where it was");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),
          Ada.Directories.Full_Name (First),

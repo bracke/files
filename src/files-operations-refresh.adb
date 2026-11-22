@@ -1,3 +1,4 @@
+with Files.Model.Filtering;
 with Files.Model.Jobs;
 with Files.Model.Recent;
 separate (Files.Operations)
@@ -21,6 +22,10 @@ begin
    if Files.Model.Recent.In_Recent_View (Model) then
       return Files.Operations.Navigation.Navigate_Recent (Model, Settings);
    end if;
+   --  Refresh lists the folder again, ending a search as a forced
+   --  background refresh does (Files.Refresh.Start); an operation's own
+   --  reload searches again instead (Reload_Current_Directory).
+   Files.Model.Filtering.Clear_Search_Results (Model);
    --  Preserve the complete current selection across a manual refresh when
    --  those items still exist.
    return Reload_Current_Directory

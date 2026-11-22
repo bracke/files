@@ -20,6 +20,9 @@ package body Files.IO.Errors is
          when Read_Only_Filesystem => return Read_Only_Key;
          when Busy | Text_Busy => return Busy_Key;
          when Name_Too_Long => return Name_Too_Long_Key;
+         --  Told apart only so a hard link refused at one file's limit is
+         --  not taken for a volume that takes none; never shown.
+         when Too_Many_Links => return "";
       end case;
    end Key_Of;
 
@@ -27,7 +30,7 @@ package body Files.IO.Errors is
    begin
       if Code /= 0 then
          for Item in Cause loop
-            if Hostkit.Errors.Code_Of (Item) = Code then
+            if Hostkit.Errors.Code_Of (Item) = Code and then Key_Of (Item) /= "" then
                return Key_Of (Item);
             end if;
          end loop;
@@ -52,6 +55,9 @@ package body Files.IO.Errors is
    begin
       GNAT.OS_Lib.Set_Errno (0);
    end Clear_Os_Error;
+
+   function Os_Error_Is (Item : Cause) return Boolean is
+     (Hostkit.Errors.Code_Of (Item) /= 0 and then GNAT.OS_Lib.Errno = Hostkit.Errors.Code_Of (Item));
 
    procedure Capture is
    begin

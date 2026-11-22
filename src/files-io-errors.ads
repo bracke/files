@@ -53,6 +53,14 @@ package Files.IO.Errors is
    --  makes before its system call), so Capture then records nothing stale.
    procedure Clear_Os_Error;
 
+   --  Whether errno now holds Item's code, without recording it: for a
+   --  caller that decides by why a call failed and then goes on (a refused
+   --  hard link it copies instead), so no failure it recovered from is
+   --  left to explain a later one. Read straight after the call.
+   --  @param Item Cause to test for.
+   --  @return True when errno is Item's code on this host.
+   function Os_Error_Is (Item : Cause) return Boolean;
+
    --  Record errno now. Call it straight after the call that failed, before
    --  anything else can overwrite errno. A zero errno records nothing.
    procedure Capture;
@@ -73,7 +81,8 @@ package Files.IO.Errors is
 private
 
    --  @param Item Cause to name.
-   --  @return The catalog key a user is shown for Item.
+   --  @return The catalog key a user is shown for Item, or "" for a cause
+   --    no message names (Too_Many_Links).
    function Key_Of (Item : Cause) return String;
 
    --  @param Code An errno value from this host; zero means none.

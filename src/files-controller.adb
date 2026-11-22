@@ -396,6 +396,21 @@ package body Files.Controller is
       null;
    end Persist_Settings;
 
+   procedure Persist_Held_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
+   is
+      Saved : constant Files.Settings.Settings_Write_Result := Persisted (Model, Settings, Settings_Path);
+      pragma Unreferenced (Saved);
+   begin
+      if Files.Model.Settings_Pane.Is_Open (Model) then
+         Files.Overlays.Settings_Form.Set_Draft
+           (Model, Files.Settings.Drafts.Draft_After_Save (Files.Model.Settings_Pane.Draft_Of (Model), Settings));
+         Files.Overlays.Settings_Form.Mark_Saved (Model, Settings);
+      end if;
+   end Persist_Held_Settings;
+
    function Make_Result
      (Status    : Controller_Status;
       Command   : Files.Commands.Command_Id := Files.Commands.No_Command;

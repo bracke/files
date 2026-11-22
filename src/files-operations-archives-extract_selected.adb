@@ -90,9 +90,12 @@ begin
          return Failed;
       end if;
 
-      --  Reload so the new directories appear, and select the first one.
+      --  Reload so the new directories appear, and select the first one
+      --  where the view lists it (it is made beside its archive, which a
+      --  search or Recent lists from another folder).
       declare
-         Result : constant Operation_Result := Reload_Current_Directory (Model, Settings, To_String (First_Created));
+         Result : constant Operation_Result :=
+           Reload_Current_Directory (Model, Settings, Select_Path => To_String (First_Created));
       begin
          Note_Undo_Outcome (Model, Undo, Result);
          return Result;

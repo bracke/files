@@ -1,10 +1,13 @@
+with Files.Settings.Storage;
+with Files.Controller;
 with Files.Interaction;
 with Files.Overlays.Settings_Form;
 with Files.Settings.Path_References;
 separate (Files_Suite.Settings)
    --  A held arrow's step the settings file could not hold is refused as
    --  any other settings change is: the error line says why, the settings
-   --  in force stay as they were and the pane keeps the refused value.
+   --  in force stay as they were and the pane shows them again. Letting go
+   --  writes every step that was accepted.
    procedure Test_Held_Key_Refused_Step (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Path   : constant String := Join (Root, "held-full.conf");
@@ -41,6 +44,25 @@ separate (Files_Suite.Settings)
          end loop;
          return False;
       end Focus_Field;
+
+      --  Open the pane on Settings and focus the field of Key.
+      function Focus_Key
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model;
+         Key      : String) return Boolean is
+      begin
+         Files.Overlays.Settings_Form.Begin_Edit (Model, Settings);
+         for Section in 1 .. Files.Model.Settings_Pane.Section_Count (Model) loop
+            Files.Model.Settings_Pane.Set_Active_Section (Model, Section);
+            for Step in 1 .. 200 loop
+               if Files.Model.Settings_Pane.Focused_Key (Model) = Key then
+                  return True;
+               end if;
+               Files.Model.Settings_Pane.Move_Focus (Model, 1);
+            end loop;
+         end loop;
+         return False;
+      end Focus_Key;
 
       procedure Held
         (Model    : in out Files.Model.Window_Model;
@@ -126,24 +148,50 @@ separate (Files_Suite.Settings)
          Model    : Files.Model.Window_Model := Files_Suite.Support.Models.Sample_Model;
          Settings : Files.Settings.Settings_Model := Base;
          Kept     : Files.Settings.Settings_Model;
+         Shown    : Ada.Strings.Unbounded.Unbounded_String;
       begin
+         --  A held step the file can hold (the font size, whose step keeps
+         --  the text's length): in force, and waiting to be written.
+         declare
+            --  The pane names a field by its form key, not the file's.
+            Font_Key : constant String := "settings.font_pixel_size";
+            Before   : constant Files.Settings.Settings_Model := Settings;
+         begin
+            Assert (Focus_Key (Model, Settings, Font_Key), "the font size field is found");
+            Held (Model, Settings, Guikit.Input.Key_Right);
+            Assert (not Files.Settings.Same_Content (Settings, Before), "the font size step is in force");
+            Files_Suite.Support.Assert_Equal
+              (Length_Of (Settings), Length_Of (Before), "the font size step keeps the text's length");
+         end;
          Assert (Focus_Field (Model, Settings, Field), "the field is found again");
          for Step in 1 .. Steps - 1 loop
             Held (Model, Settings, Guikit.Input.Key_Right);
          end loop;
          Kept := Settings;
+         Shown := Ada.Strings.Unbounded.To_Unbounded_String (Files.Model.Settings_Pane.Focused_Value (Model));
          Files.Model.Set_Error (Model, "");
          Held (Model, Settings, Guikit.Input.Key_Right);
          Assert (Files.Settings.Same_Content (Settings, Kept), "the step the file cannot hold is not in force");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Last_Error_Key (Model), "error.settings.full", "the error line says why");
-         for Setting in Files.Settings.Scalar_Setting loop
-            if Files.Settings.Testing.Scalar_Key (Setting) = Files.Model.Settings_Pane.Focused_Key (Model) then
-               Assert (Files.Model.Settings_Pane.Focused_Value (Model)
-                         /= Files.Settings.Testing.Scalar_Text (Settings, Setting),
-                       "the pane keeps the refused value for editing");
-            end if;
-         end loop;
-         Assert (not Ada.Directories.Exists (Path), "nothing is written");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Settings_Pane.Focused_Value (Model), Ada.Strings.Unbounded.To_String (Shown),
+            "the pane goes back to the value in force");
+         Assert (Files.Settings.Loadable (Settings), "the settings in force still load");
+         Assert (not Ada.Directories.Exists (Path), "nothing is written while the key is held");
+
+         --  The key is let go: the window takes the deferred save and
+         --  writes what is in force.
+         Assert (Files.Model.Settings_Pane.Take_Deferred_Save (Model), "the accepted steps wait to be written");
+         Files.Controller.Persist_Held_Settings (Model, Settings, Path);
+         declare
+            Written : constant Files.Settings.Settings_Parse_Result := Files.Settings.Storage.Load_File (Path);
+         begin
+            Assert (Written.Success, "the written settings load");
+            Assert (Files.Settings.Same_Content (Written.Settings, Kept), "the file holds every accepted step");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Settings_Pane.Focused_Value (Model), Ada.Strings.Unbounded.To_String (Shown),
+               "the pane shows the value in force, not the refused one");
+         end;
       end;
    end Test_Held_Key_Refused_Step;

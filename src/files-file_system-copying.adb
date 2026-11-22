@@ -15,6 +15,7 @@ with CryptoLib.Hashes;
 with Files.File_System.Digests;
 with Files.IO.Durability;
 with Hostkit.Durability;
+with Hostkit.Errors;
 with Hostkit.Metadata;
 with Hostkit.Regular_Files;
 
@@ -461,6 +462,13 @@ package body Files.File_System.Copying is
       Source_Revision : Files.Types.UString renames State.Source_Revision;
       Links : Interfaces.Unsigned_64;
    begin
+      --  A destination that refused a link takes none: every name from now
+      --  on is a copy of its own, with nothing to identify, digest or
+      --  record for a link no later name could make.
+      if Walk.Links_Refused then
+         State.Track_Hard_Link := False;
+         return False;
+      end if;
       Links := Hostkit.Metadata_Copy.Link_Count (Metadata);
       if Walk.Shared_Batch or else Links > 1 then
          Source_Identity := To_Unbounded_String (Files.File_Identities.Token (Source_Path));
@@ -469,15 +477,6 @@ package body Files.File_System.Copying is
             raise Ada.Directories.Use_Error;
          end if;
          State.Track_Hard_Link := Links > 1 or else Copied_Files.Contains (To_String (Source_Identity));
-      end if;
-      if Length (Source_Identity) > 0
-        and then Copied_Files.Contains (To_String (Source_Identity))
-        and then Walk.Links_Refused
-      then
-         --  No link can be made here: this name is a copy of its own, and
-         --  as no later name will link to it, it is not recorded either.
-         State.Track_Hard_Link := False;
-         return False;
       end if;
       if Length (Source_Identity) > 0 and then Copied_Files.Contains (To_String (Source_Identity)) then
          declare
@@ -504,15 +503,27 @@ package body Files.File_System.Copying is
             --  network mounts) or a first copy at its link limit refuses
             --  the link and leaves nothing: this name gets a copy of its
             --  own, which then stands for the inode in the rest of the walk.
+            --  Only the link limit (EMLINK) is that one file's: any other
+            --  refusal is taken as the volume's, so the rest of the walk
+            --  copies without trying (Links_Refused). Mistaking a passing
+            --  failure for the volume's costs links, never content.
             --  Anything left where the link was refused is not this walk's.
+            Files.IO.Errors.Clear_Os_Error;
             if Refuse_Hard_Links
               or else not Hostkit.Fs.Create_Hard_Link (To_String (First.Path), Destination_Path)
             then
-               if Files.IO.Fs_Primitives.Entry_Is_Absent (Destination_Path) then
-                  State.Track_Hard_Link := True;
-                  Walk.Links_Refused := True;
-                  return False;
-               end if;
+               declare
+                  At_Limit : constant Boolean :=
+                    not Refuse_Hard_Links and then Files.IO.Errors.Os_Error_Is (Hostkit.Errors.Too_Many_Links);
+               begin
+                  if Files.IO.Fs_Primitives.Entry_Is_Absent (Destination_Path) then
+                     --  The copy stands for the inode only where later
+                     --  names can still link to it.
+                     State.Track_Hard_Link := At_Limit;
+                     Walk.Links_Refused := not At_Limit;
+                     return False;
+                  end if;
+               end;
                raise Ada.Directories.Use_Error;
             end if;
             State.Owned := True;

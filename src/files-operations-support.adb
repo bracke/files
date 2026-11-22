@@ -13,6 +13,9 @@ with Files.IO.Fs_Primitives;
 with Files.Leaf_Names;
 with Hostkit.Fs;
 with Files.Model.Selection;
+with Files.Model.Filtering;
+with Files.File_System.Search;
+with Files.File_Types;
 with Files.Settings.Open_Actions;
 
 package body Files.Operations.Support is
@@ -95,7 +98,8 @@ package body Files.Operations.Support is
      (Model       : in out Files.Model.Window_Model;
       Settings    : Files.Settings.Settings_Model;
       Select_Name : String := "";
-      Preserve_Selection : Boolean := False)
+      Preserve_Selection : Boolean := False;
+      Select_Path : String := "")
       return Operation_Result
    is
    begin
@@ -125,6 +129,30 @@ package body Files.Operations.Support is
             return Make_Result (Operation_Success);
          end if;
 
+         --  Search results have no folder listing to reload: the search runs
+         --  again, so what the operation changed shows among them and they
+         --  stay shown (a folder listing put in their place left the view
+         --  saying it held results).
+         if Files.Model.Filtering.Search_Results_Are_Active (Model) then
+            declare
+               Searched : constant Operation_Result :=
+                 Search_Current_Folder
+                   (Model, Settings,
+                    Files.UI_Types.Tree_Search_Scope (Files.Model.Filtering.Search_Scope_Of (Model)));
+            begin
+               if Searched.Status = Operation_Success then
+                  if Select_Path /= "" then
+                     Files.Model.Selection.Restore
+                       (Model, Files.Types.String_Vectors.To_Vector (To_Unbounded_String (Select_Path), 1),
+                        Select_Path);
+                  else
+                     Files.Model.Selection.Restore (Model, Previous_Selection, Previous_Primary);
+                  end if;
+               end if;
+               return Searched;
+            end;
+         end if;
+
          declare
             Load : constant Files.File_System.Directory_Load_Result :=
               Files.File_System.Load_Directory_Deferring_Thumbnails
@@ -139,7 +167,10 @@ package body Files.Operations.Support is
 
             Files.Model.Replace_Items (Model, Load.Items);
             Files.Model.Set_Directory_Signature (Model, Load.Signature);
-            if Select_Name /= "" then
+            if Select_Path /= "" then
+               Files.Model.Selection.Restore
+                 (Model, Files.Types.String_Vectors.To_Vector (To_Unbounded_String (Select_Path), 1), Select_Path);
+            elsif Select_Name /= "" then
                declare
                   Selection_Restored : constant Boolean := Files.Model.Selection.Select_By_Name (Model, Select_Name);
                   pragma Unreferenced (Selection_Restored);
@@ -163,6 +194,40 @@ package body Files.Operations.Support is
          end;
       end Reload_In_Place;
    end Reload_Current_Directory;
+
+   function Search_Current_Folder
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Scope    : Files.UI_Types.Tree_Search_Scope)
+      return Operation_Result
+   is
+      use type Files.UI_Types.Search_Scope;
+      Query   : constant String := Files.Model.Filtering.Filter_Text (Model);
+      Root    : constant String := Files.Model.Current_Path (Model);
+      Classes : constant Files.File_Types.Classification := Files.Settings.Classification_Of (Settings);
+      Options : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Settings);
+      Found   : constant Files.File_System.Search.Recursive_Search_Result :=
+        (if Scope = Files.UI_Types.Search_Contents
+         then Files.File_System.Search.Search_Contents (Root, Query, Classes, Options)
+         else Files.File_System.Search.Search_Names (Root, Query, Classes, Options));
+   begin
+      if not Found.Success then
+         Files.Model.Set_Error (Model, To_String (Found.Error_Key));
+         return Make_Result (Operation_Failed, To_String (Found.Error_Key), Root);
+      end if;
+      Files.Model.Replace_Items (Model, Found.Items);
+      Files.Model.Filtering.Note_Search_Results (Model, Scope);
+      Files.Model.Set_Directory_Signature (Model, Files.File_System.Directory_State (Root));
+      --  A partial answer is still shown, with a notice that it is one: a
+      --  limit cut it short, or something under the root went unsearched.
+      Files.Model.Set_Error
+        (Model,
+         (if Found.Truncated then "search.truncated"
+          elsif Found.Incomplete then "search.incomplete"
+          elsif Found.Items.Is_Empty then "search.no_matches"
+          else ""));
+      return Make_Result (Operation_Success, Path => Root);
+   end Search_Current_Folder;
 
    function Batch_Failed
      (Model      : in out Files.Model.Window_Model;

@@ -18,6 +18,20 @@ separate (Files_Suite.Settings)
          Refs.Add_Favorite (Settings, Stored);
       end Store;
    begin
+      --  A folder decided folded matches a stored path whose own volume
+      --  would not fold (a case-sensitive volume mounted in a folding folder):
+      --  both sides are keyed by the folder's rule. On a host whose volumes do
+      --  not fold (Linux), keying the stored path by its own volume would miss.
+      Store;
+      declare
+         Folded : constant Refs.Path_Index := Refs.Index_Paths (Settings, Refs.Match_Folded);
+      begin
+         Files_Suite.Support.Assert_Equal
+           (Refs.Label_Of (Folded, Shouted), Files.Preference_Types.Green,
+            "a folded folder matches a stored path its own volume keeps exact");
+         Assert (Refs.Is_Favorite (Folded, Shouted), "and stars it");
+      end;
+
       --  A folder decided exactly (a case-sensitive volume) matches its rows
       --  as spelled and nothing else, as asking each path's volume would.
       if Refs.Folding_In ("/home/user") = Refs.Match_Exactly then

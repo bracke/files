@@ -64,7 +64,6 @@ begin
               First_Free_Leaf
                 (Link_Directory, Files.Name_Parts.Name_Stem (Name, Is_Folder),
                  Files.Name_Parts.Name_Extension (Name, Is_Folder), Link_Marker'Access));
-         Dest_Name : constant String := Files.Name_Parts.Leaf_Of (Dest_Path);
          Mutation  : constant Files.File_System.Mutation_Result :=
            (if Hard
             then Files.File_System.Create_Hard_Link (Source, Dest_Path)
@@ -85,7 +84,7 @@ begin
                Provenance => Files.Undo.History.Published));
          Checkpoint_Undo (Model, Progress);
          if not Created_Any then
-            First_Created := To_Unbounded_String (Dest_Name);
+            First_Created := To_Unbounded_String (Dest_Path);
             Created_Any := True;
          end if;
       end;
@@ -100,7 +99,8 @@ begin
       --  Reload so the new links appear, and select the first one; an Undo
       --  that could not be recorded is said, not left silently missing.
       declare
-         Result : constant Operation_Result := Reload_Current_Directory (Model, Settings, To_String (First_Created));
+         Result : constant Operation_Result :=
+           Reload_Current_Directory (Model, Settings, Select_Path => To_String (First_Created));
       begin
          Note_Undo_Outcome (Model, Undo, Result);
          return Result;

@@ -98,6 +98,27 @@ separate (Files_Suite.Search)
               "a helper extracts a search result beside the archive, not into the search root");
       Project_Tools.Files.Delete_Tree (Join (Deep, "summary"));
 
+      --  Extracted in process, a listed archive leaves the results shown,
+      --  searched again: the new folder is among them and is the one
+      --  selected, not a folder of its name in the search root.
+      Ada.Directories.Create_Path (Join (Root, "summary"));
+      Load := Files_Suite.Listings.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Files.Model.Jobs.Set_Background_Transfers (Model, False);
+      Files.Model.Filtering.Set_Filter (Model, "summary");
+      Result := Operation_Commands.Run_Search (Model, Settings, Files.UI_Types.Search_Names);
+      Assert (Files.Model.Selection.Select_By_Name (Model, "summary.zip"), "the archive is among the results");
+      Result := Operation_Commands.Extract_Selected (Model, Settings);
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "the listed archive extracts");
+      Assert (Files.Model.Filtering.Search_Results_Are_Active (Model), "the results stay shown");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Files.Model.Selection.Selected_Item (Model).Full_Path), Join (Deep, "summary"),
+         "the extracted folder is selected among the results");
+      Assert (Files.Model.Selection.Selected_Count (Model) = 1, "and only it");
+      Project_Tools.Files.Delete_Tree (Join (Deep, "summary"));
+      Project_Tools.Files.Delete_Tree (Join (Root, "summary"));
+
       --  Clearing the filter ends the search: the folder's own listing comes
       --  back. Until it does, an action on a listed result still keeps to the
       --  result's own folder.

@@ -133,12 +133,9 @@ package body Files.Operations.Archives.Writing is
       Free_Bytes         : Long_Long_Integer;
       Free_Bytes_Known   : Boolean;
       Free_Inodes        : Long_Long_Integer;
-      Free_Inodes_Known  : Boolean;
-      Destination        : String := "") return Boolean
+      Free_Inodes_Known  : Boolean) return Boolean
    is
       subtype U64 is Interfaces.Unsigned_64;
-      Dos_Rules          : constant Boolean :=
-        Destination /= "" and then Hostkit.Fs.Uses_Dos_Filename_Rules (Destination);
       Total_Uncompressed : U64 := 0;
       Total_Compressed   : U64 := 0;
       Total_Path_Bytes   : U64 := 0;
@@ -155,12 +152,7 @@ package body Files.Operations.Archives.Writing is
         (if Add_Would_Overflow (Left, Right) then U64'Last
          else Left + Right);
    begin
-      if Entries'Length > Max_Extraction_Entries
-        or else not Names_Are_Extractable
-          (Entries,
-           Dos_Rules        => Dos_Rules,
-           Case_Insensitive => Destination /= "" and then Hostkit.Fs.Folds_Name_Case (Destination))
-      then
+      if Entries'Length > Max_Extraction_Entries then
          return False;
       end if;
 

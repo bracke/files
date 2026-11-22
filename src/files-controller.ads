@@ -136,6 +136,20 @@ package Files.Controller is
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String);
 
+   --  Write the settings a held key stepped, once it is let go: what is in
+   --  force, every accepted step, not the pane's draft again (a step the
+   --  file could not hold was refused and is in force nowhere). An open
+   --  pane then shows the written settings and counts them saved.
+   --
+   --  @param Model Window whose error line reports a failed write and whose
+   --    settings pane, when open, is brought up to date.
+   --  @param Settings Settings in force; takes what another process wrote.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   procedure Persist_Held_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String);
+
    --  The one policy for a settings change, wherever it comes from: Updated
    --  replaces Settings and is saved -- a write that fails or is not durable
    --  is reported in the window's error line and the result, never by
