@@ -39,6 +39,10 @@ package body Files.Jobs.Transports is
    Lease_Name    : constant String := Files.Protocol_Names.Transport_Lease;
    Transport_Prefix : constant String := Files.Protocol_Names.Transport_Prefix;
    Witness_Prefix : constant String := ".files-job-creation-";
+   --  Hostkit.Lease_Files.Create makes a lease under this temporary name in
+   --  the lease's folder (its spec says so) and renames it into place; a
+   --  creator that died in between leaves it behind in the transport.
+   Lease_Temporary_Prefix : constant String := ".hostkit-lease-";
    Hex_Digits : String renames Files.Hex_Text.Lower_Digits;
    Max_Marker_Header_Length : constant := Files.IO.Record_Fields.Max_Header_Length;
    Max_Marker_Path_Length : constant := Files.IO.Record_Fields.Max_Path_Length;
@@ -421,7 +425,11 @@ package body Files.Jobs.Transports is
          raise Ada.IO_Exceptions.Data_Error;
       end if;
       Files.IO.Lease_Streams.Release (Input);
-      if To_String (Recorded_Directory) /= Directory
+      --  The recorded folder is matched by its generated leaf name, and the
+      --  folder itself by identity: the same temporary folder can be spelled
+      --  another way by a later session (an 8.3 short name, another case on a
+      --  case-folding volume), which Is_Transport_Path has already resolved.
+      if Files.Name_Parts.Leaf_Of (To_String (Recorded_Directory)) /= Files.Name_Parts.Leaf_Of (Directory)
         or else Length (Identity) = 0
         or else (To_String (Header) in Marker_Header | Retiring_Header
           | Truncated_Lease_Header | Truncated_Retiring_Header
@@ -649,7 +657,9 @@ package body Files.Jobs.Transports is
 
          procedure Check (Name : String; Stop : in out Boolean) is
          begin
-            if Name not in Lease_Name | Marker_Name & ".tmp" then
+            if Name not in Lease_Name | Marker_Name & ".tmp"
+              and then not Files.Text_Basics.Starts_With (Name, Lease_Temporary_Prefix)
+            then
                Only_Protocol := False;
                Stop := True;
             end if;
@@ -680,12 +690,17 @@ package body Files.Jobs.Transports is
          return Claim_Deferred;
       end if;
 
-      if not Protocol_Only then
-         return (if Protocol_Error then Claim_Error else Claim_Refused);
-      end if;
+      --  Without this version's witness nothing here can be proven ours:
+      --  a non-protocol payload is refused, anything else is unproven.
       if not Files.IO.Fs_Primitives.File_Exists (Witness_Name) then
+         if not Protocol_Only then
+            return (if Protocol_Error then Claim_Error else Claim_Refused);
+         end if;
          return Claim_Unrecoverable;
       end if;
+      --  The witness is claimed before the contents are judged: a creator
+      --  still holds it, and mid-Create the folder holds a lease being made
+      --  (Hostkit's temporary), which is the creator's, not a payload.
       declare
          Outcome : constant Claim_Outcome := Claim_Lease (Witness_Name, Owner);
       begin

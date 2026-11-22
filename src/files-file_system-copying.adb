@@ -436,7 +436,8 @@ package body Files.File_System.Copying is
    --  Make Destination a hard link to the copy of Source's inode already made
    --  in this walk, after checking neither changed since.
    --
-   --  @return False when Source is not an inode the walk copied before.
+   --  @return False when Source is not an inode the walk copied before, or
+   --  that copy or the source changed since (Destination is then copied).
    function Copy_Hard_Link
      (Source_Path      : String;
       Destination_Path : String;
@@ -468,6 +469,9 @@ package body Files.File_System.Copying is
             --  the first copy still holds what was written: in a retried
             --  batch it is a published file that may have been edited (a
             --  same-size edit with its time put back shows only in content).
+            --  When either moved, a link would carry the wrong bytes: this
+            --  name gets a copy of its own instead, which then stands for the
+            --  inode in the rest of the walk (Record_Hard_Link replaces it).
             if Files.File_Identities.Revision (Source_Path, False) /= To_String (First.Source_Revision)
               or else Content_Digest (Source_Path, Walk) /= To_String (First.Content_Digest)
               or else Files.File_Identities.Token (To_String (First.Path)) /= To_String (First.Identity)
@@ -475,7 +479,8 @@ package body Files.File_System.Copying is
                 /= To_String (First.Destination_Revision)
               or else Content_Digest (To_String (First.Path), Walk) /= To_String (First.Content_Digest)
             then
-               raise Ada.Directories.Use_Error;
+               State.Track_Hard_Link := True;
+               return False;
             end if;
             if not Hostkit.Fs.Create_Hard_Link (To_String (First.Path), Destination_Path) then
                raise Ada.Directories.Use_Error;

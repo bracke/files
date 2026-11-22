@@ -1,4 +1,5 @@
 with Ada.Directories;
+with Files.Diagnostics;
 with Files.IO.Errors;
 with Files.Text_Basics;
 with Hostkit.Fs;
@@ -46,8 +47,20 @@ package body Files.IO.Private_Directories is
                when others =>
                   --  A refused create (not a collision) ends the search:
                   --  what Prepare published for this candidate goes first.
+                  --  The refusal is what is raised: a cleanup the host
+                  --  refuses too is traced, never raised in its place.
                   if Abandon /= null then
-                     Abandon (Candidate);
+                     declare
+                        Refusal : constant Integer := Files.IO.Errors.Last_Code;
+                     begin
+                        begin
+                           Abandon (Candidate);
+                        exception
+                           when Swallowed : others =>
+                              Files.Diagnostics.Note (Swallowed, "Files.IO.Private_Directories");
+                        end;
+                        Files.IO.Errors.Adopt_Code (Refusal);
+                     end;
                   end if;
                   raise;
             end;

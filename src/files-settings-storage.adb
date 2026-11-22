@@ -64,6 +64,9 @@ package body Files.Settings.Storage is
       end if;
       declare
          Own : constant Settings_Model := Settings;
+         --  The record of the file as seen, kept in case the merge is undone.
+         Was_Text : constant Unbounded_String := Seen_Text;
+         Was_Base : constant Settings_Model := Seen_Base;
       begin
          Merge_From_File (Settings_Path, Settings, Merged, Refused);
          if Refused then
@@ -74,7 +77,9 @@ package body Files.Settings.Storage is
                Error_Key => To_Unbounded_String ("error.settings.changed_elsewhere"));
          elsif Merged then
             if not Loadable (Settings) then
+               --  Own is kept, measured against the file as it was seen.
                Settings := Own;
+               Note_Seen (Settings_Path, To_String (Was_Text), Was_Base);
                return Full_Result (Settings_Path);
             end if;
          end if;

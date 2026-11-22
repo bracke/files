@@ -99,4 +99,30 @@ separate (Files_Suite.Recovery)
          Files_Suite.Support.Assert_Equal (Prepared, 1, "the refused candidate was prepared once");
          Files_Suite.Support.Assert_Equal (Abandoned, 1, "and abandoned before the failure propagated");
       end;
+      --  A cleanup that fails as well never replaces the refusal: the
+      --  create's own error is the one raised.
+      declare
+         Raised : Boolean := False;
+
+         procedure Abandon (Path : String) is
+            pragma Unreferenced (Path);
+         begin
+            raise Program_Error;
+         end Abandon;
+      begin
+         begin
+            declare
+               Made : constant String :=
+                 Files.IO.Private_Directories.Create_Numbered
+                   (Join (Root, "missing-parent"), "stage-", Abandon => Abandon'Access);
+               pragma Unreferenced (Made);
+            begin
+               null;
+            end;
+         exception
+            when Ada.Directories.Use_Error =>
+               Raised := True;
+         end;
+         Assert (Raised, "a failing cleanup leaves the refusal as the error raised");
+      end;
    end Test_Private_Directory_Hardening;

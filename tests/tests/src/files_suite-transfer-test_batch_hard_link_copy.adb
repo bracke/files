@@ -131,8 +131,12 @@ separate (Files_Suite.Transfer)
             "a retry refuses a same-size edited copy even when its modification time is restored: status");
          Assert (File_Has_Bytes (Join (Parent, "first"), "altered byte"),
                  "a retry refuses a same-size edited copy even when its modification time is restored: edit kept");
-         Assert (not Ada.Directories.Exists (Join (Parent, "second")),
-                 "a retry refuses a same-size edited copy even when its modification time is restored: "
-                 & "nothing recreated");
+         --  The other name is copied as a partial Redo keeps what it
+         --  completes, but from the source and as a file of its own: never
+         --  as a link to the edited copy.
+         Assert (File_Has_Bytes (Join (Parent, "second"), "shared bytes")
+                 and then Files.File_Identities.Token (Join (Parent, "second")) /=
+                   Files.File_Identities.Token (Join (Parent, "first")),
+                 "a retry never links to a same-size edited copy: its alias holds the source's own bytes");
       end loop;
    end Test_Batch_Hard_Link_Copy;

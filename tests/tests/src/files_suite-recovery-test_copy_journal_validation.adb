@@ -141,6 +141,36 @@ separate (Files_Suite.Recovery)
             Files_Suite.Support.Disk.Link_Not_Made ("Test_Copy_Journal_Validation", Files_Suite.Support.Disk.Hard_Link);
          end if;
       end;
+
+      --  A batch copies two names of one inode: the second is linked to the
+      --  first copy. When that copy was edited meanwhile (a retried batch,
+      --  its copy published and changed), the second gets a copy of its own
+      --  from the source instead of failing: never a link to the edited one.
+      declare
+         Folder  : constant String := Join (Root, "copy-journal-edited");
+         Shared  : constant Files.Jobs.Copy_Context.Session :=
+           Files.Jobs.Copy_Context.Borrow (Folder);
+         First   : constant String := Join (Folder, "first");
+         Second  : constant String := Join (Folder, "second");
+         First_Copy  : constant String := Join (Folder, "first-copy");
+         Second_Copy : constant String := Join (Folder, "second-copy");
+      begin
+         Ada.Directories.Create_Directory (Folder);
+         Write_Binary_File (First, "shared bytes");
+         if Hostkit.Fs.Create_Hard_Link (First, Second) then
+            Result := Files.File_System.Transfer.Copy_Tree (First, First_Copy, Shared);
+            Assert (Result.Success, "the first name is copied");
+            Write_Binary_File (First_Copy, "edited byte!");
+            Result := Files.File_System.Transfer.Copy_Tree (Second, Second_Copy, Shared);
+            Assert (Result.Success, "the second name is copied past the edited first copy");
+            Assert (File_Is (Second_Copy, "shared bytes") and then File_Is (First_Copy, "edited byte!"),
+                    "with the source's bytes, the edit left where it was made");
+            Assert (Files.File_Identities.Token (Second_Copy) /= Files.File_Identities.Token (First_Copy),
+                    "as a file of its own");
+         else
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Copy_Journal_Validation", Files_Suite.Support.Disk.Hard_Link);
+         end if;
+      end;
    exception
       when others =>
          Files.File_System.Testing.Stop_Changing_Source;

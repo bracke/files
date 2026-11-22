@@ -194,10 +194,25 @@ separate (Files_Suite.Rendering)
          Check_Rename ("rename text set", Replace'Access);
          Files.Model.Rename.Toggle (Model);
 
+         --  In a grouped view the create row's name decides its band (here
+         --  its type), which a patch would leave under the old header: its
+         --  typing rebuilds the rows.
+         Files.Model.Creation.Begin_Create_File (Model, "untitled.txt");
+         declare
+            Rows : constant Natural := Files.Model.Rows_Revision (Model);
+         begin
+            Changed := Files.Model.Rename.Insert_At_Carets (Model, ".md");
+            Assert (Files.Model.Rows_Revision (Model) /= Rows,
+                    "grouped new file name typing rebuilds the rows");
+         end;
+         --  Toggling the rename off cancels the pending create.
+         Files.Model.Rename.Toggle (Model);
+
+         Settings.Group_By := Files.Preference_Types.No_Grouping;
+         Files.Model.Sync_Grouping (Model, Settings);
          Files.Model.Creation.Begin_Create_File (Model, "untitled.txt");
          Check_Rename ("new file name typing", Type_Text'Access);
          Check_Rename ("new file name delete", Erase'Access);
-         --  Toggling the rename off cancels the pending create.
          Files.Model.Rename.Toggle (Model);
       end;
 

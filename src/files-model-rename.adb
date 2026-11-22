@@ -1,3 +1,4 @@
+with Files.Preference_Types;
 with Files.UI_Types;
 with Guikit.Bidi;
 with Guikit.Utf8.Editing;
@@ -111,8 +112,19 @@ package body Files.Model.Rename is
    procedure Sync_Temporary_From_Field
      (Model : in out Window_Model;
       Field : Rename_Field) is
+      use type Files.Preference_Types.Group_Mode;
    begin
-      Touch_Rename (Model);
+      --  The pending create row's name decides its group band (its label,
+      --  its type) in a grouped view: a rename patch keeps the band headers
+      --  as built, so there the rows are rebuilt instead.
+      if Field.Item_Index = Temporary_Item_Index
+        and then Model.Temporary.Active
+        and then Model.Grouping.Mode /= Files.Preference_Types.No_Grouping
+      then
+         Touch (Model);
+      else
+         Touch_Rename (Model);
+      end if;
       if Field.Item_Index = Temporary_Item_Index and then Model.Temporary.Active then
          Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
          Model.Temporary.Name := Field.Edit.Text;

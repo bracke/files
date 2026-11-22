@@ -28,7 +28,8 @@ begin
          if Identity = "" or else Destination_Revision = "" then
             raise Ada.Directories.Use_Error;
          end if;
-         Copied_Files.Insert
+         --  Include: a copy made because the first one changed replaces it.
+         Copied_Files.Include
            (To_String (Source_Identity),
             (Path                 => To_Unbounded_String (Destination_Path),
              Identity             => To_Unbounded_String (Identity),

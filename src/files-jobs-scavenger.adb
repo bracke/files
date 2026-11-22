@@ -16,6 +16,7 @@ with Files.Jobs.Storage;
 with Files.Jobs.Transports;
 with Files.Types;
 with Hostkit.Fs;
+with Hostkit.Metadata;
 with Files.IO.Lease_Streams;
 with Hostkit.Process;
 with Hostkit.Spawn;
@@ -164,6 +165,7 @@ package body Files.Jobs.Scavenger is
 
    protected Terminal_Reports is
       procedure Mark_If_New (Directory : String; New_Report : out Boolean);
+      function Contains (Directory : String) return Boolean;
    private
       Reported : Reported_Path_Sets.Set;
    end Terminal_Reports;
@@ -176,6 +178,11 @@ package body Files.Jobs.Scavenger is
             Reported.Insert (Directory);
          end if;
       end Mark_If_New;
+
+      function Contains (Directory : String) return Boolean is
+      begin
+         return Reported.Contains (Directory);
+      end Contains;
    end Terminal_Reports;
 
    --  The localized report label, set by the caller (Set_Report_Label) on
@@ -265,6 +272,8 @@ package body Files.Jobs.Scavenger is
    function Idle return Boolean is (Scan_Requests.Quiet);
 
    function Busy_Reason return String is (Scan_Requests.Reason);
+
+   function Was_Reported (Directory : String) return Boolean is (Terminal_Reports.Contains (Directory));
 
    task Coordinator_Monitor is
       entry Stop;
@@ -543,15 +552,22 @@ package body Files.Jobs.Scavenger is
          Temp        : constant String := Hostkit.Fs.Temp_Directory;
          Directories : Files.Types.String_Vectors.Vector;
 
-         --  The job folders, a link to one included, as the search listed them.
+         --  This user's job folders. The temporary folder is shared on a
+         --  POSIX host: another user's transport (or a planted name, a link
+         --  included) is not this process's to judge, so only a real folder
+         --  private to the current user -- what Transports.Create makes -- is
+         --  taken. Anything else is left alone and never reported.
          procedure Collect (Name : String; Stop : in out Boolean) is
             pragma Unreferenced (Stop);
             Prefix : String renames Files.Protocol_Names.Transport_Prefix;
+            Path   : constant String := Hostkit.Fs.Join (Temp, Name);
          begin
             if Files.Text_Basics.Starts_With (Name, Prefix)
-              and then Files.IO.Fs_Primitives.Directory_Exists (Hostkit.Fs.Join (Temp, Name))
+              and then not Hostkit.Fs.Is_Link (Path)
+              and then Files.IO.Fs_Primitives.Directory_Exists (Path)
+              and then Hostkit.Metadata.Private_To_Current_User (Path)
             then
-               Directories.Append (To_Unbounded_String (Hostkit.Fs.Join (Temp, Name)));
+               Directories.Append (To_Unbounded_String (Path));
             end if;
          end Collect;
       begin

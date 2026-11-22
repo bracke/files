@@ -36,6 +36,11 @@ package body Files.Undo.Journal is
    Max_Journal_Fields : constant := 2_000_000;
    Max_Field_Length : constant := 32 * 1024;
    Max_Unjournaled : constant := 4 * Max_History_Entries;
+   --  The most the two Sequence lists (left out, dropped) and their counts
+   --  can take once pruned, each list at most Max_Unjournaled: reserved
+   --  before the entries are fitted, so moving overflow from one list to
+   --  the other after fitting can never take the journal past its cap.
+   Sequence_List_Reserve : constant := 16 * (2 * Max_Unjournaled + 3);
 
    function Valid_Directory (Directory : String) return Boolean is
      (Files.Path_Checks.Valid_Absolute_Path (Directory, Max_Field_Length));
@@ -534,7 +539,7 @@ package body Files.Undo.Journal is
       if Original.Is_Empty then
          return True;
       end if;
-      Fit (Undo_Stack, Redo_Stack, Journal_Header'Length + 32, Left_Out);
+      Fit (Undo_Stack, Redo_Stack, Journal_Header'Length + 32 + Sequence_List_Reserve, Left_Out);
       declare
          Kept : constant Files.Undo.History.Undo_Entry_Vectors.Vector := (if Redo then Redo_Stack else Undo_Stack);
       begin
@@ -576,7 +581,7 @@ package body Files.Undo.Journal is
            Pruned_Left_Out (State.Unjournaled, Undo, Redo, Next, Dropped);
       begin
          String'Output (Output, Journal_Header);
-         Fit (Kept_Undo, Kept_Redo, Total, Left_Out);
+         Fit (Kept_Undo, Kept_Redo, Total + Sequence_List_Reserve, Left_Out);
          Left_Out := Pruned_Left_Out (Left_Out, Kept_Undo, Kept_Redo, Next, Dropped);
          Dropped := Pruned_Dropped (Dropped, Left_Out, Kept_Undo, Kept_Redo, Next);
          Natural'Output (Output, Next);

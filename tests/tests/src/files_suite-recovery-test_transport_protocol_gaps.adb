@@ -236,6 +236,75 @@ separate (Files_Suite.Recovery)
          end;
       end;
 
+      --  A creator inside Transports.Create has made its folder and is making
+      --  its lease there: Hostkit makes a lease under a temporary name and
+      --  renames it into place. That temporary is the creator's, not a
+      --  payload: a scan meanwhile defers to the live creator rather than
+      --  call the transport unsafe, and once the creator is gone (it died
+      --  before the rename) the folder is cleaned up, temporary and all.
+      declare
+         Hex     : constant String := "44444444444444444444444444444444";
+         Path    : constant String := Join (Hostkit.Fs.Temp_Directory, "files-job-" & Hex);
+         Witness : constant String := Join (Hostkit.Fs.Temp_Directory, ".files-job-creation-" & Hex);
+         Handle  : Hostkit.Lease_Files.Lease;
+         Preparing : constant Ada.Streams.Stream_Element_Array :=
+           [Character'Pos ('p'), Character'Pos ('r'), Character'Pos ('e'),
+            Character'Pos ('p'), Character'Pos ('a'), Character'Pos ('r'),
+            Character'Pos ('e'), Character'Pos ('4')];
+         Identity : Files.Types.UString;
+         Claim    : Files.Jobs.Transports.Lease;
+      begin
+         Remove (Path);
+         Assert (Hostkit.Lease_Files.Create (Witness, Handle) = Hostkit.Lease_Files.Opened,
+                 "a creator's witness is made");
+         Assert (Hostkit.Lease_Files.Write_At (Handle, Preparing), "and records preparation");
+         Files.IO.Private_Directories.Create (Path);
+         Write_Binary_File (Join (Path, ".hostkit-lease-999999-1"), "");
+         Assert
+           (Files.Jobs.Transports.Claim_Incomplete (Path, Identity, Claim, Minimum_Age => 0.0)
+              = Files.Jobs.Transports.Claim_Deferred,
+            "a creator making its lease is deferred to, not refused");
+         Found := Files.Jobs.Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
+         Assert (Ada.Directories.Exists (Path) and then not Files.Jobs.Scavenger.Testing.Was_Reported (Path),
+                 "a scan leaves the live creator's transport alone and unreported");
+         Hostkit.Lease_Files.Release (Handle);
+         Found := Files.Jobs.Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
+         Assert (not Ada.Directories.Exists (Path),
+                 "a creator that died making its lease leaves a folder recovery removes");
+         Assert (not Files.Jobs.Scavenger.Testing.Was_Reported (Path), "never reported as unsafe");
+         Remove (Path);
+      exception
+         when others =>
+            Hostkit.Lease_Files.Release (Handle);
+            Remove (Path);
+            raise;
+      end;
+
+      --  Another user's job folder in a shared temporary folder (here: one
+      --  not private to this user) is not this process's to judge: a scan
+      --  leaves it alone and never reports it.
+      if Hostkit.Host.Current /= Hostkit.Host.Windows then
+         declare
+            Path : constant String :=
+              Join (Hostkit.Fs.Temp_Directory, "files-job-55555555555555555555555555555555");
+         begin
+            Remove (Path);
+            Ada.Directories.Create_Directory (Path);
+            Assert (Hostkit.Metadata.Set_Permissions (Path, 8#755#), "the fixture folder is opened to others");
+            Write_Binary_File (Join (Path, "payload"), "theirs");
+            Assert (not Hostkit.Metadata.Private_To_Current_User (Path), "the fixture folder is not private");
+            Found := Files.Jobs.Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
+            Assert (Ada.Directories.Exists (Join (Path, "payload"))
+                    and then not Files.Jobs.Scavenger.Testing.Was_Reported (Path),
+                    "a job folder not private to this user is left alone and unreported");
+            Remove (Path);
+         exception
+            when others =>
+               Remove (Path);
+               raise;
+         end;
+      end if;
+
       if Hostkit.Host.Current = Hostkit.Host.Linux then
          Arguments.Clear;
          Arguments.Append (To_Unbounded_String ("--files-test-no-btime-transport"));

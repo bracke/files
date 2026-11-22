@@ -1,3 +1,4 @@
+with GNAT.OS_Lib;
 with Files.Settings.Storage;
 with Files.Settings.Path_References;
 with Project_Tools.Files;
@@ -77,4 +78,42 @@ separate (Files_Suite.Settings)
          Files_Suite.Support.Assert_Equal
            (Project_Tools.Files.Read_Raw_File (Path), Unloadable, "and the file is left as the other wrote it");
       end;
+
+      --  A save that fails after taking in the other's change still counts
+      --  that change as seen: the value adopted from the file is not this
+      --  process's own, so the other's later change to it is kept, not
+      --  reverted. Needs a folder the host refuses to write into.
+      if Hostkit.Host.Current /= Hostkit.Host.Windows then
+         declare
+            Folder : constant String := Join (Root, "merge-after-failed-save");
+            Shared : constant String := Join (Folder, "settings.conf");
+            Here   : Files.Settings.Settings_Model;
+            There  : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+            Saved  : Files.Settings.Settings_Write_Result;
+         begin
+            Ada.Directories.Create_Path (Folder);
+            Written := Files.Settings.Storage.Save_Text (Shared, Files.Settings.To_Text (There));
+            Loaded := Files.Settings.Storage.Load_File (Shared);
+            Assert (Written.Success and then Loaded.Success, "a second shared file is written and loaded");
+            Here := Loaded.Settings;
+            There.Show_Hidden_Files := True;
+            Write_File (Shared, Files.Settings.To_Text (There));
+            GNAT.OS_Lib.Set_Non_Writable (Folder);
+            begin
+               Saved := Files.Settings.Storage.Write (Shared, Here);
+            exception
+               when others =>
+                  GNAT.OS_Lib.Set_Writable (Folder);
+                  raise;
+            end;
+            GNAT.OS_Lib.Set_Writable (Folder);
+            Assert (not Saved.Success or else not Saved.Durable, "the save into the refused folder fails");
+            Assert (Here.Show_Hidden_Files, "after taking in the other's change");
+            There.Show_Hidden_Files := False;
+            Write_File (Shared, Files.Settings.To_Text (There));
+            Saved := Files.Settings.Storage.Write (Shared, Here);
+            Assert (Saved.Success, "the next save succeeds");
+            Assert (not Here.Show_Hidden_Files, "and keeps the other's later change rather than reverting it");
+         end;
+      end if;
    end Test_Save_Keeps_Another_Process_Change;

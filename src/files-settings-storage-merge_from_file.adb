@@ -174,6 +174,12 @@ separate (Files.Settings.Storage)
             Result.Shortcut_Overrides :=
               Merged_Overrides (Base.Shortcut_Overrides, Mine.Shortcut_Overrides, Theirs.Settings.Shortcut_Overrides);
             Result.Persistence_Refused := Mine.Persistence_Refused;
+            --  What the file says now is what this process has seen: were
+            --  the save that follows to fail, the values adopted from it
+            --  must not count as this process's own edits next time, or a
+            --  later change the other process makes to them is reverted.
+            --  Write restores the earlier record if it keeps Mine instead.
+            Note_Seen (Path, Text, Theirs.Settings);
             Files.Diagnostics.Trace ("Files.Settings", "settings_merged_from_file=" & Path);
             Merged := not Same_Content (Result, Mine);
             Settings := Result;

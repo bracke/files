@@ -60,4 +60,9 @@ private
    --  @return The reason, or "" when Idle.
    function Busy_Reason return String;
 
+   --  Whether this process has reported Directory as unrecoverable.
+   --  @param Directory The transport path as the scan listed it.
+   --  @return True once a report for it was made.
+   function Was_Reported (Directory : String) return Boolean;
+
 end Files.Jobs.Scavenger;
