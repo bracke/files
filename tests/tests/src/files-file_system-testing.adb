@@ -6,6 +6,7 @@ with Ada.Environment_Variables;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
 with Files.Diagnostics;
+with Files.File_System.Copying;
 with Files.File_System.Recovery;
 with Files.File_System.Support;
 with Hostkit.Fs;
@@ -220,6 +221,11 @@ package body Files.File_System.Testing is
    begin
       Refuse_Creation_Match := (if Refuse then Refuse_Every_Creation'Access else null);
    end Refuse_Creation_Matches;
+
+   procedure Refuse_Hard_Links (Refuse : Boolean) is
+   begin
+      Files.File_System.Copying.Refuse_Hard_Links := Refuse;
+   end Refuse_Hard_Links;
 
    --  Where Pause_Sweep_Work holds a sweep.
    protected Sweep_Gate is

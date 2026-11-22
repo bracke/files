@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 with Files.File_System.Transfer;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
@@ -33,6 +34,19 @@ separate (Files_Suite.Transfer)
       Assert (Mutation.Success, "copy the hard-link tree");
       Check (Join (Root, "copy"));
       Assert (File_Has_Bytes (Join (Source, "first"), "linked bytes"), "a copy's links are independent of the source");
+
+      --  A destination that takes no hard links (FAT, exFAT, a network
+      --  mount) still gets the whole tree: each name as a copy of its own.
+      Files.File_System.Testing.Refuse_Hard_Links (True);
+      Mutation := Files.File_System.Transfer.Copy_Tree (Source, Join (Root, "unlinked"));
+      Files.File_System.Testing.Refuse_Hard_Links (False);
+      Assert (Mutation.Success, "a refused hard link falls back to a copy: " & To_String (Mutation.Error_Key));
+      Assert (File_Has_Bytes (Join (Root, "unlinked/first"), "linked bytes")
+              and then File_Has_Bytes (Join (Root, "unlinked/sub/second"), "linked bytes"),
+              "both names of a refused link hold the source's bytes");
+      Assert (Files.File_Identities.Token (Join (Root, "unlinked/first"))
+                /= Files.File_Identities.Token (Join (Root, "unlinked/sub/second")),
+              "a refused link leaves two independent copies");
       Remote.Create ("files-test-hard-link-move-");
       if Remote.Path = "" then
          Files_Suite.Support.Skip ("Test_Copy_Hard_Link_Trees", Files_Suite.Volumes.No_Other_Volume);
@@ -46,4 +60,8 @@ separate (Files_Suite.Transfer)
          Files.File_Identities.Token (Join (Remote.Path, "moved")));
       Assert (Mutation.Success, "a guarded history move preserves the hard-link topology");
       Check (Source);
+   exception
+      when others =>
+         Files.File_System.Testing.Refuse_Hard_Links (False);
+         raise;
    end Test_Copy_Hard_Link_Trees;

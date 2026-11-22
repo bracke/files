@@ -110,7 +110,9 @@ package body Files.Model.Testing is
       Path  : String;
       Value : Files.File_System_Types.Directory_Size_Result) is
    begin
-      Touch_Header (Model);
+      --  A change to the sizes, as a hand-over is: a total kept from the
+      --  ones before no longer holds.
+      Note_Folder_Sizes (Model);
       Model.Folder_Sizes.Include (To_Unbounded_String (Path), Value);
    end Set_Folder_Size;
 

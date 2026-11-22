@@ -87,6 +87,13 @@ package Files.File_System.Testing is
    --  @param Refuse Whether every creation is refused.
    procedure Refuse_Creation_Matches (Refuse : Boolean);
 
+   --  From now on, have every hard link a copy asks for refused (Refuse
+   --  True), as a destination that takes none (FAT, exFAT, many network
+   --  mounts) would; or let the host answer again (False).
+   --
+   --  @param Refuse Whether every hard link is refused.
+   procedure Refuse_Hard_Links (Refuse : Boolean);
+
    --  From now on, hold every recovery-registry sweep just before it works
    --  on a payload (after it has let the registry lock go), as a slow trash
    --  move would, until Resume_Sweep_Work; at most 120 seconds each, far

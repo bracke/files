@@ -56,16 +56,25 @@ package body Files.Model.Folder_Sizes is
          for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
             if Selected (Index) then
                declare
-                  Item  : Files.Items.Directory_Item renames Model.Items (Index);
-                  Found : Folder_Size_Maps.Cursor;
+                  Item     : Files.Items.Directory_Item renames Model.Items (Index);
+                  Found    : Folder_Size_Maps.Cursor;
+                  Listed   : Folder_Time_Maps.Cursor;
+                  Inserted : Boolean;
                begin
                   if Item.Kind = Files.Types.Directory_Item then
-                     Cache.Folders.Include (Item.Full_Path, Item.Modified_Time);
-                     Found := Model.Folder_Sizes.Find (Item.Full_Path);
-                     if Folder_Size_Maps.Has_Element (Found) then
-                        Add_Bytes (Cache.Total_Bytes, Folder_Size_Maps.Element (Found).Total_Bytes);
-                     else
-                        Cache.Unmeasured := Cache.Unmeasured + 1;
+                     --  A folder listed twice (search results) counts once.
+                     Cache.Folders.Insert (Item.Full_Path, Item.Modified_Time, Listed, Inserted);
+                     if Inserted then
+                        Found := Model.Folder_Sizes.Find (Item.Full_Path);
+                        if Folder_Size_Maps.Has_Element (Found)
+                          and then Folder_Size_Maps.Element (Found).Available
+                        then
+                           Add_Bytes (Cache.Total_Bytes, Folder_Size_Maps.Element (Found).Total_Bytes);
+                        else
+                           --  Not measured yet, or measuring it failed: the
+                           --  total is incomplete either way.
+                           Cache.Unmeasured := Cache.Unmeasured + 1;
+                        end if;
                      end if;
                   elsif Item.Size_Available then
                      Add_Bytes (Cache.Total_Bytes, Item.Size);
@@ -112,7 +121,9 @@ package body Files.Model.Folder_Sizes is
                   declare
                      Before : constant Folder_Size_Maps.Cursor := Model.Folder_Sizes.Find (Done.Path);
                   begin
-                     if Folder_Size_Maps.Has_Element (Before) then
+                     if Folder_Size_Maps.Has_Element (Before)
+                       and then Folder_Size_Maps.Element (Before).Available
+                     then
                         --  Measured again: the old size leaves the total.
                         --  A saturated total cannot be taken apart.
                         if Cache.Total_Bytes = Long_Long_Integer'Last then
@@ -122,9 +133,15 @@ package body Files.Model.Folder_Sizes is
                              Cache.Total_Bytes - Folder_Size_Maps.Element (Before).Total_Bytes;
                         end if;
                      elsif Cache.Unmeasured > 0 then
+                        --  It was counted as not known (unmeasured, or a
+                        --  measuring that failed).
                         Cache.Unmeasured := Cache.Unmeasured - 1;
                      end if;
-                     Add_Bytes (Cache.Total_Bytes, Done.Result.Total_Bytes);
+                     if Done.Result.Available then
+                        Add_Bytes (Cache.Total_Bytes, Done.Result.Total_Bytes);
+                     else
+                        Cache.Unmeasured := Cache.Unmeasured + 1;
+                     end if;
                      Total_Holds := Total_Holds and then Cache.Total_Bytes < Long_Long_Integer'Last;
                   end;
                end if;
@@ -227,7 +244,7 @@ package body Files.Model.Folder_Sizes is
    is
       Found : constant Folder_Size_Maps.Cursor := Model.Folder_Sizes.Find (Path);
    begin
-      Known := Folder_Size_Maps.Has_Element (Found);
+      Known := Folder_Size_Maps.Has_Element (Found) and then Folder_Size_Maps.Element (Found).Available;
       Bytes := (if Known then Folder_Size_Maps.Element (Found).Total_Bytes else 0);
    end Find;
 

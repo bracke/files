@@ -99,7 +99,10 @@ package Files.Model.Folder_Sizes is
    --
    --  @param Model Model to inspect.
    --  @param Path Directory path, as the items hold it.
-   --  @param Known True when a measurement for Path is cached.
+   --  @param Known True when a measurement for Path is cached and its size
+   --    is known: a folder whose measuring failed (missing, unreadable, a
+   --    helper that died) is cached, so it is not measured again in a loop,
+   --    but is not Known, and a total counting it is incomplete.
    --  @param Bytes Its total bytes (0 when not Known).
    procedure Find
      (Model : Window_Model;

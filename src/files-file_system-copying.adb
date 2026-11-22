@@ -436,8 +436,9 @@ package body Files.File_System.Copying is
    --  Make Destination a hard link to the copy of Source's inode already made
    --  in this walk, after checking neither changed since.
    --
-   --  @return False when Source is not an inode the walk copied before, or
-   --  that copy or the source changed since (Destination is then copied).
+   --  @return False when Source is not an inode the walk copied before,
+   --  that copy or the source changed since, or the destination refused the
+   --  link and holds nothing there (Destination is then copied).
    function Copy_Hard_Link
      (Source_Path      : String;
       Destination_Path : String;
@@ -482,7 +483,18 @@ package body Files.File_System.Copying is
                State.Track_Hard_Link := True;
                return False;
             end if;
-            if not Hostkit.Fs.Create_Hard_Link (To_String (First.Path), Destination_Path) then
+            --  A destination that takes no hard links (FAT, exFAT, many
+            --  network mounts) or a first copy at its link limit refuses
+            --  the link and leaves nothing: this name gets a copy of its
+            --  own, which then stands for the inode in the rest of the walk.
+            --  Anything left where the link was refused is not this walk's.
+            if Refuse_Hard_Links
+              or else not Hostkit.Fs.Create_Hard_Link (To_String (First.Path), Destination_Path)
+            then
+               if Files.IO.Fs_Primitives.Entry_Is_Absent (Destination_Path) then
+                  State.Track_Hard_Link := True;
+                  return False;
+               end if;
                raise Ada.Directories.Use_Error;
             end if;
             State.Owned := True;

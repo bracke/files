@@ -33,6 +33,7 @@ separate (Check_All)
          Pair ("file_system", "fail_directory_restore", "stop_failing_directory_restore"),
          Pair ("file_system", "fail_owned_delete", "stop_failing_owned_delete"),
          Pair ("file_system", "refuse_creation_matches", "refuse_creation_matches", Off => "false"),
+         Pair ("file_system", "refuse_hard_links", "refuse_hard_links", Off => "false"),
          Pair ("file_system", "pause_sweep_work", "resume_sweep_work"),
          Pair ("file_system", "watch_ownership_changes", "stop_watching_ownership_changes"),
          Pair ("folder_size", "fail_result_reads", "fail_result_reads", Off => "0"),

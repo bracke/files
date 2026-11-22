@@ -46,6 +46,13 @@ private package Files.File_System.Copying is
    --  (Sync_Copy then needs only the folders).
    type Copy_Purpose is (For_Copy, For_Move);
 
+   --  Set only by the test suite (Files.File_System.Testing): True makes
+   --  every hard link a copy asks for refused, as a destination that takes
+   --  none (FAT, exFAT, many network mounts) would. The application never
+   --  sets it.
+   Refuse_Hard_Links : Boolean := False
+     with Atomic;
+
    type Copied_File is record
       Path, Identity, Source_Revision, Destination_Revision, Content_Digest : Files.Types.UString;
    end record;

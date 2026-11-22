@@ -3,6 +3,8 @@ with Files.Model.Filtering;
 with Files.Preference_Types;
 with Files.Model.Clipboard;
 with Files.Model.Command_Palette;
+with Files.Model.Creation;
+with Files.Model.Info_Pane;
 with Guikit.Input;
 with Ada.Calendar;
 with Ada.Real_Time;
@@ -112,6 +114,14 @@ separate (Files_Suite.Rendering)
       begin
          Assert (Typed, "the rename field takes the text");
       end Rename_Type;
+      procedure Info_Toggle is begin Files.Model.Info_Pane.Toggle_Info_Pane (Model); end Info_Toggle;
+      procedure Create_Start is begin Files.Model.Creation.Begin_Create_File (Model, "Untitled.txt"); end Create_Start;
+      procedure Create_Type is
+         Typed : constant Boolean := Files.Model.Rename.Insert_At_Carets (Model, "x.png");
+      begin
+         Assert (Typed, "the create row's field takes the text");
+      end Create_Type;
+      procedure Create_Cancel is begin Files.Model.Rename.Toggle (Model); end Create_Cancel;
       procedure Rename_Caret is
          Moved : constant Boolean := Files.Model.Rename.Move_All_Carets (Model, Guikit.Input.Move_Left);
       begin
@@ -221,6 +231,13 @@ separate (Files_Suite.Rendering)
             Rename_Step (Mode & "rename typed in", Rename_Type'Access, Draw);
             Rename_Step (Mode & "rename caret moved", Rename_Caret'Access, Draw);
             Step (Mode & "rename ended", Rename_Start'Access, Draw);
+            --  The info pane describes the pending item by the name being
+            --  typed: each keystroke keeps the rows but not the pane.
+            Step (Mode & "info pane opened", Info_Toggle'Access, Draw);
+            Step (Mode & "create started", Create_Start'Access, Draw);
+            Rename_Step (Mode & "create name typed in", Create_Type'Access, Draw);
+            Step (Mode & "create cancelled", Create_Cancel'Access, Draw);
+            Step (Mode & "info pane closed", Info_Toggle'Access, Draw);
             Step (Mode & "grouped by label", Group'Access, Draw);
             Assert (Natural (View.Snapshots (View.Current_Slot).Items.Length) > Files.Model.Visible_Count (Model),
                     Mode & "grouped: the rows hold headers");

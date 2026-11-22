@@ -1,8 +1,11 @@
+with Ada.Containers.Hashed_Sets;
+with Ada.Strings.Unbounded.Hash;
 separate (Files.Rendering.Build_Snapshot_Into)
    --  Combined selection total: every selected file's size plus the recursive
    --  size of each selected folder. Computed for any selection (not only when
    --  the info pane is open) so the bottom bar's total counts folder contents.
-   --  Folders not yet measured mark the total pending (still growing). A
+   --  Folders not yet measured, or whose measuring failed, mark the total
+   --  pending (incomplete); a folder listed twice counts once. A
    --  build that kept the rows keeps the total too while neither the
    --  selection nor the folder sizes moved: with a whole large folder
    --  selected, summing it again cost every header change a walk of it.
@@ -11,6 +14,12 @@ separate (Files.Rendering.Build_Snapshot_Into)
       Sizes     : constant Natural := Files.Model.Folder_Sizes.Revision (Model);
       Total     : Long_Long_Integer := 0;
       Pending   : Boolean := False;
+      --  The folders counted, so a folder listed twice counts once.
+      package Path_Sets is new Ada.Containers.Hashed_Sets
+        (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
+         Hash                => Ada.Strings.Unbounded.Hash,
+         Equivalent_Elements => Ada.Strings.Unbounded."=");
+      Counted   : Path_Sets.Set;
 
       procedure Add (Amount : Long_Long_Integer) is
       begin
@@ -26,6 +35,10 @@ separate (Files.Rendering.Build_Snapshot_Into)
          Bytes : Long_Long_Integer;
       begin
          if Item.Kind = Files.Types.Directory_Item then
+            if Counted.Contains (Item.Full_Path) then
+               return;
+            end if;
+            Counted.Insert (Item.Full_Path);
             Files.Model.Folder_Sizes.Find (Model, Item.Full_Path, Known, Bytes);
             if Known then
                Add (Bytes);

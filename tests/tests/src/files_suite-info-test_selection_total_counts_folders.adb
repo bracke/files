@@ -39,13 +39,13 @@ separate (Files_Suite.Info)
          Bytes   : Long_Long_Integer;
          Pending : Boolean;
 
-         procedure Hand_Over (Total : Long_Long_Integer) is
+         procedure Hand_Over (Total : Long_Long_Integer; Available : Boolean := True) is
             Measured : Files.Folder_Size.Measurement_Vectors.Vector;
          begin
             Measured.Append
               (Files.Folder_Size.Measurement'
                  (Path   => To_Unbounded_String (Dir_Path),
-                  Result => (Available => True, Total_Bytes => Total, others => <>),
+                  Result => (Available => Available, Total_Bytes => Total, others => <>),
                   Listed => Files.Types.Unknown_Time));
             Files.Model.Folder_Sizes.Note (Model, Measured);
          end Hand_Over;
@@ -66,11 +66,63 @@ separate (Files_Suite.Info)
          Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Files_Suite.Support.Assert_Equal
            (Snapshot.Selection_Total_Bytes, 710, "the snapshot shows the kept total");
+
+         --  A measuring that failed (unreadable, a helper that died) is no
+         --  size: the total leaves it out and stays incomplete, kept or
+         --  summed, until a measurement that worked replaces it.
+         Hand_Over (0, Available => False);
+         Files.Model.Folder_Sizes.Selection_Total (Model, Kept, Bytes, Pending);
+         Assert (Kept and then Bytes = 10 and then Pending,
+                 "a failed measuring leaves the kept total incomplete:" & Bytes'Image);
+         Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
+         Assert (Snapshot.Selection_Total_Bytes = 10 and then Snapshot.Selection_Total_Pending,
+                 "the snapshot shows it incomplete");
+         Files.Model.Testing.Set_Folder_Size (Model, Dir_Path, (Available => False, others => <>));
+         Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
+         Assert (Snapshot.Selection_Total_Bytes = 10 and then Snapshot.Selection_Total_Pending,
+                 "a walk of the selection leaves a failed measuring out too");
+         Hand_Over (300);
+         Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
+         Assert (Snapshot.Selection_Total_Bytes = 310 and then not Snapshot.Selection_Total_Pending,
+                 "a measurement that worked completes the total:" & Snapshot.Selection_Total_Bytes'Image);
          Select_Name (Model, "afile.bin");
          Files.Model.Folder_Sizes.Selection_Total (Model, Kept, Bytes, Pending);
          Assert (not Kept, "another selection is not the one the total was kept for");
          Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
          Files_Suite.Support.Assert_Equal
            (Snapshot.Selection_Total_Bytes, 10, "and its total is summed from the selection");
+      end;
+
+      --  A folder listed twice (search results) counts once, kept or summed.
+      declare
+         Twice   : Files.Items.Item_Vectors.Vector := Load.Items;
+         Kept    : Boolean;
+         Bytes   : Long_Long_Integer;
+         Pending : Boolean;
+         Measured : Files.Folder_Size.Measurement_Vectors.Vector;
+      begin
+         for Item of Load.Items loop
+            if To_String (Item.Full_Path) = Dir_Path then
+               Twice.Append (Item);
+            end if;
+         end loop;
+         Files.Model.Initialize (Model, Root, Twice, Root);
+         Files.Model.Selection.Select_All_Visible (Model);
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selection.Selected_Count (Model), 3, "the folder is selected twice, with the file");
+         Measured.Append
+           (Files.Folder_Size.Measurement'
+              (Path   => To_Unbounded_String (Dir_Path),
+               Result => (Available => True, Total_Bytes => 500, others => <>),
+               Listed => Files.Types.Unknown_Time));
+         Files.Model.Folder_Sizes.Note (Model, Measured);
+         Files.Model.Folder_Sizes.Selection_Total (Model, Kept, Bytes, Pending);
+         Assert (Kept and then Bytes = 510 and then not Pending,
+                 "a folder selected twice is counted once and completes the total:" & Bytes'Image);
+         Files.Model.Testing.Set_Folder_Size
+           (Model, Dir_Path, (Available => True, Total_Bytes => 500, others => <>));
+         Snapshot := Files.Rendering.Testing.Build_Snapshot (Model);
+         Assert (Snapshot.Selection_Total_Bytes = 510 and then not Snapshot.Selection_Total_Pending,
+                 "a walk of the selection counts it once too");
       end;
    end Test_Selection_Total_Counts_Folders;

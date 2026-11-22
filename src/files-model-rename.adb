@@ -126,6 +126,11 @@ package body Files.Model.Rename is
       else
          Touch_Rename (Model);
       end if;
+      --  The pending item is selected while it is named, so an open info
+      --  pane describes it by that name (its type, its extension's line).
+      if Creating then
+         Touch_Info (Model);
+      end if;
    end Sync_Temporary_From_Field;
 
    function Is_Enabled
