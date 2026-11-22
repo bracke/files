@@ -53,7 +53,7 @@ package body Files.Model.Status_Samples is
       if Account_Name_Maps.Has_Element (Found) then
          if To_String (Account_Name_Maps.Element (Found)) /= Name then
             Names.Replace_Element (Found, To_Unbounded_String (Name));
-            Touch_Header (Model);
+            Touch_Info (Model);
          end if;
          return;
       end if;
@@ -61,7 +61,7 @@ package body Files.Model.Status_Samples is
          Names.Clear;
       end if;
       Names.Insert (Id, To_Unbounded_String (Name));
-      Touch_Header (Model);
+      Touch_Info (Model);
    end Set_Account_Name;
 
    function Account_Name_Known
@@ -110,13 +110,14 @@ package body Files.Model.Status_Samples is
          Ownership_Supported   => Ownership_Supported,
          Sampled_At            => Sampled);
    begin
-      --  The commands and the info pane's editors are header: no row changes.
+      --  The commands and the info pane's editors are header: no row changes;
+      --  the info pane's rows are rebuilt (Info_Revision).
       if not Model.Host_Sample.Sampled
         or else Model.Host_Sample.Trash_Available /= Trash_Available
         or else Model.Host_Sample.Permissions_Supported /= Permissions_Supported
         or else Model.Host_Sample.Ownership_Supported /= Ownership_Supported
       then
-         Touch_Header (Model);
+         Touch_Info (Model);
       end if;
       Model.Host_Sample := Sample;
    end Set_Host;

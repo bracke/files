@@ -4,6 +4,8 @@ with Messages.Runtime;
 
 package body Files.Localization.Testing is
 
+   procedure Reread_Locale_Environment renames Files.Localization.Reread_Locale_Environment;
+
    function Render_With_Shard
      (Base, Shard, Locale, Key : String;
       Loaded                   : out Boolean)

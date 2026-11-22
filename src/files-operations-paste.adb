@@ -18,19 +18,7 @@ package body Files.Operations.Paste is
    use type Files.File_System_Types.Drop_Import_Mode;
    use type Files.Undo.History.Undo_Action_Kind;
    use Files.Operations.Support;
-
-   --  The undo history is recorded by Files.Operations.Undo_Recording; these name it
-   --  here for the bodies that record.
-   procedure Record_Undo
-     (Model       : in out Files.Model.Window_Model;
-      Kind        : Files.Undo.History.Undo_Action_Kind;
-      Items       : Files.Undo.History.Recorded_Item_Vectors.Vector;
-      Create_Kind : Files.Undo.History.Undo_Create_Kind := Files.Undo.History.Create_None;
-      Redoable    : Boolean := True;
-      Replaced    : Files.Undo.History.Recorded_Original_Vectors.Vector :=
-        Files.Undo.History.Recorded_Original_Vectors.Empty_Vector;
-      Kept        : Files.Undo.History.Kept_Copy_Vectors.Vector := Files.Undo.History.Kept_Copy_Vectors.Empty_Vector)
-     renames Files.Operations.Undo_Recording.Record_Undo;
+   use Files.Operations.Undo_Recording;
 
    function Existing_Destination_Paths
      (Directory : String;

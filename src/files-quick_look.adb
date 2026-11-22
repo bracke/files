@@ -1,3 +1,4 @@
+with Files.Text_Encoding;
 with Ada.Calendar.Formatting;
 with Ada.Strings.Unbounded;
 
@@ -97,7 +98,7 @@ package body Files.Quick_Look is
          --  decoded.
          Text : constant String := Files.Text_Encoding.Searchable_Text (Raw_Bytes);
       begin
-         if Looks_Binary (Text) then
+         if Files.Text_Encoding.Looks_Binary (Text) then
             Content.Kind := Info_Content;
          else
             Content.Kind := Text_Content;

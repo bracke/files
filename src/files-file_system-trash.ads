@@ -131,17 +131,6 @@ private
      (Request : Native_Trash_Request)
       return Native_Trash_Result;
 
-   --  Hand Request's item to the desktop's own trash (the Windows Recycle Bin
-   --  or the macOS Trash). Nothing is attempted on a build that does not
-   --  target that desktop.
-   --
-   --  @param Request Native trash request for a native backend.
-   --  @return The evaluation, with Attempted and Completed set by the attempt.
-   function Trash_Natively
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result
-     with Pre => Request.Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
-
    --  Format a timestamp for freedesktop trashinfo DeletionDate metadata.
    --
    --  @param Value Time value to format.

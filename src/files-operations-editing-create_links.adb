@@ -40,7 +40,7 @@ begin
       return Disabled (Model, "error.create.pending");
    elsif Directory = ""
      or else Files.Model.Recent.In_Recent_View (Model)
-     or else Is_Trash_Directory (Directory)
+     or else Files.File_System.Trash.Is_Trash_Files_Directory (Directory)
    then
       return Disabled (Model, "error.link.failed");
    elsif Items.Is_Empty then

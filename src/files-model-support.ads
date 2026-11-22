@@ -167,6 +167,12 @@ private package Files.Model.Support is
    --  @param Model Model that changed.
    procedure Touch_Header (Model : in out Window_Model);
 
+   --  Note a change the info pane shows that no other revision tracks
+   --  (Info_Revision): a Touch_Header that also moves Info_Revision.
+   --
+   --  @param Model Model that changed.
+   procedure Touch_Info (Model : in out Window_Model);
+
    --  Note a change only a model-drawn overlay shows (Overlay_Revision):
    --  Revision, and with it the snapshot, stays.
    --

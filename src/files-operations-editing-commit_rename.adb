@@ -69,7 +69,7 @@ begin
       return Disabled (Model, "error.rename.disabled");
    elsif Current_Dir = ""
      or else Files.Model.Recent.In_Recent_View (Model)
-     or else Is_Trash_Directory (Current_Dir)
+     or else Files.File_System.Trash.Is_Trash_Files_Directory (Current_Dir)
    then
       return Disabled (Model, "error.rename.disabled");
    end if;

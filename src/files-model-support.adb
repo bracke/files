@@ -115,6 +115,13 @@ package body Files.Model.Support is
       Model.Revision_Value := Model.Revision_Value + 1;
    end Touch_Header;
 
+   procedure Touch_Info (Model : in out Window_Model) is
+   begin
+      Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Info_Revision_Value :=
+        (if Model.Info_Revision_Value = Natural'Last then 0 else Model.Info_Revision_Value + 1);
+   end Touch_Info;
+
    procedure Touch_Overlay (Model : in out Window_Model) is
    begin
       Model.Overlay_Revision_Value :=

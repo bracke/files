@@ -9,7 +9,7 @@ package body Files.Name_Parts is
    begin
       for Index in reverse Name'Range loop
          if Name (Index) = '.' then
-            return (if Index > Name'First and then Index < Name'Last then Index else 0);
+            return (if May_Start_Extension (Name, Index) then Index else 0);
          end if;
       end loop;
       return 0;

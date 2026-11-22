@@ -60,6 +60,8 @@ package body Files.Model is
 
    function Overlay_Revision (Model : Window_Model) return Natural is (Model.Overlay_Revision_Value);
 
+   function Info_Revision (Model : Window_Model) return Natural is (Model.Info_Revision_Value);
+
    function Selection_Revision (Model : Window_Model) return Natural is (Model.Selection_Revision_Value);
 
    function Rename_Revision (Model : Window_Model) return Natural is (Model.Rename_Revision_Value);

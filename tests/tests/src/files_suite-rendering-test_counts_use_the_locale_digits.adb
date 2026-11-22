@@ -1,6 +1,7 @@
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Files.Rendering.Display_Text;
 with Files_Suite.Support.Guards;
+with Files.Localization.Testing;
 separate (Files_Suite.Rendering)
    --  A count in the status bar is written as the number locale writes it --
    --  its digits and its grouping -- like the sizes beside it, so an Arabic
@@ -15,15 +16,15 @@ separate (Files_Suite.Rendering)
       Files_Suite.Support.Guards.Save (Environment, "LANG");
 
       Ada.Environment_Variables.Set ("LC_ALL", "en_US.UTF-8");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal
         (Files.Rendering.Display_Text.Grouped_Integer_Text (1_234_567), "1,234,567", "English");
       Ada.Environment_Variables.Set ("LC_ALL", "de_DE.UTF-8");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal
         (Files.Rendering.Display_Text.Grouped_Integer_Text (1_234_567), "1.234.567", "German");
       Ada.Environment_Variables.Set ("LC_ALL", "ar_EG.UTF-8");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal
         (Files.Rendering.Display_Text.Grouped_Integer_Text (14),
          Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("١٤"),

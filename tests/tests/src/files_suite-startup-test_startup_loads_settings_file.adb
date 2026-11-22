@@ -1,3 +1,4 @@
+with Files.Application.Windows.Smoke.Testing;
 with Files.Preference_Types;
 separate (Files_Suite.Startup)
    procedure Test_Startup_Loads_Settings_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -71,7 +72,7 @@ separate (Files_Suite.Startup)
       for Window of Startup.Windows loop
          declare
             Check : constant Files.Application.Windows.Smoke.Window_Frame_Check :=
-              Files.Application.Windows.Smoke.Check_Window_Frame (Window.Model, Startup.Settings, 320, 240);
+              Files.Application.Windows.Smoke.Testing.Check_Window_Frame (Window.Model, Startup.Settings, 320, 240);
          begin
             Assert
               (Check.Size_Matches and then Check.Has_Path and then Check.Rectangles > 0 and then Check.Text_Rendered,

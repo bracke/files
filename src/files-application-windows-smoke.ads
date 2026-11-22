@@ -167,25 +167,6 @@ package Files.Application.Windows.Smoke is
       Error_Key           : UString;
    end record;
 
-   --  Render one window model through the snapshot, frame, text and Vulkan
-   --  submission stages without opening a native window, exactly as
-   --  --runtime-smoke (Headless_Render_Quality_Report) does for each startup
-   --  window: grouped, with the host's samples (free space, owner names)
-   --  taken first, at the line height and font size the settings give, with
-   --  no pointer over it -- as the window draws it.
-   --
-   --  @param Model Window model to render.
-   --  @param Settings Settings the window is drawn with.
-   --  @param Width Framebuffer width used for frame construction.
-   --  @param Height Framebuffer height used for frame construction.
-   --  @return What the frame came to.
-   function Check_Window_Frame
-     (Model    : Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model;
-      Width    : Natural;
-      Height   : Natural)
-      return Window_Frame_Check;
-
    --  Validate render quality gates without opening native windows.
    --
    --  @param Startup Startup result containing window models to validate.
@@ -301,5 +282,27 @@ package Files.Application.Windows.Smoke is
    function Gate_Outcome
      (Result : Live_Smoke_Result)
       return Live_Smoke_Gate;
+
+private
+
+   --  Render one window model through the snapshot, frame, text and Vulkan
+   --  submission stages without opening a native window, exactly as
+   --  --runtime-smoke (Headless_Render_Quality_Report) does for each startup
+   --  window: grouped, with the host's samples (free space, owner names)
+   --  taken first, at the line height and font size the settings give, with
+   --  no pointer over it -- as the window draws it.
+   --
+   --  @param Model Window model to render.
+   --  @param Settings Settings the window is drawn with.
+   --  @param Width Framebuffer width used for frame construction.
+   --  @param Height Framebuffer height used for frame construction.
+   --  @return What the frame came to. The suite reaches it through
+   --  Files.Application.Windows.Smoke.Testing.
+   function Check_Window_Frame
+     (Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Width    : Natural;
+      Height   : Natural)
+      return Window_Frame_Check;
 
 end Files.Application.Windows.Smoke;

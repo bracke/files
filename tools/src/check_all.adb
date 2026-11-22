@@ -805,15 +805,11 @@ procedure Check_All is
 
    procedure Check_Event_Translation_Contract is separate;
 
-   --  The test suite steers a few behaviours through FILES_TEST_* variables
-   --  (no volume trash, its scratch area). The shipped program reads them
-   --  too, so they stay in the units listed here: a new one is a decision,
-   --  not a convenience.
    --  The commands are named without the model (Files.Commands), so input
    --  translation does not depend on it; what needs the model is in
-   --  Files.Commands.Status and .Execution. The model holds the palette's and
-   --  the settings panel's state; the window layer (Files.Overlays) draws
-   --  and localizes them.
+   --  Files.Commands.Status and Files.Controller.Execute_Pure_Command. The
+   --  model holds the palette's and the settings panel's state; the window
+   --  layer (Files.Overlays) draws and localizes them.
    procedure Check_Command_And_Overlay_Layers is separate;
 
    --  Files.Jobs imports nothing from the file system or above it.
@@ -827,6 +823,10 @@ procedure Check_All is
    --  Window_Model "in out"; the mutators are read from the model's specs.
    procedure Check_Rendering_Model_Reads is separate;
 
+   --  The test suite steers a few behaviours through FILES_TEST_* variables
+   --  (no volume trash, its scratch area). The shipped program reads them
+   --  too, so they stay in the units listed here: a new one is a decision,
+   --  not a convenience.
    --  Test hooks are environment variables named FILES_TEST_*, read only in
    --  the listed files. FILES_TRASH_BACKEND is no test hook -- production
    --  reads it, to force another host's trash layout -- but the suite leans

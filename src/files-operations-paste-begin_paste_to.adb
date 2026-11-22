@@ -49,7 +49,7 @@ begin
    if Source_Paths.Is_Empty then
       return Disabled (Model, "error.drop.invalid_source");
    end if;
-   if Directory = "" or else Is_Trash_Directory (Directory) then
+   if Directory = "" or else Files.File_System.Trash.Is_Trash_Files_Directory (Directory) then
       return Disabled (Model, "error.drop.invalid_destination");
    end if;
    if Files.Model.Creation.Temporary_Item_Is_Active (Model) then

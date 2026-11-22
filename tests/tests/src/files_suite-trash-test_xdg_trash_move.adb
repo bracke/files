@@ -31,20 +31,17 @@ separate (Files_Suite.Trash)
          declare
             Request : constant Files.File_System.Native_Trash_Request :=
               Files.File_System.Testing.Native_Trash_Request_For (Join (Root, "native-execute.txt"));
-            Native_Execution : constant Files.File_System.Native_Trash_Result :=
-              Files.File_System.Testing.Execute_Native_Trash (Request);
          begin
             Assert (Request.Can_Use_Current_Process, "XDG trash request can execute in current process");
-            Assert (Native_Execution.Supported, "XDG trash execution reports supported adapter");
-            Assert (Native_Execution.Attempted, "XDG trash execution attempts mutation");
-            Assert (Native_Execution.Completed, "XDG trash execution completes mutation");
+            Mutation := Files.File_System.Trash.Move_To_Trash (Join (Root, "native-execute.txt"));
+            Assert (Mutation.Success, "XDG trash moves the item; error was " & To_String (Mutation.Error_Key));
             Assert
               (not Ada.Directories.Exists (Join (Root, "native-execute.txt")),
-               "XDG trash execution moves source entry");
+               "XDG trash moves the source entry");
             Files_Suite.Support.Assert_Equal
-              (To_String (Native_Execution.Error_Key),
+              (To_String (Mutation.Error_Key),
                "",
-               "XDG trash execution has no error key");
+               "XDG trash move has no error key");
          end;
          Write_File (Join (Root, "doomed.txt"));
          Load := Files_Suite.Listings.Load_Directory (Root, Settings);

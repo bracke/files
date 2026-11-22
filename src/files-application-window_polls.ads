@@ -34,7 +34,7 @@ package Files.Application.Window_Polls is
    procedure Poll_Folder_Sizes (Model : in out Files.Model.Window_Model);
 
    --  Hand the open Quick Look preview its decoded image once the decoder
-   --  has it (Prepare_Quick_Look asked for it).
+   --  has it (Quick_Look.Preparation.Prepare asked for it).
    --
    --  @param Model Window model whose preview to complete.
    --  @param Owner Which window asks (one decode in flight per window).

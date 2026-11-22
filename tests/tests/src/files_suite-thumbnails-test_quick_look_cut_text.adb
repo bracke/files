@@ -1,4 +1,4 @@
-with Files.Operations.Opening;
+with Files.Quick_Look.Preparation;
 with Files_Suite.Listings;
 with Guikit.Utf8;
 separate (Files_Suite.Thumbnails)
@@ -27,7 +27,7 @@ separate (Files_Suite.Thumbnails)
       begin
          for Item of Load.Items loop
             if To_String (Item.Name) = Name then
-               return Files.Operations.Opening.Prepare_Quick_Look (Item);
+               return Files.Quick_Look.Preparation.Prepare (Item);
             end if;
          end loop;
          Assert (False, Name & " is listed");

@@ -1,3 +1,4 @@
+with Files.File_System.Trash;
 with Files.Operations.Navigation;
 with Files.File_System;
 with Files.Model.Recent;
@@ -43,7 +44,7 @@ package body Files.Operations is
    end Search_Refusal;
 
    function Trash_Refusal (Model : in out Files.Model.Window_Model) return Operation_Result is
-     (if Is_Trash_Directory (Files.Model.Current_Path (Model))
+     (if Files.File_System.Trash.Is_Trash_Files_Directory (Files.Model.Current_Path (Model))
       then Disabled (Model, "error.trash.failed")
       else (Status => Operation_Success, others => <>));
 
@@ -53,7 +54,7 @@ package body Files.Operations is
    begin
       if Files.Model.Selection.Includes_Temporary (Model) then
          return Disabled (Model, "error.create.pending");
-      elsif Is_Trash_Directory (Files.Model.Current_Path (Model)) then
+      elsif Files.File_System.Trash.Is_Trash_Files_Directory (Files.Model.Current_Path (Model)) then
          return Disabled (Model, Failure_Key);
       end if;
       return (Status => Operation_Success, others => <>);
@@ -62,7 +63,8 @@ package body Files.Operations is
    procedure Settle_Current_Is_Trash
      (Model : in out Files.Model.Window_Model) is
    begin
-      Files.Model.Set_Current_Is_Trash (Model, Is_Trash_Directory (Files.Model.Current_Path (Model)));
+      Files.Model.Set_Current_Is_Trash
+        (Model, Files.File_System.Trash.Is_Trash_Files_Directory (Files.Model.Current_Path (Model)));
    end Settle_Current_Is_Trash;
 
 end Files.Operations;

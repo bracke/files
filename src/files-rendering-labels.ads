@@ -151,12 +151,6 @@ private package Files.Rendering.Labels is
    --  @return The free-space label text, or "" when there is no free field.
    function Free_Space_Label (Snapshot : View_Snapshot) return String;
 
-   --  @param Permissions "rwx"-style text for one class.
-   --  @param Inline True to join the parts on one line.
-   --  @return The readable, writable and executable words, or "none".
-   function Permission_Text (Permissions : String; Inline : Boolean := False) return String
-     renames Display_Text.Permission_Text;
-
    --  Build the ordered coalesced sections for the current multi-item selection.
    --  Each section carries one value per selected item so the layout and the
    --  renderer stay in lock-step. Intended for Selected_Info.Length >= 2.

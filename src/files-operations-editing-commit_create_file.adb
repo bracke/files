@@ -12,7 +12,7 @@ begin
       return Disabled (Model, "error.create.no_temporary_item");
    elsif Files.Model.Current_Path (Model) = ""
      or else Files.Model.Recent.In_Recent_View (Model)
-     or else Is_Trash_Directory (Files.Model.Current_Path (Model))
+     or else Files.File_System.Trash.Is_Trash_Files_Directory (Files.Model.Current_Path (Model))
    then
       return Disabled (Model, "error.file.parent_missing");
    elsif not Files.File_System.Valid_Leaf_Name_At

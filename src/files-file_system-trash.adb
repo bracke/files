@@ -260,10 +260,6 @@ package body Files.File_System.Trash is
      (Request : Native_Trash_Request)
       return Native_Trash_Result is separate;
 
-   function Trash_Natively
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result is separate;
-
    function Move_To_Trash_Preflight
      (Path : String)
       return Mutation_Result

@@ -10,6 +10,16 @@ package Files.Name_Parts is
    --  @return The extension's dot, or 0 when the name has none.
    function Extension_Start (Name : String) return Natural;
 
+   --  Whether the '.' at Index in Name may start an extension by
+   --  Extension_Start's rule: it is neither the first character nor the
+   --  last. For a caller that weighs every dot, not only the last.
+   --
+   --  @param Name A leaf name.
+   --  @param Index Position of a '.' in Name.
+   --  @return True when an extension may start there.
+   function May_Start_Extension (Name : String; Index : Positive) return Boolean is
+     (Index > Name'First and then Index < Name'Last);
+
    --  A leaf name before its extension (Extension_Start): "notes" of
    --  "notes.txt", all of ".bashrc".
    --

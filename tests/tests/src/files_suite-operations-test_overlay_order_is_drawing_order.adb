@@ -1,4 +1,4 @@
-with Files.Operations.Opening;
+with Files.Quick_Look.Preparation;
 with Files_Suite.Listings;
 with Files.Overlays.Settings_Form;
 with Files.Model.Command_Palette;
@@ -21,7 +21,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Root, Files_Suite.Listings.Load_Directory (Root, Settings).Items, Root);
       Assert (Files.Model.Selection.Select_By_Name (Model, "look.txt"), "an item to look at");
       Files.Model.Quick_Look.Open
-        (Model, Files.Operations.Opening.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
+        (Model, Files.Quick_Look.Preparation.Prepare (Files.Model.Selection.Selected_Item (Model)));
       Assert (Files.Model.Topmost_Overlay (Model, Overlay) and then Overlay = Files.UI_Types.Quick_Look_Overlay,
               "Quick Look alone is on top");
       Assert (Files.Model.Escape_Overlay (Model, Overlay) and then Overlay = Files.UI_Types.Quick_Look_Overlay,

@@ -3,24 +3,15 @@ separate (Check_All)
       Rendering_Body : constant String := Root & "/src/files-rendering.adb";
       Rendering_Spec : constant String := Root & "/src/files-rendering.ads";
       Hit_Body       : constant String := Root & "/src/files-rendering-hit.adb";
-      Hit_Spec       : constant String := Root & "/src/files-rendering-hit.ads";
       Layouts_Spec   : constant String := Root & "/src/files-rendering-layouts.ads";
-      Layouts_Body   : constant String := Root & "/src/files-rendering-layouts.adb";
-      Geometry_Spec  : constant String := Root & "/src/files-rendering-geometry.ads";
-      Geometry_Body  : constant String := Root & "/src/files-rendering-geometry.adb";
-      Labels_Spec    : constant String := Root & "/src/files-rendering-labels.ads";
-      Labels_Body    : constant String := Root & "/src/files-rendering-labels.adb";
       Text_Spec      : constant String := Root & "/src/files-rendering-text.ads";
-      Text_Body      : constant String := Root & "/src/files-rendering-text.adb";
       Fonts_Body     : constant String := Root & "/src/files-fonts.adb";
       Fonts_Spec     : constant String := Root & "/src/files-fonts.ads";
       Application_Body : constant String := Root & "/src/files-application.adb";
       Windows_Body   : constant String := Root & "/src/files-application-windows.adb";
       Tests          : constant String := Combined_Suite;
 
-      procedure Check_Rendering_Unit
-        (Path  : String;
-         Label : String) is separate;
+      procedure Check_Rendering_Sources is separate;
    begin
       --  Rendering reads the file system's types and two capability queries;
       --  every call that lists, writes or validates is someone else's.
@@ -52,17 +43,7 @@ separate (Check_All)
          [To_Unbounded_String ("Supports_Permissions"),
           To_Unbounded_String ("Supports_Ownership")],
          "rendering must not change permissions or ownership");
-      Check_Rendering_Unit (Rendering_Spec, "rendering spec");
-      Check_Rendering_Unit (Rendering_Body, "rendering body");
-      Check_Rendering_Unit (Hit_Spec, "hit-testing spec");
-      Check_Rendering_Unit (Layouts_Spec, "layouts spec");
-      Check_Rendering_Unit (Layouts_Body, "layouts body");
-      Check_Rendering_Unit (Geometry_Spec, "rendering geometry spec");
-      Check_Rendering_Unit (Geometry_Body, "rendering geometry body");
-      Check_Rendering_Unit (Labels_Spec, "rendering labels spec");
-      Check_Rendering_Unit (Labels_Body, "rendering labels body");
-      Check_Rendering_Unit (Text_Spec, "text rendering spec");
-      Check_Rendering_Unit (Text_Body, "text rendering body");
+      Check_Rendering_Sources;
 
       --  Lock the Files.* import boundary of the rendering layer through the
       --  shared helper. The allow-lists are the units each source actually

@@ -10,4 +10,9 @@ begin
    Target.Total_Sizes_Revision := Source.Total_Sizes_Revision;
    Target.Selection_Total_Bytes := Source.Selection_Total_Bytes;
    Target.Selection_Total_Pending := Source.Selection_Total_Pending;
+   Target.Info_Key := Source.Info_Key;
+   Target.Selected_Info := Source.Selected_Info;
+   Target.Info_Sections := Source.Info_Sections;
+   Target.Permissions_Editable := Source.Permissions_Editable;
+   Target.Ownership_Editable := Source.Ownership_Editable;
 end Copy_Rows;

@@ -166,7 +166,7 @@ package body Files.File_Types is
       return String
    is
       Clean : constant String := Leaf_Name (Name);
-      --  Files.Types' one rule for where an extension starts.
+      --  Files.Name_Parts' one rule for where an extension starts.
       Dot   : constant Natural := Files.Name_Parts.Extension_Start (Clean);
    begin
       if Dot /= 0 then
@@ -189,14 +189,11 @@ package body Files.File_Types is
    is
       Clean : constant String := Leaf_Name (Name);
    begin
-      --  Every dot that could start an extension under Files.Types' rule
-      --  (Extension_Start: neither the first character nor the last), the
-      --  first one first, so "archive.tar.gz" is tar.gz before gz.
+      --  Every dot that could start an extension under Files.Name_Parts'
+      --  rule (May_Start_Extension), the first one first, so
+      --  "archive.tar.gz" is tar.gz before gz.
       for Index in Clean'Range loop
-         if Clean (Index) = '.'
-           and then Index > Clean'First
-           and then Index < Clean'Last
-         then
+         if Clean (Index) = '.' and then Files.Name_Parts.May_Start_Extension (Clean, Index) then
             declare
                Candidate : constant String :=
                  Normalize_Extension (Clean (Index + 1 .. Clean'Last));

@@ -93,8 +93,15 @@ separate (Files.Rendering)
          Total_Sizes      : constant Natural := Snapshot.Total_Sizes_Revision;
          Total_Bytes      : constant Long_Long_Integer := Snapshot.Selection_Total_Bytes;
          Total_Pending    : constant Boolean := Snapshot.Selection_Total_Pending;
+         Info_Key         : constant Info_Pane_Key := Snapshot.Info_Key;
+         Info_Rows        : Info_Snapshot_Vectors.Vector;
+         Info_Sections    : Coalesced_Section_Vectors.Vector;
+         Permissions_Editable : constant Boolean := Snapshot.Permissions_Editable;
+         Ownership_Editable   : constant Boolean := Snapshot.Ownership_Editable;
       begin
          if Keep_Rows then
+            Info_Rows.Move (Snapshot.Selected_Info);
+            Info_Sections.Move (Snapshot.Info_Sections);
             Rows.Move (Snapshot.Items);
             Row_Table.Move (Snapshot.Visible_Rows);
             Renamed.Move (Snapshot.Renamed_Rows);
@@ -110,6 +117,11 @@ separate (Files.Rendering)
             Snapshot.Total_Sizes_Revision := Total_Sizes;
             Snapshot.Selection_Total_Bytes := Total_Bytes;
             Snapshot.Selection_Total_Pending := Total_Pending;
+            Snapshot.Info_Key := Info_Key;
+            Snapshot.Selected_Info.Move (Info_Rows);
+            Snapshot.Info_Sections.Move (Info_Sections);
+            Snapshot.Permissions_Editable := Permissions_Editable;
+            Snapshot.Ownership_Editable := Ownership_Editable;
          end if;
       end;
       Snapshot.Now := Files.Timing.Minute_Start (Now);
@@ -131,14 +143,36 @@ separate (Files.Rendering)
       Snapshot.Rows_Selection_Revision := Files.Model.Selection_Revision (Model);
       Snapshot.Rows_Rename_Revision := Files.Model.Rename_Revision (Model);
       Snapshot_Selection;
-      if Snapshot.Info_Pane_Open and then Snapshot.Selected_Count > 0 then
-         Snapshot_Info_Pane;
-      end if;
+      declare
+         --  An ownership edit shows its buffer and caret in the pane: never
+         --  kept.
+         Key : constant Info_Pane_Key :=
+           (Built     => Files.Model.Focus (Model) /= Files.UI_Types.Focus_Ownership_Input,
+            Selection => Files.Model.Selection_Revision (Model),
+            Rows      => Files.Model.Rows_Revision (Model),
+            Sizes     => Files.Model.Folder_Sizes.Revision (Model),
+            Settings  => Files.Model.Settings_Revision (Model),
+            Info      => Files.Model.Info_Revision (Model),
+            Now       => Snapshot.Now,
+            Open      => Snapshot.Info_Pane_Open,
+            In_Trash  => Files.Model.Current_Is_Trash (Model));
+      begin
+         if not (Keep_Rows and then Key.Built and then Snapshot.Info_Key = Key) then
+            Snapshot.Selected_Info.Clear;
+            Snapshot.Info_Sections.Clear;
+            Snapshot.Permissions_Editable := False;
+            Snapshot.Ownership_Editable := False;
+            if Snapshot.Info_Pane_Open and then Snapshot.Selected_Count > 0 then
+               Snapshot_Info_Pane;
+            end if;
 
-      --  Formatted here, once a build: the frame lays the pane out and draws
-      --  it on every rebuild, hover included.
-      if Natural (Snapshot.Selected_Info.Length) >= 2 then
-         Snapshot.Info_Sections := Build_Coalesced_Info_Sections (Snapshot);
-      end if;
+            --  Formatted here, once a build: the frame lays the pane out and
+            --  draws it on every rebuild, hover included.
+            if Natural (Snapshot.Selected_Info.Length) >= 2 then
+               Snapshot.Info_Sections := Build_Coalesced_Info_Sections (Snapshot);
+            end if;
+            Snapshot.Info_Key := Key;
+         end if;
+      end;
       Snapshot.Info_Sections_Built := True;
    end Build_Snapshot_Into;

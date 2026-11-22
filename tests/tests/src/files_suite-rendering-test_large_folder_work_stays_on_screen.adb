@@ -1,3 +1,6 @@
+with Files.UI_Types;
+with Files.File_System_Types;
+with Files.Model.Status_Samples;
 with Ada.Containers.Ordered_Maps;
 with Files.Folder_Size;
 with Files.Model.Folder_Sizes;
@@ -482,6 +485,33 @@ separate (Files_Suite.Rendering)
          end loop;
          Ada.Text_IO.Put_Line
            ("large-folder: header change with the info pane over 20k selected" & Per_Round (Start, Rounds));
+         --  The pane's rows are kept by a header-only build: a mark put on
+         --  them survives one, and goes with a change the pane shows (an
+         --  account name sampled).
+         declare
+            Marked : Info_Snapshot := View.Snapshots (View.Current_Slot).Selected_Info.First_Element;
+            First  : Info_Snapshot;
+         begin
+            Assert (Natural (View.Snapshots (View.Current_Slot).Selected_Info.Length) = Files.UI_Types.Max_Info_Items,
+                    "the pane lists the first items of the selection");
+            Marked.Name := To_Unbounded_String ("kept-mark");
+            for Slot in View.Snapshots'Range loop
+               if not View.Snapshots (Slot).Selected_Info.Is_Empty then
+                  View.Snapshots (Slot).Selected_Info.Replace_Element (1, Marked);
+               end if;
+            end loop;
+            Files.Model.Set_Error (Model, "error.probe.kept");
+            Refresh;
+            First := View.Snapshots (View.Current_Slot).Selected_Info.First_Element;
+            Assert (To_String (First.Name) = "kept-mark", "a header-only build keeps the pane's rows");
+            Files.Model.Status_Samples.Set_Account_Name
+              (Model, Files.File_System_Types.User_Account, 4_242, "kept-probe");
+            Refresh;
+            First := View.Snapshots (View.Current_Slot).Selected_Info.First_Element;
+            Assert (To_String (First.Name) /= "kept-mark", "an account name sampled rebuilds them");
+            Files.Model.Set_Error (Model, "");
+            Refresh;
+         end;
          Files.Model.Info_Pane.Toggle_Info_Pane (Model);
          Refresh;
          Start := Ada.Real_Time.Clock;

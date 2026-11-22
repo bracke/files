@@ -109,11 +109,23 @@ package Files.Settings.Storage is
    --  @param Settings What the file as last seen says.
    procedure Note_Seen_Settings (Path : String; Settings : Settings_Model);
 
-   --  Take into Settings what another process (another files, an editor)
-   --  wrote to the settings file at Path since this one last read or wrote
-   --  it (Load_File, Save_Text), so a save does not throw that away. Each
-   --  scalar keeps Settings' value where this process changed it since and
-   --  takes the file's otherwise; the lists and mappings merge entry by
+   --  Write settings text to Path, creating parent directories as needed.
+   --
+   --  @param Path Settings file path.
+   --  @param Text Settings text to write.
+   --  @return Write result with path and deterministic diagnostic key.
+   function Save_Text
+     (Path : String;
+      Text : String)
+      return Settings_Write_Result;
+
+private
+
+   --  Write's first step: take into Settings what another process (another
+   --  files, an editor) wrote to the settings file at Path since this one
+   --  last read or wrote it (Load_File, Save_Text), so a save does not throw
+   --  that away. Each scalar keeps Settings' value where this process
+   --  changed it since and takes the file's otherwise; the lists and mappings merge entry by
    --  entry: what this process added, removed or changed since is applied
    --  to the file's (favorites and labels in the file's order, this
    --  process's additions after; recent items this process opened since
@@ -133,15 +145,5 @@ package Files.Settings.Storage is
       Settings : in out Settings_Model;
       Merged   : out Boolean;
       Refused  : out Boolean);
-
-   --  Write settings text to Path, creating parent directories as needed.
-   --
-   --  @param Path Settings file path.
-   --  @param Text Settings text to write.
-   --  @return Write result with path and deterministic diagnostic key.
-   function Save_Text
-     (Path : String;
-      Text : String)
-      return Settings_Write_Result;
 
 end Files.Settings.Storage;

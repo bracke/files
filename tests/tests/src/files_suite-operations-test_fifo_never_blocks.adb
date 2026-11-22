@@ -1,4 +1,4 @@
-with Files.Operations.Opening;
+with Files.Quick_Look.Preparation;
 with Files.Model.Filtering;
 with Files.File_System.Transfer;
 with Files_Suite.Listings;
@@ -42,7 +42,7 @@ separate (Files_Suite.Operations)
       for Item of Load.Items loop
          if To_String (Item.Name) = "pipe" then
             Assert (Files.Quick_Look."/="
-                      (Files.Operations.Opening.Prepare_Quick_Look (Item).Kind, Files.Quick_Look.Text_Content),
+                      (Files.Quick_Look.Preparation.Prepare (Item).Kind, Files.Quick_Look.Text_Content),
                     "Quick Look of a FIFO shows its card without reading it");
          end if;
       end loop;

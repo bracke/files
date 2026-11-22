@@ -2,6 +2,7 @@ with Ada.Calendar;
 with Ada.Calendar.Formatting;
 with Files.Rendering.Display_Text;
 with Files_Suite.Support.Guards;
+with Files.Localization.Testing;
 separate (Files_Suite.Rendering)
    --  A modification time is written in CLDR's medium form for the time
    --  locale -- its order, its month names, its hour cycle -- not one
@@ -18,14 +19,14 @@ separate (Files_Suite.Rendering)
       Files_Suite.Support.Guards.Save (Environment, "LANG");
 
       Ada.Environment_Variables.Set ("LC_ALL", "de_DE.UTF-8");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal
         (Files.Rendering.Display_Text.Full_Time_Text (Moment), "22.11.2026 14:05:09", "German date and time");
       Files_Suite.Support.Assert_Equal
         (Files.Rendering.Display_Text.Clock_Time_Text (Moment), "14:05:09", "German time");
 
       Ada.Environment_Variables.Set ("LC_ALL", "en_US.UTF-8");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
       declare
          Full : constant String := Files.Rendering.Display_Text.Full_Time_Text (Moment);
       begin

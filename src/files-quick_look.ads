@@ -1,4 +1,3 @@
-with Files.Text_Encoding;
 with Guikit.Shared_Bytes;
 with Files.Items;
 with Files.Types;
@@ -53,15 +52,6 @@ package Files.Quick_Look is
       --  refresh that finds it unchanged keeps the preview it has.
       Source_Stamp   : UString;
    end record;
-
-   --  Whether Raw_Bytes looks like binary (non-text) data: Files.Types's
-   --  test, which content search shares.
-   --
-   --  @param Raw_Bytes Leading bytes of the file.
-   --  @return True when the bytes should not be shown as text.
-   function Looks_Binary
-     (Raw_Bytes : String)
-      return Boolean renames Files.Text_Encoding.Looks_Binary;
 
    --  Classify a Quick Look preview from item metadata and a bounded read.
    --

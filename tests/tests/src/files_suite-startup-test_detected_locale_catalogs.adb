@@ -19,7 +19,7 @@ separate (Files_Suite.Startup)
       Ada.Environment_Variables.Clear ("LC_NUMERIC");
       Ada.Environment_Variables.Set ("LANG", "de_DE.UTF-8");
       Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
       Assert
         (Files.Localization.Text ("command.view.small") /= "Small Icons"
          and then Files.Localization.Text ("command.view.small") /= "command.view.small",

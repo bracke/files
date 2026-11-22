@@ -128,23 +128,6 @@ package Files.File_System.Testing is
    --  FILES_TEST_DIRECTORY_RESTORE_BLOCK as Fail_Directory_Restore.
    procedure Install_From_Environment;
 
-   --  Execute a trash request through the selected backend when supported.
-   --
-   --  @param Request Native trash request metadata.
-   --  @return Trash execution result with adapter diagnostics.
-   function Execute_Native_Trash
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result;
-
-   type Trash_Capabilities is record
-      Backend             : Trash_Backend := Trash_Unavailable;
-      Native_Platform     : Boolean := False;
-      Xdg_Compatible      : Boolean := False;
-      Metadata_Sidecar    : Boolean := False;
-      Collision_Safe_Name : Boolean := False;
-      Permanent_Delete    : Boolean := False;
-   end record;
-
    type Root_Discovery_Diagnostics is record
       Root_Count              : Natural := 0;
       Removable_Count         : Natural := 0;
@@ -163,11 +146,6 @@ package Files.File_System.Testing is
    --
    --  @return Root discovery counts and policy flags.
    function Root_Discovery_Status return Root_Discovery_Diagnostics;
-
-   --  Return trash backend capabilities for the current environment.
-   --
-   --  @return Structured trash capability description.
-   function Trash_Capabilities_Of_Current_Environment return Trash_Capabilities;
 
    --  Whether a mount point is one a user put there (a stick, a share), as
    --  the root list shows them: "/" and anything under /mnt, /media,
@@ -207,17 +185,6 @@ package Files.File_System.Testing is
    function Evaluate_Native_Trash
      (Request : Native_Trash_Request)
       return Native_Trash_Result;
-
-   --  Hand Request's item to the desktop's own trash (the Windows Recycle Bin
-   --  or the macOS Trash). Nothing is attempted on a build that does not
-   --  target that desktop.
-   --
-   --  @param Request Native trash request for a native backend.
-   --  @return The evaluation, with Attempted and Completed set by the attempt.
-   function Trash_Natively
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result
-     with Pre => Request.Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
 
    --  Format a timestamp for freedesktop trashinfo DeletionDate metadata.
    --

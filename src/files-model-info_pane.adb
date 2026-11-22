@@ -54,7 +54,7 @@ package body Files.Model.Info_Pane is
          Item.Filetype_Extra := Extra;
          Item.Filetype_Extra_Loaded := True;
          if Extra.Of_Kind /= Files.Extra_Info.None then
-            Touch_Header (Model);
+            Touch_Info (Model);
          end if;
          Model.Items.Replace_Element (Idx, Item);
       end;
@@ -129,7 +129,7 @@ package body Files.Model.Info_Pane is
             Item.Filetype_Extra := Previous.Filetype_Extra;
             Item.Filetype_Extra_Loaded := True;
             Model.Items.Replace_Element (Idx, Item);
-            Touch_Header (Model);
+            Touch_Info (Model);
          end if;
       end;
    end Keep_Info_Pane;

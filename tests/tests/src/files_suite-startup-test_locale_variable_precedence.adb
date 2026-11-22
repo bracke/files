@@ -1,4 +1,5 @@
 with Files_Suite.Support.Guards;
+with Files.Localization.Testing;
 separate (Files_Suite.Startup)
    procedure Test_Locale_Variable_Precedence (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -15,7 +16,7 @@ separate (Files_Suite.Startup)
       Ada.Environment_Variables.Set ("LC_TIME", "sv_SE.UTF-8");
       Ada.Environment_Variables.Set ("LC_NUMERIC", "fr_FR.UTF-8");
       Ada.Environment_Variables.Set ("LANG", "de_DE.UTF-8");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal
         (Files.Localization.System_Locale,
          "da-DK",
@@ -30,7 +31,7 @@ separate (Files_Suite.Startup)
          "LC_ALL has numeric-locale detection precedence");
 
       Ada.Environment_Variables.Clear ("LC_ALL");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal
         (Files.Localization.System_Locale,
          "en-US",
@@ -45,23 +46,23 @@ separate (Files_Suite.Startup)
          "LC_NUMERIC is used for numbers after LC_ALL");
 
       Ada.Environment_Variables.Clear ("LC_MESSAGES");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal (Files.Localization.System_Locale, "de-DE", "LANG is used after LC_MESSAGES");
       Ada.Environment_Variables.Clear ("LC_TIME");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal
         (Files.Localization.System_Time_Locale,
          "de-DE",
          "LANG is used for date/time after LC_TIME");
       Ada.Environment_Variables.Clear ("LC_NUMERIC");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal
         (Files.Localization.System_Number_Locale,
          "de-DE",
          "LANG is used for numbers after LC_NUMERIC");
 
       Ada.Environment_Variables.Set ("LC_ALL", "C");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
       Files_Suite.Support.Assert_Equal
         (Files.Localization.System_Locale,
          "en",

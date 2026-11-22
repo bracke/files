@@ -336,60 +336,6 @@ package body Files.File_System.Testing is
       Files.File_System.Trash.Testing.Withhold_Trash_Location (Withhold);
    end Trash_Says_Nowhere;
 
-   function Execute_Native_Trash
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result
-   is
-      Evaluation : constant Native_Trash_Result := Evaluate_Native_Trash (Request);
-      Mutation   : Mutation_Result;
-   begin
-      if Request.Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native then
-         return Trash_Natively (Request);
-      end if;
-
-      if not Evaluation.Supported then
-         return Evaluation;
-      end if;
-
-      Mutation := Files.File_System.Trash.Move_To_Trash (To_String (Request.Path));
-      return
-        (Supported => True,
-         Attempted => True,
-         Completed => Mutation.Success,
-         Error_Key => Mutation.Error_Key);
-   end Execute_Native_Trash;
-
-   function Trash_Capabilities_Of_Current_Environment return Trash_Capabilities is
-      Backend : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
-   begin
-      case Backend is
-         when Trash_Windows_Recycle_Bin | Trash_Macos_Native =>
-            return
-              (Backend             => Backend,
-               Native_Platform     => True,
-               Xdg_Compatible      => False,
-               Metadata_Sidecar    => False,
-               Collision_Safe_Name => True,
-               Permanent_Delete    => False);
-         when Trash_Xdg_Data_Home | Trash_Home_Data | Trash_Macos_Home =>
-            return
-              (Backend             => Backend,
-               Native_Platform     => False,
-               Xdg_Compatible      => Backend /= Trash_Macos_Home,
-               Metadata_Sidecar    => True,
-               Collision_Safe_Name => True,
-               Permanent_Delete    => False);
-         when Trash_Unavailable =>
-            return
-              (Backend             => Trash_Unavailable,
-               Native_Platform     => False,
-               Xdg_Compatible      => False,
-               Metadata_Sidecar    => False,
-               Collision_Safe_Name => False,
-               Permanent_Delete    => False);
-      end case;
-   end Trash_Capabilities_Of_Current_Environment;
-
    function Root_Discovery_Status return Root_Discovery_Diagnostics is
       Entries : constant Root_Entry_Vectors.Vector := Files.File_System.Roots.Available_Root_Entries;
       Result  : Root_Discovery_Diagnostics :=
@@ -449,11 +395,6 @@ package body Files.File_System.Testing is
      (Request : Native_Trash_Request)
       return Native_Trash_Result
      renames Files.File_System.Trash.Testing.Evaluate_Native_Trash;
-
-   function Trash_Natively
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result
-     renames Files.File_System.Trash.Testing.Trash_Natively;
 
    function Trash_Deletion_Date
      (Value : Ada.Calendar.Time)

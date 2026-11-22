@@ -1,4 +1,4 @@
-with Files.Operations.Opening;
+with Files.Quick_Look.Preparation;
 with Files.Model.Filtering;
 with Files_Suite.Listings;
 with Files.UI_Types;
@@ -58,7 +58,7 @@ separate (Files_Suite.Interaction)
 
       --  Quick Look on a result.
       Files.Model.Quick_Look.Open
-        (Model, Files.Operations.Opening.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
+        (Model, Files.Quick_Look.Preparation.Prepare (Files.Model.Selection.Selected_Item (Model)));
       Shared := Settings;
       Shared.Show_Hidden_Files := True;
       Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);

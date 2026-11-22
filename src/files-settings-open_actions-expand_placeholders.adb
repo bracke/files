@@ -19,7 +19,7 @@ separate (Files.Settings.Open_Actions)
          --  A name alone lies in the current directory.
          elsif Up = "" then "."
          else Up);
-      --  As the name spells them (Files.Types' one rule): "{extension}" of
+      --  As the name spells them (Files.Name_Parts' one rule): "{extension}" of
       --  "Photo.JPG" is "JPG", as "{stem}" is "Photo".
       Extension : constant String := Files.Name_Parts.Extension_Of (Name);
       Stem      : constant String := Files.Name_Parts.Stem_Of (Name);

@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.File_System;
 with Files.Model.Recent;
 with Files.File_System.Trash;

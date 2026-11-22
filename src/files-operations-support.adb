@@ -231,9 +231,6 @@ package body Files.Operations.Support is
       end if;
    end Discard_Stage;
 
-   function Is_Trash_Directory (Path : String) return Boolean
-     renames Files.File_System.Trash.Is_Trash_Files_Directory;
-
    function Is_Trash_Child (Path : String) return Boolean is separate;
 
 end Files.Operations.Support;

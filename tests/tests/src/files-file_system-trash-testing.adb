@@ -5,11 +5,6 @@ package body Files.File_System.Trash.Testing is
       return Native_Trash_Result
      renames Files.File_System.Trash.Evaluate_Native_Trash;
 
-   function Trash_Natively
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result
-     renames Files.File_System.Trash.Trash_Natively;
-
    function Trash_Deletion_Date
      (Value : Ada.Calendar.Time)
       return String

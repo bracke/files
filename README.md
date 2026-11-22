@@ -88,7 +88,8 @@ siblings next to this repository:
 
 Clone each pinned crate next to `files/` before building. `project_tools` is
 needed by tests and repository checks. The i18n regeneration tools also need
-the `httpclient`, `tarlib`, `awklib`, and `regexp` siblings, as checked out by CI.
+the `httpclient`, `ssllib`, `truststores`, `tarlib`, `awklib`, and `regexp`
+siblings, as checked out by CI.
 
 ### System libraries (Linux)
 
@@ -126,11 +127,14 @@ MinGW-w64 ABI used by Alire GNAT:
 ```sh
 pacman -S --needed mingw-w64-x86_64-vulkan-loader \
   mingw-w64-x86_64-glib2 mingw-w64-x86_64-gdk-pixbuf2 \
-  mingw-w64-x86_64-glfw mingw-w64-x86_64-openssl
+  mingw-w64-ucrt-x86_64-glfw mingw-w64-x86_64-openssl
 ```
 
-Set `CPATH` to `C:/msys64/mingw64/include`, `LIBRARY_PATH` to
-`C:/msys64/mingw64/lib`, and add `C:\msys64\mingw64\bin` to `PATH`. The LunarG
+MSYS2 has dropped glfw from MINGW64, so it alone comes from UCRT64 (it links
+through its DLL import library). Set `CPATH` to `C:/msys64/mingw64/include`,
+`LIBRARY_PATH` to `C:/msys64/mingw64/lib;C:/msys64/ucrt64/lib`, and add
+`C:\msys64\mingw64\bin` and then `C:\msys64\ucrt64\bin` to `PATH`, MINGW64's
+ahead of UCRT64's. The LunarG
 SDK's MSVC `.lib` files are not compatible with GNAT's MinGW linker. Fonts
 in the system's Fonts folder (wherever Windows is installed) and in the
 per-user `%LOCALAPPDATA%\Microsoft\Windows\Fonts` are used for text

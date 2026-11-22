@@ -42,9 +42,6 @@ separate (Files_Suite.Trash)
                "elsewhere, no trash base means no trash");
          end if;
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-         Assert
-           (not Files.File_System.Testing.Trash_Capabilities_Of_Current_Environment.Metadata_Sidecar,
-            "unavailable trash backend reports no metadata sidecar support");
          Write_File (Join (Root, "blocked-trash-parent"));
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Join (Root, "blocked-trash-parent"), "xdg"));
          Assert
@@ -78,12 +75,6 @@ separate (Files_Suite.Trash)
          Assert
            (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Xdg_Data_Home,
             "trash backend reports XDG data home when configured");
-         Assert
-           (Files.File_System.Testing.Trash_Capabilities_Of_Current_Environment.Metadata_Sidecar,
-            "XDG trash backend reports trashinfo sidecar support");
-         Assert
-           (Files.File_System.Testing.Trash_Capabilities_Of_Current_Environment.Collision_Safe_Name,
-            "XDG trash backend reports collision-safe naming");
          --  "/" is not a root on Windows; the drive is.
          Mutation := Files.File_System.Trash.Move_To_Trash_Preflight (Filesystem_Root);
          Assert (not Mutation.Success, "trash preflight rejects filesystem root");

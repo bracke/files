@@ -16,19 +16,13 @@ separate (Files_Suite.Trash)
            (Files.File_System.Testing.Trash_Backend_Of_Current_Environment
               = Files.File_System.Trash_Windows_Recycle_Bin,
             "trash backend can represent native Windows recycle-bin intent");
-         Assert
-           (Files.File_System.Testing.Trash_Capabilities_Of_Current_Environment.Native_Platform,
-            "native Windows trash backend reports native-platform intent");
-         Assert
-           (not Files.File_System.Testing.Trash_Capabilities_Of_Current_Environment.Permanent_Delete,
-            "native trash capability does not opt into permanent deletion");
          declare
             Request : constant Files.File_System.Native_Trash_Request :=
               Files.File_System.Testing.Native_Trash_Request_For (Join (Root, "missing-for-native-trash.txt"));
             Native_Result : constant Files.File_System.Native_Trash_Result :=
               Files.File_System.Testing.Evaluate_Native_Trash (Request);
-            Native_Execution : constant Files.File_System.Native_Trash_Result :=
-              Files.File_System.Testing.Execute_Native_Trash (Request);
+            Refused_Victim : constant String := Join (Root, "refused-by-native-trash.txt");
+            Refused : Files.File_System.Mutation_Result;
          begin
             Assert (Request.Requires_Native_Api, "native trash request records native API requirement");
             Assert (not Request.Can_Use_Current_Process, "native trash request does not claim local fallback");
@@ -57,33 +51,39 @@ separate (Files_Suite.Trash)
                   "on Windows a supported adapter evaluates without a diagnostic; key was "
                   & To_String (Native_Result.Error_Key));
 
-               --  Executing against a path that does not exist: the adapter is real,
-               --  so it genuinely calls the shell and the shell genuinely refuses.
-               --  That is a failed attempt, not an unsupported one -- and the two
-               --  must not be reported the same way, or a broken Recycle Bin would
-               --  look exactly like a missing one.
-               Assert (Native_Execution.Supported, "on Windows the adapter is supported");
-               Assert (Native_Execution.Attempted, "on Windows the shell is actually called");
-               Assert
-                 (not Native_Execution.Completed,
-                  "and it refuses a path that does not exist");
-               Files_Suite.Support.Assert_Equal
-                 (To_String (Native_Execution.Error_Key),
-                  "error.trash.failed",
-                  "a refused move is reported as a failure, not as an absent adapter; key was "
-                  & To_String (Native_Execution.Error_Key));
             else
                Files_Suite.Support.Assert_Equal
                  (To_String (Native_Result.Error_Key),
                   "error.trash.native_unavailable",
                   "off Windows the evaluation reports native-unavailable");
-               Assert (not Native_Execution.Supported, "native trash execution reports unsupported adapter");
-               Assert (not Native_Execution.Attempted, "native trash execution does not attempt unsupported adapter");
-               Files_Suite.Support.Assert_Equal
-                 (To_String (Native_Execution.Error_Key),
-                  "error.trash.native_unavailable",
-                  "off Windows, native trash execution reports native-unavailable");
             end if;
+
+            --  The application's own trash path, with the desktop trash refusing
+            --  every item: on Windows the Recycle Bin is reached and refuses, which
+            --  is a failure, not an absent adapter -- the two must not read the
+            --  same, or a broken Recycle Bin would look exactly like a missing one.
+            --  Elsewhere the adapter is absent and says so. Either way the item
+            --  stays where it was.
+            Write_File (Refused_Victim, "keep me");
+            Files.File_System.Testing.Refuse_Native_Trash (True);
+            begin
+               Refused := Files.File_System.Trash.Move_To_Trash (Refused_Victim);
+            exception
+               when others =>
+                  Files.File_System.Testing.Refuse_Native_Trash (False);
+                  raise;
+            end;
+            Files.File_System.Testing.Refuse_Native_Trash (False);
+            Assert (not Refused.Success, "a refusing native trash does not report success");
+            Files_Suite.Support.Assert_Equal
+              (To_String (Refused.Error_Key),
+               (if Hostkit.Host.Current = Hostkit.Host.Windows
+                then "error.trash.failed"
+                else "error.trash.native_unavailable"),
+               "a refused move is a failure on Windows, an absent adapter elsewhere; key was "
+               & To_String (Refused.Error_Key));
+            Assert (Path_Exists (Refused_Victim), "the refused item is untouched");
+            Ada.Directories.Delete_File (Refused_Victim);
          end;
          --  This used a path that did not exist, because the preflight refused a
          --  native backend outright and never got as far as looking. It does look

@@ -1,3 +1,4 @@
+with Files.Quick_Look.Preparation;
 with Files.Operations.Archives;
 with Files.Operations.Editing;
 with Files.Operations.Navigation;
@@ -217,7 +218,7 @@ separate (Files.Controller)
                   Files.Model.Quick_Look.Close (Model);
                else
                   Files.Model.Quick_Look.Open
-                    (Model, Files.Operations.Opening.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
+                    (Model, Files.Quick_Look.Preparation.Prepare (Files.Model.Selection.Selected_Item (Model)));
                end if;
                Files.Model.Set_Error (Model, "");
             when Files.Commands.Toggle_Settings_Pane_Command =>

@@ -27,9 +27,12 @@ separate (Files.Settings.Storage.Merge_From_File)
          Was_There : constant Boolean := In_Base.Contains (Key);
          Is_There  : constant Boolean := In_Mine.Contains (Key);
       begin
+         --  The elements themselves, through Element: "Base (I) /= Mine (J)"
+         --  can compare the two references to them, which never match.
          return Was_There /= Is_There
            or else (Was_There
-                    and then Base (In_Base.Element (Key)) /= Mine (In_Mine.Element (Key)));
+                    and then Vectors.Element (Base, In_Base.Element (Key))
+                               /= Vectors.Element (Mine, In_Mine.Element (Key)));
       end Changed;
 
       procedure Place (Key : String; Item : Element) is

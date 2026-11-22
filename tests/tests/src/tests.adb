@@ -26,6 +26,7 @@ with Hostkit.Fs;
 with Hostkit.Process;
 with Test_Helpers;
 with Test_Progress;
+with Files.Localization.Testing;
 
 procedure Tests is
    use type AUnit.Status;
@@ -147,7 +148,7 @@ begin
    --  Pin the locale so localization-dependent assertions are deterministic
    --  regardless of the developer machine's locale (C normalizes to "en").
    Ada.Environment_Variables.Set ("LC_ALL", "C");
-   Files.Localization.Reread_Locale_Environment;
+   Files.Localization.Testing.Reread_Locale_Environment;
    --  Keep every test's trash payload separate from the user's desktop trash.
    declare
       Trash_Root : constant String := Hostkit.Fs.Create_Temporary_Directory ("files-test-trash-");

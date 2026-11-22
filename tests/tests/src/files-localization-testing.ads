@@ -1,6 +1,11 @@
 --  Test-only access to private subprograms of Files.Localization, kept out of the program.
 package Files.Localization.Testing is
 
+   --  Forget the remembered locales, so the next call reads the locale
+   --  variables and the desktop's configuration again, for a test that
+   --  changed them.
+   procedure Reread_Locale_Environment;
+
    --  A runtime of the base catalog at Base with the locale shard at Shard
    --  added as Files.Localization adds one (Load_Locale_Shard), asked for
    --  Key in Locale.

@@ -198,6 +198,23 @@ package Files.Rendering is
       Image_Pixels   : Guikit.Shared_Bytes.Bytes;
    end record;
 
+   --  What a snapshot's info-pane rows (Selected_Info, Info_Sections and
+   --  the two editable flags) were built from. A build that keeps the rows
+   --  keeps those too while every part is as it was, so a header change
+   --  (a folder-size tick, a palette keystroke) with the pane open over a
+   --  large selection formats nothing again. Built False: nothing kept.
+   type Info_Pane_Key is record
+      Built     : Boolean := False;
+      Selection : Natural := 0;
+      Rows      : Natural := 0;
+      Sizes     : Natural := 0;
+      Settings  : Natural := 0;
+      Info      : Natural := 0;
+      Now       : Ada.Calendar.Time := Files.Types.Unknown_Time;
+      Open      : Boolean := False;
+      In_Trash  : Boolean := False;
+   end record;
+
    type View_Snapshot is record
       --  The start of the wall-clock minute the snapshot shows the folder
       --  at: the "now" every relative time in it is drawn against, so a
@@ -317,6 +334,8 @@ package Files.Rendering is
       Rows_Rename_Revision           : Natural := Natural'Last;
       Total_Selection_Revision       : Natural := Natural'Last;
       Total_Sizes_Revision           : Natural := Natural'Last;
+      --  What the info-pane rows above were built from (Info_Pane_Key).
+      Info_Key                       : Info_Pane_Key;
       Context_Menu_Open              : Boolean := False;
       Context_Menu_Highlight         : Natural := 0;
       Context_Menu_X                 : Natural := 0;

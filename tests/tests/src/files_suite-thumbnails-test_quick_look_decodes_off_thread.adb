@@ -1,4 +1,4 @@
-with Files.Operations.Opening;
+with Files.Quick_Look.Preparation;
 with Files_Suite.Listings;
 with Files.Application.Window_Polls;
 with Files.Images;
@@ -110,7 +110,7 @@ separate (Files_Suite.Thumbnails)
       end;
       Files_Suite.Support.Models.Select_Name (Model, "first.jpg");
       Files.Model.Quick_Look.Open
-        (Model, Files.Operations.Opening.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
+        (Model, Files.Quick_Look.Preparation.Prepare (Files.Model.Selection.Selected_Item (Model)));
       Assert
         (Files.Model.Quick_Look.Content_Of (Model).Kind = Files.Quick_Look.Image_Content,
          "the preview opens as an image");

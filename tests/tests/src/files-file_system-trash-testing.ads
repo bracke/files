@@ -13,14 +13,6 @@ package Files.File_System.Trash.Testing is
      (Request : Native_Trash_Request)
       return Native_Trash_Result;
 
-   --  Send Request's item to the native trash.
-   --
-   --  @param Request Native trash request for a native backend.
-   --  @return What the native backend did.
-   function Trash_Natively
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result;
-
    --  The DeletionDate text a trash info file records for Value.
    --
    --  @param Value The deletion time.

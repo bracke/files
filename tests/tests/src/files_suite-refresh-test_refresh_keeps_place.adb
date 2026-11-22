@@ -1,4 +1,4 @@
-with Files.Operations.Opening;
+with Files.Quick_Look.Preparation;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
 with Files.Operation_Results;
@@ -33,7 +33,7 @@ separate (Files_Suite.Refresh)
       Select_Name (Model, "item 20");
       Files.Model.Set_Main_View_Scroll_Lines (Model, 15);
       Files.Model.Quick_Look.Open
-        (Model, Files.Operations.Opening.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
+        (Model, Files.Quick_Look.Preparation.Prepare (Files.Model.Selection.Selected_Item (Model)));
 
       Write_Binary_File (Join (Root, "arrived"), "new");
       Step := Files.Refresh.Start (Model, Settings, Force => True);

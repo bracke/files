@@ -83,6 +83,18 @@ package Files.Model is
      (Model : Window_Model)
       return Natural;
 
+   --  Moved, with Revision, by a change the info pane shows and no other
+   --  revision tracks: a selected item's details read in (extra info), an
+   --  account name or the host's capabilities sampled. With the selection,
+   --  rows, folder-size and settings revisions it keys the snapshot's
+   --  info-pane rows, which a header-only rebuild then reuses.
+   --
+   --  @param Model Model to inspect.
+   --  @return The info revision.
+   function Info_Revision
+     (Model : Window_Model)
+      return Natural;
+
    --  Like Revision, but not moved by a change of the selection alone: the
    --  rows a view shows (names, metadata, rename fields, cut marks, order)
    --  are as they were while it holds, though which are selected may not be.
@@ -1252,6 +1264,8 @@ private
       Rows_Revision_Value : Natural := 0;
       --  See Overlay_Revision.
       Overlay_Revision_Value : Natural := 0;
+      --  See Info_Revision.
+      Info_Revision_Value : Natural := 0;
       --  Bumped with Revision_Value by every change of the selection.
       Selection_Revision_Value : Natural := 0;
       --  Bumped with Revision_Value by every change of a rename field's text

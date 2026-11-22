@@ -1,7 +1,5 @@
 with Files.Desktop_Applications;
-with Files.Items;
 with Files.Model;
-with Files.Quick_Look.Preparation;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
@@ -31,18 +29,6 @@ package Files.Operations.Opening is
    function Open_Terminal
      (Model : in out Files.Model.Window_Model)
       return Operation_Result;
-
-   --  Prepare Quick Look preview content for a directory item, performing the
-   --  bounded filesystem read the pure content-prep seam needs. Image items are
-   --  classified with the shared image detector and previewed by path; other
-   --  regular files get a capped leading-bytes read for text detection; the rest
-   --  fall back to the metadata-only info card.
-   --
-   --  @param Item Directory item to preview.
-   --  @return Prepared Quick Look content.
-   function Prepare_Quick_Look
-     (Item : Files.Items.Directory_Item)
-      return Files.Quick_Look.Quick_Look_Content renames Files.Quick_Look.Preparation.Prepare;
 
    --  Open Targets with App (Open With), all its launches started or none; an App
    --  that runs in a terminal (Terminal=true) is started inside the one Open

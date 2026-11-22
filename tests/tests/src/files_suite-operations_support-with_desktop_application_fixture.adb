@@ -1,5 +1,6 @@
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Disk;
+with Files.Localization.Testing;
 separate (Files_Suite.Operations_Support)
    procedure With_Desktop_Application_Fixture (Check : not null access procedure) is
       LF         : constant Character := ASCII.LF;
@@ -294,7 +295,7 @@ separate (Files_Suite.Operations_Support)
       Ada.Environment_Variables.Set
         ("XDG_CURRENT_DESKTOP", "FilesTest:GNOME:Escaped;Desktop");
       Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
-      Files.Localization.Reread_Locale_Environment;
+      Files.Localization.Testing.Reread_Locale_Environment;
 
       Check.all;
    end With_Desktop_Application_Fixture;
