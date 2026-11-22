@@ -112,6 +112,33 @@ separate (Files_Suite.Archives)
             & (if Background then " (background)" else " (foreground)"));
          Await_View (Model, Settings);
       end loop;
+      --  A dangling link inside a folder is still a link left out: the
+      --  listing reports it missing (its kind follows the link), and it was
+      --  once dropped without the notice.
+      Reset_Root;
+      Ada.Directories.Create_Path (Join (Root, "bag"));
+      Write_Binary_File (Join (Join (Root, "bag"), "keep.txt"), "kept");
+      if Files_Suite.Support.Disk.Create_Symlink ("gone.txt", Join (Join (Root, "bag"), "dangling")) then
+         Settings := Files.Settings.Default_Settings;
+         Load := Files.File_System.Load_Directory (Root, Settings);
+         Files.Model.Initialize (Model, Root, Load.Items, Root);
+         Files.Operations.Clear_Undo (Model);
+         Select_Name (Model, "bag");
+         Files.Model.Set_Background_Transfers (Model, False);
+         Step := Complete_Operation
+           (Model, Settings,
+            Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+         Assert (Step.Status = Files.Operation_Results.Operation_Success
+                 and then Ada.Directories.Exists (Join (Root, "bag.zip")),
+                 "a folder holding a dangling link still compresses");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Model),
+            "error.compress.links_skipped",
+            "compressing says the dangling link was left out");
+         Await_View (Model, Settings);
+      else
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Archive_Completeness");
+      end if;
       if Hostkit.Host.Current /= Hostkit.Host.Windows then
          for Background in Boolean loop
             for Format in Files.Operations.Archive_Format loop

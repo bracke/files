@@ -18,6 +18,13 @@ package Files.File_System.Testing is
    --  @param Refuse Whether the native trash refuses.
    procedure Refuse_Native_Trash (Refuse : Boolean);
 
+   --  Make the trash take items but report no place for them (Withhold
+   --  True), as a Finder that does not say where it put an item does, or
+   --  report the place again (False).
+   --
+   --  @param Withhold Whether the trash withholds the trashed path.
+   procedure Trash_Says_Nowhere (Withhold : Boolean);
+
    --  How Change_Source_After_Copy changes a source once it is copied:
    --  Edit_Source writes "new edits" over the source file; Replace_Source
    --  renames it to Source & ".saved" and makes a new file holding "new

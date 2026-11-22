@@ -31,7 +31,12 @@ begin
    declare
       Reloaded : constant Operation_Result := Reload_Current_Directory (Model, Settings, Archive_Name);
    begin
-      if Links_Skipped > 0 and then Reloaded.Status = Operation_Success then
+      if Reloaded.Status /= Operation_Success then
+         null;
+      elsif Others_Skipped > 0 then
+         --  Its message names links too, so it covers a mix of both.
+         Files.Model.Set_Error (Model, "error.compress.special_skipped");
+      elsif Links_Skipped > 0 then
          Files.Model.Set_Error (Model, "error.compress.links_skipped");
       end if;
       return Reloaded;

@@ -328,6 +328,11 @@ package body Files.File_System.Testing is
       Native_Trash_Refused := Refuse;
    end Refuse_Native_Trash;
 
+   procedure Trash_Says_Nowhere (Withhold : Boolean) is
+   begin
+      Trash_Location_Withheld := Withhold;
+   end Trash_Says_Nowhere;
+
    function Execute_Native_Trash
      (Request : Native_Trash_Request)
       return Native_Trash_Result

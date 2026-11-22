@@ -20,6 +20,8 @@ is
    Names_Seen  : Archive_Name_Sets.Set;
    Collection_Failed : Boolean := False;
    Links_Skipped     : Natural := 0;
+   --  Devices, pipes and sockets left out (files and folders only go in).
+   Others_Skipped    : Natural := 0;
    Max_Archive_Entries : constant Natural :=
      (if Format = Zip_Archive then 65_535 else 100_000);
    Max_Archive_Depth : constant Natural := 64;

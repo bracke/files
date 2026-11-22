@@ -8,11 +8,14 @@ function Open_Selected
 is
    Items : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
 begin
-   if Files.Model.Selection.Selected_Count (Model) = 0
-     or else Files.Model.Selection.Includes_Temporary (Model)
-   then
-      return Disabled (Model, "error.selection.empty");
-   elsif Natural (Items.Length) > 1 then
+   declare
+      Refusal : constant Operation_Result := Real_Selection_Refusal (Model);
+   begin
+      if Refusal.Status /= Operation_Success then
+         return Refusal;
+      end if;
+   end;
+   if Natural (Items.Length) > 1 then
       declare
          --  The checks every item must pass (no folder, an action for its
          --  type, no unsafe placeholder) are Prepare's, which also reports

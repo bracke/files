@@ -60,6 +60,24 @@ separate (Files_Suite.Operations)
       begin
          Assert (Ada.Directories.Exists (Join (Dir, "note.txt")), "copying a tree with a FIFO returns, source intact");
       end;
+      --  A FIFO cannot go into an archive: the folder still compresses, and
+      --  the user is told what was left out.
+      declare
+         Parent : Files.Model.Window_Model;
+         Listed : constant Files.File_System.Directory_Load_Result := Files.File_System.Load_Directory (Root, Settings);
+      begin
+         Files.Model.Initialize (Parent, Root, Listed.Items, Root);
+         Select_Name (Parent, "with-fifo");
+         Step := Complete_Operation
+           (Parent, Settings,
+            Files.Operation_Commands.Compress_Selected (Parent, Settings, Files.Operations.Zip_Archive));
+         Assert (Step.Status = Files.Operation_Results.Operation_Success
+                 and then Ada.Directories.Exists (Join (Root, "with-fifo.zip")),
+                 "a folder holding a FIFO still compresses");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Parent), "error.compress.special_skipped",
+            "compressing says the FIFO was left out");
+      end;
       --  Ada.Directories does not see a FIFO as a file to delete.
       GNAT.OS_Lib.Delete_File (Pipe, Made);
    end Test_Fifo_Never_Blocks;

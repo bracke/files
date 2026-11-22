@@ -73,6 +73,7 @@ package body Files_Suite.Trash is
    procedure Test_Trash_Name_Collisions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Trash_Backspace_And_Encoding (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Multi_Selection_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Trash_Without_Location (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Nested_Trash_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Macos_Home_Trash_Fallback (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Stray_Home_Trash_Stays_Freedesktop (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -133,6 +134,9 @@ package body Files_Suite.Trash is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Multi_Selection_Trash'Access,
          "multi-selection trash moves every item or, on preflight failure, none");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Trash_Without_Location'Access,
+         "a trash that does not say where items went still trashes them and says Undo cannot");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Nested_Trash_Preflight'Access, "trash refuses to move a directory into its own trash");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -210,6 +214,7 @@ package body Files_Suite.Trash is
    procedure Test_Trash_Backspace_And_Encoding (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Multi_Selection_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Trash_Without_Location (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Nested_Trash_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

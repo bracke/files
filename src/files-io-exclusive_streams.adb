@@ -22,7 +22,10 @@ package body Files.IO.Exclusive_Streams is
       end if;
       Stream.Length := 0;
       Stream.Pending := 0;
-      Stream.Descriptor := Hostkit.Regular_Files.Create_New (Path, 8#666#);
+      --  Born owner-only: Make_File_Private below would otherwise close a
+      --  window in which another user could open the new file and keep
+      --  reading what is streamed into it after the mode changes.
+      Stream.Descriptor := Hostkit.Regular_Files.Create_New (Path, 8#600#);
       if Stream.Descriptor = GNAT.OS_Lib.Invalid_FD then
          Files.IO.Errors.Capture;
          --  Asked after the failure, whose errno is already recorded, and

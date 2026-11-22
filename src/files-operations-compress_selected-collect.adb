@@ -15,6 +15,14 @@ is
          Stop := True;
       elsif Kind in Hostkit.Fs.Ordinary_File_Entry | Hostkit.Fs.Directory_Entry then
          Collect (Hostkit.Fs.Join (Full, Name), Entry_Name & "/" & Name, Depth + 1);
+      --  The listing's kind follows a link on POSIX, so a dangling one is
+      --  Missing_Entry here: count it as the link it is. A device, pipe or
+      --  socket cannot be stored either; an entry gone since the listing
+      --  is simply not there to archive.
+      elsif Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Full, Name)) then
+         Links_Skipped := Links_Skipped + 1;
+      elsif Kind = Hostkit.Fs.Special_File_Entry then
+         Others_Skipped := Others_Skipped + 1;
       end if;
    end Visit;
 begin
@@ -48,6 +56,10 @@ begin
       if not Record_Entry (Full, Entry_Name) then
          Collection_Failed := True;
       end if;
+   else
+      --  A device, pipe or socket: the archive writers store files and
+      --  folders only, so say it was left out.
+      Others_Skipped := Others_Skipped + 1;
    end if;
 exception
    when Swallowed : others =>

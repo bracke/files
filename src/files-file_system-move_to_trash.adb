@@ -173,7 +173,7 @@ begin
       end if;
    end;
 
-   Trashed_Path := Target;
+   Trashed_Path := (if Trash_Location_Withheld then Null_Unbounded_String else Target);
    return (Success => True, Error_Key => Null_Unbounded_String);
 exception
    when Swallowed : others =>

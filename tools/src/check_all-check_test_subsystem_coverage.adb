@@ -120,7 +120,7 @@ separate (Check_All)
       Require_Tests ("transfer", 60);
       Require_Tests ("recovery", 64);
       Require_Tests ("history", 42);
-      Require_Tests ("trash", 34);
+      Require_Tests ("trash", 35);
       Require_Tests ("search", 10);
       Require_Tests ("thumbnails", 20);
       Require_Tests ("archives", 7);

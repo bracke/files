@@ -43,6 +43,7 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("search.truncated");
       Add_Error_Key ("search.incomplete");
       Add_Error_Key ("undo.unavailable");
+      Add_Error_Key ("undo.partial");
       Add_Error_Key ("error.permanent_delete.refused");
       Add_Error_Key ("error.permanent_delete.failed");
       Add_Error_Key ("error.permissions.failed");
@@ -118,6 +119,7 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("error.settings.invalid_label");
       Add_Error_Key ("error.settings.full");
       Add_Error_Key ("error.compress.links_skipped");
+      Add_Error_Key ("error.compress.special_skipped");
       Add_Error_Key ("error.settings.invalid_column_order");
       Add_Error_Key ("error.settings.invalid_font_pixel_size");
       Add_Error_Key ("error.settings.unknown_key");

@@ -27,7 +27,7 @@ separate (Files_Suite.Open_Actions)
          "pending create selection blocks direct open preparation");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),
-         "error.selection.empty",
+         "error.create.pending",
          "pending create open preparation reports disabled selection");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
@@ -35,7 +35,7 @@ separate (Files_Suite.Open_Actions)
          "preparing directory open does not navigate");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
-         "error.selection.empty",
+         "error.create.pending",
          "preparing pending create open records disabled state");
       Files.Model.Set_Error (Model, "error.directory.load");
 

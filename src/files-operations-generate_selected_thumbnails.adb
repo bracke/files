@@ -15,11 +15,13 @@ is
       return Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Files.Model.Current_Path (Model));
    end Cache_Directory;
 begin
-   if Files.Model.Selection.Selected_Count (Model) = 0
-     or else Files.Model.Selection.Includes_Temporary (Model)
-   then
-      return Disabled (Model, "error.selection.empty");
-   end if;
+   declare
+      Refusal : constant Operation_Result := Real_Selection_Refusal (Model);
+   begin
+      if Refusal.Status /= Operation_Success then
+         return Refusal;
+      end if;
+   end;
 
    for Item of Items loop
       declare

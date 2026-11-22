@@ -62,7 +62,7 @@ separate (Files_Suite.Model)
          "temporary item cannot be opened directly");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
-         "error.selection.empty",
+         "error.create.pending",
          "temporary open records disabled state");
       Operation := Files.Operation_Commands.Delete_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -71,7 +71,7 @@ separate (Files_Suite.Model)
          "temporary item cannot be deleted directly");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
-         "error.selection.empty",
+         "error.create.pending",
          "temporary delete records disabled state");
       Operation := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal

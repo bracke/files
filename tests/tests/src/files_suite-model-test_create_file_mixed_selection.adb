@@ -43,7 +43,7 @@ separate (Files_Suite.Model)
          "mixed temporary selection cannot open");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Mixed_Model),
-         "error.selection.empty",
+         "error.create.pending",
          "mixed temporary open records disabled state");
       Operation := Files.Operation_Commands.Delete_Selected (Mixed_Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -52,6 +52,6 @@ separate (Files_Suite.Model)
          "mixed temporary selection cannot delete");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Mixed_Model),
-         "error.selection.empty",
+         "error.create.pending",
          "mixed temporary delete records disabled state");
    end Test_Create_File_Mixed_Selection;

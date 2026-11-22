@@ -74,6 +74,14 @@ private package Files.Operations.Support is
       Error_Key : String)
       return Operation_Result;
 
+   --  At least one real item is selected, by the rule the command catalog
+   --  states (Commands.Status_Of's Real_Selection) and with its messages:
+   --  nothing selected, or a pending create row that has no file behind it.
+   --
+   --  @param Model Window model holding the selection.
+   --  @return Disabled with that message, or Operation_Success.
+   function Real_Selection_Refusal (Model : in out Files.Model.Window_Model) return Operation_Result;
+
    --  Whether Executable names something this host will actually run: an
    --  on-PATH command, or a path that is a regular executable file.
    --
@@ -194,6 +202,10 @@ private package Files.Operations.Support is
 
    --  The notice a batch whose Undo is unavailable shows.
    Undo_Unavailable_Notice : constant String := "undo.unavailable";
+
+   --  The notice a trash batch shows when a native trash took an item
+   --  without saying where it went, so Undo cannot bring that one back.
+   Untracked_Trash_Notice : constant String := "undo.partial";
 
    --  Record whatever Checkpoint_Undo left out, so the entry covers every
    --  item appended. A record that raises propagates, so a batch that

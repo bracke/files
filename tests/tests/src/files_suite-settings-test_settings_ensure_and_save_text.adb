@@ -43,6 +43,25 @@ separate (Files_Suite.Settings)
             Assert (Hostkit.Fs.Delete_Link (Linked), "remove the test link");
          end if;
       end;
+      --  A link whose target is missing: the save creates the target and
+      --  keeps the link (Windows once resolved it to the link itself).
+      declare
+         Missing : constant String := Join (Join (Root, "saved-config"), "dangling-target.conf");
+         Linked  : constant String := Saved_Path & ".dangling";
+         Result  : Files.Settings.Settings_Write_Result;
+      begin
+         if not Files_Suite.Support.Disk.Create_Symlink (Missing, Linked) then
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Settings_Ensure_And_Save_Text");
+         else
+            Result := Files.Settings.Save_Text
+              (Linked, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
+            Assert (Result.Success and then Hostkit.Fs.Is_Link (Linked),
+                    "saving through a dangling settings link keeps the link");
+            Assert (Ada.Directories.Exists (Missing),
+                    "saving through a dangling settings link creates its target");
+            Assert (Hostkit.Fs.Delete_Link (Linked), "remove the dangling test link");
+         end if;
+      end;
       if Hostkit.Metadata.Mode_Bits_Are_Native then
          declare
             Available : Boolean := False;

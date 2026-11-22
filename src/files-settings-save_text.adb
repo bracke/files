@@ -12,11 +12,12 @@ separate (Files.Settings)
       --  target instead; results still name the path the user configured.
       --  Hostkit resolves it: GNAT's Normalize_Pathname follows no link on
       --  Windows, and the save replaced the link there. A dangling link has
-      --  no final path; the lexical resolution names where it points.
+      --  no final path; Real_Name follows its text link by link on every
+      --  host (Full_Name leaves it unresolved on Windows).
       function Link_Target return String is
          Resolved : constant String := Hostkit.Fs.Canonical_Path (Path);
       begin
-         return (if Resolved /= "" then Resolved else Files.IO.Fs_Primitives.Full_Name (Path));
+         return (if Resolved /= "" then Resolved else Files.IO.Fs_Primitives.Real_Name (Path));
       end Link_Target;
 
       Target : constant String := (if Hostkit.Fs.Is_Link (Path) then Link_Target else Path);
@@ -43,11 +44,14 @@ separate (Files.Settings)
             Durable   => False,
             Path      => To_Unbounded_String (Path),
             Error_Key => To_Unbounded_String ("error.settings.save"));
-      --  refusal-safe: a save replaces the file whatever is there; a target
-      --  not seen only skips this guard, and the publish beside it is then
-      --  refused in the same folder.
-      elsif Files.IO.Fs_Primitives.Exists (Target)
-        and then Files.IO.Fs_Primitives.Kind (Target) /= Ada.Directories.Ordinary_File
+      --  A target that is still a link (a loop, or one too deep to follow)
+      --  would be replaced by the publish: refuse instead of detaching it.
+      elsif Hostkit.Fs.Is_Link (Target)
+        --  refusal-safe: a save replaces the file whatever is there; a target
+        --  not seen only skips this guard, and the publish beside it is then
+        --  refused in the same folder.
+        or else (Files.IO.Fs_Primitives.Exists (Target)
+                 and then Files.IO.Fs_Primitives.Kind (Target) /= Ada.Directories.Ordinary_File)
       then
             return
               (Success   => False,

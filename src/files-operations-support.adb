@@ -81,6 +81,11 @@ package body Files.Operations.Support is
       return Make_Result (Operation_Disabled, Error_Key);
    end Disabled;
 
+   function Real_Selection_Refusal (Model : in out Files.Model.Window_Model) return Operation_Result is
+     (if Files.Model.Selection.Selected_Count (Model) = 0 then Disabled (Model, "error.selection.empty")
+      elsif Files.Model.Selection.Includes_Temporary (Model) then Disabled (Model, "error.create.pending")
+      else (Status => Operation_Success, others => <>));
+
    function Executable_Is_Available
      (Executable : String)
       return Boolean is (Hostkit.Process.Is_Runnable (Executable));

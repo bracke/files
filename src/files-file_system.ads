@@ -1281,6 +1281,13 @@ private
    Native_Trash_Refused : Boolean := False
      with Atomic;
 
+   --  Set only by the test suite (Files.File_System.Testing.Trash_Says_Nowhere):
+   --  a trash that takes an item then reports no place for it, as the
+   --  Finder may, so the Undo that cannot follow it is exercised on every
+   --  host. The application never sets it.
+   Trash_Location_Withheld : Boolean := False
+     with Atomic;
+
    --  What a copy calls with the path of each entry whose metadata it has
    --  just set, before it checks the source against the copy.
    type Copy_Hook is access procedure (Destination : String);

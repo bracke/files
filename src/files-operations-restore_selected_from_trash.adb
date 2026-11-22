@@ -7,11 +7,13 @@ is
    Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
    First_Path : Unbounded_String;
 begin
-   if Files.Model.Selection.Selected_Count (Model) = 0
-     or else Files.Model.Selection.Includes_Temporary (Model)
-   then
-      return Disabled (Model, "error.selection.empty");
-   end if;
+   declare
+      Refusal : constant Operation_Result := Real_Selection_Refusal (Model);
+   begin
+      if Refusal.Status /= Operation_Success then
+         return Refusal;
+      end if;
+   end;
 
    for Item of Items loop
       exit when Files.Jobs.Context.Cancelled;
@@ -26,10 +28,8 @@ begin
       begin
          if Mutation.Success then
             Files.Model.Note_Path_Move (Model, To_String (Item.Full_Path), Original);
-         end if;
-         if not Mutation.Success then
-            Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
-            Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key));
+         else
+            Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
          end if;
       end;
