@@ -323,6 +323,9 @@ package body Files.Text_Case is
       return Contains_Folded (Haystack, Fold_Case (Needle));
    end Contains_Case_Insensitive;
 
+   function Is_Ascii (Text : String) return Boolean is
+     (for all C of Text => Character'Pos (C) < 128);
+
    function Contains_Folded (Haystack : String; Folded_Needle : String) return Boolean is
       function Lower (C : Character) return Character renames To_Lower_Ascii;
    begin

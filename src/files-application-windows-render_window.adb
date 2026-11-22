@@ -71,6 +71,7 @@ separate (Files.Application.Windows)
       --  A changed free-space reading or owner name bumps the model revision,
       --  so the snapshot below is rebuilt only when what it shows has moved.
       Files.Application.Window_Polls.Sample_Volume_Space (Runtime.Model);
+      Files.Application.Window_Polls.Sample_Host (Runtime.Model);
       Files.Application.Window_Polls.Sample_Account_Names (Runtime.Model);
 
       Refresh_Cached_Frame;

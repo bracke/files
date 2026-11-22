@@ -96,4 +96,47 @@ package body Files.Model.Status_Samples is
       return Boolean is
      (Model.Account_Names.Sampled = Model.Revision_Value);
 
+   procedure Set_Host
+     (Model                 : in out Window_Model;
+      Trash_Available       : Boolean;
+      Permissions_Supported : Boolean;
+      Ownership_Supported   : Boolean;
+      Sampled               : Ada.Calendar.Time)
+   is
+      Sample : constant Host_Sample_State :=
+        (Sampled               => True,
+         Trash_Available       => Trash_Available,
+         Permissions_Supported => Permissions_Supported,
+         Ownership_Supported   => Ownership_Supported,
+         Sampled_At            => Sampled);
+   begin
+      --  The commands and the info pane's editors are header: no row changes.
+      if not Model.Host_Sample.Sampled
+        or else Model.Host_Sample.Trash_Available /= Trash_Available
+        or else Model.Host_Sample.Permissions_Supported /= Permissions_Supported
+        or else Model.Host_Sample.Ownership_Supported /= Ownership_Supported
+      then
+         Touch_Header (Model);
+      end if;
+      Model.Host_Sample := Sample;
+   end Set_Host;
+
+   function Host_Sampled (Model : Window_Model) return Boolean is (Model.Host_Sample.Sampled);
+
+   function Host_Is_Current
+     (Model : Window_Model;
+      Now   : Ada.Calendar.Time)
+      return Boolean is
+     (Model.Host_Sample.Sampled
+      --  A clock set back since the sample is no reason to keep it.
+      and then Now >= Model.Host_Sample.Sampled_At
+      and then Now <= Model.Host_Sample.Sampled_At + Volume_Space_Refresh_Interval);
+
+   function Trash_Available (Model : Window_Model) return Boolean is (Model.Host_Sample.Trash_Available);
+
+   function Permissions_Supported (Model : Window_Model) return Boolean is
+     (Model.Host_Sample.Permissions_Supported);
+
+   function Ownership_Supported (Model : Window_Model) return Boolean is (Model.Host_Sample.Ownership_Supported);
+
 end Files.Model.Status_Samples;

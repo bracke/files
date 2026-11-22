@@ -1,3 +1,4 @@
+with Ada.Finalization;
 with Files.Items;
 private package Files.Model.Support is
 
@@ -37,15 +38,17 @@ private package Files.Model.Support is
    procedure Clear_Root_Selector_State
      (Model : in out Window_Model);
 
-   --  Whether Item passes the current filter query (case-insensitive substring
-   --  of its name); True when the filter is empty.
+   --  Whether the loaded item at Item_Index is shown: it passes the current
+   --  filter query (a case-insensitive substring of its name, or no query)
+   --  or is a search result shown. Read from the visible-row map, so a loop
+   --  over the items folds no name and no query.
    --
-   --  @param Model Model providing the filter query.
-   --  @param Item Directory item to test.
-   --  @return True when Item is shown under the current filter.
-   function Item_Is_Visible
-     (Model : Window_Model;
-      Item  : Files.Items.Directory_Item)
+   --  @param Model Model to inspect.
+   --  @param Item_Index Index into the loaded items.
+   --  @return True when that item is shown.
+   function Item_Visible_At
+     (Model      : Window_Model;
+      Item_Index : Positive)
       return Boolean;
 
    --  Whether the temporary create-item row is shown under the current filter.
@@ -98,7 +101,17 @@ private package Files.Model.Support is
    --  One flag per loaded item, True when selected. Built in one pass over the
    --  selection, so a loop over the items can test membership in O(1) instead
    --  of rescanning the selection list per item (quadratic after Select All).
-   type Selection_Flags is array (Positive range <>) of Boolean with Pack;
+   --  Kept on the heap and freed with the object: a folder's worth of flags
+   --  on the stack could overflow a small one (Windows' main stack is about
+   --  a megabyte). Read as Flags (Item_Index).
+   type Selection_Flags is new Ada.Finalization.Limited_Controlled with private
+     with Constant_Indexing => Is_Selected;
+
+   --  @param Flags Flags to read.
+   --  @param Item_Index Index into the loaded items.
+   --  @return True when that item is selected; False for an index outside
+   --    the loaded items (0, the pending create row).
+   function Is_Selected (Flags : Selection_Flags; Item_Index : Natural) return Boolean;
 
    --  @param Model Model to inspect.
    --  @return Selection flags for item indexes 1 .. item count.
@@ -121,6 +134,14 @@ private package Files.Model.Support is
    --
    --  @param Model Model that changed.
    procedure Touch (Model : in out Window_Model);
+
+   --  Note a change of a rename field's text or caret alone: Revision and
+   --  Rename_Revision move, Rows_Revision does not, so a view patches the
+   --  renamed rows instead of building every row again. Starting or ending
+   --  a rename (which rows edit) must Touch.
+   --
+   --  @param Model Model that changed.
+   procedure Touch_Rename (Model : in out Window_Model);
 
    --  Note a change of the selection alone: Revision and Selection_Revision
    --  move, Rows_Revision does not. A mutator that changes anything else a
@@ -387,5 +408,16 @@ private package Files.Model.Support is
    procedure Set_Info_Pane_Scroll_Lines
      (Model : in out Window_Model;
       Lines : Natural);
+
+private
+
+   type Flag_Array is array (Positive range <>) of Boolean;
+   type Flag_Array_Access is access Flag_Array;
+
+   type Selection_Flags is new Ada.Finalization.Limited_Controlled with record
+      Flags : Flag_Array_Access;
+   end record;
+
+   overriding procedure Finalize (Flags : in out Selection_Flags);
 
 end Files.Model.Support;

@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Ada.Containers.Hashed_Sets;
 with Files.Model.Selection.Type_Ahead;
 with Guikit.Utf8.Editing;
@@ -289,7 +290,7 @@ package body Files.Model.Selection is
       end if;
 
       for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         if Item_Is_Visible (Model, Model.Items (Index)) then
+         if Item_Visible_At (Model, Index) then
             --  The list was cleared and indexes ascend, so each is new.
             Model.Selected_Item_Indexes.Append (Natural (Index));
             if Model.Selected_Item_Index = 0 then
@@ -337,7 +338,7 @@ package body Files.Model.Selection is
       begin
          Model.Selected_Item_Indexes.Clear;
          for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-            if Item_Is_Visible (Model, Model.Items (Index)) /= Was_Selected (Index) then
+            if Item_Visible_At (Model, Index) /= Was_Selected (Index) then
                Model.Selected_Item_Indexes.Append (Natural (Index));
             end if;
          end loop;
@@ -550,22 +551,35 @@ package body Files.Model.Selection is
       Files.Model.Support.For_Each_Selected_Item (Model, Visit);
    end For_Each_Selected_Item;
 
-   function Any_Selected_Item
-     (Model : Window_Model;
-      Test  : not null access function (Item : Files.Items.Directory_Item) return Boolean)
-      return Boolean is
+   function Has_Archive (Model : Window_Model) return Boolean is
+      --  A cache of what the model holds, filled through a constant view as
+      --  the visible-row map is (Support.Ensure_Visible_Map).
+      type Model_Access is access all Window_Model;
+      Cache : constant Model_Access := Model'Unrestricted_Access;
+
+      --  Read in place, and only up to the first archive.
+      function Any_Archive return Boolean is
+      begin
+         --  An index past the loaded items is the transient create-file row.
+         for Index of Model.Selected_Item_Indexes loop
+            if Index in Model.Items.First_Index .. Model.Items.Last_Index
+              and then Files.File_Types.Is_Extractable_Archive (To_String (Model.Items (Index).Name))
+            then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Any_Archive;
    begin
-      --  An index past the loaded items is the transient create-file row,
-      --  which For_Each_Selected_Item leaves out too.
-      for Index of Model.Selected_Item_Indexes loop
-         if Index in Model.Items.First_Index .. Model.Items.Last_Index
-           and then Test (Model.Items (Index))
-         then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Any_Selected_Item;
+      if Model.Archive_Memo_Selection /= Model.Selection_Revision_Value
+        or else Model.Archive_Memo_Rows /= Model.Rows_Revision_Value
+      then
+         Cache.Archive_Memo_Value := Any_Archive;
+         Cache.Archive_Memo_Selection := Model.Selection_Revision_Value;
+         Cache.Archive_Memo_Rows := Model.Rows_Revision_Value;
+      end if;
+      return Model.Archive_Memo_Value;
+   end Has_Archive;
 
    function Selected_Paths
      (Model : Window_Model)
@@ -609,7 +623,7 @@ package body Files.Model.Selection is
             --  Read in place: copying every item to compare its name cost more
             --  than the search after a reload of a large folder.
             if Model.Items (Index).Name = Name
-              and then Item_Is_Visible (Model, Model.Items (Index))
+              and then Item_Visible_At (Model, Index)
             then
                Model.Selected_Item_Index := Natural (Index);
                Add_Selected_Index (Model, Model.Selected_Item_Index);

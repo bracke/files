@@ -5,6 +5,7 @@ with Ada.Calendar;
 with Ada.Real_Time;
 with Hostkit.Metadata;
 with Files.File_System.Permissions;
+with Files.File_System.Trash;
 with Files.Model.Status_Samples;
 with Files.UI_Types;
 with Ada.Strings.Unbounded;
@@ -235,6 +236,21 @@ package body Files.Application.Window_Polls is
          end;
       end if;
    end Sample_Volume_Space;
+
+   procedure Sample_Host
+     (Model : in out Files.Model.Window_Model)
+   is
+      Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+   begin
+      if not Files.Model.Status_Samples.Host_Is_Current (Model, Now) then
+         Files.Model.Status_Samples.Set_Host
+           (Model,
+            Trash_Available       => Files.File_System.Trash.Trash_Files_Directory /= "",
+            Permissions_Supported => Files.File_System.Permissions.Supports_Permissions,
+            Ownership_Supported   => Files.File_System.Permissions.Supports_Ownership,
+            Sampled               => Now);
+      end if;
+   end Sample_Host;
 
    procedure Sample_Account_Names
      (Model : in out Files.Model.Window_Model)

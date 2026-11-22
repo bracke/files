@@ -3,7 +3,6 @@ with Files.Model.Filtering;
 with Files.Model.Creation;
 with Files.Command_Reasons; use Files.Command_Reasons;
 with Files.IO.Fs_Primitives;
-with Files.File_System.Trash;
 with Files.Model.Clipboard;
 with Files.Model.Quick_Look;
 with Files.Model.Root_Selector;
@@ -130,7 +129,7 @@ separate (Files.Commands.Status)
                begin
                   return
                     (if not Base.Enabled then Base
-                     else Require (Selection_Has_Archive (Model), Not_Archive_Reason));
+                     else Require (Files.Model.Selection.Has_Archive (Model), Not_Archive_Reason));
                end;
             when Copy_To_Command
                | Move_To_Command
@@ -246,7 +245,7 @@ separate (Files.Commands.Status)
             | Reset_Settings_Command =>
             return Require (Files.Model.Settings_Pane.Is_Open (Model), Settings_Closed_Reason);
          when Navigate_Trash_Command =>
-            return Require (Files.File_System.Trash.Trash_Files_Directory /= "", Trash_Unavailable_Reason);
+            return Require (Trash_Available (Model), Trash_Unavailable_Reason);
          when Empty_Trash_Command =>
             --  Emptying is only meaningful in the trash payload view and only
             --  when at least one trashed entry is present to purge.

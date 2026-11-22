@@ -60,6 +60,8 @@ package body Files.Model is
 
    function Selection_Revision (Model : Window_Model) return Natural is (Model.Selection_Revision_Value);
 
+   function Rename_Revision (Model : Window_Model) return Natural is (Model.Rename_Revision_Value);
+
    function Revision
      (Model : Window_Model)
       return Natural is
@@ -740,7 +742,7 @@ package body Files.Model is
       --  Only the rename caret is drawn inside a row; the other fields are
       --  the window's chrome, so their caret leaves the rows standing.
       if Model.Focus_Value = Files.UI_Types.Focus_Rename_Input then
-         Support.Touch (Model);
+         Support.Touch_Rename (Model);
       else
          Support.Touch_Header (Model);
       end if;

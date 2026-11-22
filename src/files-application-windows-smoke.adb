@@ -39,6 +39,7 @@ package body Files.Application.Windows.Smoke is
       Result : Files.Model.Window_Model := Model;
    begin
       Files.Application.Window_Polls.Sample_Volume_Space (Result);
+      Files.Application.Window_Polls.Sample_Host (Result);
       Files.Application.Window_Polls.Sample_Account_Names (Result);
       return Result;
    end Sampled;

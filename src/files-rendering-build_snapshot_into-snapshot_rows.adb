@@ -74,6 +74,9 @@ separate (Files.Rendering.Build_Snapshot_Into)
          Rename    : constant Rename_State :=
            (if Rename_On then Rename_Maps.Element (Renamed) else (others => <>));
       begin
+         if Rename_On then
+            Snapshot.Renamed_Rows.Include (Item_Index, Natural (Snapshot.Items.Length) + 1);
+         end if;
          Snapshot.Items.Append
            (Item_Snapshot'
               (Name               => Item.Name,

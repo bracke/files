@@ -88,6 +88,19 @@ package Files.Rendering is
      (Index_Type   => Positive,
       Element_Type => Positive);
 
+   --  @param Index An item index.
+   --  @return Its hash.
+   function Hash_Item_Index (Index : Natural) return Ada.Containers.Hash_Type is
+     (Ada.Containers.Hash_Type'Mod (Index));
+
+   --  The visible index of the row each rename field is drawn in, by the
+   --  field's item index, so a rename keystroke patches those rows alone.
+   package Renamed_Row_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Natural,
+      Element_Type    => Positive,
+      Hash            => Hash_Item_Index,
+      Equivalent_Keys => "=");
+
    type Info_Snapshot is record
       Name               : UString;
       Filetype           : UString;
@@ -280,6 +293,9 @@ package Files.Rendering is
       --  row is the visible index. Part of the rows: kept and copied with
       --  Items.
       Visible_Rows                   : Row_Index_Vectors.Vector;
+      --  The rows that show a rename field, by the field's item index (the
+      --  visible index of each). Part of the rows, like Visible_Rows.
+      Renamed_Rows                   : Renamed_Row_Maps.Map;
       Selected_Info                  : Info_Snapshot_Vectors.Vector;
       --  A multi-item selection's info, field by field, formatted once per
       --  build rather than twice per frame (Info_Sections_Built: present).
@@ -296,6 +312,9 @@ package Files.Rendering is
       --  change (a folder size streaming in, a palette keystroke) then walks
       --  neither the rows nor the selection again. Natural'Last: not known.
       Rows_Selection_Revision        : Natural := Natural'Last;
+      --  The model's rename revision the rows' rename text and carets show:
+      --  a build that keeps the rows patches the renamed ones when it moved.
+      Rows_Rename_Revision           : Natural := Natural'Last;
       Total_Selection_Revision       : Natural := Natural'Last;
       Total_Sizes_Revision           : Natural := Natural'Last;
       Context_Menu_Open              : Boolean := False;

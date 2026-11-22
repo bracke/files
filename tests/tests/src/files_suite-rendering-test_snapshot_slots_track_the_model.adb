@@ -83,6 +83,36 @@ separate (Files_Suite.Rendering)
          Files.Model.Selection.Type_Ahead_Input (Model, "item", Matched);
          Assert (Matched, "type-ahead finds an item");
       end Type_Ahead;
+      procedure Rename_Start is begin Files.Model.Rename.Toggle (Model); end Rename_Start;
+      procedure Rename_Type is
+         Typed : constant Boolean := Files.Model.Rename.Insert_At_Carets (Model, "_new");
+      begin
+         Assert (Typed, "the rename field takes the text");
+      end Rename_Type;
+      procedure Rename_Caret is
+         Moved : constant Boolean := Files.Model.Rename.Move_All_Carets (Model, Guikit.Input.Move_Left);
+      begin
+         Assert (Moved, "the rename caret moves");
+      end Rename_Caret;
+
+      --  A rename keystroke leaves the rows revision, and the renamed row
+      --  shows what was typed.
+      procedure Rename_Step (Name : String; Change : not null access procedure; Draw : Boolean) is
+      begin
+         Header_Step (Name, Change, Draw);
+         declare
+            Snap  : View_Snapshot renames View.Snapshots (View.Current_Slot);
+            Shown : Boolean := False;
+         begin
+            for Row of Snap.Items loop
+               if Row.Renaming then
+                  Shown := To_String (Row.Rename_Value) = Files.Model.Rename.Text (Model)
+                    and then Row.Rename_Cursor = Files.Model.Text_Cursor_Position (Model);
+               end if;
+            end loop;
+            Assert (Shown, Name & ": the renamed row shows the field's text and caret");
+         end;
+      end Rename_Step;
       procedure Group is begin Settings.Group_By := Files.Preference_Types.Group_By_Label; end Group;
       procedure Ungroup is begin Settings.Group_By := Files.Preference_Types.No_Grouping; end Ungroup;
       procedure Scroll_Down is begin Files.Model.Set_Main_View_Scroll_Lines (Model, 10); end Scroll_Down;
@@ -151,11 +181,18 @@ separate (Files_Suite.Rendering)
             Header_Step (Mode & "path caret moved", Path_Caret'Access, Draw);
             Step (Mode & "path field left", Path_Leave'Access, Draw);
             Header_Step (Mode & "type-ahead", Type_Ahead'Access, Draw);
+            Step (Mode & "rename started", Rename_Start'Access, Draw);
+            Rename_Step (Mode & "rename typed in", Rename_Type'Access, Draw);
+            Rename_Step (Mode & "rename caret moved", Rename_Caret'Access, Draw);
+            Step (Mode & "rename ended", Rename_Start'Access, Draw);
             Step (Mode & "grouped by label", Group'Access, Draw);
             Assert (Natural (View.Snapshots (View.Current_Slot).Items.Length) > Files.Model.Visible_Count (Model),
                     Mode & "grouped: the rows hold headers");
             Check_Rows (Mode & "grouped");
             Step (Mode & "selected while grouped", Pick'Access, Draw);
+            Step (Mode & "rename started while grouped", Rename_Start'Access, Draw);
+            Rename_Step (Mode & "rename typed in while grouped", Rename_Type'Access, Draw);
+            Step (Mode & "rename ended while grouped", Rename_Start'Access, Draw);
             Header_Step (Mode & "palette opened while grouped", Palette_Open'Access, Draw);
             Header_Step (Mode & "palette closed while grouped", Palette_Close'Access, Draw);
             Step (Mode & "another selection while grouped", Pick_Other'Access, Draw);

@@ -94,7 +94,7 @@ package body Files.Model.Rename is
       begin
          for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
             if Selected (Index)
-              and then Item_Is_Visible (Model, Model.Items (Index))
+              and then Item_Visible_At (Model, Index)
             then
                Result.Append (Natural (Index));
             end if;
@@ -112,7 +112,7 @@ package body Files.Model.Rename is
      (Model : in out Window_Model;
       Field : Rename_Field) is
    begin
-      Touch (Model);
+      Touch_Rename (Model);
       if Field.Item_Index = Temporary_Item_Index and then Model.Temporary.Active then
          Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
          Model.Temporary.Name := Field.Edit.Text;
@@ -177,7 +177,7 @@ package body Files.Model.Rename is
      (Model : in out Window_Model;
       Text  : String) is
    begin
-      Touch (Model);
+      Touch_Rename (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       if Model.Rename.Active and then not Model.Rename.Fields.Is_Empty then
          declare
@@ -218,7 +218,7 @@ package body Files.Model.Rename is
 
       --  Nothing typed, or no field to type into, changes nothing to redraw.
       if Changed then
-         Touch (Model);
+         Touch_Rename (Model);
          Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       end if;
       return Changed;
@@ -252,7 +252,7 @@ package body Files.Model.Rename is
 
       --  A key that deleted nothing changes nothing to redraw.
       if Changed then
-         Touch (Model);
+         Touch_Rename (Model);
          Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       end if;
       return Changed;
@@ -300,7 +300,7 @@ package body Files.Model.Rename is
 
       --  A key that moved no caret changes nothing to redraw.
       if Changed then
-         Touch (Model);
+         Touch_Rename (Model);
       end if;
       return Changed;
    end Move_All_Carets;
@@ -311,7 +311,7 @@ package body Files.Model.Rename is
    is
       Changed : Boolean := False;
    begin
-      Touch (Model);
+      Touch_Rename (Model);
       for Index in Model.Rename.Fields.First_Index .. Model.Rename.Fields.Last_Index loop
          declare
             Field : Rename_Field := Model.Rename.Fields.Element (Index);
@@ -333,7 +333,7 @@ package body Files.Model.Rename is
    is
       Changed : Boolean := False;
    begin
-      Touch (Model);
+      Touch_Rename (Model);
       for Index in Model.Rename.Fields.First_Index .. Model.Rename.Fields.Last_Index loop
          declare
             Field : Rename_Field := Model.Rename.Fields.Element (Index);
@@ -355,7 +355,7 @@ package body Files.Model.Rename is
       Visible_Index : Natural;
       Position      : Natural) is
    begin
-      Touch (Model);
+      Touch_Rename (Model);
       if Visible_Index = 0 or else not Model.Rename.Active then
          return;
       end if;

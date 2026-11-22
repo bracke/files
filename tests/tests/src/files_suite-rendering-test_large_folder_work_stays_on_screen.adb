@@ -1,4 +1,5 @@
 with Files.Model.Filtering;
+with Files.Model.Rename;
 with Guikit.Item_Grid;
 with Ada.Real_Time;
 with Ada.Text_IO;
@@ -352,6 +353,92 @@ separate (Files_Suite.Rendering)
             Ada.Text_IO.Put_Line ("large-folder: per-item filter folding (replaced)" & Per_Round (Start, Rounds));
             Assert (Matches = Rounds * Files.Model.Visible_Count (Model), "both matchers agree");
          end;
+
+         --  Narrowing the filter with every item selected drops the hidden
+         --  ones from the selection in one pass, not one at a time.
+         declare
+            Spent : Duration := 0.0;
+         begin
+            for Round in 1 .. Rounds loop
+               Files.Model.Filtering.Set_Filter (Model, "");
+               Files.Model.Selection.Select_All_Visible (Model);
+               Start := Ada.Real_Time.Clock;
+               Files.Model.Filtering.Set_Filter (Model, "item1");
+               Spent := Spent + Ada.Real_Time.To_Duration (Ada.Real_Time.Clock - Start);
+            end loop;
+            Ada.Text_IO.Put_Line
+              ("large-folder: filter narrowed after select all" & Duration'Image (Spent / Rounds * 1000) & " ms");
+            Assert
+              (Files.Model.Selection.Selected_Count (Model) = Files.Model.Visible_Count (Model),
+               "the selection keeps exactly the items still shown");
+         end;
+         Files.Model.Filtering.Set_Filter (Model, "");
+         Refresh;
+
+         --  A header-only change with every item selected keeps the rows and
+         --  the selection's total.
+         Files.Model.Selection.Select_All_Visible (Model);
+         Refresh;
+         Files.Model.Command_Palette.Open (Model);
+         Refresh;
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            Files.Model.Command_Palette.Set_Query (Model, (if Round mod 2 = 0 then "co" else "c"));
+            Refresh;
+         end loop;
+         Ada.Text_IO.Put_Line
+           ("large-folder: header-only refresh with all selected" & Per_Round (Start, Rounds));
+         Files.Model.Command_Palette.Close (Model);
+         Files.Model.Selection.Select_Visible (Model, 1);
+         Refresh;
+
+         --  A rename keystroke and caret move patch the renamed row only.
+         Files.Model.Rename.Toggle (Model);
+         Refresh;
+         declare
+            Rows   : constant Natural := Files.Model.Rows_Revision (Model);
+            Typed  : Boolean;
+            pragma Unreferenced (Typed);
+         begin
+            Start := Ada.Real_Time.Clock;
+            for Round in 1 .. Rounds loop
+               Typed := Files.Model.Rename.Insert_At_Carets (Model, "x");
+               Refresh;
+            end loop;
+            Ada.Text_IO.Put_Line ("large-folder: rename keystroke and refresh" & Per_Round (Start, Rounds));
+            Assert (Files.Model.Rows_Revision (Model) = Rows, "a rename keystroke leaves the other rows");
+         end;
+         Files.Model.Rename.Toggle (Model);
+         Refresh;
+      end;
+
+      --  A filter keystroke over 20k names that are not ASCII: each name is
+      --  folded once per listing, not once per keystroke.
+      declare
+         Upper_A : constant String := Character'Val (16#C3#) & Character'Val (16#84#);
+         Lower_A : constant String := Character'Val (16#C3#) & Character'Val (16#A4#);
+         Items   : Files.Items.Item_Vectors.Vector;
+         Model   : Files.Model.Window_Model;
+         Rounds  : constant := 20;
+         Start   : Ada.Real_Time.Time;
+      begin
+         for Index in 1 .. Count loop
+            Items.Append
+              (Files.File_System.Make_Item
+                 ("/probe", Upper_A & "rger" & Integer'Image (Index), Files.Types.Regular_File_Item, "text/plain"));
+         end loop;
+         Files.Model.Initialize
+           (Model, Directory_Path => "/probe", Items => Items, Home_Path => "/home/test",
+            Default_View_Mode => Files.Preference_Types.Details);
+         Start := Ada.Real_Time.Clock;
+         for Round in 1 .. Rounds loop
+            Files.Model.Filtering.Set_Filter
+              (Model, (if Round mod 2 = 0 then Upper_A & "RGER 1" else Lower_A & "rger 12"));
+            Assert (Files.Model.Visible_Count (Model) > 0, "folded names match the folded filter");
+         end loop;
+         Ada.Text_IO.Put_Line ("large-folder: filter keystroke, non-ASCII names" & Per_Round (Start, Rounds));
+         Files.Model.Filtering.Set_Filter (Model, Upper_A & "RGER 12");
+         Assert (Files.Model.Visible_Count (Model) = 1_111, "the folded filter finds every name holding it");
       end;
 
       --  What a key or click pays to learn whether it changed the settings:

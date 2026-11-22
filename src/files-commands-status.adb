@@ -1,26 +1,11 @@
-with Files.Items;
-with Ada.Strings.Unbounded;
-
-with Files.File_System;
-with Files.File_Types;
+with Files.File_System.Permissions;
+with Files.File_System.Trash;
+with Files.Model.Status_Samples;
 with Files.Model.History;
 with Files.Model.Rename;
 with Files.Model.Selection;
 
 package body Files.Commands.Status is
-
-   use Ada.Strings.Unbounded;
-
-   --  Return whether at least one selected item is a recognized archive.
-   function Selection_Has_Archive (Model : Files.Model.Window_Model) return Boolean is
-      --  Read in place, and only up to the first archive: every snapshot
-      --  asks, and a Select All in a large folder made it the costliest of
-      --  the commands.
-      function Is_Archive (Item : Files.Items.Directory_Item) return Boolean is
-        (Files.File_Types.Is_Extractable_Archive (To_String (Item.Name)));
-   begin
-      return Files.Model.Selection.Any_Selected_Item (Model, Is_Archive'Access);
-   end Selection_Has_Archive;
 
    --  Return whether the model currently shows the platform trash payload
    --  directory rather than an ordinary directory.
@@ -38,5 +23,20 @@ package body Files.Commands.Status is
      (Id    : Command_Id;
       Model : Files.Model.Window_Model)
       return Boolean is (Status_Of (Id, Model).Enabled);
+
+   function Trash_Available (Model : Files.Model.Window_Model) return Boolean is
+     (if Files.Model.Status_Samples.Host_Sampled (Model)
+      then Files.Model.Status_Samples.Trash_Available (Model)
+      else Files.File_System.Trash.Trash_Files_Directory /= "");
+
+   function Permissions_Supported (Model : Files.Model.Window_Model) return Boolean is
+     (if Files.Model.Status_Samples.Host_Sampled (Model)
+      then Files.Model.Status_Samples.Permissions_Supported (Model)
+      else Files.File_System.Permissions.Supports_Permissions);
+
+   function Ownership_Supported (Model : Files.Model.Window_Model) return Boolean is
+     (if Files.Model.Status_Samples.Host_Sampled (Model)
+      then Files.Model.Status_Samples.Ownership_Supported (Model)
+      else Files.File_System.Permissions.Supports_Ownership);
 
 end Files.Commands.Status;

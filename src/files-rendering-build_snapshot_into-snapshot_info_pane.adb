@@ -71,13 +71,13 @@ separate (Files.Rendering.Build_Snapshot_Into)
       Snapshot.Permissions_Editable :=
         Files.Model.Selection.Selected_Count (Model) = 1
         and then not In_Trash
-        and then Files.File_System.Permissions.Supports_Permissions
+        and then Files.Commands.Status.Permissions_Supported (Model)
         and then Single_Item.Mode_Available;
 
       Snapshot.Ownership_Editable :=
         Files.Model.Selection.Selected_Count (Model) = 1
         and then not In_Trash
-        and then Files.File_System.Permissions.Supports_Ownership
+        and then Files.Commands.Status.Ownership_Supported (Model)
         and then Single_Item.Ownership_Available;
 
       if Items.Is_Empty then

@@ -88,6 +88,17 @@ package Files.Model is
      (Model : Window_Model)
       return Natural;
 
+   --  Moved by every change of a rename field's text or caret and by
+   --  nothing else (typing, deleting, moving the caret while renaming):
+   --  with Rows_Revision, what the renamed rows show. Starting or ending a
+   --  rename moves Rows_Revision instead, as it changes which rows edit.
+   --
+   --  @param Model Model to inspect.
+   --  @return The rename revision.
+   function Rename_Revision
+     (Model : Window_Model)
+      return Natural;
+
    --  Moves when only a scroll offset changed (the main view, the info pane,
    --  the folder tree), which Revision does not: the snapshot's items stand,
    --  and a view refreshing its snapshot copies it with the new offsets
@@ -1019,6 +1030,26 @@ private
       Swatch : Positive := Files.UI_Types.Clear_Swatch;
    end record;
 
+   --  A loaded item's name and the same name folded for the filter.
+   type Folded_Name is record
+      Name   : UString;
+      Folded : UString;
+   end record;
+
+   package Folded_Name_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Folded_Name);
+
+   --  What the window layer sampled of the host (Status_Samples.Set_Host)
+   --  and when; Sampled False until it did.
+   type Host_Sample_State is record
+      Sampled               : Boolean := False;
+      Trash_Available       : Boolean := False;
+      Permissions_Supported : Boolean := False;
+      Ownership_Supported   : Boolean := False;
+      Sampled_At            : Ada.Calendar.Time := Files.Types.Unknown_Time;
+   end record;
+
    --  The volume-space sample and where and when it was taken; Sampled is
    --  meaningful only once Path is set. Every default is the unsampled state.
    type Volume_Sample_State is record
@@ -1098,6 +1129,12 @@ private
       Visible_Generation  : Natural := 0;
       Visible_Items       : Natural_Vectors.Vector;
       Item_Visible_Rows   : Natural_Vectors.Vector;
+      --  Each item's name folded (Files.Text_Case.Fold_Case) for the filter,
+      --  by item index, with the name it was folded from: a name that no
+      --  longer matches is folded again, so the map needs no invalidation of
+      --  its own. Only names that are not ASCII are kept; ASCII ones match in
+      --  place. Without it a filter keystroke folded every such name again.
+      Folded_Names        : Folded_Name_Vectors.Vector;
       --  Hidden items among all loaded ones, counted with the map.
       Hidden_Items        : Natural := 0;
       --  Moved by scrolling alone (Scroll_Revision), apart from Revision:
@@ -1174,6 +1211,19 @@ private
       Rows_Revision_Value : Natural := 0;
       --  Bumped with Revision_Value by every change of the selection.
       Selection_Revision_Value : Natural := 0;
+      --  Bumped with Revision_Value by every change of a rename field's text
+      --  or caret alone (Support.Touch_Rename).
+      Rename_Revision_Value : Natural := 0;
+      --  Whether a selected item is an archive (Selection.Has_Archive), and
+      --  the selection and rows revisions it was worked out at: the Extract
+      --  command's status is asked on every snapshot, and after a Select All
+      --  of a large folder walked the whole selection each time. A cache
+      --  filled through a constant view, like the visible-row map.
+      Archive_Memo_Selection : Natural := Natural'Last;
+      Archive_Memo_Rows      : Natural := Natural'Last;
+      Archive_Memo_Value     : Boolean := False;
+      --  What the window layer sampled of the host (Status_Samples.Set_Host).
+      Host_Sample : Host_Sample_State;
       --  The volume-space sample (Set_Volume_Space).
       Volume_Sample : Volume_Sample_State;
       Account_Names         : Account_Names_State;

@@ -1,3 +1,5 @@
+with Ada.Calendar;
+with Files.Model.Status_Samples;
 with Files.Model.Filtering;
 with Files.Command_Reasons;
 with Files.Items;
@@ -59,4 +61,20 @@ separate (Files_Suite.Commands)
       --  An enabled command has no reason.
       Assert (Files.Commands.Status.Status_Of (Files.Commands.Navigate_Recent_Command, Model).Enabled,
               "the recent view stays reachable");
+
+      --  What the host offers is read from the window's sample once there
+      --  is one: a build asks the host nothing.
+      Files.Model.Status_Samples.Set_Host
+        (Model, Trash_Available => False, Permissions_Supported => False, Ownership_Supported => True,
+         Sampled => Ada.Calendar.Clock);
+      Expect (Files.Commands.Navigate_Trash_Command, "error.trash.unavailable", "no trash sampled");
+      Assert (not Files.Commands.Status.Permissions_Supported (Model), "permissions as sampled");
+      Assert (Files.Commands.Status.Ownership_Supported (Model), "ownership as sampled");
+      Files.Model.Status_Samples.Set_Host
+        (Model, Trash_Available => True, Permissions_Supported => True, Ownership_Supported => False,
+         Sampled => Ada.Calendar.Clock);
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Trash_Command, Model),
+              "a sampled trash can be gone to");
+      Assert (Files.Commands.Status.Permissions_Supported (Model), "permissions as sampled again");
+      Assert (not Files.Commands.Status.Ownership_Supported (Model), "ownership as sampled again");
    end Test_Disabled_Command_Reasons;

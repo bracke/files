@@ -38,4 +38,15 @@ separate (Files_Suite.Context_Menu)
       Open_Item_Context_Menu (Model, Settings, Result);
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
               "Extract is enabled when the selection includes an archive");
+
+      --  The answer is kept with the selection it was worked out for: a
+      --  new selection in the same window asks again.
+      Files_Suite.Support.Models.Select_Name (Model, "report.txt");
+      Assert (not Files.Commands.Status.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+              "Extract is disabled again once the plain file alone is selected");
+      Files_Suite.Support.Models.Select_Name (Model, "bundle.zip");
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+              "and enabled again for the archive");
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+              "asked twice, the kept answer stands");
    end Test_Extract_Enablement_By_Selection;

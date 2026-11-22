@@ -1,6 +1,7 @@
---  What the window layer samples from the host for the status bar and the
---  info pane -- the current volume's free space and the names of owner and
---  group ids -- so building a snapshot asks the OS nothing.
+--  What the window layer samples from the host for the status bar, the info
+--  pane and the commands -- the current volume's free space, the names of
+--  owner and group ids, and what the host offers (a trash, permissions,
+--  ownership) -- so building a snapshot asks the OS nothing.
 package Files.Model.Status_Samples is
 
    --  How long a volume-space sample stays current before the window layer
@@ -85,5 +86,49 @@ package Files.Model.Status_Samples is
    function Account_Names_Current
      (Model : Window_Model)
       return Boolean;
+
+   --  Record what the host offers: whether there is a trash folder to go
+   --  to, and whether it can edit permissions and ownership. The window
+   --  layer asks the host; Build_Snapshot and the command status read it.
+   --  Bumps the revision only when one changed.
+   --
+   --  @param Model Model to update.
+   --  @param Trash_Available Whether the host has a trash folder.
+   --  @param Permissions_Supported Whether permission bits can be edited.
+   --  @param Ownership_Supported Whether owner and group can be edited.
+   --  @param Sampled When it was asked.
+   procedure Set_Host
+     (Model                 : in out Window_Model;
+      Trash_Available       : Boolean;
+      Permissions_Supported : Boolean;
+      Ownership_Supported   : Boolean;
+      Sampled               : Ada.Calendar.Time);
+
+   --  @param Model Model to inspect.
+   --  @return True once Set_Host recorded the host; until then the three
+   --    answers below are not known.
+   function Host_Sampled (Model : Window_Model) return Boolean;
+
+   --  @param Model Model to inspect.
+   --  @param Now The current time.
+   --  @return True when the host was sampled less than
+   --    Volume_Space_Refresh_Interval ago: a trash that appears (Windows
+   --    makes the Recycle Bin's folder on the first delete) is seen soon.
+   function Host_Is_Current
+     (Model : Window_Model;
+      Now   : Ada.Calendar.Time)
+      return Boolean;
+
+   --  @param Model Model to inspect.
+   --  @return The sampled answer: the host has a trash folder.
+   function Trash_Available (Model : Window_Model) return Boolean;
+
+   --  @param Model Model to inspect.
+   --  @return The sampled answer: permission bits can be edited.
+   function Permissions_Supported (Model : Window_Model) return Boolean;
+
+   --  @param Model Model to inspect.
+   --  @return The sampled answer: owner and group can be edited.
+   function Ownership_Supported (Model : Window_Model) return Boolean;
 
 end Files.Model.Status_Samples;

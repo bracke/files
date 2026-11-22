@@ -89,4 +89,9 @@ package Files.Text_Case is
    --  @param Folded_Needle Fold_Case of the text to find; "" matches all.
    --  @return True when the needle occurs in Haystack case-insensitively.
    function Contains_Folded (Haystack : String; Folded_Needle : String) return Boolean;
+
+   --  @param Text Text to inspect.
+   --  @return True when every byte of Text is ASCII (below 128), so it folds
+   --    by lowering its letters alone.
+   function Is_Ascii (Text : String) return Boolean;
 end Files.Text_Case;

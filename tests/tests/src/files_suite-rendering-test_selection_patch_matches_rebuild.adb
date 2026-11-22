@@ -1,3 +1,4 @@
+with Files.Model.Creation;
 with Files.Model.Filtering;
 with Files.Preference_Types;
 with Files.Rendering.Testing;
@@ -146,6 +147,57 @@ separate (Files_Suite.Rendering)
                  = Files.Rendering.Testing.Build_Snapshot_At (Model, Settings, Before.Now),
                "a selection change during a multi-rename keeps the rows only as a rebuild draws them");
          end;
+         Files.Model.Rename.Toggle (Model);
+      end;
+
+      --  Typing in rename fields and moving their carets leaves the rows
+      --  revision: a patch writes the renamed rows again, and must draw what
+      --  a rebuild draws. Two fields at once, and the pending create row,
+      --  whose name follows its field.
+      declare
+         procedure Check_Rename (Step : String; Change : not null access procedure) is
+            Before : constant Files.Rendering.View_Snapshot :=
+              Files.Rendering.Build_Snapshot (Model, Settings);
+            Rows   : constant Natural := Files.Model.Rows_Revision (Model);
+            Rename : constant Natural := Files.Model.Rename_Revision (Model);
+         begin
+            Change.all;
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Rows_Revision (Model), Rows, Step & ": the rows revision stays");
+            Assert (Files.Model.Rename_Revision (Model) /= Rename, Step & ": the rename revision moves");
+            Assert
+              (Files.Rendering.Testing.Build_Snapshot_Keeping_Rows (Model, Settings, Before)
+               = Files.Rendering.Testing.Build_Snapshot_At (Model, Settings, Before.Now),
+               Step & ": the patched snapshot is the rebuilt one");
+         end Check_Rename;
+
+         Changed : Boolean;
+         pragma Unreferenced (Changed);
+         procedure Type_Text is begin Changed := Files.Model.Rename.Insert_At_Carets (Model, "xy"); end Type_Text;
+         procedure Erase is begin Changed := Files.Model.Rename.Delete (Model, Backward => True); end Erase;
+         procedure Left is
+         begin
+            Changed := Files.Model.Rename.Move_All_Carets (Model, Guikit.Input.Move_Left);
+         end Left;
+         procedure Home is begin Changed := Files.Model.Rename.Set_All_Carets_Home (Model); end Home;
+         procedure Caret is begin Files.Model.Rename.Set_Caret (Model, 1, 2); end Caret;
+         procedure Replace is begin Files.Model.Rename.Set_Text (Model, "Renamed.txt"); end Replace;
+      begin
+         Files.Model.Selection.Select_Visible (Model, 1);
+         Files.Model.Selection.Toggle_Visible_Selection (Model, 2);
+         Files.Model.Rename.Toggle (Model);
+         Check_Rename ("rename typing", Type_Text'Access);
+         Check_Rename ("rename delete", Erase'Access);
+         Check_Rename ("rename caret left", Left'Access);
+         Check_Rename ("rename caret home", Home'Access);
+         Check_Rename ("rename caret click", Caret'Access);
+         Check_Rename ("rename text set", Replace'Access);
+         Files.Model.Rename.Toggle (Model);
+
+         Files.Model.Creation.Begin_Create_File (Model, "untitled.txt");
+         Check_Rename ("new file name typing", Type_Text'Access);
+         Check_Rename ("new file name delete", Erase'Access);
+         --  Toggling the rename off cancels the pending create.
          Files.Model.Rename.Toggle (Model);
       end;
 

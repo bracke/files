@@ -17,25 +17,26 @@ package body Files.Model.Filtering is
       --
       --  @param Model Model whose selection is reconciled in place.
       procedure Reconcile_Selection (Model : in out Window_Model) is
+
+         --  Whether the selection entry Item_Index is still a shown row.
+         function Still_Shown (Item_Index : Natural) return Boolean is
+           (if Item_Index = Temporary_Item_Index then Temporary_Is_Visible (Model)
+            else Item_Index in 1 .. Natural (Model.Items.Length) and then Item_Visible_At (Model, Item_Index));
+
+         --  The entries still shown, in their order, gathered in one pass:
+         --  deleting each hidden one in place moved the rest of the list
+         --  every time, quadratic after a Select All of a large folder.
+         Kept : Natural_Vectors.Vector;
       begin
          Touch_Selection (Model);
          if not Model.Selected_Item_Indexes.Is_Empty then
-            for Index in reverse Model.Selected_Item_Indexes.First_Index .. Model.Selected_Item_Indexes.Last_Index loop
-               declare
-                  Item_Index : constant Natural := Model.Selected_Item_Indexes.Element (Index);
-               begin
-                  if Item_Index = Temporary_Item_Index then
-                     if not Temporary_Is_Visible (Model) then
-                        Model.Selected_Item_Indexes.Delete (Index);
-                     end if;
-                  elsif Model.Items.Is_Empty
-                    or else Item_Index > Natural (Model.Items.Last_Index)
-                    or else not Item_Is_Visible (Model, Model.Items.Element (Positive (Item_Index)))
-                  then
-                     Model.Selected_Item_Indexes.Delete (Index);
-                  end if;
-               end;
+            Kept.Reserve_Capacity (Model.Selected_Item_Indexes.Length);
+            for Item_Index of Model.Selected_Item_Indexes loop
+               if Still_Shown (Item_Index) then
+                  Kept.Append (Item_Index);
+               end if;
             end loop;
+            Model.Selected_Item_Indexes.Move (Kept);
          end if;
 
          if Model.Selected_Item_Index = Temporary_Item_Index then
@@ -46,15 +47,13 @@ package body Files.Model.Filtering is
             end if;
          end if;
 
-         if Model.Selected_Item_Index /= 0 then
-            if not Model.Items.Is_Empty
-              and then Model.Selected_Item_Index <= Natural (Model.Items.Last_Index)
-              and then Item_Is_Visible (Model, Model.Items.Element (Positive (Model.Selected_Item_Index)))
-            then
-               Add_Selected_Index (Model, Model.Selected_Item_Index);
-               Reconcile_Rename_With_Selection (Model);
-               return;
-            end if;
+         if Model.Selected_Item_Index /= 0
+           and then Model.Selected_Item_Index /= Temporary_Item_Index
+           and then Still_Shown (Model.Selected_Item_Index)
+         then
+            Add_Selected_Index (Model, Model.Selected_Item_Index);
+            Reconcile_Rename_With_Selection (Model);
+            return;
          end if;
 
          Model.Selected_Item_Index := 0;
@@ -64,15 +63,12 @@ package body Files.Model.Filtering is
             return;
          end if;
 
-         if not Model.Items.Is_Empty then
-            for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-               if Item_Is_Visible (Model, Model.Items (Index)) then
-                  Model.Selected_Item_Index := Natural (Index);
-                  Add_Selected_Index (Model, Model.Selected_Item_Index);
-                  Reconcile_Rename_With_Selection (Model);
-                  return;
-               end if;
-            end loop;
+         --  The first shown item, the lowest index the map holds.
+         if Visible_To_Item_Index (Model, 1) /= 0 then
+            Model.Selected_Item_Index := Visible_To_Item_Index (Model, 1);
+            Add_Selected_Index (Model, Model.Selected_Item_Index);
+            Reconcile_Rename_With_Selection (Model);
+            return;
          end if;
          Reconcile_Rename_With_Selection (Model);
       end Reconcile_Selection;

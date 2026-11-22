@@ -65,6 +65,15 @@ package Files.Application.Window_Polls is
    procedure Sample_Volume_Space
      (Model : in out Files.Model.Window_Model);
 
+   --  Sample what the host offers (a trash folder, permission and ownership
+   --  editing) into Model when its last sample is stale
+   --  (Files.Model.Status_Samples.Host_Is_Current), so the commands' status
+   --  and the snapshot read it without asking the host on every build.
+   --
+   --  @param Model Window model to sample for.
+   procedure Sample_Host
+     (Model : in out Files.Model.Window_Model);
+
    --  Resolve the owner and group names of the items the info pane lists into
    --  Model (Files.Model.Status_Samples.Set_Account_Name), so the snapshot
    --  shows names without an NSS lookup of its own. Does nothing while the

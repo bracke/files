@@ -1,3 +1,4 @@
+with Ada.Unchecked_Deallocation;
 with Files.Preference_Types;
 with Files.Item_Lists;
 with Files.UI_Types;
@@ -25,8 +26,43 @@ package body Files.Model.Support is
    --  tell.
    procedure Ensure_Visible_Map (Model : Window_Model) is
       type Model_Access is access all Window_Model;
-      Cache : constant Model_Access := Model'Unrestricted_Access;
-      Seen  : Natural := 0;
+      Cache  : constant Model_Access := Model'Unrestricted_Access;
+      Seen   : Natural := 0;
+      --  The query as text once, not once per item.
+      Needle : constant String := To_String (Model.Folded_Filter);
+
+      --  Whether the item at Index passes the query. An ASCII name matches
+      --  in place; any other is folded once and kept with the name it was
+      --  folded from, so the next keystroke reads it back.
+      function Passes (Position : Positive; Item : Files.Items.Directory_Item) return Boolean is
+         Name : constant String := To_String (Item.Name);
+      begin
+         if Files.Text_Case.Is_Ascii (Name) then
+            return Files.Text_Case.Contains_Folded (Name, Needle);
+         end if;
+         if Natural (Cache.Folded_Names.Length) < Position then
+            Cache.Folded_Names.Set_Length (Model.Items.Length);
+         end if;
+         declare
+            Kept : Folded_Name renames Cache.Folded_Names (Position);
+         begin
+            if Kept.Name /= Item.Name or else Length (Kept.Folded) = 0 then
+               Kept := (Name => Item.Name, Folded => To_Unbounded_String (Files.Text_Case.Fold_Case (Name)));
+            end if;
+            return Index (Kept.Folded, Needle) > 0;
+         end;
+      end Passes;
+
+      function Visible (Position : Positive; Item : Files.Items.Directory_Item) return Boolean is
+      begin
+         --  Search results show every match, but for hidden ones while the
+         --  hidden-files setting hides them.
+         if Model.Search_Results_Active then
+            return not (Model.Results_Hide_Hidden and then Item.Hidden);
+         end if;
+         --  No filter (the common case): no copy of it, nor of the name.
+         return Needle'Length = 0 or else Passes (Position, Item);
+      end Visible;
    begin
       if Model.Visible_Cache_Valid then
          return;
@@ -43,14 +79,14 @@ package body Files.Model.Support is
             if Item.Hidden or else (Length (Item.Name) > 0 and then Element (Item.Name, 1) = '.') then
                Cache.Hidden_Items := Cache.Hidden_Items + 1;
             end if;
+            if Visible (Index, Item) then
+               Seen := Seen + 1;
+               Cache.Visible_Items.Append (Index);
+               Cache.Item_Visible_Rows.Append (Seen);
+            else
+               Cache.Item_Visible_Rows.Append (0);
+            end if;
          end;
-         if Item_Is_Visible (Model, Model.Items (Index)) then
-            Seen := Seen + 1;
-            Cache.Visible_Items.Append (Index);
-            Cache.Item_Visible_Rows.Append (Seen);
-         else
-            Cache.Item_Visible_Rows.Append (0);
-         end if;
       end loop;
       Cache.Visible_Cache_Valid := True;
    end Ensure_Visible_Map;
@@ -60,6 +96,12 @@ package body Files.Model.Support is
       Model.Revision_Value := Model.Revision_Value + 1;
       Model.Rows_Revision_Value := Model.Rows_Revision_Value + 1;
    end Touch;
+
+   procedure Touch_Rename (Model : in out Window_Model) is
+   begin
+      Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Rename_Revision_Value := Model.Rename_Revision_Value + 1;
+   end Touch_Rename;
 
    procedure Touch_Selection (Model : in out Window_Model) is
    begin
@@ -134,21 +176,15 @@ package body Files.Model.Support is
       Model.Root_Selector := (others => <>);
    end Clear_Root_Selector_State;
 
-   function Item_Is_Visible
-     (Model : Window_Model;
-      Item  : Files.Items.Directory_Item)
-      return Boolean
-   is
+   function Item_Visible_At
+     (Model      : Window_Model;
+      Item_Index : Positive)
+      return Boolean is
    begin
-      --  Search results show every match, but for hidden ones while the
-      --  hidden-files setting hides them.
-      if Model.Search_Results_Active then
-         return not (Model.Results_Hide_Hidden and then Item.Hidden);
-      end if;
-      --  No filter (the common case): no copy of it, nor of the name.
-      return Length (Model.Folded_Filter) = 0
-        or else Files.Text_Case.Contains_Folded (To_String (Item.Name), To_String (Model.Folded_Filter));
-   end Item_Is_Visible;
+      Ensure_Visible_Map (Model);
+      return Item_Index <= Natural (Model.Item_Visible_Rows.Length)
+        and then Model.Item_Visible_Rows (Item_Index) /= 0;
+   end Item_Visible_At;
 
    function Temporary_Is_Visible (Model : Window_Model) return Boolean is
    begin
@@ -220,20 +256,31 @@ package body Files.Model.Support is
       return False;
    end Selection_Contains;
 
+   function Is_Selected (Flags : Selection_Flags; Item_Index : Natural) return Boolean is
+     (Flags.Flags /= null and then Item_Index in Flags.Flags'Range and then Flags.Flags (Item_Index));
+
    function Selected_Flags
      (Model : Window_Model)
       return Selection_Flags
    is
-      Last  : constant Natural := Natural (Model.Items.Length);
-      Flags : Selection_Flags (1 .. Last) := [others => False];
+      Last : constant Natural := Natural (Model.Items.Length);
    begin
-      for Selected of Model.Selected_Item_Indexes loop
-         if Selected in 1 .. Last then
-            Flags (Selected) := True;
-         end if;
-      end loop;
-      return Flags;
+      return Result : Selection_Flags do
+         Result.Flags := new Flag_Array (1 .. Last);
+         Result.Flags.all := [others => False];
+         for Selected of Model.Selected_Item_Indexes loop
+            if Selected in 1 .. Last then
+               Result.Flags (Selected) := True;
+            end if;
+         end loop;
+      end return;
    end Selected_Flags;
+
+   overriding procedure Finalize (Flags : in out Selection_Flags) is
+      procedure Free is new Ada.Unchecked_Deallocation (Flag_Array, Flag_Array_Access);
+   begin
+      Free (Flags.Flags);
+   end Finalize;
 
    procedure Add_Selected_Index
      (Model      : in out Window_Model;
@@ -296,7 +343,7 @@ package body Files.Model.Support is
             declare
                Item : constant Natural := Model.Rename.Fields.Element (Index).Item_Index;
             begin
-               if Item not in Selected'Range or else not Selected (Item) then
+               if not Selected (Item) then
                   --  A row's rename field goes: the rows change.
                   Touch (Model);
                   Model.Rename.Fields.Delete (Index);
@@ -842,7 +889,7 @@ package body Files.Model.Support is
                Item : Files.Items.Directory_Item renames Model.Items (Index);
                Path : constant String := To_String (Item.Full_Path);
             begin
-               if Item_Is_Visible (Model, Item)
+               if Item_Visible_At (Model, Index)
                  and then Previous_Paths.Contains (Path)
                then
                   --  Indexes ascend and the list was cleared above, so each is

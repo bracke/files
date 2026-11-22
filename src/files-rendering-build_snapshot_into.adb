@@ -1,4 +1,3 @@
-with Files.File_System.Permissions;
 with Files.Items;
 with Files.Root_Labels;
 with Ada.Containers.Hashed_Maps;
@@ -77,6 +76,7 @@ separate (Files.Rendering)
       procedure Copy_Fields is separate;
       procedure Snapshot_Overlays is separate;
       procedure Reuse_Rows is separate;
+      procedure Patch_Renamed_Rows is separate;
       procedure Snapshot_Rows is separate;
       procedure Snapshot_Selection is separate;
       procedure Snapshot_Info_Pane is separate;
@@ -86,7 +86,9 @@ separate (Files.Rendering)
       declare
          Rows : Item_Snapshot_Vectors.Vector;
          Row_Table : Row_Index_Vectors.Vector;
+         Renamed   : Renamed_Row_Maps.Map;
          Rows_Selection   : constant Natural := Snapshot.Rows_Selection_Revision;
+         Rows_Rename      : constant Natural := Snapshot.Rows_Rename_Revision;
          Total_Selection  : constant Natural := Snapshot.Total_Selection_Revision;
          Total_Sizes      : constant Natural := Snapshot.Total_Sizes_Revision;
          Total_Bytes      : constant Long_Long_Integer := Snapshot.Selection_Total_Bytes;
@@ -95,12 +97,15 @@ separate (Files.Rendering)
          if Keep_Rows then
             Rows.Move (Snapshot.Items);
             Row_Table.Move (Snapshot.Visible_Rows);
+            Renamed.Move (Snapshot.Renamed_Rows);
          end if;
          Snapshot := (others => <>);
          if Keep_Rows then
             Snapshot.Items.Move (Rows);
             Snapshot.Visible_Rows.Move (Row_Table);
+            Snapshot.Renamed_Rows.Move (Renamed);
             Snapshot.Rows_Selection_Revision := Rows_Selection;
+            Snapshot.Rows_Rename_Revision := Rows_Rename;
             Snapshot.Total_Selection_Revision := Total_Selection;
             Snapshot.Total_Sizes_Revision := Total_Sizes;
             Snapshot.Selection_Total_Bytes := Total_Bytes;
@@ -113,10 +118,18 @@ separate (Files.Rendering)
       --  Kept rows whose flags already show this selection are left alone.
       if not Keep_Rows then
          Snapshot_Rows;
-      elsif Snapshot.Rows_Selection_Revision /= Files.Model.Selection_Revision (Model) then
-         Reuse_Rows;
+      else
+         if Snapshot.Rows_Selection_Revision /= Files.Model.Selection_Revision (Model) then
+            Reuse_Rows;
+         end if;
+         --  Only a rename field's text or caret moved: its rows are written
+         --  again, the others stand.
+         if Snapshot.Rows_Rename_Revision /= Files.Model.Rename_Revision (Model) then
+            Patch_Renamed_Rows;
+         end if;
       end if;
       Snapshot.Rows_Selection_Revision := Files.Model.Selection_Revision (Model);
+      Snapshot.Rows_Rename_Revision := Files.Model.Rename_Revision (Model);
       Snapshot_Selection;
       if Snapshot.Info_Pane_Open and then Snapshot.Selected_Count > 0 then
          Snapshot_Info_Pane;
