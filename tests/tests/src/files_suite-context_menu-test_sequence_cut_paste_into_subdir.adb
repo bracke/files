@@ -58,10 +58,9 @@ separate (Files_Suite.Context_Menu)
          Assert (Kept, "the moved file keeps its label under its listed path");
       end;
 
-      --  Step 3: if the move is undoable, undo returns the file to its origin.
-      if Files.Model.History.Undo_Available (Model) then
-         Dispatch_Command (Model, Settings, Files.Commands.Undo_Command, Result);
-         Assert (Ada.Directories.Exists (Source), "undo moves the cut file back to its origin");
-         Assert (not Ada.Directories.Exists (Pasted), "undo removes the file from the subdirectory");
-      end if;
+      --  Step 3: the move is undoable, and undo returns the file to its origin.
+      Assert (Files.Model.History.Undo_Available (Model), "the cut and paste is recorded for Undo");
+      Dispatch_Command (Model, Settings, Files.Commands.Undo_Command, Result);
+      Assert (Ada.Directories.Exists (Source), "undo moves the cut file back to its origin");
+      Assert (not Ada.Directories.Exists (Pasted), "undo removes the file from the subdirectory");
    end Test_Sequence_Cut_Paste_Into_Subdir;

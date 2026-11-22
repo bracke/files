@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 separate (Files_Suite.Refresh)
    procedure Test_Tree_Subdirectories (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,8 +15,10 @@ separate (Files_Suite.Refresh)
       Write_File (Join (Join (Root, "beta"), "inside.txt"), "longer content");
       declare
          Linked : constant Boolean := Hostkit.Fs.Create_Link (Join (Root, "beta"), Join (Root, "link-to-beta"));
-         pragma Unreferenced (Linked);
       begin
+         if not Linked then
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Tree_Subdirectories");
+         end if;
          --  The tree's lean listing names the folders a full listing does,
          --  in the same order, for every sort and hidden setting.
          for Hidden in Boolean loop

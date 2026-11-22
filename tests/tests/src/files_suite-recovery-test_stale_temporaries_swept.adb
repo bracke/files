@@ -59,6 +59,8 @@ separate (Files_Suite.Recovery)
          Assert (Ada.Directories.Exists (Base & ".tmp-5"), "a folder is kept");
          if Linked then
             Assert (Hostkit.Fs.Is_Link (Base & ".tmp-6"), "a link is kept");
+         else
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Stale_Temporaries_Swept");
          end if;
       end;
 

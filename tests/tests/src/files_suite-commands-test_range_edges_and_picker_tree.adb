@@ -30,11 +30,12 @@ separate (Files_Suite.Commands)
          "Cyrillic, Polish and Greek names match case-insensitively (Greek)");
       Assert (Files.Text_Case.Testing.Contains_Case_Insensitive ("BAD" & Character'Val (16#FF#) & ".txt", "bad"),
               "a name that is not UTF-8 still matches");
-      if I18N.Normalization.Available then
-         Assert (Files.Text_Case.Testing.Contains_Case_Insensitive
-                   ("cafe" & Character'Val (16#CC#) & Character'Val (16#81#) & ".txt", U8 ("café")),
-                 "a decomposed name matches the composed letters typed");
-      end if;
+      --  Fold_Case composes through I18N's normalization data; without it a
+      --  decomposed name silently stops matching, so its absence fails here.
+      Assert (I18N.Normalization.Available, "the Unicode normalization data is found");
+      Assert (Files.Text_Case.Testing.Contains_Case_Insensitive
+                ("cafe" & Character'Val (16#CC#) & Character'Val (16#81#) & ".txt", U8 ("café")),
+              "a decomposed name matches the composed letters typed");
 
       --  Shift+Up on the first item would wrap to the last and select all.
       Files.Model.Set_View_Mode (Model, Files.Preference_Types.Details);

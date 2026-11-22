@@ -27,14 +27,7 @@ separate (Files_Suite.History)
                   Sources, Destinations : Files.Types.String_Vectors.Vector;
 
                   function Listed (Path : String) return Boolean is
-                  begin
-                     for Index in 1 .. Files.Model.Visible_Count (Model) loop
-                        if Files.Model.Visible_Item (Model, Index).Full_Path = To_Unbounded_String (Path) then
-                           return True;
-                        end if;
-                     end loop;
-                     return False;
-                  end Listed;
+                    (Files_Suite.Support.Models.Visible_Path_Index_Of (Model, Path) /= 0);
 
                   procedure Check_Refresh (Error_Key : String) is
                      Applied : Boolean := False;

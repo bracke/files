@@ -46,6 +46,8 @@ separate (Files_Suite.History)
                  = Files.Undo.Journal.Unreadable,
                "a transport that is a link is a refusal, not a transport without a journal");
          end;
+      else
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Refused_Journal_Lookup_Still_Reads");
       end if;
 
       Ada.Directories.Delete_File (Join (Directory, "history"));

@@ -89,6 +89,11 @@ separate (Files_Suite.Recovery)
          Owned := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
          Link_Path := To_Unbounded_String (Join (To_String (Owned), "injected-link"));
          Linked := Hostkit.Fs.Create_Link (Target, To_String (Link_Path));
+         if not Linked then
+            --  The cleanup is still checked; only the injected link's half
+            --  goes without it.
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Transport_Cleanup_Guards");
+         end if;
          Assert
            (not Files.Job_Drivers.Helpers.Testing.Run_Cleanup
               (To_String (Owned), Files.File_Identities.Token (To_String (Owned)),

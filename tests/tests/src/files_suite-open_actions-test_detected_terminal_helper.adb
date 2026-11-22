@@ -1,9 +1,11 @@
+with Files_Suite.Support.Disk;
 with Files.Operations.Opening.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Open_Actions)
    procedure Test_Detected_Terminal_Helper (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Shell_Path   : constant String := "/bin/sh";
+      --  A program every host runs, the suite's own companion.
+      Shell_Path   : constant String := Files_Suite.Support.Disk.No_Op_Executable;
       Missing_Path : constant String := Join (Root, "no-such-terminal-binary");
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
@@ -11,13 +13,12 @@ separate (Files_Suite.Open_Actions)
       Files_Suite.Support.Guards.Save (Environment, "TERMINAL");
       Reset_Root;
 
-      if Ada.Directories.Exists (Shell_Path) then
-         Ada.Environment_Variables.Set ("TERMINAL", Shell_Path);
-         Files_Suite.Support.Assert_Equal
-           (Files.Operations.Opening.Testing.Detected_Terminal,
-            Shell_Path,
-            "an available TERMINAL override selects the configured terminal executable");
-      end if;
+      Assert (Ada.Directories.Exists (Shell_Path), "the companion program is built: " & Shell_Path);
+      Ada.Environment_Variables.Set ("TERMINAL", Shell_Path);
+      Files_Suite.Support.Assert_Equal
+        (Files.Operations.Opening.Testing.Detected_Terminal,
+         Shell_Path,
+         "an available TERMINAL override selects the configured terminal executable");
 
       Ada.Environment_Variables.Set ("TERMINAL", Missing_Path);
       Assert

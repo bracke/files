@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 with Files_Suite.Listings;
 with Files.Operation_Results;
 separate (Files_Suite.Operations)
@@ -26,8 +27,10 @@ separate (Files_Suite.Operations)
       end if;
       Reset_Root;
       Ada.Directories.Create_Path (Dir);
-      Assert (Hostkit.Fs.Create_Link ("missing-target", Source),
-              "prepare a dangling symbolic link source");
+      if not Hostkit.Fs.Create_Link ("missing-target", Source) then
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Hardlink_Dangling_Symlink");
+         return;
+      end if;
       Mutation := Files.File_System.Create_Hard_Link (Source, Direct_Link);
       Assert (Mutation.Success, "direct creation hard-links the symbolic link entry itself: created");
       Assert (Hostkit.Fs.Is_Link (Direct_Link), "direct creation hard-links the symbolic link entry itself: a link");
@@ -39,8 +42,10 @@ separate (Files_Suite.Operations)
                 and then To_String (Target) = "missing-target",
               "the direct hard link retains the unresolved target text");
 
-      Assert (Hostkit.Fs.Create_Link ("missing-target", Occupied),
-              "prepare a dangling destination collision");
+      if not Hostkit.Fs.Create_Link ("missing-target", Occupied) then
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Hardlink_Dangling_Symlink");
+         return;
+      end if;
       Mutation := Files.File_System.Create_Directory (Occupied);
       Assert (not Mutation.Success, "folder creation identifies and preserves a dangling link collision: refused");
       Files_Suite.Support.Assert_Equal

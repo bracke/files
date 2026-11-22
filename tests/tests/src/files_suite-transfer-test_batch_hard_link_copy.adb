@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 with Files.Operations.History.Testing;
 with Files.Model.Jobs;
 with Files.Operations.History;
@@ -39,8 +40,10 @@ separate (Files_Suite.Transfer)
          Write_Binary_File (Join (Source, "first"), "shared bytes");
          GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
            (Join (Source, "first"), GNAT.OS_Lib.Current_Time);
-         Assert (Hostkit.Fs.Create_Hard_Link (Join (Source, "first"), Join (Source, "second")),
-                 "prepare two selected roots sharing an inode");
+         if not Hostkit.Fs.Create_Hard_Link (Join (Source, "first"), Join (Source, "second")) then
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Batch_Hard_Link_Copy", Files_Suite.Support.Disk.Hard_Link);
+            return;
+         end if;
          Write_Binary_File (Join (Source, "third"), "shared bytes");
          Paths.Clear;
          Paths.Append (To_Unbounded_String (Join (Source, "first")));

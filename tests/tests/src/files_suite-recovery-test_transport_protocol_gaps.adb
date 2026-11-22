@@ -319,13 +319,16 @@ separate (Files_Suite.Recovery)
             end if;
             Files.IO.Private_Directories.Create (Target);
             Write_Binary_File (Join (Target, "payload"), "kept");
-            Assert (Hostkit.Fs.Create_Link (Target, Link), "the planted link is made");
-            Found := Files.Jobs.Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
-            Assert (Ada.Directories.Exists (Join (Target, "payload"))
-                    and then GNAT.OS_Lib.Is_Symbolic_Link (Link)
-                    and then not Files.Jobs.Scavenger.Testing.Was_Reported (Link),
-                    "a link named like a job folder is neither followed, removed nor reported");
-            GNAT.OS_Lib.Delete_File (Link, Found);
+            if Hostkit.Fs.Create_Link (Target, Link) then
+               Found := Files.Jobs.Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
+               Assert (Ada.Directories.Exists (Join (Target, "payload"))
+                       and then GNAT.OS_Lib.Is_Symbolic_Link (Link)
+                       and then not Files.Jobs.Scavenger.Testing.Was_Reported (Link),
+                       "a link named like a job folder is neither followed, removed nor reported");
+               GNAT.OS_Lib.Delete_File (Link, Found);
+            else
+               Files_Suite.Support.Disk.Link_Not_Made ("Test_Transport_Protocol_Gaps");
+            end if;
             Project_Tools.Files.Delete_Tree (Target);
          exception
             when others =>

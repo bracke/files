@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 with Files.Operations.History.Testing;
 with Files.Model.Jobs;
 with Files.File_System.Transfer.Testing;
@@ -59,7 +60,11 @@ separate (Files_Suite.Transfer)
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success, "Undo the copy");
          Ada.Directories.Delete_Directory (Parent);
-         Assert (Hostkit.Fs.Create_Link (Child, Parent), "redirect the destination parent into the source");
+         if not Hostkit.Fs.Create_Link (Child, Parent) then
+            --  The rest redirects the destination through this link.
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Copy_Destination_Revalidation");
+            return;
+         end if;
          Paths.Clear;
          Paths.Append (To_Unbounded_String (Source));
          Plans := Files.File_System.Transfer.Plan_Drop_Import

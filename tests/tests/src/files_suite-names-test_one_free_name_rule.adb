@@ -28,8 +28,7 @@ separate (Files_Suite.Names)
       function First_Two (Leaf : String) return Boolean is (Leaf in "notes.txt" | "notes 2.txt");
       function Only_Bare (Leaf : String) return Boolean is (Leaf = "v1.2");
 
-      function Listed (Name : String) return Boolean is
-        (for some Item of Load.Items => To_String (Item.Name) = Name);
+      function Listed (Name : String) return Boolean is (Files_Suite.Listings.Listed (Load, Name));
    begin
       --  The markers each operation is told apart by.
       Files_Suite.Support.Assert_Equal (LN.Counted_Marker ("copy", 1), " (copy)", "the first copy marker");

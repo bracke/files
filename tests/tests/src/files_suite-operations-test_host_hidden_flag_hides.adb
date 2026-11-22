@@ -30,8 +30,7 @@ separate (Files_Suite.Operations)
          return Success;
       end Mark;
 
-      function Listed (Name : String) return Boolean is
-        (for some Item of Load.Items => To_String (Item.Name) = Name);
+      function Listed (Name : String) return Boolean is (Files_Suite.Listings.Listed (Load, Name));
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Dir);

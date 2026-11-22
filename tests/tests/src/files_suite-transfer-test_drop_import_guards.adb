@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 with Files.File_System.Transfer.Testing;
 with Files.File_System_Types;
 with Files.File_System.Transfer;
@@ -74,6 +75,8 @@ separate (Files_Suite.Transfer)
          Assert (Hostkit.Fs."=" (Hostkit.Fs.Delete_Tree_No_Follow (Join (Root, "alias")), Hostkit.Fs.Tree_Deleted)
                  and then Ada.Directories.Exists (Join (Join (Root, "tree"), "sub")),
                  "the alias link is removed, and only the link");
+      else
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Drop_Import_Guards");
       end if;
 
       if Hostkit.Host.Current /= Hostkit.Host.Windows then

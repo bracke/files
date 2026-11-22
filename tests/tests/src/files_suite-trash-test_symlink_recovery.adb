@@ -110,8 +110,11 @@ separate (Files_Suite.Trash)
                Copied : constant String := Join (Root, "copied-link-tree");
             begin
                Ada.Directories.Create_Directory (Nested);
-               Assert (Hostkit.Fs.Create_Link ("../missing", Join (Nested, "broken")),
-                       "create a nested dangling-link fixture");
+               if not Hostkit.Fs.Create_Link ("../missing", Join (Nested, "broken")) then
+                  --  The rest copies the tree this nested link is part of.
+                  Files_Suite.Support.Disk.Link_Not_Made ("Test_Symlink_Recovery");
+                  return;
+               end if;
                Result := Files.File_System.Transfer.Copy_Tree (Output, Copied);
                Assert (Result.Success, "recursive copies preserve every nested dangling link: copied");
                Assert

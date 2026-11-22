@@ -75,4 +75,18 @@ package Files_Suite.Listings is
       Settings  : Files.Settings.Settings_Model)
       return Files.File_System.Search.Recursive_Search_Result;
 
+   --  Where a listing holds an item called Name.
+   --
+   --  @param Load Listing result.
+   --  @param Name Item name.
+   --  @return Its index in Load.Items, the first such; 0 when it holds none.
+   function Listed_Index (Load : Files.File_System.Directory_Load_Result; Name : String) return Natural;
+
+   --  Whether a listing holds an item called Name.
+   --
+   --  @param Load Listing result.
+   --  @param Name Item name.
+   --  @return True when Load.Items has one.
+   function Listed (Load : Files.File_System.Directory_Load_Result; Name : String) return Boolean;
+
 end Files_Suite.Listings;

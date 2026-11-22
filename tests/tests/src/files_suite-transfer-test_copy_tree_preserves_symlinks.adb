@@ -28,9 +28,11 @@ separate (Files_Suite.Transfer)
       declare
          Aliased_Link : constant Boolean :=
            Files_Suite.Support.Disk.Create_Symlink (Join (Tree, "a.txt"), Join (Tree, "alias"));
-         pragma Unreferenced (Aliased_Link);
       begin
-         null;
+         if not Aliased_Link then
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Copy_Tree_Preserves_Symlinks");
+            return;
+         end if;
       end;
 
       Result := Files.File_System.Transfer.Copy_Tree (Tree, Dest);

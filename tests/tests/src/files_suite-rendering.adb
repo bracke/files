@@ -294,7 +294,8 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Click_Translation_Behavior'Access, "click translation behaviour");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Text_Glyph_Rasterization'Access, "frame text rasterizes through textrender");
+        (T, Test_Text_Glyph_Rasterization'Access,
+         "frame text rasterizes through textrender from a font discovery that offers no collection");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Vulkan_Submission'Access, "frame builds a vulkan submission batch");
       AUnit.Test_Cases.Registration.Register_Routine

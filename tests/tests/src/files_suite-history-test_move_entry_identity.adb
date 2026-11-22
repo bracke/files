@@ -39,75 +39,82 @@ separate (Files_Suite.History)
          Mutation := Files.File_System.Delete_Permanently (Path);
          Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved, Path), "restore the owned history entry");
       end Replace_And_Refuse;
+      --  One kind (1 a file, 2 a folder, 3 a link) moved by a paste or a
+      --  rename; a host that makes no link skips that kind alone.
+      procedure Exercise (Background : Boolean; Paste_Move : Boolean; Kind : Positive) is
+      begin
+         Reset_Root;
+         Write_Binary_File (Link_Target, "target bytes");
+         case Kind is
+            when 1 => Write_Binary_File (Source, "owned bytes");
+            when 2 =>
+               Ada.Directories.Create_Directory (Source);
+               Write_Binary_File (Join (Source, "child"), "owned bytes");
+            when others =>
+               if not Hostkit.Fs.Create_Link (Link_Target, Source) then
+                  Files_Suite.Support.Disk.Link_Not_Made ("Test_Move_Entry_Identity");
+                  return;
+               end if;
+         end case;
+         Load := Files_Suite.Listings.Load_Directory (Root, Settings);
+         Files.Model.Initialize (Model, Root, Load.Items, Root);
+         Files.Operations.History.Testing.Clear_Undo (Model);
+         Files.Model.Jobs.Set_Background_Transfers (Model, Background);
+         if Paste_Move then
+            Actions.Clear;
+            Actions.Append (Files.Paste.Resolved_Action'
+              (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, False));
+            Files.Operations.Paste.Testing.Begin_Paste_Execution
+              (Model, Actions, Files.File_System_Types.Drop_Move,
+               False);
+            Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
+         else
+            Select_Name (Model, "original");
+            Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
+            Files.Model.Rename.Set_Text (Model, "renamed");
+            Step := Files.Operations.Editing.Commit_Rename (Model, Settings);
+         end if;
+         Step := Complete_Operation (Model, Settings, Step);
+         Await_View (Model, Settings);
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operation_Results.Operation_Success,
+            "the initial history move succeeds");
+         Replace_And_Refuse (Dest, False);
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
+         Await_View (Model, Settings);
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operation_Results.Operation_Success,
+            "Undo can retry the restored entry");
+         Replace_And_Refuse (Source, True);
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
+         Await_View (Model, Settings);
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operation_Results.Operation_Success,
+            "Redo can retry the restored entry");
+         --  A vanished source and an unrelated target are not evidence
+         --  that the history transition already completed.
+         Assert (Hostkit.Fs.Move_No_Replace (Dest, Saved), "remove the owned source pathname");
+         Write_Binary_File (Source, "unrelated target");
+         Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
+         Await_View (Model, Settings);
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operation_Results.Operation_Failed,
+            "history cannot mark an unrelated existing target as already moved: status");
+         Assert (Files.Model.History.Undo_Available (Model),
+                 "history cannot mark an unrelated existing target as already moved: Undo retained");
+         Assert (File_Is (Source, "unrelated target"),
+                 "history cannot mark an unrelated existing target as already moved: target kept");
+      end Exercise;
+
    begin
       for Background in Boolean loop
          for Paste_Move in Boolean loop
             for Kind in 1 .. 3 loop
-               Reset_Root;
-               Write_Binary_File (Link_Target, "target bytes");
-               case Kind is
-                  when 1 => Write_Binary_File (Source, "owned bytes");
-                  when 2 =>
-                     Ada.Directories.Create_Directory (Source);
-                     Write_Binary_File (Join (Source, "child"), "owned bytes");
-                  when others =>
-                     if not Hostkit.Fs.Create_Link (Link_Target, Source) then
-                        Files_Suite.Support.Disk.Link_Not_Made ("Test_Move_Entry_Identity");
-                        return;
-                     end if;
-               end case;
-               Load := Files_Suite.Listings.Load_Directory (Root, Settings);
-               Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Operations.History.Testing.Clear_Undo (Model);
-               Files.Model.Jobs.Set_Background_Transfers (Model, Background);
-               if Paste_Move then
-                  Actions.Clear;
-                  Actions.Append (Files.Paste.Resolved_Action'
-                    (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, False));
-                  Files.Operations.Paste.Testing.Begin_Paste_Execution
-                    (Model, Actions, Files.File_System_Types.Drop_Move,
-                     False);
-                  Step := Files.Job_Drivers.Foreground.Advance (Model, Settings, 1);
-               else
-                  Select_Name (Model, "original");
-                  Files_Suite.Support.Models.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
-                  Files.Model.Rename.Set_Text (Model, "renamed");
-                  Step := Files.Operations.Editing.Commit_Rename (Model, Settings);
-               end if;
-               Step := Complete_Operation (Model, Settings, Step);
-               Await_View (Model, Settings);
-               Files_Suite.Support.Assert_Equal
-                 (Step.Status,
-                  Files.Operation_Results.Operation_Success,
-                  "the initial history move succeeds");
-               Replace_And_Refuse (Dest, False);
-               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
-               Await_View (Model, Settings);
-               Files_Suite.Support.Assert_Equal
-                 (Step.Status,
-                  Files.Operation_Results.Operation_Success,
-                  "Undo can retry the restored entry");
-               Replace_And_Refuse (Source, True);
-               Step := Complete_Operation (Model, Settings, Operation_Commands.Redo_Last (Model, Settings));
-               Await_View (Model, Settings);
-               Files_Suite.Support.Assert_Equal
-                 (Step.Status,
-                  Files.Operation_Results.Operation_Success,
-                  "Redo can retry the restored entry");
-               --  A vanished source and an unrelated target are not evidence
-               --  that the history transition already completed.
-               Assert (Hostkit.Fs.Move_No_Replace (Dest, Saved), "remove the owned source pathname");
-               Write_Binary_File (Source, "unrelated target");
-               Step := Complete_Operation (Model, Settings, Operation_Commands.Undo_Last (Model, Settings));
-               Await_View (Model, Settings);
-               Files_Suite.Support.Assert_Equal
-                 (Step.Status,
-                  Files.Operation_Results.Operation_Failed,
-                  "history cannot mark an unrelated existing target as already moved: status");
-               Assert (Files.Model.History.Undo_Available (Model),
-                       "history cannot mark an unrelated existing target as already moved: Undo retained");
-               Assert (File_Is (Source, "unrelated target"),
-                       "history cannot mark an unrelated existing target as already moved: target kept");
+               Exercise (Background, Paste_Move, Kind);
             end loop;
          end loop;
       end loop;

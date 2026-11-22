@@ -1,3 +1,4 @@
+with Files_Suite.Support.Models;
 with Files.Model.Info_Pane;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -22,14 +23,7 @@ separate (Files_Suite.Refresh)
         Files.Extra_Info.Make (Files.Extra_Info.Text_Lines, Subject => "text", Value => "marker", Count => 4_242);
 
       function Listed (Name : String) return Boolean is
-      begin
-         for Index in 1 .. Files.Model.Visible_Count (Model) loop
-            if To_String (Files.Model.Visible_Item (Model, Index).Name) = Name then
-               return True;
-            end if;
-         end loop;
-         return False;
-      end Listed;
+        (Files_Suite.Support.Models.Visible_Index_Of (Model, Name) /= 0);
 
       function Marked return Boolean is
         (Files.Model.Selection.Selected_Item (Model).Filetype_Extra_Loaded

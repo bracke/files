@@ -1,3 +1,4 @@
+with Files_Suite.Support.Models;
 with Files.Item_Lists;
 with Files.Operations.Navigation;
 with Files.Model.Recent;
@@ -16,14 +17,7 @@ separate (Files_Suite.Operations)
       Dir_Index : Natural := 0;
 
       function Find_Visible (Name : String) return Natural is
-      begin
-         for I in 1 .. Files.Model.Item_Count (Model) loop
-            if Files.Model.Visible_Item (Model, I).Name = To_Unbounded_String (Name) then
-               return I;
-            end if;
-         end loop;
-         return 0;
-      end Find_Visible;
+        (Files_Suite.Support.Models.Visible_Index_Of (Model, Name));
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Dir);

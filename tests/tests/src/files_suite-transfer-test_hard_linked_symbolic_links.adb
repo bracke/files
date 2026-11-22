@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 with Files.File_System.Transfer;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
@@ -33,9 +34,14 @@ separate (Files_Suite.Transfer)
       end if;
       Reset_Root;
       Ada.Directories.Create_Path (Join (Source, "sub"));
-      Assert (Hostkit.Fs.Create_Link ("missing-target", Join (Source, "first")), "create a dangling symbolic link");
-      Assert (Hostkit.Fs.Create_Hard_Link (Join (Source, "first"), Join (Source, "sub/second")),
-              "create a hard link to the symbolic link itself");
+      if not Hostkit.Fs.Create_Link ("missing-target", Join (Source, "first")) then
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Hard_Linked_Symbolic_Links");
+         return;
+      end if;
+      if not Hostkit.Fs.Create_Hard_Link (Join (Source, "first"), Join (Source, "sub/second")) then
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Hard_Linked_Symbolic_Links", Files_Suite.Support.Disk.Hard_Link);
+         return;
+      end if;
       Mutation := Files.File_System.Transfer.Copy_Tree (Source, Join (Root, "copy"));
       Assert (Mutation.Success, "copy a tree containing hard-linked dangling symbolic links");
       Check (Join (Root, "copy"));

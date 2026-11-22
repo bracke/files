@@ -1,9 +1,11 @@
 separate (Check_All)
    procedure Check_Platform_Bodies is
    begin
-      Require_Not_Contains
+      --  A source directory is a string in files.gpr, which a text check
+      --  blanks unless its pattern holds a quote: look in the literals.
+      Require_No_Literal_In_Unit
         (Root & "/files.gpr",
-         "src/platform/",
+         "src/platform",
          "files.gpr must not reintroduce a per-OS source directory; per-host code is hostkit's");
       --  Nor per-OS bodies picked by naming exceptions, which is how the last
       --  two (a regular-file open and a rename's write access) came back after

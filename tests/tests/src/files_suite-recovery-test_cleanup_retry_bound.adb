@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
@@ -105,10 +106,12 @@ separate (Files_Suite.Recovery)
             Transport := To_Unbounded_String (Files.Jobs.Process.Path (Job, ""));
             Files.Jobs.Process.Testing.Release_Owner (Job);
             Project_Tools.Files.Delete_Tree (To_String (Transport));
-            Assert
-              (Hostkit.Fs.Create_Link (Join (Root, "missing-transport-target"),
-                                      To_String (Transport)),
-               "replace a released transport with a dangling link");
+            if not Hostkit.Fs.Create_Link (Join (Root, "missing-transport-target"), To_String (Transport)) then
+               --  The rest retries cleaning up the transport this link replaces.
+               Files.Jobs.Process.Reset (Job);
+               Files_Suite.Support.Disk.Link_Not_Made ("Test_Cleanup_Retry_Bound");
+               return;
+            end if;
             Files.Jobs.Process.Reset (Job);
             for Attempt in Files_Suite.Support.Timing.Polling loop
                exit when Failure_Count >= 1;

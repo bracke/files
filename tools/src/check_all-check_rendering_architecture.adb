@@ -192,72 +192,72 @@ separate (Check_All)
          end loop;
       end;
 
-      Require_Not_Contains_In_Unit
-        (Fonts_Body,
-         "or else Has_Suffix (Lower, "".ttc"")",
-         "font discovery must not select TTC collections that the text renderer cannot initialize");
-      Require_Not_Contains_In_Unit
-        (Fonts_Body,
-         "Textrender.Reset",
+      --  As tokens, so a guard holds however the code is laid out. (Whether
+      --  font discovery offers a TTC collection, which the text renderer
+      --  cannot initialize, is a behaviour: Test_Text_Glyph_Rasterization.)
+      Require_No_Tokens_In_Unit
+        (Fonts_Body, "Textrender.Reset",
          "font discovery must not reset process-global text renderer state");
-      Require_Not_Contains_In_Unit
-        (Fonts_Body,
-         "Textrender.Load_Font",
+      Require_No_Tokens_In_Unit
+        (Fonts_Body, "Textrender.Load_Font",
          "font discovery must not load fonts through the live text renderer");
-      Require_Not_Contains_In_Unit
-        (Fonts_Body,
-         "Textrender.Get_Glyph",
+      Require_No_Tokens_In_Unit
+        (Fonts_Body, "Textrender.Get_Glyph",
          "font discovery must not probe glyphs through the live text renderer");
-      Require_Not_Contains_In_Unit
-        (Fonts_Body,
-         "function Is_Required_Zero_Width_Codepoint",
+      Require_No_Tokens_In_Unit
+        (Fonts_Body, "use Textrender",
+         "font discovery must name Textrender's operations in full, so the guards above see them");
+      Require_No_Tokens_In_Unit
+        (Fonts_Body, "function Is_Required_Zero_Width_Codepoint",
          "font discovery must not keep a local required zero-width glyph classifier");
-      Require_Not_Contains_In_Unit
-        (Windows_Body,
-         "Glyphs.Missing_Glyph_Count > 0",
+      Require_No_Tokens_In_Unit
+        (Windows_Body, "Glyphs.Missing_Glyph_Count >",
          "live rendering must not reload fonts during every frame with missing glyphs");
-      Require_Not_Contains_In_Unit
-        (Rendering_Body,
-         "/usr/share/fonts",
+      Require_No_Literal_In_Unit
+        (Rendering_Body, "/usr/share/fonts",
          "rendering body must not hard-code system font paths");
-      Require_Not_Contains_In_Unit
-        (Rendering_Body,
-         "Add_Border (X, Y, Draw_Size, Draw_Size, Border_Color);",
+      Require_No_Tokens_In_Unit
+        (Rendering_Body, "Add_Border (X, Y, Draw_Size, Draw_Size,",
          "main-section icon assets must not draw an extra outer square border");
-      Require_Not_Contains_In_Unit
-        (Rendering_Body,
-         "procedure Add_Pixel_Icon",
+      Require_No_Tokens_In_Unit
+        (Rendering_Body, "procedure Add_Pixel_Icon",
          "toolbar icon rendering must not use enlarged 7x7 pixel glyphs");
-      Require_Not_Contains_In_Unit
-        (Rendering_Body,
-         "Item_State_Inset",
+      Require_No_Tokens_In_Unit
+        (Rendering_Body, "Item_State_Inset",
          "main-view hover and selection blocks must include the item padding area");
-      Require_Not_Contains_In_Unit
-        (Root & "/src/files-rendering.adb",
-         "Prefix & ""...""",
+      Require_No_Tokens_In_Unit
+        (Rendering_Body, "& ""...""",
          "rendering fitted text must not append three ASCII dots");
-      Require_Not_Contains_In_Unit
-        (Rendering_Body,
-         "function Is_Required_Zero_Width_Codepoint",
+      Require_No_Tokens_In_Unit
+        (Rendering_Body, "function Is_Required_Zero_Width_Codepoint",
          "text glyph rendering must not keep a local required zero-width glyph classifier");
-      Require_Not_Contains_In_Unit
-        (Root & "/src/files-rendering.adb",
-         "procedure Decode_Next_Codepoint" & ASCII.LF
-         & "           (Content   : String;",
+      Require_No_Tokens_In_Unit
+        (Rendering_Body, "procedure Decode_Next_Codepoint",
          "text glyph rendering must not keep a local UTF-8 decoder");
+      Require_No_Tokens_In_Unit
+        (Rendering_Body, "Unit_Width - 1",
+         "text glyph rendering must not half-shift wide Unicode filename glyphs");
 
       --  The biggest bodies may shrink but not grow (CLAUDE.md: keep
       --  files-rendering.adb from regrowing): a new large subprogram goes
       --  into a subunit of its own. Lower a ceiling when a file shrinks.
+      --  The ceiling is the ratchet (Target_Lines); the byte cap is what
+      --  that many lines of at most 120 characters can hold, so the line
+      --  count decides.
       declare
          procedure Require_At_Most (Name : String; Lines : Positive) is
-            Text  : constant String := To_String (Project_Tools.Text.Read_Text_File (Root & "/src/" & Name));
-            Count : constant Natural := Ada.Strings.Fixed.Count (Text, [1 => ASCII.LF]);
+            Errors : Natural := 0;
          begin
-            if Count > Lines then
-               Report (Name & " has" & Count'Image & " lines, over its ceiling of" & Lines'Image
-                  & ": move the new code into a subunit");
-            end if;
+            Project_Tools.Source_Budgets.Check_Line_Byte_Budget
+              (Errors             => Errors,
+               Root               => Root,
+               Relative_Path      => "src/" & Name,
+               Label              => Name & " (move new code into a subunit)",
+               Target_Lines       => Lines,
+               Max_Lines          => Lines + 1,
+               Min_Headroom_Lines => 1,
+               Max_Bytes          => (Lines + 1) * 121);
+            Count_Problems (Errors);
          end Require_At_Most;
       begin
          Require_At_Most ("files-rendering.adb", 133);

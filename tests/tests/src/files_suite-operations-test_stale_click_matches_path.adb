@@ -1,3 +1,4 @@
+with Files_Suite.Support.Models;
 with Files_Suite.Listings;
 separate (Files_Suite.Operations)
    --  A click on a frame older than the listing finds the drawn item by its
@@ -13,15 +14,7 @@ separate (Files_Suite.Operations)
       function Listing (Path : String) return Files.Items.Item_Vectors.Vector is
         (Files_Suite.Listings.Load_Directory (Path, Settings).Items);
 
-      function Index_Of (Name : String) return Natural is
-      begin
-         for Index in 1 .. Files.Model.Visible_Count (Model) loop
-            if To_String (Files.Model.Visible_Item (Model, Index).Name) = Name then
-               return Index;
-            end if;
-         end loop;
-         return 0;
-      end Index_Of;
+      function Index_Of (Name : String) return Natural is (Files_Suite.Support.Models.Visible_Index_Of (Model, Name));
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Dir_A);

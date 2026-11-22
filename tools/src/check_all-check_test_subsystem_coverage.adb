@@ -100,30 +100,92 @@ separate (Check_All)
                & " tests, not the" & Positive'Image (Expected) & " expected here");
          end if;
       end Require_Tests;
-   begin
+      type Suite_Count is record
+         Suite    : Unbounded_String;
+         Expected : Positive;
+      end record;
+
+      function Expect (Suite : String; Expected : Positive) return Suite_Count is
+        (Suite => To_Unbounded_String (Suite), Expected => Expected);
+
+      type Suite_Counts is array (Positive range <>) of Suite_Count;
+
       --  The exact counts as of the last change to a suite: a lost test, or
       --  one added without its count moving here, fails.
-      Require_Tests ("settings", 45);
-      Require_Tests ("startup", 32);
-      Require_Tests ("commands", 45);
-      Require_Tests ("model", 57);
-      Require_Tests ("interaction", 37);
-      Require_Tests ("context_menu", 22);
-      Require_Tests ("drags", 8);
-      Require_Tests ("tree", 16);
-      Require_Tests ("keyboard", 15);
-      Require_Tests ("text_input", 5);
-      Require_Tests ("rendering", 122);
-      Require_Tests ("operations", 49);
-      Require_Tests ("transfer", 60);
-      Require_Tests ("recovery", 64);
-      Require_Tests ("history", 42);
-      Require_Tests ("trash", 35);
-      Require_Tests ("search", 11);
-      Require_Tests ("thumbnails", 22);
-      Require_Tests ("archives", 7);
-      Require_Tests ("info", 33);
-      Require_Tests ("names", 19);
-      Require_Tests ("refresh", 16);
-      Require_Tests ("open_actions", 18);
+      Counts : constant Suite_Counts :=
+        [Expect ("settings", 45),
+         Expect ("startup", 32),
+         Expect ("commands", 45),
+         Expect ("model", 57),
+         Expect ("interaction", 37),
+         Expect ("context_menu", 22),
+         Expect ("drags", 8),
+         Expect ("tree", 16),
+         Expect ("keyboard", 15),
+         Expect ("text_input", 5),
+         Expect ("rendering", 122),
+         Expect ("operations", 49),
+         Expect ("transfer", 60),
+         Expect ("recovery", 64),
+         Expect ("history", 42),
+         Expect ("trash", 35),
+         Expect ("search", 11),
+         Expect ("thumbnails", 22),
+         Expect ("archives", 7),
+         Expect ("info", 33),
+         Expect ("names", 19),
+         Expect ("refresh", 16),
+         Expect ("open_actions", 18)];
+
+      --  The suites files_suite.adb runs: Result.Add_Test (Files_Suite.<Name>.Suite).
+      function Registered_Suites return String_List is
+         use Tokens;
+         Toks : constant Token_List :=
+           Tokens_Of (Project_Tools.Files.Read_Raw_File (Root & "/tests/tests/src/files_suite.adb"));
+
+         function From (Start : Positive) return String_List is
+         begin
+            for Index in Start .. Toks.Last_Index - 6 loop
+               if Is_Word (Toks (Index), "add_test") and then Is_Symbol (Toks (Index + 1), "(")
+                 and then Is_Word (Toks (Index + 2), "files_suite") and then Is_Symbol (Toks (Index + 3), ".")
+                 and then Toks (Index + 4).Kind = Word and then Is_Symbol (Toks (Index + 5), ".")
+                 and then Is_Word (Toks (Index + 6), "suite")
+               then
+                  return Toks (Index + 4).Text & From (Index + 7);
+               end if;
+            end loop;
+            return [1 .. 0 => <>];
+         end From;
+      begin
+         return From (Toks.First_Index);
+      end Registered_Suites;
+
+      Suites : constant String_List := Registered_Suites;
+
+      function Counted (Suite : String) return Boolean is
+        (for some Item of Counts => To_String (Item.Suite) = Suite);
+
+      function Registered (Suite : String) return Boolean is
+        (for some Name of Suites => To_String (Name) = Suite);
+   begin
+      if Suites'Length = 0 then
+         Report ("check_all's Check_Test_Subsystem_Coverage finds no suite in tests/tests/src/files_suite.adb");
+      end if;
+      --  Every suite the run adds has its count here, and every count is a
+      --  suite the run adds: a new suite is held to an exact count from its
+      --  first test, and a dropped one is not counted on.
+      for Name of Suites loop
+         if not Counted (To_String (Name)) then
+            Report ("the " & To_String (Name) & " test suite is run but has no expected test count in"
+                    & " check_all's Check_Test_Subsystem_Coverage");
+         end if;
+      end loop;
+      for Item of Counts loop
+         if Registered (To_String (Item.Suite)) then
+            Require_Tests (To_String (Item.Suite), Item.Expected);
+         else
+            Report ("check_all's Check_Test_Subsystem_Coverage counts the " & To_String (Item.Suite)
+                    & " test suite, which files_suite.adb no longer runs");
+         end if;
+      end loop;
    end Check_Test_Subsystem_Coverage;

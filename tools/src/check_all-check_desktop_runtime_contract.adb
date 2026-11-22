@@ -193,7 +193,7 @@ separate (Check_All)
          Fail (Windows_Body & ": drops must not be taken from the queue directly "
                & "(Drop_Events.Take); Files.Controller.Import_Pending_Drops leaves them queued under an overlay");
       end if;
-      Require_Not_Contains_In_Unit
+      Require_No_Tokens_In_Unit
         (Windows_Body,
          "Glyphs.Missing_Glyph_Count /= 0",
          "headless smoke must not reject otherwise visible frames solely for missing-glyph fallback");
@@ -212,7 +212,7 @@ separate (Check_All)
       Require_Registered_Routine
         ("Test_Runtime_Capabilities_And_Drop_Events",
          "the test of runtime capabilities and drop events");
-      Require_Not_Contains_In_Unit
+      Require_No_Tokens_In_Unit
         (Windows_Body,
          "Runtime.Last_Missing_Glyph_Count = 0",
          "live smoke must not reject otherwise visible frames solely for missing-glyph fallback");

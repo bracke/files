@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with Files.File_Types;
 with Files.Types;
 
@@ -47,5 +48,18 @@ package body Files_Suite.Listings is
       Settings  : Files.Settings.Settings_Model)
       return Files.File_System.Search.Recursive_Search_Result is
      (Files.File_System.Search.Search_Contents (Root_Path, Query, Classes (Settings), Options (Settings)));
+
+   function Listed_Index (Load : Files.File_System.Directory_Load_Result; Name : String) return Natural is
+   begin
+      for Index in Load.Items.First_Index .. Load.Items.Last_Index loop
+         if Ada.Strings.Unbounded.To_String (Load.Items (Index).Name) = Name then
+            return Index;
+         end if;
+      end loop;
+      return 0;
+   end Listed_Index;
+
+   function Listed (Load : Files.File_System.Directory_Load_Result; Name : String) return Boolean is
+     (Listed_Index (Load, Name) /= 0);
 
 end Files_Suite.Listings;

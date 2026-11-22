@@ -69,9 +69,10 @@ separate (Files_Suite.Operations_Support)
          Link_Created : constant Boolean := Create_Symlink
            (Join (Root, "linked-application-target.desktop"),
             Join (Apps_Dir, "linked-application.desktop"));
-         pragma Unreferenced (Link_Created);
       begin
-         null;
+         if not Link_Created then
+            Files_Suite.Support.Disk.Link_Not_Made ("With_Desktop_Application_Fixture");
+         end if;
       end;
       declare
          Excessive_Exec : Unbounded_String := To_Unbounded_String ("viewer");
@@ -266,9 +267,10 @@ separate (Files_Suite.Operations_Support)
       declare
          Loop_Created : constant Boolean :=
            Files_Suite.Support.Disk.Create_Symlink (Apps_Dir, Join (Apps_Dir, "loop"));
-         pragma Unreferenced (Loop_Created);
       begin
-         null;
+         if not Loop_Created then
+            Files_Suite.Support.Disk.Link_Not_Made ("With_Desktop_Application_Fixture");
+         end if;
       end;
 
       --  A malformed or hostile application tree must also have a finite

@@ -71,7 +71,7 @@ separate (Files_Suite.Operations)
          Load : constant Files.File_System.Directory_Load_Result :=
            Files_Suite.Listings.Load_Directory (Directory, Settings);
       begin
-         return Load.Success and then (for some Item of Load.Items => To_String (Item.Name) = Name);
+         return Load.Success and then Files_Suite.Listings.Listed (Load, Name);
       end Listed;
 
       --  Whether Result found an item called Name.

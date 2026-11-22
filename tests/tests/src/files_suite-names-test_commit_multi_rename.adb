@@ -1,3 +1,4 @@
+with Files_Suite.Support.Models;
 with Files.Operations.Editing;
 with Files_Suite.Listings;
 with Files.Operation_Results;
@@ -67,11 +68,8 @@ separate (Files_Suite.Names)
          Files.Model.Selection.Select_Visible (Model, One_Visible);
       end;
       --  two.txt sorts after one.txt and oneZ.txt; add it to the selection.
-      for Index in 1 .. Files.Model.Visible_Count (Model) loop
-         if To_String (Files.Model.Visible_Item (Model, Index).Name) = "two.txt" then
-            Files.Model.Selection.Toggle_Visible_Selection (Model, Index);
-         end if;
-      end loop;
+      Files.Model.Selection.Toggle_Visible_Selection
+        (Model, Files_Suite.Support.Models.Visible_Index_Of (Model, "two.txt"));
       Files.Model.Rename.Toggle (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Testing.Rename_Field_Count (Model),

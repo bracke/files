@@ -81,6 +81,20 @@ package Files_Suite.Support.Models is
    --  @param Name Name of the item to select.
    procedure Select_Name (Model : in out Files.Model.Window_Model; Name : String);
 
+   --  Where the model shows an item called Name.
+   --
+   --  @param Model Model whose shown items are searched.
+   --  @param Name Item name.
+   --  @return Its visible index, the first such; 0 when none is shown.
+   function Visible_Index_Of (Model : Files.Model.Window_Model; Name : String) return Natural;
+
+   --  Where the model shows the item at Path.
+   --
+   --  @param Model Model whose shown items are searched.
+   --  @param Path Item's full path.
+   --  @return Its visible index; 0 when it is not shown.
+   function Visible_Path_Index_Of (Model : Files.Model.Window_Model; Path : String) return Natural;
+
    --  An extra info written compactly for an expectation ("text.lines_encoding|1|ascii"):
    --  the kind, then its fields. Only ever written, never read back.
    --

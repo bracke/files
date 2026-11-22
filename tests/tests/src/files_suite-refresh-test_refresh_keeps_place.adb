@@ -1,3 +1,4 @@
+with Files_Suite.Support.Models;
 with Files.Quick_Look.Preparation;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
@@ -15,14 +16,7 @@ separate (Files_Suite.Refresh)
       pragma Unreferenced (Step, Applied);
 
       function Listed (Name : String) return Boolean is
-      begin
-         for Index in 1 .. Files.Model.Visible_Count (Model) loop
-            if To_String (Files.Model.Visible_Item (Model, Index).Name) = Name then
-               return True;
-            end if;
-         end loop;
-         return False;
-      end Listed;
+        (Files_Suite.Support.Models.Visible_Index_Of (Model, Name) /= 0);
    begin
       Reset_Root;
       for Index in 1 .. 40 loop

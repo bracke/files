@@ -1,3 +1,4 @@
+with Files.Text_Case;
 with Files.Preference_Types;
 with Files.Rendering.Text.Testing; use Files.Rendering.Text.Testing;
 separate (Files_Suite.Rendering)
@@ -9,6 +10,20 @@ separate (Files_Suite.Rendering)
       Result   : Guikit.Draw.Text_Render_Result;
    begin
       Assert (Files.Fonts.Default_Font_Path /= "", "a default text font is available");
+      --  Font discovery offers no TrueType collection: the text renderer
+      --  cannot initialize a .ttc, and a frame that fell back to one would
+      --  draw no text at all.
+      declare
+         function Is_Collection (Path : String) return Boolean is
+           (Path'Length >= 4
+            and then Files.Text_Case.Fold_Case (Path (Path'Last - 3 .. Path'Last)) = ".ttc");
+      begin
+         Assert (not Is_Collection (Files.Fonts.Default_Font_Path),
+                 "the default font is no collection: " & Files.Fonts.Default_Font_Path);
+         for Path of Files.Fonts.Fallback_Font_Paths loop
+            Assert (not Is_Collection (To_String (Path)), "no fallback font is a collection: " & To_String (Path));
+         end loop;
+      end;
       Assert
         (Initialize_Text
            (Renderer    => Renderer,

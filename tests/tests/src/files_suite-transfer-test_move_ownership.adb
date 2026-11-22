@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 with Files.Operations.History.Testing;
 with Files.Model.Jobs;
 with Files.Operations.Paste.Testing;
@@ -64,7 +65,11 @@ separate (Files_Suite.Transfer)
          Reset_Root;
          Ada.Directories.Create_Directory (Source);
          Write_Binary_File (Join (Source, "child"), "group protected bytes");
-         Assert (Hostkit.Fs.Create_Link ("child", Join (Source, "link")), "prepare a symlink ownership fixture");
+         if not Hostkit.Fs.Create_Link ("child", Join (Source, "link")) then
+            Cleanup;
+            Files_Suite.Support.Disk.Link_Not_Made ("Test_Move_Ownership");
+            return;
+         end if;
          Prepare (Source);
          Prepare (Join (Source, "child"));
          Prepare (Join (Source, "link"));

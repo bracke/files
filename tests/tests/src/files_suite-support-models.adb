@@ -203,4 +203,24 @@ package body Files_Suite.Support.Models is
       end return;
    end Replaced_Originals;
 
+   function Visible_Index_Of (Model : Files.Model.Window_Model; Name : String) return Natural is
+   begin
+      for Index in 1 .. Files.Model.Visible_Count (Model) loop
+         if To_String (Files.Model.Visible_Item (Model, Index).Name) = Name then
+            return Index;
+         end if;
+      end loop;
+      return 0;
+   end Visible_Index_Of;
+
+   function Visible_Path_Index_Of (Model : Files.Model.Window_Model; Path : String) return Natural is
+   begin
+      for Index in 1 .. Files.Model.Visible_Count (Model) loop
+         if To_String (Files.Model.Visible_Item (Model, Index).Full_Path) = Path then
+            return Index;
+         end if;
+      end loop;
+      return 0;
+   end Visible_Path_Index_Of;
+
 end Files_Suite.Support.Models;

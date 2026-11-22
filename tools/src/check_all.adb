@@ -17,6 +17,7 @@ with Project_Tools.Ada_Source.Tokens;
 with Project_Tools.AUnit_Checks;
 with Project_Tools.Files;
 with Project_Tools.Processes;
+with Project_Tools.Source_Budgets;
 with Project_Tools.Text;
 with Project_Tools.Tree_Checks;
 use Project_Tools.Ada_Source;
@@ -271,28 +272,6 @@ procedure Check_All is
 
    procedure Check_CLDR_Importer is separate;
 
-   --  Visit each line of Text, its LF left off, with its number counted from
-   --  1. A last line with no LF after it is visited too; an empty Text has no
-   --  lines, and a final LF starts none.
-   procedure For_Each_Line
-     (Text  : String;
-      Visit : not null access procedure (Line : String; Number : Positive))
-   is
-      Line_Start : Positive := Text'First;
-      Number     : Positive := 1;
-   begin
-      for Index in Text'Range loop
-         if Text (Index) = ASCII.LF then
-            Visit (Text (Line_Start .. Index - 1), Number);
-            Number := Number + 1;
-            Line_Start := Index + 1;
-         end if;
-      end loop;
-      if Text /= "" and then Line_Start <= Text'Last then
-         Visit (Text (Line_Start .. Text'Last), Number);
-      end if;
-   end For_Each_Line;
-
    procedure Check_Line_Lengths_In_File (Path : String) is separate;
 
    procedure Check_Consecutive_Empty_Lines_In_File (Path : String) is separate;
@@ -403,52 +382,6 @@ procedure Check_All is
    --  comment or a string literal that spells what they look for, nor by
    --  how a statement is laid out over lines.
    package Tokens renames Project_Tools.Ada_Source.Tokens;
-
-   --  The unit a GNAT-named source holds, lower case:
-   --  ".../files-model-selection.ads" is "files.model.selection".
-   function Unit_Of_File (Path : String) return String is
-      Result : String := Ada.Characters.Handling.To_Lower (Ada.Directories.Base_Name (Path));
-   begin
-      for C of Result loop
-         if C = '-' then
-            C := '.';
-         end if;
-      end loop;
-      return Result;
-   end Unit_Of_File;
-
-   --  Whether the body at Path is a subunit of Unit (lower case): its
-   --  "separate" names Unit, or a subunit of Unit's in the same folder. A
-   --  child unit's body (files-x-child.adb, "package body Files.X.Child")
-   --  is no subunit of Files.X, nor are its own subunits.
-   function Is_Subunit_Of (Path : String; Unit : String) return Boolean is
-      Parent : constant String := Tokens.Separate_Parent_Of (Project_Tools.Files.Read_Raw_File (Path));
-   begin
-      if Parent = "" then
-         return False;
-      elsif Parent = Unit then
-         return True;
-      elsif Parent'Length > Unit'Length + 1
-        and then Parent (Parent'First .. Parent'First + Unit'Length) = Unit & "."
-      then
-         declare
-            File : String := Parent;
-         begin
-            for C of File loop
-               if C = '.' then
-                  C := '-';
-               end if;
-            end loop;
-            declare
-               Parent_Path : constant String := Ada.Directories.Containing_Directory (Path) & "/" & File & ".adb";
-            begin
-               return Project_Tools.Files.File_Exists (Parent_Path) and then Is_Subunit_Of (Parent_Path, Unit);
-            end;
-         end;
-      else
-         return False;
-      end if;
-   end Is_Subunit_Of;
 
    --  Require the sources in src/ whose names start with Prefix (".ads" and
    --  ".adb": a unit, its children and subunits) to name nothing from
@@ -815,6 +748,28 @@ procedure Check_All is
       Message   : String)
    is separate;
 
+   --  Like Require_Not_Contains_In_Unit, but Pattern is Ada read as tokens:
+   --  a match is the same words, literals and delimiters in the same order,
+   --  however they are laid out over lines or spaced, comments ignored. A
+   --  guarded unit that no longer exists is refused too, so a guard cannot
+   --  pass silently for want of a file to look in.
+   procedure Require_No_Tokens_In_Unit
+     (Base_Path : String;
+      Pattern   : String;
+      Message   : String)
+   is separate;
+
+   --  Refuse a string literal containing Text in the unit family whose body
+   --  is Base_Path (as Require_Not_Contains_In_Unit scans it). The text
+   --  checks blank a literal's contents unless their pattern holds a quote,
+   --  so what only a literal can say -- a path, a message -- is looked for
+   --  here.
+   procedure Require_No_Literal_In_Unit
+     (Base_Path : String;
+      Text      : String;
+      Message   : String)
+   is separate;
+
    procedure Check_Filetype_Detection_Order is separate;
 
    --  The units that reach the filesystem or start processes: event
@@ -898,6 +853,14 @@ procedure Check_All is
    --  with Delete_Permanently or Delete_Tree leaves a record behind for the
    --  sweep, and the tests after it, to trip over.
    procedure Check_Test_Stage_Removal is separate;
+
+   --  A link a test makes that the host may refuse (a symbolic link without
+   --  the privilege on Windows, any link on a FAT volume) says so when it is
+   --  refused: Files_Suite.Support.Disk.Link_Not_Made fails on Linux and
+   --  skips elsewhere. An Assert of the link fails where the host merely
+   --  takes no links; a result dropped or tested without a report checks
+   --  nothing there and says nothing about it.
+   procedure Check_Test_Link_Routing is separate;
 
    --  Every share/locales catalog takes the {arguments} the default
    --  locale's message takes, checked by messages' catalog_check: a
@@ -983,6 +946,7 @@ procedure Check_All is
       Named ("Check_Test_Hooks", Check_Test_Hooks'Access),
       Named ("Check_Test_Hook_Disarms", Check_Test_Hook_Disarms'Access),
       Named ("Check_Test_Stage_Removal", Check_Test_Stage_Removal'Access),
+      Named ("Check_Test_Link_Routing", Check_Test_Link_Routing'Access),
       Named ("Check_Command_And_Overlay_Layers", Check_Command_And_Overlay_Layers'Access),
       Named ("Check_Job_Layer", Check_Job_Layer'Access),
       Named ("Check_File_System_Closure", Check_File_System_Closure'Access),

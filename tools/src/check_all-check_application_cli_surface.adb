@@ -4,10 +4,6 @@ separate (Check_All)
       Application_Body : constant String := Root & "/src/files-application.adb";
       Tests            : constant String := Combined_Suite;
    begin
-      Require_Not_Contains_In_Unit
-        (Root & "/src/files-rendering.adb",
-         "Unit_Width - 1",
-         "text glyph rendering must not half-shift wide Unicode filename glyphs");
       Require_In_Text
         (Root & "/share/files.catalog",
          "en.cli.help.option.version = ",

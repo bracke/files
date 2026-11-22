@@ -92,10 +92,32 @@ begin
          end if;
          Ada.Directories.Create_Directory (Job_Temp);
          Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Suite_Temp);
-         Ada.Environment_Variables.Set ("TMPDIR", Job_Temp);
          Owned_Temp := Ada.Strings.Unbounded.To_Unbounded_String (Suite_Temp);
       end;
    end if;
+   --  Every temporary the suite and its jobs make -- job transports, the
+   --  scavenger's scan, the recovery fixtures' fixed names -- goes to the
+   --  suite's own jobs folder, never the user's temporary folder: POSIX reads
+   --  TMPDIR, Windows TMP then TEMP (GetTempPathW). Also when the caller named
+   --  FILES_TEST_TEMP; a helper process inherits values already inside it.
+   declare
+      Suite_Temp : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TEMP");
+      Job_Temp   : constant String := Hostkit.Fs.Join (Suite_Temp, "jobs");
+
+      procedure Point_Inside (Variable : String) is
+      begin
+         if not Ada.Environment_Variables.Exists (Variable)
+           or else Ada.Strings.Fixed.Index (Ada.Environment_Variables.Value (Variable), Suite_Temp) /= 1
+         then
+            Ada.Environment_Variables.Set (Variable, Job_Temp);
+         end if;
+      end Point_Inside;
+   begin
+      Ada.Directories.Create_Path (Job_Temp);
+      Point_Inside ("TMPDIR");
+      Point_Inside ("TMP");
+      Point_Inside ("TEMP");
+   end;
    if not Ada.Environment_Variables.Exists ("FILES_TEST_ROOT") then
       Ada.Environment_Variables.Set
         ("FILES_TEST_ROOT",

@@ -7,7 +7,7 @@ separate (Files_Suite.Info)
       Nested  : constant String := Join (Tree, "nested");
       Outside : constant String := Join (Root, "outside");
       Size    : Files.File_System_Types.Directory_Size_Result;
-      Linked  : Boolean;
+      Unlinked : Boolean;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Nested);
@@ -23,25 +23,23 @@ separate (Files_Suite.Info)
          Files_Suite.Support.Disk.Link_Not_Made ("Test_Directory_Size_Over_Links");
          return;
       end if;
-      Linked :=
-        Files_Suite.Support.Disk.Create_Symlink (Join (Root, "missing"), Join (Tree, "gone"))
-        and then Files_Suite.Support.Disk.Create_Symlink (Join (Outside, "big.bin"), Join (Tree, "big"))
-        and then Files_Suite.Support.Disk.Create_Symlink (Outside, Join (Tree, "away"));
+      if not (Files_Suite.Support.Disk.Create_Symlink (Join (Root, "missing"), Join (Tree, "gone"))
+              and then Files_Suite.Support.Disk.Create_Symlink (Join (Outside, "big.bin"), Join (Tree, "big"))
+              and then Files_Suite.Support.Disk.Create_Symlink (Outside, Join (Tree, "away")))
+      then
+         Files_Suite.Support.Disk.Link_Not_Made ("Test_Directory_Size_Over_Links");
+         return;
+      end if;
 
       Size := Files.File_System.Directory_Size (Tree);
 
       --  Capture first, then remove the trees while their targets exist. The
       --  dangling link is invisible to Ada.Directories, so unlink it directly.
-      declare
-         Removed : Boolean;
-      begin
-         GNAT.OS_Lib.Delete_File (Join (Tree, "gone"), Removed);
-         Linked := Linked and then Removed;
-      end;
+      GNAT.OS_Lib.Delete_File (Join (Tree, "gone"), Unlinked);
       Project_Tools.Files.Delete_Tree (Tree);
       Project_Tools.Files.Delete_Tree (Outside);
 
-      Assert (Linked, "create the dangling and outward links");
+      Assert (Unlinked, "remove the dangling link");
       Assert (Size.Available and then not Size.Capped,
               "a cycle neither fails the walk nor runs it into a cap");
       Assert (Size.Total_Bytes = 7 and then Size.File_Count = 2,

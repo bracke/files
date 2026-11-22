@@ -32,22 +32,8 @@ separate (Check_All)
       --  each: a subunit calls through its parent's renaming.
       Aliases : Unbounded_String;
 
-      function Is_Name_Character (C : Character) return Boolean is
-        (C in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_');
-
-      procedure For_Each_Line (Text : String; Visit : not null access procedure (Line : String)) is
-         First : Positive := Text'First;
-      begin
-         for Index in Text'Range loop
-            if Text (Index) = LF then
-               Visit (Text (First .. Index - 1));
-               First := Index + 1;
-            end if;
-         end loop;
-         if First <= Text'Last then
-            Visit (Text (First .. Text'Last));
-         end if;
-      end For_Each_Line;
+      function Is_Name_Character (C : Character) return Boolean
+        renames Project_Tools.Ada_Source.Is_Identifier_Character;
 
       --  Code (lower case) of a source in src/.
       function Lower_Code (Path : String) return String is
@@ -79,7 +65,8 @@ separate (Check_All)
       procedure Collect_Aliases (Path : String) is
          Lower : constant String := Lower_Code (Path);
 
-         procedure For_Unit (Unit : String) is
+         procedure For_Unit (Unit : String; Number : Positive) is
+            pragma Unreferenced (Number);
             Pattern   : constant String := "renames " & Unit & ";";
             From      : Positive := Lower'First;
             At_Rename : Natural;
@@ -122,7 +109,8 @@ separate (Check_All)
 
          --  Name, and Name with its unit spelled as each of the unit's aliases.
          procedure Check_Spellings (Unit, Rest : String; Why : String) is
-            procedure Check_Alias (Line : String) is
+            procedure Check_Alias (Line : String; Number : Positive) is
+               pragma Unreferenced (Number);
                Equals : constant Natural := Ada.Strings.Fixed.Index (Line, "=");
             begin
                if Equals > 0 and then Line (Equals + 1 .. Line'Last) = Unit
@@ -138,20 +126,23 @@ separate (Check_All)
             For_Each_Line (To_String (Aliases), Check_Alias'Access);
          end Check_Spellings;
 
-         procedure Check_Call (Line : String) is
+         procedure Check_Call (Line : String; Number : Positive) is
+            pragma Unreferenced (Number);
             Dot : constant Natural := Ada.Strings.Fixed.Index (Line, ".", Ada.Strings.Backward);
          begin
             Check_Spellings (Line (Line'First .. Dot - 1), Line (Dot .. Line'Last), "calls");
          end Check_Call;
 
-         procedure Check_Use (Unit : String) is
+         procedure Check_Use (Unit : String; Number : Positive) is
+            pragma Unreferenced (Number);
             Use_Clause : constant String := "use ";
          begin
             if Names (Lower, Use_Clause & Unit & ";") then
                Refuse (Unit, "uses");
             end if;
             declare
-               procedure Check_Alias (Line : String) is
+               procedure Check_Alias (Line : String; Number : Positive) is
+                  pragma Unreferenced (Number);
                   Equals : constant Natural := Ada.Strings.Fixed.Index (Line, "=");
                begin
                   if Equals > 0 and then Line (Equals + 1 .. Line'Last) = Unit

@@ -73,18 +73,13 @@ separate (Files_Suite.History)
                   declare
                      Expected_Name : constant String :=
                        (if Extracting then "a" else "a (copy).txt");
-                     Found : Boolean := False;
                   begin
                      --  The first item committed before the second failed. It
                      --  must be present in the refreshed model, not merely on
                      --  disk and in the Undo entry.
                      Files.Model.Filtering.Set_Filter (Model, "");
-                     for Index in 1 .. Files.Model.Visible_Count (Model) loop
-                        Found := Found or else
-                          To_String (Files.Model.Visible_Item (Model, Index).Name) = Expected_Name;
-                     end loop;
                      Assert
-                       (Found
+                       (Files_Suite.Support.Models.Visible_Index_Of (Model, Expected_Name) /= 0
                         and then Files.Model.Last_Error_Key (Model) =
                           (if Extracting then "error.extract.damaged" else "error.duplicate.failed"),
                         "partial batches refresh committed outputs and retain their diagnostic");

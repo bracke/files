@@ -1,3 +1,4 @@
+with Files_Suite.Support.Models;
 with Files.Operations.Opening;
 with Files_Suite.Listings;
 with Files.Model.Jobs;
@@ -15,13 +16,9 @@ separate (Files_Suite.Thumbnails)
       Environment : Files_Suite.Support.Guards.Environment_Guard;
 
       function Photo_Has_Thumbnail return Boolean is
+         Photo : constant Natural := Files_Suite.Support.Models.Visible_Index_Of (Model, "photo.png");
       begin
-         for Index in 1 .. Files.Model.Visible_Count (Model) loop
-            if To_String (Files.Model.Visible_Item (Model, Index).Name) = "photo.png" then
-               return Files.Model.Visible_Item (Model, Index).Thumbnail_Available;
-            end if;
-         end loop;
-         return False;
+         return Photo /= 0 and then Files.Model.Visible_Item (Model, Photo).Thumbnail_Available;
       end Photo_Has_Thumbnail;
    begin
       Files_Suite.Support.Guards.Save (Environment, "XDG_CACHE_HOME");

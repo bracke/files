@@ -1,3 +1,4 @@
+with Files_Suite.Support.Disk;
 with Files.File_System.Testing;
 with Files.File_System.Transfer;
 with Files_Suite.Volumes;
@@ -28,8 +29,11 @@ separate (Files_Suite.Transfer)
       Ada.Directories.Create_Path (Join (Source, "sub"));
       Write_Binary_File (Join (Source, "first"), "linked bytes");
       Write_Binary_File (Join (Source, "unrelated"), "linked bytes");
-      Assert (Hostkit.Fs.Create_Hard_Link (Join (Source, "first"), Join (Source, "sub/second")),
-              "prepare a nested hard-link set");
+      if not Hostkit.Fs.Create_Hard_Link (Join (Source, "first"), Join (Source, "sub/second")) then
+         Files_Suite.Support.Disk.Link_Not_Made
+           ("Test_Copy_Hard_Link_Trees", Files_Suite.Support.Disk.Hard_Link);
+         return;
+      end if;
       Mutation := Files.File_System.Transfer.Copy_Tree (Source, Join (Root, "copy"));
       Assert (Mutation.Success, "copy the hard-link tree");
       Check (Join (Root, "copy"));
@@ -60,11 +64,15 @@ separate (Files_Suite.Transfer)
          Ada.Directories.Create_Path (Four);
          Write_Binary_File (Join (Two, "a"), "linked bytes");
          Write_Binary_File (Join (Four, "a"), "linked bytes");
-         Assert (Hostkit.Fs.Create_Hard_Link (Join (Two, "a"), Join (Two, "b"))
+         if not (Hostkit.Fs.Create_Hard_Link (Join (Two, "a"), Join (Two, "b"))
                  and then Hostkit.Fs.Create_Hard_Link (Join (Four, "a"), Join (Four, "b"))
                  and then Hostkit.Fs.Create_Hard_Link (Join (Four, "a"), Join (Four, "c"))
-                 and then Hostkit.Fs.Create_Hard_Link (Join (Four, "a"), Join (Four, "d")),
-                 "prepare two hard-link sets");
+                 and then Hostkit.Fs.Create_Hard_Link (Join (Four, "a"), Join (Four, "d")))
+         then
+            Files_Suite.Support.Disk.Link_Not_Made
+              ("Test_Copy_Hard_Link_Trees", Files_Suite.Support.Disk.Hard_Link);
+            return;
+         end if;
          Files.File_System.Testing.Refuse_Hard_Links (True);
          Reads := Files.File_System.Testing.Copy_Digest_Reads;
          Mutation := Files.File_System.Transfer.Copy_Tree (Two, Join (Root, "two-copied"));
@@ -95,9 +103,13 @@ separate (Files_Suite.Transfer)
             Ada.Directories.Create_Path (Join (Pairs, "y"));
             Write_Binary_File (Join (Pairs, "x/x1"), "first file");
             Write_Binary_File (Join (Pairs, "y/y1"), "second file");
-            Assert (Hostkit.Fs.Create_Hard_Link (Join (Pairs, "x/x1"), Join (Pairs, "x/x2"))
-                    and then Hostkit.Fs.Create_Hard_Link (Join (Pairs, "y/y1"), Join (Pairs, "y/y2")),
-                    "prepare two linked files");
+            if not (Hostkit.Fs.Create_Hard_Link (Join (Pairs, "x/x1"), Join (Pairs, "x/x2"))
+                    and then Hostkit.Fs.Create_Hard_Link (Join (Pairs, "y/y1"), Join (Pairs, "y/y2")))
+            then
+               Files_Suite.Support.Disk.Link_Not_Made
+                 ("Test_Copy_Hard_Link_Trees", Files_Suite.Support.Disk.Hard_Link);
+               return;
+            end if;
             Files.File_System.Testing.Refuse_Hard_Links (True);
             Reads := Files.File_System.Testing.Copy_Digest_Reads;
             Mutation := Files.File_System.Transfer.Copy_Tree (Pairs, Join (Root, "two-files-copied"));

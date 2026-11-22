@@ -17,14 +17,10 @@ separate (Files_Suite.Info)
       function Item_Named (Name : String) return Files.Items.Directory_Item is
          Load : constant Files.File_System.Directory_Load_Result :=
            Files_Suite.Listings.Load_Directory (Root, Settings);
+         Index : constant Natural := Files_Suite.Listings.Listed_Index (Load, Name);
       begin
-         for Item of Load.Items loop
-            if To_String (Item.Name) = Name then
-               return Item;
-            end if;
-         end loop;
-         Assert (False, Name & " is listed");
-         return Load.Items.First_Element;
+         Assert (Index /= 0, Name & " is listed");
+         return Load.Items (Index);
       end Item_Named;
 
       --  Poll Who's request of Item until it is read.
